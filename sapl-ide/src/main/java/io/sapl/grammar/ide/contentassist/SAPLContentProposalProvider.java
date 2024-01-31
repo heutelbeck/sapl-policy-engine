@@ -474,6 +474,10 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addSimpleProposals(final Collection<String> proposals, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
+        System.out.println("adding ... ");
+        for(var p:proposals)
+            System.out.println("-'"+p+"'");
+        System.out.println("------------------------");
         var contextWithCorrectedPrefix = getContextWithCorrectedPrefix(context, pdpConfiguration);
         for (var proposal : proposals) {
             if (proposal.contains(">"))

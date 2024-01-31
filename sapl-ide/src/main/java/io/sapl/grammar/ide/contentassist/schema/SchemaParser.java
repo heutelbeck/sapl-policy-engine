@@ -17,204 +17,261 @@
  */
 package io.sapl.grammar.ide.contentassist.schema;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @UtilityClass
 public class SchemaParser {
 
-    private static final int                MAX_DEPTH         = 20;
-    private static final ObjectMapper       MAPPER            = new ObjectMapper();
-    private static final Collection<String> RESERVED_KEYWORDS = Set.of("$schema", "$id", "additionalProperties",
-            "allOf", "anyOf", "dependentRequired", "description", "enum", "format", "items", "oneOf", "properties",
-            "required", "title", "type");
+    private static final String ANCHOR     = "$anchor";
+    private static final String ARRAY      = "array";
+    private static final String ID         = "$id";
+    private static final String OBJECT     = "object";
+    private static final String PROPERTIES = "properties";
+    private static final String REF        = "$ref";
+    private static final String TYPE       = "type";
 
-    public static List<String> generatePaths(JsonNode schema, Map<String, JsonNode> variables) {
+    private static final int MAX_DEPTH = 10;
 
-        var jsonPaths = getJsonPaths(schema, "", schema, 0, variables);
-        jsonPaths.removeIf(s -> s.startsWith("$defs"));
-        jsonPaths.removeIf(String::isBlank);
-        jsonPaths.removeIf(RESERVED_KEYWORDS::contains);
-        jsonPaths.replaceAll(SchemaParser::encloseWithQuotationMarksIfContainsSpace);
-        return jsonPaths;
+    private static final Collection<String> KEYWORDS_INDICATING_TYPE_ARRAY = Set.of("allOf", "anyOf", "oneOf", TYPE);
+
+    public static List<String> generateProposals(Val schema, Map<String, JsonNode> variables) {
+        if (!schema.isDefined())
+            return List.of();
+
+        return generateProposals("", schema.get(), variables);
     }
 
-    private static boolean propertyIsArray(JsonNode jsonNode) {
-        var typeNode = jsonNode.get("type");
-
-        if (typeNode != null) {
-            var type = typeNode.textValue();
-            return "array".equals(type);
-        } else
-            return false;
+    public static List<String> generateProposals(String prefix, JsonNode schema, Map<String, JsonNode> variables) {
+        var proposals   = new ArrayList<String>();
+        var definitions = new HashMap<String, JsonNode>();
+        var id          = idIfPresent(schema);
+        // lookup of URI vie remote web request is not supported.
+        // We assume all schemas are either embedded in the schema or are stored in the
+        // variables, where they are identified by their respective $id field
+        // schemas with no $id will be ignored in variables
+        loadSchema(schema, definitions);
+        loadSchemasFromVariables(variables, definitions);
+        addProposals(id, schema, prefix, schema, definitions, proposals, 0);
+        return proposals;
     }
 
-    private static JsonNode getReferencedNodeFromDifferentDocument(String ref, Map<String, JsonNode> variables) {
-        JsonNode refNode;
-        String   schemaName;
-        String   internalRef = null;
-        if (ref.contains("#/")) {
-            var refSplit = ref.split("#/", 2);
-            schemaName  = refSplit[0].replaceAll("\\.json$", "").replace("/", "");
-            internalRef = "#/".concat(refSplit[1]);
-        } else {
-            schemaName = ref.replaceAll("\\.json$", "");
+    private static void loadSchemasFromVariables(Map<String, JsonNode> variables, Map<String, JsonNode> definitions) {
+        for (var variable : variables.values()) {
+            loadSchema(variable, definitions);
         }
-        refNode = variables.get(schemaName);
-        if (internalRef != null && refNode != null) {
-            refNode = getReferencedNodeFromSameDocument(refNode, internalRef);
+    }
+
+    private static void loadSchema(JsonNode schema, Map<String, JsonNode> definitions) {
+        var id = idIfPresent(schema);
+        if (!id.isBlank()) {
+            definitions.put(id, schema);
         }
-        return refNode;
     }
 
-    private static JsonNode getReferencedNodeFromSameDocument(JsonNode originalSchema, String ref) {
-        if ("#".equals(ref))
-            return originalSchema;
-        ref = ref.replace("#/", "");
-        return getNestedSubnode(originalSchema, ref);
-    }
-
-    private static JsonNode getNestedSubnode(JsonNode rootNode, String path) {
-        var pathElements = path.split("/");
-        var currentNode  = rootNode;
-
-        for (String element : pathElements) {
-            currentNode = currentNode.get(element);
-        }
-
-        return currentNode;
-    }
-
-    private static List<String> handleEnum(JsonNode jsonNode, String parentPath) {
-        var      enumValuesNode = jsonNode.get("enum");
-        String[] enumValuesArray;
-        var      paths          = new LinkedList<String>();
+    private JsonNode lookupReferencedSchema(String baseUri, JsonNode baseSchema, JsonNode referenceNode,
+            Map<String, JsonNode> definitions) {
+        if (!referenceNode.isTextual())
+            return null;
+        var reference = referenceNode.asText();
+        log.error("reference:{}", reference);
         try {
-            enumValuesArray = MAPPER.treeToValue(enumValuesNode, String[].class);
-        } catch (JsonProcessingException e) {
-            return new LinkedList<>();
-        }
-        List<String> enumValues = new ArrayList<>(Arrays.asList(enumValuesArray));
-        for (String enumPath : enumValues) {
-            paths.add(parentPath + "." + enumPath);
-        }
-        return paths;
-    }
-
-    private static List<String> getJsonPaths(JsonNode jsonNode, String parentPath, final JsonNode originalSchema,
-            int depth, Map<String, JsonNode> variables) {
-
-        Collection<String> paths = new HashSet<>();
-
-        depth++;
-        if (depth > MAX_DEPTH)
-            return new ArrayList<>();
-
-        if (jsonNode != null && jsonNode.isObject()) {
-            if (propertyIsArray(jsonNode)) {
-                paths = handleArray(jsonNode, parentPath, originalSchema, depth, variables);
-            } else {
-                paths.addAll(constructPathFromNonArrayProperty(jsonNode, parentPath, originalSchema, depth, variables));
+            var base = URI.create(baseUri);
+            var ref  = URI.create(reference);
+            if (ref.isAbsolute()) {
+                var schema = definitions.get(withoutFragment(ref).toString());
+                if (schema == null)
+                    return null;
+                var fragment = ref.getFragment();
+                if (fragment == null)
+                    return schema;
+                return lookupFragmentReference(schema, fragment);
             }
-        } else if (jsonNode != null && jsonNode.isArray()) {
-            paths.addAll(constructPathsFromArray(jsonNode, parentPath, originalSchema, depth, variables));
-        } else {
-            paths.add(parentPath);
+            log.error("non absoute reference");
+            return lookupFragmentReference(baseSchema, reference);
+        } catch (URISyntaxException | IllegalArgumentException e) {
+            // cannot resolve schema - no proposals
+            return null;
+        }
+    }
+
+    private JsonNode lookupFragmentReference(JsonNode schema, String fragment) {
+        if (fragment.startsWith("#"))
+            fragment = fragment.substring(1);
+
+        if (fragment.startsWith("/")) {
+            return lookupJsonPointerReference(schema, fragment);
         }
 
-        return new ArrayList<>(paths);
+        if (fragment.isBlank())
+            return schema; // https://json-schema.org/understanding-json-schema/structuring#recursion
+
+        return lookupAnchorReference(schema, fragment);
     }
 
-    private static Collection<String> handleArray(JsonNode jsonNode, String parentPath, JsonNode originalSchema,
-            int depth, Map<String, JsonNode> variables) {
-        Collection<String> paths = new HashSet<>();
-        var                items = jsonNode.get("items");
-        if (items != null) {
-            if (items.isArray())
-                paths.addAll(constructPathsFromArray(items, parentPath, originalSchema, depth, variables));
-            else
-                paths.addAll(constructPathFromNonArrayProperty(items, parentPath, originalSchema, depth, variables));
-        } else
-            paths.add(parentPath);
-        return paths;
+    private JsonNode lookupAnchorReference(JsonNode schema, String anchor) {
+        log.error("lookup anchor reference: '{}'", anchor);
+
+        if (schema instanceof ObjectNode objectNode)
+            return lookupAnchorReferenceInObject(objectNode, anchor);
+
+        if (schema instanceof ArrayNode arrayNode)
+            return lookupAnchorReferenceInArray(arrayNode, anchor);
+
+        return null;
     }
 
-    private static Collection<String> constructPathsFromArray(JsonNode jsonNode, String parentPath,
-            JsonNode originalSchema, int depth, Map<String, JsonNode> variables) {
-        Collection<String> paths = new HashSet<>();
-
-        for (int i = 0; i < jsonNode.size(); i++) {
-            var childNode   = jsonNode.get(i);
-            var currentPath = parentPath.isEmpty() ? "" : parentPath;
-            paths.addAll(getJsonPaths(childNode, currentPath, originalSchema, depth, variables));
+    private JsonNode lookupAnchorReferenceInArray(ArrayNode arrayNode, String anchor) {
+        var elementsIterator = arrayNode.elements();
+        while (elementsIterator.hasNext()) {
+            var schema = lookupAnchorReference(elementsIterator.next(), anchor);
+            if (schema != null)
+                return schema;
         }
-        return paths;
+        return null;
     }
 
-    private static Collection<String> constructPathFromNonArrayProperty(JsonNode jsonNode, String parentPath,
-            JsonNode originalSchema, int depth, Map<String, JsonNode> variables) {
-        Collection<String> paths = new HashSet<>();
+    private JsonNode lookupAnchorReferenceInObject(ObjectNode objectNode, String anchor) {
+        var anchorField = objectNode.get(ANCHOR);
+        if (anchorField != null && anchorField.asText().equals(anchor))
+            return objectNode;
+        var fieldsIterator = objectNode.fields();
+        while (fieldsIterator.hasNext()) {
+            var schema = lookupAnchorReference(fieldsIterator.next().getValue(), anchor);
+            if (schema != null)
+                return schema;
+        }
+        return null;
+    }
 
-        JsonNode     childNode;
-        String       currentPath;
-        List<String> enumPaths = new LinkedList<>();
-
-        Iterator<String> fieldNames = jsonNode.fieldNames();
-        if (!fieldNames.hasNext())
-            paths.add(parentPath);
-        while (fieldNames.hasNext()) {
-            String fieldName = fieldNames.next();
-            childNode = jsonNode.get(fieldName);
-
-            if ("$ref".equals(fieldName)) {
-                childNode   = handleReferences(originalSchema, childNode, variables);
-                currentPath = parentPath;
-            } else if ("enum".equals(fieldName)) {
-                enumPaths   = handleEnum(jsonNode, parentPath);
-                currentPath = parentPath;
-            } else if ("patternProperties".equals(fieldName)) {
-                childNode   = JsonNodeFactory.instance.nullNode();
-                currentPath = parentPath;
-            } else if (RESERVED_KEYWORDS.contains(fieldName)) {
-                currentPath = parentPath;
-            } else {
-                currentPath = parentPath.isEmpty() ? fieldName : parentPath + "." + fieldName;
+    private JsonNode lookupJsonPointerReference(JsonNode schema, String fragment) {
+        log.error("lookup pointer reference: '{}'", fragment);
+        var path = fragment.split("/");
+        log.error("path:{}", List.of(path));
+        var identifiedSchema = schema;
+        for (var step : path) {
+            log.error("inspected schema: {}", identifiedSchema);
+            log.error("step:{}", step);
+            if (!step.isBlank()) {
+                if (!identifiedSchema.has(step))
+                    return null;
+                identifiedSchema = identifiedSchema.get(step);
             }
-            paths.addAll(getJsonPaths(childNode, currentPath, originalSchema, depth, variables));
-            paths.addAll(enumPaths);
         }
-
-        return paths;
+        return identifiedSchema;
     }
 
-    private static JsonNode handleReferences(JsonNode originalSchema, JsonNode childNode,
-            Map<String, JsonNode> variables) {
-        JsonNode refNode;
-        if (childNode.textValue().startsWith("#"))
-            refNode = getReferencedNodeFromSameDocument(originalSchema, childNode.textValue());
-        else {
-            refNode = getReferencedNodeFromDifferentDocument(childNode.textValue(), variables);
-        }
-        return refNode;
+    private URI withoutFragment(URI u) throws URISyntaxException {
+        return new URI(u.getScheme(), u.getSchemeSpecificPart(), null);
     }
 
-    private static String encloseWithQuotationMarksIfContainsSpace(String s) {
-        if (s.contains(" ")) {
-            return "'" + s + "'";
+    private String idIfPresent(JsonNode node) {
+        if (node == null || !node.has(ID))
+            return "";
+
+        var id = node.get(ID);
+        if (!id.isTextual())
+            return "";
+
+        return id.asText();
+    }
+
+    private static void addProposals(String id, JsonNode baseSchema, String prefix, JsonNode schema,
+            Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
+        if (recursionDepth == MAX_DEPTH || schema == null || !schema.isObject())
+            return;
+
+        if (schema.has(REF)) {
+            addProposals(id, baseSchema, prefix, lookupReferencedSchema(id, baseSchema, schema.get(REF), definitions),
+                    definitions, proposals, recursionDepth);
+            return;
+        }
+
+        for (var multiTypeKeyword : KEYWORDS_INDICATING_TYPE_ARRAY) {
+            if (hasArrayFieldNamed(schema, multiTypeKeyword)) {
+                addMultipleProposals(id, baseSchema, prefix, schema.get(multiTypeKeyword).elements(), definitions,
+                        proposals, recursionDepth);
+                return;
+            }
+        }
+
+        if (!schema.has(TYPE))
+            return;
+
+        var typeNode = schema.get(TYPE);
+        if (!typeNode.isTextual())
+            return;
+
+        var type = typeNode.asText();
+        if (OBJECT.equals(type)) {
+            addObjectProposals(id, baseSchema, prefix, schema, definitions, proposals, recursionDepth);
+        }
+
+        if (ARRAY.equals(type)) {
+            addArrayProposals(id, baseSchema, prefix, schema, definitions, proposals, recursionDepth);
+        }
+
+    }
+
+    private static void addMultipleProposals(String id, JsonNode baseSchema, String prefix,
+            Iterator<JsonNode> elementsIterator, Map<String, JsonNode> definitions, Collection<String> proposals,
+            int recursionDepth) {
+        while (elementsIterator.hasNext()) {
+            addProposals(id, baseSchema, prefix, elementsIterator.next(), definitions, proposals, recursionDepth);
+        }
+    }
+
+    private static boolean hasArrayFieldNamed(JsonNode node, String fieldName) {
+        return node.isObject() && node.has(fieldName) && node.get(fieldName).isArray();
+
+    }
+
+    private static void addObjectProposals(String id, JsonNode baseSchema, String prefix, JsonNode schema,
+            Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
+        if (!schema.has(PROPERTIES))
+            return;
+        var properties = schema.get(PROPERTIES);
+        if (!properties.isObject())
+            return;
+
+        var fieldsIterator = properties.fields();
+        while (fieldsIterator.hasNext()) {
+            var field   = fieldsIterator.next();
+            var newPath = prefix + '.' + escaped(field.getKey());
+            proposals.add(newPath);
+            addProposals(id, baseSchema, newPath, field.getValue(), definitions, proposals, recursionDepth + 1);
+        }
+
+    }
+
+    private static void addArrayProposals(String id, JsonNode baseSchema, String prefix, JsonNode schema,
+            Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
+        var newPrefix = prefix + "[]";
+        proposals.add(newPrefix);
+
+    }
+
+    private static String escaped(String s) {
+        var escaped = s.replace("\\", "\\\\").replace("\t", "\\t").replace("\b", "\\b").replace("\n", "\\n")
+                .replace("\r", "\\r").replace("\f", "\\f").replace("\"", "\\\"").replace("'", "\'");
+        if (escaped.contains(" ")) {
+            return "'" + escaped + "'";
         }
         return s;
     }

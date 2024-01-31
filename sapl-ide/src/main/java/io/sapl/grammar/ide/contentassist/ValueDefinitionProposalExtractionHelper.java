@@ -110,44 +110,35 @@ public class ValueDefinitionProposalExtractionHelper {
     }
 
     public List<String> getFunctionProposals() {
-
         var functionContext = pdpConfiguration.functionContext();
         var variables       = pdpConfiguration.variables();
         var proposals       = new LinkedList<String>();
         var allSchemas      = functionContext.getFunctionSchemas();
         for (var entry : allSchemas.entrySet()) {
-            var paths = SchemaParser.generatePaths(entry.getValue(), variables);
-            for (var path : paths) {
-                var    fun              = entry.getKey();
-                var    allTemplates     = functionContext.getCodeTemplates();
-                String fullFunctionName = getFullFunctionName(fun, allTemplates);
-                if (!fullFunctionName.isBlank()) {
-                    var proposal = String.join(".", fullFunctionName, path);
-                    proposals.add(proposal);
-                }
-            }
+            var fun              = entry.getKey();
+            var allTemplates     = functionContext.getCodeTemplates();
+            var fullFunctionName = getFullFunctionName(fun, allTemplates);
+            var paths            = SchemaParser.generateProposals(fullFunctionName, entry.getValue(), variables);
+            proposals.addAll(paths);
         }
         return proposals;
     }
 
     public List<String> getAttributeProposals() {
-        var          attributeContext = pdpConfiguration.attributeContext();
-        var          variables        = pdpConfiguration.variables();
-        List<String> proposals        = new LinkedList<>();
-        List<String> allTemplates     = new LinkedList<>();
-        var          allSchemas       = attributeContext.getAttributeSchemas();
+        var attributeContext = pdpConfiguration.attributeContext();
+        var variables        = pdpConfiguration.variables();
+        var proposals        = new LinkedList<String>();
+        var allTemplates     = new LinkedList<String>();
+        var allSchemas       = attributeContext.getAttributeSchemas();
 
         allTemplates.addAll(attributeContext.getAttributeCodeTemplates());
         allTemplates.addAll(attributeContext.getEnvironmentAttributeCodeTemplates());
 
         for (var entry : allSchemas.entrySet()) {
-            var paths = SchemaParser.generatePaths(entry.getValue(), variables);
-            for (var path : paths) {
-                var fun              = entry.getKey();
-                var fullFunctionName = getFullFunctionName(fun, allTemplates);
-                var proposal         = String.join(".", fullFunctionName, path);
-                proposals.add(proposal);
-            }
+            var fun              = entry.getKey();
+            var fullFunctionName = getFullFunctionName(fun, allTemplates);
+            var paths            = SchemaParser.generateProposals(fullFunctionName, entry.getValue(), variables);
+            proposals.addAll(paths);
         }
         return proposals;
     }
@@ -461,7 +452,7 @@ public class ValueDefinitionProposalExtractionHelper {
         var          absName        = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
         var          allSchemas     = pdpConfiguration.functionContext().getFunctionSchemas();
         var          functionSchema = allSchemas.get(absName);
-        functionSchemaTemplates = SchemaProposals.schemaTemplatesFromJson(functionSchema, pdpConfiguration.variables());
+        functionSchemaTemplates = SchemaParser.generateProposals("", functionSchema, pdpConfiguration.variables());
         return functionSchemaTemplates;
     }
 
@@ -472,8 +463,7 @@ public class ValueDefinitionProposalExtractionHelper {
         var          name           = getFunctionName(stepsString, "", imports);
         var          absName        = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
         var          functionSchema = pdpConfiguration.attributeContext().getAttributeSchemas().get(absName);
-        attributeSchemaTemplates = SchemaProposals.schemaTemplatesFromJson(functionSchema,
-                pdpConfiguration.variables());
+        attributeSchemaTemplates = SchemaParser.generateProposals("", functionSchema, pdpConfiguration.variables());
 
         return attributeSchemaTemplates;
     }
