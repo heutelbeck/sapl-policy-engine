@@ -32,6 +32,8 @@ import java.util.regex.Pattern;
 
 import org.hamcrest.number.OrderingComparison;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -254,12 +256,7 @@ public class MockingFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Map<String, String> getFunctionSchemas() {
-        return Map.of();
-    }
-
-    @Override
-    public Map<String, String> getFunctionSchemaPaths() {
+    public Map<String, JsonNode> getFunctionSchemas() {
         return Map.of();
     }
 

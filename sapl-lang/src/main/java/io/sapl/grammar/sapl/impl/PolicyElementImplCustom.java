@@ -18,13 +18,10 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.impl.util.ImportsUtil;
+import io.sapl.grammar.sapl.impl.util.MatchingUtil;
 import reactor.core.publisher.Mono;
 
 public class PolicyElementImplCustom extends PolicyElementImpl {
-
-    private static final String CONDITION_NOT_BOOLEAN_ERROR = "Evaluation error: Target condition must evaluate to a boolean value, but was: '%s'.";
 
     /**
      * Checks whether the policy element (policy set or policy) matches an
@@ -37,21 +34,7 @@ public class PolicyElementImplCustom extends PolicyElementImpl {
      */
     @Override
     public Mono<Val> matches() {
-
-        var targetExpression = getTargetExpression();
-        if (targetExpression == null) {
-            return Mono.just(Val.TRUE);
-        }
-
-        return targetExpression.evaluate().contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx))
-                .onErrorResume(error -> Mono.just(Val.error(error))).next().defaultIfEmpty(Val.FALSE)
-                .flatMap(result -> {
-                    if (result.isError() || !result.isBoolean()) {
-                        return Mono.just(
-                                Val.error(CONDITION_NOT_BOOLEAN_ERROR, result).withTrace(PolicyElement.class, result));
-                    }
-                    return Mono.just(result);
-                });
+        return MatchingUtil.matches(getTargetExpression(), this);
     }
 
 }

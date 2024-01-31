@@ -241,8 +241,6 @@ class QueryManipulationObligationProviderTests {
 
         arrayNode.add("123123");
 
-        System.out.print(arrayNode);
-
         // WHEN
         var mongoQueryManipulationObligationResult = provider.getObligation(arrayNode, R2DBC_QUERY_TYPE);
 

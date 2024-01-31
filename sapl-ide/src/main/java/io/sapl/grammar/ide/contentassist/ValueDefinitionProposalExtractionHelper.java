@@ -17,15 +17,14 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import com.google.common.collect.Iterables;
-import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
-import io.sapl.grammar.sapl.*;
-import io.sapl.grammar.sapl.impl.util.FunctionUtil;
-import io.sapl.grammar.sapl.impl.util.ImportsUtil;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
-import lombok.RequiredArgsConstructor;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
@@ -33,19 +32,30 @@ import org.eclipse.xtext.nodemodel.ILeafNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
+import com.google.common.collect.Iterables;
+
+import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
+import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
+import io.sapl.grammar.sapl.BasicFunction;
+import io.sapl.grammar.sapl.BasicIdentifier;
+import io.sapl.grammar.sapl.Condition;
+import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.KeyStep;
+import io.sapl.grammar.sapl.PolicyBody;
+import io.sapl.grammar.sapl.SAPL;
+import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.Statement;
+import io.sapl.grammar.sapl.ValueDefinition;
+import io.sapl.grammar.sapl.impl.util.FunctionUtil;
+import io.sapl.grammar.sapl.impl.util.ImportsUtil;
+import io.sapl.pdp.config.PDPConfiguration;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ValueDefinitionProposalExtractionHelper {
 
-    private final VariablesAndCombinatorSource variablesAndCombinatorSource;
-    private final FunctionContext              functionContext;
-    private final AttributeContext             attributeContext;
-    private final ContentAssistContext         context;
+    private final PDPConfiguration     pdpConfiguration;
+    private final ContentAssistContext context;
 
     public Collection<String> getProposals(EObject model, ProposalType proposalType) {
         int currentOffset = context.getOffset();
@@ -100,16 +110,10 @@ public class ValueDefinitionProposalExtractionHelper {
 
     public List<String> getFunctionProposals() {
 
+        var functionContext = pdpConfiguration.functionContext();
         var proposals       = new LinkedList<String>();
-        var schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
+        var schemaProposals = new SchemaProposals(pdpConfiguration.variables());
         var allSchemas      = functionContext.getFunctionSchemas();
-        var allSchemaPaths  = functionContext.getFunctionSchemaPaths();
-        for (var path : allSchemaPaths.entrySet()) {
-            String schema = fetchSchemaFromPath(path.getValue());
-            if (!schema.isEmpty()) {
-                allSchemas.put(path.getKey(), schema);
-            }
-        }
         for (var entry : allSchemas.entrySet()) {
             var paths = schemaProposals.schemaTemplatesForFunctions(entry.getValue());
             for (var path : paths) {
@@ -126,10 +130,11 @@ public class ValueDefinitionProposalExtractionHelper {
     }
 
     public List<String> getAttributeProposals() {
-        List<String> proposals       = new LinkedList<>();
-        List<String> allTemplates    = new LinkedList<>();
-        var          schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
-        var          allSchemas      = attributeContext.getAttributeSchemas();
+        var          attributeContext = pdpConfiguration.attributeContext();
+        List<String> proposals        = new LinkedList<>();
+        List<String> allTemplates     = new LinkedList<>();
+        var          schemaProposals  = new SchemaProposals(pdpConfiguration.variables());
+        var          allSchemas       = attributeContext.getAttributeSchemas();
 
         allTemplates.addAll(attributeContext.getAttributeCodeTemplates());
         allTemplates.addAll(attributeContext.getEnvironmentAttributeCodeTemplates());
@@ -290,19 +295,8 @@ public class ValueDefinitionProposalExtractionHelper {
         return fullFunctionName;
     }
 
-    private static String fetchSchemaFromPath(String path) {
-        String schema;
-        Path   file = Paths.get(path);
-        try {
-            schema = Files.readString(file);
-        } catch (IOException e) {
-            return "";
-        }
-        return schema;
-    }
-
     private Collection<String> getPreambleSchemaProposals() {
-        return new SchemaProposals(variablesAndCombinatorSource).getVariableNamesAsTemplates();
+        return new SchemaProposals(pdpConfiguration.variables()).getVariableNamesAsTemplates();
     }
 
     private Collection<String> getBodyProposals(ProposalType proposalType, int currentOffset, PolicyBody policyBody,
@@ -319,7 +313,7 @@ public class ValueDefinitionProposalExtractionHelper {
 
     private Collection<String> getAuthzProposals() {
         Collection<String> proposals       = new HashSet<>();
-        var                schemaProposals = new SchemaProposals(variablesAndCombinatorSource);
+        var                schemaProposals = new SchemaProposals(pdpConfiguration.variables());
         var                saplSchemas     = getSapl().getSchemas();
 
         for (var schema : saplSchemas) {
@@ -460,30 +454,25 @@ public class ValueDefinitionProposalExtractionHelper {
 
     private List<String> getFunctionSchemaTemplates(List<String> stepsString, String identifier) {
         List<String> functionSchemaTemplates;
-        var          imports        = ImportsUtil.fetchImports(getSapl(), attributeContext, functionContext);
+        var          imports        = ImportsUtil.fetchImports(getSapl(), pdpConfiguration.attributeContext(),
+                pdpConfiguration.functionContext());
         var          name           = getFunctionName(stepsString, identifier, imports);
         var          absName        = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
-        var          allSchemas     = functionContext.getFunctionSchemas();
-        var          allSchemaPaths = functionContext.getFunctionSchemaPaths();
-        for (var path : allSchemaPaths.entrySet()) {
-            String schema = fetchSchemaFromPath(path.getValue());
-            if (!schema.isEmpty()) {
-                allSchemas.put(path.getKey(), schema);
-            }
-        }
-        var functionSchema = allSchemas.get(absName);
-        functionSchemaTemplates = new SchemaProposals(variablesAndCombinatorSource)
+        var          allSchemas     = pdpConfiguration.functionContext().getFunctionSchemas();
+        var          functionSchema = allSchemas.get(absName);
+        functionSchemaTemplates = new SchemaProposals(pdpConfiguration.variables())
                 .schemaTemplatesFromJson(functionSchema);
         return functionSchemaTemplates;
     }
 
     private List<String> getAttributeSchemaTemplates(List<String> stepsString) {
         List<String> attributeSchemaTemplates;
-        var          imports        = ImportsUtil.fetchImports(getSapl(), attributeContext, functionContext);
+        var          imports        = ImportsUtil.fetchImports(getSapl(), pdpConfiguration.attributeContext(),
+                pdpConfiguration.functionContext());
         var          name           = getFunctionName(stepsString, "", imports);
         var          absName        = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
-        var          functionSchema = attributeContext.getAttributeSchemas().get(absName);
-        attributeSchemaTemplates = new SchemaProposals(variablesAndCombinatorSource)
+        var          functionSchema = pdpConfiguration.attributeContext().getAttributeSchemas().get(absName);
+        attributeSchemaTemplates = new SchemaProposals(pdpConfiguration.variables())
                 .schemaTemplatesFromJson(functionSchema);
         return attributeSchemaTemplates;
     }
@@ -528,7 +517,7 @@ public class ValueDefinitionProposalExtractionHelper {
             Iterable<Expression> schemaVarExpression) {
         List<String> proposalTemplates = new ArrayList<>();
         for (Expression varExpression : schemaVarExpression) {
-            var schemaProposals     = new SchemaProposals(variablesAndCombinatorSource);
+            var schemaProposals     = new SchemaProposals(pdpConfiguration.variables());
             var schemaTemplates     = schemaProposals.getCodeTemplates(varExpression);
             var valueDefinitionName = valueDefinition.getName();
 

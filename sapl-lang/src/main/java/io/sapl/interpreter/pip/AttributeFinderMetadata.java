@@ -19,6 +19,8 @@ package io.sapl.interpreter.pip;
 
 import java.lang.reflect.Method;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -29,16 +31,15 @@ import lombok.Data;
 @AllArgsConstructor
 public class AttributeFinderMetadata implements LibraryEntryMetadata {
 
-    Object  policyInformationPoint;
-    Method  function;
-    String  libraryName;
-    String  functionName;
-    String  functionSchema;
-    String  functionPathToSchema;
-    boolean environmentAttribute;
-    boolean attributeWithVariableParameter;
-    boolean varArgsParameters;
-    int     numberOfParameters;
+    Object   policyInformationPoint;
+    Method   function;
+    String   libraryName;
+    String   functionName;
+    JsonNode functionSchema;
+    boolean  environmentAttribute;
+    boolean  attributeWithVariableParameter;
+    boolean  varArgsParameters;
+    int      numberOfParameters;
 
     @Override
     public String getDocumentationCodeTemplate() {
@@ -57,11 +58,6 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
 
         sb.append('>');
         return sb.toString();
-    }
-
-    @Override
-    public String getFunctionSchema() {
-        return functionSchema;
     }
 
     @Override
