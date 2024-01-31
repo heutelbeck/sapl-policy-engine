@@ -294,8 +294,7 @@ class FunctionProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("schemaTest.location()", "schemaTest.location().latitude",
-                        "schemaTest.location().latitude.maximum");
+                var expected = List.of("schemaTest.location()", "schemaTest.location().latitude");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -315,8 +314,7 @@ class FunctionProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("schemaTest.location()", "schemaTest.location().latitude",
-                        "schemaTest.location().latitude.maximum");
+                var expected = List.of("schemaTest.location()", "schemaTest.location().latitude");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -336,7 +334,7 @@ class FunctionProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo.latitude", "foo.latitude.maximum");
+                var expected = List.of("foo.latitude");
                 assertProposalsSimple(expected, completionList);
                 var unwanted = List.of("clock.millis>", "filter.blacken");
                 assertDoesNotContainProposals(unwanted, completionList);

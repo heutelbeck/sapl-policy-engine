@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.contentassist.schema;
+package io.sapl.grammar.ide.contentassist;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -32,24 +32,37 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.Expression;
+import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @UtilityClass
-public class SchemaParser {
+public class SchemaProposalGenerator {
 
-    private static final String ANCHOR     = "$anchor";
-    private static final String ARRAY      = "array";
-    private static final String ID         = "$id";
-    private static final String OBJECT     = "object";
-    private static final String PROPERTIES = "properties";
-    private static final String REF        = "$ref";
-    private static final String TYPE       = "type";
+    private static final String DEFAULT_ID   = "https://sapl.io/schemas";
+    private static final String ANCHOR       = "$anchor";
+    private static final String ARRAY        = "array";
+    private static final String ID           = "$id";
+    private static final String ITEMS        = "items";
+    private static final String PREFIX_ITEMS = "prefixItems";
+    private static final String PROPERTIES   = "properties";
+    private static final String REF          = "$ref";
+    private static final String TYPE         = "type";
 
     private static final int MAX_DEPTH = 10;
 
     private static final Collection<String> KEYWORDS_INDICATING_TYPE_ARRAY = Set.of("allOf", "anyOf", "oneOf", TYPE);
+
+    public static List<String> getVariableNamesAsTemplates(Map<String, JsonNode> variables) {
+        var result = new ArrayList<String>(variables.size());
+        result.addAll(variables.keySet());
+        return result;
+    }
+
+    public static Collection<String> getCodeTemplates(Expression expression, Map<String, JsonNode> variables) {
+        return expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, variables))
+                .map(schema -> SchemaProposalGenerator.generateProposals(schema, variables)).blockFirst();
+    }
 
     public static List<String> generateProposals(Val schema, Map<String, JsonNode> variables) {
         if (!schema.isDefined())
@@ -59,16 +72,18 @@ public class SchemaParser {
     }
 
     public static List<String> generateProposals(String prefix, JsonNode schema, Map<String, JsonNode> variables) {
-        var proposals   = new ArrayList<String>();
+        var proposals = new ArrayList<String>();
+        if (schema == null)
+            return proposals;
+
         var definitions = new HashMap<String, JsonNode>();
-        var id          = idIfPresent(schema);
         // lookup of URI vie remote web request is not supported.
         // We assume all schemas are either embedded in the schema or are stored in the
         // variables, where they are identified by their respective $id field
         // schemas with no $id will be ignored in variables
         loadSchema(schema, definitions);
         loadSchemasFromVariables(variables, definitions);
-        addProposals(id, schema, prefix, schema, definitions, proposals, 0);
+        addProposals(schema, prefix, schema, definitions, proposals, 0);
         return proposals;
     }
 
@@ -79,21 +94,16 @@ public class SchemaParser {
     }
 
     private static void loadSchema(JsonNode schema, Map<String, JsonNode> definitions) {
-        var id = idIfPresent(schema);
-        if (!id.isBlank()) {
-            definitions.put(id, schema);
-        }
+        definitions.put(idIfPresentOrDefaultId(schema), schema);
     }
 
-    private JsonNode lookupReferencedSchema(String baseUri, JsonNode baseSchema, JsonNode referenceNode,
+    private JsonNode lookupReferencedSchema(JsonNode baseSchema, JsonNode referenceNode,
             Map<String, JsonNode> definitions) {
         if (!referenceNode.isTextual())
             return null;
         var reference = referenceNode.asText();
-        log.error("reference:{}", reference);
         try {
-            var base = URI.create(baseUri);
-            var ref  = URI.create(reference);
+            var ref = URI.create(reference);
             if (ref.isAbsolute()) {
                 var schema = definitions.get(withoutFragment(ref).toString());
                 if (schema == null)
@@ -103,10 +113,9 @@ public class SchemaParser {
                     return schema;
                 return lookupFragmentReference(schema, fragment);
             }
-            log.error("non absoute reference");
             return lookupFragmentReference(baseSchema, reference);
         } catch (URISyntaxException | IllegalArgumentException e) {
-            // cannot resolve schema - no proposals
+            // cannot resolve schema => no proposals will be made.
             return null;
         }
     }
@@ -126,8 +135,6 @@ public class SchemaParser {
     }
 
     private JsonNode lookupAnchorReference(JsonNode schema, String anchor) {
-        log.error("lookup anchor reference: '{}'", anchor);
-
         if (schema instanceof ObjectNode objectNode)
             return lookupAnchorReferenceInObject(objectNode, anchor);
 
@@ -161,13 +168,9 @@ public class SchemaParser {
     }
 
     private JsonNode lookupJsonPointerReference(JsonNode schema, String fragment) {
-        log.error("lookup pointer reference: '{}'", fragment);
-        var path = fragment.split("/");
-        log.error("path:{}", List.of(path));
+        var path             = fragment.split("/");
         var identifiedSchema = schema;
         for (var step : path) {
-            log.error("inspected schema: {}", identifiedSchema);
-            log.error("step:{}", step);
             if (!step.isBlank()) {
                 if (!identifiedSchema.has(step))
                     return null;
@@ -181,68 +184,68 @@ public class SchemaParser {
         return new URI(u.getScheme(), u.getSchemeSpecificPart(), null);
     }
 
-    private String idIfPresent(JsonNode node) {
-        if (node == null || !node.has(ID))
-            return "";
+    private String idIfPresentOrDefaultId(JsonNode node) {
+        if (!node.has(ID))
+            return DEFAULT_ID;
 
         var id = node.get(ID);
         if (!id.isTextual())
-            return "";
+            return DEFAULT_ID;
 
-        return id.asText();
+        var idValue = id.asText();
+        if (idValue.isBlank())
+            return DEFAULT_ID;
+        return idValue;
     }
 
-    private static void addProposals(String id, JsonNode baseSchema, String prefix, JsonNode schema,
+    private static void addProposals(JsonNode baseSchema, String prefix, JsonNode schema,
             Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
         if (recursionDepth == MAX_DEPTH || schema == null || !schema.isObject())
             return;
 
         if (schema.has(REF)) {
-            addProposals(id, baseSchema, prefix, lookupReferencedSchema(id, baseSchema, schema.get(REF), definitions),
+            addProposals(baseSchema, prefix, lookupReferencedSchema(baseSchema, schema.get(REF), definitions),
                     definitions, proposals, recursionDepth);
             return;
         }
 
         for (var multiTypeKeyword : KEYWORDS_INDICATING_TYPE_ARRAY) {
             if (hasArrayFieldNamed(schema, multiTypeKeyword)) {
-                addMultipleProposals(id, baseSchema, prefix, schema.get(multiTypeKeyword).elements(), definitions,
+                addMultipleProposals(baseSchema, prefix, schema.get(multiTypeKeyword).elements(), definitions,
                         proposals, recursionDepth);
                 return;
             }
         }
 
-        if (!schema.has(TYPE))
-            return;
+        addObjectProposals(baseSchema, prefix, schema, definitions, proposals, recursionDepth);
 
-        var typeNode = schema.get(TYPE);
-        if (!typeNode.isTextual())
-            return;
-
-        var type = typeNode.asText();
-        if (OBJECT.equals(type)) {
-            addObjectProposals(id, baseSchema, prefix, schema, definitions, proposals, recursionDepth);
+        var arrayPrefix = prefix + "[]";
+        if (schema.has(TYPE)) {
+            // sometimes the "type" is omitted in schemata. only if "type" explicitly is set
+            // to "array" we can conclude to add [] as a proposal, as it is not necessary to
+            // declare the type of the contained items in an array
+            var typeNode = schema.get(TYPE);
+            if (typeNode.isTextual() && ARRAY.equals(typeNode.asText()))
+                proposals.add(arrayPrefix);
         }
 
-        if (ARRAY.equals(type)) {
-            addArrayProposals(id, baseSchema, prefix, schema, definitions, proposals, recursionDepth);
-        }
+        addArrayProposals(baseSchema, arrayPrefix, schema, definitions, proposals, recursionDepth);
 
     }
 
-    private static void addMultipleProposals(String id, JsonNode baseSchema, String prefix,
-            Iterator<JsonNode> elementsIterator, Map<String, JsonNode> definitions, Collection<String> proposals,
-            int recursionDepth) {
+    private static void addMultipleProposals(JsonNode baseSchema, String prefix, Iterator<JsonNode> elementsIterator,
+            Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
         while (elementsIterator.hasNext()) {
-            addProposals(id, baseSchema, prefix, elementsIterator.next(), definitions, proposals, recursionDepth);
+            addProposals(baseSchema, prefix, elementsIterator.next(), definitions, proposals, recursionDepth);
         }
     }
 
     private static boolean hasArrayFieldNamed(JsonNode node, String fieldName) {
-        return node.isObject() && node.has(fieldName) && node.get(fieldName).isArray();
+        return node.has(fieldName) && node.get(fieldName).isArray();
 
     }
 
-    private static void addObjectProposals(String id, JsonNode baseSchema, String prefix, JsonNode schema,
+    private static void addObjectProposals(JsonNode baseSchema, String prefix, JsonNode schema,
             Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
         if (!schema.has(PROPERTIES))
             return;
@@ -255,16 +258,22 @@ public class SchemaParser {
             var field   = fieldsIterator.next();
             var newPath = prefix + '.' + escaped(field.getKey());
             proposals.add(newPath);
-            addProposals(id, baseSchema, newPath, field.getValue(), definitions, proposals, recursionDepth + 1);
+            addProposals(baseSchema, newPath, field.getValue(), definitions, proposals, recursionDepth + 1);
         }
-
     }
 
-    private static void addArrayProposals(String id, JsonNode baseSchema, String prefix, JsonNode schema,
+    private static void addArrayProposals(JsonNode baseSchema, String prefix, JsonNode schema,
             Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
-        var newPrefix = prefix + "[]";
-        proposals.add(newPrefix);
-
+        if (hasArrayFieldNamed(schema, PREFIX_ITEMS)) {
+            addMultipleProposals(baseSchema, prefix, schema.get(PREFIX_ITEMS).elements(), definitions, proposals,
+                    recursionDepth);
+        }
+        if (!schema.has(ITEMS))
+            return;
+        var items = schema.get(ITEMS);
+        if (!items.isObject())
+            return;
+        addProposals(baseSchema, prefix, items, definitions, proposals, recursionDepth + 1);
     }
 
     private static String escaped(String s) {

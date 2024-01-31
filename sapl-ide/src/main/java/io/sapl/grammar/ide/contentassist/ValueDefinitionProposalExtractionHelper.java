@@ -34,8 +34,6 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
 import com.google.common.collect.Iterables;
 
-import io.sapl.grammar.ide.contentassist.schema.SchemaParser;
-import io.sapl.grammar.ide.contentassist.schema.SchemaProposals;
 import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
 import io.sapl.grammar.sapl.BasicFunction;
 import io.sapl.grammar.sapl.BasicIdentifier;
@@ -118,7 +116,8 @@ public class ValueDefinitionProposalExtractionHelper {
             var fun              = entry.getKey();
             var allTemplates     = functionContext.getCodeTemplates();
             var fullFunctionName = getFullFunctionName(fun, allTemplates);
-            var paths            = SchemaParser.generateProposals(fullFunctionName, entry.getValue(), variables);
+            var paths            = SchemaProposalGenerator.generateProposals(fullFunctionName, entry.getValue(),
+                    variables);
             proposals.addAll(paths);
         }
         return proposals;
@@ -137,7 +136,8 @@ public class ValueDefinitionProposalExtractionHelper {
         for (var entry : allSchemas.entrySet()) {
             var fun              = entry.getKey();
             var fullFunctionName = getFullFunctionName(fun, allTemplates);
-            var paths            = SchemaParser.generateProposals(fullFunctionName, entry.getValue(), variables);
+            var paths            = SchemaProposalGenerator.generateProposals(fullFunctionName, entry.getValue(),
+                    variables);
             proposals.addAll(paths);
         }
         return proposals;
@@ -148,12 +148,7 @@ public class ValueDefinitionProposalExtractionHelper {
         if (Iterables.isEmpty(templates))
             return proposals;
         for (var template : templates) {
-            String proposal;
-            if (!template.startsWith("."))
-                proposal = elementName.concat(".").concat(template);
-            else
-                proposal = elementName.concat(template);
-            proposals.add(proposal);
+            proposals.add(elementName.concat(template));
         }
         return proposals;
     }
@@ -288,7 +283,7 @@ public class ValueDefinitionProposalExtractionHelper {
     }
 
     private Collection<String> getPreambleSchemaProposals() {
-        return SchemaProposals.getVariableNamesAsTemplates(pdpConfiguration.variables());
+        return SchemaProposalGenerator.getVariableNamesAsTemplates(pdpConfiguration.variables());
     }
 
     private Collection<String> getBodyProposals(ProposalType proposalType, int currentOffset, PolicyBody policyBody,
@@ -309,7 +304,7 @@ public class ValueDefinitionProposalExtractionHelper {
 
         for (var schema : saplSchemas) {
             var subscriptionElement = schema.getSubscriptionElement();
-            var codeTemplates       = SchemaProposals.getCodeTemplates(schema.getSchemaExpression(),
+            var codeTemplates       = SchemaProposalGenerator.getCodeTemplates(schema.getSchemaExpression(),
                     pdpConfiguration.variables());
             var templates           = constructProposals(subscriptionElement, codeTemplates);
             proposals.addAll(templates);
@@ -452,7 +447,8 @@ public class ValueDefinitionProposalExtractionHelper {
         var          absName        = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
         var          allSchemas     = pdpConfiguration.functionContext().getFunctionSchemas();
         var          functionSchema = allSchemas.get(absName);
-        functionSchemaTemplates = SchemaParser.generateProposals("", functionSchema, pdpConfiguration.variables());
+        functionSchemaTemplates = SchemaProposalGenerator.generateProposals("", functionSchema,
+                pdpConfiguration.variables());
         return functionSchemaTemplates;
     }
 
@@ -463,7 +459,8 @@ public class ValueDefinitionProposalExtractionHelper {
         var          name           = getFunctionName(stepsString, "", imports);
         var          absName        = FunctionUtil.resolveAbsoluteFunctionName(name, imports);
         var          functionSchema = pdpConfiguration.attributeContext().getAttributeSchemas().get(absName);
-        attributeSchemaTemplates = SchemaParser.generateProposals("", functionSchema, pdpConfiguration.variables());
+        attributeSchemaTemplates = SchemaProposalGenerator.generateProposals("", functionSchema,
+                pdpConfiguration.variables());
 
         return attributeSchemaTemplates;
     }
@@ -508,7 +505,8 @@ public class ValueDefinitionProposalExtractionHelper {
             Iterable<Expression> schemaVarExpression) {
         List<String> proposalTemplates = new ArrayList<>();
         for (Expression varExpression : schemaVarExpression) {
-            var schemaTemplates     = SchemaProposals.getCodeTemplates(varExpression, pdpConfiguration.variables());
+            var schemaTemplates     = SchemaProposalGenerator.getCodeTemplates(varExpression,
+                    pdpConfiguration.variables());
             var valueDefinitionName = valueDefinition.getName();
 
             var templates = constructProposals(valueDefinitionName, schemaTemplates);
