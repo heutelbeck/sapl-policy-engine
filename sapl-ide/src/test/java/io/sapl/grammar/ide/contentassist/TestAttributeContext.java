@@ -108,8 +108,8 @@ class TestAttributeContext implements AttributeContext {
 
     @Override
     public Collection<String> getAllFullyQualifiedFunctions() {
-        return List.of("clock.now>", "clock.millis>", "clock.ticker>", "temperature.now>", "temperature.mean(a1, a2)>",
-                "temperature.predicted(a2)>");
+        return List.of("clock.now", "clock.millis", "clock.ticker", "temperature.now", "temperature.mean",
+                "temperature.predicted");
     }
 
     @Override

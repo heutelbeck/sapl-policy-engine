@@ -1,20 +1,13 @@
 package io.sapl.grammar.ide.contentassist.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.ide.contentassist.SchemaProposalGenerator;
@@ -22,38 +15,20 @@ import io.sapl.grammar.ide.contentassist.SchemaProposalGenerator;
 public class SchemaProposalGeneratorTests {
 
     @Test
-    void noEnvironmentVariablesReturnsEmptyList() {
-        var variables = SchemaProposalGenerator.getVariableNamesAsTemplates(Map.of());
-        assertThat(variables, is(empty()));
-    }
-
-    @Test
-    void variableNamesAreReturnedWhenExistent() {
-        var mapper   = new ObjectMapper();
-        var nullNode = mapper.nullNode();
-        var vars     = new HashMap<String, JsonNode>();
-        vars.put("variableName", nullNode);
-
-        var actual   = SchemaProposalGenerator.getVariableNamesAsTemplates(vars);
-        var expected = List.of("variableName");
-        assertThat(actual, equalTo(expected));
-    }
-
-    @Test
     void when_emptySchema_then_proposalsEmpty() throws JsonProcessingException {
-        var proposals = SchemaProposalGenerator.generateProposals(Val.ofJson("{}"), Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", Val.ofJson("{}"), Map.of());
         assertThat(proposals).isEmpty();
     }
 
     @Test
     void when_nonObjectSchema_then_proposalsEmpty() throws JsonProcessingException {
-        var proposals = SchemaProposalGenerator.generateProposals(Val.ofJson("123"), Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", Val.ofJson("123"), Map.of());
         assertThat(proposals).isEmpty();
     }
 
     @Test
     void when_undefinedSchema_then_proposalsEmpty() throws JsonProcessingException {
-        var proposals = SchemaProposalGenerator.generateProposals(Val.error(""), Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", Val.error(""), Map.of());
         assertThat(proposals).isEmpty();
     }
 
@@ -82,7 +57,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         assertThat(proposals).containsExactlyInAnyOrder(".firstName", ".lastName", ".age");
     }
 
@@ -97,7 +72,7 @@ public class SchemaProposalGeneratorTests {
                      ]
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals("foo", schema.get(), Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("foo", schema.get(), Map.of());
         assertThat(proposals).containsExactlyInAnyOrder("foo[]");
     }
 
@@ -126,7 +101,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         assertThat(proposals).containsExactlyInAnyOrder(".A", ".A.x", ".A.y", ".A.z", ".B", ".B.x", ".B.y", ".B.z",
                 ".C", ".C.x", ".C.y", ".C.z");
     }
@@ -161,7 +136,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema, Map.of("x", coordinates.get()));
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of("x", coordinates.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".A", ".B", ".C");
     }
 
@@ -194,7 +169,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema, Map.of("x", coordinates.get()));
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of("x", coordinates.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".A", ".A.x", ".A.y", ".A.z", ".B", ".B.x", ".B.y", ".B.z",
                 ".C", ".C.x", ".C.y", ".C.z");
     }
@@ -233,7 +208,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema, Map.of("x", coordinates.get()));
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of("x", coordinates.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".A", ".A.x", ".A.y", ".A.z", ".B", ".B.x", ".B.y", ".B.z",
                 ".C", ".C.x", ".C.y", ".C.z");
     }
@@ -272,7 +247,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema, Map.of("x", coordinates.get()));
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of("x", coordinates.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".A", ".B", ".C");
     }
 
@@ -304,7 +279,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema, Map.of("x", coordinates.get()));
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of("x", coordinates.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".A", ".B", ".C");
     }
 
@@ -336,7 +311,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema, Map.of("x", coordinates.get()));
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of("x", coordinates.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".A", ".A.x", ".A.y", ".A.z", ".B", ".B.x", ".B.y", ".B.z",
                 ".C", ".C.x", ".C.y", ".C.z");
     }
@@ -379,7 +354,7 @@ public class SchemaProposalGeneratorTests {
                     ]
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema,
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema,
                 Map.of("x", coordinates.get(), "y", person.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".x", ".y", ".z", ".name", ".age");
     }
@@ -422,7 +397,7 @@ public class SchemaProposalGeneratorTests {
                     ]
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema,
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema,
                 Map.of("x", coordinates.get(), "y", person.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".x", ".y", ".z", ".name", ".age");
     }
@@ -465,7 +440,7 @@ public class SchemaProposalGeneratorTests {
                     ]
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema,
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema,
                 Map.of("x", coordinates.get(), "y", person.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".x", ".y", ".z", ".name", ".age");
     }
@@ -508,7 +483,7 @@ public class SchemaProposalGeneratorTests {
                     ]
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema,
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema,
                 Map.of("x", coordinates.get(), "y", person.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".x", ".y", ".z", ".name", ".age");
     }
@@ -545,7 +520,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema, Map.of("x", coordinates.get()));
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of("x", coordinates.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".A", ".A.x", ".A.y", ".A.z", ".B", ".B.x", ".B.y", ".B.z",
                 ".C", ".C.x", ".C.y", ".C.z");
     }
@@ -582,7 +557,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema, Map.of("x", coordinates.get()));
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of("x", coordinates.get()));
         assertThat(proposals).containsExactlyInAnyOrder(".A", ".B", ".C");
     }
 
@@ -598,7 +573,7 @@ public class SchemaProposalGeneratorTests {
                     "properties": 123
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         assertThat(proposals).isEmpty();
     }
 
@@ -613,7 +588,7 @@ public class SchemaProposalGeneratorTests {
                     "type": 123
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         assertThat(proposals).isEmpty();
     }
 
@@ -628,7 +603,7 @@ public class SchemaProposalGeneratorTests {
                     "type": "object"
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         assertThat(proposals).isEmpty();
     }
 
@@ -643,7 +618,7 @@ public class SchemaProposalGeneratorTests {
                     "type": "array"
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         assertThat(proposals).containsExactlyInAnyOrder("[]");
     }
 
@@ -714,7 +689,7 @@ public class SchemaProposalGeneratorTests {
                     ]
                 }
                 """);
-        var proposals   = SchemaProposalGenerator.generateProposals(schema,
+        var proposals   = SchemaProposalGenerator.getCodeTemplates("", schema,
                 Map.of("x", coordinates.get(), "y", person.get(), "z", location.get()));
         assertThat(proposals).containsExactlyInAnyOrder("[]", "[].firstName", "[].lastName", "[].age", "[].long",
                 "[].lat", "[].x", "[].y", "[].z");
@@ -731,7 +706,7 @@ public class SchemaProposalGeneratorTests {
                     "items": 123
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         assertThat(proposals).containsExactlyInAnyOrder("[]");
     }
 
@@ -760,7 +735,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         assertThat(proposals).containsExactlyInAnyOrder(".A", ".A.'x coordinate'", ".A.'y coordinate'",
                 ".A.'z coordinate'", ".B", ".B.'x coordinate'", ".B.'y coordinate'", ".B.'z coordinate'", ".C",
                 ".C.'x coordinate'", ".C.'y coordinate'", ".C.'z coordinate'");
@@ -790,7 +765,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         // @formatter:off
         assertThat(proposals).containsExactlyInAnyOrder(  ".firstName",
                                          ".age",
@@ -849,7 +824,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         assertThat(proposals).containsExactlyInAnyOrder(".firstName", ".age", ".parent");
     }
 
@@ -920,11 +895,11 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals       = SchemaProposalGenerator.generateProposals(schemaIdBadType, Map.of());
+        var proposals       = SchemaProposalGenerator.getCodeTemplates("", schemaIdBadType, Map.of());
         assertThat(proposals).containsExactlyInAnyOrder(".firstName", ".age", ".parent");
-        proposals = SchemaProposalGenerator.generateProposals(schemaNoId, Map.of());
+        proposals = SchemaProposalGenerator.getCodeTemplates("", schemaNoId, Map.of());
         assertThat(proposals).containsExactlyInAnyOrder(".firstName", ".age", ".parent");
-        proposals = SchemaProposalGenerator.generateProposals(schemaBlankId, Map.of());
+        proposals = SchemaProposalGenerator.getCodeTemplates("", schemaBlankId, Map.of());
         assertThat(proposals).containsExactlyInAnyOrder(".firstName", ".age", ".parent");
     }
 
@@ -952,13 +927,13 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         assertThat(proposals).containsExactlyInAnyOrder(".firstName", ".age", ".parent");
     }
 
     @Test
     void when_nullSchema_then_noProposals() throws JsonProcessingException {
-        var proposals = SchemaProposalGenerator.generateProposals("", null, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", (JsonNode) null, Map.of());
         assertThat(proposals).isEmpty();
     }
 
@@ -986,7 +961,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         assertThat(proposals).containsExactlyInAnyOrder(".firstName", ".age", ".parent");
     }
 
@@ -1014,7 +989,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         // @formatter:off
         assertThat(proposals).containsExactlyInAnyOrder(  ".firstName",
                                          ".age",
@@ -1073,7 +1048,7 @@ public class SchemaProposalGeneratorTests {
                     }
                 }
                 """);
-        var proposals = SchemaProposalGenerator.generateProposals(schema, Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", schema, Map.of());
         // @formatter:off
         assertThat(proposals).containsExactlyInAnyOrder(  ".firstName",
                                          ".age",

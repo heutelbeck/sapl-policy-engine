@@ -78,5 +78,5 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
         sb.append('>');
         return sb.toString();
     }
-
+    
 }

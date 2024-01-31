@@ -314,6 +314,8 @@ class FunctionProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
+                for (var i : completionList.getItems())
+                    System.out.println("*>" + i.getLabel());
                 var expected = List.of("schemaTest.location()", "schemaTest.location().latitude");
                 assertProposalsSimple(expected, completionList);
             });

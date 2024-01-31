@@ -53,25 +53,27 @@ public class SchemaProposalGenerator {
 
     private static final Collection<String> KEYWORDS_INDICATING_TYPE_ARRAY = Set.of("allOf", "anyOf", "oneOf", TYPE);
 
-    public static List<String> getVariableNamesAsTemplates(Map<String, JsonNode> variables) {
-        var result = new ArrayList<String>(variables.size());
-        result.addAll(variables.keySet());
-        return result;
+      public static Collection<String> getCodeTemplates(String prefix, Expression expression,
+            Map<String, JsonNode> variables) {
+        if (expression == null)
+            return List.of();
+        return expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, variables))
+                .map(schema -> SchemaProposalGenerator.getCodeTemplates(prefix, schema, variables)).blockFirst();
     }
 
     public static Collection<String> getCodeTemplates(Expression expression, Map<String, JsonNode> variables) {
         return expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, variables))
-                .map(schema -> SchemaProposalGenerator.generateProposals(schema, variables)).blockFirst();
+                .map(schema -> SchemaProposalGenerator.getCodeTemplates("", schema, variables)).blockFirst();
     }
 
-    public static List<String> generateProposals(Val schema, Map<String, JsonNode> variables) {
+    public static List<String> getCodeTemplates(String prefix, Val schema, Map<String, JsonNode> variables) {
         if (!schema.isDefined())
             return List.of();
 
-        return generateProposals("", schema.get(), variables);
+        return getCodeTemplates(prefix, schema.get(), variables);
     }
 
-    public static List<String> generateProposals(String prefix, JsonNode schema, Map<String, JsonNode> variables) {
+    public static List<String> getCodeTemplates(String prefix, JsonNode schema, Map<String, JsonNode> variables) {
         var proposals = new ArrayList<String>();
         if (schema == null)
             return proposals;
