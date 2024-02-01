@@ -119,12 +119,12 @@ class TestFunctionContext implements FunctionContext {
     public Map<String, String> getDocumentedCodeTemplates() {
         // @formatter:off
         return Map.of(
-                "filter.blacken(a,b,c)",           "doc1",
-                "schemaTest.person()",             "doc2",
-                "schemaTest.location()",           "doc6",
-                "schemaTest.dog()",                "doc3", 
-                "schemaTest.food(String species)", "doc4", 
-                "schemaTest.food()",               "doc5");
+                "filter.blacken(a,b,c)",           "blacken documentation",
+                "schemaTest.person()",             "person documentation",
+                "schemaTest.location()",           "location documentation",
+                "schemaTest.dog()",                "dog documentation", 
+                "schemaTest.food(String species)", "food with species parameter documentation", 
+                "schemaTest.food()",               "food documentation");
         // @formatter:on
     }
 

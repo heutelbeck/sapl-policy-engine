@@ -25,7 +25,7 @@ import lombok.experimental.UtilityClass;
  * Helper class that contains methods to navigate the ecore model.
  */
 @UtilityClass
-public final class TreeNavigationHelper {
+public final class TreeNavigationUtil {
 
     /**
      * Moves up the model tree and returns the closest parent that matches the given

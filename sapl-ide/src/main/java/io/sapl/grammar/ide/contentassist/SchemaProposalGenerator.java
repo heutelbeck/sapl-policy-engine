@@ -53,17 +53,12 @@ public class SchemaProposalGenerator {
 
     private static final Collection<String> KEYWORDS_INDICATING_TYPE_ARRAY = Set.of("allOf", "anyOf", "oneOf", TYPE);
 
-      public static Collection<String> getCodeTemplates(String prefix, Expression expression,
+    public static Collection<String> getCodeTemplates(String prefix, Expression expression,
             Map<String, JsonNode> variables) {
         if (expression == null)
             return List.of();
         return expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, variables))
                 .map(schema -> SchemaProposalGenerator.getCodeTemplates(prefix, schema, variables)).blockFirst();
-    }
-
-    public static Collection<String> getCodeTemplates(Expression expression, Map<String, JsonNode> variables) {
-        return expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, variables))
-                .map(schema -> SchemaProposalGenerator.getCodeTemplates("", schema, variables)).blockFirst();
     }
 
     public static List<String> getCodeTemplates(String prefix, Val schema, Map<String, JsonNode> variables) {

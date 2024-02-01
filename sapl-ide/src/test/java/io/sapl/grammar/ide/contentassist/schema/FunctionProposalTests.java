@@ -102,6 +102,8 @@ class FunctionProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
+                for(var i: completionList.getItems())
+                    System.out.println("***>"+i.getLabel());
                 var expected = List.of("foo.race");
                 assertProposalsSimple(expected, completionList);
                 var unwanted = List.of("foo.name");
