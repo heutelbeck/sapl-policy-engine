@@ -308,8 +308,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             var template           = documentedTemplate.getKey();
             var documentation      = documentedTemplate.getValue();
             var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
-            addProposalWithDocumentation(template,documentation,context,acceptor);
             var proposals          = proposalsWithImportsForTemplate(template, context, acceptor, pdpConfiguration);
+            proposals.add(template);
             addProposalsWithSharedDocumentation(proposals, documentation, context, acceptor);
             var schema = schemas.get(fullyQualifiedName);
             if (schema != null) {
