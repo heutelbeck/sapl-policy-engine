@@ -220,23 +220,24 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
      */
     private void createSchemaProposals(String feature, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        if ("subscriptionelement".equals(feature)) {
-            createProposalsContainingSubscriptionElementIdentifiers(context, acceptor);
-        } else if ("schemaexpression".equals(feature)) {
-            createEnvironmentVariableProposals(context, acceptor, pdpConfiguration);
+        switch (feature) {
+        case "subscriptionelement" -> createProposalsContainingSubscriptionElementIdentifiers(context, acceptor);
+        case "schemaexpression" -> createEnvironmentVariableProposals(context, acceptor, pdpConfiguration);
         }
     }
 
     private void createBasicProposals(String feature, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        if ("identifier".equals(feature)) {
-            createBasicIdentifierProposals(feature, context, acceptor, pdpConfiguration);
-        } else if ("idsteps".equals(feature) || "steps".equals(feature)) {
+        switch (feature) {
+        case "identifier" -> createBasicIdentifierProposals(feature, context, acceptor, pdpConfiguration);
+        case "idsteps", "steps" -> {
             createBasicIdentifierProposals(feature, context, acceptor, pdpConfiguration);
             createIdStepProposals(context, acceptor, pdpConfiguration);
-        } else if ("fsteps".equals(feature)) {
+        }
+        case "fsteps" -> {
             createFStepsProposals(context, acceptor, pdpConfiguration);
             createIdStepProposals(context, acceptor, pdpConfiguration);
+        }
         }
     }
 
