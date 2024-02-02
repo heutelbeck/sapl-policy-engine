@@ -46,11 +46,13 @@ import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class enhances the auto-completion proposals that the language server
  * offers.
  */
+@Slf4j
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private static final Collection<String> BLACKLIST_OF_KEYWORD_PROPOSALS = Set.of("null", "undefined", "true",
@@ -100,7 +102,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var feature          = assignment.getFeature().toLowerCase();
         var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration().blockFirst();
 
-        log("[" + parserRuleName + "->" + feature + "]");
+        log.trace("[" + parserRuleName + "->" + feature + "]");
 
         switch (parserRuleName) {
         case "import" -> {
@@ -278,7 +280,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             var template           = documentedTemplate.getKey();
             var documentation      = documentedTemplate.getValue();
             var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
-            log("fullyQualifiedName: '" + fullyQualifiedName + "'");
+            log.trace("fullyQualifiedName: '" + fullyQualifiedName + "'");
             createAttributeProposals(fullyQualifiedName, template, documentation, context, acceptor, pdpConfiguration);
         }
     }
@@ -357,12 +359,12 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private Collection<String> proposalsWithImportsForTemplate(String template, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
-        log("resolve imports for " + template);
+        log.trace("resolve imports for " + template);
         var proposals = new ArrayList<String>();
         if (context.getRootModel() instanceof SAPL sapl) {
             var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
             for (var anImport : imports) {
-                log("import: " + anImport.getClass().getSimpleName());
+                log.trace("import: " + anImport.getClass().getSimpleName());
                 if (anImport instanceof WildcardImport wildcardImport) {
                     proposalsWithWildcard(wildcardImport, template, context, acceptor).ifPresent(i -> proposals.add(i));
                 } else if (anImport instanceof LibraryImport libraryImport) {
@@ -382,10 +384,10 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var functionName       = anImport.getFunctionName();
         var prefix             = joinStepsToPrefix(steps) + functionName;
         var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
-        log("pwi template:" + template);
-        log("pwi prefix:" + prefix);
-        log("pwi functionName: " + functionName);
-        log("pwi fullyQualifiedName: >" + fullyQualifiedName + "<");
+        log.trace("pwi template:" + template);
+        log.trace("pwi prefix:" + prefix);
+        log.trace("pwi functionName: " + functionName);
+        log.trace("pwi fullyQualifiedName: >" + fullyQualifiedName + "<");
 
         if (fullyQualifiedName.startsWith(prefix))
             return Optional.of(template.replaceFirst(prefix, functionName));
@@ -417,9 +419,9 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var prefix             = shortPrefix + '.';
         var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
 
-        log("pwli template:" + template);
-        log("pwli prefix:" + prefix);
-        log("pwli fullyQualifiedName:" + fullyQualifiedName);
+        log.trace("pwli template:" + template);
+        log.trace("pwli prefix:" + prefix);
+        log.trace("pwli fullyQualifiedName:" + fullyQualifiedName);
 
         if (fullyQualifiedName.startsWith(prefix))
             return Optional.of(template.replaceFirst(shortPrefix, libImport.getLibAlias()));
@@ -448,7 +450,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addProposal(final String proposal, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
-        log("- '" + proposal + "'");
+        log.trace("- '" + proposal + "'");
         var contextWithCorrectedPrefix = ContextUtil.getContextWithFullPrefix(context, proposal.contains(">"));
         var entry                      = getProposalCreator().createProposal(proposal, contextWithCorrectedPrefix);
         acceptor.accept(entry, 0);
@@ -461,7 +463,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addProposalWithDocumentation(final String proposal, final String documentation,
             final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
-        log("- '" + proposal + "' doc: '" + documentation + "'");
+        log.trace("- '" + proposal + "' doc: '" + documentation + "'");
         var contextWithCorrectedPrefix = ContextUtil.getContextWithFullPrefix(context, proposal.contains(">"));
         var entry                      = getProposalCreator().createProposal(proposal, contextWithCorrectedPrefix);
         if (entry != null && documentation != null)
@@ -469,13 +471,4 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         acceptor.accept(entry, 0);
     }
 
-    void log(String message) {
-        var debug = false;
-        if (debug) {
-            var clazz = getClass().getSimpleName();
-            var line  = StackWalker.getInstance(StackWalker.Option.SHOW_HIDDEN_FRAMES)
-                    .walk((s) -> s.skip(1).findFirst()).get().getLineNumber();
-            System.err.println(String.format("%10s % d: %s", clazz, line, message));
-        }
-    }
 }
