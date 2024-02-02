@@ -74,8 +74,8 @@ public interface LibraryEntryMetadata {
     default String describeParameterForDocumentation(String name, List<Annotation> types) {
         if (types.isEmpty())
             return name;
-        StringBuilder sb = new StringBuilder();
-        var numberOfTypes = types.size();
+        StringBuilder sb            = new StringBuilder();
+        var           numberOfTypes = types.size();
         for (var i = 0; i < numberOfTypes; i++) {
             sb.append(types.get(i).annotationType().getSimpleName());
             if (i < numberOfTypes - 1)
