@@ -33,7 +33,9 @@ import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @UtilityClass
 public class ExpressionSchemaResolver {
 
@@ -43,24 +45,29 @@ public class ExpressionSchemaResolver {
         List<Step>     steps;
         List<JsonNode> baseSchemas;
         if (expression instanceof BasicGroup basicGroup) {
+            log.error("*BasicGroup*");
             // a BasicGroup may contain an expression with implicit schemas
             baseSchemas = inferPotentialSchemasOfExpression(basicGroup.getExpression(), context, pdpConfiguration);
             steps       = basicGroup.getSteps();
         } else if (expression instanceof BasicFunction basicFunction) {
+            log.error("*BasicFunction*");
             // function implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromFunction(basicFunction.getFsteps(), context, pdpConfiguration);
             steps       = basicFunction.getSteps();
         } else if (expression instanceof BasicEnvironmentAttribute basicEnvironmentAttribute) {
+            log.error("*BasicEnvironmentAttribute*");
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(basicEnvironmentAttribute.getIdSteps(), context,
                     pdpConfiguration);
             steps       = basicEnvironmentAttribute.getSteps();
         } else if (expression instanceof BasicEnvironmentHeadAttribute basicEnvironmentHeadAttribute) {
+            log.error("*BasicEnvironmentHeadAttribute*");
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(basicEnvironmentHeadAttribute.getIdSteps(), context,
                     pdpConfiguration);
             steps       = basicEnvironmentHeadAttribute.getSteps();
         } else if (expression instanceof BasicIdentifier basicIdentifier) {
+            log.error("*BasicIdentifier*");
             // an identifier may be an authorization subscription element with schema, or
             // the result of a value definition with an expression with explicit or implicit
             // schemas
@@ -68,14 +75,14 @@ public class ExpressionSchemaResolver {
                     pdpConfiguration);
             steps       = basicIdentifier.getSteps();
         } else {
+            log.error("*Other* - "+expression.eClass().getName());
             // BasicValue -> no schema possible
             // BasicRelative traversing relative @ nodes -> unclear how this could be
             // resolved
             // All other expressions are operations that will remove schema association.
-            return List.of();
+            return new ArrayList<>();
         }
         return inferPotentialSchemasStepsAfterExpression(baseSchemas, steps, context, pdpConfiguration);
-
     }
 
     private List<JsonNode> inferPotentialSchemasStepsAfterExpression(List<JsonNode> baseSchemas, List<Step> steps,
@@ -104,7 +111,7 @@ public class ExpressionSchemaResolver {
 
     private <T> List<T> tail(List<T> list) {
         if (list.size() <= 1)
-            return List.of();
+            return new ArrayList<>();
         return list.subList(1, list.size());
     }
 
@@ -182,7 +189,7 @@ public class ExpressionSchemaResolver {
         return Objects.equals(definition.getName(), identifier) && context.getOffset() > offsetOf(definition);
     }
 
-    private List<JsonNode> inferValueDefinitionSchemas(ValueDefinition valueDefinition, ContentAssistContext context,
+    public List<JsonNode> inferValueDefinitionSchemas(ValueDefinition valueDefinition, ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         var schemas = inferPotentialSchemasOfExpression(valueDefinition.getEval(), context, pdpConfiguration);
         for (var schemaExpression : valueDefinition.getSchemaVarExpression()) {
@@ -214,7 +221,7 @@ public class ExpressionSchemaResolver {
         return Optional.empty();
     }
 
-    private static int offsetOf(EObject statement) {
+    public static int offsetOf(EObject statement) {
         return NodeModelUtils.getNode(statement).getOffset();
     }
 

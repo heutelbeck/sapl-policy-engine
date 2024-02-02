@@ -243,22 +243,26 @@ class SchemaCompletionTests extends CompletionTests {
     void testCompletion_PolicyBody_NotSuggestEnumKeywords() {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
-                    policy "test" permit where var bar = 3; var foo = "test" schema
-                    {
-                       "type": "object",
-                       "properties": {
-                     	"java": {
-                     		"type": "object",
-                     		"properties": {
-                     			"name": {
-                     				"type": "string",
-                     				"enum": ["registerNewCustomer",
-                     				         "changeAddress"]
-                     			}
-                     		}
-                         }
-                       }
-                     };
+                    policy "test" 
+                    permit 
+                    where 
+                        var bar = 3; 
+                        var foo = "test" schema
+                                    {
+                                       "type": "object",
+                                       "properties": {
+                                         	"java": {
+                                         		"type": "object",
+                                         		"properties": {
+                                         			"name": {
+                                         				"type": "string",
+                                         				"enum": ["registerNewCustomer",
+                                         				         "changeAddress"]
+                                         			}
+                                         		}
+                                         }
+                                       }
+                                     };
                      foo""";
 
             String cursor = "foo";
@@ -695,7 +699,7 @@ class SchemaCompletionTests extends CompletionTests {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
                     import schemaTest.*
-                    policy "test" deny where var foo = person;
+                    policy "test" deny where var foo = person();
                     foo""";
 
             String cursor = "foo";
@@ -715,7 +719,7 @@ class SchemaCompletionTests extends CompletionTests {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
                     import schemaTest as test
-                    policy "test" deny where var foo = test.person;
+                    policy "test" deny where var foo = test.person();
                     foo""";
 
             String cursor = "foo";
