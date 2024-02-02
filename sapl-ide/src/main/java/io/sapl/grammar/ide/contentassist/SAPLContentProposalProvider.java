@@ -38,7 +38,13 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
 import com.google.common.base.Strings;
 
+import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
+import io.sapl.grammar.sapl.BasicFunction;
+import io.sapl.grammar.sapl.BasicGroup;
+import io.sapl.grammar.sapl.BasicIdentifier;
+import io.sapl.grammar.sapl.EscapedKeyStep;
 import io.sapl.grammar.sapl.Import;
+import io.sapl.grammar.sapl.KeyStep;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.PolicySet;
@@ -61,7 +67,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             "false");
     private static final Collection<String> WHITELIST_OF_KEYWORD_PROPOSALS = Set.of("as");
 
-    private static final Collection<String> AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS = Set.of("subject",
+    public static final Collection<String> AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS = Set.of("subject",
             "action", "resource", "environment");
 
     private static final int MINIMUM_KEYWORD_LENGTH = 3;
@@ -92,7 +98,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     /*
-     * This method generates the more domain specific recommendations for SAPL.
+     * This method generates the domain specific recommendations for SAPL.
      */
     @Override
     protected void _createProposals(final Assignment assignment, final ContentAssistContext context,
@@ -104,7 +110,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var feature          = assignment.getFeature().toLowerCase();
         var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration().blockFirst();
 
-        System.out.println("[" + parserRuleName + "->" + feature + "]");
+        log("[" + parserRuleName + "->" + feature + "]");
 
         switch (parserRuleName) {
         case "import" -> {
@@ -137,7 +143,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     /*
      * This method generates proposals for an initial identifier
-     * 
+     *
      * Should return: subscription variables, previously defined variable names in
      * the document, names of environment variables
      */
@@ -148,7 +154,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         createProposalsContainingSubscriptionElementIdentifiers(context, acceptor);
         createSubscriptionElementSchemaExpansionProposals(context, acceptor, pdpConfiguration);
         createPolicySetHeaderVariablesProposals(context, acceptor, pdpConfiguration);
-        createPolicyBodyInScopeVariableProposals(context, acceptor, pdpConfiguration);
+        createPolicyBodyInScopeVariableProposals(pdpConfiguration, context, acceptor);
     }
 
     private void createEnvironmentVariableProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
@@ -166,6 +172,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         }
     }
 
+    
+    
     /*
      * Extracts all ValueDefinitions from a potential policy set and returns the
      * variable names as well as schema expansions.
@@ -185,8 +193,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
      * when it finds the statement where the cursor currently resides in. All
      * variable names on the way are returned.
      */
-    private void createPolicyBodyInScopeVariableProposals(ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
+    private void createPolicyBodyInScopeVariableProposals(PDPConfiguration pdpConfiguration,
+            ContentAssistContext context, IIdeContentProposalAcceptor acceptor) {
         var currentModel  = context.getCurrentModel();
         var currentOffset = context.getOffset();
         var policyBody    = TreeNavigationUtil.goToFirstParent(currentModel, PolicyBody.class);
@@ -212,7 +220,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     /*
      * This method adds the variable name of the value and if the value definition
      * has an explicit schema declaration, the matching schema extensions are added.
-     * 
+     *
      * TODO: If no explicit schema declaration is present, attempt to infer an
      * implicit schema from the underlying expression and add matching extensions.
      */
@@ -227,6 +235,108 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             addProposals(SchemaProposalGenerator.getCodeTemplates(variableName, schemaExpression,
                     pdpConfiguration.variables()), context, acceptor);
         }
+
+        var expression = valueDefinition.getEval();
+        while (expression instanceof BasicGroup group && group.getSteps().isEmpty()) {
+            // Skip surrounding brackets
+            expression = group.getExpression();
+        }
+        if (expression instanceof BasicIdentifier basicIdentifier) {
+            // Function or Attribute at root of expression AST. Can infer schema if
+            // available in PIP metadata.
+            log(">BasicIdentifier<");
+            var functionName = joinIdentifierAndKeyStepsToName(basicIdentifier);
+            log("functionName:" + functionName);
+            createProposalsForVariableWithFunctionResultAsValue(variableName, functionName, context, acceptor,
+                    pdpConfiguration);
+        } else if (expression instanceof BasicFunction basicFunction) {
+            // Function at root of expression AST.
+            log(">BasicFunction<");
+            var functionName = joinStepsToName(basicFunction.getFsteps());
+            log("function name:" + functionName);
+            createProposalsForVariableWithFunctionResultAsValue(variableName, functionName, context, acceptor,
+                    pdpConfiguration);
+        } else if (expression instanceof BasicEnvironmentAttribute basicEnvironmentAttribute ) {
+            // Attribute at root of expression AST.
+            log(">BasicEnvironmentAttribute<");
+        } else {
+            log("UNSUPPORTED SO FAR: >" + expression.eClass().getName() + "<");
+        }
+    }
+    
+    private String joinIdentifierAndKeyStepsToName(BasicIdentifier basicIdentifier) {
+        var sb = new StringBuilder();
+        sb.append(basicIdentifier.getIdentifier());
+        var steps = basicIdentifier.getSteps();
+        if (steps.isEmpty())
+            return sb.toString();
+        var stepsIerator = steps.iterator();
+        do {
+            sb.append('.');
+            var step = stepsIerator.next();
+            if(step instanceof KeyStep keyStep) {
+                sb.append(keyStep.getId());
+            } else if(step instanceof EscapedKeyStep escapedKeyStep) {
+                sb.append(escapedKeyStep.getId());
+            }  
+        } while (stepsIerator.hasNext());
+        return sb.toString();
+    }
+
+    private void createProposalsForVariableWithFunctionResultAsValue(String variableName, String functionName,
+            ContentAssistContext context, IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
+        if(functionName == null)
+            return;
+        log("Resolving:" + functionName);
+        var resolvedFunctionName = resolveImport(functionName, context, pdpConfiguration);
+        log("Resoved name:" + resolvedFunctionName);
+        createVariableSubstitutionProposalsForFunction(variableName, resolvedFunctionName, context, acceptor,
+                pdpConfiguration);
+    }
+
+    private void createVariableSubstitutionProposalsForFunction(String variableName, String resolvedFunctionName,
+            ContentAssistContext context, IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
+        var schemas = pdpConfiguration.functionContext().getFunctionSchemas();
+        for (var schemaEntry : schemas.entrySet()) {
+            log("key:" + schemaEntry.getKey());
+            if (schemaEntry.getKey().contains(resolvedFunctionName)) {
+                var schema = schemaEntry.getValue();
+                log("s->" + schema);
+                var proposals = SchemaProposalGenerator.getCodeTemplates(variableName, schema,
+                        pdpConfiguration.variables());
+                addProposals(proposals, context, acceptor);
+            }
+        }
+    }
+
+    private String resolveImport(String nameInUse, ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+        var allFunctions = pdpConfiguration.functionContext().getAllFullyQualifiedFunctions();
+        if (context.getRootModel() instanceof SAPL sapl) {
+            var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
+            for (var anImport : imports) {
+                if (anImport instanceof WildcardImport wildcardImport) {
+                    var resolutionCandidate = joinStepsToPrefix(wildcardImport.getLibSteps()) + nameInUse;
+                    if (allFunctions.contains(resolutionCandidate))
+                        return resolutionCandidate;
+                } else if (anImport instanceof LibraryImport libraryImport) {
+                    var alias = libraryImport.getLibAlias();
+                    if (nameInUse.startsWith(alias)) {
+                        var prefix              = joinStepsToPrefix(libraryImport.getLibSteps());
+                        var suffix              = nameInUse.substring(alias.length() + 1);
+                        var resolutionCandidate = prefix + suffix;
+                        if (allFunctions.contains(resolutionCandidate))
+                            return resolutionCandidate;
+                    }
+                } else {
+                    // Basic Import
+                    var importedName = joinStepsToName(anImport.getLibSteps());
+                    if (importedName.endsWith(nameInUse) && allFunctions.contains(importedName)) {
+                        return importedName;
+                    }
+                }
+            }
+        }
+        return nameInUse;
     }
 
     /*
@@ -268,19 +378,20 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         if ("identifier".equals(feature)) {
             createBasicIdentifierProposals(feature, context, acceptor, pdpConfiguration);
         } else if ("idsteps".equals(feature) || "steps".equals(feature)) {
-            // TODO: validate
+            createBasicIdentifierProposals(feature, context, acceptor, pdpConfiguration);
+            // TODO: Next one only still relevant for attributes
             createBasicStepOrIdStepProposals(context, acceptor, pdpConfiguration, attributeContext);
         } else if ("fsteps".equals(feature)) {
             // TODO: validate
             createFStepsProposals(context, acceptor, pdpConfiguration);
         } else if ("value".equals(feature)) {
             // TODO: validate
-            createValueProposals(model, context, acceptor, pdpConfiguration);
+            createValueProposals(model, pdpConfiguration, context, acceptor);
         }
     }
 
-    private void createValueProposals(EObject model, ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
-            PDPConfiguration pdpConfiguration) {
+    private void createValueProposals(EObject model, PDPConfiguration pdpConfiguration, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
         var definedValues = ProposalExtractionUtil.getProposals(model, ProposalExtractionUtil.ProposalType.VALUE,
                 context, pdpConfiguration);
         // add variables to list of proposals
@@ -296,28 +407,29 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void createFStepsProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
             PDPConfiguration pdpConfiguration) {
-
-        // TODO: what exactly happens here?
-        var definedSchemas = getValidSchemas(context, context.getCurrentModel(), pdpConfiguration);
-        addProposals(definedSchemas, context, acceptor);
-
         var functionContext     = pdpConfiguration.functionContext();
         var documentedTemplates = functionContext.getDocumentedCodeTemplates();
-        var schemas             = functionContext.getFunctionSchemas();
         for (var documentedTemplate : documentedTemplates.entrySet()) {
             var template           = documentedTemplate.getKey();
             var documentation      = documentedTemplate.getValue();
             var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
-            var proposals          = proposalsWithImportsForTemplate(template, context, acceptor, pdpConfiguration);
-            proposals.add(template);
-            addProposalsWithSharedDocumentation(proposals, documentation, context, acceptor);
-            var schema = schemas.get(fullyQualifiedName);
-            if (schema != null) {
-                for (var prefix : proposals) {
-                    var extendedProposals = SchemaProposalGenerator.getCodeTemplates(prefix, schema,
-                            pdpConfiguration.variables());
-                    addProposals(extendedProposals, context, acceptor);
-                }
+            createFunctionProposals(fullyQualifiedName, template, documentation, context, acceptor, pdpConfiguration);
+        }
+    }
+
+    private void createFunctionProposals(String fullyQualifiedName, String template, String documentation,
+            ContentAssistContext context, IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
+        var functionContext = pdpConfiguration.functionContext();
+        var schemas         = functionContext.getFunctionSchemas();
+        var proposals       = proposalsWithImportsForTemplate(template, context, acceptor, pdpConfiguration);
+        proposals.add(template);
+        addProposalsWithSharedDocumentation(proposals, documentation, context, acceptor);
+        var schema = schemas.get(fullyQualifiedName);
+        if (schema != null) {
+            for (var prefix : proposals) {
+                var extendedProposals = SchemaProposalGenerator.getCodeTemplates(prefix, schema,
+                        pdpConfiguration.variables());
+                addProposals(extendedProposals, context, acceptor);
             }
         }
     }
@@ -325,10 +437,10 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     /**
      * This method strips < and > characters and removes a potential parameter list
      * in brackets from the tail end of a generated template.
-     * 
+     *
      * This is explicitly not using String.replace as there is no need for regular
      * expression processing and this is much more efficient.
-     * 
+     *
      * @param template a code template
      * @return the fully qualified function name in the template
      */
@@ -348,10 +460,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     private Collection<String> proposalsWithImportsForTemplate(String template, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         var proposals = new ArrayList<String>();
-
-        var root = context.getRootModel();
-
-        if (root instanceof SAPL sapl) {
+        if (context.getRootModel() instanceof SAPL sapl) {
             var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
             for (var anImport : imports) {
                 if (anImport instanceof WildcardImport wildcardImport) {
@@ -388,7 +497,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     private String joinStepsToPrefix(EList<String> steps) {
-        return String.join(".", steps) + '.';
+        return joinStepsToName(steps) + '.';
+    }
+
+    private String joinStepsToName(EList<String> steps) {
+        return String.join(".", steps);
     }
 
     private Optional<String> proposalsWithLibraryImport(LibraryImport libImport, String template,
@@ -423,7 +536,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addProposal(final String proposal, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
-        System.out.println("- '" + proposal);
+        log("- '" + proposal + "'");
         var contextWithCorrectedPrefix = ContextUtil.getContextWithFullPrefix(context, proposal.contains(">"));
         var entry                      = getProposalCreator().createProposal(proposal, contextWithCorrectedPrefix);
         acceptor.accept(entry, 0);
@@ -436,7 +549,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addProposalWithDocumentation(final String proposal, final String documentation,
             final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
-        System.out.println("- '" + proposal + "' doc: '" + documentation + "'");
+        log("- '" + proposal + "' doc: '" + documentation + "'");
         var contextWithCorrectedPrefix = ContextUtil.getContextWithFullPrefix(context, proposal.contains(">"));
         var entry                      = getProposalCreator().createProposal(proposal, contextWithCorrectedPrefix);
         if (entry != null && documentation != null)
@@ -570,8 +683,15 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         proposals.addAll(attributeContext.getEnvironmentAttributeCodeTemplates());
 
         var attributeProposals = ProposalExtractionUtil.getAttributeProposals(pdpConfiguration);
+
         attributeProposals.addAll(proposals);
         addSimpleProposalsForAttribute(attributeProposals, context, acceptor, pdpConfiguration);
     }
 
+    void log(String message) {
+        var clazz = getClass().getSimpleName();
+        var line  = StackWalker.getInstance(StackWalker.Option.SHOW_HIDDEN_FRAMES).walk((s) -> s.skip(1).findFirst())
+                .get().getLineNumber();
+        System.err.println(String.format("%10s % d: %s", clazz, line, message));
+    }
 }

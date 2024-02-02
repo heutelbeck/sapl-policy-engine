@@ -100,9 +100,9 @@ class TestFunctionContext implements FunctionContext {
     public List<String> getCodeTemplates() {
         // @formatter:off
         return List.of(
-                "filter.blacken",    "filter.blacken(a,b,c)", 
+                "filter.blacken",    "filter.blacken(a,b,c)",
                 "schemaTest.person", "schemaTest.person()",
-                "schemaTest.dog",    "schemaTest.dog()", 
+                "schemaTest.dog",    "schemaTest.dog()",
                 "schemaTest.food",   "schemaTest.food(String species)",
                 "schemaTest.food",   "schemaTest.food()");
         // @formatter:on
@@ -122,8 +122,8 @@ class TestFunctionContext implements FunctionContext {
                 "filter.blacken(a,b,c)",           "blacken documentation",
                 "schemaTest.person()",             "person documentation",
                 "schemaTest.location()",           "location documentation",
-                "schemaTest.dog()",                "dog documentation", 
-                "schemaTest.food(String species)", "food with species parameter documentation", 
+                "schemaTest.dog()",                "dog documentation",
+                "schemaTest.food(String species)", "food with species parameter documentation",
                 "schemaTest.food()",               "food documentation");
         // @formatter:on
     }

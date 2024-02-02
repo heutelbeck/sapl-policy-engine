@@ -144,8 +144,12 @@ public class ProposalExtractionUtil {
             EObject model, ContentAssistContext context, PDPConfiguration pdpConfiguration) {
         Collection<String> proposals = new HashSet<>();
         for (var statement : policyBody.getStatements()) {
-            var currentProposals = getProposalsFromStatement(proposalType, currentOffset, statement, model, context, pdpConfiguration);
+            var currentProposals = getProposalsFromStatement(proposalType, currentOffset, statement, model, context,
+                    pdpConfiguration);
             proposals.addAll(currentProposals);
+        }
+        for (var s : proposals) {
+            System.out.println("+++> '" + s + "'");
         }
         var authzProposals = getAuthzProposals(context, pdpConfiguration);
         proposals.addAll(authzProposals);
