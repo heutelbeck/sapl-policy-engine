@@ -46,13 +46,11 @@ import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class enhances the auto-completion proposals that the language server
  * offers.
  */
-@Slf4j
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private static final Collection<String> BLACKLIST_OF_KEYWORD_PROPOSALS = Set.of("null", "undefined", "true",
@@ -102,32 +100,12 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var feature          = assignment.getFeature().toLowerCase();
         var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration().blockFirst();
 
-        log.trace("[" + parserRuleName + "->" + feature + "]");
-
         switch (parserRuleName) {
-        case "import" -> {
-            createImportProposals(feature, context, acceptor, pdpConfiguration);
-            break;
-        }
-        case "schema" -> {
-            createSchemaProposals(feature, context, acceptor, pdpConfiguration);
-            break;
-        }
-        case "policy", "policyset" -> {
-            createPolicyOrPolicySetNameStringProposals(feature, context, acceptor, pdpConfiguration);
-            break;
-        }
-        case "basic" -> {
-            createBasicProposals(feature, context, acceptor, pdpConfiguration);
-            break;
-        }
-        case "step" -> {
-            createIdStepProposals(context, acceptor, pdpConfiguration);
-            break;
-        }
-        default -> {
-            // NOOP Calling super would only introduce unwanted technical terms in proposals
-        }
+        case "import" -> createImportProposals(feature, context, acceptor, pdpConfiguration);
+        case "schema" -> createSchemaProposals(feature, context, acceptor, pdpConfiguration);
+        case "policy", "policyset" -> createPolicyOrPolicySetNameStringProposals(feature, context, acceptor);
+        case "basic" -> createBasicProposals(feature, context, acceptor, pdpConfiguration);
+        case "step" -> createIdStepProposals(context, acceptor, pdpConfiguration);
         }
     }
 
@@ -415,7 +393,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
      * Only offers to add a blank string for adding a name.
      */
     private void createPolicyOrPolicySetNameStringProposals(String feature, ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
+            IIdeContentProposalAcceptor acceptor) {
         if (!"saplname".equals(feature))
             return;
 
@@ -432,7 +410,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addProposal(final String proposal, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
-        log.trace("- '" + proposal + "'");
         var contextWithCorrectedPrefix = ContextUtil.getContextWithFullPrefix(context, proposal.contains(">"));
         var entry                      = getProposalCreator().createProposal(proposal, contextWithCorrectedPrefix);
         acceptor.accept(entry, 0);
@@ -445,7 +422,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addProposalWithDocumentation(final String proposal, final String documentation,
             final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
-        log.trace("- '" + proposal + "' doc: '" + documentation + "'");
         var contextWithCorrectedPrefix = ContextUtil.getContextWithFullPrefix(context, proposal.contains(">"));
         var entry                      = getProposalCreator().createProposal(proposal, contextWithCorrectedPrefix);
         if (entry != null && documentation != null)
