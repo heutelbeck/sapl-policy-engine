@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.grammar.ide.contentassist;
 
 import java.util.ArrayList;
@@ -33,9 +50,7 @@ import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @UtilityClass
 public class ExpressionSchemaResolver {
 
@@ -45,29 +60,24 @@ public class ExpressionSchemaResolver {
         List<Step>     steps;
         List<JsonNode> baseSchemas;
         if (expression instanceof BasicGroup basicGroup) {
-            log.error("*BasicGroup*");
             // a BasicGroup may contain an expression with implicit schemas
             baseSchemas = inferPotentialSchemasOfExpression(basicGroup.getExpression(), context, pdpConfiguration);
             steps       = basicGroup.getSteps();
         } else if (expression instanceof BasicFunction basicFunction) {
-            log.error("*BasicFunction*");
             // function implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromFunction(basicFunction.getFsteps(), context, pdpConfiguration);
             steps       = basicFunction.getSteps();
         } else if (expression instanceof BasicEnvironmentAttribute basicEnvironmentAttribute) {
-            log.error("*BasicEnvironmentAttribute*");
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(basicEnvironmentAttribute.getIdSteps(), context,
                     pdpConfiguration);
             steps       = basicEnvironmentAttribute.getSteps();
         } else if (expression instanceof BasicEnvironmentHeadAttribute basicEnvironmentHeadAttribute) {
-            log.error("*BasicEnvironmentHeadAttribute*");
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(basicEnvironmentHeadAttribute.getIdSteps(), context,
                     pdpConfiguration);
             steps       = basicEnvironmentHeadAttribute.getSteps();
         } else if (expression instanceof BasicIdentifier basicIdentifier) {
-            log.error("*BasicIdentifier*");
             // an identifier may be an authorization subscription element with schema, or
             // the result of a value definition with an expression with explicit or implicit
             // schemas
@@ -75,7 +85,6 @@ public class ExpressionSchemaResolver {
                     pdpConfiguration);
             steps       = basicIdentifier.getSteps();
         } else {
-            log.error("*Other* - "+expression.eClass().getName());
             // BasicValue -> no schema possible
             // BasicRelative traversing relative @ nodes -> unclear how this could be
             // resolved
@@ -83,6 +92,15 @@ public class ExpressionSchemaResolver {
             return new ArrayList<>();
         }
         return inferPotentialSchemasStepsAfterExpression(baseSchemas, steps, context, pdpConfiguration);
+    }
+
+    public List<JsonNode> inferValueDefinitionSchemas(ValueDefinition valueDefinition, ContentAssistContext context,
+            PDPConfiguration pdpConfiguration) {
+        var schemas = inferPotentialSchemasOfExpression(valueDefinition.getEval(), context, pdpConfiguration);
+        for (var schemaExpression : valueDefinition.getSchemaVarExpression()) {
+            evaluateExpressionToSchema(schemaExpression, pdpConfiguration).ifPresent(s -> schemas.add(s));
+        }
+        return schemas;
     }
 
     private List<JsonNode> inferPotentialSchemasStepsAfterExpression(List<JsonNode> baseSchemas, List<Step> steps,
@@ -187,15 +205,6 @@ public class ExpressionSchemaResolver {
     private boolean nameMatchesAndIsInScope(String identifier, ValueDefinition definition,
             ContentAssistContext context) {
         return Objects.equals(definition.getName(), identifier) && context.getOffset() > offsetOf(definition);
-    }
-
-    public List<JsonNode> inferValueDefinitionSchemas(ValueDefinition valueDefinition, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
-        var schemas = inferPotentialSchemasOfExpression(valueDefinition.getEval(), context, pdpConfiguration);
-        for (var schemaExpression : valueDefinition.getSchemaVarExpression()) {
-            evaluateExpressionToSchema(schemaExpression, pdpConfiguration).ifPresent(s -> schemas.add(s));
-        }
-        return schemas;
     }
 
     private List<JsonNode> inferSubscriptionElementSchema(String identifier, ContentAssistContext context,

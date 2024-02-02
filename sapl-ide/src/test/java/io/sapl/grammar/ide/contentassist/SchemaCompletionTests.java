@@ -243,10 +243,10 @@ class SchemaCompletionTests extends CompletionTests {
     void testCompletion_PolicyBody_NotSuggestEnumKeywords() {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
-                    policy "test" 
-                    permit 
-                    where 
-                        var bar = 3; 
+                    policy "test"
+                    permit
+                    where
+                        var bar = 3;
                         var foo = "test" schema
                                     {
                                        "type": "object",

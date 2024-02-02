@@ -66,7 +66,7 @@ class FunctionProposalTests extends CompletionTests {
             });
         });
     }
-    
+
     @Test
     void testCompletion_PolicyBody_function_with_alias_import_inMultipleBrackets() {
 
@@ -143,8 +143,6 @@ class FunctionProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                for (var i : completionList.getItems())
-                    System.out.println("***>" + i.getLabel());
                 var expected = List.of("foo.race");
                 assertProposalsSimple(expected, completionList);
                 var unwanted = List.of("foo.name");
@@ -356,8 +354,6 @@ class FunctionProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                for (var i : completionList.getItems())
-                    System.out.println("*>" + i.getLabel());
                 var expected = List.of("schemaTest.location()", "schemaTest.location().latitude");
                 assertProposalsSimple(expected, completionList);
             });

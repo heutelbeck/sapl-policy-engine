@@ -21,14 +21,12 @@ import static io.sapl.grammar.ide.contentassist.ExpressionSchemaResolver.offsetO
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.Assignment;
 import org.eclipse.xtext.GrammarUtil;
 import org.eclipse.xtext.Keyword;
@@ -44,11 +42,8 @@ import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.SaplFactory;
-import io.sapl.grammar.sapl.SaplPackage;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.grammar.sapl.WildcardImport;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 
@@ -126,7 +121,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         }
         case "step" -> {
             // TODO: validate
-            createStepProposals(feature, context, acceptor, pdpConfiguration);
+            createIdStepProposals(context, acceptor, pdpConfiguration);
+            // createStepProposals(feature, context, acceptor, pdpConfiguration);
             return;
         }
         default -> {
@@ -256,33 +252,14 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void createBasicProposals(String feature, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        var model            = context.getCurrentModel();
-        var attributeContext = pdpConfiguration.attributeContext();
-
         if ("identifier".equals(feature)) {
             createBasicIdentifierProposals(feature, context, acceptor, pdpConfiguration);
         } else if ("idsteps".equals(feature) || "steps".equals(feature)) {
             createBasicIdentifierProposals(feature, context, acceptor, pdpConfiguration);
-           // createIdStepProposals(context, acceptor, pdpConfiguration);
-            // TODO: Next one only still relevant for attributes
-            createBasicStepOrIdStepProposals(context, acceptor, pdpConfiguration, attributeContext);
+            createIdStepProposals(context, acceptor, pdpConfiguration);
         } else if ("fsteps".equals(feature)) {
-            // TODO: validate
             createFStepsProposals(context, acceptor, pdpConfiguration);
-        } else if ("value".equals(feature)) {
-            // TODO: validate
-            createValueProposals(model, pdpConfiguration, context, acceptor);
         }
-    }
-
-    private void createValueProposals(EObject model, PDPConfiguration pdpConfiguration, ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor) {
-        var definedValues = ProposalExtractionUtil.getProposals(model, ProposalExtractionUtil.ProposalType.VALUE,
-                context, pdpConfiguration);
-        // add variables to list of proposals
-        addProposals(definedValues, context, acceptor);
-        // add authorization subscriptions proposals
-        createProposalsContainingSubscriptionElementIdentifiers(context, acceptor);
     }
 
     private void createProposalsContainingSubscriptionElementIdentifiers(ContentAssistContext context,
@@ -301,15 +278,16 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             var template           = documentedTemplate.getKey();
             var documentation      = documentedTemplate.getValue();
             var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
-            log("fullyQualifiedName: '"+fullyQualifiedName+"'");
+            log("fullyQualifiedName: '" + fullyQualifiedName + "'");
             createAttributeProposals(fullyQualifiedName, template, documentation, context, acceptor, pdpConfiguration);
         }
     }
+
     private void createAttributeProposals(String fullyQualifiedName, String template, String documentation,
             ContentAssistContext context, IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        var attributeContext    = pdpConfiguration.attributeContext();
-        var schemas         = attributeContext.getAttributeSchemas();
-        var proposals       = new ArrayList<String>(); //proposalsWithImportsForTemplate(template, context, acceptor, pdpConfiguration);
+        var attributeContext = pdpConfiguration.attributeContext();
+        var schemas          = attributeContext.getAttributeSchemas();
+        var proposals        = proposalsWithImportsForTemplate(template, context, acceptor);
         proposals.add(template);
         addProposalsWithSharedDocumentation(proposals, documentation, context, acceptor);
         var schema = schemas.get(fullyQualifiedName);
@@ -321,6 +299,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             }
         }
     }
+
     /*
      * fsteps are the name fragments of function names
      */
@@ -340,7 +319,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             ContentAssistContext context, IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         var functionContext = pdpConfiguration.functionContext();
         var schemas         = functionContext.getFunctionSchemas();
-        var proposals       = proposalsWithImportsForTemplate(template, context, acceptor, pdpConfiguration);
+        var proposals       = proposalsWithImportsForTemplate(template, context, acceptor);
         proposals.add(template);
         addProposalsWithSharedDocumentation(proposals, documentation, context, acceptor);
         var schema = schemas.get(fullyQualifiedName);
@@ -377,15 +356,17 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     private Collection<String> proposalsWithImportsForTemplate(String template, ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
+            IIdeContentProposalAcceptor acceptor) {
+        log("resolve imports for " + template);
         var proposals = new ArrayList<String>();
         if (context.getRootModel() instanceof SAPL sapl) {
             var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
             for (var anImport : imports) {
+                log("import: " + anImport.getClass().getSimpleName());
                 if (anImport instanceof WildcardImport wildcardImport) {
                     proposalsWithWildcard(wildcardImport, template, context, acceptor).ifPresent(i -> proposals.add(i));
                 } else if (anImport instanceof LibraryImport libraryImport) {
-                    proposalsWithLibraryImport(libraryImport, template, context, acceptor, pdpConfiguration)
+                    proposalsWithLibraryImport(libraryImport, template, context, acceptor)
                             .ifPresent(i -> proposals.add(i));
                 } else {
                     proposalsWithImport(anImport, template, context, acceptor).ifPresent(i -> proposals.add(i));
@@ -397,20 +378,27 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private Optional<String> proposalsWithImport(Import anImport, String template, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
-        var steps        = anImport.getLibSteps();
-        var functionName = anImport.getFunctionName();
-        var prefix       = joinStepsToPrefix(steps) + functionName;
-        if (template.startsWith(prefix))
-            return Optional.of(functionName + template.substring(prefix.length()));
+        var steps              = anImport.getLibSteps();
+        var functionName       = anImport.getFunctionName();
+        var prefix             = joinStepsToPrefix(steps) + functionName;
+        var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
+        log("pwi template:" + template);
+        log("pwi prefix:" + prefix);
+        log("pwi functionName: " + functionName);
+        log("pwi fullyQualifiedName: >" + fullyQualifiedName + "<");
+
+        if (fullyQualifiedName.startsWith(prefix))
+            return Optional.of(template.replaceFirst(prefix, functionName));
         else
             return Optional.empty();
     }
 
     private Optional<String> proposalsWithWildcard(WildcardImport wildCard, String template,
             final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
-        var prefix = joinStepsToPrefix(wildCard.getLibSteps());
-        if (template.startsWith(prefix))
-            return Optional.of(template.substring(prefix.length()));
+        var prefix             = joinStepsToPrefix(wildCard.getLibSteps());
+        var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
+        if (fullyQualifiedName.startsWith(prefix))
+            return Optional.of(template.replaceFirst(prefix, ""));
         else
             return Optional.empty();
     }
@@ -424,12 +412,17 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     private Optional<String> proposalsWithLibraryImport(LibraryImport libImport, String template,
-            final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor,
-            PDPConfiguration pdpConfiguration) {
-        var shortPrefix = String.join(".", libImport.getLibSteps());
-        var prefix      = shortPrefix + '.';
-        if (template.startsWith(prefix))
-            return Optional.of(libImport.getLibAlias() + '.' + template.substring(prefix.length()));
+            final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
+        var shortPrefix        = String.join(".", libImport.getLibSteps());
+        var prefix             = shortPrefix + '.';
+        var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
+
+        log("pwli template:" + template);
+        log("pwli prefix:" + prefix);
+        log("pwli fullyQualifiedName:" + fullyQualifiedName);
+
+        if (fullyQualifiedName.startsWith(prefix))
+            return Optional.of(template.replaceFirst(shortPrefix, libImport.getLibAlias()));
         else
             return Optional.empty();
     }
@@ -476,141 +469,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         acceptor.accept(entry, 0);
     }
 
-    ////////////////////////////////////////////////////////////////////////////////
-
-    private void createBasicStepOrIdStepProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
-            PDPConfiguration pdpConfiguration, AttributeContext attributeContext) {
-        var attributeProposals = ProposalExtractionUtil.getAttributeProposals(pdpConfiguration);
-        var templates          = new ArrayList<String>();
-        templates.addAll(attributeContext.getAttributeCodeTemplates());
-        templates.addAll(attributeProposals);
-        addProposalsWithImportsForTemplates(templates, context, acceptor, pdpConfiguration);
-        addProposalsForAttributeStepsIfPresent(context, acceptor, pdpConfiguration);
-    }
-
-    private void createStepProposals(String feature, ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
-            PDPConfiguration pdpConfiguration) {
-
-        if ("idsteps".equals(feature))
-            addProposalsForAttributeStepsIfPresent(context, acceptor, pdpConfiguration);
-
-    }
-
-    private Collection<String> getValidSchemas(ContentAssistContext context, EObject model,
-            PDPConfiguration pdpConfiguration) {
-        return ProposalExtractionUtil.getProposals(model, ProposalExtractionUtil.ProposalType.SCHEMA, context,
-                pdpConfiguration);
-    }
-
-    private void addProposalsWithImportsForTemplates(Collection<String> templates, ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        var sapl    = Objects.requireNonNullElse(
-                TreeNavigationUtil.goToFirstParent(context.getCurrentModel(), SAPL.class),
-                SaplFactory.eINSTANCE.createSAPL());
-        var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
-
-        for (var anImport : imports) {
-            if (SaplPackage.Literals.WILDCARD_IMPORT.isSuperTypeOf(anImport.eClass())) {
-                var wildCard = (WildcardImport) anImport;
-                addProposalsWithWildcard(wildCard, templates, context, acceptor);
-            } else if (SaplPackage.Literals.LIBRARY_IMPORT.isSuperTypeOf(anImport.eClass())) {
-                var wildCard = (LibraryImport) anImport;
-                addProposalsWithLibraryImport(wildCard, templates, context, acceptor, pdpConfiguration);
-            } else {
-                addProposalsWithImport(anImport, templates, context, acceptor);
-            }
-        }
-
-    }
-
-    // TODO: unify import logic
-    private void addProposalsWithImport(Import anImport, Collection<String> templates, ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor) {
-        var steps        = anImport.getLibSteps();
-        var functionName = anImport.getFunctionName();
-        var prefix       = joinStepsToPrefix(steps) + functionName;
-        for (var template : templates)
-            if (template.startsWith(prefix))
-                addSimpleProposal(functionName + template.substring(prefix.length()), context, acceptor);
-    }
-
-    private void addProposalsWithWildcard(WildcardImport wildCard, Collection<String> templates,
-            final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
-
-        var prefix = joinStepsToPrefix(wildCard.getLibSteps());
-
-        for (var template : templates)
-            if (template.startsWith(prefix))
-                addProposalWithDocumentation(template.substring(prefix.length()), null, context, acceptor);
-    }
-
-    private void addProposalsWithLibraryImport(LibraryImport libImport, Collection<String> templates,
-            final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor,
-            PDPConfiguration pdpConfiguration) {
-
-        var shortPrefix = String.join(".", libImport.getLibSteps());
-        var prefix      = shortPrefix + '.';
-        for (var template : templates)
-            if (template.startsWith(prefix))
-                addSimpleProposals(List.of(libImport.getLibAlias() + '.' + template.substring(prefix.length())),
-                        context, acceptor, pdpConfiguration);
-    }
-
-    private void addSimpleProposals(final Collection<String> proposals, final ContentAssistContext context,
-            final IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        var contextWithCorrectedPrefix = getContextWithCorrectedPrefix(context, pdpConfiguration);
-        for (var proposal : proposals) {
-            if (proposal.contains(">"))
-                addSimpleProposalsForAttribute(List.of(proposal), context, acceptor, pdpConfiguration);
-            else
-                addSimpleProposal(proposal, contextWithCorrectedPrefix, acceptor);
-        }
-    }
-
-    private void addSimpleProposalsForAttribute(final Collection<String> proposals, final ContentAssistContext context,
-            final IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        var contextWithCorrectedPrefix = getContextWithCorrectedPrefixForAttribute(context, pdpConfiguration);
-        for (var proposal : proposals) {
-            addSimpleProposal("<".concat(proposal), contextWithCorrectedPrefix, acceptor);
-        }
-    }
-
-    private void addSimpleProposal(final String proposal, final ContentAssistContext context,
-            final IIdeContentProposalAcceptor acceptor) {
-        var entry = getProposalCreator().createProposal(proposal, context);
-        acceptor.accept(entry, 0);
-    }
-
-    private ContentAssistContext getContextWithCorrectedPrefix(ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
-        return ContextUtil.getContextWithFullPrefix(context, false);
-    }
-
-    private ContentAssistContext getContextWithCorrectedPrefixForAttribute(ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
-        return ContextUtil.getContextWithFullPrefix(context, true);
-    }
-
-    private void addProposalsForAttributeStepsIfPresent(ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-
-        var attributeContext = pdpConfiguration.attributeContext();
-        var definedSchemas   = getValidSchemas(context, context.getCurrentModel(), pdpConfiguration);
-        addSimpleProposalsForAttribute(definedSchemas, context, acceptor, pdpConfiguration);
-
-        var proposals = new LinkedList<>(attributeContext.getAttributeCodeTemplates());
-        proposals.addAll(attributeContext.getEnvironmentAttributeCodeTemplates());
-
-        var attributeProposals = ProposalExtractionUtil.getAttributeProposals(pdpConfiguration);
-
-        attributeProposals.addAll(proposals);
-        addSimpleProposalsForAttribute(attributeProposals, context, acceptor, pdpConfiguration);
-    }
-
     void log(String message) {
-        var clazz = getClass().getSimpleName();
-        var line  = StackWalker.getInstance(StackWalker.Option.SHOW_HIDDEN_FRAMES).walk((s) -> s.skip(1).findFirst())
-                .get().getLineNumber();
-        System.err.println(String.format("%10s % d: %s", clazz, line, message));
+        var debug = false;
+        if (debug) {
+            var clazz = getClass().getSimpleName();
+            var line  = StackWalker.getInstance(StackWalker.Option.SHOW_HIDDEN_FRAMES)
+                    .walk((s) -> s.skip(1).findFirst()).get().getLineNumber();
+            System.err.println(String.format("%10s % d: %s", clazz, line, message));
+        }
     }
 }
