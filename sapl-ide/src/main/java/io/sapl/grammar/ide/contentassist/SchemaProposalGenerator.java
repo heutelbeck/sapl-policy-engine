@@ -29,6 +29,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
@@ -85,7 +86,8 @@ public class SchemaProposalGenerator {
     }
 
     private static void loadSchemasFromVariables(Map<String, JsonNode> variables, Map<String, JsonNode> definitions) {
-        for (var variable : variables.values()) {
+        var schemaArray = variables.getOrDefault("SCHEMAS", JsonNodeFactory.instance.arrayNode());
+        for (var variable : schemaArray) {
             loadSchema(variable, definitions);
         }
     }

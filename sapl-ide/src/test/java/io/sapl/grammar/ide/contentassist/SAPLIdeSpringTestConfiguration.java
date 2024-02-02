@@ -18,6 +18,7 @@
 package io.sapl.grammar.ide.contentassist;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
@@ -27,6 +28,7 @@ import org.springframework.context.annotation.Configuration;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
@@ -56,6 +58,10 @@ class SAPLIdeSpringTestConfiguration {
         load("vehicle_schema", variables);
         load("schema_with_additional_keywords", variables);
 
+        load(List.of("action_schema", "address_schema", "calendar_schema", "general_schema",
+                "geographical_location_schema", "subject_schema", "vehicle_schema", "schema_with_additional_keywords"),
+                variables);
+
         var staticPlaygroundConfiguration = new PDPConfiguration(attributeContext, functionContext, variables,
                 CombiningAlgorithmFactory.getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES),
                 UnaryOperator.identity(), UnaryOperator.identity());
@@ -68,6 +74,19 @@ class SAPLIdeSpringTestConfiguration {
     }
 
     @SneakyThrows
+    private void load(List<String> schemaFiles, Map<String, JsonNode> variables) {
+        var schemasArray = JsonNodeFactory.instance.arrayNode();
+        for (var schemaFile : schemaFiles) {
+            try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
+                if (is == null)
+                    throw new RuntimeException(schemaFile + ".json not found");
+                schemasArray.add(MAPPER.readValue(is, JsonNode.class));
+            }
+        }
+        variables.put("SCHEMAS", schemasArray);
+    }
+
+    @SneakyThrows
     private void load(String schemaFile, Map<String, JsonNode> variables) {
         try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
             if (is == null)
@@ -76,4 +95,5 @@ class SAPLIdeSpringTestConfiguration {
             variables.put(schemaFile, schema);
         }
     }
+
 }

@@ -31,6 +31,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.ide.contentassist.SchemaProposalGenerator;
@@ -38,7 +39,7 @@ import lombok.SneakyThrows;
 
 class SchemaProposalGeneratorTests {
 
-    private static final String LOCATION_SCHEMA        = """
+    private static final String LOCATION_SCHEMA              = """
              {
                 "$id": "https://example.com/location.schema.json",
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -50,7 +51,7 @@ class SchemaProposalGeneratorTests {
                 }
             }
             """;
-    private static final String DETAILED_PERSON_SCHEMA = """
+    private static final String DETAILED_PERSON_SCHEMA       = """
              {
                 "$id": "https://example.com/person.schema.json",
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -73,7 +74,7 @@ class SchemaProposalGeneratorTests {
                 }
             }
             """;
-    private static final String SIMPLE_PERSON_SCHEMA   = """
+    private static final String SIMPLE_PERSON_SCHEMA         = """
              {
                 "$id": "https://example.com/person",
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -101,7 +102,7 @@ class SchemaProposalGeneratorTests {
                                }
                 }
             }
-            """;   
+            """;
     private static final String COORDINATES_SCHEMA           = """
              {
                 "$id": "https://example.com/coordinates",
@@ -122,7 +123,7 @@ class SchemaProposalGeneratorTests {
                 Arguments.of("empty schema", List.of(), "{}", new String[0] ),
                 Arguments.of("non object schema", List.of(), "123", new String[0] ),
                 Arguments.of("simple schema", List.of(), DETAILED_PERSON_SCHEMA, new String[] {".firstName", ".lastName", ".age"}),
-                Arguments.of("simple array", List.of(), 
+                Arguments.of("simple array", List.of(),
                         """
                         {
                              "type": "array",
@@ -154,12 +155,12 @@ class SchemaProposalGeneratorTests {
                             }
                         }
                     }
-                    """, 
-                    new String[] { ".A", ".A.x", ".A.y", ".A.z", 
+                    """,
+                    new String[] { ".A", ".A.x", ".A.y", ".A.z",
                                    ".B", ".B.x", ".B.y", ".B.z",
                                    ".C", ".C.x", ".C.y", ".C.z"}),
                 Arguments.of(
-                        "absoluteToExternalSchemaAnchorButTheAncorIsNotMathing", 
+                        "absoluteToExternalSchemaAnchorButTheAncorIsNotMathing",
                         List.of("""
                                 {
                                 "$id": "https://example.com/coordinates",
@@ -173,7 +174,7 @@ class SchemaProposalGeneratorTests {
                                     "z": { "type": "integer" }
                                 }
                             }
-                            """), 
+                            """),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -186,9 +187,9 @@ class SchemaProposalGeneratorTests {
                                "C": { "$ref": "https://example.com/coordinates#coordis" }
                            }
                        }
-                       """, 
+                       """,
                        new String[] {".A", ".B", ".C"}),
-                Arguments.of("absoluteToExternalSchemaAnchor", 
+                Arguments.of("absoluteToExternalSchemaAnchor",
                         List.of("""
                                 {
                                 "$id": "https://example.com/coordinates",
@@ -202,7 +203,7 @@ class SchemaProposalGeneratorTests {
                                     "z": { "type": "integer" }
                                 }
                             }
-                            """), 
+                            """),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -215,11 +216,11 @@ class SchemaProposalGeneratorTests {
                                "C": { "$ref": "https://example.com/coordinates#coordis" }
                            }
                        }
-                       """, 
-                       new String[] { ".A", ".A.x", ".A.y", ".A.z", 
+                       """,
+                       new String[] { ".A", ".A.x", ".A.y", ".A.z",
                                       ".B", ".B.x", ".B.y", ".B.z",
                                       ".C", ".C.x", ".C.y", ".C.z"}),
-                Arguments.of("absoluteToExternalSchemaAnchorInArray", 
+                Arguments.of("absoluteToExternalSchemaAnchorInArray",
                         List.of("""
                                 {
                                 "$id": "https://example.com/coordinates",
@@ -238,7 +239,7 @@ class SchemaProposalGeneratorTests {
                                               }
                                         ]
                             }
-                            """), 
+                            """),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -251,11 +252,11 @@ class SchemaProposalGeneratorTests {
                                "C": { "$ref": "https://example.com/coordinates#coordis" }
                            }
                        }
-                       """, 
-                       new String[] { ".A", ".A.x", ".A.y", ".A.z", 
+                       """,
+                       new String[] { ".A", ".A.x", ".A.y", ".A.z",
                                       ".B", ".B.x", ".B.y", ".B.z",
                                       ".C", ".C.x", ".C.y", ".C.z"}),
-                Arguments.of("absoluteToExternalSchemaAnchorInArrayWhichDoesNotExist", 
+                Arguments.of("absoluteToExternalSchemaAnchorInArrayWhichDoesNotExist",
                         List.of("""
                                 {
                                 "$id": "https://example.com/coordinates",
@@ -273,7 +274,7 @@ class SchemaProposalGeneratorTests {
                                               }
                                         ]
                             }
-                            """), 
+                            """),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -286,9 +287,9 @@ class SchemaProposalGeneratorTests {
                                "C": { "$ref": "https://example.com/coordinates#coordis" }
                            }
                        }
-                       """, 
+                       """,
                        new String[] {".A", ".B", ".C"}),
-                Arguments.of("absoluteToExternalSchemaAnchorDeeperInHierarcy", 
+                Arguments.of("absoluteToExternalSchemaAnchorDeeperInHierarcy",
                         List.of("""
                                 {
                                 "$id": "https://example.com/coordinates",
@@ -301,7 +302,7 @@ class SchemaProposalGeneratorTests {
                                     "z": { "type": "integer" }
                                 }
                             }
-                            """), 
+                            """),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -314,10 +315,10 @@ class SchemaProposalGeneratorTests {
                                "C": { "$ref": "https://example.com/coordinates#coordis" }
                            }
                        }
-                       """, 
+                       """,
                        new String[] {".A", ".B", ".C"}),
-                Arguments.of("absoluteToExternalSchema", 
-                        List.of(COORDINATES_SCHEMA), 
+                Arguments.of("absoluteToExternalSchema",
+                        List.of(COORDINATES_SCHEMA),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -330,12 +331,12 @@ class SchemaProposalGeneratorTests {
                                "C": { "$ref": "https://example.com/coordinates" }
                            }
                        }
-                       """, 
-                       new String[] { ".A", ".A.x", ".A.y", ".A.z", 
+                       """,
+                       new String[] { ".A", ".A.x", ".A.y", ".A.z",
                                       ".B", ".B.x", ".B.y", ".B.z",
                                       ".C", ".C.x", ".C.y", ".C.z"}),
-                Arguments.of("overloadingTypeWithArray", 
-                        List.of(COORDINATES_SCHEMA, SIMPLE_PERSON_SCHEMA), 
+                Arguments.of("overloadingTypeWithArray",
+                        List.of(COORDINATES_SCHEMA, SIMPLE_PERSON_SCHEMA),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -346,10 +347,10 @@ class SchemaProposalGeneratorTests {
                              { "$ref": "https://example.com/person" }
                            ]
                        }
-                       """, 
+                       """,
                        new String[] {".x", ".y", ".z", ".name", ".age"}),
-                Arguments.of("overloadingTypeWithAnyOf", 
-                        List.of(COORDINATES_SCHEMA, SIMPLE_PERSON_SCHEMA), 
+                Arguments.of("overloadingTypeWithAnyOf",
+                        List.of(COORDINATES_SCHEMA, SIMPLE_PERSON_SCHEMA),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -360,10 +361,10 @@ class SchemaProposalGeneratorTests {
                              { "$ref": "https://example.com/person" }
                            ]
                        }
-                       """, 
+                       """,
                        new String[] {".x", ".y", ".z", ".name", ".age"}),
-                Arguments.of("overloadingTypeWithAllOf", 
-                        List.of(COORDINATES_SCHEMA, SIMPLE_PERSON_SCHEMA), 
+                Arguments.of("overloadingTypeWithAllOf",
+                        List.of(COORDINATES_SCHEMA, SIMPLE_PERSON_SCHEMA),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -374,10 +375,10 @@ class SchemaProposalGeneratorTests {
                              { "$ref": "https://example.com/person" }
                            ]
                        }
-                       """, 
+                       """,
                         new String[] {".x", ".y", ".z", ".name", ".age"}),
-                Arguments.of("overloadingTypeWithOneOf", 
-                        List.of(COORDINATES_SCHEMA, SIMPLE_PERSON_SCHEMA), 
+                Arguments.of("overloadingTypeWithOneOf",
+                        List.of(COORDINATES_SCHEMA, SIMPLE_PERSON_SCHEMA),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -388,10 +389,10 @@ class SchemaProposalGeneratorTests {
                              { "$ref": "https://example.com/person" }
                            ]
                        }
-                       """, 
+                       """,
                         new String[] {".x", ".y", ".z", ".name", ".age"}),
-                Arguments.of("absolutePointerToExternalSchema", 
-                        List.of(COORDINATES_SCHEMA_WITH_DEFS), 
+                Arguments.of("absolutePointerToExternalSchema",
+                        List.of(COORDINATES_SCHEMA_WITH_DEFS),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -404,12 +405,12 @@ class SchemaProposalGeneratorTests {
                                "C": { "$ref": "https://example.com/coordinates#/$defs/coord" }
                            }
                        }
-                       """, 
-                       new String[] { ".A", ".A.x", ".A.y", ".A.z", 
+                       """,
+                       new String[] { ".A", ".A.x", ".A.y", ".A.z",
                                       ".B", ".B.x", ".B.y", ".B.z",
                                       ".C", ".C.x", ".C.y", ".C.z"}),
-                Arguments.of("absolutePointerToExternalSchemaIncorrectPath", 
-                        List.of(COORDINATES_SCHEMA_WITH_DEFS), 
+                Arguments.of("absolutePointerToExternalSchemaIncorrectPath",
+                        List.of(COORDINATES_SCHEMA_WITH_DEFS),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -422,10 +423,10 @@ class SchemaProposalGeneratorTests {
                                "C": { "$ref": "https://example.com/coordinates#/$defs/xoord" }
                            }
                        }
-                       """, 
+                       """,
                        new String[] {".A", ".B", ".C"}),
-                Arguments.of("nonObjectProperties", 
-                        List.of(), 
+                Arguments.of("nonObjectProperties",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -434,10 +435,10 @@ class SchemaProposalGeneratorTests {
                            "type": "object",
                            "properties": 123
                        }
-                       """, 
+                       """,
                        new String[] {}),
-                Arguments.of("nonTextType", 
-                        List.of(), 
+                Arguments.of("nonTextType",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -445,10 +446,10 @@ class SchemaProposalGeneratorTests {
                            "title": "Triangle",
                            "type": 123
                        }
-                       """, 
+                       """,
                        new String[] {}),
-                Arguments.of("objectNoProperties", 
-                        List.of(), 
+                Arguments.of("objectNoProperties",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -456,10 +457,10 @@ class SchemaProposalGeneratorTests {
                            "title": "Triangle",
                            "type": "object"
                        }
-                       """, 
+                       """,
                        new String[] {}),
-                Arguments.of("arrayNoItems_then_proposalsHasBrackets", 
-                        List.of(), 
+                Arguments.of("arrayNoItems_then_proposalsHasBrackets",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -467,10 +468,10 @@ class SchemaProposalGeneratorTests {
                            "title": "Triangle",
                            "type": "array"
                        }
-                       """, 
+                       """,
                        new String[] {"[]"}),
-                Arguments.of("array", 
-                        List.of(COORDINATES_SCHEMA_WITH_DEFS,DETAILED_PERSON_SCHEMA,LOCATION_SCHEMA), 
+                Arguments.of("array",
+                        List.of(COORDINATES_SCHEMA_WITH_DEFS,DETAILED_PERSON_SCHEMA,LOCATION_SCHEMA),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -483,12 +484,12 @@ class SchemaProposalGeneratorTests {
                                { "$ref": "https://example.com/location.schema.json" }
                            ]
                        }
-                       """, 
+                       """,
                        new String[] {
-                               "[]", "[].firstName", "[].lastName", "[].age", 
+                               "[]", "[].firstName", "[].lastName", "[].age",
                                "[].long", "[].lat", "[].x", "[].y", "[].z"}),
-                Arguments.of("arrayNonObjectItems_then_proposalsOnlyBracket", 
-                        List.of(), 
+                Arguments.of("arrayNonObjectItems_then_proposalsOnlyBracket",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -497,10 +498,10 @@ class SchemaProposalGeneratorTests {
                            "type": "array",
                            "items": 123
                        }
-                       """, 
+                       """,
                        new String[] {"[]"}),
-                Arguments.of("when_schemaContainsWhitespaces_then_proposalsAreEscaped", 
-                        List.of(), 
+                Arguments.of("when_schemaContainsWhitespaces_then_proposalsAreEscaped",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/triangle.schema.json",
@@ -523,13 +524,13 @@ class SchemaProposalGeneratorTests {
                                }
                            }
                        }
-                       """, 
+                       """,
                        new String[] {
-                               ".A", ".A.'x coordinate'", ".A.'y coordinate'", ".A.'z coordinate'", 
-                               ".B", ".B.'x coordinate'", ".B.'y coordinate'", ".B.'z coordinate'", 
+                               ".A", ".A.'x coordinate'", ".A.'y coordinate'", ".A.'z coordinate'",
+                               ".B", ".B.'x coordinate'", ".B.'y coordinate'", ".B.'z coordinate'",
                                ".C", ".C.'x coordinate'", ".C.'y coordinate'", ".C.'z coordinate'"}),
-                Arguments.of("simpleRecusiveSchema", 
-                        List.of(), 
+                Arguments.of("simpleRecusiveSchema",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/person.schema.json",
@@ -582,8 +583,8 @@ class SchemaProposalGeneratorTests {
                            ".parent.parent.parent.parent.parent.parent.parent.parent.parent.firstName",
                            ".parent.parent.parent.parent.parent.parent.parent.parent.parent.age",
                            ".parent.parent.parent.parent.parent.parent.parent.parent.parent.parent"}),
-                Arguments.of("simpleRecusiveSchemaHashtag", 
-                        List.of(), 
+                Arguments.of("simpleRecusiveSchemaHashtag",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/person.schema.json",
@@ -636,8 +637,8 @@ class SchemaProposalGeneratorTests {
                            ".parent.parent.parent.parent.parent.parent.parent.parent.parent.firstName",
                            ".parent.parent.parent.parent.parent.parent.parent.parent.parent.age",
                            ".parent.parent.parent.parent.parent.parent.parent.parent.parent.parent"}),
-                Arguments.of("simpleRecusiveSchemaAbsoluteReference", 
-                        List.of(), 
+                Arguments.of("simpleRecusiveSchemaAbsoluteReference",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/person.schema.json",
@@ -659,7 +660,7 @@ class SchemaProposalGeneratorTests {
                                }
                            }
                        }
-                       """, 
+                       """,
                         new String[] {
                                 ".firstName",
                                 ".age",
@@ -691,8 +692,8 @@ class SchemaProposalGeneratorTests {
                                 ".parent.parent.parent.parent.parent.parent.parent.parent.parent.firstName",
                                 ".parent.parent.parent.parent.parent.parent.parent.parent.parent.age",
                                 ".parent.parent.parent.parent.parent.parent.parent.parent.parent.parent"}),
-                Arguments.of("badRef", 
-                        List.of(), 
+                Arguments.of("badRef",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/person.schema.json",
@@ -714,10 +715,10 @@ class SchemaProposalGeneratorTests {
                                }
                            }
                        }
-                       """, 
+                       """,
                        new String[] {".firstName", ".age", ".parent"}),
-                Arguments.of("schemaIdBadType", 
-                        List.of(), 
+                Arguments.of("schemaIdBadType",
+                        List.of(),
                         """
                         {
                            "$id": 123,
@@ -739,10 +740,10 @@ class SchemaProposalGeneratorTests {
                                }
                            }
                        }
-                       """, 
+                       """,
                        new String[] {".firstName", ".age", ".parent"}),
-                Arguments.of("schemaNoId", 
-                        List.of(), 
+                Arguments.of("schemaNoId",
+                        List.of(),
                         """
                         {
                            "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -763,10 +764,10 @@ class SchemaProposalGeneratorTests {
                                }
                            }
                        }
-                       """, 
+                       """,
                        new String[] {".firstName", ".age", ".parent"}),
-                Arguments.of("schemaBlankId", 
-                        List.of(), 
+                Arguments.of("schemaBlankId",
+                        List.of(),
                         """
                         {
                         "$id" : "",
@@ -788,10 +789,10 @@ class SchemaProposalGeneratorTests {
                             }
                         }
                     }
-                    """, 
+                    """,
                        new String[] {".firstName", ".age", ".parent"}),
-                Arguments.of("unknownAbsoluteExternalRef", 
-                        List.of(), 
+                Arguments.of("unknownAbsoluteExternalRef",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/person.schema.json",
@@ -813,10 +814,10 @@ class SchemaProposalGeneratorTests {
                                }
                            }
                        }
-                       """, 
+                       """,
                        new String[] {".firstName", ".age", ".parent"}),
-                Arguments.of("malformedAbsoluteExternalRef", 
-                        List.of(), 
+                Arguments.of("malformedAbsoluteExternalRef",
+                        List.of(),
                         """
                         {
                            "$id": "https://example.com/person.schema.json",
@@ -838,7 +839,7 @@ class SchemaProposalGeneratorTests {
                                }
                            }
                        }
-                       """, 
+                       """,
                        new String[] {".firstName", ".age", ".parent"}),
                 Arguments.of("empty schema", List.of(), "{}", new String[0] )
                 // @formatter:on
@@ -853,10 +854,11 @@ class SchemaProposalGeneratorTests {
         assertThat(test).isNotEmpty();
         var schemaJson   = Val.ofJson(schema).get();
         var variablesMap = new HashMap<String, JsonNode>();
-        var i            = 0;
+        var schemasArray = JsonNodeFactory.instance.arrayNode();
         for (var variable : variables) {
-            variablesMap.put("#" + i++, Val.ofJson(variable).get());
+            schemasArray.add(Val.ofJson(variable).get());
         }
+        variablesMap.put("SCHEMAS", schemasArray);
         var actualProposals = SchemaProposalGenerator.getCodeTemplates("", schemaJson, variablesMap);
         assertThat(actualProposals).containsExactlyInAnyOrder(expectedProposals);
     }
@@ -866,12 +868,11 @@ class SchemaProposalGeneratorTests {
         var proposals = SchemaProposalGenerator.getCodeTemplates("", (JsonNode) null, Map.of());
         assertThat(proposals).isEmpty();
     }
-    
+
     @Test
     void when_undefinedSchema_then_proposalsEmpty() throws JsonProcessingException {
         var proposals = SchemaProposalGenerator.getCodeTemplates("", Val.error(""), Map.of());
         assertThat(proposals).isEmpty();
     }
-
 
 }
