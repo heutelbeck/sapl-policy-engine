@@ -98,7 +98,7 @@ public class ExpressionSchemaResolver {
             PDPConfiguration pdpConfiguration) {
         var schemas = inferPotentialSchemasOfExpression(valueDefinition.getEval(), context, pdpConfiguration);
         for (var schemaExpression : valueDefinition.getSchemaVarExpression()) {
-            evaluateExpressionToSchema(schemaExpression, pdpConfiguration).ifPresent(s -> schemas.add(s));
+            evaluateExpressionToSchema(schemaExpression, pdpConfiguration).ifPresent(schemas::add);
         }
         return schemas;
     }
@@ -193,10 +193,9 @@ public class ExpressionSchemaResolver {
             return schemas;
 
         for (var statement : policyBody.getStatements()) {
-            if (statement instanceof ValueDefinition valueDefinition) {
-                if (nameMatchesAndIsInScope(identifier, valueDefinition, context)) {
-                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, context, pdpConfiguration));
-                }
+            if (statement instanceof ValueDefinition valueDefinition
+                    && nameMatchesAndIsInScope(identifier, valueDefinition, context)) {
+                schemas.addAll(inferValueDefinitionSchemas(valueDefinition, context, pdpConfiguration));
             }
         }
         return schemas;
@@ -213,8 +212,7 @@ public class ExpressionSchemaResolver {
         if (context.getRootModel() instanceof SAPL sapl) {
             for (var schema : ((List<Schema>) sapl.getSchemas())) {
                 if (Objects.equals(identifier, schema.getSubscriptionElement())) {
-                    evaluateExpressionToSchema(schema.getSchemaExpression(), pdpConfiguration)
-                            .ifPresent(s -> schemas.add(s));
+                    evaluateExpressionToSchema(schema.getSchemaExpression(), pdpConfiguration).ifPresent(schemas::add);
                 }
             }
         }
@@ -224,7 +222,7 @@ public class ExpressionSchemaResolver {
     private Optional<JsonNode> evaluateExpressionToSchema(Expression expression, PDPConfiguration pdpConfiguration) {
         var expressionValue = expression.evaluate()
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, pdpConfiguration.variables())).blockFirst();
-        if (expressionValue.isDefined()) {
+        if (expressionValue != null && expressionValue.isDefined()) {
             return Optional.of(expressionValue.get());
         }
         return Optional.empty();
@@ -243,32 +241,41 @@ public class ExpressionSchemaResolver {
     }
 
     private String resolveImport(String nameInUse, ContentAssistContext context, Collection<String> allFunctions) {
-        if (context.getRootModel() instanceof SAPL sapl) {
+        var rootModel = context.getRootModel();
+        if (rootModel instanceof SAPL sapl) {
             var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
             for (var anImport : imports) {
-                if (anImport instanceof WildcardImport wildcardImport) {
-                    var resolutionCandidate = joinStepsToPrefix(wildcardImport.getLibSteps()) + nameInUse;
-                    if (allFunctions.contains(resolutionCandidate))
-                        return resolutionCandidate;
-                } else if (anImport instanceof LibraryImport libraryImport) {
-                    var alias = libraryImport.getLibAlias();
-                    if (nameInUse.startsWith(alias)) {
-                        var prefix              = joinStepsToPrefix(libraryImport.getLibSteps());
-                        var suffix              = nameInUse.substring(alias.length() + 1);
-                        var resolutionCandidate = prefix + suffix;
-                        if (allFunctions.contains(resolutionCandidate))
-                            return resolutionCandidate;
-                    }
-                } else {
-                    // Basic Import
-                    var importedName = joinStepsToName(anImport.getLibSteps());
-                    if (importedName.endsWith(nameInUse) && allFunctions.contains(importedName)) {
-                        return importedName;
-                    }
-                }
+                var importResolution = resolveIndicidualImport(nameInUse, anImport, allFunctions);
+                if (importResolution.isPresent())
+                    return importResolution.get();
             }
         }
         return nameInUse;
+    }
+
+    private Optional<String> resolveIndicidualImport(String nameInUse, Import anImport,
+            Collection<String> allFunctions) {
+        if (anImport instanceof WildcardImport wildcardImport) {
+            var resolutionCandidate = joinStepsToPrefix(wildcardImport.getLibSteps()) + nameInUse;
+            if (allFunctions.contains(resolutionCandidate))
+                return Optional.of(resolutionCandidate);
+        } else if (anImport instanceof LibraryImport libraryImport) {
+            var alias = libraryImport.getLibAlias();
+            if (nameInUse.startsWith(alias)) {
+                var prefix              = joinStepsToPrefix(libraryImport.getLibSteps());
+                var suffix              = nameInUse.substring(alias.length() + 1);
+                var resolutionCandidate = prefix + suffix;
+                if (allFunctions.contains(resolutionCandidate))
+                    return Optional.of(resolutionCandidate);
+            }
+        } else {
+            // Basic Import
+            var importedName = joinStepsToName(anImport.getLibSteps());
+            if (importedName.endsWith(nameInUse) && allFunctions.contains(importedName)) {
+                return Optional.of(importedName);
+            }
+        }
+        return Optional.empty();
     }
 
 }
