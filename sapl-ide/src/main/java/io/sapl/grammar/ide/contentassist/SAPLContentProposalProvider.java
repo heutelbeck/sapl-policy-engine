@@ -107,23 +107,23 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         switch (parserRuleName) {
         case "import" -> {
             createImportProposals(feature, context, acceptor, pdpConfiguration);
-            return;
+            break;
         }
         case "schema" -> {
             createSchemaProposals(feature, context, acceptor, pdpConfiguration);
-            return;
+            break;
         }
         case "policy", "policyset" -> {
             createPolicyOrPolicySetNameStringProposals(feature, context, acceptor, pdpConfiguration);
-            return;
+            break;
         }
         case "basic" -> {
             createBasicProposals(feature, context, acceptor, pdpConfiguration);
-            return;
+            break;
         }
         case "step" -> {
             createIdStepProposals(context, acceptor, pdpConfiguration);
-            return;
+            break;
         }
         default -> {
             // NOOP Calling super would only introduce unwanted technical terms in proposals
@@ -244,7 +244,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         if ("subscriptionelement".equals(feature)) {
             createProposalsContainingSubscriptionElementIdentifiers(context, acceptor);
-            return;
         } else if ("schemaexpression".equals(feature)) {
             createEnvironmentVariableProposals(context, acceptor, pdpConfiguration);
         }
@@ -277,7 +276,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var attributeContext    = pdpConfiguration.attributeContext();
         var documentedTemplates = attributeContext.getDocumentedAttributeCodeTemplates();
         for (var documentedTemplate : documentedTemplates.entrySet()) {
-            var template = documentedTemplate.getKey();
+            var template           = documentedTemplate.getKey();
             var documentation      = documentedTemplate.getValue();
             var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
             createAttributeProposals(fullyQualifiedName, template, documentation, context, acceptor, pdpConfiguration);
@@ -363,32 +362,29 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
             for (var anImport : imports) {
                 if (anImport instanceof WildcardImport wildcardImport) {
-                    proposalsWithWildcard(wildcardImport, template, context, acceptor).ifPresent(i -> proposals.add(i));
+                    proposalsWithWildcard(wildcardImport, template).ifPresent(proposals::add);
                 } else if (anImport instanceof LibraryImport libraryImport) {
-                    proposalsWithLibraryImport(libraryImport, template, context, acceptor)
-                            .ifPresent(i -> proposals.add(i));
+                    proposalsWithLibraryImport(libraryImport, template).ifPresent(proposals::add);
                 } else {
-                    proposalsWithImport(anImport, template, context, acceptor).ifPresent(i -> proposals.add(i));
+                    proposalsWithImport(anImport, template).ifPresent(proposals::add);
                 }
             }
         }
         return proposals;
     }
 
-    private Optional<String> proposalsWithImport(Import anImport, String template, ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor) {
+    private Optional<String> proposalsWithImport(Import anImport, String template) {
         var steps              = anImport.getLibSteps();
         var functionName       = anImport.getFunctionName();
         var prefix             = joinStepsToPrefix(steps) + functionName;
-        var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);    
+        var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
         if (fullyQualifiedName.startsWith(prefix))
             return Optional.of(template.replaceFirst(prefix, functionName));
         else
             return Optional.empty();
     }
 
-    private Optional<String> proposalsWithWildcard(WildcardImport wildCard, String template,
-            final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
+    private Optional<String> proposalsWithWildcard(WildcardImport wildCard, String template) {
         var prefix             = joinStepsToPrefix(wildCard.getLibSteps());
         var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
         if (fullyQualifiedName.startsWith(prefix))
@@ -405,8 +401,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         return String.join(".", steps);
     }
 
-    private Optional<String> proposalsWithLibraryImport(LibraryImport libImport, String template,
-            final ContentAssistContext context, final IIdeContentProposalAcceptor acceptor) {
+    private Optional<String> proposalsWithLibraryImport(LibraryImport libImport, String template) {
         var shortPrefix        = String.join(".", libImport.getLibSteps());
         var prefix             = shortPrefix + '.';
         var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);

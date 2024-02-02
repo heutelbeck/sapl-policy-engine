@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.ide.contentassist.SchemaProposalGenerator;
 
-public class SchemaProposalGeneratorTests {
+class SchemaProposalGeneratorTests {
 
     @Test
     void when_emptySchema_then_proposalsEmpty() throws JsonProcessingException {
