@@ -100,12 +100,18 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var feature          = assignment.getFeature().toLowerCase();
         var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration().blockFirst();
 
+        if (pdpConfiguration == null)
+            return;
+
         switch (parserRuleName) {
         case "import" -> createImportProposals(feature, context, acceptor, pdpConfiguration);
         case "schema" -> createSchemaProposals(feature, context, acceptor, pdpConfiguration);
         case "policy", "policyset" -> createPolicyOrPolicySetNameStringProposals(feature, context, acceptor);
         case "basic" -> createBasicProposals(feature, context, acceptor, pdpConfiguration);
         case "step" -> createIdStepProposals(context, acceptor, pdpConfiguration);
+        default -> {
+            // NOOP
+        }
         }
     }
 
@@ -115,8 +121,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
      * Should return: subscription variables, previously defined variable names in
      * the document, names of environment variables
      */
-    private void createBasicIdentifierProposals(String feature, ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
+    private void createBasicIdentifierProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
+            PDPConfiguration pdpConfiguration) {
         // Simple names referencing environment variables. No schema available.
         createEnvironmentVariableProposals(context, acceptor, pdpConfiguration);
         createPolicySetHeaderVariablesProposals(context, acceptor, pdpConfiguration);
@@ -223,20 +229,26 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         switch (feature) {
         case "subscriptionelement" -> createProposalsContainingSubscriptionElementIdentifiers(context, acceptor);
         case "schemaexpression" -> createEnvironmentVariableProposals(context, acceptor, pdpConfiguration);
+        default -> {
+            // NOOP
+        }
         }
     }
 
     private void createBasicProposals(String feature, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         switch (feature) {
-        case "identifier" -> createBasicIdentifierProposals(feature, context, acceptor, pdpConfiguration);
+        case "identifier" -> createBasicIdentifierProposals(context, acceptor, pdpConfiguration);
         case "idsteps", "steps" -> {
-            createBasicIdentifierProposals(feature, context, acceptor, pdpConfiguration);
+            createBasicIdentifierProposals(context, acceptor, pdpConfiguration);
             createIdStepProposals(context, acceptor, pdpConfiguration);
         }
         case "fsteps" -> {
             createFStepsProposals(context, acceptor, pdpConfiguration);
             createIdStepProposals(context, acceptor, pdpConfiguration);
+        }
+        default -> {
+            // NOOP
         }
         }
     }
@@ -251,7 +263,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
      */
     private void createIdStepProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
             PDPConfiguration pdpConfiguration) {
-
         var attributeContext    = pdpConfiguration.attributeContext();
         var documentedTemplates = attributeContext.getDocumentedAttributeCodeTemplates();
         for (var documentedTemplate : documentedTemplates.entrySet()) {
@@ -266,7 +277,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             ContentAssistContext context, IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         var attributeContext = pdpConfiguration.attributeContext();
         var schemas          = attributeContext.getAttributeSchemas();
-        var proposals        = proposalsWithImportsForTemplate(template, context, acceptor);
+        var proposals        = proposalsWithImportsForTemplate(template, context);
         proposals.add(template);
         addProposalsWithSharedDocumentation(proposals, documentation, context, acceptor);
         var schema = schemas.get(fullyQualifiedName);
@@ -298,7 +309,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             ContentAssistContext context, IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         var functionContext = pdpConfiguration.functionContext();
         var schemas         = functionContext.getFunctionSchemas();
-        var proposals       = proposalsWithImportsForTemplate(template, context, acceptor);
+        var proposals       = proposalsWithImportsForTemplate(template, context);
         proposals.add(template);
         addProposalsWithSharedDocumentation(proposals, documentation, context, acceptor);
         var schema = schemas.get(fullyQualifiedName);
@@ -334,8 +345,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         return sb.toString();
     }
 
-    private Collection<String> proposalsWithImportsForTemplate(String template, ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor) {
+    private Collection<String> proposalsWithImportsForTemplate(String template, ContentAssistContext context) {
         var proposals = new ArrayList<String>();
         if (context.getRootModel() instanceof SAPL sapl) {
             var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
