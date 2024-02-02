@@ -623,7 +623,7 @@ public class AnnotationAttributeContext implements AttributeContext {
             for (var attribute : entry.getValue()) {
                 var attributeCodeTemplate = attribute.getDocumentationCodeTemplate();
                 for (var doc : pipDocumentations) {
-                    documentedAttributeCodeTemplates.putIfAbsent(doc.name, doc.description);
+                    documentedAttributeCodeTemplates.putIfAbsent(attributeCodeTemplate, doc.description);
                     Optional.ofNullable(doc.getDocumentation().get(attributeCodeTemplate)).ifPresent(
                             template -> documentedAttributeCodeTemplates.put(attribute.fullyQualifiedName(), template));
                 }

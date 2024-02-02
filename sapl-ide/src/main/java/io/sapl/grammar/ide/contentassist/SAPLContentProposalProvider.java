@@ -122,13 +122,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             return;
         }
         case "step" -> {
-            // TODO: validate
             createIdStepProposals(context, acceptor, pdpConfiguration);
-            // createStepProposals(feature, context, acceptor, pdpConfiguration);
             return;
         }
         default -> {
-            super._createProposals(assignment, context, acceptor);
+            // NOOP Calling super would only introduce unwanted technical terms in proposals
         }
         }
     }
@@ -261,6 +259,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             createIdStepProposals(context, acceptor, pdpConfiguration);
         } else if ("fsteps".equals(feature)) {
             createFStepsProposals(context, acceptor, pdpConfiguration);
+            createIdStepProposals(context, acceptor, pdpConfiguration);
         }
     }
 
@@ -274,13 +273,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
      */
     private void createIdStepProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
             PDPConfiguration pdpConfiguration) {
+
         var attributeContext    = pdpConfiguration.attributeContext();
         var documentedTemplates = attributeContext.getDocumentedAttributeCodeTemplates();
         for (var documentedTemplate : documentedTemplates.entrySet()) {
-            var template           = documentedTemplate.getKey();
+            var template = documentedTemplate.getKey();
             var documentation      = documentedTemplate.getValue();
             var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
-            log.trace("fullyQualifiedName: '" + fullyQualifiedName + "'");
             createAttributeProposals(fullyQualifiedName, template, documentation, context, acceptor, pdpConfiguration);
         }
     }
@@ -359,12 +358,10 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private Collection<String> proposalsWithImportsForTemplate(String template, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
-        log.trace("resolve imports for " + template);
         var proposals = new ArrayList<String>();
         if (context.getRootModel() instanceof SAPL sapl) {
             var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
             for (var anImport : imports) {
-                log.trace("import: " + anImport.getClass().getSimpleName());
                 if (anImport instanceof WildcardImport wildcardImport) {
                     proposalsWithWildcard(wildcardImport, template, context, acceptor).ifPresent(i -> proposals.add(i));
                 } else if (anImport instanceof LibraryImport libraryImport) {
@@ -383,12 +380,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var steps              = anImport.getLibSteps();
         var functionName       = anImport.getFunctionName();
         var prefix             = joinStepsToPrefix(steps) + functionName;
-        var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
-        log.trace("pwi template:" + template);
-        log.trace("pwi prefix:" + prefix);
-        log.trace("pwi functionName: " + functionName);
-        log.trace("pwi fullyQualifiedName: >" + fullyQualifiedName + "<");
-
+        var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);    
         if (fullyQualifiedName.startsWith(prefix))
             return Optional.of(template.replaceFirst(prefix, functionName));
         else
@@ -418,11 +410,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         var shortPrefix        = String.join(".", libImport.getLibSteps());
         var prefix             = shortPrefix + '.';
         var fullyQualifiedName = fullyQualifiedNameFromTemplate(template);
-
-        log.trace("pwli template:" + template);
-        log.trace("pwli prefix:" + prefix);
-        log.trace("pwli fullyQualifiedName:" + fullyQualifiedName);
-
         if (fullyQualifiedName.startsWith(prefix))
             return Optional.of(template.replaceFirst(shortPrefix, libImport.getLibAlias()));
         else
