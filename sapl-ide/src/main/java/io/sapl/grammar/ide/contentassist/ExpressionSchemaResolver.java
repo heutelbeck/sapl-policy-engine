@@ -51,12 +51,14 @@ import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
 
+/**
+ * This class is responsible for inferring the
+ */
 @UtilityClass
 public class ExpressionSchemaResolver {
 
     public List<JsonNode> inferPotentialSchemasOfExpression(Expression expression, ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
-
         List<Step>     steps;
         List<JsonNode> baseSchemas;
         if (expression instanceof BasicGroup basicGroup) {
@@ -115,6 +117,8 @@ public class ExpressionSchemaResolver {
         // annotations in this case the attribute schemas are the new implied schemas
         // until invalidated by following steps or overridden by following attribute
         // steps.
+        // Attempting to identify matching sub-schemas for any given step is a valid
+        // improvement to be made here in the future.
 
         if (head instanceof AttributeFinderStep attributeFinderStep) {
             newSchemas = inferPotentialSchemasFromAttributeFinder(attributeFinderStep.getIdSteps(), context,
@@ -133,15 +137,15 @@ public class ExpressionSchemaResolver {
         return list.subList(1, list.size());
     }
 
-    private List<JsonNode> inferPotentialSchemasFromAttributeFinder(List<String> idSteps, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+    private List<JsonNode> inferPotentialSchemasFromAttributeFinder(Iterable<String> idSteps,
+            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
         var attributeContext = pdpConfiguration.attributeContext();
         var nameInUse        = joinStepsToName(idSteps);
         var resolvedName     = resolveImport(nameInUse, context, attributeContext.getAllFullyQualifiedFunctions());
         return lookupSchemasByName(resolvedName, attributeContext.getAttributeSchemas());
     }
 
-    private List<JsonNode> inferPotentialSchemasFromFunction(List<String> idSteps, ContentAssistContext context,
+    private List<JsonNode> inferPotentialSchemasFromFunction(Iterable<String> idSteps, ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         var functionContext = pdpConfiguration.functionContext();
         var nameInUse       = joinStepsToName(idSteps);
@@ -245,7 +249,7 @@ public class ExpressionSchemaResolver {
         if (rootModel instanceof SAPL sapl) {
             var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
             for (var anImport : imports) {
-                var importResolution = resolveIndicidualImport(nameInUse, anImport, allFunctions);
+                var importResolution = resolveIndividualImport(nameInUse, anImport, allFunctions);
                 if (importResolution.isPresent())
                     return importResolution.get();
             }
@@ -253,7 +257,7 @@ public class ExpressionSchemaResolver {
         return nameInUse;
     }
 
-    private Optional<String> resolveIndicidualImport(String nameInUse, Import anImport,
+    private Optional<String> resolveIndividualImport(String nameInUse, Import anImport,
             Collection<String> allFunctions) {
         if (anImport instanceof WildcardImport wildcardImport) {
             var resolutionCandidate = joinStepsToPrefix(wildcardImport.getLibSteps()) + nameInUse;

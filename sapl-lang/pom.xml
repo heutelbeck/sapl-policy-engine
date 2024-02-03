@@ -118,7 +118,7 @@
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-params</artifactId>
 			<scope>test</scope>
-		</dependency>
+		</dependency>		
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-hamcrest</artifactId>
