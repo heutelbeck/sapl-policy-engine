@@ -103,7 +103,7 @@ class PolicySetImplCustomCoverageTests {
 
                 deny-overrides
 
-                for action.<pip.attr> == "read"
+                for action == 1/0
 
                 policy "set.p1"
                 permit

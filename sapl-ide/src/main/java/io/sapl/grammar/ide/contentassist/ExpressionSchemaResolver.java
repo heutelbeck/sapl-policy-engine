@@ -52,7 +52,7 @@ import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
 
 /**
- *  This class is responsible for inferring the 
+ * This class is responsible for inferring the
  */
 @UtilityClass
 public class ExpressionSchemaResolver {
@@ -137,8 +137,8 @@ public class ExpressionSchemaResolver {
         return list.subList(1, list.size());
     }
 
-    private List<JsonNode> inferPotentialSchemasFromAttributeFinder(Iterable<String> idSteps, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+    private List<JsonNode> inferPotentialSchemasFromAttributeFinder(Iterable<String> idSteps,
+            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
         var attributeContext = pdpConfiguration.attributeContext();
         var nameInUse        = joinStepsToName(idSteps);
         var resolvedName     = resolveImport(nameInUse, context, attributeContext.getAllFullyQualifiedFunctions());
