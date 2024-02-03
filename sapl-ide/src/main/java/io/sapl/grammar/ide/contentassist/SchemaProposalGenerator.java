@@ -276,8 +276,14 @@ public class SchemaProposalGenerator {
     }
 
     private static String escaped(String s) {
-        var escaped = s.replace("\\", "\\\\").replace("\t", "\\t").replace("\b", "\\b").replace("\n", "\\n")
-                .replace("\r", "\\r").replace("\f", "\\f").replace("\"", "\\\"").replace("'", "\'");
+        var escaped = s.replace("\\", "\\\\")
+                       .replace("\t", "\\t")
+                       .replace("\b", "\\b")
+                       .replace("\n", "\\n")
+                       .replace("\r", "\\r")
+                       .replace("\f", "\\f")
+                       .replace("\"", "\\\"")
+                       .replace("'", "\'");
         if (escaped.contains(" ")) {
             return "'" + escaped + "'";
         }

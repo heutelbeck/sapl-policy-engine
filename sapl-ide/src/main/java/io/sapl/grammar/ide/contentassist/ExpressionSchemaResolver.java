@@ -232,11 +232,11 @@ public class ExpressionSchemaResolver {
         return NodeModelUtils.getNode(statement).getOffset();
     }
 
-    private String joinStepsToPrefix(List<String> steps) {
+    private String joinStepsToPrefix(Iterable<String> steps) {
         return joinStepsToName(steps) + '.';
     }
 
-    private String joinStepsToName(List<String> steps) {
+    private String joinStepsToName(Iterable<String> steps) {
         return String.join(".", steps);
     }
 

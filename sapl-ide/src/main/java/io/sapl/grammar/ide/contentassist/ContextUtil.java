@@ -17,6 +17,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -103,7 +104,7 @@ public class ContextUtil {
         return getNewPrefix(tokens);
     }
 
-    private static void addOldPrefixToTokens(ContentAssistContext context, List<String> tokens) {
+    private static void addOldPrefixToTokens(ContentAssistContext context, Collection<String> tokens) {
         var oldPrefix = context.getPrefix();
         if (!oldPrefix.isBlank()) {
             tokens.add(context.getPrefix());
@@ -159,7 +160,7 @@ public class ContextUtil {
         return i;
     }
 
-    private static void addTokensUntilDelimiter(ContentAssistContext context, INode rootNode, List<String> tokens,
+    private static void addTokensUntilDelimiter(ContentAssistContext context, INode rootNode, Collection<String> tokens,
             INode leafNode) {
         String tokenText;
         String lastChar;
