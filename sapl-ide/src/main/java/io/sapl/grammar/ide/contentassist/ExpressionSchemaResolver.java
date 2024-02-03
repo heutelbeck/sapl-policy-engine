@@ -137,7 +137,7 @@ public class ExpressionSchemaResolver {
         return list.subList(1, list.size());
     }
 
-    private List<JsonNode> inferPotentialSchemasFromAttributeFinder(List<String> idSteps, ContentAssistContext context,
+    private List<JsonNode> inferPotentialSchemasFromAttributeFinder(Iterable<String> idSteps, ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         var attributeContext = pdpConfiguration.attributeContext();
         var nameInUse        = joinStepsToName(idSteps);
@@ -145,7 +145,7 @@ public class ExpressionSchemaResolver {
         return lookupSchemasByName(resolvedName, attributeContext.getAttributeSchemas());
     }
 
-    private List<JsonNode> inferPotentialSchemasFromFunction(List<String> idSteps, ContentAssistContext context,
+    private List<JsonNode> inferPotentialSchemasFromFunction(Iterable<String> idSteps, ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         var functionContext = pdpConfiguration.functionContext();
         var nameInUse       = joinStepsToName(idSteps);

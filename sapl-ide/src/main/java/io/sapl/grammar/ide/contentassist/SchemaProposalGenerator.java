@@ -284,7 +284,7 @@ public class SchemaProposalGenerator {
                        .replace("\r", "\\r")
                        .replace("\f", "\\f")
                        .replace("\"", "\\\"")
-                       .replace("'", "\'");
+                       .replace("'",  "\\'");
         // @formatter:on
         if (escaped.contains(" ")) {
             return "'" + escaped + "'";
