@@ -276,6 +276,7 @@ public class SchemaProposalGenerator {
     }
 
     private static String escaped(String s) {
+        // @formatter:off
         var escaped = s.replace("\\", "\\\\")
                        .replace("\t", "\\t")
                        .replace("\b", "\\b")
@@ -283,7 +284,8 @@ public class SchemaProposalGenerator {
                        .replace("\r", "\\r")
                        .replace("\f", "\\f")
                        .replace("\"", "\\\"")
-                       .replace("'", "\'");
+                       .replace("'",  "\\'");
+        // @formatter:on
         if (escaped.contains(" ")) {
             return "'" + escaped + "'";
         }
