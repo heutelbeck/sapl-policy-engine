@@ -18,6 +18,7 @@
 package io.sapl.functions;
 
 import static io.sapl.functions.SchemaValidationLibrary.isCompliant;
+import static io.sapl.functions.SchemaValidationLibrary.isCompliantWithExteralSchemas;
 import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.is;
@@ -28,9 +29,12 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchemaException;
 
 import io.sapl.api.interpreter.Val;
+import lombok.SneakyThrows;
 
 class SchemaValidationLibraryTests {
 
@@ -57,6 +61,121 @@ class SchemaValidationLibraryTests {
                 }
             }
             """;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    @Test
+    @SneakyThrows
+    void testDereferencing() {
+        var externals = MAPPER.createArrayNode();
+        externals.add(MAPPER.readValue("""
+                 {
+                    "$id": "https://example.com/coordinates",
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "Coordinates",
+                    "type": "object",
+                    "properties" : {
+                        "x": { "type": "integer" },
+                        "y": { "type": "integer" },
+                        "z": { "type": "integer" }
+                    }
+                }
+                """, JsonNode.class));
+        var externalsAsVal = Val.of(externals);
+        var specificSchema = Val.ofJson("""
+                    {
+                    "$id": "https://example.com/triangle.schema.json",
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "Triangle",
+                    "type": "object",
+                    "properties": {
+                        "A": { "$ref": "https://example.com/coordinates" },
+                        "B": { "$ref": "https://example.com/coordinates" },
+                        "C": { "$ref": "https://example.com/coordinates" }
+                    }
+                }
+                """);
+
+        var valid = Val.ofJson("""
+                    {
+                       "A" : { "x" : 1, "y" : 2, "z" : 3 },
+                       "B" : { "x" : 1, "y" : 2, "z" : 3 },
+                       "C" : { "x" : 1, "y" : 2, "z" : 3 }
+                    }
+                """);
+
+        assertThat(isCompliantWithExteralSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
+
+        var invalid = Val.ofJson("""
+                    {
+                       "A" : { "x" : "I AM NOT A NUMBER I AM A FREE MAN", "y" : 2, "z" : 3 },
+                       "B" : { "x" : 1, "y" : 2, "z" : 3 },
+                       "C" : { "x" : 1, "y" : 2, "z" : 3 }
+                    }
+                """);
+
+        assertThat(isCompliantWithExteralSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
+        assertThat(isCompliantWithExteralSchemas(invalid, specificSchema, externalsAsVal), is(val(false)));
+    }
+
+    @Test
+    @SneakyThrows
+    void testDereferencingDefs() {
+        var externals = MAPPER.createArrayNode();
+        externals.add(MAPPER.readValue("""
+                 {
+                    "$id": "https://example.com/coordinates",
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "Coordinates",
+                    "$defs" : {
+                        "coord" : {
+                                    "type": "object",
+                                        "properties" : {
+                                            "x": { "type": "integer" },
+                                            "y": { "type": "integer" },
+                                            "z": { "type": "integer" }
+                                        }
+                                   }
+                    }
+                }
+                """, JsonNode.class));
+        externals.add(MAPPER.createObjectNode());
+        var externalsAsVal = Val.of(externals);
+        var specificSchema = Val.ofJson("""
+                    {
+                    "$id": "https://example.com/triangle.schema.json",
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "Triangle",
+                    "type": "object",
+                    "properties": {
+                        "A": { "$ref": "https://example.com/coordinates#/$defs/coord" },
+                        "B": { "$ref": "https://example.com/coordinates#/$defs/coord" },
+                        "C": { "$ref": "https://example.com/coordinates#/$defs/coord" }
+                    }
+                }
+                """);
+
+        var valid = Val.ofJson("""
+                    {
+                       "A" : { "x" : 1, "y" : 2, "z" : 3 },
+                       "B" : { "x" : 1, "y" : 2, "z" : 3 },
+                       "C" : { "x" : 1, "y" : 2, "z" : 3 }
+                    }
+                """);
+
+        assertThat(isCompliantWithExteralSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
+
+        var invalid = Val.ofJson("""
+                    {
+                       "A" : { "x" : "I AM NOT A NUMBER I AM A FREE MAN", "y" : 2, "z" : 3 },
+                       "B" : { "x" : 1, "y" : 2, "z" : 3 },
+                       "C" : { "x" : 1, "y" : 2, "z" : 3 }
+                    }
+                """);
+
+        assertThat(isCompliantWithExteralSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
+        assertThat(isCompliantWithExteralSchemas(invalid, specificSchema, externalsAsVal), is(val(false)));
+    }
 
     @Test
     void when_subjectIsCompliant_then_returnTrue() throws JsonProcessingException {

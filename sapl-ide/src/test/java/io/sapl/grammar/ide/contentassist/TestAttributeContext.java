@@ -107,9 +107,23 @@ class TestAttributeContext implements AttributeContext {
     }
 
     @Override
+    public Map<String, String> getDocumentedAttributeCodeTemplates() {
+        //@formatter:off
+        return Map.of(
+                "<clock.now>", "clock.now documentation",
+                "<clock.millis>", "clock.millis documentation",
+                "<clock.ticker>", "clock.ticker documentation",
+                "<temperature.now>", "temperature.now documentation",
+                "<temperature.mean(a1, a2)>","temperature.mean(a1, a2) documentation",
+                "<temperature.predicted(a2)>", "temperature.predicted(a2) documentation"
+                );
+        //@formatter:on
+    }
+
+    @Override
     public Collection<String> getAllFullyQualifiedFunctions() {
-        return List.of("clock.now>", "clock.millis>", "clock.ticker>", "temperature.now>", "temperature.mean(a1, a2)>",
-                "temperature.predicted(a2)>");
+        return List.of("clock.now", "clock.millis", "clock.ticker", "temperature.now", "temperature.mean",
+                "temperature.predicted");
     }
 
     @Override
@@ -122,11 +136,6 @@ class TestAttributeContext implements AttributeContext {
     public Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments,
             Map<String, JsonNode> variables) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Map<String, String> getDocumentedAttributeCodeTemplates() {
-        return Map.of("<clock.now>", "documentation");
     }
 
     @Override

@@ -164,15 +164,19 @@ public class SAPLImplCustom extends SAPLImpl {
         var function = SaplFactory.eINSTANCE.createBasicFunction();
         var fSteps   = function.getFsteps();
         fSteps.add(SchemaValidationLibrary.NAME);
-        fSteps.add("isCompliant");
+        fSteps.add("isCompliantWithExteralSchemas");
 
         var identifier = SaplFactory.eINSTANCE.createBasicIdentifier();
         identifier.setIdentifier(schema.getSubscriptionElement());
+
+        var referenceToSchemasVariable = SaplFactory.eINSTANCE.createBasicIdentifier();
+        referenceToSchemasVariable.setIdentifier("SCHEMAS");
 
         var arguments = SaplFactory.eINSTANCE.createArguments();
         var args      = arguments.getArgs();
         args.add(identifier);
         args.add(EcoreUtil.copy(schema.getSchemaExpression()));
+        args.add(referenceToSchemasVariable);
 
         function.setArguments(arguments);
         return function;

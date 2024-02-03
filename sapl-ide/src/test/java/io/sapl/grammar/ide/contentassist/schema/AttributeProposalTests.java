@@ -17,11 +17,12 @@
  */
 package io.sapl.grammar.ide.contentassist.schema;
 
-import io.sapl.grammar.ide.contentassist.CompletionTests;
+import java.util.List;
+
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
+import io.sapl.grammar.ide.contentassist.CompletionTests;
 
 class AttributeProposalTests extends CompletionTests {
 

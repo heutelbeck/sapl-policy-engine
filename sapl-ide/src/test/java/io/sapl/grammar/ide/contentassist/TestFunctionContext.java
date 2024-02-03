@@ -98,21 +98,34 @@ class TestFunctionContext implements FunctionContext {
 
     @Override
     public List<String> getCodeTemplates() {
-        return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
-                "standard.numberToString", "time.after", "time.before", "time.between", "schemaTest.person()",
-                "schemaTest.dog()", "schemaTest.food(String species)", "schemaTest.location()");
+        // @formatter:off
+        return List.of(
+                "filter.blacken",    "filter.blacken(a,b,c)",
+                "schemaTest.person", "schemaTest.person()",
+                "schemaTest.dog",    "schemaTest.dog()",
+                "schemaTest.food",   "schemaTest.food(String species)",
+                "schemaTest.food",   "schemaTest.food()");
+        // @formatter:on
     }
 
     @Override
     public Collection<String> getAllFullyQualifiedFunctions() {
         return List.of("filter.blacken", "filter.remove", "filter.replace", "standard.length",
-                "standard.numberToString", "time.after", "time.before", "time.between", "schemaTest.person()",
-                "schemaTest.dog()", "schemaTest.food(String species)", "schemaTest.location()");
+                "standard.numberToString", "time.after", "time.before", "time.between", "schemaTest.person",
+                "schemaTest.dog", "schemaTest.food", "schemaTest.location");
     }
 
     @Override
     public Map<String, String> getDocumentedCodeTemplates() {
-        return Map.of("filter.blacken", "documentation");
+        // @formatter:off
+        return Map.of(
+                "filter.blacken(a,b,c)",           "blacken documentation",
+                "schemaTest.person()",             "person documentation",
+                "schemaTest.location()",           "location documentation",
+                "schemaTest.dog()",                "dog documentation",
+                "schemaTest.food(String species)", "food with species parameter documentation",
+                "schemaTest.food()",               "food documentation");
+        // @formatter:on
     }
 
     @Override
