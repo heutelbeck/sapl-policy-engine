@@ -49,20 +49,19 @@ public class FuzzTests {
     }
 
     @FuzzTest(maxExecutions = 10000L)
-    public void decideWithFuzzedSubscriptionTests(FuzzedDataProvider data) {
+    public void decideWithFuzzedSubscriptionTests(FuzzedDataProvider data) throws Exception {
         var asciiString = data.consumeAsciiString(100);
         var fuzzedSubscription = generateFuzzedSubscriptionFor(asciiString);
-
         decideWithFuzzedSubscriptionDenyOverrides(fuzzedSubscription);
         decideWithFuzzedSubscriptionDenyUnlessPermit(fuzzedSubscription);
         decideWithFuzzedSubscriptionPermitUnlessDeny(fuzzedSubscription);
         decideWithFuzzedSubscriptionPermitOverrides(fuzzedSubscription);
         decideWithFuzzedSubscriptionOnlyOneApplicable(fuzzedSubscription);
+        throw new Exception("Exception");
     }
 
-    public void decideWithFuzzedSubscriptionDenyOverrides(AuthorizationSubscription fuzzedSubscription) throws Exception {
+    public void decideWithFuzzedSubscriptionDenyOverrides(AuthorizationSubscription fuzzedSubscription) {
         assertFuzzedSubscriptionReturns(pdpDenyOverrides, fuzzedSubscription, AuthorizationDecision.NOT_APPLICABLE);
-        throw new Exception("Exception");
     }
 
     public void decideWithFuzzedSubscriptionDenyUnlessPermit(AuthorizationSubscription fuzzedSubscription) {

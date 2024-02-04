@@ -1,8 +1,9 @@
 name: Run Fuzz Tests
 
 on:
-  schedule:
-    - cron: '0 0 * * *' # This schedule runs the action every day at midnight.
+  workflow_dispatch:
+  push:
+    branches: "master"
 
 
 jobs:
