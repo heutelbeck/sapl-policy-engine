@@ -49,7 +49,7 @@ public class FuzzTests {
     }
 
     @FuzzTest(maxExecutions = 10000L)
-    public void decideWithFuzzedSubscriptionTests(FuzzedDataProvider data) throws Exception {
+    public void decideWithFuzzedSubscriptionTests(FuzzedDataProvider data) {
         var asciiString = data.consumeAsciiString(100);
         var fuzzedSubscription = generateFuzzedSubscriptionFor(asciiString);
         decideWithFuzzedSubscriptionDenyOverrides(fuzzedSubscription);
@@ -57,7 +57,6 @@ public class FuzzTests {
         decideWithFuzzedSubscriptionPermitUnlessDeny(fuzzedSubscription);
         decideWithFuzzedSubscriptionPermitOverrides(fuzzedSubscription);
         decideWithFuzzedSubscriptionOnlyOneApplicable(fuzzedSubscription);
-        throw new Exception("Exception");
     }
 
     public void decideWithFuzzedSubscriptionDenyOverrides(AuthorizationSubscription fuzzedSubscription) {
