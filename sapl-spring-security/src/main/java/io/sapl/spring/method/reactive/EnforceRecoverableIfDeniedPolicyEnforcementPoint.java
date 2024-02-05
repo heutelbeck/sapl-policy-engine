@@ -166,9 +166,8 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
             }
         }
 
-        dataSubscription.updateAndGet(sub -> {
-            return Objects.requireNonNullElseGet(sub, this::wrapResourceAccessPointAndSubscribe);
-        });
+        dataSubscription
+                .updateAndGet(sub -> Objects.requireNonNullElseGet(sub, this::wrapResourceAccessPointAndSubscribe));
     }
 
     private Disposable wrapResourceAccessPointAndSubscribe() {
