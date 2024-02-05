@@ -81,12 +81,8 @@ public class RemoteRsocketPolicyDecisionPointTests {
         RSocketMessageHandler messageHandler = context.getBean(RSocketMessageHandler.class);
         server = RSocketServer.create(messageHandler.responder()).payloadDecoder(PayloadDecoder.ZERO_COPY)
                 .bind(TcpServerTransport.create("localhost", 0)).block();
-        pdp    = RemotePolicyDecisionPoint.builder()
-                .rsocket()
-                .host("localhost")
-                .keepAlive(Duration.ofSeconds(20), Duration.ofSeconds(90))
-                .port(server.address().getPort())
-                .build();
+        pdp    = RemotePolicyDecisionPoint.builder().rsocket().host("localhost")
+                .keepAlive(Duration.ofSeconds(20), Duration.ofSeconds(90)).port(server.address().getPort()).build();
     }
 
     @AfterAll
