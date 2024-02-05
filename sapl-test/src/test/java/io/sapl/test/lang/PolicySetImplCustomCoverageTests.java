@@ -52,7 +52,16 @@ class PolicySetImplCustomCoverageTests {
 
     @Test
     void test_match() {
-        var policy   = INTERPRETER.parse("set \"set\" deny-overrides for action == \"read\" policy \"set.p1\" permit");
+        var policy   = INTERPRETER.parse("""
+                set "set"
+
+                deny-overrides
+
+                for action == "read"
+
+                policy "set.p1"
+                permit
+                """);
         var authzSub = AuthorizationSubscription.of("willi", "read", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
@@ -66,7 +75,16 @@ class PolicySetImplCustomCoverageTests {
 
     @Test
     void test_NotMatching() {
-        var policy   = INTERPRETER.parse("set \"set\" deny-overrides for action == \"read\" policy \"set.p1\" permit");
+        var policy   = INTERPRETER.parse("""
+                set "set"
+
+                deny-overrides
+
+                for action == "read"
+
+                policy "set.p1"
+                permit
+                """);
         var authzSub = AuthorizationSubscription.of("willi", "write", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
@@ -80,8 +98,16 @@ class PolicySetImplCustomCoverageTests {
 
     @Test
     void test_matchesThrowsError() {
-        var policy   = INTERPRETER
-                .parse("set \"set\" deny-overrides for action.<pip.attr> == \"test\" policy \"set.p1\" permit");
+        var policy   = INTERPRETER.parse("""
+                set "set"
+
+                deny-overrides
+
+                for action == 1/0
+
+                policy "set.p1"
+                permit
+                """);
         var authzSub = AuthorizationSubscription.of("willi", "write", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());

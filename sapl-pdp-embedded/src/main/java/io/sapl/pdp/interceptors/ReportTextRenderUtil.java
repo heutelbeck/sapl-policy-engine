@@ -45,21 +45,21 @@ public class ReportTextRenderUtil {
             report.append("PDP Error   : ").append(topLevelError).append('\n');
         }
         var matchingDocuments = jsonReport.get(ReportBuilderUtil.MATCHING_DOCUMENTS);
-        if (matchingDocuments == null || !matchingDocuments.isArray() || matchingDocuments.size() == 0) {
+        if (matchingDocuments == null || !matchingDocuments.isArray() || matchingDocuments.isEmpty()) {
             report.append(
                     "Matches     : NONE (i.e.,no policies/policy sets were set, or all target expressions evaluated to false or error.)\n");
         } else {
             report.append("Matches     : ").append(matchingDocuments).append('\n');
         }
         var modifications = jsonReport.get(ReportBuilderUtil.MODIFICATIONS);
-        if (modifications != null && modifications.isArray() && modifications.size() != 0) {
+        if (modifications != null && modifications.isArray() && !modifications.isEmpty()) {
             report.append("There were interceptors invoked after the PDP which changed the decision:\n");
             for (var mod : modifications) {
                 report.append(" - ").append(mod).append('\n');
             }
         }
         var documentReports = jsonReport.get(ReportBuilderUtil.DOCUMENT_REPORTS);
-        if (documentReports == null || !documentReports.isArray() || documentReports.size() == 0) {
+        if (documentReports == null || !documentReports.isArray() || documentReports.isEmpty()) {
             report.append("No policy or policy sets have been evaluated\n");
             return report.toString();
         }
@@ -99,7 +99,7 @@ public class ReportTextRenderUtil {
 
     private static String errorReport(JsonNode errors) {
         var report = new StringBuilder();
-        if (errors == null || !errors.isArray() || errors.size() == 0) {
+        if (errors == null || !errors.isArray() || errors.isEmpty()) {
             return report.toString();
         }
         report.append("Errors during evaluation:\n");
@@ -113,7 +113,7 @@ public class ReportTextRenderUtil {
 
     private static String attributeReport(JsonNode attributes) {
         var report = new StringBuilder();
-        if (attributes == null || !attributes.isArray() || attributes.size() == 0) {
+        if (attributes == null || !attributes.isArray() || attributes.isEmpty()) {
             return report.toString();
         }
         report.append("Policy Information Point Data:\n");

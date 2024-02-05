@@ -23,9 +23,9 @@ import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import io.sapl.springdatamongoreactive.sapl.utils.annotation.SaplProtectedMongoReactive;
 import reactor.core.publisher.Flux;
 
+@SaplProtectedMongoReactive
 public interface RepositoryNotFoundException extends ReactiveMongoRepositoryNotFoundException<TestUser, ObjectId> {
 
-    @SaplProtectedMongoReactive
     Flux<TestUser> findAllByFirstname(String firstname);
 
 }

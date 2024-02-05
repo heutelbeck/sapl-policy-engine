@@ -45,8 +45,7 @@ class DemoDomainTests {
     private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
     private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
     private static final AnnotationFunctionContext  FUNCTION_CTX     = new AnnotationFunctionContext();
-    private static final Map<String, JsonNode>      SYSTEM_VARIABLES = Collections
-            .unmodifiableMap(new HashMap<String, JsonNode>());
+    private static final Map<String, JsonNode>      SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
     @BeforeEach
     public void setUp() throws InitializationException {

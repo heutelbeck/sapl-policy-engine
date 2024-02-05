@@ -26,7 +26,7 @@ import io.sapl.grammar.SAPLRuntimeModule;
 import io.sapl.grammar.SAPLStandaloneSetup;
 
 /**
- * Initialization support for running Xtext languages as language servers.
+ * Initialization support for running XText languages as language servers.
  */
 public class SAPLIdeSetup extends SAPLStandaloneSetup {
 

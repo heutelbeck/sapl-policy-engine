@@ -29,7 +29,7 @@ import org.eclipse.xtext.validation.Check;
 
 /**
  * This class contains custom validation rules.
- *
+ * <p>
  * See
  * https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */

@@ -76,6 +76,8 @@ public interface ReactiveMongoTestUserRepository
 
     Flux<TestUser> findAllBy();
 
+    Flux<TestUser> findAll();
+
     Flux<TestUser> findAllByAgeBefore(int age);
 
     @SaplProtectedMongoReactive

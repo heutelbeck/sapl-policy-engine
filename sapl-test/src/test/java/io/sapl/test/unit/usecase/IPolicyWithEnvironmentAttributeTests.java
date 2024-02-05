@@ -15,42 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.test.integration.usecase;
+package io.sapl.test.unit.usecase;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.integration.SaplIntegrationTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 
-class A_SimplePDPTests {
+class IPolicyWithEnvironmentAttributeTests {
 
     private SaplTestFixture fixture;
 
     @BeforeEach
     void setUp() {
-        fixture = new SaplIntegrationTestFixture("policiesIT");
+        fixture = new SaplUnitTestFixture("policyWithEnvironmentAttribute.sapl");
     }
 
     @Test
-    void test_simpleIT_verifyCombined() {
-        fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
-    }
-
-    @Test
-    void test_simpleIT_testSinglePolicyA() {
-        var unitFixture = new SaplUnitTestFixture("policiesIT/policy_A");
-        unitFixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
-                .verify();
-    }
-
-    @Test
-    void test_simpleIT_testSinglePolicyB() {
-        var unitFixture = new SaplUnitTestFixture("policiesIT/policy_B");
-        unitFixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
-                .verify();
+    void test() {
+        fixture.constructTestCaseWithMocks().givenAttribute("org.emergencyLevel", Val.of(0))
+                .when(AuthorizationSubscription.of("WILLI", "write", "something")).expectPermit().verify();
     }
 
 }

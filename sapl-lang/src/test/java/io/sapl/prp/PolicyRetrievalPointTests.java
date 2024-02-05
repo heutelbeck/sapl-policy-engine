@@ -37,6 +37,6 @@ class PolicyRetrievalPointTests {
     @Test
     void when_destroy_then_nothingThrown() {
         var sut = new TestPRP();
-        assertDoesNotThrow(() -> sut.destroy());
+        assertDoesNotThrow(sut::destroy);
     }
 }

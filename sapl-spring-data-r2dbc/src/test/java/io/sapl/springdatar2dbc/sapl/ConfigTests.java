@@ -15,28 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.test.unit.usecase;
+package io.sapl.springdatar2dbc.sapl;
 
-import org.junit.jupiter.api.BeforeEach;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.test.SaplTestFixture;
-import io.sapl.test.unit.SaplUnitTestFixture;
+@SpringBootTest(classes = Config.class)
+class ConfigTests {
 
-class A_PolicySimpleTests {
-
-    private SaplTestFixture fixture;
-
-    @BeforeEach
-    void setUp() {
-        fixture = new SaplUnitTestFixture("policySimple");
-    }
+    @Autowired
+    Config config;
 
     @Test
-    void test_simplePolicy() {
-        fixture.constructTestCase().when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit()
-                .verify();
+    void when_applicationStarted_then_configBeanShouldHaveBeenCreated() {
+        // GIVEN
+
+        // WHEN
+
+        // THEN
+        assertNotNull(config);
     }
 
 }

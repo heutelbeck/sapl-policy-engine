@@ -102,7 +102,7 @@ class JsonTestUtility {
         if (server != null) {
             valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/") + "public-keys/{id}");
         }
-        if (method != null && method.length() > 0) {
+        if (method != null && !method.isEmpty()) {
             if ("NONETEXT".equals(method)) {
                 valueNode.set(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, jsonNode(Boolean.FALSE));
             } else {

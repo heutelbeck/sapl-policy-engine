@@ -21,11 +21,10 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.repository.query.parser.PartTree;
 
@@ -79,6 +78,10 @@ public class SaplPartTreeCriteriaCreator<T> {
         var saplParametersFromMethod = SaplConditionOperation.methodToSaplConditions(args, repositoryMethod,
                 domainType);
 
+        // ^(findAll|readAll|getAll|queryAll|searchAll|streamAll)
+
+        // ^(findAll|readAll|getAll|queryAll|searchAll|streamAll)
+
         // Converts the conditions from the corresponding policy into SaplConditions for
         // further operations.
         var saplParametersFromObligation = SaplConditionOperation.jsonNodeToSaplConditions(conditions);
@@ -94,14 +97,22 @@ public class SaplPartTreeCriteriaCreator<T> {
         // Creates an object list of all values of all SaplParameters
         saplParametersFromMethod.addAll(saplParametersFromObligation);
 
-        var allParametersValueAsObjects = new ArrayList<Object>();
+        var allParametersValueAsObjects = new ArrayList<>();
         for (SaplCondition parameter : saplParametersFromMethod) {
             allParametersValueAsObjects.add(parameter.value());
         }
 
-        @Nullable
         var criteria = buildCriteria(manipulatedPartTree, allParametersValueAsObjects);
 
+        if (criteria == null) {
+            throw new IllegalStateException(
+                    "The parameters specified in the policy do not appear to match the desired changes to the query.");
+        }
+
+        return createNewQuery(criteria);
+    }
+
+    private Query createNewQuery(CriteriaDefinition criteria) {
         return new Query(criteria).with(mongoQueryCreatorFactory.getConvertingParameterAccessor().getSort());
     }
 
@@ -116,7 +127,7 @@ public class SaplPartTreeCriteriaCreator<T> {
      *                            {@link io.sapl.api.pdp.Decision}.
      * @return a new {@link Criteria}.
      */
-    private Criteria buildCriteria(PartTree manipulatedPartTree, List<Object> parameters) {
+    private CriteriaDefinition buildCriteria(PartTree manipulatedPartTree, List<Object> parameters) {
 
         Criteria base     = null;
         var      iterator = parameters.iterator();

@@ -23,13 +23,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 public interface LibraryEntryMetadata {
 
     String getLibraryName();
 
     String getFunctionName();
 
-    String getFunctionSchema();
+    JsonNode getFunctionSchema();
 
     String getCodeTemplate();
 
@@ -72,15 +74,14 @@ public interface LibraryEntryMetadata {
     default String describeParameterForDocumentation(String name, List<Annotation> types) {
         if (types.isEmpty())
             return name;
-        StringBuilder sb = new StringBuilder();
-        sb.append('(');
-        var numberOfTypes = types.size();
+        StringBuilder sb            = new StringBuilder();
+        var           numberOfTypes = types.size();
         for (var i = 0; i < numberOfTypes; i++) {
             sb.append(types.get(i).annotationType().getSimpleName());
             if (i < numberOfTypes - 1)
                 sb.append('|');
         }
-        sb.append(' ').append(name).append(')');
+        sb.append(' ').append(name);
         return sb.toString();
     }
 

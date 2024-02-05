@@ -19,6 +19,8 @@ package io.sapl.mavenplugin.test.coverage.report.model;
 
 import java.nio.file.Path;
 
+import lombok.Getter;
+
 /**
  * Generic model with coverage information of type {@link LineCoveredValue} for
  * each line of a SAPL document *
@@ -33,6 +35,7 @@ public class SaplDocumentCoverageInformation {
     /**
      * Path to the SAPL policy on the filesystem
      */
+    @Getter
     private final Path pathToDocument;
 
     /**
@@ -69,10 +72,6 @@ public class SaplDocumentCoverageInformation {
      */
     public SaplDocumentLineCoverageInformation getLine(int lineNumber) {
         return this.lines[lineNumber - 1];
-    }
-
-    public Path getPathToDocument() {
-        return this.pathToDocument;
     }
 
     public int getLineCount() {

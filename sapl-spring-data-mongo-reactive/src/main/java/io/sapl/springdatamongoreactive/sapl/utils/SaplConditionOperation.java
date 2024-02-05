@@ -20,7 +20,6 @@ package io.sapl.springdatamongoreactive.sapl.utils;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +40,9 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 public class SaplConditionOperation {
+
+    private static final List<String> FIND_ALL_KEYWORDS = List.of("findAll", "readAll", "getAll", "queryAll",
+            "searchAll", "streamAll");
 
     /**
      * The entry method of this utility class and is responsible for translating the
@@ -91,52 +93,39 @@ public class SaplConditionOperation {
     public List<SaplCondition> jsonNodeToSaplConditions(Iterable<JsonNode> conditions) {
         var saplConditions = new ArrayList<SaplCondition>();
 
-        if (!conditions.iterator().hasNext()) {
+        var iterator = conditions.iterator();
+
+        if (!iterator.hasNext()) {
             return saplConditions;
         }
 
-        var basicQuery = convertJsonNodeToBasicQuery(conditions);
+        while (iterator.hasNext()) {
 
-        convertBasicQueryToSaplConditions(basicQuery, saplConditions);
+            var value = iterator.next();
+
+            var baseQuery = new BasicQuery(value.asText());
+
+            convertBasicQueryToSaplConditions(baseQuery, saplConditions);
+
+        }
 
         return saplConditions;
     }
 
     private void convertBasicQueryToSaplConditions(BasicQuery basicQuery, List<SaplCondition> saplConditions) {
-        if (basicQuery != null) {
-            basicQuery.getQueryObject().forEach((String field, Object val) -> {
-                if (val instanceof List<?> list) {
-                    handleListsOfBasicQuery(saplConditions, list);
-                } else {
-                    convertDocumentToSaplCondition(saplConditions, field, val, "And");
-                }
-            });
-        }
-    }
-
-    private BasicQuery convertJsonNodeToBasicQuery(Iterable<JsonNode> conditions) {
-        Iterator<JsonNode> iterator   = conditions.iterator();
-        BasicQuery         basicQuery = null;
-        while (iterator.hasNext()) {
-            var condition = iterator.next();
-            if (basicQuery == null) {
-                basicQuery = new BasicQuery(condition.asText());
+        basicQuery.getQueryObject().forEach((String field, Object val) -> {
+            if (val instanceof List<?> list) {
+                handleListsOfBasicQuery(saplConditions, list);
             } else {
-                var query           = new BasicQuery(condition.asText());
-                var finalBasicQuery = basicQuery;
-                query.getQueryObject().forEach((ke, va) -> finalBasicQuery.getQueryObject().append(ke, va));
+                convertDocumentToSaplCondition(saplConditions, field, val, "And");
             }
-        }
-
-        return basicQuery;
+        });
     }
 
     private void handleListsOfBasicQuery(Collection<SaplCondition> saplConditions, Iterable<?> list) {
-        Iterator<?> iterator = list.iterator();
-        while (iterator.hasNext()) {
-            if (iterator.next() instanceof Document doc) {
-                doc.forEach((String field, Object value) -> convertDocumentToSaplCondition(saplConditions, field, value, "Or"));
-            }
+        for (Object o : list) {
+            ((Document) o).forEach(
+                    (String field, Object value) -> convertDocumentToSaplCondition(saplConditions, field, value, "Or"));
         }
     }
 
@@ -144,6 +133,8 @@ public class SaplConditionOperation {
             String conjunction) {
         if (value instanceof Document doc) {
             addNewSaplCondition(saplConditions, field, doc, conjunction);
+        } else {
+            addNewSaplCondition(saplConditions, field, value);
         }
     }
 
@@ -157,17 +148,17 @@ public class SaplConditionOperation {
      * @return modified method name.
      */
     public String toModifiedMethodName(String methodName, List<SaplCondition> saplConditions) {
-        int    index = getIndexIfSourceContainsAnyKeyword(methodName);
-        String modifiedMethodName;
+        int     index             = getIndexIfSourceContainsAnyKeyword(methodName);
+        boolean findAllMethodType = isMethodOneOfTheFindAllMethods(methodName);
 
         if (index == -1) {
-            modifiedMethodName = methodName + creatModifyingMethodNamePart(saplConditions);
+            methodName = methodName + creatModifyingMethodNamePart(saplConditions, findAllMethodType);
         } else {
-            modifiedMethodName = methodName.substring(0, index) + creatModifyingMethodNamePart(saplConditions)
-                    + methodName.substring(index);
+            methodName = methodName.substring(0, index)
+                    + creatModifyingMethodNamePart(saplConditions, findAllMethodType) + methodName.substring(index);
         }
 
-        return modifiedMethodName;
+        return methodName;
     }
 
     /**
@@ -188,18 +179,27 @@ public class SaplConditionOperation {
      *                       {@link io.sapl.api.pdp.Decision}.
      * @return the modifying method name part.
      */
-    private String creatModifyingMethodNamePart(Iterable<SaplCondition> saplConditions) {
+    private String creatModifyingMethodNamePart(List<SaplCondition> saplConditions, boolean findAllMethodType) {
         var creatModifyingPart = new StringBuilder();
 
-        for (SaplCondition saplCondition : saplConditions) {
+        for (int i = 0; i < saplConditions.size(); i++) {
 
-            creatModifyingPart.append(saplCondition.conjunction())
-                    .append(saplCondition.field().substring(0, 1).toUpperCase())
-                    .append(saplCondition.field().substring(1))
-                    .append(saplCondition.operator().getMethodNameBasedKeywords().stream().findFirst().orElseThrow());
+            if (i == 0 && findAllMethodType) {
+                creatModifyingPart.append("By").append(saplConditions.get(i).field().substring(0, 1).toUpperCase())
+                        .append(saplConditions.get(i).field().substring(1)).append(saplConditions.get(i).operator()
+                                .getMethodNameBasedKeywords().stream().findFirst().orElseThrow());
+            } else {
+                appendSaplCondition(creatModifyingPart, saplConditions.get(i));
+            }
         }
 
         return creatModifyingPart.toString();
+    }
+
+    private void appendSaplCondition(StringBuilder saplConditionsBuilder, SaplCondition saplCondition) {
+        saplConditionsBuilder.append(saplCondition.conjunction())
+                .append(saplCondition.field().substring(0, 1).toUpperCase()).append(saplCondition.field().substring(1))
+                .append(saplCondition.operator().getMethodNameBasedKeywords().stream().findFirst().orElseThrow());
     }
 
     /**
@@ -247,5 +247,13 @@ public class SaplConditionOperation {
         var value    = doc.values().toArray()[0];
 
         saplConditions.add(new SaplCondition(field, value, operator, conjunction));
+    }
+
+    private void addNewSaplCondition(Collection<SaplCondition> saplConditions, String field, Object value) {
+        saplConditions.add(new SaplCondition(field, value, OperatorMongoDB.SIMPLE_PROPERTY, "Or"));
+    }
+
+    private boolean isMethodOneOfTheFindAllMethods(String methodName) {
+        return FIND_ALL_KEYWORDS.stream().anyMatch(keyword -> keyword.equals(methodName));
     }
 }

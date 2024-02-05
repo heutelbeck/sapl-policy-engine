@@ -43,6 +43,7 @@ import io.sapl.springdatacommon.sapl.Enforce;
 import io.sapl.springdatacommon.sapl.QueryManipulationEnforcementData;
 import io.sapl.springdatacommon.sapl.queries.enforcement.ProceededDataFilterEnforcementPoint;
 import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
+import io.sapl.springdatar2dbc.database.MethodInvocationForTestingWithCrudRepository;
 import io.sapl.springdatar2dbc.database.Person;
 import io.sapl.springdatar2dbc.database.Role;
 import io.sapl.springdatar2dbc.sapl.QueryManipulationEnforcementPointFactory;
@@ -112,7 +113,7 @@ class R2dbcProxyInterceptorTests {
     void when_repositoryMethodHasAnnotationQuery_then_callAnnotationQueryEnforcementPoint() {
         // GIVEN
         var authSub              = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
-        var methodInvocationMock = new MethodInvocationForTesting("findAllUsersTest",
+        var methodInvocationMock = new MethodInvocationForTestingWithCrudRepository("findAllUsersTest",
                 new ArrayList<>(List.of(int.class, String.class)), null, null);
 
         // WHEN

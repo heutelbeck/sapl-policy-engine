@@ -21,6 +21,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.pip.LibraryFunctionProvider;
 
@@ -34,7 +36,6 @@ public interface FunctionContext extends LibraryFunctionProvider {
 
     Map<String, String> getDocumentedCodeTemplates();
 
-    Map<String, String> getFunctionSchemas();
+    Map<String, JsonNode> getFunctionSchemas();
 
-    Map<String, String> getFunctionSchemaPaths();
 }

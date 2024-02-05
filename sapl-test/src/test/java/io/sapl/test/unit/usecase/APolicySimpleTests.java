@@ -20,24 +20,23 @@ package io.sapl.test.unit.usecase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 
-class I_PolicyWithEnvironmentAttributeTests {
+class APolicySimpleTests {
 
     private SaplTestFixture fixture;
 
     @BeforeEach
     void setUp() {
-        fixture = new SaplUnitTestFixture("policyWithEnvironmentAttribute.sapl");
+        fixture = new SaplUnitTestFixture("policySimple");
     }
 
     @Test
-    void test() {
-        fixture.constructTestCaseWithMocks().givenAttribute("org.emergencyLevel", Val.of(0))
-                .when(AuthorizationSubscription.of("WILLI", "write", "something")).expectPermit().verify();
+    void test_simplePolicy() {
+        fixture.constructTestCase().when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit()
+                .verify();
     }
 
 }

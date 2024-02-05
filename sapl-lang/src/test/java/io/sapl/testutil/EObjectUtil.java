@@ -24,7 +24,7 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Utiltiy to log eObjects to the console.
+ * Utility to log eObjects to the console.
  */
 @Slf4j
 public class EObjectUtil {

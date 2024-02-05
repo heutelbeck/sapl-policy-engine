@@ -38,7 +38,8 @@ class ImportCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("time", "filter", "standard", "time");
+                var expected = List.of("clock", "clock.millis", "clock.now", "clock.ticker", "temperature",
+                        "temperature.mean", "temperature.now", "temperature.predicted");
                 assertProposalsSimple(expected, completionList);
             });
         });

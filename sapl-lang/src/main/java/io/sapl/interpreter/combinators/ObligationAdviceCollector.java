@@ -63,13 +63,13 @@ public class ObligationAdviceCollector {
     }
 
     public Optional<ArrayNode> getObligations(Decision decision) {
-        if ((decision == Decision.PERMIT || decision == Decision.DENY) && obligations.get(decision).size() > 0)
+        if ((decision == Decision.PERMIT || decision == Decision.DENY) && !obligations.get(decision).isEmpty())
             return Optional.of(obligations.get(decision));
         return Optional.empty();
     }
 
     public Optional<ArrayNode> getAdvice(Decision decision) {
-        if ((decision == Decision.PERMIT || decision == Decision.DENY) && advice.get(decision).size() > 0)
+        if ((decision == Decision.PERMIT || decision == Decision.DENY) && !advice.get(decision).isEmpty())
             return Optional.of(advice.get(decision));
         return Optional.empty();
     }
