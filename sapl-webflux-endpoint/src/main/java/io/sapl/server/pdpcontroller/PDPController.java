@@ -49,15 +49,17 @@ import java.time.Duration;
 public class PDPController {
     private final PolicyDecisionPoint pdp;
     @Value("#{'${io.sapl.server.keep-alive:${io.sapl.server-lt.keep-alive:0}}'}")
-    private long keepAliveSeconds = 0;
+    private long                      keepAliveSeconds = 0;
 
     /**
-     * Enables keep alive comments to keep tcp connection active. This is usually needed
-     * to avoid that connections are dropped by firewalls.
+     * Enables keep alive comments to keep tcp connection active. This is usually
+     * needed to avoid that connections are dropped by firewalls.
      *
      * @param flux a flux emitting the authorization decisions
-     * @return the original flux with additional keep-alive messages if keep-alive parameter > 0
-     */private <T> Flux<ServerSentEvent<T>> wrapWithKeepAlive(Flux<T> flux) {
+     * @return the original flux with additional keep-alive messages if keep-alive
+     *         parameter > 0
+     */
+    private <T> Flux<ServerSentEvent<T>> wrapWithKeepAlive(Flux<T> flux) {
         if (keepAliveSeconds > 0) {
             return Flux.merge(flux.map(t -> ServerSentEvent.builder(t).build()),
                     Flux.interval(Duration.ofSeconds(this.keepAliveSeconds))

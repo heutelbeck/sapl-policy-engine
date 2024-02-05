@@ -73,12 +73,8 @@ class RemoteHttpPolicyDecisionPointTests {
     void startServer() throws IOException {
         server = new MockWebServer();
         server.start();
-        pdp = RemotePolicyDecisionPoint.builder()
-                .http()
-                .baseUrl(this.server.url("/").toString())
-                .withHttpClient(HttpClient.create())
-                .basicAuth("secret", "key")
-                .build();
+        pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(this.server.url("/").toString())
+                .withHttpClient(HttpClient.create()).basicAuth("secret", "key").build();
         pdp.setBackoffFactor(2);
         pdp.setFirstBackoffMillis(100);
         pdp.setMaxBackOffMillis(200);
