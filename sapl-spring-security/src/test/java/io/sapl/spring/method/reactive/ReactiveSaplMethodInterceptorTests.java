@@ -64,43 +64,32 @@ class ReactiveSaplMethodInterceptorTests {
 
     private MethodInterceptor springSecurityMethodInterceptor;
 
-    private MethodSecurityExpressionHandler handler;
-
-    private PolicyDecisionPoint pdp;
-
-    private ConstraintEnforcementService constraintHandlerService;
-
-    private ObjectMapper mapper;
-
-    private WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder;
-
     private PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint;
 
     private PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint;
 
     private ReactiveSaplMethodInterceptor defaultSut;
 
-    private SaplAttributeRegistry metadataSource;
-
     @BeforeEach
     void beforeEach() {
         springSecurityMethodInterceptor = mock(MethodInterceptor.class);
-        handler                         = mock(MethodSecurityExpressionHandler.class);
-        pdp                             = mock(PolicyDecisionPoint.class);
+        MethodSecurityExpressionHandler handler = mock(MethodSecurityExpressionHandler.class);
+        PolicyDecisionPoint             pdp     = mock(PolicyDecisionPoint.class);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        constraintHandlerService = mock(ConstraintEnforcementService.class);
-        mapper                   = new ObjectMapper();
-        SimpleModule module = new SimpleModule();
+        ConstraintEnforcementService constraintHandlerService = mock(ConstraintEnforcementService.class);
+        ObjectMapper                 mapper                   = new ObjectMapper();
+        SimpleModule                 module                   = new SimpleModule();
         module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
         module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
         module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
         mapper.registerModule(module);
-        subscriptionBuilder = mock(WebfluxAuthorizationSubscriptionBuilderService.class);
+        WebfluxAuthorizationSubscriptionBuilderService subscriptionBuilder = mock(
+                WebfluxAuthorizationSubscriptionBuilderService.class);
         when(subscriptionBuilder.reactiveConstructAuthorizationSubscription(any(MethodInvocation.class), any()))
                 .thenReturn(Mono.just(AuthorizationSubscription.of("the subject", "the action", "the resource")));
         preEnforcePolicyEnforcementPoint  = mock(PreEnforcePolicyEnforcementPoint.class);
         postEnforcePolicyEnforcementPoint = mock(PostEnforcePolicyEnforcementPoint.class);
-        metadataSource                    = new SaplAttributeRegistry();
+        SaplAttributeRegistry metadataSource = new SaplAttributeRegistry();
 
         defaultSut = new ReactiveSaplMethodInterceptor(metadataSource, handler, pdp, constraintHandlerService, mapper,
                 subscriptionBuilder, preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
@@ -123,7 +112,7 @@ class ReactiveSaplMethodInterceptorTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    void when_onlyPreEnforce_then_preEnforcePEPIsCalled() throws Throwable {
+    void when_onlyPreEnforce_then_preEnforcePEPIsCalled() {
         class TestClass {
 
             @PreEnforce
@@ -176,8 +165,7 @@ class ReactiveSaplMethodInterceptorTests {
     }
 
     @Test
-    void when_saplAndSpringAnnotationsPresent_then_thisDoesNotFailBecauseDelegationSourceDoesOnlyReturnOne()
-            throws Throwable {
+    void when_saplAndSpringAnnotationsPresent_then_thisDoesNotFailBecauseDelegationSourceDoesOnlyReturnOne() {
 
         class TestClass {
 
@@ -266,7 +254,7 @@ class ReactiveSaplMethodInterceptorTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    void when_onlyPostEnforce_then_postEnforcePepIsCalled() throws Throwable {
+    void when_onlyPostEnforce_then_postEnforcePepIsCalled() {
         class TestClass {
 
             @PostEnforce
@@ -290,7 +278,7 @@ class ReactiveSaplMethodInterceptorTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    void xxxxxxxxwhen_sonlyPostEnforce_then_postEnforcePepIsCalled() throws Throwable {
+    void xxxxxxxxwhen_sonlyPostEnforce_then_postEnforcePepIsCalled() {
         class TestClass {
             @PreEnforce
             public Flux<Integer> fluxInteger() {
@@ -310,7 +298,7 @@ class ReactiveSaplMethodInterceptorTests {
 
     @Test
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    void when_onlyEnforceTillDenied_then_enforceTillDeniedPEPIsCalled() throws Throwable {
+    void when_onlyEnforceTillDenied_then_enforceTillDeniedPEPIsCalled() {
         class TestClass {
 
             @EnforceTillDenied
@@ -337,7 +325,7 @@ class ReactiveSaplMethodInterceptorTests {
 
     @Test
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    void when_onlyEnforceDropWhileDenied_then_enforceDropWhileDeniedPEPIsCalled() throws Throwable {
+    void when_onlyEnforceDropWhileDenied_then_enforceDropWhileDeniedPEPIsCalled() {
         class TestClass {
 
             @EnforceDropWhileDenied
@@ -364,7 +352,7 @@ class ReactiveSaplMethodInterceptorTests {
 
     @Test
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    void when_onlyEnforceRecoverableIfDenied_then_enforceRecoverableIfDeniedPEPIsCalled() throws Throwable {
+    void when_onlyEnforceRecoverableIfDenied_then_enforceRecoverableIfDeniedPEPIsCalled() {
         class TestClass {
 
             @EnforceRecoverableIfDenied

@@ -825,7 +825,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_constraintNull_then_AccessConstraintViolationException() throws JsonProcessingException {
+    void when_constraintNull_then_AccessConstraintViolationException() {
         var sut = new ContentFilteringProvider(MAPPER);
         assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(null));
     }
@@ -2085,7 +2085,7 @@ class ContentFilteringProviderTests {
                 		{
                 			"type"        : "replace",
                 			"path"        : "$.key1",
-                			"replacement" : \"replaced\"
+                			"replacement" : "replaced"
                 		}
                 	]
                 }

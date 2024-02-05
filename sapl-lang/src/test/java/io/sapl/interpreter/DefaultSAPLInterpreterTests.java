@@ -126,7 +126,7 @@ class DefaultSAPLInterpreterTests {
         functionCtx.loadLibrary(SimpleFunctionLibrary.class);
         functionCtx.loadLibrary(FilterFunctionLibrary.class);
         functionCtx.loadLibrary(StandardFunctionLibrary.class);
-        variables = new HashMap<String, JsonNode>();
+        variables = new HashMap<>();
     }
 
     @Test

@@ -79,7 +79,7 @@ public class ReportBuilderUtil {
         }
 
         var evaluatedPolices = combinedDecision.get(Trace.EVALUATED_POLICIES);
-        if (evaluatedPolices != null && evaluatedPolices.isArray() && evaluatedPolices.size() > 0) {
+        if (evaluatedPolices != null && evaluatedPolices.isArray() && !evaluatedPolices.isEmpty()) {
             report.set(DOCUMENT_REPORTS, documentReports(evaluatedPolices));
         }
         return report;

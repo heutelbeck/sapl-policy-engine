@@ -57,9 +57,9 @@ import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 
 class MongoQueryCreatorFactoryTests {
 
-    private ReactiveMongoTestUserRepository repositoryTest = mock(ReactiveMongoTestUserRepository.class);
+    private final ReactiveMongoTestUserRepository repositoryTest = mock(ReactiveMongoTestUserRepository.class);
 
-    private ReactiveMongoTemplate reactiveMongoTemplateSpy = mock(ReactiveMongoTemplate.class,
+    private final ReactiveMongoTemplate reactiveMongoTemplateSpy = mock(ReactiveMongoTemplate.class,
             Answers.RETURNS_DEEP_STUBS);
 
     MockedStatic<AbstractRepositoryMetadata> abstractRepositoryMetadataMockedStatic;

@@ -45,7 +45,7 @@ public class JUnitTests extends BaseTestAdapter<DynamicContainer> {
         return paths.stream().map(this::createTest).toList();
     }
 
-    private List<DynamicNode> getDynamicContainersFromTestNode(Collection<? extends TestNode> testNodes) {
+    private List<DynamicNode> getDynamicContainersFromTestNode(final Collection<? extends TestNode> testNodes) {
         if (testNodes == null) {
             return Collections.emptyList();
         }
@@ -62,7 +62,7 @@ public class JUnitTests extends BaseTestAdapter<DynamicContainer> {
     }
 
     @Override
-    protected DynamicContainer convertTestContainerToTargetRepresentation(TestContainer testContainer) {
+    protected DynamicContainer convertTestContainerToTargetRepresentation(final TestContainer testContainer) {
         return DynamicContainer.dynamicContainer(testContainer.getIdentifier(),
                 getDynamicContainersFromTestNode(testContainer.getTestNodes()));
     }

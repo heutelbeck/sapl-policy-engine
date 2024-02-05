@@ -60,57 +60,56 @@ class AttributeFinderStepImplCustomTests {
 	 			// evaluateAttributeInFilterSelection
 	 			Arguments.of("123 |- { @.<test.numbers> : mock.nil }", "AttributeFinderStep not permitted in filter selection steps.")
 	 		);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("errorExpressions")
-	void expressionReturnsError(String expression, String expected) {
-		assertExpressionReturnsError(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("errorExpressions")
+    void expressionReturnsError(String expression, String expected) {
+        assertExpressionReturnsError(expression, expected);
+    }
 
-	@Test
-	void evaluateBasicAttributeInTargetPolicy() throws IOException {
-		var expression = ParserUtil.expression("\"\".<test.numbers>");
-		MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
-		assertExpressionErrors(expression);
-	}
+    @Test
+    void evaluateBasicAttributeInTargetPolicy() throws IOException {
+        var expression = ParserUtil.expression("\"\".<test.numbers>");
+        MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
+        assertExpressionErrors(expression);
+    }
 
-	@Test
-	void evaluateBasicAttributeInTargetPolicySet() throws IOException {
-		var expression = ParserUtil.expression("\"\".<test.numbers>");
-		MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
-		assertExpressionErrors(expression);
-	}
+    @Test
+    void evaluateBasicAttributeInTargetPolicySet() throws IOException {
+        var expression = ParserUtil.expression("\"\".<test.numbers>");
+        MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
+        assertExpressionErrors(expression);
+    }
 
-	@Test
-	void exceptionDuringEvaluation() {
-		var step = attributeFinderStep();
-		var sut  = step.apply(Val.NULL).contextWrite(
-				ctx -> AuthorizationContext.setAttributeContext(ctx,
-						mockAttributeContext(Flux.just(Val.error("ERROR")))));
-		StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
-	}
+    @Test
+    void exceptionDuringEvaluation() {
+        var step = attributeFinderStep();
+        var sut  = step.apply(Val.NULL).contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
+                mockAttributeContext(Flux.just(Val.error("ERROR")))));
+        StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
+    }
 
-	@Test
-	void applyWithSomeStreamData() {
-		Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
-		var   step = attributeFinderStep();
-		var   sut  = step.apply(Val.NULL).contextWrite(
-				ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContext(Flux.just(data))));
-		StepVerifier.create(sut).expectNext(data).verifyComplete();
-	}
+    @Test
+    void applyWithSomeStreamData() {
+        Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
+        var   step = attributeFinderStep();
+        var   sut  = step.apply(Val.NULL).contextWrite(
+                ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContext(Flux.just(data))));
+        StepVerifier.create(sut).expectNext(data).verifyComplete();
+    }
 
-	private static AttributeContext mockAttributeContext(Flux<Val> stream) {
-		var attributeCtx = mock(AttributeContext.class);
-		when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
-		return attributeCtx;
-	}
+    private static AttributeContext mockAttributeContext(Flux<Val> stream) {
+        var attributeCtx = mock(AttributeContext.class);
+        when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
+        return attributeCtx;
+    }
 
-	private static AttributeFinderStep attributeFinderStep() {
-		var step = FACTORY.createAttributeFinderStep();
-		step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
-		return step;
-	}
+    private static AttributeFinderStep attributeFinderStep() {
+        var step = FACTORY.createAttributeFinderStep();
+        step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
+        return step;
+    }
 
 }

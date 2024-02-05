@@ -77,8 +77,10 @@ public class SaplPartTreeCriteriaCreator<T> {
         // operations.
         var saplParametersFromMethod = SaplConditionOperation.methodToSaplConditions(args, repositoryMethod,
                 domainType);
-        
-     //   ^(findAll|readAll|getAll|queryAll|searchAll|streamAll)
+
+        // ^(findAll|readAll|getAll|queryAll|searchAll|streamAll)
+
+        // ^(findAll|readAll|getAll|queryAll|searchAll|streamAll)
 
         // Converts the conditions from the corresponding policy into SaplConditions for
         // further operations.
@@ -95,7 +97,7 @@ public class SaplPartTreeCriteriaCreator<T> {
         // Creates an object list of all values of all SaplParameters
         saplParametersFromMethod.addAll(saplParametersFromObligation);
 
-        var allParametersValueAsObjects = new ArrayList<Object>();
+        var allParametersValueAsObjects = new ArrayList<>();
         for (SaplCondition parameter : saplParametersFromMethod) {
             allParametersValueAsObjects.add(parameter.value());
         }

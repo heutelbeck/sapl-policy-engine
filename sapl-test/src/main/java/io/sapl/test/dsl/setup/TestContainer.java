@@ -25,8 +25,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TestContainer implements TestNode {
 
     private final String                   identifier;

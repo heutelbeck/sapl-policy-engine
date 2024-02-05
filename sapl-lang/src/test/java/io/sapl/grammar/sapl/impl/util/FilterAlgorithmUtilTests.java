@@ -33,9 +33,9 @@ class FilterAlgorithmUtilTests {
         var expected       = Val.error("unfiltered");
         var actualFiltered = FilterAlgorithmUtil.applyFilter(unfiltered, 0, null, mock(FilterStatement.class),
                 getClass());
-        StepVerifier.create(actualFiltered).expectNextMatches(actual -> {
-            return actual.equals(expected)
-                    && "ConditionStep".equals(actual.getTrace().get("trace").get("operator").asText());
-        }).verifyComplete();
+        StepVerifier.create(actualFiltered)
+                .expectNextMatches(actual -> actual.equals(expected)
+                        && "ConditionStep".equals(actual.getTrace().get("trace").get("operator").asText()))
+                .verifyComplete();
     }
 }

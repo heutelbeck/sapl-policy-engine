@@ -24,10 +24,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.thymeleaf.context.Context;
@@ -62,16 +60,14 @@ public class HtmlLineCoverageReportGenerator {
             throws IOException {
         SpringTemplateEngine springTemplateEngine = prepareTemplateEngine();
 
-        Iterator<SaplDocumentCoverageInformation> iterator = documents.iterator();
-        while (iterator.hasNext()) {
-            SaplDocumentCoverageInformation doc    = iterator.next();
-            List<String>                    lines  = readPolicyDocument(doc.getPathToDocument());
-            List<HtmlPolicyLineModel>       models = createHtmlPolicyLineModel(lines, doc);
+        for (SaplDocumentCoverageInformation doc : documents) {
+            List<String>              lines  = readPolicyDocument(doc.getPathToDocument());
+            List<HtmlPolicyLineModel> models = createHtmlPolicyLineModel(lines, doc);
 
             // prepare context
             Context context = new Context();
             context.setVariable("policyTitle", doc.getPathToDocument().getFileName());
-            context.setVariable("policyText", lines.stream().collect(Collectors.joining("\n")));
+            context.setVariable("policyText", String.join("\n", lines));
             context.setVariable("lineModels", models);
 
             // process the template and context
@@ -218,25 +214,12 @@ public class HtmlLineCoverageReportGenerator {
         String popoverContent;
     }
 
-    private record WebDependency(
-            /**
-             * name of the dependency
-             */
-            @NonNull String name,
+    private record WebDependency(@NonNull String name,
 
-            /**
-             * name of the actual file
-             */
             @NonNull String fileName,
 
-            /**
-             * path to the directory where actual the file is located
-             */
             @NonNull String sourcePath,
 
-            /**
-             * path to where the file will be located as an asset
-             */
             @NonNull String targetPath) {
     }
 }

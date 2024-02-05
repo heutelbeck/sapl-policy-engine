@@ -52,8 +52,7 @@ class DefaultSAPLInterpreterTransformationTests {
     private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
     private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
     private static final AnnotationFunctionContext  FUNCTION_CTX     = new AnnotationFunctionContext();
-    private static final Map<String, JsonNode>      SYSTEM_VARIABLES = Collections
-            .unmodifiableMap(new HashMap<String, JsonNode>());
+    private static final Map<String, JsonNode>      SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
     @BeforeEach
     public void setUp() throws InitializationException {
@@ -71,8 +70,7 @@ class DefaultSAPLInterpreterTransformationTests {
             String expectedResource) {
         assertThat(testCase).isNotNull();
         var expectedDecision = new AuthorizationDecision(Decision.PERMIT,
-                Optional.of(MAPPER.<JsonNode>readValue(expectedResource, JsonNode.class)), Optional.empty(),
-                Optional.empty());
+                Optional.of(MAPPER.readValue(expectedResource, JsonNode.class)), Optional.empty(), Optional.empty());
         var subscription     = MAPPER.readValue(authorizationSubscription, AuthorizationSubscription.class);
         assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(subscription, saplDocument,
                 expectedDecision);
@@ -81,18 +79,17 @@ class DefaultSAPLInterpreterTransformationTests {
     @SneakyThrows
     private static Stream<Arguments> transformationTestCases() {
         // @formatter:off
-        return Stream.of(new Arguments[] {
-                Arguments.of(
-                        "simpleTransformationWithComment",
-                        "{}",
-                        """
-                        policy "test"
-                        permit
-                        transform
-                            "teststring"        // This is a dummy comment
-                            /* another comment */
-                        """,
-                        "\"teststring\""),
+        return Stream.of(Arguments.of(
+                "simpleTransformationWithComment",
+                "{}",
+                """
+                policy "test"
+                permit
+                transform
+                    "teststring"        // This is a dummy comment
+                    /* another comment */
+                """,
+                "\"teststring\""),
 
                 Arguments.of(
                         "simpleFiltering",
@@ -476,9 +473,7 @@ class DefaultSAPLInterpreterTransformationTests {
                     "value":"4",
                     "name":"***"
                 }
-                """),
-
-        });
+                """));
         // @formatter:on
     }
 

@@ -61,7 +61,7 @@ class ProtectedPayload<P> {
 
     /**
      * Get the payload or throw Exception.
-     *
+     * <p>
      * Explanation: Why is this a Mono<>? Answer: Because onErrorContinue does no
      * longer work with map but only with flatMap
      *

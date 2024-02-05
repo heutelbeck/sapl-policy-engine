@@ -36,6 +36,8 @@ import jakarta.xml.bind.annotation.XmlType;
 //
 
 import lombok.Generated;
+import lombok.Getter;
+import lombok.Setter;
 
 // @formatter:off
 /**
@@ -93,6 +95,17 @@ public class Coverage {
 
     protected List<Coverage.File> file;
 
+    /**
+     * -- GETTER -- Gets the value of the version property.
+     *
+     *
+     * -- SETTER -- Sets the value of the version property.
+     *
+     * @return possible object is {@link BigInteger }
+     * @param value allowed object is {@link BigInteger }
+     */
+    @Setter
+    @Getter
     @XmlAttribute(name = "version", required = true)
     @XmlSchemaType(name = "positiveInteger")
     protected BigInteger version;
@@ -129,26 +142,6 @@ public class Coverage {
             file = new ArrayList<>();
         }
         return this.file;
-    }
-
-    /**
-     * Gets the value of the version property.
-     *
-     * @return possible object is {@link BigInteger }
-     *
-     */
-    public BigInteger getVersion() {
-        return version;
-    }
-
-    /**
-     * Sets the value of the version property.
-     *
-     * @param value allowed object is {@link BigInteger }
-     *
-     */
-    public void setVersion(BigInteger value) {
-        this.version = value;
     }
 
     // @formatter:off
@@ -194,6 +187,17 @@ public class Coverage {
 
         protected List<Coverage.File.LineToCover> lineToCover;
 
+        /**
+         * -- GETTER -- Gets the value of the path property.
+         *
+         *
+         * -- SETTER -- Sets the value of the path property.
+         *
+         * @return possible object is {@link String }
+         * @param value allowed object is {@link String }
+         */
+        @Setter
+        @Getter
         @XmlAttribute(name = "path", required = true)
         protected String path;
 
@@ -230,26 +234,6 @@ public class Coverage {
             return this.lineToCover;
         }
 
-        /**
-         * Gets the value of the path property.
-         *
-         * @return possible object is {@link String }
-         *
-         */
-        public String getPath() {
-            return path;
-        }
-
-        /**
-         * Sets the value of the path property.
-         *
-         * @param value allowed object is {@link String }
-         *
-         */
-        public void setPath(String value) {
-            this.path = value;
-        }
-
         // @formatter:off
         /**
          * <p>
@@ -275,105 +259,63 @@ public class Coverage {
          *
          */
 		 // @formatter:on
+        @Setter
+        @Getter
         @XmlAccessorType(XmlAccessType.FIELD)
         @XmlType(name = "")
         @Generated
         public static class LineToCover {
 
+            /**
+             * -- GETTER -- Gets the value of the lineNumber property.
+             *
+             *
+             * -- SETTER -- Sets the value of the lineNumber property.
+             *
+             * @return possible object is {@link BigInteger }
+             * @param value allowed object is {@link BigInteger }
+             */
             @XmlAttribute(name = "lineNumber", required = true)
             @XmlSchemaType(name = "positiveInteger")
             protected BigInteger lineNumber;
 
+            /**
+             * -- GETTER -- Gets the value of the covered property.
+             *
+             *
+             * -- SETTER -- Sets the value of the covered property.
+             *
+             * @return true if covered
+             * @param value indicate if covered
+             */
             @XmlAttribute(name = "covered", required = true)
             protected boolean covered;
 
+            /**
+             * -- GETTER -- Gets the value of the branchesToCover property.
+             *
+             *
+             * -- SETTER -- Sets the value of the branchesToCover property.
+             *
+             * @return possible object is {@link BigInteger }
+             * @param value allowed object is {@link BigInteger }
+             */
             @XmlAttribute(name = "branchesToCover")
             @XmlSchemaType(name = "nonNegativeInteger")
             protected BigInteger branchesToCover;
 
+            /**
+             * -- GETTER -- Gets the value of the coveredBranches property.
+             *
+             *
+             * -- SETTER -- Sets the value of the coveredBranches property.
+             *
+             * @return possible object is {@link BigInteger }
+             * @param value allowed object is {@link BigInteger }
+             */
             @XmlAttribute(name = "coveredBranches")
             @XmlSchemaType(name = "nonNegativeInteger")
             protected BigInteger coveredBranches;
-
-            /**
-             * Gets the value of the lineNumber property.
-             *
-             * @return possible object is {@link BigInteger }
-             *
-             */
-            public BigInteger getLineNumber() {
-                return lineNumber;
-            }
-
-            /**
-             * Sets the value of the lineNumber property.
-             *
-             * @param value allowed object is {@link BigInteger }
-             *
-             */
-            public void setLineNumber(BigInteger value) {
-                this.lineNumber = value;
-            }
-
-            /**
-             * Gets the value of the covered property.
-             *
-             * @return true if covered
-             *
-             */
-            public boolean isCovered() {
-                return covered;
-            }
-
-            /**
-             * Sets the value of the covered property.
-             *
-             * @param value indicate if covered
-             *
-             */
-            public void setCovered(boolean value) {
-                this.covered = value;
-            }
-
-            /**
-             * Gets the value of the branchesToCover property.
-             *
-             * @return possible object is {@link BigInteger }
-             *
-             */
-            public BigInteger getBranchesToCover() {
-                return branchesToCover;
-            }
-
-            /**
-             * Sets the value of the branchesToCover property.
-             *
-             * @param value allowed object is {@link BigInteger }
-             *
-             */
-            public void setBranchesToCover(BigInteger value) {
-                this.branchesToCover = value;
-            }
-
-            /**
-             * Gets the value of the coveredBranches property.
-             *
-             * @return possible object is {@link BigInteger }
-             *
-             */
-            public BigInteger getCoveredBranches() {
-                return coveredBranches;
-            }
-
-            /**
-             * Sets the value of the coveredBranches property.
-             *
-             * @param value allowed object is {@link BigInteger }
-             *
-             */
-            public void setCoveredBranches(BigInteger value) {
-                this.coveredBranches = value;
-            }
 
         }
 

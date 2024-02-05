@@ -48,6 +48,96 @@ class SAPLValidatorTests {
     private ValidationTestHelper validator;
 
     @Test
+    void targetWithEagerOpsPermitInSet() throws Exception {
+        String testPolicy = """
+                set "x"
+                permit-overrides
+                for a == b & c == d | e > f
+                policy "p" permit
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertNoErrors(policy);
+    }
+
+    @Test
+    void targetWithLazyAndOpsPermitInSet() throws Exception {
+        String testPolicy = """
+                set "x"
+                permit-overrides
+                for a == b && c == d | e > f
+                policy "p" permit
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getAnd(), null,
+                SAPLValidator.MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
+
+    @Test
+    void targetWithLazyOrAndOpsPermitInSet() throws Exception {
+        String testPolicy = """
+                set "x"
+                permit-overrides
+                for a == b & c == d || e > f
+                policy "p" permit
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getOr(), null,
+                SAPLValidator.MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
+
+    @Test
+    void targetWithEnvAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                set "x"
+                permit-overrides
+                for a == <test.test>
+                policy "p" permit
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentAttribute(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
+
+    @Test
+    void targetWithHeadEnvAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                set "x"
+                permit-overrides
+                for a == |<test.test>
+                policy "p" permit
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentHeadAttribute(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
+
+    @Test
+    void targetWithAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                set "x"
+                permit-overrides
+                for a == subject.<test.test>
+                policy "p" permit
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getAttributeFinderStep(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
+
+    @Test
+    void targetWithHeadAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                set "x"
+                permit-overrides
+                for a == subject.|<test.test>
+                policy "p" permit
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getHeadAttributeFinderStep(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    }
+
+    @Test
     void targetWithEagerOpsPermit() throws Exception {
         String testPolicy = "policy \"test policy\" permit a == b & c == d | e > f";
         SAPL   policy     = this.parseHelper.parse(testPolicy);
@@ -75,7 +165,7 @@ class SAPLValidatorTests {
         String policyText = "policy \"test policy\" permit action.patientid.<pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
         SAPL   policy     = this.parseHelper.parse(policyText);
         this.validator.assertError(policy, SaplPackage.eINSTANCE.getAttributeFinderStep(), null,
-                SAPLValidator.MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION);
     }
 
     @Test
@@ -83,7 +173,7 @@ class SAPLValidatorTests {
         String policyText = "policy \"test policy\" permit action.patientid.|<pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
         SAPL   policy     = this.parseHelper.parse(policyText);
         this.validator.assertError(policy, SaplPackage.eINSTANCE.getHeadAttributeFinderStep(), null,
-                SAPLValidator.MSG_HAFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION);
     }
 
     @Test
@@ -91,7 +181,7 @@ class SAPLValidatorTests {
         String policyText = "policy \"test policy\" permit <pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
         SAPL   policy     = this.parseHelper.parse(policyText);
         this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentAttribute(), null,
-                SAPLValidator.MSG_BEA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION);
     }
 
     @Test
@@ -99,7 +189,7 @@ class SAPLValidatorTests {
         String policyText = "policy \"test policy\" permit |<pip.hospital_units.by_patientid>.doctorid == \"Brinkmann\"";
         SAPL   policy     = this.parseHelper.parse(policyText);
         this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentHeadAttribute(), null,
-                SAPLValidator.MSG_BEHA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION);
     }
 
     @Test
@@ -108,6 +198,114 @@ class SAPLValidatorTests {
         SAPL   policy     = this.parseHelper.parse(policyText);
         this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
                 "no viable alternative at input 'defect'");
+    }
+
+    @Test
+    void subscriptionElementSchemaWithEnvAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                subject schema {
+                        "a" : <test.test>
+                    }
+                policy "p" permit
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentAttribute(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION);
+    }
+
+    @Test
+    void subscriptionElementSchemaWithHeadEnvAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                subject schema {
+                        "a" : |<test.test>
+                    }
+                policy "p" permit
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentHeadAttribute(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION);
+    }
+
+    @Test
+    void subscriptionElementSchemaWithAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                subject schema {
+                        "a" : abc.<test.test>
+                    }
+                policy "p" permit
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getAttributeFinderStep(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION);
+    }
+
+    @Test
+    void subscriptionElementSchemaWithHeadAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                subject schema {
+                        "a" : abc.|<test.test>
+                    }
+                policy "p" permit
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getHeadAttributeFinderStep(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION);
+    }
+
+    @Test
+    void varSchemaWithEnvAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                policy "p" permit
+                where
+                   var x = 123 schema {
+                        "a" : <test.test>
+                    }
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentAttribute(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION);
+    }
+
+    @Test
+    void varSchemaWithHeadEnvAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                policy "p" permit
+                where
+                   var x = 123 schema {
+                        "a" : |<test.test>
+                    }
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getBasicEnvironmentHeadAttribute(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION);
+    }
+
+    @Test
+    void varSchemaWithAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                policy "p" permit
+                where
+                   var x = 123 schema {
+                        "a" : aaa.<test.test>
+                    }
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getAttributeFinderStep(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION);
+    }
+
+    @Test
+    void varSchemaWithHeadAttributeInSetTarget() throws Exception {
+        String testPolicy = """
+                policy "p" permit
+                where
+                   var x = 123 schema {
+                        "a" : aaa.|<test.test>
+                    }
+                """;
+        SAPL   policy     = this.parseHelper.parse(testPolicy);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getHeadAttributeFinderStep(), null,
+                SAPLValidator.MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION);
     }
 
 }

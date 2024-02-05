@@ -58,7 +58,7 @@ class HandleProceedingDataTests {
         var r2dbcMethodInvocationTest = new R2dbcMethodInvocation("findAllByFirstname",
                 new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Cathrin")), data);
 
-        var queryManipulationEnforcementData = new QueryManipulationEnforcementData<Person>(r2dbcMethodInvocationTest,
+        var queryManipulationEnforcementData = new QueryManipulationEnforcementData<>(r2dbcMethodInvocationTest,
                 beanFactoryMock, domainType, policyDecisionPointMock, authSub);
 
         // WHEN
@@ -81,7 +81,7 @@ class HandleProceedingDataTests {
         var r2dbcMethodInvocationTest = new R2dbcMethodInvocation("findUserTest",
                 new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Cathrin")), dataAsMono);
 
-        var queryManipulationEnforcementData = new QueryManipulationEnforcementData<Person>(r2dbcMethodInvocationTest,
+        var queryManipulationEnforcementData = new QueryManipulationEnforcementData<>(r2dbcMethodInvocationTest,
                 beanFactoryMock, domainType, policyDecisionPointMock, authSub);
 
         // WHEN

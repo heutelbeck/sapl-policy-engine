@@ -104,7 +104,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
-        assertThrows(MojoFailureException.class, () -> mojo.execute());
+        assertThrows(MojoFailureException.class, mojo::execute);
     }
 
     @Test
@@ -123,7 +123,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         mojo.setLog(this.log);
         mojo.setSkipTests(true);
         mojo.setFailOnDisabledTests(true);
-        assertThrows(MojoFailureException.class, () -> mojo.execute());
+        assertThrows(MojoFailureException.class, mojo::execute);
 
         verify(log, atLeastOnce())
                 .error("Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
@@ -145,7 +145,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         mojo.setLog(this.log);
         mojo.setSkipTests(true);
         mojo.setFailOnDisabledTests(false);
-        assertDoesNotThrow(() -> mojo.execute());
+        assertDoesNotThrow(mojo::execute);
 
         verify(log, atLeastOnce()).info(
                 "Tests disabled. Skipping coverage validation requirements validation. If you want the build to fail in this case, set the sapl-maven-plugin configuration parameter 'failOnDisabledTests' to true.");
@@ -167,7 +167,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         mojo.setLog(this.log);
         mojo.setMavenTestSkip(true);
         mojo.setFailOnDisabledTests(true);
-        assertThrows(MojoFailureException.class, () -> mojo.execute());
+        assertThrows(MojoFailureException.class, mojo::execute);
 
         verify(log, atLeastOnce())
                 .error("Tests were skipped, but the sapl-maven-plugin is configured to enforce tests to be run.");
@@ -189,7 +189,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         mojo.setLog(this.log);
         mojo.setMavenTestSkip(true);
         mojo.setFailOnDisabledTests(false);
-        assertDoesNotThrow(() -> mojo.execute());
+        assertDoesNotThrow(mojo::execute);
 
         verify(log, atLeastOnce()).info(
                 "Tests disabled. Skipping coverage validation requirements validation. If you want the build to fail in this case, set the sapl-maven-plugin configuration parameter 'failOnDisabledTests' to true.");
@@ -209,7 +209,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
         var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
-        assertThrows(MojoFailureException.class, () -> mojo.execute());
+        assertThrows(MojoFailureException.class, mojo::execute);
 
         verify(log, atLeastOnce()).error("Error test report data. IOException: TESTING");
     }

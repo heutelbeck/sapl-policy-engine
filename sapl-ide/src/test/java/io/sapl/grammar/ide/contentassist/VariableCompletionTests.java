@@ -92,30 +92,16 @@ class VariableCompletionTests extends CompletionTests {
     }
 
     @Test
-    void testCompletion_SuggestFunctionsFromSimpleImport() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "import time.before\npolicy \"test policy\" deny where var foo = 5;";
-            String cursor = "policy \"test policy\" deny where var foo = 5;";
-            it.setModel(policy);
-            it.setLine(1);
-            it.setColumn(cursor.length());
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("time.after", "time.before", "time.between");
-                assertProposalsSimple(expected, completionList);
-            });
-        });
-    }
-
-    @Test
     void testCompletion_SuggestFunctionsFromWildcardImport() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "import time.*\npolicy \"test policy\" deny where var foo = 5;";
+            String policy = "import schemaTest.*\npolicy \"test policy\" deny where var foo = 5;";
             String cursor = "policy \"test policy\" deny where var foo = 5;";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("time.after", "time.before", "time.between");
+                var expected = List.of("dog()", "dog().race", "food()", "food(String species)", "location()",
+                        "location().latitude", "location().longitude", "person()", "person().name");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -124,13 +110,15 @@ class VariableCompletionTests extends CompletionTests {
     @Test
     void testCompletion_SuggestFunctionsFromLibraryImport() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "import time as abc\npolicy \"test policy\" deny where var foo = 5;";
+            String policy = "import schemaTest as abc\npolicy \"test policy\" deny where var foo = 5;";
             String cursor = "policy \"test policy\" deny where var foo = 5;";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("abc.after", "abc.before", "abc.between");
+                var expected = List.of("abc.dog()", "abc.dog().race", "abc.food()", "abc.food(String species)",
+                        "abc.location()", "abc.location().latitude", "abc.location().longitude", "abc.person()",
+                        "abc.person().name");
                 assertProposalsSimple(expected, completionList);
             });
         });

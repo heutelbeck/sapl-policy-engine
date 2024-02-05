@@ -25,7 +25,7 @@ import io.sapl.test.SaplTestFixture;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 
-class A_SimplePDPTests {
+class ASimplePDPTests {
 
     private SaplTestFixture fixture;
 

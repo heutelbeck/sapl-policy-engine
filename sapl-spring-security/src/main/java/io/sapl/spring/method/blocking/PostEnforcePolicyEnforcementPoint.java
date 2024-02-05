@@ -46,7 +46,7 @@ import reactor.core.Exceptions;
 @RequiredArgsConstructor
 public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
-    private Supplier<Authentication> authentication = getAuthentication(
+    private final Supplier<Authentication> authentication = getAuthentication(
             SecurityContextHolder.getContextHolderStrategy());
 
     private final ObjectProvider<PolicyDecisionPoint>                        policyDecisionPointProvider;

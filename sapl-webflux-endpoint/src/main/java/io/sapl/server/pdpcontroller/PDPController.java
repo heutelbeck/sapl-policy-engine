@@ -17,6 +17,7 @@
  */
 package io.sapl.server.pdpcontroller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,6 +36,8 @@ import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+
 /**
  * REST controller providing endpoints for a policy decision point. The
  * endpoints can be connected using the client in the module sapl-pdp-client.
@@ -44,8 +47,27 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @RequestMapping("/api/pdp")
 public class PDPController {
-
     private final PolicyDecisionPoint pdp;
+    @Value("#{'${io.sapl.server.keep-alive:${io.sapl.server-lt.keep-alive:0}}'}")
+    private long                      keepAliveSeconds = 0;
+
+    /**
+     * Enables keep alive comments to keep tcp connection active. This is usually
+     * needed to avoid that connections are dropped by firewalls.
+     *
+     * @param flux a flux emitting the authorization decisions
+     * @return the original flux with additional keep-alive messages if keep-alive
+     *         parameter > 0
+     */
+    private <T> Flux<ServerSentEvent<T>> wrapWithKeepAlive(Flux<T> flux) {
+        if (keepAliveSeconds > 0) {
+            return Flux.merge(flux.map(t -> ServerSentEvent.builder(t).build()),
+                    Flux.interval(Duration.ofSeconds(this.keepAliveSeconds))
+                            .map(aLong -> ServerSentEvent.<T>builder().comment("keep-alive").build()));
+        } else {
+            return flux.map(decision -> ServerSentEvent.<T>builder().data(decision).build());
+        }
+    }
 
     /**
      * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
@@ -58,8 +80,8 @@ public class PDPController {
     @PostMapping(value = "/decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Flux<ServerSentEvent<AuthorizationDecision>> decide(
             @Valid @RequestBody AuthorizationSubscription authzSubscription) {
-        return pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE))
-                .map(decision -> ServerSentEvent.<AuthorizationDecision>builder().data(decision).build());
+        return wrapWithKeepAlive(
+                pdp.decide(authzSubscription).onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)));
     }
 
     /**
@@ -90,9 +112,8 @@ public class PDPController {
     @PostMapping(value = "/multi-decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Flux<ServerSentEvent<IdentifiableAuthorizationDecision>> decide(
             @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
-        return pdp.decide(multiAuthzSubscription)
-                .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE))
-                .map(decision -> ServerSentEvent.<IdentifiableAuthorizationDecision>builder().data(decision).build());
+        return wrapWithKeepAlive(pdp.decide(multiAuthzSubscription)
+                .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)));
     }
 
     /**
@@ -109,9 +130,8 @@ public class PDPController {
     @PostMapping(value = "/multi-decide-all", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Flux<ServerSentEvent<MultiAuthorizationDecision>> decideAll(
             @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
-        return pdp.decideAll(multiAuthzSubscription)
-                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate()))
-                .map(decision -> ServerSentEvent.<MultiAuthorizationDecision>builder().data(decision).build());
+        return wrapWithKeepAlive(pdp.decideAll(multiAuthzSubscription)
+                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())));
     }
 
     /**

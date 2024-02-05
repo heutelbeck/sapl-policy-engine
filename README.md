@@ -108,6 +108,9 @@ To add snapshot references to your project add the following references to your 
 
 **Maven**
 
+By default, Maven only retrieves dependencies from the central releases repository. To get access to the snapshot 
+builds, the matching snapshots repository must be added to the projects ```pom.xml```.   
+
 ```xml
 <repositories>
   <repository>
@@ -118,7 +121,11 @@ To add snapshot references to your project add the following references to your 
     </snapshots>
   </repository>
 </repositories>
-...
+```
+
+After doing so, the projects now has access to the SAPL snapshot builds which can be added as follows:
+
+```
 <dependencies>
   <dependency>
     <groupId>io.sapl</groupId>
@@ -129,6 +136,9 @@ To add snapshot references to your project add the following references to your 
 ```
 
 **Gradle**
+
+By default, Gradle only retrieves dependencies from the central releases repository. To get access to the snapshot
+builds, the matching snapshots repository must be added to the project configuration.
 
 ```gradle
 repositories {

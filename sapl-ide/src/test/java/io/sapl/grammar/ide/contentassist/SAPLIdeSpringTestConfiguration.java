@@ -17,34 +17,77 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.UnaryOperator;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.grammar.ide.contentassist.filesystem.FileSystemVariablesAndCombinatorSource;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
+import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.pdp.config.PDPConfiguration;
+import io.sapl.pdp.config.PDPConfigurationProvider;
+import lombok.SneakyThrows;
+import reactor.core.publisher.Flux;
 
 @ComponentScan
 @Configuration
 class SAPLIdeSpringTestConfiguration {
+    private final static ObjectMapper MAPPER = new ObjectMapper();
 
     @Bean
-    FunctionContext functionContext() {
-        return new TestFunctionContext();
+    PDPConfigurationProvider pdpConfiguration() {
+        var attributeContext = new TestAttributeContext();
+        var functionContext  = new TestFunctionContext();
+        var variables        = new HashMap<String, JsonNode>();
+
+        load("action_schema", variables);
+        load("address_schema", variables);
+        load("calendar_schema", variables);
+        load("general_schema", variables);
+        load("geographical_location_schema", variables);
+        load("subject_schema", variables);
+        load("vehicle_schema", variables);
+        load("schema_with_additional_keywords", variables);
+
+        load(List.of("action_schema", "address_schema", "calendar_schema", "general_schema",
+                "geographical_location_schema", "subject_schema", "vehicle_schema", "schema_with_additional_keywords"),
+                variables);
+
+        var staticPlaygroundConfiguration = new PDPConfiguration(attributeContext, functionContext, variables,
+                CombiningAlgorithmFactory.getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES),
+                UnaryOperator.identity(), UnaryOperator.identity());
+        return () -> Flux.just(staticPlaygroundConfiguration);
     }
 
-    @Bean
-    AttributeContext attributeContext() {
-        return new TestAttributeContext();
+    @SneakyThrows
+    private void load(List<String> schemaFiles, Map<String, JsonNode> variables) {
+        var schemasArray = JsonNodeFactory.instance.arrayNode();
+        for (var schemaFile : schemaFiles) {
+            try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
+                if (is == null)
+                    throw new RuntimeException(schemaFile + ".json not found");
+                schemasArray.add(MAPPER.readValue(is, JsonNode.class));
+            }
+        }
+        variables.put("SCHEMAS", schemasArray);
     }
 
-    @Bean
-    public VariablesAndCombinatorSource variablesAndCombinatorSource() throws InitializationException {
-        String configPath = "src/test/resources";
-        return new FileSystemVariablesAndCombinatorSource(configPath);
+    @SneakyThrows
+    private void load(String schemaFile, Map<String, JsonNode> variables) {
+        try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
+            if (is == null)
+                throw new RuntimeException(schemaFile + ".json not found");
+            var schema = MAPPER.readValue(is, JsonNode.class);
+            variables.put(schemaFile, schema);
+        }
     }
 
 }

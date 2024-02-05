@@ -148,6 +148,8 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
     public static class RemoteRsocketPolicyDecisionPointBuilder {
         private TcpClient                                                    tcpClient;
         private Function<RSocketRequester.Builder, RSocketRequester.Builder> authenticationCustomizer;
+        private Duration                                                     keepAlive   = Duration.ofSeconds(20);
+        private Duration                                                     maxLifeTime = Duration.ofSeconds(90);
 
         public RemoteRsocketPolicyDecisionPointBuilder() {
             tcpClient = TcpClient.create();
@@ -225,14 +227,37 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
                     builder -> builder.setupMetadata(apikey, MimeType.valueOf("messaging/" + headerName)));
         }
 
+        /**
+         * Set the "Time Between KEEPALIVE Frames" which is how frequently KEEPALIVE
+         * frames should be emitted, and the "Max Lifetime" which is how long to allow
+         * between KEEPALIVE frames from the remote end before concluding that
+         * connectivity is lost.
+         * <p>
+         * By default these are set to 20 seconds and 90 seconds respectively.
+         *
+         * @param keepAlive   how frequently to emit KEEPALIVE frames
+         * @param maxLifeTime how long to allow between KEEPALIVE frames from the remote
+         *                    end before assuming that connectivity is lost
+         * @return RemoteRsocketPolicyDecisionPoint
+         */
+        public RemoteRsocketPolicyDecisionPointBuilder keepAlive(Duration keepAlive, Duration maxLifeTime) {
+            this.keepAlive   = keepAlive;
+            this.maxLifeTime = maxLifeTime;
+            return this;
+        }
+
         public RemoteRsocketPolicyDecisionPoint build() {
             RSocketStrategies rSocketStrategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())
                     .encoder(new SimpleAuthenticationEncoder()).decoder(new Jackson2JsonDecoder()).build();
 
             var builder = RSocketRequester.builder().rsocketStrategies(rSocketStrategies);
+            // apply auhentication settings if required
             if (authenticationCustomizer != null) {
                 builder = authenticationCustomizer.apply(builder);
             }
+
+            // set keepalive and return pdp
+            builder.rsocketConnector(connector -> connector.keepAlive(keepAlive, maxLifeTime));
             var rSocketRequester = builder.transport(TcpClientTransport.create(tcpClient));
             return new RemoteRsocketPolicyDecisionPoint(rSocketRequester);
         }
