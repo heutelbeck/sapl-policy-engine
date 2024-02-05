@@ -74,7 +74,6 @@ class PreEnforcementConstraintsTests {
     private static final String KNOWN_CONSTRAINT                        = "known constraint";
     private static final String SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT = "successful method invocation constraint";
     private static final String FAILING_METHOD_INVOCATION_CONSTRAINT    = "failing method invocation constraint";
-    private static final String USER                                    = "user";
 
     public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 

@@ -17,9 +17,9 @@
  */
 package io.sapl.mavenplugin.test.coverage.report.model;
 
-import lombok.Getter;
-
 import java.nio.file.Path;
+
+import lombok.Getter;
 
 /**
  * Generic model with coverage information of type {@link LineCoveredValue} for

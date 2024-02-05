@@ -17,7 +17,6 @@
  */
 package io.sapl.pdp.remote;
 
-import java.net.UnknownHostException;
 import java.time.Duration;
 
 import javax.net.ssl.SSLException;

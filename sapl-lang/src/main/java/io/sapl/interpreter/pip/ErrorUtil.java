@@ -17,10 +17,10 @@
  */
 package io.sapl.interpreter.pip;
 
+import java.util.Objects;
+
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
-
-import java.util.Objects;
 
 @UtilityClass
 public class ErrorUtil {

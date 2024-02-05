@@ -57,7 +57,6 @@ import reactor.core.publisher.Flux;
 class PreEnforcePolicyEnforcementPointTests {
 
     private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;
-    private static final String          USER                   = "user";
     private static final String          ORIGINAL_RETURN_OBJECT = "original return object";
     private static final String          CHANGED_RETURN_OBJECT  = "changed return object";
     @MockBean

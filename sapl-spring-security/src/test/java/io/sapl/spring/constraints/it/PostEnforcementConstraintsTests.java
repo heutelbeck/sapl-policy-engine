@@ -64,7 +64,6 @@ class PostEnforcementConstraintsTests {
     private static final String UNKNOWN_CONSTRAINT = "unknown constraint";
     private static final String FAILING_CONSTRAINT = "failing constraint";
     private static final String KNOWN_CONSTRAINT   = "known constraint";
-    private static final String USER               = "user";
 
     public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 

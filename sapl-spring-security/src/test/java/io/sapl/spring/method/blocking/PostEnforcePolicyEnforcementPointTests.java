@@ -59,7 +59,6 @@ class PostEnforcePolicyEnforcementPointTests {
     private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;
     private static final String          ORIGINAL_RETURN_OBJECT = "original return object";
     private static final String          CHANGED_RETURN_OBJECT  = "changed return object";
-    private static final String          USER                   = "user";
 
     @MockBean
     private PolicyDecisionPoint pdp;

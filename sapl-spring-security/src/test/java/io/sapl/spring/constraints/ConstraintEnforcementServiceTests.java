@@ -59,7 +59,6 @@ import io.sapl.spring.constraints.api.RequestHandlerProvider;
 import io.sapl.spring.constraints.api.RunnableConstraintHandlerProvider;
 import io.sapl.spring.constraints.api.SubscriptionHandlerProvider;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
 class ConstraintEnforcementServiceTests {
