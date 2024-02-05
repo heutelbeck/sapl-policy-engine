@@ -139,14 +139,12 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
     @Test
     void when_multiArgumentsWithJsonProblem_then_DropsArguments() {
         var failMapper = spy(ObjectMapper.class);
-        when(failMapper.valueToTree(any())).thenAnswer(new Answer<JsonNode>() {
-            public JsonNode answer(InvocationOnMock invocation) {
-                Object x = invocation.getArguments()[0];
-                if ("X".equals(x)) {
-                    throw new IllegalArgumentException("testfail");
-                }
-                return mapper.valueToTree(x);
+        when(failMapper.valueToTree(any())).thenAnswer((Answer<JsonNode>) invocation -> {
+            Object x = invocation.getArguments()[0];
+            if ("X".equals(x)) {
+                throw new IllegalArgumentException("testfail");
             }
+            return mapper.valueToTree(x);
         });
         var sut = new WebfluxAuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
                 failMapper);

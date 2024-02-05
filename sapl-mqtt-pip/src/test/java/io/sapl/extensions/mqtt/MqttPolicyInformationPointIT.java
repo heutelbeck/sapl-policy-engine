@@ -72,14 +72,14 @@ class MqttPolicyInformationPointIT {
     private EmbeddedPolicyDecisionPoint pdp;
 
     @BeforeEach
-    void beforeEach() throws InitializationException, InterruptedException, ExecutionException {
+    void beforeEach() throws InitializationException {
         this.mqttBroker = buildAndStartBroker(configDir, dataDir, extensionsDir);
         mqttClient      = startClient();
         this.pdp        = buildPdp();
     }
 
     @AfterEach
-    void tearDown() throws Exception {
+    void tearDown() {
         pdp.destroy();
         mqttClient.disconnect();
         stopBroker(mqttBroker);

@@ -153,8 +153,7 @@ class PermitUnlessDenyTests {
 	@Test
 	void multiplePermitNoTransformation() {
 		var policySet = "set \"tests\" permit-unless-deny" + " policy \"testp1\" permit" + " policy \"testp2\" permit";
-		var expected  = Decision.PERMIT;
-		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
+		validateDecision(EMPTY_AUTH_SUBSCRIPTION, policySet, Decision.PERMIT);
 	}
 
 	@Test

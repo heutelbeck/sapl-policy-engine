@@ -153,11 +153,9 @@ class G_PolicyWithComplexExpectStepTests {
                         // via .equals()
                         //// hasObligation(mapper.createObjectNode().put("foo", "bar")),
                         // or Predicate
-                        hasObligationMatching((JsonNode obligation) -> {
-                            return obligation.has("type") && "logAccess".equals(obligation.get("type").asText())
-                                    && obligation.has("message")
-                                    && WILLI_HAS_ACCESSED_PATIENT_DATA.equals(obligation.get("message").asText());
-                        }),
+                        hasObligationMatching((JsonNode obligation) -> obligation.has("type")
+                                && "logAccess".equals(obligation.get("type").asText()) && obligation.has("message")
+                                && WILLI_HAS_ACCESSED_PATIENT_DATA.equals(obligation.get("message").asText())),
 
                         hasObligationContainingKeyValue("type", "logAccess"),
 

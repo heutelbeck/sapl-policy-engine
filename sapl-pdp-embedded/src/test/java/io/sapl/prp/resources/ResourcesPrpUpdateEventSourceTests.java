@@ -49,7 +49,7 @@ class ResourcesPrpUpdateEventSourceTests {
     }
 
     @Test
-    void readPoliciesFromDirectory() throws InitializationException {
+    void readPoliciesFromDirectory() {
         var source = new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER);
         var update = source.getUpdates().blockFirst();
         assertThat(update, notNullValue());

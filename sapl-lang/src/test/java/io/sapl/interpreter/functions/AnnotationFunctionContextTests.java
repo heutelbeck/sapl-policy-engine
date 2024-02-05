@@ -348,7 +348,7 @@ class AnnotationFunctionContextTests {
 
     @ParameterizedTest
     @MethodSource("parameterProviderForParamLocationTests")
-    void paramLocationSchemaTests(String function) throws InitializationException, JsonProcessingException {
+    void paramLocationSchemaTests(String function) throws InitializationException {
         var context = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
         assertThat(context.evaluate(function, Val.of(true)), is(Val.of(true)));
@@ -502,7 +502,7 @@ class AnnotationFunctionContextTests {
         }
 
         @Function
-        public static Val emptySchemaInParameterAnnotation(@Schema(value = "") Val jsonObject) {
+        public static Val emptySchemaInParameterAnnotation(@Schema() Val jsonObject) {
             return Val.of(true);
         }
 

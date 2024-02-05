@@ -62,11 +62,9 @@ public class HtmlLineCoverageReportGenerator {
             throws IOException {
         SpringTemplateEngine springTemplateEngine = prepareTemplateEngine();
 
-        Iterator<SaplDocumentCoverageInformation> iterator = documents.iterator();
-        while (iterator.hasNext()) {
-            SaplDocumentCoverageInformation doc    = iterator.next();
-            List<String>                    lines  = readPolicyDocument(doc.getPathToDocument());
-            List<HtmlPolicyLineModel>       models = createHtmlPolicyLineModel(lines, doc);
+        for (SaplDocumentCoverageInformation doc : documents) {
+            List<String>              lines  = readPolicyDocument(doc.getPathToDocument());
+            List<HtmlPolicyLineModel> models = createHtmlPolicyLineModel(lines, doc);
 
             // prepare context
             Context context = new Context();

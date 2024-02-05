@@ -44,7 +44,7 @@ class SAPLIdeSpringTestConfiguration {
     private final static ObjectMapper MAPPER = new ObjectMapper();
 
     @Bean
-    PDPConfigurationProvider pdpConfiguration() throws InitializationException {
+    PDPConfigurationProvider pdpConfiguration() {
         var attributeContext = new TestAttributeContext();
         var functionContext  = new TestFunctionContext();
         var variables        = new HashMap<String, JsonNode>();
@@ -65,12 +65,7 @@ class SAPLIdeSpringTestConfiguration {
         var staticPlaygroundConfiguration = new PDPConfiguration(attributeContext, functionContext, variables,
                 CombiningAlgorithmFactory.getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES),
                 UnaryOperator.identity(), UnaryOperator.identity());
-        return new PDPConfigurationProvider() {
-            @Override
-            public Flux<PDPConfiguration> pdpConfiguration() {
-                return Flux.just(staticPlaygroundConfiguration);
-            }
-        };
+        return () -> Flux.just(staticPlaygroundConfiguration);
     }
 
     @SneakyThrows

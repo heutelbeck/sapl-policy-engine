@@ -581,7 +581,7 @@ public class Val implements Traced {
         if (!json.isContainerNode())
             return json.hashCode();
 
-        if (json.size() == 0)
+        if (json.isEmpty())
             return 0;
 
         if (json.isArray())

@@ -19,6 +19,7 @@ package io.sapl.spring.method.reactive;
 
 import static java.util.function.Predicate.not;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -166,11 +167,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
         }
 
         dataSubscription.updateAndGet(sub -> {
-            if (sub == null) {
-                return wrapResourceAccessPointAndSubscribe();
-            } else {
-                return sub;
-            }
+            return Objects.requireNonNullElseGet(sub, this::wrapResourceAccessPointAndSubscribe);
         });
     }
 

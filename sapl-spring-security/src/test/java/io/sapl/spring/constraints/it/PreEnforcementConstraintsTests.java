@@ -234,7 +234,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalled_then_pdpDecideIsInvoked() {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
         service.execute("test");
@@ -242,14 +242,14 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndPdpPermits_then_pdpMethodReturnsNormally() {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
         assertEquals("Argument: test", service.execute("test"));
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndPdpDenies_then_pdpMethodThrowsAccessDenied() {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
         assertThrows(AccessDeniedException.class, () -> service.execute("test"));
@@ -257,7 +257,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndPdpIndeterminate_then_pdpMethodThrowsAccessDenied() {
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
@@ -266,7 +266,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndPdpNotApplicable_then_pdpMethodThrowsAccessDenied() {
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(AuthorizationDecision.NOT_APPLICABLE));
@@ -275,7 +275,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndPdpReturnsEmptyStream_then_pdpMethodThrowsAccessDenied() {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
         assertThrows(AccessDeniedException.class, () -> service.execute("test"));
@@ -283,7 +283,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndPdpReturnsNull_then_pdpMethodThrowsAccessDenied() {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(null);
         assertThrows(AccessDeniedException.class, () -> service.execute("test"));
@@ -291,7 +291,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndDecisionContainsUnenforceableObligation_then_pdpMethodThrowsAccessDenied() {
         var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(UNKNOWN_CONSTRAINT));
@@ -302,7 +302,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndDecisionContainsFailingObligation_then_pdpMethodThrowsAccessDenied() {
         var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(FAILING_CONSTRAINT));
@@ -314,7 +314,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndDecisionContainsUnenforceableAdvice_then_pdpMethodInvoked() {
         var advice = JSON.arrayNode();
         advice.add(JSON.textNode(UNKNOWN_CONSTRAINT));
@@ -324,7 +324,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndDecisionContainsFailingAdvice_then_normalAccessGranted() {
         var advice = JSON.arrayNode();
         advice.add(JSON.textNode(FAILING_CONSTRAINT));
@@ -334,7 +334,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableObligation_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
         var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
@@ -346,7 +346,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndDecisionDenyContainsEnforceableObligation_then_accessDeniedButConstraintsHandled() {
         var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
@@ -359,7 +359,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
         var advice = JSON.arrayNode();
         advice.add(JSON.textNode(KNOWN_CONSTRAINT));
@@ -372,7 +372,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableObligationsAndAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
         var advice = JSON.arrayNode();
         advice.add(JSON.textNode(KNOWN_CONSTRAINT));
@@ -386,7 +386,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableMethodInvocationManipulatingObligation_then_pdpMethodReturnsNormallyWithModifiedArgument() {
         var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(SUCCESSFUL_METHOD_INVOCATION_CONSTRAINT));
@@ -397,7 +397,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testServiceCalledAndDecisionContainsFailingMethodInvocationMaipulatingObligation_then_accessDenied() {
         var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(FAILING_METHOD_INVOCATION_CONSTRAINT));
@@ -408,7 +408,7 @@ class PreEnforcementConstraintsTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_testDecisionHasResource_then_replaced() {
         var decision = AuthorizationDecision.PERMIT.withResource(JSON.textNode("replacement"));
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));

@@ -30,7 +30,7 @@ import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 class InterceptorAutoConfigurationTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withBean(ObjectMapper.class, () -> new ObjectMapper())
+            .withBean(ObjectMapper.class, ObjectMapper::new)
             .withConfiguration(AutoConfigurations.of(InterceptorAutoConfiguration.class));
 
     @Test

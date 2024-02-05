@@ -75,7 +75,7 @@ class ResourcesPRPTests {
     }
 
     @Test
-    void doTest() throws InitializationException {
+    void doTest() {
         var interpreter = new DefaultSAPLInterpreter();
         var source      = new ResourcesPrpUpdateEventSource("/policies", interpreter);
         var prp         = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(),

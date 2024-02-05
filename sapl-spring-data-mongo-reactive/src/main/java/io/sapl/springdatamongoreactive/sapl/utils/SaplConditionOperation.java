@@ -123,9 +123,8 @@ public class SaplConditionOperation {
     }
 
     private void handleListsOfBasicQuery(Collection<SaplCondition> saplConditions, Iterable<?> list) {
-        Iterator<?> iterator = list.iterator();
-        while (iterator.hasNext()) {
-            ((Document) iterator.next()).forEach(
+        for (Object o : list) {
+            ((Document) o).forEach(
                     (String field, Object value) -> convertDocumentToSaplCondition(saplConditions, field, value, "Or"));
         }
     }

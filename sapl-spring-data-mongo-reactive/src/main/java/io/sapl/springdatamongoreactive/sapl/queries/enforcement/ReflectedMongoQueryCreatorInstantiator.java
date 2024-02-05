@@ -42,8 +42,8 @@ public class ReflectedMongoQueryCreatorInstantiator {
     private ConvertingParameterAccessor                                                 convertingParameterAccessor;
     private MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext;
     private final ReflectedMongoQueryCreatorConstructor                                 mongoQueryCreator;
-    private Class<?>                                                                    repository;
-    private ReactiveMongoTemplate                                                       reactiveMongoTemplate;
+    private final Class<?>                                                              repository;
+    private final ReactiveMongoTemplate                                                 reactiveMongoTemplate;
 
     public ReflectedMongoQueryCreatorInstantiator(ReactiveMongoTemplate reactiveMongoTemplate, Class<?> repository) {
         this.repository            = repository;

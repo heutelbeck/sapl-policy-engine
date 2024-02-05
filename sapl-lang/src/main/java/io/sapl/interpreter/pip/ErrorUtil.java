@@ -20,13 +20,13 @@ package io.sapl.interpreter.pip;
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
 
+import java.util.Objects;
+
 @UtilityClass
 public class ErrorUtil {
 
     public static Val causeOrMessage(Throwable t) {
         var cause = t.getCause();
-        if (cause != null)
-            return Val.error(cause.getMessage());
-        return Val.error(t.getMessage());
+        return Val.error(Objects.requireNonNullElse(cause, t).getMessage());
     }
 }

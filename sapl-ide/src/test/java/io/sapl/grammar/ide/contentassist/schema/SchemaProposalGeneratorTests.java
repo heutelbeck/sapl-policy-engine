@@ -864,13 +864,13 @@ class SchemaProposalGeneratorTests {
     }
 
     @Test
-    void when_nullSchema_then_noProposals() throws JsonProcessingException {
+    void when_nullSchema_then_noProposals() {
         var proposals = SchemaProposalGenerator.getCodeTemplates("", (JsonNode) null, Map.of());
         assertThat(proposals).isEmpty();
     }
 
     @Test
-    void when_undefinedSchema_then_proposalsEmpty() throws JsonProcessingException {
+    void when_undefinedSchema_then_proposalsEmpty() {
         var proposals = SchemaProposalGenerator.getCodeTemplates("", Val.error(""), Map.of());
         assertThat(proposals).isEmpty();
     }

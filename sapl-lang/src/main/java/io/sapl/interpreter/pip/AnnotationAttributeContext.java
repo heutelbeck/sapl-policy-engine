@@ -345,7 +345,7 @@ public class AnnotationAttributeContext implements AttributeContext {
         loadPolicyInformationPoint(null, pipClass);
     }
 
-    private final void loadPolicyInformationPoint(Object pip, Class<?> pipClass) throws InitializationException {
+    private void loadPolicyInformationPoint(Object pip, Class<?> pipClass) throws InitializationException {
         var pipAnnotation = pipClass.getAnnotation(PolicyInformationPoint.class);
 
         if (pipAnnotation == null)

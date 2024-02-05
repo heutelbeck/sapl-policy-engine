@@ -58,11 +58,8 @@ public class QueryManipulationObligationProvider {
      * @return correct obligation.
      */
     public JsonNode getObligation(Iterable<JsonNode> obligations, String queryType) {
-        var iterator = obligations.iterator();
-        while (iterator.hasNext()) {
-            var obligation = iterator.next();
+        for (JsonNode obligation : obligations) {
             return obligationIsFine(obligation, queryType) ? obligation : NULL_NODE;
-
         }
         return NULL_NODE;
     }
@@ -75,9 +72,7 @@ public class QueryManipulationObligationProvider {
      * @return true if an obligation can be applied.
      */
     public boolean isResponsible(Iterable<JsonNode> obligations, String queryType) {
-        var iterator = obligations.iterator();
-        while (iterator.hasNext()) {
-            var obligation = iterator.next();
+        for (JsonNode obligation : obligations) {
             return obligationIsFine(obligation, queryType);
         }
         return false;

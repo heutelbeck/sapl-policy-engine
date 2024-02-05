@@ -68,7 +68,7 @@ class EmbeddedPolicyDecisionPointTests {
     }
 
     @Test
-    void decide_withInvalidConfig_shouldReturnIntermediate() throws Exception {
+    void decide_withInvalidConfig_shouldReturnIntermediate() {
         var configMock   = mock(PDPConfiguration.class);
         var providerMock = mock(PDPConfigurationProvider.class);
         var prpMock      = mock(PolicyRetrievalPoint.class);

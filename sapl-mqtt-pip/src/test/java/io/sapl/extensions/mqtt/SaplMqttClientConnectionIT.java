@@ -90,7 +90,7 @@ class SaplMqttClientConnectionIT {
     }
 
     @Test
-    void when_brokerConfigIsInvalid_then_returnValOfError() throws InitializationException, JsonProcessingException {
+    void when_brokerConfigIsInvalid_then_returnValOfError() throws JsonProcessingException {
         // GIVEN
         var mqttPipConfigForUndefinedVal = MAPPER.readTree("""
                 {
@@ -134,7 +134,7 @@ class SaplMqttClientConnectionIT {
 
     @Test
     @Timeout(45)
-    void when_connectionIsShared_then_bothMessageFluxWorking() throws InitializationException {
+    void when_connectionIsShared_then_bothMessageFluxWorking() {
         // GIVEN
         var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"), buildVariables());
         var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables());
@@ -157,7 +157,7 @@ class SaplMqttClientConnectionIT {
 
     @Test
     @Timeout(45)
-    void when_connectionIsNotSharedAnymore_then_singleFluxWorking() throws InitializationException {
+    void when_connectionIsNotSharedAnymore_then_singleFluxWorking() {
         // GIVEN
         var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"), buildVariables());
         var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
@@ -185,8 +185,7 @@ class SaplMqttClientConnectionIT {
 
     @Test
     @Timeout(45)
-    void when_connectionIsNotSharedAnymoreAndThenSharedAgain_then_bothMessageFluxWorking()
-            throws InitializationException {
+    void when_connectionIsNotSharedAnymoreAndThenSharedAgain_then_bothMessageFluxWorking() {
         // GIVEN
         var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"), buildVariables());
         var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
@@ -218,8 +217,7 @@ class SaplMqttClientConnectionIT {
 
     @Test
     @Timeout(45)
-    void when_brokerConnectionLost_then_reconnectToBroker()
-            throws InitializationException, InterruptedException, ExecutionException {
+    void when_brokerConnectionLost_then_reconnectToBroker() {
         // WHEN
         var secondaryBroker     = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
         var mqttClient          = startClient();
@@ -245,8 +243,7 @@ class SaplMqttClientConnectionIT {
 
     @Test
     @Timeout(45)
-    void when_brokerConnectionLostWhileSharingConnection_then_reconnectToBroker()
-            throws InitializationException, InterruptedException, ExecutionException {
+    void when_brokerConnectionLostWhileSharingConnection_then_reconnectToBroker() {
         // GIVEN
         var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"), buildVariables());
         var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables());
@@ -283,8 +280,7 @@ class SaplMqttClientConnectionIT {
 
     @Test
     @Timeout(45)
-    void when_sharedReconnectToBroker_then_getMessagesOfMultipleTopics()
-            throws InitializationException, InterruptedException, ExecutionException {
+    void when_sharedReconnectToBroker_then_getMessagesOfMultipleTopics() {
         // GIVEN
         var topicsFirstFlux  = MAPPER.createArrayNode().add("topic1").add("topic2");
         var topicsSecondFlux = MAPPER.createArrayNode().add("topic2").add("topic3");

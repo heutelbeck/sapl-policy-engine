@@ -1050,7 +1050,7 @@ class AnnotationAttributeContextTests {
     }
 
     @Test
-    void when_nonJsonSchem_then_fail() throws InitializationException {
+    void when_nonJsonSchem_then_fail() {
 
         final String pipName        = "test";
         final String pipDescription = "description";
@@ -1069,7 +1069,7 @@ class AnnotationAttributeContextTests {
     }
 
     @Test
-    void when_resourcesSchemaLoadError_then_fail() throws InitializationException {
+    void when_resourcesSchemaLoadError_then_fail() {
 
         final String pipName        = "test";
         final String pipDescription = "description";
@@ -1088,7 +1088,7 @@ class AnnotationAttributeContextTests {
     }
 
     @Test
-    void when_multipleSchemaSources_then_fail() throws InitializationException {
+    void when_multipleSchemaSources_then_fail() {
 
         final String pipName        = "test";
         final String pipDescription = "description";
