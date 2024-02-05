@@ -7,17 +7,17 @@
   {
     "name": "io.sapl.pdp.embedded.pdp-config-type",
     "type": "java.lang.String",
-    "description": "pdp-config-type may be RESOURCES (loading policies and configuration from bundles resources) or FILESYSTEM (loading policies and configuration from a folder on the filesystem"
+    "description": "pdp-config-type may be RESOURCES (loading policies and configuration from bundles resources) or FILESYSTEM (loading policies and configuration from a folder on the filesystem."
   },
   {
     "name": "io.sapl.pdp.embedded.config-path",
     "type": "java.lang.String",
-    "description": "defines the path (in resources or file system respectively) for the pdp.json file with combining algorithm and variables"
+    "description": "Defines the path (in resources or file system respectively) for the pdp.json file with combining algorithm and variables."
   },
   {
     "name": "io.sapl.pdp.embedded.policies-path",
     "type": "java.lang.String",
-    "description": "defines the path (in resources or file system respectively) containing .sapl files with policies and policy sets"
+    "description": "Defines the path (in resources or file system respectively) containing .sapl files with policies and policy sets."
   },
   {
     "name": "io.sapl.pdp.embedded.print-trace",

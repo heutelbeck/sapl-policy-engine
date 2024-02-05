@@ -39,8 +39,7 @@ public class BaseEditor extends Component {
     private static final String                 IS_DARK_THEME       = "isDarkTheme";
     private static final String                 IS_READ_ONLY_KEY    = "isReadOnly";
     /**
-     * -- GETTER --
-     *  Returns the current document from the editor.
+     * -- GETTER -- Returns the current document from the editor.
      *
      * @return The current document from the editor.
      */

@@ -77,7 +77,6 @@ class ConstraintEnforcementServiceTests {
 
     @BeforeAll
     public static void init() {
-        Hooks.onOperatorDebug();
     }
 
     List<RunnableConstraintHandlerProvider> globalRunnableProviders;

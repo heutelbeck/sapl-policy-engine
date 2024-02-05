@@ -41,8 +41,7 @@ public class ReflectedMongoQueryCreatorInstantiator {
 
     private ProjectionFactory                                                           projectionFactory;
     /**
-     * -- GETTER --
-     *  Returns the created convertingParameterAccessor.
+     * -- GETTER -- Returns the created convertingParameterAccessor.
      *
      * @return the convertingParameterAccessor.
      */

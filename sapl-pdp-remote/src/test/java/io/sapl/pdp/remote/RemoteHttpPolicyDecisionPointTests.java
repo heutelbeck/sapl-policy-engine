@@ -66,7 +66,6 @@ class RemoteHttpPolicyDecisionPointTests {
         // Route MockWebServer logs to shared logs
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
-        Hooks.onOperatorDebug();
     }
 
     @BeforeEach

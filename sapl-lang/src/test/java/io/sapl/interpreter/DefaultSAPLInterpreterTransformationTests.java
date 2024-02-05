@@ -70,8 +70,7 @@ class DefaultSAPLInterpreterTransformationTests {
             String expectedResource) {
         assertThat(testCase).isNotNull();
         var expectedDecision = new AuthorizationDecision(Decision.PERMIT,
-                Optional.of(MAPPER.readValue(expectedResource, JsonNode.class)), Optional.empty(),
-                Optional.empty());
+                Optional.of(MAPPER.readValue(expectedResource, JsonNode.class)), Optional.empty(), Optional.empty());
         var subscription     = MAPPER.readValue(authorizationSubscription, AuthorizationSubscription.class);
         assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(subscription, saplDocument,
                 expectedDecision);
