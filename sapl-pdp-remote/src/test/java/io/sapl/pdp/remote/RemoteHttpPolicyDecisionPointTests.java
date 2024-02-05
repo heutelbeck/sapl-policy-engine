@@ -17,15 +17,14 @@
  */
 package io.sapl.pdp.remote;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertAll;
-
-import java.io.IOException;
-
-import javax.net.ssl.SSLException;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.sapl.api.pdp.*;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,22 +33,17 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationSubscription;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Hooks;
+import reactor.netty.http.client.HttpClient;
 import reactor.test.StepVerifier;
+
+import javax.net.ssl.SSLException;
+import java.io.IOException;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 class RemoteHttpPolicyDecisionPointTests {
 
@@ -79,8 +73,12 @@ class RemoteHttpPolicyDecisionPointTests {
     void startServer() throws IOException {
         server = new MockWebServer();
         server.start();
-        pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(this.server.url("/").toString())
-                .basicAuth("secret", "key").build();
+        pdp = RemotePolicyDecisionPoint.builder()
+                .http()
+                .baseUrl(this.server.url("/").toString())
+                .withHttpClient(HttpClient.create())
+                .basicAuth("secret", "key")
+                .build();
         pdp.setBackoffFactor(2);
         pdp.setFirstBackoffMillis(100);
         pdp.setMaxBackOffMillis(200);

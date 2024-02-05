@@ -22,6 +22,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -80,7 +81,11 @@ public class RemoteRsocketPolicyDecisionPointTests {
         RSocketMessageHandler messageHandler = context.getBean(RSocketMessageHandler.class);
         server = RSocketServer.create(messageHandler.responder()).payloadDecoder(PayloadDecoder.ZERO_COPY)
                 .bind(TcpServerTransport.create("localhost", 0)).block();
-        pdp    = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(server.address().getPort())
+        pdp    = RemotePolicyDecisionPoint.builder()
+                .rsocket()
+                .host("localhost")
+                .keepAlive(Duration.ofSeconds(20), Duration.ofSeconds(90))
+                .port(server.address().getPort())
                 .build();
     }
 
@@ -185,6 +190,7 @@ public class RemoteRsocketPolicyDecisionPointTests {
      * accessed when required.
      */
     @TestConfiguration
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "WI_MANUALLY_ALLOCATING_AN_AUTOWIRED_BEAN")
     static class ServerConfig {
 
         @Bean

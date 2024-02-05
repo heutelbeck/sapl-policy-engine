@@ -18,6 +18,7 @@
 package io.sapl.pdp.remote;
 
 import java.net.UnknownHostException;
+import java.time.Duration;
 
 import javax.net.ssl.SSLException;
 
@@ -70,7 +71,8 @@ class RemoteRsocketDecisionPointServerIT {
                 var container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth", "true")) {
             container.start();
             var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
-                    .port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT)).withUnsecureSSL().build();
+                    .port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT))
+                    .keepAlive(Duration.ofSeconds(20), Duration.ofSeconds(90)).withUnsecureSSL().build();
             requestDecision(pdp);
             container.stop();
         }
