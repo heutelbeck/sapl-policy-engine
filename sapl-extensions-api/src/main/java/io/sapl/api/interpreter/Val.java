@@ -37,6 +37,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import lombok.Getter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -91,6 +92,12 @@ public class Val implements Traced {
 
     private final JsonNode value;
     private final String   errorMessage;
+    /**
+     * -- GETTER --
+     *
+     * @return true, if the contents is marked as a secret.
+     */
+    @Getter
     private final boolean  secret;
     private final Trace    trace;
 
@@ -283,13 +290,6 @@ public class Val implements Traced {
      */
     public static Mono<Val> errorMono(String errorMessage, Object... args) {
         return Mono.just(error(errorMessage, args));
-    }
-
-    /**
-     * @return true, if the contents is marked as a secret.
-     */
-    public boolean isSecret() {
-        return secret;
     }
 
     /**
@@ -581,7 +581,7 @@ public class Val implements Traced {
         if (!json.isContainerNode())
             return json.hashCode();
 
-        if (json.size() == 0)
+        if (json.isEmpty())
             return 0;
 
         if (json.isArray())

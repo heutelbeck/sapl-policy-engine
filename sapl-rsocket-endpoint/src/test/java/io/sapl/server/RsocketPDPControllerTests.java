@@ -59,7 +59,7 @@ import reactor.test.StepVerifier;
 @Import({ PolicyDecisionPoint.class, RSocketMessageHandler.class })
 @ContextConfiguration(classes = { RsocketPDPControllerTests.class })
 class RsocketPDPControllerTests {
-    private int        serverPort = TestSocketUtils.findAvailableTcpPort();;
+    private final int  serverPort = TestSocketUtils.findAvailableTcpPort();
     private Disposable server;
 
     @MockBean

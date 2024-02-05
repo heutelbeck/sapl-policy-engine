@@ -60,10 +60,10 @@ class ContentFilterPredicateProviderTests {
 		return Stream.of(
 				// when_constraintTypeNonTextual_then_notResponsible
 			    Arguments.of("""
-					{
-			    		"type" : 123
-					}
-					""", Boolean.FALSE),
+                    {
+                         "type" : 123
+                    }
+                    """, Boolean.FALSE),
 				// when_constraintWrongType_then_notResponsible
 			    Arguments.of("""
 					{

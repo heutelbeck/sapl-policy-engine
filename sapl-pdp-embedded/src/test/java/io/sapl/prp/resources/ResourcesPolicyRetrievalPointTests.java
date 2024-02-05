@@ -21,13 +21,12 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.PolicyDecisionPointFactory;
 
 class ResourcesPolicyRetrievalPointTests {
 
     @Test
-    void loadPolicies() throws InitializationException {
+    void loadPolicies() {
         assertDoesNotThrow(() -> PolicyDecisionPointFactory.resourcesPolicyDecisionPoint());
     }
 

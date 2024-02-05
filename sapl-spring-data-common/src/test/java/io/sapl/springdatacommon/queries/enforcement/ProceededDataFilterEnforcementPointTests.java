@@ -167,7 +167,7 @@ class ProceededDataFilterEnforcementPointTests {
 
     @Test
     @SuppressWarnings("rawtypes") // mocking of generic types
-    void when_actionWasFoundInPolicies_then_enforceR2dbc() throws JsonProcessingException {
+    void when_actionWasFoundInPolicies_then_enforceR2dbc() {
         try (MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
                 .mockConstruction(DataManipulationHandler.class)) {
             // GIVEN
@@ -198,7 +198,7 @@ class ProceededDataFilterEnforcementPointTests {
 
     @Test
     @SuppressWarnings("rawtypes") // mocking of generic types
-    void when_actionWasFoundInPolicies_then_enforceMongoReactive() throws JsonProcessingException {
+    void when_actionWasFoundInPolicies_then_enforceMongoReactive() {
         try (MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
                 .mockConstruction(DataManipulationHandler.class)) {
             // GIVEN
@@ -230,8 +230,7 @@ class ProceededDataFilterEnforcementPointTests {
 
     @Test
     @SuppressWarnings("rawtypes") // mocking of generic types
-    void when_actionWasFoundInPoliciesButProceededDataCantBeConverted_then_throwRuntimeException()
-            throws JsonProcessingException {
+    void when_actionWasFoundInPoliciesButProceededDataCantBeConverted_then_throwRuntimeException() {
         try (MockedConstruction<DataManipulationHandler> dataManipulationHandlerMockedConstruction = Mockito
                 .mockConstruction(DataManipulationHandler.class)) {
             // GIVEN

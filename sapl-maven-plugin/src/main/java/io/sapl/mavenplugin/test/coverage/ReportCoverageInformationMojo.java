@@ -81,11 +81,11 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     private boolean failOnDisabledTests;
 
     @Setter
-    @Parameter(property = "maven.test.skip", defaultValue = "false", required = false)
+    @Parameter(property = "maven.test.skip", defaultValue = "false")
     private boolean mavenTestSkip;
 
     @Setter
-    @Parameter(property = "skipTests", defaultValue = "false", required = false, readonly = false)
+    @Parameter(property = "skipTests", defaultValue = "false")
     private boolean skipTests;
 
     private final SaplDocumentReader saplDocumentReader;

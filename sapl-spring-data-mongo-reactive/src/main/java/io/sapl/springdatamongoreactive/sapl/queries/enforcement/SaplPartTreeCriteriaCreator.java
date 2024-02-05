@@ -97,7 +97,7 @@ public class SaplPartTreeCriteriaCreator<T> {
         // Creates an object list of all values of all SaplParameters
         saplParametersFromMethod.addAll(saplParametersFromObligation);
 
-        var allParametersValueAsObjects = new ArrayList<Object>();
+        var allParametersValueAsObjects = new ArrayList<>();
         for (SaplCondition parameter : saplParametersFromMethod) {
             allParametersValueAsObjects.add(parameter.value());
         }

@@ -26,7 +26,6 @@ import static org.mockito.Mockito.mock;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PrpUpdateEvent.Type;
 
@@ -49,7 +48,7 @@ class ResourcesPrpUpdateEventSourceTests {
     }
 
     @Test
-    void readPoliciesFromDirectory() throws InitializationException {
+    void readPoliciesFromDirectory() {
         var source = new ResourcesPrpUpdateEventSource("/policies", DEFAULT_SAPL_INTERPRETER);
         var update = source.getUpdates().blockFirst();
         assertThat(update, notNullValue());

@@ -94,7 +94,7 @@ If no bean is found for the specific method, a general bean is searched for for 
 The following is an example of the naming of the bean.
 
 | Type                | Name                                                |
-| ------------------- | --------------------------------------------------- |
+|---------------------|-----------------------------------------------------|
 | Methode             | ``findAllByAgeAfter``                               |
 | Repository          | ``ProtectedR2dbcPersonRepository``                  |
 | Bean for method     | ``findAllByAgeAfterProtectedR2dbcPersonRepository`` |

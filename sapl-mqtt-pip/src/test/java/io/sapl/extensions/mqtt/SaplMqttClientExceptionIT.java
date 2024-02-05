@@ -76,7 +76,7 @@ class SaplMqttClientExceptionIT {
         var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), null);
 
         // THEN
-        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
                 .expectNext(Val.error("Failed to build stream of messages.")).thenCancel().verify();
     }
 
@@ -94,7 +94,7 @@ class SaplMqttClientExceptionIT {
             defaultResponseUtilityMockedStatic.when(() -> DefaultResponseUtility.getDefaultResponseConfig(any(), any()))
                     .thenThrow(new RuntimeException("Error in stream"));
             // THEN
-            StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+            StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
                     .expectNext(Val.error("Error in stream")).thenCancel().verify();
         }
     }

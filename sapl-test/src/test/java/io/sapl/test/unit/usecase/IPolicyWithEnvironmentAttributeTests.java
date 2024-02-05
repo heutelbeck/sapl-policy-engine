@@ -25,7 +25,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 
-class I_PolicyWithEnvironmentAttributeTests {
+class IPolicyWithEnvironmentAttributeTests {
 
     private SaplTestFixture fixture;
 

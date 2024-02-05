@@ -57,7 +57,6 @@ import reactor.core.publisher.Flux;
 class PreEnforcePolicyEnforcementPointTests {
 
     private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;
-    private static final String          USER                   = "user";
     private static final String          ORIGINAL_RETURN_OBJECT = "original return object";
     private static final String          CHANGED_RETURN_OBJECT  = "changed return object";
     @MockBean
@@ -100,8 +99,8 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void whenBeforeAndDecideDeny_thenReturnFalse() throws Throwable {
+    @WithMockUser()
+    void whenBeforeAndDecideDeny_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
@@ -109,8 +108,8 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void whenBeforeAndDecideNull_thenReturnFalse() throws Throwable {
+    @WithMockUser()
+    void whenBeforeAndDecideNull_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(null);
@@ -118,16 +117,16 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void whenBeforeAndDecidePermitButBundleNull_thenReturnFalse() throws Throwable {
+    @WithMockUser()
+    void whenBeforeAndDecidePermitButBundleNull_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(null);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
         assertThrows(AccessDeniedException.class, () -> testService.doSomething());
     }
 
     @Test
-    @WithMockUser(USER)
-    void whenBeforeAndDecidePermit_thenReturnTrue() throws Throwable {
+    @WithMockUser()
+    void whenBeforeAndDecidePermit_thenReturnTrue() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
@@ -135,8 +134,8 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void when_BeforeAndDecidePermit_and_obligationsFail_then_ReturnFalse() throws Throwable {
+    @WithMockUser()
+    void when_BeforeAndDecidePermit_and_obligationsFail_then_ReturnFalse() {
         var mockBundle = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(() -> {
             throw new AccessDeniedException("INTENDED FAILURE IN TEST");
         }, FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
@@ -147,8 +146,8 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void whenBeforeAndDecideNotApplicable_thenReturnFalse() throws Throwable {
+    @WithMockUser()
+    void whenBeforeAndDecideNotApplicable_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class)))
@@ -157,8 +156,8 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void whenBeforeAndDecideIndeterminate_thenReturnFalse() throws Throwable {
+    @WithMockUser()
+    void whenBeforeAndDecideIndeterminate_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class)))
@@ -167,8 +166,8 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void whenBeforeAndDecideEmpty_thenReturnFalse() throws Throwable {
+    @WithMockUser()
+    void whenBeforeAndDecideEmpty_thenReturnFalse() {
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
@@ -176,9 +175,8 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject()
-            throws Throwable {
+    @WithMockUser()
+    void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject() {
         var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
                 FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
                 FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);

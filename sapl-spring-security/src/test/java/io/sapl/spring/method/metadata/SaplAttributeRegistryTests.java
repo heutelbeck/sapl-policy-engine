@@ -30,14 +30,14 @@ import org.springframework.security.util.MethodInvocationUtils;
 class SaplAttributeRegistryTests {
 
     @Test
-    void whenInspectedIsObject_ThenReturnsEmptyCollection() throws NoSuchMethodException {
+    void whenInspectedIsObject_ThenReturnsEmptyCollection() {
         var sut = new SaplAttributeRegistry();
         var mi  = MethodInvocationUtils.createFromClass(Object.class, "toString");
         assertThat(sut.getAllSaplAttributes(mi), anEmptyMap());
     }
 
     @Test
-    void whenInspectedHasNotAnnotationsAnywhere_ThenReturnsEmptyCollection() throws NoSuchMethodException {
+    void whenInspectedHasNotAnnotationsAnywhere_ThenReturnsEmptyCollection() {
 
         class NoAnnotations {
             @SuppressWarnings("unused")
@@ -51,7 +51,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnClassOnly_ThenReturnsAnnotationFromClass() throws NoSuchMethodException {
+    void whenAnnotationOnClassOnly_ThenReturnsAnnotationFromClass() {
 
         @PreEnforce(subject = "'onClass'")
         class TestClass {
@@ -64,7 +64,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnMethodOnly_ThenReturnsThat() throws NoSuchMethodException {
+    void whenAnnotationOnMethodOnly_ThenReturnsThat() {
 
         class TestClass {
             @PreEnforce(subject = "'onMethod'")
@@ -76,7 +76,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnMethodAndClass_ThenReturnsOnMethod() throws NoSuchMethodException {
+    void whenAnnotationOnMethodAndClass_ThenReturnsOnMethod() {
 
         @PreEnforce(subject = "'onClass'")
         class TestClass {
@@ -96,7 +96,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnlyOnInterfaceMethod_ThenReturnsThat() throws NoSuchMethodException {
+    void whenAnnotationOnlyOnInterfaceMethod_ThenReturnsThat() {
 
         class TestClass implements TestInterfaceAnnotatedOnMethod {
             public void doSomething() {
@@ -123,7 +123,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnlyCoplexInterfaceHierarchy_ThenReturnsThat() throws NoSuchMethodException {
+    void whenAnnotationOnlyCoplexInterfaceHierarchy_ThenReturnsThat() {
         class Implementation implements CombinedInterface {
 
             @Override
@@ -146,7 +146,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnlyOnInterface_ThenReturnsThat() throws NoSuchMethodException {
+    void whenAnnotationOnlyOnInterface_ThenReturnsThat() {
 
         class TestClass implements TestInterfaceAnnotatedOnInterface {
             public void doSomething() {
@@ -163,7 +163,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnInterfaceAnInterfaceMethod_ThenReturnsOnInterfaceMethod() throws NoSuchMethodException {
+    void whenAnnotationOnInterfaceAnInterfaceMethod_ThenReturnsOnInterfaceMethod() {
 
         class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
             public void doSomething() {
@@ -174,8 +174,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnMethodAndClassAndOnInterfaceAndInterfaceMethod_ThenReturnsOnMethod()
-            throws NoSuchMethodException {
+    void whenAnnotationOnMethodAndClassAndOnInterfaceAndInterfaceMethod_ThenReturnsOnMethod() {
 
         @PreEnforce(subject = "'onClass'")
         class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
@@ -188,7 +187,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnMethod_ThenReturnsOnMethodForPost() throws NoSuchMethodException {
+    void whenAnnotationOnMethod_ThenReturnsOnMethodForPost() {
 
         class TestClass {
             @PostEnforce(subject = "'onMethod'")
@@ -200,7 +199,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceTillDenied() throws NoSuchMethodException {
+    void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceTillDenied() {
 
         class TestClass {
             @EnforceTillDenied(subject = "'onMethod'")
@@ -212,7 +211,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceDropWhileDenied() throws NoSuchMethodException {
+    void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceDropWhileDenied() {
 
         class TestClass {
             @EnforceDropWhileDenied(subject = "'onMethod'")
@@ -224,7 +223,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceRecoverableIfDenied() throws NoSuchMethodException {
+    void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceRecoverableIfDenied() {
 
         class TestClass {
             @EnforceRecoverableIfDenied(subject = "'onMethod'")
@@ -242,7 +241,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnDefaultMethodInInterface_ThenReturnsThat() throws NoSuchMethodException {
+    void whenAnnotationOnDefaultMethodInInterface_ThenReturnsThat() {
         class TestClass implements DefaultMethodInterface {
         }
         expectSubjectExpressionStringInAttribute(TestClass.class, "'onDefaultInterfaceMethod'");

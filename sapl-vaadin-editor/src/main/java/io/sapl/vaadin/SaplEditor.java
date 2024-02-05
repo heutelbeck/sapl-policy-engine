@@ -37,7 +37,7 @@ import elemental.json.JsonArray;
 @NpmPackage(value = "codemirror", version = "5.65.16")
 public class SaplEditor extends BaseEditor {
 
-    private List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
+    private final List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
 
     /**
      * Creates an editor component.

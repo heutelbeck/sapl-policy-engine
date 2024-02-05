@@ -38,7 +38,7 @@ import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import lombok.Data;
 
-class G_PolicyWithComplexExpectStepTests {
+class GPolicyWithComplexExpectStepTests {
 
     private static final String BLACKENED_ICD11 = "ic███████";
 
@@ -153,11 +153,9 @@ class G_PolicyWithComplexExpectStepTests {
                         // via .equals()
                         //// hasObligation(mapper.createObjectNode().put("foo", "bar")),
                         // or Predicate
-                        hasObligationMatching((JsonNode obligation) -> {
-                            return obligation.has("type") && "logAccess".equals(obligation.get("type").asText())
-                                    && obligation.has("message")
-                                    && WILLI_HAS_ACCESSED_PATIENT_DATA.equals(obligation.get("message").asText());
-                        }),
+                        hasObligationMatching((JsonNode obligation) -> obligation.has("type")
+                                && "logAccess".equals(obligation.get("type").asText()) && obligation.has("message")
+                                && WILLI_HAS_ACCESSED_PATIENT_DATA.equals(obligation.get("message").asText())),
 
                         hasObligationContainingKeyValue("type", "logAccess"),
 
