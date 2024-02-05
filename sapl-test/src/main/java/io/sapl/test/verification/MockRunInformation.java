@@ -23,9 +23,11 @@ import java.util.List;
 import io.sapl.test.mocking.MockCall;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 
 public class MockRunInformation {
 
+    @Getter
     private final String fullName;
 
     private final List<CallWithMetadata> timesCalled;
@@ -33,10 +35,6 @@ public class MockRunInformation {
     public MockRunInformation(String fullName) {
         this.fullName    = fullName;
         this.timesCalled = new LinkedList<>();
-    }
-
-    public String getFullName() {
-        return this.fullName;
     }
 
     public int getTimesCalled() {

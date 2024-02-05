@@ -69,7 +69,7 @@ public class HtmlLineCoverageReportGenerator {
             // prepare context
             Context context = new Context();
             context.setVariable("policyTitle", doc.getPathToDocument().getFileName());
-            context.setVariable("policyText", lines.stream().collect(Collectors.joining("\n")));
+            context.setVariable("policyText", String.join("\n", lines));
             context.setVariable("lineModels", models);
 
             // process the template and context
@@ -216,25 +216,12 @@ public class HtmlLineCoverageReportGenerator {
         String popoverContent;
     }
 
-    private record WebDependency(
-            /**
-             * name of the dependency
-             */
-            @NonNull String name,
+    private record WebDependency(@NonNull String name,
 
-            /**
-             * name of the actual file
-             */
             @NonNull String fileName,
 
-            /**
-             * path to the directory where actual the file is located
-             */
             @NonNull String sourcePath,
 
-            /**
-             * path to where the file will be located as an asset
-             */
             @NonNull String targetPath) {
     }
 }

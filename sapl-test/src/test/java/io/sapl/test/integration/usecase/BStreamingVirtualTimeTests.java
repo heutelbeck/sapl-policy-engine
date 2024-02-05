@@ -29,7 +29,7 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
 
-class B_StreamingVirtualTimeTests {
+class BStreamingVirtualTimeTests {
 
     private SaplTestFixture fixture;
 

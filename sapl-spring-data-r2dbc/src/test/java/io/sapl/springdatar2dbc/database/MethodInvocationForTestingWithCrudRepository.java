@@ -37,7 +37,7 @@ public class MethodInvocationForTestingWithCrudRepository implements MethodInvoc
     public Method getMethod() {
         try {
             return R2dbcPersonRepositoryWithCrudRepository.class.getMethod(methodName,
-                    argumentClasses.toArray(new Class[argumentClasses.size()]));
+                    argumentClasses.toArray(new Class[0]));
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
@@ -45,7 +45,7 @@ public class MethodInvocationForTestingWithCrudRepository implements MethodInvoc
 
     @Override
     public Object[] getArguments() {
-        return argumentValues.toArray(new Object[argumentValues.size()]);
+        return argumentValues.toArray(new Object[0]);
     }
 
     @Override

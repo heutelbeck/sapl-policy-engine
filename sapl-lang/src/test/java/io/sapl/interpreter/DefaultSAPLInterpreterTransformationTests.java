@@ -70,7 +70,7 @@ class DefaultSAPLInterpreterTransformationTests {
             String expectedResource) {
         assertThat(testCase).isNotNull();
         var expectedDecision = new AuthorizationDecision(Decision.PERMIT,
-                Optional.of(MAPPER.<JsonNode>readValue(expectedResource, JsonNode.class)), Optional.empty(),
+                Optional.of(MAPPER.readValue(expectedResource, JsonNode.class)), Optional.empty(),
                 Optional.empty());
         var subscription     = MAPPER.readValue(authorizationSubscription, AuthorizationSubscription.class);
         assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(subscription, saplDocument,
@@ -80,18 +80,17 @@ class DefaultSAPLInterpreterTransformationTests {
     @SneakyThrows
     private static Stream<Arguments> transformationTestCases() {
         // @formatter:off
-        return Stream.of(new Arguments[] {
-                Arguments.of(
-                        "simpleTransformationWithComment",
-                        "{}",
-                        """
-                        policy "test"
-                        permit
-                        transform
-                            "teststring"        // This is a dummy comment
-                            /* another comment */
-                        """,
-                        "\"teststring\""),
+        return Stream.of(Arguments.of(
+                "simpleTransformationWithComment",
+                "{}",
+                """
+                policy "test"
+                permit
+                transform
+                    "teststring"        // This is a dummy comment
+                    /* another comment */
+                """,
+                "\"teststring\""),
 
                 Arguments.of(
                         "simpleFiltering",
@@ -475,9 +474,7 @@ class DefaultSAPLInterpreterTransformationTests {
                     "value":"4",
                     "name":"***"
                 }
-                """),
-
-        });
+                """));
         // @formatter:on
     }
 

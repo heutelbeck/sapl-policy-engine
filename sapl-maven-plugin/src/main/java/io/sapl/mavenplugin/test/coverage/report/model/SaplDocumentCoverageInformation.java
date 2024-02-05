@@ -17,6 +17,8 @@
  */
 package io.sapl.mavenplugin.test.coverage.report.model;
 
+import lombok.Getter;
+
 import java.nio.file.Path;
 
 /**
@@ -33,6 +35,7 @@ public class SaplDocumentCoverageInformation {
     /**
      * Path to the SAPL policy on the filesystem
      */
+    @Getter
     private final Path pathToDocument;
 
     /**
@@ -69,10 +72,6 @@ public class SaplDocumentCoverageInformation {
      */
     public SaplDocumentLineCoverageInformation getLine(int lineNumber) {
         return this.lines[lineNumber - 1];
-    }
-
-    public Path getPathToDocument() {
-        return this.pathToDocument;
     }
 
     public int getLineCount() {

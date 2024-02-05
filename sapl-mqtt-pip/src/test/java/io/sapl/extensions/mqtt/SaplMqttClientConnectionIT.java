@@ -115,8 +115,8 @@ class SaplMqttClientConnectionIT {
         var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
 
         // THEN
-        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1 * DELAY_MS))
-                .expectNextMatches(Val::isError).thenCancel().verify();
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNextMatches(Val::isError)
+                .thenCancel().verify();
     }
 
     @Test
@@ -128,8 +128,8 @@ class SaplMqttClientConnectionIT {
         var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, emptyPdpConfig);
 
         // THEN
-        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1 * DELAY_MS))
-                .expectNextMatches(Val::isError).thenCancel().verify();
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNextMatches(Val::isError)
+                .thenCancel().verify();
     }
 
     @Test
@@ -144,7 +144,7 @@ class SaplMqttClientConnectionIT {
         var mqttClient               = startClient();
 
         // THEN
-        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
                 .expectNext(Val.UNDEFINED, Val.UNDEFINED)
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
                 .expectNext(Val.of("message1"))
@@ -168,16 +168,16 @@ class SaplMqttClientConnectionIT {
         var mqttClient               = startClient();
 
         // THEN
-        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
                 .expectNext(Val.UNDEFINED, Val.UNDEFINED)
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
                 .expectNext(Val.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
                 .expectNext(Val.of("message2"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "lastMessage", false)))
-                .expectNext(Val.of("lastMessage")).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+                .expectNext(Val.of("lastMessage")).thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
-                .expectNoEvent(Duration.ofMillis(1 * DELAY_MS))
+                .expectNoEvent(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
                 .expectNext(Val.of("message1")).thenCancel().verify();
         mqttClient.disconnect();
@@ -204,10 +204,10 @@ class SaplMqttClientConnectionIT {
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
                 .expectNext(Val.of("message2"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "lastMessage", false)))
-                .expectNext(Val.of("lastMessage")).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+                .expectNext(Val.of("lastMessage")).thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
                 .expectNext(Val.of("message1")).then(() -> testPublisher.emit("subscribe"))
-                .thenAwait(Duration.ofMillis(1 * DELAY_MS))
+                .thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
                 .expectNext(Val.of("message2"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
@@ -224,10 +224,10 @@ class SaplMqttClientConnectionIT {
         var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, buildVariables());
 
         // THEN
-        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(MESSAGE)).expectNext(Val.of("message"))
 
-                .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+                .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(DELAY_MS))
 
                 .then(() -> stopBroker(mqttBroker)).thenAwait(Duration.ofMillis(5 * DELAY_MS))
                 .then(() -> startBroker(secondaryBroker)).thenAwait(Duration.ofMillis(2 * DELAY_MS))
@@ -255,13 +255,13 @@ class SaplMqttClientConnectionIT {
         var mqttClient      = startClient();
 
         // THEN
-        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
                 .expectNext(Val.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
                 .expectNext(Val.of("message2"))
 
-                .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+                .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(DELAY_MS))
 
                 .then(() -> stopBroker(mqttBroker)).thenAwait(Duration.ofMillis(5 * DELAY_MS))
                 .then(() -> startBroker(secondaryBroker)).thenAwait(Duration.ofMillis(2 * DELAY_MS))
@@ -298,13 +298,13 @@ class SaplMqttClientConnectionIT {
         var mqttClient      = startClient();
 
         // THEN
-        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+        StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
                 .expectNext(Val.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic3", "message3", false)))
                 .expectNext(Val.of("message3"))
 
-                .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+                .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(DELAY_MS))
 
                 .then(() -> stopBroker(mqttBroker)).thenAwait(Duration.ofMillis(5 * DELAY_MS))
                 .then(() -> startBroker(secondaryBroker)).thenAwait(Duration.ofMillis(2 * DELAY_MS))
@@ -316,8 +316,7 @@ class SaplMqttClientConnectionIT {
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", true)))
                 .expectNext(Val.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", true)))
-                .expectNext(Val.of("message2")).expectNext(Val.of("message2"))
-                .thenAwait(Duration.ofMillis(1 * DELAY_MS))
+                .expectNext(Val.of("message2")).expectNext(Val.of("message2")).thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic1", "message1", false)))
                 .expectNext(Val.of("message1"))
                 .then(() -> mqttClient.publish(buildMqttPublishMessage("topic2", "message2", false)))
@@ -354,10 +353,10 @@ class SaplMqttClientConnectionIT {
         var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
 
         // THEN
-        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+        StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
                 .then(() -> mqttClient.publish(MESSAGE)).expectNext(Val.of("message"))
 
-                .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(1 * DELAY_MS))
+                .then(mqttClient::disconnect).thenAwait(Duration.ofMillis(DELAY_MS))
 
                 .then(() -> stopBroker(mqttBroker)).thenAwait(Duration.ofMillis(5 * DELAY_MS))
                 .then(() -> startBroker(secondaryBroker)).thenAwait(Duration.ofMillis(2 * DELAY_MS))

@@ -325,7 +325,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     /**
      * This method strips < and > characters and removes a potential parameter list
      * in brackets from the tail end of a generated template.
-     *
+     * <p>
      * This is explicitly not using String.replace as there is no need for regular
      * expression processing and this is much more efficient.
      *

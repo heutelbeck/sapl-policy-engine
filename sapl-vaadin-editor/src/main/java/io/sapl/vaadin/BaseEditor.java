@@ -24,6 +24,7 @@ import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.ElementConstants;
+import lombok.Getter;
 
 /**
  * Base class for SAPL and JSON editors.
@@ -37,6 +38,13 @@ public class BaseEditor extends Component {
     private static final String                 HAS_LINE_NUMBERS    = "hasLineNumbers";
     private static final String                 IS_DARK_THEME       = "isDarkTheme";
     private static final String                 IS_READ_ONLY_KEY    = "isReadOnly";
+    /**
+     * -- GETTER --
+     *  Returns the current document from the editor.
+     *
+     * @return The current document from the editor.
+     */
+    @Getter
     private String                              document;
     private final List<DocumentChangedListener> documentChangedListeners;
     private final List<EditorClickedListener>   editorClickedListeners;
@@ -85,15 +93,6 @@ public class BaseEditor extends Component {
         this.document = document;
         Element element = getElement();
         element.callJsFunction("setEditorDocument", element, document);
-    }
-
-    /**
-     * Returns the current document from the editor.
-     *
-     * @return The current document from the editor.
-     */
-    public String getDocument() {
-        return document;
     }
 
     /**

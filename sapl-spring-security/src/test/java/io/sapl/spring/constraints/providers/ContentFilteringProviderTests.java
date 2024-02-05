@@ -2085,7 +2085,7 @@ class ContentFilteringProviderTests {
                 		{
                 			"type"        : "replace",
                 			"path"        : "$.key1",
-                			"replacement" : \"replaced\"
+                			"replacement" : "replaced"
                 		}
                 	]
                 }

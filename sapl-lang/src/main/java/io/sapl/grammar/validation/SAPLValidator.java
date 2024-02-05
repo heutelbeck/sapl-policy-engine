@@ -78,7 +78,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
     /**
      * Eager Boolean logic and attributes forbidden in target expressions
      *
-     * @param policy a policy
+     * @param policySet a policy set
      */
     @Check
     public void policyRuleNoAndAllowedInTargetExpression(final PolicySet policySet) {
@@ -91,7 +91,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
     /**
      * Attributes forbidden in schema expressions
      *
-     * @param policy a policy
+     * @param schema a schema statement
      */
     @Check
     public void policyRuleNoAndAllowedInTargetExpression(final Schema schema) {
@@ -104,7 +104,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
     /**
      * Attributes forbidden in schema expressions
      *
-     * @param policy a policy
+     * @param valueDefinition a value definition statement
      */
     @Check
     public void policyRuleNoAndAllowedInTargetExpression(final ValueDefinition valueDefinition) {

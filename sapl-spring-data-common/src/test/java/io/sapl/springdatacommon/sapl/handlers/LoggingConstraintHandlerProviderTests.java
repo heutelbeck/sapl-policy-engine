@@ -125,7 +125,7 @@ class LoggingConstraintHandlerProviderTests {
         var actual = loggingConstraintHandlerProvider.getHandler(constraint);
 
         // THEN
-        assertTrue(Runnable.class.isInstance(actual));
+        assertTrue(actual instanceof Runnable);
         actual.run();
     }
 }

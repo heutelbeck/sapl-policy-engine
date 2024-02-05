@@ -38,7 +38,7 @@ import io.sapl.test.SaplTestFixture;
 import io.sapl.test.unit.SaplUnitTestFixture;
 import lombok.Data;
 
-class G_PolicyWithComplexExpectStepTests {
+class GPolicyWithComplexExpectStepTests {
 
     private static final String BLACKENED_ICD11 = "ic███████";
 
