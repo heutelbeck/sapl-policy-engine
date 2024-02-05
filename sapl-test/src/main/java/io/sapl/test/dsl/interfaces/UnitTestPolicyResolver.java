@@ -18,6 +18,10 @@
 
 package io.sapl.test.dsl.interfaces;
 
+/**
+ * This Interface can be used to define custom logic for resolving policies to be used in a Unit test.
+ * Use this in a class derived from {@link io.sapl.test.dsl.setup.BaseTestAdapter} to customize the resolving logic.
+ */
 public interface UnitTestPolicyResolver {
     String resolvePolicyByIdentifier(String identifier);
 }
