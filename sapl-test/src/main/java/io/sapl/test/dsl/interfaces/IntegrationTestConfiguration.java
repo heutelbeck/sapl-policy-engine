@@ -21,7 +21,9 @@ package io.sapl.test.dsl.interfaces;
 import java.util.List;
 
 /**
- * This interface is used by {@link IntegrationTestPolicyResolver} to resolve an identifier to a List of Policies and a PDP Configuration to be used for the integration test.
+ * This interface is used by {@link IntegrationTestPolicyResolver} to resolve an
+ * identifier to a List of Policies and a PDP Configuration to be used for the
+ * integration test.
  */
 public interface IntegrationTestConfiguration {
     List<String> getDocumentInputStrings();
