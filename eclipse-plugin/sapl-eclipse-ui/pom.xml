@@ -41,7 +41,6 @@
 			<artifactId>sapl-ide</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-<!--		TODO: abhängigkeit nach sapl-ide verschieben?-->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-eclipse-thirdparty</artifactId>
