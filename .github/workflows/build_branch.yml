@@ -56,7 +56,7 @@ jobs:
         cache: 'maven'
 
     - name: Run tests
-      run: mvn -B package javadoc:jar -Pproduction
+      run: mvn -B package javadoc:jar
 
   sonarcloud_analyze:
     needs: [tests]
