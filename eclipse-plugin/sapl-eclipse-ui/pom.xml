@@ -50,14 +50,14 @@
 		<dependency>
 			<groupId>com.networknt</groupId>
 			<artifactId>json-schema-validator</artifactId>
-			<version>1.2.0</version>
+			<version>1.3.1</version>
 		</dependency>
 <!--		dependency of networknt-->
 		<dependency>
 			<!-- Used to validate RFC 3339 date and date-time -->
 			<groupId>com.ethlo.time</groupId>
 			<artifactId>itu</artifactId>
-			<version>1.7.5</version>
+			<version>1.8.0</version>
 		</dependency>
 <!--		<dependency>-->
 <!--			<groupId>org.slf4j</groupId>-->
