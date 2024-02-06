@@ -80,6 +80,18 @@ class DefaultWhenStepConstructorTests {
     }
 
     @Test
+    void constructWhenStep_handlesMoreThanOneVirtualTimeDeclaration_throwsSaplTestException() {
+        final var virtualTimeMock = mock(VirtualTime.class);
+
+        final var givenSteps = List.<GivenStep>of(virtualTimeMock, virtualTimeMock);
+
+        final var exception = assertThrows(SaplTestException.class,
+                () -> defaultWhenStepConstructor.constructWhenStep(givenSteps, saplUnitTestFixtureMock));
+
+        assertEquals("TestCase contains more than one virtual-time declaration", exception.getMessage());
+    }
+
+    @Test
     void constructWhenStep_handlesUnknownTypeOfGivenStep_throwsSaplTestException() {
         final var unknownGivenStepMock = mock(GivenStep.class);
 

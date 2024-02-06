@@ -39,6 +39,11 @@ class DefaultWhenStepConstructor {
 
     WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep initialTestCase) {
         if (givenSteps != null) {
+
+            if (givenSteps.stream().filter(VirtualTime.class::isInstance).count() > 1) {
+                throw new SaplTestException("TestCase contains more than one virtual-time declaration");
+            }
+
             applyGivenSteps(givenSteps, initialTestCase);
         }
 

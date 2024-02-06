@@ -22,9 +22,13 @@ package io.sapl.test.grammar.validation;
 
 import io.sapl.test.grammar.sapltest.Duration;
 import io.sapl.test.grammar.sapltest.Multiple;
+import io.sapl.test.grammar.sapltest.StringMatchesRegex;
+import io.sapl.test.grammar.sapltest.StringWithLength;
 import io.sapl.test.grammar.sapltest.TestCase;
 import io.sapl.test.grammar.sapltest.VirtualTime;
 import java.time.format.DateTimeParseException;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import org.eclipse.xtext.validation.Check;
 
 /**
@@ -38,11 +42,13 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
 
     protected static final String MSG_INVALID_MULTIPLE_AMOUNT                  = "Amount needs to be a natural number larger than 1";
     protected static final String MSG_TESTCASE_WITH_MORE_THAN_ONE_VIRTUAL_TIME = "TestCase contains more than one virtual-time declaration";
+    protected static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX  = "The given regex has an invalid format";
+    protected static final String MSG_INVALID_STRING_WITH_LENGTH               = "String length needs to be an natural number larger than 0";
 
     /**
      * Duration string needs to represent a valid Java Duration
      *
-     * @param duration a duration string
+     * @param duration a Duration string
      */
     @Check
     public void durationNeedsToBeAValidJavaDuration(final Duration duration) {
@@ -56,7 +62,7 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
     /**
      * Multiple amount needs to be a natural number larger than 1
      *
-     * @param multiple a multiple instance
+     * @param multiple a Multiple instance
      */
     @Check
     public void multipleAmountNeedsToBeNaturalNumberLargerThanOne(final Multiple multiple) {
@@ -76,7 +82,7 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
     /**
      * TestCase may contain virtual-time only once
      *
-     * @param testCase a testcase instance
+     * @param testCase a TestCase instance
      */
     @Check
     public void testCaseMayContainVirtualTimeOnlyOnce(final TestCase testCase) {
@@ -84,4 +90,39 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
             error(MSG_TESTCASE_WITH_MORE_THAN_ONE_VIRTUAL_TIME, testCase, null);
         }
     }
+
+    /**
+     * StringMatchesRegex may contain only a valid Regex
+     *
+     * @param stringMatchesRegex a StringMatchesRegex instance
+     */
+    @Check
+    public void stringMatchesRegexMustContainValidRegex(final StringMatchesRegex stringMatchesRegex) {
+        try {
+            Pattern.compile(stringMatchesRegex.getRegex());
+        } catch (PatternSyntaxException e) {
+            error(MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX, stringMatchesRegex, null);
+        }
+    }
+
+    /**
+     * StringWithLength length needs to be a natural number larger than 0
+     *
+     * @param stringWithLength a StringWithLength instance
+     */
+    @Check
+    public void stringWithLengthNeedsToBeNaturalNumberLargerThanZero(final StringWithLength stringWithLength) {
+        var isValid = true;
+        try {
+            if (stringWithLength.getLength().intValueExact() < 1) {
+                isValid = false;
+            }
+        } catch (ArithmeticException exception) {
+            isValid = false;
+        }
+        if (!isValid) {
+            error(MSG_INVALID_STRING_WITH_LENGTH, stringWithLength, null);
+        }
+    }
+
 }
