@@ -152,6 +152,9 @@
 							${docker-registry-url}/${project.artifactId}:${project.version}</name>
 					</image>
 					<layout>ZIP</layout>
+					<layers>
+						<enabled>true</enabled>
+					</layers>
 					<excludes>
 						<exclude>
 							<groupId>org.springframework.boot</groupId>
