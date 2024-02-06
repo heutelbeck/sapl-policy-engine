@@ -19,28 +19,40 @@
 package io.sapl.test.dsl.interfaces;
 
 /**
- * This Interface can be used to define custom logic for resolving policies and a PDP configuration to be used in an integration test.
- * Use this in a class derived from {@link io.sapl.test.dsl.setup.BaseTestAdapter} to customize the resolving logic.
+ * This Interface can be used to define custom logic for resolving policies and
+ * a PDP configuration to be used in an integration test. Use this in a class
+ * derived from {@link io.sapl.test.dsl.setup.BaseTestAdapter} to customize the
+ * resolving logic.
  */
 public interface IntegrationTestPolicyResolver {
     /**
-     * Allows to resolve an identifier to a {@link io.sapl.grammar.sapl.Policy} in plain text.
-     * @param identifier The identifier used in an integration test definition via {@link io.sapl.test.grammar.sapltest.PoliciesByInputString}.
+     * Allows to resolve an identifier to a {@link io.sapl.grammar.sapl.Policy} in
+     * plain text.
+     *
+     * @param identifier The identifier used in an integration test definition via
+     *                   {@link io.sapl.test.grammar.sapltest.PoliciesByInputString}.
      * @return The resolved Policy in plain text used for the test.
      */
     String resolvePolicyByIdentifier(String identifier);
 
     /**
-     * Allows to resolve an identifier to a {@link io.sapl.pdp.config.PDPConfiguration} in plain text.
-     * @param identifier The identifier used in an integration test definition via {@link io.sapl.test.grammar.sapltest.PoliciesByInputString}.
+     * Allows to resolve an identifier to a
+     * {@link io.sapl.pdp.config.PDPConfiguration} in plain text.
+     *
+     * @param identifier The identifier used in an integration test definition via
+     *                   {@link io.sapl.test.grammar.sapltest.PoliciesByInputString}.
      * @return The resolved PDPConfiguration in plain text used for the test.
      */
     String resolvePDPConfigurationByIdentifier(String identifier);
 
     /**
-     * Allows to resolve a single identifier to a List of policies and a PDP configuration.
-     * @param identifier The identifier used in an integration test definition via {@link io.sapl.test.grammar.sapltest.PoliciesByIdentifier}.
-     * @return The resolved Policies and PDP configuration in plain text to be used for the test.
+     * Allows to resolve a single identifier to a List of policies and a PDP
+     * configuration.
+     *
+     * @param identifier The identifier used in an integration test definition via
+     *                   {@link io.sapl.test.grammar.sapltest.PoliciesByIdentifier}.
+     * @return The resolved Policies and PDP configuration in plain text to be used
+     *         for the test.
      */
     IntegrationTestConfiguration resolveConfigurationByIdentifier(String identifier);
 }
