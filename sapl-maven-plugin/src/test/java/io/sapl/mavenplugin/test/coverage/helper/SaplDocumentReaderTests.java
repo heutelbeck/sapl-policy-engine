@@ -49,7 +49,7 @@ class SaplDocumentReaderTests {
     @BeforeEach
     void setup() {
         project = new MavenProjectStub();
-        project.setRuntimeClasspathElements(List.of("target/classes"));
+        project.setRuntimeClasspathElements(List.of("src/test/resources"));
         reader = new SaplDocumentReader();
     }
 
