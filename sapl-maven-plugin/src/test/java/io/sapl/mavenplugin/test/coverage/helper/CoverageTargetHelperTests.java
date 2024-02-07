@@ -51,7 +51,7 @@ class CoverageTargetHelperTests {
     void setup() throws MojoExecutionException {
         String           policyPath = "policies";
         MavenProjectStub project    = new MavenProjectStub();
-        project.setRuntimeClasspathElements(List.of("target/classes"));
+        project.setRuntimeClasspathElements(List.of("src/test/resources"));
         SaplDocumentReader reader = new SaplDocumentReader();
         this.documents = reader.retrievePolicyDocuments(new SilentLog(), project, policyPath);
         this.helper    = new CoverageTargetHelper();
