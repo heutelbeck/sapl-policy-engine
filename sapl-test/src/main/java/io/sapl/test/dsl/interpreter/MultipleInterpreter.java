@@ -23,22 +23,26 @@ import io.sapl.test.grammar.sapltest.Multiple;
 
 class MultipleInterpreter {
     int getAmountFromMultiple(final Multiple multiple) {
-        int intValue;
+        int     intValue = 0;
+        boolean isValid  = true;
 
         try {
             final var amount = multiple.getAmount();
 
             if (amount == null) {
-                throw new SaplTestException("Amount is null");
+                isValid = false;
             }
 
-            intValue = amount.intValueExact();
+            if (isValid) {
+                intValue = amount.intValueExact();
+            }
+
         } catch (ArithmeticException e) {
-            throw new SaplTestException("Amount has invalid format", e);
+            isValid = false;
         }
 
-        if (intValue < 2) {
-            throw new SaplTestException("Amount needs to be larger than 1");
+        if (!isValid || intValue < 2) {
+            throw new SaplTestException("Amount needs to be a natural number larger than 1");
         }
 
         return intValue;

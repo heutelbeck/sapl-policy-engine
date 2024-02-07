@@ -26,8 +26,8 @@ SAPLTest:
 
 // Terminals
 
-terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard  Unary operator for negation/plus prefix
-	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;
+terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard
+	('+' | '-')? ('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;
 
 terminal fragment DIGIT:
 	('0'..'9') ;
@@ -135,16 +135,16 @@ WhenStep:
      'when' authorizationSubscription=AuthorizationSubscription;
 
 AuthorizationSubscription:
-	'subject' subject=Value 'attempts' 'action' action=Value 'on' 'resource' resource=Value ('with' 'environment' environment=Value)?;
+	'subject' subject=Value 'attempts' 'action' action=Value 'on' 'resource' resource=Value ('with' 'environment' environment=Object)?;
 
 GivenStep:
-	{Function} 'function' name=STRING ('parameters' 'matching' parameters=FunctionParameters)? 'returns' returnValue=Value ('called' timesCalled=NumericAmount)? |
+	{Function} 'function' name=STRING ('parameters' 'matching' parameterMatchers=ParameterMatchers)? 'returns' returnValue=Value ('called' timesCalled=NumericAmount)? |
 	{FunctionInvokedOnce} 'function' name=STRING 'returns' 'stream' returnValue+=Value (',' returnValue+=Value)* |
 	{Attribute} 'attribute' name=STRING ('returns' returnValue+=Value (',' returnValue+=Value)* ('with' 'timing' timing=Duration)?)? |
-	{AttributeWithParameters} 'attribute' name=STRING 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameters+=ValMatcher (',' parameters+=ValMatcher)+)? 'returns' returnValue=Value |
+	{AttributeWithParameters} 'attribute' name=STRING 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameterMatchers=ParameterMatchers)? 'returns' returnValue=Value |
 	{VirtualTime} 'virtual-time';
 
-FunctionParameters:
+ParameterMatchers:
     matchers+=ValMatcher (',' matchers+=ValMatcher)*;
 
 NumericAmount:
