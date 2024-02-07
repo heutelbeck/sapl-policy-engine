@@ -21,7 +21,7 @@ on:
     branches: [master]
   push:
     branches: [master]
-    paths: ["sapl-documentation/**",".github/build_documentation.yml"]
+    paths: ["sapl-documentation/**",".github/workflows/build_documentation.yml"]
 
 permissions:
   contents: read
@@ -33,24 +33,24 @@ jobs:
  
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
       with:
         egress-policy: audit
 
     - name: Check out
-      uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       with:
         lfs: true
         fetch-depth: 0
       
     - name: Set up JDK 11
-      uses: actions/setup-java@de1bb2b0c5634f0fc4438d7aa9944e68f9bf86cc # v3.6.0
+      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
       with:
         java-version: 11
         distribution: adopt
   
     - name: Cache Maven dependencies
-      uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11  
+      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
