@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
@@ -38,6 +37,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import io.sapl.mavenplugin.test.coverage.SaplTestException;
+import io.sapl.mavenplugin.test.coverage.report.SampleCoverageInformation;
 import io.sapl.mavenplugin.test.coverage.report.html.WebDependencyFactory.WebDependency;
 import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
 import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
@@ -50,26 +50,9 @@ class HtmlLineCoverageReportGeneratorTests {
     private static final float                           POLICY_CONDITION_HIT_RATIO = 43.9f;
     private static final HtmlLineCoverageReportGenerator GENERATOR                  = new HtmlLineCoverageReportGenerator();;
 
-    private Collection<SaplDocumentCoverageInformation> documents() {
-        var document = new SaplDocumentCoverageInformation(Paths.get("src/test/resources/policies/policy_1.sapl"), 12);
-        document.markLine(1, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(2, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(3, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(4, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(5, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(6, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(7, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(8, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(9, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(10, LineCoveredValue.PARTLY, 1, 2);
-        document.markLine(11, LineCoveredValue.NEVER, 0, 2);
-        document.markLine(12, LineCoveredValue.NEVER, 0, 2);
-        return List.of(document);
-    }
-
     @Test
     void test(@TempDir Path tempDir) throws MojoExecutionException {
-        GENERATOR.generateHtmlReport(documents(), tempDir, POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO,
+        GENERATOR.generateHtmlReport(SampleCoverageInformation.documents(), tempDir, POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO,
                 POLICY_CONDITION_HIT_RATIO);
         assertEquals(Boolean.TRUE, tempDir.resolve("html/assets/images/favicon.png").toFile().exists());
         assertEquals(Boolean.TRUE, tempDir.resolve("html/assets/images/logo-header.png").toFile().exists());
@@ -103,7 +86,7 @@ class HtmlLineCoverageReportGeneratorTests {
     void test_readFileFromClasspath_IOException(@TempDir Path tempDir) {
         try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
             mockedFiles.when(() -> Files.writeString(Mockito.any(), Mockito.any())).thenThrow(IOException.class);
-            assertThrows(MojoExecutionException.class, () -> GENERATOR.generateHtmlReport(documents(), tempDir,
+            assertThrows(MojoExecutionException.class, () -> GENERATOR.generateHtmlReport(SampleCoverageInformation.documents(), tempDir,
                     POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
         }
     }
@@ -115,7 +98,7 @@ class HtmlLineCoverageReportGeneratorTests {
             var nonExistingFiles = List
                     .of(new WebDependency("I do not exist", "I do not exist", "I do not exist", "I do not exist"));
             mockedDependencyFactory.when(() -> WebDependencyFactory.getWebDependencies()).thenReturn(nonExistingFiles);
-            assertThrows(MojoExecutionException.class, () -> GENERATOR.generateHtmlReport(documents(), tempDir,
+            assertThrows(MojoExecutionException.class, () -> GENERATOR.generateHtmlReport(SampleCoverageInformation.documents(), tempDir,
                     POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
         }
     }

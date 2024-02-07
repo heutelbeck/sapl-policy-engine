@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
@@ -37,8 +36,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import io.sapl.mavenplugin.test.coverage.PathHelper;
-import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
-import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
+import io.sapl.mavenplugin.test.coverage.report.SampleCoverageInformation;
 import io.sapl.mavenplugin.test.coverage.report.sonar.model.Coverage;
 import io.sapl.mavenplugin.test.coverage.report.sonar.model.ObjectFactory;
 import jakarta.xml.bind.JAXBContext;
@@ -48,28 +46,11 @@ class SonarLineCoverageReportGeneratorTests {
 
     private static final SonarLineCoverageReportGenerator GENERATOR = new SonarLineCoverageReportGenerator();
 
-    private Collection<SaplDocumentCoverageInformation> documents() {
-        var document = new SaplDocumentCoverageInformation(Paths.get("src/test/resources/policies/policy_1.sapl"), 12);
-        document.markLine(1, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(2, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(3, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(4, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(5, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(6, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(7, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(8, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(9, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(10, LineCoveredValue.PARTLY, 1, 2);
-        document.markLine(11, LineCoveredValue.NEVER, 1, 2);
-        document.markLine(12, LineCoveredValue.NEVER, 1, 2);
-        return List.of(document);
-    }
-
     @Test
     void test(@TempDir Path tempDir) throws IOException, MojoExecutionException {
 
-        GENERATOR.generateSonarLineCoverageReport(documents(), new SilentLog(), tempDir, "policies",
-                Paths.get(".").toFile());
+        GENERATOR.generateSonarLineCoverageReport(SampleCoverageInformation.documents(), new SilentLog(), tempDir,
+                "policies", Paths.get(".").toFile());
 
         List<String> lines = Files.readAllLines(tempDir.resolve("sonar/sonar-generic-coverage.xml"));
         assertEquals(12, lines.size());
@@ -95,8 +76,9 @@ class SonarLineCoverageReportGeneratorTests {
     void test_IOException(@TempDir Path tempDir) {
         try (MockedStatic<PathHelper> mockedHelper = Mockito.mockStatic(PathHelper.class)) {
             mockedHelper.when(() -> PathHelper.createFile(any())).thenThrow(IOException.class);
-            assertThrows(MojoExecutionException.class, () -> GENERATOR.generateSonarLineCoverageReport(documents(),
-                    new SilentLog(), tempDir, "policies", Paths.get(".").toFile()));
+            assertThrows(MojoExecutionException.class,
+                    () -> GENERATOR.generateSonarLineCoverageReport(SampleCoverageInformation.documents(),
+                            new SilentLog(), tempDir, "policies", Paths.get(".").toFile()));
         }
     }
 
@@ -105,8 +87,9 @@ class SonarLineCoverageReportGeneratorTests {
         try (MockedStatic<JAXBContext> jaxbContext = Mockito.mockStatic(JAXBContext.class)) {
             jaxbContext.when(() -> JAXBContext.newInstance(Coverage.class, ObjectFactory.class))
                     .thenThrow(JAXBException.class);
-            assertThrows(MojoExecutionException.class, () -> GENERATOR.generateSonarLineCoverageReport(documents(),
-                    new SilentLog(), tempDir, "policies", Paths.get(".").toFile()));
+            assertThrows(MojoExecutionException.class,
+                    () -> GENERATOR.generateSonarLineCoverageReport(SampleCoverageInformation.documents(),
+                            new SilentLog(), tempDir, "policies", Paths.get(".").toFile()));
         }
     }
 
