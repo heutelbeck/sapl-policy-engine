@@ -68,7 +68,7 @@ class GenericCoverageReporterTests {
     @Test
     void test_standard() throws IOException {
         // arrange
-        Path                     path          = Paths.get("target/classes/policies/policy_1.sapl");
+        Path                     path          = Paths.get("src/test/resources/policies/policy_1.sapl");
         String                   sapl          = Files.readString(path);
         int                      lineCount     = Files.readAllLines(path).size();
         Collection<SaplDocument> documents     = List
