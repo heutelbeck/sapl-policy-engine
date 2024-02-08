@@ -88,10 +88,8 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
             }
             var variables = new HashMap<String, Val>();
             if (jsonNode.has("variables")) {
-                jsonNode.get("variables").fields().forEachRemaining(field -> {
-                    variables.put(field.getKey(),
-                            Val.of(field.getValue()).withTrace(VariablesAndCombinatorSource.class));
-                });
+                jsonNode.get("variables").fields().forEachRemaining(field -> variables.put(field.getKey(),
+                        Val.of(field.getValue()).withTrace(VariablesAndCombinatorSource.class)));
             }
             config.setVariables(variables);
             return Optional.of(config);
