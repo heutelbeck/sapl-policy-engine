@@ -25,7 +25,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.grammar.sapltest.Object;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Stream;

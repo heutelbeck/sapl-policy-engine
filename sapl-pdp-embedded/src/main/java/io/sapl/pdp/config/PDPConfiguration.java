@@ -20,8 +20,7 @@ package io.sapl.pdp.config;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.TracedDecision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
@@ -29,7 +28,7 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 
 public record PDPConfiguration(AttributeContext attributeContext, FunctionContext functionContext,
-        Map<String, JsonNode> variables, CombiningAlgorithm documentsCombinator,
+        Map<String, Val> variables, CombiningAlgorithm documentsCombinator,
         UnaryOperator<TracedDecision> decisionInterceptorChain,
         UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) {
 

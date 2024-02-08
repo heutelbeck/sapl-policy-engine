@@ -193,7 +193,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @EnvironmentAttribute
-            public static Flux<Val> x(Map<String, JsonNode> variables) {
+            public static Flux<Val> x(Map<String, Val> variables) {
                 return null;
             }
 
@@ -534,7 +534,7 @@ class AnnotationAttributeContextTests {
     @Test
     void when_evaluateUnknownAttribute_fails() throws IOException {
         var attributeCtx = new AnnotationAttributeContext();
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
@@ -546,7 +546,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @EnvironmentAttribute
-            public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val... varArgsParams) {
+            public Flux<Val> envAttribute(Map<String, Val> variables, @Text Val... varArgsParams) {
                 return Flux.just(varArgsParams[1]);
             }
 
@@ -554,7 +554,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of("param2")).verifyComplete();
@@ -566,7 +566,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> attribute(Val leftHand, Map<String, JsonNode> variables, @Text Val... varArgsParams) {
+            public Flux<Val> attribute(Val leftHand, Map<String, Val> variables, @Text Val... varArgsParams) {
                 return Flux.just(varArgsParams[1]);
             }
 
@@ -574,7 +574,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of("param2")).verifyComplete();
@@ -586,8 +586,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> attribute(Val leftHand, Map<String, JsonNode> variables, @Text Val param1,
-                    @Text Val param2) {
+            public Flux<Val> attribute(Val leftHand, Map<String, Val> variables, @Text Val param1, @Text Val param2) {
                 return Flux.just(param2);
             }
 
@@ -595,7 +594,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of("param2")).verifyComplete();
@@ -607,7 +606,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> attribute(Val leftHand, Map<String, JsonNode> variables, @Text Val... params) {
+            public Flux<Val> attribute(Val leftHand, Map<String, Val> variables, @Text Val... params) {
                 return Flux.just(leftHand);
             }
 
@@ -615,7 +614,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of("")).verifyComplete();
@@ -634,7 +633,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute(\"A\",\"B\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of("")).verifyComplete();
@@ -654,7 +653,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of("param2")).verifyComplete();
@@ -666,7 +665,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @EnvironmentAttribute
-            public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val param1) {
+            public Flux<Val> envAttribute(Map<String, Val> variables, @Text Val param1) {
                 return Flux.just(param1);
             }
 
@@ -674,7 +673,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of("param1")).verifyComplete();
@@ -687,12 +686,12 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @EnvironmentAttribute
-            public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val param1, @Text Val param2) {
+            public Flux<Val> envAttribute(Map<String, Val> variables, @Text Val param1, @Text Val param2) {
                 return Flux.just(param1);
             }
 
             @EnvironmentAttribute
-            public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val... varArgsParams) {
+            public Flux<Val> envAttribute(Map<String, Val> variables, @Text Val... varArgsParams) {
                 return Flux.just(varArgsParams[1]);
             }
 
@@ -700,7 +699,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of("param1")).verifyComplete();
@@ -713,7 +712,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @EnvironmentAttribute
-            public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val... varArgsParams) {
+            public Flux<Val> envAttribute(Map<String, Val> variables, @Text Val... varArgsParams) {
                 return Flux.just(Val.of(varArgsParams.length));
             }
 
@@ -721,7 +720,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of(0)).verifyComplete();
@@ -741,7 +740,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of("OK")).verifyComplete();
@@ -761,7 +760,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNextMatches(valErrorText("INTENDED ERROR FROM TEST")).verifyComplete();
@@ -781,7 +780,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNextMatches(valErrorText("INTENDED ERROR FROM TEST")).verifyComplete();
@@ -805,7 +804,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.attribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of("")).verifyComplete();
@@ -814,7 +813,7 @@ class AnnotationAttributeContextTests {
     @Test
     void when_unknownAttribute_called_evaluatesToError() throws IOException {
         var attributeCtx = new AnnotationAttributeContext();
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("\"\".<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
@@ -827,7 +826,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @EnvironmentAttribute
-            public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Text Val param1, @Text Val param2) {
+            public Flux<Val> envAttribute(Map<String, Val> variables, @Text Val param1, @Text Val param2) {
                 return Flux.just(param1);
             }
 
@@ -835,7 +834,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
@@ -848,7 +847,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @EnvironmentAttribute
-            public Flux<Val> envAttribute(Map<String, JsonNode> variables, @Bool Val... varArgsParams) {
+            public Flux<Val> envAttribute(Map<String, Val> variables, @Bool Val... varArgsParams) {
                 return Flux.just(varArgsParams[1]);
             }
 
@@ -856,7 +855,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNextMatches(
@@ -893,7 +892,7 @@ class AnnotationAttributeContextTests {
                     """;
 
             @EnvironmentAttribute
-            public Flux<Val> envAttribute(Map<String, JsonNode> variable, @Schema(value = PERSON_SCHEMA) Val a1) {
+            public Flux<Val> envAttribute(Map<String, Val> variable, @Schema(value = PERSON_SCHEMA) Val a1) {
                 return Flux.just(a1);
             }
 
@@ -906,7 +905,7 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variable     = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
 
         var context         = new AnnotationAttributeContext(() -> List.of(pip), List::of);
         var functionSchemas = context.getAttributeSchemas();
@@ -915,7 +914,7 @@ class AnnotationAttributeContextTests {
 
         var validExpression = ParserUtil.expression("<test.envAttribute({\"name\": \"Joe\"})>");
         var expected        = new ObjectMapper().readTree("{\"name\": \"Joe\"}\")>");
-        StepVerifier.create(validExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variable)))
+        StepVerifier.create(validExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNext(Val.of(expected)).verifyComplete();
 
         var    invalidExpression = ParserUtil.expression("<test.envAttribute({\"name\": 23})>");
@@ -929,7 +928,7 @@ class AnnotationAttributeContextTests {
                   }
                 }
                 """;
-        StepVerifier.create(invalidExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variable)))
+        StepVerifier.create(invalidExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNextMatches(valErrorText(errorMessage)).verifyComplete();
     }
 
@@ -940,7 +939,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @EnvironmentAttribute
-            public Flux<Val> a(Map<String, JsonNode> variables, @Bool @Text Val... varArgsParams) {
+            public Flux<Val> a(Map<String, Val> variables, @Bool @Text Val... varArgsParams) {
                 return Flux.just(varArgsParams[1]);
             }
 
@@ -960,7 +959,7 @@ class AnnotationAttributeContextTests {
             }
 
             @Attribute
-            public Flux<Val> x(Val leftHand, Map<String, JsonNode> variables, @Bool @Text Val... varArgsParams) {
+            public Flux<Val> x(Val leftHand, Map<String, Val> variables, @Bool @Text Val... varArgsParams) {
                 return Flux.just(varArgsParams[1]);
             }
 
@@ -1003,7 +1002,7 @@ class AnnotationAttributeContextTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> attribute(Val leftHand, Map<String, JsonNode> variables, @Text Val... varArgsParams) {
+            public Flux<Val> attribute(Val leftHand, Map<String, Val> variables, @Text Val... varArgsParams) {
                 return Flux.just(varArgsParams[1]);
             }
 
@@ -1011,14 +1010,13 @@ class AnnotationAttributeContextTests {
 
         var pip          = new PIP();
         var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        var variables    = Map.of("key1", (JsonNode) Val.JSON.textNode("valueOfKey"));
+        var variables    = Map.of("key1", Val.of("valueOfKey"));
         var expression   = ParserUtil.expression("<test.attribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
                 .expectNextMatches(valErrorText("Unknown attribute test.attribute")).verifyComplete();
     }
 
-    private Function<Context, Context> constructContext(AttributeContext attributeCtx,
-            Map<String, JsonNode> variables) {
+    private Function<Context, Context> constructContext(AttributeContext attributeCtx, Map<String, Val> variables) {
         return ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());

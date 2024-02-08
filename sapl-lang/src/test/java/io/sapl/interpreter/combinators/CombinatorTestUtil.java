@@ -24,6 +24,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -39,7 +40,7 @@ public class CombinatorTestUtil {
     private static final DefaultSAPLInterpreter     INTERPRETER   = new DefaultSAPLInterpreter();
     private static final AnnotationAttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
     private static final AnnotationFunctionContext  FUNCTION_CTX  = new AnnotationFunctionContext();
-    private static final Map<String, JsonNode>      VARIABLES     = new HashMap<>();
+    private static final Map<String, Val>           VARIABLES     = new HashMap<>();
 
     public static void validateDecision(AuthorizationSubscription subscription, String policySet, Decision expected) {
         var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getDecision);

@@ -21,8 +21,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.function.Function;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -54,7 +52,7 @@ class StepBuilder {
      * @return {@link GivenStep} to start constructing the test case.
      */
     static GivenStep newBuilderAtGivenStep(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx,
-            Map<String, JsonNode> variables) {
+            Map<String, Val> variables) {
         return new Steps(document, attrCtx, funcCtx, variables);
     }
 
@@ -65,7 +63,7 @@ class StepBuilder {
      * @return {@link WhenStep} to start constructing the test case.
      */
     static WhenStep newBuilderAtWhenStep(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx,
-            Map<String, JsonNode> variables) {
+            Map<String, Val> variables) {
         return new Steps(document, attrCtx, funcCtx, variables);
     }
 
@@ -81,7 +79,7 @@ class StepBuilder {
 
         final SAPL document;
 
-        Steps(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
+        Steps(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, Val> variables) {
             this.document                = document;
             this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
             this.mockingAttributeContext = new MockingAttributeContext(attrCtx);

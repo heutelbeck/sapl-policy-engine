@@ -124,7 +124,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
     @Override
     public Flux<Val> evaluateAttribute(String attributeName, Val leftHandValue, Arguments arguments,
-            Map<String, JsonNode> variables) {
+            Map<String, Val> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), false);
         if (attributeMetadata == null)
             return Flux.just(Val.error(UNKNOWN_ATTRIBUTE_ERROR, attributeName));
@@ -133,7 +133,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
     @Override
     public Flux<Val> evaluateEnvironmentAttribute(String attributeName, Arguments arguments,
-            Map<String, JsonNode> variables) {
+            Map<String, Val> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), true);
         if (attributeMetadata == null)
             return Flux.just(Val.error(UNKNOWN_ATTRIBUTE_ERROR, attributeName));
@@ -141,7 +141,7 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     private Flux<Val> evaluateEnvironmentAttribute(String attributeName, AttributeFinderMetadata attributeMetadata,
-            Arguments arguments, Map<String, JsonNode> variables) {
+            Arguments arguments, Map<String, Val> variables) {
         var pip    = attributeMetadata.getPolicyInformationPoint();
         var method = attributeMetadata.getFunction();
         return attributeFinderArguments(attributeMetadata, arguments, variables)
@@ -166,7 +166,7 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     private Flux<Val> evaluateAttribute(String attributeName, AttributeFinderMetadata attributeMetadata,
-            Val leftHandValue, Arguments arguments, Map<String, JsonNode> variables) {
+            Val leftHandValue, Arguments arguments, Map<String, Val> variables) {
 
         var pip    = attributeMetadata.getPolicyInformationPoint();
         var method = attributeMetadata.getFunction();
@@ -220,7 +220,7 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Arguments arguments,
-            Map<String, JsonNode> variables) {
+            Map<String, Val> variables) {
 
         var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
@@ -240,12 +240,12 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     private Function<Object[], Object[]> argumentCombiner(AttributeFinderMetadata attributeMetadata,
-            Map<String, JsonNode> variables, int numberOfInvocationParameters, Optional<Val> leftHandValue) {
+            Map<String, Val> variables, int numberOfInvocationParameters, Optional<Val> leftHandValue) {
         return argumentValues -> combineArguments(attributeMetadata, variables, numberOfInvocationParameters,
                 argumentValues, leftHandValue);
     }
 
-    private Object[] combineArguments(AttributeFinderMetadata attributeMetadata, Map<String, JsonNode> variables,
+    private Object[] combineArguments(AttributeFinderMetadata attributeMetadata, Map<String, Val> variables,
             int numberOfInvocationParameters, Object[] argumentValues, Optional<Val> leftHandValue) {
         var invocationArguments = new Object[numberOfInvocationParameters];
         var argumentIndex       = 0;
@@ -273,7 +273,7 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
-            Arguments arguments, Map<String, JsonNode> variables) {
+            Arguments arguments, Map<String, Val> variables) {
 
         var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
@@ -531,7 +531,7 @@ public class AnnotationAttributeContext implements AttributeContext {
                 .getActualTypeArguments()[0];
         var secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[indexOfParameter])
                 .getActualTypeArguments()[1];
-        return String.class.isAssignableFrom(firstTypeArgument) && JsonNode.class.isAssignableFrom(secondTypeArgument);
+        return String.class.isAssignableFrom(firstTypeArgument) && Val.class.isAssignableFrom(secondTypeArgument);
     }
 
     @Override

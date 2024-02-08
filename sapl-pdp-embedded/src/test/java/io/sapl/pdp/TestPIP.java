@@ -35,7 +35,7 @@ public class TestPIP {
     public static final String DESCRIPTION = "Policy information Point for testing";
 
     @Attribute
-    public Flux<Val> upper(@Text Val leftHandValue, Map<String, JsonNode> variables) {
+    public Flux<Val> upper(@Text Val leftHandValue, Map<String, Val> variables) {
         return Flux.just(Val.of(leftHandValue.get().asText().toUpperCase()));
     }
 

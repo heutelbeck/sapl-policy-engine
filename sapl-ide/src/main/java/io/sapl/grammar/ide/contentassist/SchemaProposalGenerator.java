@@ -29,7 +29,6 @@ import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
@@ -55,21 +54,21 @@ public class SchemaProposalGenerator {
     private static final Collection<String> KEYWORDS_INDICATING_TYPE_ARRAY = Set.of("allOf", "anyOf", "oneOf", TYPE);
 
     public static Collection<String> getCodeTemplates(String prefix, Expression expression,
-            Map<String, JsonNode> variables) {
+            Map<String, Val> variables) {
         if (expression == null)
             return List.of();
         return expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, variables))
                 .map(schema -> SchemaProposalGenerator.getCodeTemplates(prefix, schema, variables)).blockFirst();
     }
 
-    public static List<String> getCodeTemplates(String prefix, Val schema, Map<String, JsonNode> variables) {
+    public static List<String> getCodeTemplates(String prefix, Val schema, Map<String, Val> variables) {
         if (!schema.isDefined())
             return List.of();
 
         return getCodeTemplates(prefix, schema.get(), variables);
     }
 
-    public static List<String> getCodeTemplates(String prefix, JsonNode schema, Map<String, JsonNode> variables) {
+    public static List<String> getCodeTemplates(String prefix, JsonNode schema, Map<String, Val> variables) {
         var proposals = new ArrayList<String>();
         if (schema == null)
             return proposals;
@@ -85,9 +84,12 @@ public class SchemaProposalGenerator {
         return proposals;
     }
 
-    private static void loadSchemasFromVariables(Map<String, JsonNode> variables, Map<String, JsonNode> definitions) {
-        var schemaArray = variables.getOrDefault("SCHEMAS", JsonNodeFactory.instance.arrayNode());
-        for (var variable : schemaArray) {
+    private static void loadSchemasFromVariables(Map<String, Val> variables, Map<String, JsonNode> definitions) {
+        var schemaArray = variables.getOrDefault("SCHEMAS", Val.ofEmptyArray());
+        if (!schemaArray.isArray()) {
+            return;
+        }
+        for (var variable : schemaArray.getArrayNode()) {
             loadSchema(variable, definitions);
         }
     }

@@ -25,8 +25,6 @@ import java.util.Map;
 
 import org.hamcrest.Matcher;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.Imports;
@@ -75,8 +73,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
     }
 
     @Override
-    public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables,
-            List<Flux<Val>> args) {
+    public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, Val> variables, List<Flux<Val>> args) {
 
         List<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingParentValueMockReturnValue(
                 parentValue);

@@ -23,9 +23,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
@@ -46,7 +46,7 @@ public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombin
 
     public ClasspathVariablesAndCombinatorSource(@NonNull String configPath, @NonNull ObjectMapper mapper,
             PolicyDocumentCombiningAlgorithm testInternalConfiguredCombiningAlg,
-            Map<String, JsonNode> testInternalConfiguredVariables) {
+            Map<String, Val> testInternalConfiguredVariables) {
         log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 
         var configDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), configPath);
@@ -85,7 +85,7 @@ public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombin
     }
 
     @Override
-    public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+    public Flux<Optional<Map<String, Val>>> getVariables() {
         return Flux.just(config.getVariables()).map(HashMap::new).map(Optional::of);
     }
 
