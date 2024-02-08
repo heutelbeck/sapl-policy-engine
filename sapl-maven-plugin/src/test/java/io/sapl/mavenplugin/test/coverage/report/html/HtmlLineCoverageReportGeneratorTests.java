@@ -52,8 +52,8 @@ class HtmlLineCoverageReportGeneratorTests {
 
     @Test
     void test(@TempDir Path tempDir) throws MojoExecutionException {
-        GENERATOR.generateHtmlReport(SampleCoverageInformation.documents(), tempDir, POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO,
-                POLICY_CONDITION_HIT_RATIO);
+        GENERATOR.generateHtmlReport(SampleCoverageInformation.documents(), tempDir, POLICY_SET_HIT_RATIO,
+                POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO);
         assertEquals(Boolean.TRUE, tempDir.resolve("html/assets/images/favicon.png").toFile().exists());
         assertEquals(Boolean.TRUE, tempDir.resolve("html/assets/images/logo-header.png").toFile().exists());
         assertEquals(Boolean.TRUE, tempDir.resolve("html/assets/lib/css/main.css").toFile().exists());
@@ -86,8 +86,9 @@ class HtmlLineCoverageReportGeneratorTests {
     void test_readFileFromClasspath_IOException(@TempDir Path tempDir) {
         try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
             mockedFiles.when(() -> Files.writeString(Mockito.any(), Mockito.any())).thenThrow(IOException.class);
-            assertThrows(MojoExecutionException.class, () -> GENERATOR.generateHtmlReport(SampleCoverageInformation.documents(), tempDir,
-                    POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
+            assertThrows(MojoExecutionException.class,
+                    () -> GENERATOR.generateHtmlReport(SampleCoverageInformation.documents(), tempDir,
+                            POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
         }
     }
 
@@ -98,8 +99,9 @@ class HtmlLineCoverageReportGeneratorTests {
             var nonExistingFiles = List
                     .of(new WebDependency("I do not exist", "I do not exist", "I do not exist", "I do not exist"));
             mockedDependencyFactory.when(() -> WebDependencyFactory.getWebDependencies()).thenReturn(nonExistingFiles);
-            assertThrows(MojoExecutionException.class, () -> GENERATOR.generateHtmlReport(SampleCoverageInformation.documents(), tempDir,
-                    POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
+            assertThrows(MojoExecutionException.class,
+                    () -> GENERATOR.generateHtmlReport(SampleCoverageInformation.documents(), tempDir,
+                            POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
         }
     }
 
