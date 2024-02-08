@@ -18,10 +18,10 @@
 package io.sapl.mavenplugin.test.coverage.stubs;
 
 import java.io.File;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.io.input.XmlStreamReader;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
@@ -39,7 +39,7 @@ public class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
         MavenXpp3Reader pomReader = new MavenXpp3Reader();
         Model           model;
         try {
-            model = pomReader.read(new XmlStreamReader(new File(getBasedir(), "pom.xml")));
+            model = pomReader.read((new FileReader(new File(getBasedir(), "pom.xml"))));
             setModel(model);
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -69,12 +69,26 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
     @Override
     public SAPL parse(InputStream saplInputStream) {
-        var sapl       = loadAsResource(saplInputStream);
+
+        InputStream convertedSaplInputStream;
+        try {
+            convertedSaplInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(saplInputStream);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+            throw new PolicyEvaluationException(
+                    composeReason("Invalid byte sequence in InputStream. Could not transform to UTF-8"));
+        }
+
+        var sapl       = loadAsResource(convertedSaplInputStream);
         var diagnostic = Diagnostician.INSTANCE.validate(sapl);
         if (diagnostic.getSeverity() == Diagnostic.OK)
             return sapl;
 
         throw new PolicyEvaluationException(composeReason(diagnostic));
+    }
+
+    private String composeReason(String s) {
+        return String.format("SAPL Validation Error: [%s]", s);
     }
 
     private String composeReason(Diagnostic diagnostic) {
