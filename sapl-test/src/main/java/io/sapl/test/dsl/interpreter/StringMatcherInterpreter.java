@@ -35,6 +35,8 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.Matchers.startsWithIgnoringCase;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import org.hamcrest.Matcher;
 
 import io.sapl.test.SaplTestException;
@@ -85,7 +87,7 @@ class StringMatcherInterpreter {
         } else if (stringMatcher instanceof StringIsEqualIgnoringCase stringIsEqualIgnoringCase) {
             return equalToIgnoringCase(stringIsEqualIgnoringCase.getValue());
         } else if (stringMatcher instanceof StringMatchesRegex stringMatchesRegex) {
-            return matchesRegex(stringMatchesRegex.getRegex());
+            return handleStringMatchesRegex(stringMatchesRegex);
         } else if (stringMatcher instanceof StringStartsWith stringStartsWith) {
             final var prefix = stringStartsWith.getPrefix();
 
@@ -107,17 +109,26 @@ class StringMatcherInterpreter {
         throw new SaplTestException("Unknown type of StringMatcher");
     }
 
+    private static Matcher<String> handleStringMatchesRegex(StringMatchesRegex stringMatchesRegex) {
+        try {
+            final var pattern = Pattern.compile(stringMatchesRegex.getRegex());
+            return matchesRegex(pattern);
+        } catch (PatternSyntaxException e) {
+            throw new SaplTestException("The given regex has an invalid format", e);
+        }
+    }
+
     private Matcher<? super String> handleStringWithLength(final StringWithLength stringWithLength) {
         try {
             final var length = stringWithLength.getLength().intValueExact();
 
-            if (length < 0) {
+            if (length < 1) {
                 throw new ArithmeticException();
             }
 
             return hasLength(length);
         } catch (ArithmeticException e) {
-            throw new SaplTestException("String length needs to be an natural number", e);
+            throw new SaplTestException("String length needs to be an natural number larger than 0", e);
         }
     }
 }
