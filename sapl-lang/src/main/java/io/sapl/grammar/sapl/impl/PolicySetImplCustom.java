@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
@@ -91,9 +92,9 @@ public class PolicySetImplCustom extends PolicySetImpl {
         var valueDefinition           = valueDefinitions.get(valueDefinitionId);
         var evaluatedValueDefinitions = valueDefinition.getEval().evaluate();
         return evaluatedValueDefinitions.switchMap(value -> evaluateValueDefinitionsAndPolicies(valueDefinitionId + 1)
-                .contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(), value.withTrace(
-                        PolicySet.class,
-                        Map.of("policySet", Val.of(saplName), "variableName", Val.of(valueDefinition.getName()))))));
+                .contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(),
+                        value.withTrace(PolicySet.class, Map.of(Trace.POLICY_SET, Val.of(saplName), Trace.VARIABLE_NAME,
+                                Val.of(valueDefinition.getName()), Trace.VALUE, value)))));
     }
 
     private Flux<CombinedDecision> evaluateAndCombinePoliciesOfSet() {

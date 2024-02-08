@@ -19,8 +19,6 @@ package io.sapl.pdp;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;

@@ -17,6 +17,8 @@
  */
 package io.sapl.integrationtest;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -48,11 +50,9 @@ import io.sapl.pip.TimePolicyInformationPoint;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Slf4j
 class SpecificScenarioTests {
 
     private final static ObjectMapper MAPPER                = new ObjectMapper();
@@ -82,14 +82,10 @@ class SpecificScenarioTests {
               %s
               "environment": null
             }""";
-    private final static String       SUB_ZOE_BOOK3         = String.format(SUBSCRIPTION_TEMPLATE, "zoe",
-            birthdayForAgeInYears(17), BOOK3);
     private final static String       SUB_BOB_BOOK3         = String.format(SUBSCRIPTION_TEMPLATE, "bob",
             birthdayForAgeInYears(10), BOOK3);
     private final static String       SUB_BOB_BOOK4         = String.format(SUBSCRIPTION_TEMPLATE, "bob",
             birthdayForAgeInYears(10), BOOK4);
-    private final static String       SUB_ALICE_BOOK3       = String.format(SUBSCRIPTION_TEMPLATE, "alice",
-            birthdayForAgeInYears(3), BOOK3);
 
     @Test
     void tutorialAgeCheckSzenario() throws JsonProcessingException {
@@ -130,14 +126,10 @@ class SpecificScenarioTests {
         policyRetrievalPoint.load(policySet);
         var pdp = new EmbeddedPolicyDecisionPoint(pdpConfigurationProvider, policyRetrievalPoint);
 
-        log.info(
-                "----------------------------------------------------------------------------------------------------");
-        pdp.decide(subBobBook3).blockFirst();
-        log.info(
-                "----------------------------------------------------------------------------------------------------");
-        pdp.decide(subBobBook4).blockFirst();
-        log.info(
-                "----------------------------------------------------------------------------------------------------");
+        var decisionBook3 = pdp.decide(subBobBook3).blockFirst();
+        assertThat(decisionBook3.getObligations()).isEmpty();
+        var decisionBook4 = pdp.decide(subBobBook4).blockFirst();
+        assertThat(decisionBook4.getObligations()).isNotEmpty();
     }
 
     private static class SimplePDPConfigurationProvider implements PDPConfigurationProvider {
