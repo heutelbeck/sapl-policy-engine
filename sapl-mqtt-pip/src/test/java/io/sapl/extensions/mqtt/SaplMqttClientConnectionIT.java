@@ -41,12 +41,10 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 
 import io.sapl.api.interpreter.Val;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
 
-@Slf4j
 class SaplMqttClientConnectionIT {
 
     private static final ObjectMapper MAPPER   = new ObjectMapper();
@@ -103,8 +101,6 @@ class SaplMqttClientConnectionIT {
 
         var configForUndefinedVal = Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig",
                 Val.ofJson(mqttPipConfigForUndefinedVal), "resource", Val.NULL, "subject", Val.NULL);
-
-        log.info("PIP Config:\n" + MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(configForUndefinedVal));
 
         // WHEN
         var saplMqttClient      = new SaplMqttClient();
