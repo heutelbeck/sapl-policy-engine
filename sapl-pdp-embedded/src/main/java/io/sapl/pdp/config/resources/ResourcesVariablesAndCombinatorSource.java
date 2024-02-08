@@ -78,10 +78,8 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
                 }
                 var variables = new HashMap<String, Val>();
                 if (jsonNode.has("variables")) {
-                    jsonNode.get("variables").fields().forEachRemaining(field -> {
-                        variables.put(field.getKey(),
-                                Val.of(field.getValue()).withTrace(VariablesAndCombinatorSource.class));
-                    });
+                    jsonNode.get("variables").fields().forEachRemaining(field -> variables.put(field.getKey(),
+                            Val.of(field.getValue()).withTrace(VariablesAndCombinatorSource.class)));
                 }
                 this.config.setVariables(variables);
             });

@@ -42,7 +42,7 @@ public class VariableContext {
 
     public VariableContext(Map<String, Val> environmentVariables) {
         variables = Maps.newHashMapWithExpectedSize(environmentVariables.size());
-        environmentVariables.forEach((key, value) -> variables.put(key, value));
+        environmentVariables.forEach(variables::put);
     }
 
     public VariableContext withEnvironmentVariable(String identifier, JsonNode value) {
@@ -90,7 +90,7 @@ public class VariableContext {
      */
     private VariableContext copy() {
         var variablesCopy = new HashMap<String, Val>();
-        variables.forEach((key, value) -> variablesCopy.put(key, value));
+        variables.forEach(variablesCopy::put);
         return new VariableContext(variablesCopy);
     }
 
