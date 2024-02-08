@@ -41,7 +41,6 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
                 List.of());
         var config   = provider.pdpConfiguration().blockFirst();
         provider.destroy();
-
         assertThat(config.documentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
         assertThat(config.attributeContext(), is(attrCtx));
         assertThat(config.functionContext(), is(funcCtx));

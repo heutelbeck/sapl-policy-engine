@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
 import okhttp3.mockwebserver.MockWebServer;
 
@@ -58,8 +59,7 @@ class JsonTestUtility {
      * @param keyPair2 KeyPair of the second public key. Bogus, if null
      * @return whitelist variables containing two public keys
      */
-    static Map<String, JsonNode> publicKeyWhitelistVariables(String kid1, KeyPair keyPair1, String kid2,
-            KeyPair keyPair2) {
+    static Map<String, Val> publicKeyWhitelistVariables(String kid1, KeyPair keyPair1, String kid2, KeyPair keyPair2) {
 
         ObjectNode keyNode   = MAPPER.createObjectNode();
         ObjectNode valueNode = MAPPER.createObjectNode();
@@ -76,7 +76,7 @@ class JsonTestUtility {
         valueNode.put(kid2, encodedSecondKey);
 
         keyNode.set(JWTPolicyInformationPoint.WHITELIST_VARIABLES_KEY, valueNode);
-        return Map.of("jwt", keyNode);
+        return Map.of("jwt", Val.of(keyNode));
     }
 
     /**
@@ -87,13 +87,13 @@ class JsonTestUtility {
      * @return environment variables containing public key server URI and request
      *         method
      */
-    static Map<String, JsonNode> publicKeyUriVariables(MockWebServer server, String method) {
+    static Map<String, Val> publicKeyUriVariables(MockWebServer server, String method) {
 
         ObjectNode keyNode   = MAPPER.createObjectNode();
         ObjectNode valueNode = serverNode(server, method, null);
 
         keyNode.set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY, valueNode);
-        return Map.of("jwt", keyNode);
+        return Map.of("jwt", Val.of(keyNode));
     }
 
     static ObjectNode serverNode(MockWebServer server, String method, Object ttl) {

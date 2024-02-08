@@ -107,7 +107,7 @@ public class SaplMqttClient {
      * @param variables The configuration specified in the PDP configuration file.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
-    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables) {
+    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables) {
         return buildSaplMqttMessageFlux(topic, variables, null, Val.UNDEFINED);
     }
 
@@ -122,7 +122,7 @@ public class SaplMqttClient {
      *                  variable may be null.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
-    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables, Val qos) {
+    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables, Val qos) {
         return buildSaplMqttMessageFlux(topic, variables, qos, Val.UNDEFINED);
     }
 
@@ -145,12 +145,12 @@ public class SaplMqttClient {
      *                      different brokers. This variable may be null.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
-    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, JsonNode> variables, Val qos,
-            Val mqttPipConfig) {
+    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables, Val qos, Val mqttPipConfig) {
         // building mqtt message flux
         try {
-            var pipMqttClientConfig = variables.isEmpty() ? null : variables.get(ENVIRONMENT_MQTT_PIP_CONFIG);
-            var messageFlux         = buildMqttMessageFlux(topic, qos, mqttPipConfig, pipMqttClientConfig);
+            var pipMqttClientConfigVal = variables == null ? null : variables.get(ENVIRONMENT_MQTT_PIP_CONFIG);
+            var pipMqttClientConfig    = pipMqttClientConfigVal.isDefined() ? pipMqttClientConfigVal.get() : null;
+            var messageFlux            = buildMqttMessageFlux(topic, qos, mqttPipConfig, pipMqttClientConfig);
             return addDefaultValueToMessageFlux(pipMqttClientConfig, mqttPipConfig, messageFlux)
                     .onErrorResume(error -> {
                         log.debug("An error occurred on the sapl mqtt message flux: {}", error.getMessage());

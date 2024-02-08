@@ -55,7 +55,7 @@ class FilterFunctionLibraryTests {
             .enable(SerializationFeature.INDENT_OUTPUT);
     private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
     private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
-    private static final Map<String, JsonNode>      SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+    private static final Map<String, Val>           SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
     private AnnotationFunctionContext functionCtx;
 

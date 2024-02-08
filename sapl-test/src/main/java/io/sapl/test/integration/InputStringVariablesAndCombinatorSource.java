@@ -25,6 +25,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
@@ -41,11 +42,22 @@ public class InputStringVariablesAndCombinatorSource implements VariablesAndComb
 
     public InputStringVariablesAndCombinatorSource(@NonNull String input, @NonNull ObjectMapper mapper,
             PolicyDocumentCombiningAlgorithm testInternalConfiguredCombiningAlg,
-            Map<String, JsonNode> testInternalConfiguredVariables) {
+            Map<String, Val> testInternalConfiguredVariables) {
         log.info("Loading the PDP configuration from input string");
-
         try {
-            config = mapper.readValue(input, PolicyDecisionPointConfiguration.class);
+            var jsonNode = mapper.readValue(input, JsonNode.class);
+            this.config = new PolicyDecisionPointConfiguration();
+            if (jsonNode.has("algorithm")) {
+                this.config.setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
+            }
+            var variables = new HashMap<String, Val>();
+            if (jsonNode.has("variables")) {
+                jsonNode.get("variables").fields().forEachRemaining(field -> {
+                    variables.put(field.getKey(),
+                            Val.of(field.getValue()).withTrace(VariablesAndCombinatorSource.class));
+                });
+            }
+            this.config.setVariables(variables);
         } catch (IOException e) {
             throw Exceptions.propagate(e);
         }
@@ -64,7 +76,7 @@ public class InputStringVariablesAndCombinatorSource implements VariablesAndComb
     }
 
     @Override
-    public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+    public Flux<Optional<Map<String, Val>>> getVariables() {
         return Flux.just(config.getVariables()).map(HashMap::new).map(Optional::of);
     }
 

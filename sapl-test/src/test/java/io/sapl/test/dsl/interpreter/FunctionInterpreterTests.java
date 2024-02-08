@@ -27,7 +27,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.grammar.sapltest.ParameterMatchers;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -56,6 +55,7 @@ import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.Multiple;
 import io.sapl.test.grammar.sapltest.NumberLiteral;
 import io.sapl.test.grammar.sapltest.Once;
+import io.sapl.test.grammar.sapltest.ParameterMatchers;
 import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.sapltest.ValWithValue;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;

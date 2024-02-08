@@ -20,8 +20,7 @@ package io.sapl.pdp.config;
 import java.util.Map;
 import java.util.Optional;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import reactor.core.publisher.Flux;
 
@@ -29,7 +28,7 @@ public interface VariablesAndCombinatorSource {
 
     Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm();
 
-    Flux<Optional<Map<String, JsonNode>>> getVariables();
+    Flux<Optional<Map<String, Val>>> getVariables();
 
     default void destroy() {
         // NOOP

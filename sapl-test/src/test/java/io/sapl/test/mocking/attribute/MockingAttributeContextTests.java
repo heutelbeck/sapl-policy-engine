@@ -37,8 +37,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
@@ -51,9 +49,9 @@ import reactor.test.StepVerifier;
 
 class MockingAttributeContextTests {
 
-    private AttributeContext          unmockedCtx;
-    private MockingAttributeContext   attrCtx;
-    private HashMap<String, JsonNode> variables;
+    private AttributeContext        unmockedCtx;
+    private MockingAttributeContext attrCtx;
+    private HashMap<String, Val>    variables;
 
     @BeforeEach
     void setup() {

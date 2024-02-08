@@ -22,7 +22,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
@@ -34,6 +33,7 @@ import com.hivemq.configuration.service.InternalConfigurations;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 import com.hivemq.migration.meta.PersistenceType;
 
+import io.sapl.api.interpreter.Val;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
@@ -88,8 +88,8 @@ class MqttTestUtility {
     }
 
     @SneakyThrows
-    public static JsonNode defaultMqttPipConfig() {
-        return MAPPER.readTree("""
+    public static Val defaultMqttPipConfig() {
+        return Val.ofJson("""
                 {
                   "defaultBrokerConfigName" : "production",
                   "emitAtRetry" : "false",
@@ -103,9 +103,9 @@ class MqttTestUtility {
                 """);
     }
 
-    public static Map<String, JsonNode> buildVariables() {
-        return Map.of("action", MAPPER.nullNode(), "environment", MAPPER.nullNode(), "mqttPipConfig",
-                defaultMqttPipConfig(), "resource", MAPPER.nullNode(), "subject", MAPPER.nullNode());
+    public static Map<String, Val> buildVariables() {
+        return Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig", defaultMqttPipConfig(), "resource",
+                Val.NULL, "subject", Val.NULL);
     }
 
     public static Mqtt5Publish buildMqttPublishMessage(String topic, String payload, boolean retain) {

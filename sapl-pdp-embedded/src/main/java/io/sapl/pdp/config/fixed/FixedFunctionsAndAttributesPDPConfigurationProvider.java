@@ -24,8 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.AuthorizationSubscriptionInterceptor;
 import io.sapl.api.pdp.TracedDecision;
@@ -69,7 +68,7 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
     }
 
     private PDPConfiguration createConfiguration(Optional<CombiningAlgorithm> combinator,
-            Optional<Map<String, JsonNode>> variables) {
+            Optional<Map<String, Val>> variables) {
         return new PDPConfiguration(attributeCtx, functionCtx, variables.orElse(null), combinator.orElse(null),
                 decisionInterceptorChain(), subscriptionInterceptorChain());
     }

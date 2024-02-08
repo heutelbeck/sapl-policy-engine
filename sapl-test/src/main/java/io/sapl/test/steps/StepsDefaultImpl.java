@@ -62,7 +62,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
     protected MockingFunctionContext mockingFunctionContext;
 
-    protected Map<String, JsonNode> variables;
+    protected Map<String, Val> variables;
 
     protected LinkedList<AttributeMockReturnValues> mockedAttributeValues;
 

@@ -57,7 +57,7 @@ class StepsDefaultImplTests {
 
     private FunctionContext funcCtx;
 
-    private Map<String, JsonNode> variables;
+    private Map<String, Val> variables;
 
     private static final String POLICY_SIMPLE_FUNCTION = "policy \"policyWithSimpleFunction\"\r\n" + "permit\r\n"
             + "    action == \"read\"\r\n" + "where\r\n"

@@ -127,14 +127,12 @@ class TestAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Flux<Val> evaluateAttribute(String attribute, Val value, Arguments arguments,
-            Map<String, JsonNode> variables) {
+    public Flux<Val> evaluateAttribute(String attribute, Val value, Arguments arguments, Map<String, Val> variables) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments,
-            Map<String, JsonNode> variables) {
+    public Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments, Map<String, Val> variables) {
         throw new UnsupportedOperationException();
     }
 

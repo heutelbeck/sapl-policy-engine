@@ -36,18 +36,15 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 
 import io.sapl.api.interpreter.Val;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
 
-@Slf4j
 class SaplMqttClientConnectionIT {
 
     private static final ObjectMapper MAPPER   = new ObjectMapper();
@@ -90,7 +87,7 @@ class SaplMqttClientConnectionIT {
     @Test
     void when_brokerConfigIsInvalid_then_returnValOfError() throws JsonProcessingException {
         // GIVEN
-        var mqttPipConfigForUndefinedVal = MAPPER.readTree("""
+        var mqttPipConfigForUndefinedVal = """
                 {
                   "defaultBrokerConfigName" : "falseName",
                   "brokerConfig" : [ {
@@ -100,13 +97,10 @@ class SaplMqttClientConnectionIT {
                     "clientId" : "mqttPipDefault"
                   } ]
                 }
-                """);
+                """;
 
-        var configForUndefinedVal = Map.of("action", MAPPER.nullNode(), "environment", MAPPER.nullNode(),
-                "mqttPipConfig", mqttPipConfigForUndefinedVal, "resource", MAPPER.nullNode(), "subject",
-                MAPPER.nullNode());
-
-        log.info("PIP Config:\n" + MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(configForUndefinedVal));
+        var configForUndefinedVal = Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig",
+                Val.ofJson(mqttPipConfigForUndefinedVal), "resource", Val.NULL, "subject", Val.NULL);
 
         // WHEN
         var saplMqttClient      = new SaplMqttClient();
@@ -121,7 +115,7 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_noConfigIsSpecified_then_returnValOfError() {
         // WHEN
-        var emptyPdpConfig      = Map.<String, JsonNode>of();
+        var emptyPdpConfig      = Map.<String, Val>of();
         var saplMqttClient      = new SaplMqttClient();
         var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, emptyPdpConfig);
 
@@ -331,7 +325,7 @@ class SaplMqttClientConnectionIT {
             throws JsonProcessingException {
         // GIVEN
         var secondaryBroker              = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
-        var mqttPipConfigForUndefinedVal = MAPPER.readTree("""
+        var mqttPipConfigForUndefinedVal = Val.ofJson("""
                 {
                   "defaultBrokerConfigName" : "production",
                   "brokerConfig" : [ {
@@ -342,9 +336,8 @@ class SaplMqttClientConnectionIT {
                   } ]
                 }
                 """);
-        var configForUndefinedVal        = Map.of("action", MAPPER.nullNode(), "environment", MAPPER.nullNode(),
-                "mqttPipConfig", mqttPipConfigForUndefinedVal, "resource", MAPPER.nullNode(), "subject",
-                MAPPER.nullNode());
+        var configForUndefinedVal        = Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig",
+                mqttPipConfigForUndefinedVal, "resource", Val.NULL, "subject", Val.NULL);
 
         // WHEN
         var mqttClient          = startClient();

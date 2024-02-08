@@ -141,7 +141,7 @@ class DefaultTestCaseConstructorTests {
 
         assertEquals(givenOrWhenStepMock, result);
 
-        verify(saplTestFixtureMock, times(1)).registerVariable("key", expectedJsonNode);
+        verify(saplTestFixtureMock, times(1)).registerVariable("key", Val.of(expectedJsonNode));
 
         verifyNoMoreInteractions(saplTestFixtureMock);
     }
@@ -182,8 +182,8 @@ class DefaultTestCaseConstructorTests {
 
         assertEquals(givenOrWhenStepMock, result);
 
-        verify(saplTestFixtureMock, times(1)).registerVariable("key", expectedJsonNode);
-        verify(saplTestFixtureMock, times(1)).registerVariable("key2", expectedJsonNode2);
+        verify(saplTestFixtureMock, times(1)).registerVariable("key", Val.of(expectedJsonNode));
+        verify(saplTestFixtureMock, times(1)).registerVariable("key2", Val.of(expectedJsonNode2));
 
         verifyNoMoreInteractions(saplTestFixtureMock);
     }

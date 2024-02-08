@@ -37,6 +37,7 @@ import static org.hamcrest.Matchers.stringContainsInOrder;
 
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
 import org.hamcrest.Matcher;
 
 import io.sapl.test.SaplTestException;

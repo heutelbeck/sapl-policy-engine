@@ -24,8 +24,6 @@ import java.util.Map;
 
 import org.eclipse.emf.common.util.EList;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
@@ -72,7 +70,7 @@ public class MockUtil {
             functionCtx.loadLibrary(FilterFunctionLibrary.class);
             functionCtx.loadLibrary(TestFunctionLibrary.class);
         } catch (InitializationException e) {
-            fail("The loading of function libraries for the test environment failed: " + e.getMessage());
+            fail("The loading of libraries for the test environment failed: " + e.getMessage());
         }
 
         ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
@@ -127,22 +125,22 @@ public class MockUtil {
     public static class TestPolicyInformationPoint {
 
         @EnvironmentAttribute
-        public Flux<Val> nilflux(Map<String, JsonNode> variables) {
+        public Flux<Val> nilflux(Map<String, Val> variables) {
             return Flux.just(Val.NULL);
         }
 
         @EnvironmentAttribute
-        public Flux<Val> numbers(Map<String, JsonNode> variables) {
+        public Flux<Val> numbers(Map<String, Val> variables) {
             return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
         }
 
         @Attribute
-        public Flux<Val> numbers(Val leftHand, Map<String, JsonNode> variables) {
+        public Flux<Val> numbers(Val leftHand, Map<String, Val> variables) {
             return Flux.just(Val.of(0), Val.of(1), Val.of(2), Val.of(3), Val.of(4), Val.of(5));
         }
 
         @EnvironmentAttribute
-        public Flux<Val> numbersWithError(Map<String, JsonNode> variables) {
+        public Flux<Val> numbersWithError(Map<String, Val> variables) {
             return Flux.just(Val.of(0), Val.of(1), Val.error("INTENTIONAL ERROR IN SEQUENCE"), Val.of(3), Val.of(4),
                     Val.of(5));
         }

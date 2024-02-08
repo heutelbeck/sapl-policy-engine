@@ -852,12 +852,12 @@ class SchemaProposalGeneratorTests {
             String schema, String[] expectedProposals) {
         assertThat(test).isNotEmpty();
         var schemaJson   = Val.ofJson(schema).get();
-        var variablesMap = new HashMap<String, JsonNode>();
+        var variablesMap = new HashMap<String, Val>();
         var schemasArray = JsonNodeFactory.instance.arrayNode();
         for (var variable : variables) {
             schemasArray.add(Val.ofJson(variable).get());
         }
-        variablesMap.put("SCHEMAS", schemasArray);
+        variablesMap.put("SCHEMAS", Val.of(schemasArray));
         var actualProposals = SchemaProposalGenerator.getCodeTemplates("", schemaJson, variablesMap);
         assertThat(actualProposals).containsExactlyInAnyOrder(expectedProposals);
     }

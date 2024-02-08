@@ -18,6 +18,7 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.steps.GivenOrWhenStep;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ class DefaultTestCaseConstructor {
             final var environmentVariables = valueInterpreter.destructureObject(environment);
 
             if (environmentVariables != null) {
-                environmentVariables.forEach(saplTestFixture::registerVariable);
+                environmentVariables.forEach((key, json) -> saplTestFixture.registerVariable(key, Val.of(json)));
             }
         }
 
