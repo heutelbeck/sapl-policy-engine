@@ -19,9 +19,14 @@ package io.sapl.grammar.ide.contentassist;
 
 import static io.sapl.grammar.ide.contentassist.ExpressionSchemaResolver.offsetOf;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.Assignment;
 import org.eclipse.xtext.GrammarUtil;
@@ -31,6 +36,7 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Strings;
 
 import io.sapl.grammar.sapl.Import;

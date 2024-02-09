@@ -17,7 +17,8 @@
  */
 package io.sapl.interpreter.variables;
 
-import static io.sapl.hamcrest.Matchers.*;
+import static io.sapl.hamcrest.Matchers.val;
+import static io.sapl.hamcrest.Matchers.valUndefined;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;

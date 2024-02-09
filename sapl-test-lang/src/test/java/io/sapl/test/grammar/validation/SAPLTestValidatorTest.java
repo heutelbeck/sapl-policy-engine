@@ -17,10 +17,6 @@
  */
 package io.sapl.test.grammar.validation;
 
-import com.google.inject.Inject;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import io.sapl.test.grammar.sapltest.SapltestPackage;
-import io.sapl.test.grammar.tests.SAPLTestInjectorProvider;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
@@ -30,6 +26,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import com.google.inject.Inject;
+
+import io.sapl.test.grammar.sapltest.SAPLTest;
+import io.sapl.test.grammar.sapltest.SapltestPackage;
+import io.sapl.test.grammar.tests.SAPLTestInjectorProvider;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(SAPLTestInjectorProvider.class)
