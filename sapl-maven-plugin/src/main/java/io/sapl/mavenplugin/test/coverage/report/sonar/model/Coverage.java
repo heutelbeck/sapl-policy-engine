@@ -97,7 +97,7 @@ public class Coverage {
 
     /**
      * -- GETTER -- Gets the value of the version property.
-     *
+     * <p>
      *
      * -- SETTER -- Sets the value of the version property.
      *
@@ -189,7 +189,7 @@ public class Coverage {
 
         /**
          * -- GETTER -- Gets the value of the path property.
-         *
+         * <p>
          *
          * -- SETTER -- Sets the value of the path property.
          *
@@ -268,7 +268,7 @@ public class Coverage {
 
             /**
              * -- GETTER -- Gets the value of the lineNumber property.
-             *
+             * <p>
              *
              * -- SETTER -- Sets the value of the lineNumber property.
              *
@@ -281,7 +281,7 @@ public class Coverage {
 
             /**
              * -- GETTER -- Gets the value of the covered property.
-             *
+             * <p>
              *
              * -- SETTER -- Sets the value of the covered property.
              *
@@ -293,7 +293,7 @@ public class Coverage {
 
             /**
              * -- GETTER -- Gets the value of the branchesToCover property.
-             *
+             * <p>
              *
              * -- SETTER -- Sets the value of the branchesToCover property.
              *
@@ -306,7 +306,7 @@ public class Coverage {
 
             /**
              * -- GETTER -- Gets the value of the coveredBranches property.
-             *
+             * <p>
              *
              * -- SETTER -- Sets the value of the coveredBranches property.
              *

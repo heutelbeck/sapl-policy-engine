@@ -77,17 +77,17 @@ class ApplyStepsConditionTests {
 	 			Arguments.of("[10,1] |- { @[?(123)] : mock.emptyString }",
 	 					     "Type mismatch. Expected the condition expression to return a Boolean, but was '123'.")
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
-	void expressionEvaluatesToExpectedValue(String expression, String expected) {
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("provideStringsForExpressionEvaluatesToExpectedValue")
+    void expressionEvaluatesToExpectedValue(String expression, String expected) {
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForExpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 	 			// Apply to object condition not boolean
 	 			Arguments.of("{ \"key\" : null }[?(null)]", "[]"),
@@ -131,7 +131,7 @@ class ApplyStepsConditionTests {
 	 			// filter empty object
 	 			Arguments.of("{} |- { @[?(@>2)] : mock.emptyString }", "{}")
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
 }

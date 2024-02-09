@@ -423,7 +423,7 @@ public class AnnotationAttributeContext implements AttributeContext {
             throw new InitializationException(
                     "Cannot initialize PIPs. If no PIP instance is provided, the method of an attribute finder must be static. "
                             + method.getName()
-                            + " is not static. In case your PIP implementation cannot have the method as static because it depends on PIP state or injected dependecies, make sure to register the PIP as an instance instead of a class.");
+                            + " is not static. In case your PIP implementation cannot have the method as static because it depends on PIP state or injected dependencies, make sure to register the PIP as an instance instead of a class.");
         }
     }
 

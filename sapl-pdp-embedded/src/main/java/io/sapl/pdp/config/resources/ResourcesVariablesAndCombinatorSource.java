@@ -85,7 +85,7 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
             });
         } catch (IOException e) {
             throw new InitializationException(e,
-                    "Failed to load configuration pdp.json from '" + configPath + "' in resoures");
+                    "Failed to load configuration pdp.json from '" + configPath + "' in resources");
         }
     }
 

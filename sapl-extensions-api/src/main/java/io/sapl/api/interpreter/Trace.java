@@ -46,7 +46,7 @@ public class Trace {
     public static final String DIVISOR                    = "divisor";
     public static final String DOCUMENT_TYPE              = "documentType";
     public static final String ELEMENT_INDEX              = "elementIndex";
-    public static final String ENTITILEMENT               = "entitlement";
+    public static final String ENTITLEMENT                = "entitlement";
     public static final String ERROR_MESSAGE              = "errorMessage";
     public static final String EVALUATED_POLICIES         = "evaluatedPolicies";
     public static final String EXPLANATION                = "explanation";

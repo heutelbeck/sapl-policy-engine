@@ -131,7 +131,7 @@ public class AuthorizationContext {
     }
 
     @SuppressWarnings("unchecked")
-    // In this case the catch clause takes care of making it fail safe and solves
+    // In this case the catch clause takes care of making it fail-safe and solves
     // the runtime type erasure problem for this case.
     public static Map<String, Val> getVariables(ContextView ctx) {
         Map<String, Val> result = null;

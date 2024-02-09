@@ -24,6 +24,7 @@ import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.ElementConstants;
+
 import lombok.Getter;
 
 /**
@@ -31,18 +32,14 @@ import lombok.Getter;
  */
 public class BaseEditor extends Component {
 
-    private static final String                 IS_LINT             = "isLint";
-    private static final String                 TEXT_UPDATE_DELAY   = "textUpdateDelay";
-    private static final String                 MATCH_BRACKETS      = "matchBrackets";
-    private static final String                 AUTO_CLOSE_BRACKETS = "autoCloseBrackets";
-    private static final String                 HAS_LINE_NUMBERS    = "hasLineNumbers";
-    private static final String                 IS_DARK_THEME       = "isDarkTheme";
-    private static final String                 IS_READ_ONLY_KEY    = "isReadOnly";
-    /**
-     * -- GETTER -- Returns the current document from the editor.
-     *
-     * @return The current document from the editor.
-     */
+    private static final String IS_LINT             = "isLint";
+    private static final String TEXT_UPDATE_DELAY   = "textUpdateDelay";
+    private static final String MATCH_BRACKETS      = "matchBrackets";
+    private static final String AUTO_CLOSE_BRACKETS = "autoCloseBrackets";
+    private static final String HAS_LINE_NUMBERS    = "hasLineNumbers";
+    private static final String IS_DARK_THEME       = "isDarkTheme";
+    private static final String IS_READ_ONLY_KEY    = "isReadOnly";
+
     @Getter
     private String                              document;
     private final List<DocumentChangedListener> documentChangedListeners;

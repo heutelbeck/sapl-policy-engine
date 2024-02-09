@@ -116,7 +116,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
     }
 
     /**
-     * looks for given class in a sub tree of the AST
+     * looks for given class in a subtree of the AST
      *
      * @param startNode start node
      * @param aClass    forbidden type

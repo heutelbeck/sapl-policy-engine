@@ -197,7 +197,7 @@ class JWTPolicyInformationPointTests {
 
     @Test
     void validity_withUriEnvironmentMissingServer_shouldBeUntrusted() throws JOSEException {
-        var variables = Map.<String, Val>of("jwt", Val.ofEmptyObject());
+        var variables = Map.of("jwt", Val.ofEmptyObject());
         var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         var claims    = new JWTClaimsSet.Builder().build();
         var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);

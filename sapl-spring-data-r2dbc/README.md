@@ -90,7 +90,7 @@ The individual attributes of the annotation can be filled with JSON strings. To 
 
 ### By Bean 
 In order to be able to offer the ``AuthorizationSubscription`` as a bean, the bean must have a specific name. For this purpose, the name of the bean must consist of the name of the method and the name of the repository. 
-If no bean is found for the specific method, a general bean is searched for for the entire repository. The name of the general bean is made up of the keyword ``generalProtection`` and the name of the repository. However, no error is triggered if, for example, an attribute is missing, there is no annotation or no bean was found at all.
+If no bean is found for the specific method, a general bean is searched for the entire repository. The name of the general bean is made up of the keyword ``generalProtection`` and the name of the repository. However, no error is triggered if, for example, an attribute is missing, there is no annotation or no bean was found at all.
 The following is an example of the naming of the bean.
 
 | Type                | Name                                                |
@@ -115,7 +115,7 @@ public class SaplConfig {
 ```
 
 ### Policy
-The following is an example of how a database query can be manipulated within a policy. The obligation is initiated by the ``r2dbcQueryManipulation`` type. Followed by a key called ``conditions``. Conditions here is introduced as an array, but the system only expects a string within the array. For generalization reasons, an array is expected here and a string is expected to make it easier to assemble the SQL query. Even with a string, the user can express everything desired and it makes everything less complicated. The condition must correspond to the syntax of an SQL WHERE clause. The domain type contains a property with name ``active``: `` "active = true" ``
+The following is an example of how a database query can be manipulated within a policy. The obligation is initiated by the ``r2dbcQueryManipulation`` type. Followed by a key called ``conditions``. Conditions here is introduced as an array, but the system only expects a string within the array. For generalization reasons, an array is expected here and a string is expected to make it easier to assemble the SQL query. Even with a string, the user can express everything desired, and it makes everything less complicated. The condition must correspond to the syntax of an SQL WHERE clause. The domain type contains a property with name ``active``: `` "active = true" ``
 Further obligations of type ``filterJsonContent`` or ``jsonContentFilterPredicate`` can be combined here as desired. These are part of the sapl-spring-security module. 
 
 ```json

@@ -159,7 +159,7 @@ class SchemaProposalGeneratorTests {
                                    ".B", ".B.x", ".B.y", ".B.z",
                                    ".C", ".C.x", ".C.y", ".C.z"}),
                 Arguments.of(
-                        "absoluteToExternalSchemaAnchorButTheAncorIsNotMathing",
+                        "absoluteToExternalSchemaAnchorButTheAnchorIsNotMathing",
                         List.of("""
                                 {
                                 "$id": "https://example.com/coordinates",
@@ -288,7 +288,7 @@ class SchemaProposalGeneratorTests {
                        }
                        """,
                        new String[] {".A", ".B", ".C"}),
-                Arguments.of("absoluteToExternalSchemaAnchorDeeperInHierarcy",
+                Arguments.of("absoluteToExternalSchemaAnchorDeeperInHierarchy",
                         List.of("""
                                 {
                                 "$id": "https://example.com/coordinates",

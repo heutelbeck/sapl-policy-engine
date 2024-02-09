@@ -34,7 +34,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
 
     @Override
     public boolean isResponsible(JsonNode constraint) {
-        return ConstraintResposibility.isResponsible(constraint, CONSTRAINT_TYPE);
+        return ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE);
     }
 
     @Override

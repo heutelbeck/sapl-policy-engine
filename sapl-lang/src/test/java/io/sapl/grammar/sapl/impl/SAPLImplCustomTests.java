@@ -69,33 +69,33 @@ class SAPLImplCustomTests {
 			    Arguments.of("import test as t policy \"policy\" permit true",
 			    		Map.of("t.numbers", "test.numbers", "t.numbersWithError", "test.numbersWithError", "t.nilflux", "test.nilflux"))
 		);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideImportTestCases")
-	void importsWorkAsExpected(String policySource, Map<String,String> expectedImports) {
-		var policy   = INTERPRETER.parse(policySource);
-		StepVerifier.create(policy.evaluate()
-				.flatMap(val -> Mono.deferContextual(
-						ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
-				.contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(Boolean.FALSE).verifyComplete();
-	}
+    @ParameterizedTest
+    @MethodSource("provideImportTestCases")
+    void importsWorkAsExpected(String policySource, Map<String, String> expectedImports) {
+        var policy = INTERPRETER.parse(policySource);
+        StepVerifier.create(policy.evaluate()
+                .flatMap(val -> Mono.deferContextual(
+                        ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
+                .contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(Boolean.FALSE).verifyComplete();
+    }
 
-	@ParameterizedTest
-	@ValueSource(strings = {
-			// detectErrorInTargetMatches
-			"policy \"policy\" permit (10/0)",
-			// detectErrorInImportsDuringMatches
-			"import filter.blacken import filter.blacken policy \"policy\" permit true"
-		})
-	void policyElementEvaluatesToError(String policySource) {
-		var policy = INTERPRETER.parse(policySource);
-		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
-	}
+    @ParameterizedTest
+    @ValueSource(strings = {
+            // detectErrorInTargetMatches
+            "policy \"policy\" permit (10/0)",
+            // detectErrorInImportsDuringMatches
+            "import filter.blacken import filter.blacken policy \"policy\" permit true" })
+    void policyElementEvaluatesToError(String policySource) {
+        var policy = INTERPRETER.parse(policySource);
+        StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext))
+                .expectNextMatches(Val::isError).verifyComplete();
+    }
 
-	private static Stream<Arguments> provideTestCases() {
-		// @formatter:off
+    private static Stream<Arguments> provideTestCases() {
+        // @formatter:off
 		return Stream.of(
 				// detectErrorInImportsDuringEvaluate
 			    Arguments.of("import filter.blacken import filter.blacken policy \"policy\" permit true", INDETERMINATE),
@@ -112,13 +112,14 @@ class SAPLImplCustomTests {
 				// policyBodyEvaluationDoesNotCheckTargetAgain
 			    Arguments.of("policy \"policy\" permit (10/0)", PERMIT)
 		);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideTestCases")
-	void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
-		var policy   = INTERPRETER.parse(policySource);
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
+    @ParameterizedTest
+    @MethodSource("provideTestCases")
+    void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
+        var policy = INTERPRETER.parse(policySource);
+        StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+                .expectNextMatches(hasDecision(expected)).verifyComplete();
+    }
 }

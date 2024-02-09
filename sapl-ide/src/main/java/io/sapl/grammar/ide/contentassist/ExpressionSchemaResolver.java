@@ -166,7 +166,7 @@ public class ExpressionSchemaResolver {
 
     private List<JsonNode> inferPotentialSchemasFromIdentifier(String identifier, ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
-        if (SAPLContentProposalProvider.AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS.contains(identifier)) {
+        if (SAPLContentProposalProvider.AUTHORIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS.contains(identifier)) {
             return inferSubscriptionElementSchema(identifier, context, pdpConfiguration);
         }
         var schemas = new ArrayList<JsonNode>();

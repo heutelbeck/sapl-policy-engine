@@ -43,7 +43,7 @@ public class HtmlLineCoverageReportGenerator {
     public Path generateHtmlReport(Collection<SaplDocumentCoverageInformation> documents, Path baseDir,
             float policySetHitRatio, float policyHitRatio, float policyConditionHitRatio)
             throws MojoExecutionException {
-        Path pathToReportsMainSite = null;
+        Path pathToReportsMainSite;
         try {
             pathToReportsMainSite = generateSAPLCoverageReport(policySetHitRatio, policyHitRatio,
                     policyConditionHitRatio, documents, baseDir);

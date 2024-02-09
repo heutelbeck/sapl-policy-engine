@@ -621,7 +621,7 @@ class AnnotationAttributeContextTests {
     }
 
     @Test
-    void when_varArgsWithotVariablesAndVarArgsAndNoArguments_evaluates() throws InitializationException, IOException {
+    void when_varArgsWithoutVariablesAndVarArgsAndNoArguments_evaluates() throws InitializationException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -1048,7 +1048,7 @@ class AnnotationAttributeContextTests {
     }
 
     @Test
-    void when_nonJsonSchem_then_fail() {
+    void when_nonJsonSchema_then_fail() {
 
         final String pipName        = "test";
         final String pipDescription = "description";

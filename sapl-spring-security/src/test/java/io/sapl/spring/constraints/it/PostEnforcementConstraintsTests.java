@@ -308,7 +308,7 @@ class PostEnforcementConstraintsTests {
 
     @Test
     @WithMockUser()
-    void when_testServiceCalledAndDecisionDenyContainsEnforc3ableObligation_then_accessDeniedButConstraintsHandled() {
+    void when_testServiceCalledAndDecisionDenyContainsEnforceableObligation_then_accessDeniedButConstraintsHandled() {
         var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
         var decision = AuthorizationDecision.DENY.withObligations(obligations);

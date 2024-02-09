@@ -15,33 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.test.coverage.api;
+package io.sapl.spring.constraints.providers;
 
-import java.io.File;
+import java.util.Objects;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import lombok.experimental.UtilityClass;
 
-/**
- * Utility class for reusable file operations.
- */
 @UtilityClass
-public class TestFileHelper {
+public class ConstraintResponsibility {
+    private static final String TYPE = "type";
 
-    /**
-     * Deletes a directory.
-     *
-     * @param directoryToBeDeleted a directory
-     * @return true if and only if the file or directory is successfully deleted;
-     *         false otherwise
-     */
-    public static boolean deleteDirectory(File directoryToBeDeleted) {
-        File[] allContents = directoryToBeDeleted.listFiles();
-        if (allContents != null) {
-            for (File file : allContents) {
-                deleteDirectory(file);
-            }
-        }
-        return directoryToBeDeleted.delete();
+    public static boolean isResponsible(JsonNode constraint, String requiredType) {
+        if (constraint == null || !constraint.isObject())
+            return false;
+
+        var type = constraint.get(TYPE);
+
+        if (Objects.isNull(type) || !type.isTextual())
+            return false;
+
+        return Objects.equals(type.asText(), requiredType);
     }
-
 }

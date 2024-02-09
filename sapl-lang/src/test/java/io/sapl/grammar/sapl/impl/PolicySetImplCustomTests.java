@@ -182,22 +182,25 @@ class PolicySetImplCustomTests {
 							Optional.of((ArrayNode) Val.ofJson("[\"wash your hands\"]").get()),
 							Optional.of((ArrayNode) Val.ofJson("[\"smile\"]").get())))
 		);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideTestCases")
-	void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
-		var policy   = INTERPRETER.parse(policySource);
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
+    @ParameterizedTest
+    @MethodSource("provideTestCases")
+    void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
+        var policy = INTERPRETER.parse(policySource);
+        StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+                .expectNextMatches(hasDecision(expected)).verifyComplete();
+    }
 
-	@Test
-	void testTargetResult() {
-	    var policy = INTERPRETER.parse("set \"set\" deny-overrides "
-                + "policy \"set.p1\" permit where var a=5; var b=2; "
-                + "policy \"set.p2\" permit where a==undefined && b == undefined;");
-        assertThat(policy.getPolicyElement().targetResult(Val.error()).getAuthorizationDecision().getDecision()).isEqualTo(Decision.INDETERMINATE);
-        assertThat(policy.getPolicyElement().targetResult(Val.of("XXX")).getAuthorizationDecision().getDecision()).isEqualTo(Decision.NOT_APPLICABLE);
-	}
+    @Test
+    void testTargetResult() {
+        var policy = INTERPRETER
+                .parse("set \"set\" deny-overrides " + "policy \"set.p1\" permit where var a=5; var b=2; "
+                        + "policy \"set.p2\" permit where a==undefined && b == undefined;");
+        assertThat(policy.getPolicyElement().targetResult(Val.error()).getAuthorizationDecision().getDecision())
+                .isEqualTo(Decision.INDETERMINATE);
+        assertThat(policy.getPolicyElement().targetResult(Val.of("XXX")).getAuthorizationDecision().getDecision())
+                .isEqualTo(Decision.NOT_APPLICABLE);
+    }
 }

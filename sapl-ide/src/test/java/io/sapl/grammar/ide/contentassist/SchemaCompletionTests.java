@@ -31,7 +31,7 @@ import org.springframework.test.context.ContextConfiguration;
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 class SchemaCompletionTests extends CompletionTests {
 
-    List<String> environmentVariableNames = List.of("calendar_schema");
+    final List<String> environmentVariableNames = List.of("calendar_schema");
 
     /**
      * Tests regarding the preamble

@@ -61,7 +61,7 @@ java -jar sapl-server-lt-3.0.0-SNAPSHOT.jar
 
 ### Running from Source
 
-**Note:** Running from source is not intended for production environments. If doing so, **you accept the risk** of running with publicly known credentials and TLS certificates if you accidently use the development configuration of the server.
+**Note:** Running from source is not intended for production environments. If doing so, **you accept the risk** of running with publicly known credentials and TLS certificates if you accidentally use the development configuration of the server.
 
 It is likely that you only need to run the server from the source if you are a contributor to the policy engine project.
 
@@ -69,7 +69,7 @@ The source code includes a small development configuration of the server which c
 
 #### Prerequisites
 
-To build SAPL Server LT from source, first ensure that [OpenJDK 17](https://openjdk.org/projects/jdk/17/) or newer is installed. There are several distributions available, such as [Eclipse Temurin](https://adoptium.net/de/temurin/releases/) suppling binaries for different platforms.
+To build SAPL Server LT from source, first ensure that [OpenJDK 17](https://openjdk.org/projects/jdk/17/) or newer is installed. There are several distributions available, such as [Eclipse Temurin](https://adoptium.net/de/temurin/releases/) supplying binaries for different platforms.
 
 SAPL uses Apache Maven as its build system, which must be installed and can be downloaded from the [Apache Maven Download Page](https://maven.apache.org/download.cgi).
 
@@ -107,7 +107,7 @@ If started from this folder, the application will start with a demonstration con
 
 #### Running the Server as a JAR
 
-After the build concludes an executable JAR will be available in the folder `sapl-policy-engine/sapl-server-lt/target`. This JAR can be used in the same way as a downloaded SAPL Server LT binary, as descibed under [Java OpenJDK](#java-openjdk).
+After the build concludes an executable JAR will be available in the folder `sapl-policy-engine/sapl-server-lt/target`. This JAR can be used in the same way as a downloaded SAPL Server LT binary, as described under [Java OpenJDK](#java-openjdk).
 
 **Note:** If the JAR is executed from within the folder `sapl-policy-engine/sapl-server-lt` using the command `java -jar target/sapl-server-lt-3.0.0-SNAPSHOT.jar` the server will pick up the same demonstration configuration as described above.
 
@@ -178,7 +178,7 @@ kubectl create namespace sapl-server-lt
 kubectl apply -f https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-pv.yml -n sapl-server-lt
 ```
 
-Then download the Baremetal yaml file
+Then download the bare metal yaml file
 
 ```shell
 wget https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-baremetal.yml
@@ -303,7 +303,7 @@ If an existing policy is to be changed, the following procedure is recommended:
 
 ### Managing Client Applications
 
-SAPL Server LT supports several authentication schemes for client applications. By default none is activated and the server will deny to start up until at least one scheme is active. Multiple authentication mechanisms can be enabled simultaneously.
+SAPL Server LT supports several authentication schemes for client applications. By default, none is activated and the server will deny to start up until at least one scheme is active. Multiple authentication mechanisms can be enabled simultaneously.
 
 #### No Authentication
 
@@ -348,13 +348,13 @@ Example Output:
 
 In this case you would set `io.sapl.server-lt.key` to `IV73cRiudj` and `io.sapl.server-lt.secret` to `$argon2id$v=19$m=16384,t=2,p=1$0shkuN10K05DsOPQVgm/Sw$FrWeTPKCfqkUcJ6u0DNKkaKDqkIZC7NefwzW5XYkoRA`.
 
-Also take note of the plain text of the secret as it will not be stored. Also make sure that the output of this tool is not visible in any logs and you properly clear your screen.
+Also take note of the plain text of the secret as it will not be stored. Also make sure that the output of this tool is not visible in any logs, and you properly clear your screen.
 
 #### API Keys
 
 In SAPL Server LT, API keys are a way of managing more than one client application with individual secrets.
 
-Each clients is assigned to an individual API key and can authenticate by providing the following HTTP header: `API_KEY: <API KEY>`. For example: `API_KEY: phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc`.
+Each client is assigned to an individual API key and can authenticate by providing the following HTTP header: `API_KEY: <API KEY>`. For example: `API_KEY: phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc`.
 
 **Use Case:** Managing multiple clients with high traffic and low latency requirements.
 
@@ -472,7 +472,8 @@ server:
       - TLSv1.2
 ```
 
-For specific recommondations please have a look at the [BSI technical guidelines](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/Technische-Richtlinien/TR-nach-Thema-sortiert/tr02102/tr-02102.html).
+For specific recommendations, 
+please have a look at the [BSI technical guidelines](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/Technische-Richtlinien/TR-nach-Thema-sortiert/tr02102/tr-02102.html).
 
 ### Logging Configuration
 

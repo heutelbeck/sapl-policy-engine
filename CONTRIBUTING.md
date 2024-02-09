@@ -40,11 +40,11 @@ The decision to add and support a new feature is made by the BDFL.
 ### ❓ Question
 
 A question is an issue for requesting support on a specific topic, that the requestor can not answer on its own.
-Anyone is welcome to help resolve this issue and the requestor or a maintainer will close this issue.
+Anyone is welcome to help resolve this issue, and the requestor or a maintainer will close this issue.
 
 ## Report a security vulnerability
 
-If you find any security vulnerability please follow the process described [here](SECURITY.md).
+If you find any security vulnerability, please follow the process described [here](SECURITY.md).
 
 ## Propose a code change
 

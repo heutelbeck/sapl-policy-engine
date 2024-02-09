@@ -34,7 +34,7 @@ class IndexUnionStepImplCustomTests {
         assertExpressionReturnsErrors("(undefined)[1,2]");
     }
 
-    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+    private static Stream<Arguments> provideStringsForExpressionEvaluatesToExpectedValue() {
         // @formatter:off
 		return Stream.of(
 	 			// applyToArray
@@ -54,12 +54,12 @@ class IndexUnionStepImplCustomTests {
 	 			Arguments.of("[[0,1,2,3],[0,1,2,3],[0,1,2,3],[0,1,2,3]] |- { @[1,3][3] : mock.nil }",
 	 					     "[[0,1,2,3],[0,1,2,null],[0,1,2,3],[0,1,2,null]]")
 				);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
-	void expressionEvaluatesToExpectedValue(String expression, String expected) {
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("provideStringsForExpressionEvaluatesToExpectedValue")
+    void expressionEvaluatesToExpectedValue(String expression, String expected) {
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 }

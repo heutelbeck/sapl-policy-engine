@@ -88,7 +88,7 @@ public class Val implements Traced {
      */
     public static final Val NULL = Val.of(JSON.nullNode());
 
-    private static final NumericAwareComparator NUMBERIC_AWARE_COMPARATOR = new NumericAwareComparator();
+    private static final NumericAwareComparator NUMERIC_AWARE_COMPARATOR = new NumericAwareComparator();
 
     private final JsonNode value;
     private final String   errorMessage;
@@ -563,7 +563,7 @@ public class Val implements Traced {
         if (value == null) {
             return true;
         }
-        return value.equals(NUMBERIC_AWARE_COMPARATOR, other.get());
+        return value.equals(NUMERIC_AWARE_COMPARATOR, other.get());
     }
 
     @Override

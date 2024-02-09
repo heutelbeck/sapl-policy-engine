@@ -133,37 +133,37 @@ class SaplParsingTests {
         permit subject.patterns[7].foo.bar == "something"
         """,
 
-        "headerWithMatcherConjuctionA",
+        "headerWithMatcherConjunctionA",
         """
         policy "test policy"
         permit subject == "aSubject" & target == "aTarget"
         """,
 
-        "headerWithMatcherConjuctionB",
+        "headerWithMatcherConjunctionB",
         """
         policy "test policy"
         permit (subject == "aSubject" & target == "aTarget")
         """,
 
-        "headerWithMatcherConjuctionC",
+        "headerWithMatcherConjunctionC",
         """
         policy "test policy"
         permit ((subject == "aSubject") & (target == "aTarget"))
         """,
 
-        "headerWithMatcherDisjuctionA",
+        "headerWithMatcherDisjunctionA",
         """
         policy "test policy"
         permit subject == "aSubject" | target == "aTarget"
         """,
 
-        "headerWithMatcherDisjuctionB",
+        "headerWithMatcherDisjunctionB",
         """
         policy "test policy"
         permit (subject == "aSubject" | target == "aTarget")
         """,
 
-        "headerWithMatcherDisjuctionC",
+        "headerWithMatcherDisjunctionC",
         """
         policy "test policy"
         permit ((subject == "aSubject") | (target == "aTarget"))
@@ -231,7 +231,7 @@ class SaplParsingTests {
           var something1 = { "key" : "value"}.key.<external.attribute>[7].other_key ;
           var something2 = action.http.method;
           var something3 = subject.id;
-          var something3 = ressource.path.elements[4].<extern.other>;
+          var something3 = resource.path.elements[4].<extern.other>;
           var something3 = !( environment.time.current == "2010-01-01T12:00:00+01:00" );
         """,
 
@@ -323,7 +323,7 @@ class SaplParsingTests {
 
         """,
 
-        "ourPuppetFamilymemberTransformPolicy",
+        "ourPuppetFamilyMemberTransformPolicy",
         """
         policy "familymembers_truncate_contexthistory"
             permit

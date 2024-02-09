@@ -34,7 +34,7 @@ class ApplyStepsRecursiveKeyTests {
         assertExpressionReturnsErrors("(10/0)..key");
     }
 
-    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+    private static Stream<Arguments> provideStringsForExpressionEvaluatesToExpectedValue() {
         // @formatter:off
 		return Stream.of(
 				// recursiveKeyStepOnUndefinedIsEmpty
@@ -66,12 +66,12 @@ class ApplyStepsRecursiveKeyTests {
 	 			// filterArrayEmpty
 	 			Arguments.of("[] |- { @..key..key2 : mock.nil} ", "[]")
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
-	void expressionEvaluatesToExpectedValue(String expression, String expected) {
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("provideStringsForExpressionEvaluatesToExpectedValue")
+    void expressionEvaluatesToExpectedValue(String expression, String expected) {
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 }

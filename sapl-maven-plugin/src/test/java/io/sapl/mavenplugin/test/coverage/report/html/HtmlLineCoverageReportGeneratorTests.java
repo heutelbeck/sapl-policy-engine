@@ -48,7 +48,7 @@ class HtmlLineCoverageReportGeneratorTests {
     private static final float                           POLICY_SET_HIT_RATIO       = 100;
     private static final float                           POLICY_HIT_RATIO           = 66.6f;
     private static final float                           POLICY_CONDITION_HIT_RATIO = 43.9f;
-    private static final HtmlLineCoverageReportGenerator GENERATOR                  = new HtmlLineCoverageReportGenerator();;
+    private static final HtmlLineCoverageReportGenerator GENERATOR                  = new HtmlLineCoverageReportGenerator();
 
     @Test
     void test(@TempDir Path tempDir) throws MojoExecutionException {
@@ -98,7 +98,7 @@ class HtmlLineCoverageReportGeneratorTests {
                 .mockStatic(WebDependencyFactory.class)) {
             var nonExistingFiles = List
                     .of(new WebDependency("I do not exist", "I do not exist", "I do not exist", "I do not exist"));
-            mockedDependencyFactory.when(() -> WebDependencyFactory.getWebDependencies()).thenReturn(nonExistingFiles);
+            mockedDependencyFactory.when(WebDependencyFactory::getWebDependencies).thenReturn(nonExistingFiles);
             assertThrows(MojoExecutionException.class,
                     () -> GENERATOR.generateHtmlReport(SampleCoverageInformation.documents(), tempDir,
                             POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
