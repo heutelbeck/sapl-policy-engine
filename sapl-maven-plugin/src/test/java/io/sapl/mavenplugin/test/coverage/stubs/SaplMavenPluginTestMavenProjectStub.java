@@ -19,7 +19,6 @@ package io.sapl.mavenplugin.test.coverage.stubs;
 
 import java.io.File;
 import java.io.FileReader;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,48 +33,52 @@ import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
  */
 public class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
 
-    /**
-     * Create Stub
-     */
-    public SaplMavenPluginTestMavenProjectStub() {
-        MavenXpp3Reader pomReader = new MavenXpp3Reader();
-        Model           model;
-        try {
+	/**
+	 * Create Stub
+	 */
+	public SaplMavenPluginTestMavenProjectStub() {
+		initialize();
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public File getBasedir() {
+		return new File(super.getBasedir() + "/src/test/resources/pom/");
+	}
+
+	protected void initialize() {
+		MavenXpp3Reader pomReader = new MavenXpp3Reader();
+		Model model;
+		try {
 			model = pomReader.read((new FileReader(new File(getBasedir(), "pom.xml"), StandardCharsets.UTF_8)));
-            setModel(model);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+			setModel(model);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
-        setGroupId(model.getGroupId());
-        setArtifactId(model.getArtifactId());
-        setVersion(model.getVersion());
-        setName(model.getName());
-        setUrl(model.getUrl());
-        setPackaging(model.getPackaging());
+		setGroupId(model.getGroupId());
+		setArtifactId(model.getArtifactId());
+		setVersion(model.getVersion());
+		setName(model.getName());
+		setUrl(model.getUrl());
+		setPackaging(model.getPackaging());
 
-        Build build = new Build();
-        build.setFinalName(model.getArtifactId());
-        build.setDirectory(getBasedir() + "/target");
-        build.setSourceDirectory(getBasedir() + "/src/main/java");
-        build.setOutputDirectory(getBasedir() + "/target/classes");
-        build.setTestSourceDirectory(getBasedir() + "/src/test/java");
-        build.setTestOutputDirectory(getBasedir() + "/target/test-classes");
-        setBuild(build);
+		Build build = new Build();
+		build.setFinalName(model.getArtifactId());
+		build.setDirectory(getBasedir() + "/target");
+		build.setSourceDirectory(getBasedir() + "/src/main/java");
+		build.setOutputDirectory(getBasedir() + "/target/classes");
+		build.setTestSourceDirectory(getBasedir() + "/src/test/java");
+		build.setTestOutputDirectory(getBasedir() + "/target/test-classes");
+		setBuild(build);
 
-        List<String> compileSourceRoots = new ArrayList<>();
-        compileSourceRoots.add(getBasedir() + "/src/main/java");
-        setCompileSourceRoots(compileSourceRoots);
+		List<String> compileSourceRoots = new ArrayList<>();
+		compileSourceRoots.add(getBasedir() + "/src/main/java");
+		setCompileSourceRoots(compileSourceRoots);
 
-        List<String> testCompileSourceRoots = new ArrayList<>();
-        testCompileSourceRoots.add(getBasedir() + "/src/test/java");
-        setTestCompileSourceRoots(testCompileSourceRoots);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public File getBasedir() {
-        return new File(super.getBasedir() + "/src/test/resources/pom/");
-    }
+		List<String> testCompileSourceRoots = new ArrayList<>();
+		testCompileSourceRoots.add(getBasedir() + "/src/test/java");
+		setTestCompileSourceRoots(testCompileSourceRoots);
+	}
 
 }
