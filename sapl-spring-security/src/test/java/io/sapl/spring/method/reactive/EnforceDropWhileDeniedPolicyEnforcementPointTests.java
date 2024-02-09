@@ -167,17 +167,17 @@ class EnforceDropWhileDeniedPolicyEnforcementPointTests {
     @Test
     void when_permit_thenPermitWithResourceThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped() {
         StepVerifier.withVirtualTime(
-                this::scenario_when_permit_thenPermitWithResourdeThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped)
+                this::scenario_when_permit_thenPermitWithResourceThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped)
                 .thenAwait(Duration.ofMillis(3000L)).expectNext(0, 1, 4, 5, 6, 7, 8, 9).verifyComplete();
     }
 
-    private Flux<Integer> scenario_when_permit_thenPermitWithResourdeThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped() {
-        var constraintsService = buildConstraintHandlerService();
-        var decisions          = Flux.just(AuthorizationDecision.PERMIT,
+    private Flux<Integer> scenario_when_permit_thenPermitWithResourceThenPermit_typeMismatch_thenSignalsDuringMismatchGetDropped() {
+        var constraintService = buildConstraintHandlerService();
+        var decisions         = Flux.just(AuthorizationDecision.PERMIT,
                 AuthorizationDecision.PERMIT.withResource(JSON.textNode("NOT A NUMBER")), AuthorizationDecision.PERMIT)
                 .delayElements(Duration.ofMillis(500L));
-        var data               = Flux.range(0, 10).delayElements(Duration.ofMillis(200L));
-        return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService, Integer.class);
+        var data              = Flux.range(0, 10).delayElements(Duration.ofMillis(200L));
+        return EnforceDropWhileDeniedPolicyEnforcementPoint.of(decisions, data, constraintService, Integer.class);
     }
 
     @Test

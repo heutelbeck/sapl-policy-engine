@@ -118,7 +118,7 @@ class SaplMqttClientPayloadFormatIT {
 
     @Test
     @Timeout(10)
-    void when_mqttMessagePayloadIsFormatIsByteArray_then_getArrayOfBytesAsInts() {
+    void when_mqttMessagePayloadIsFormatIsByteArray_then_getArrayOfBytesAsIntegers() {
         // GIVEN
         var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
         var message = "byteArray";

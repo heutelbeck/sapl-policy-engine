@@ -77,67 +77,66 @@ class ContentFilterPredicateProviderTests {
 					}
 					""", Boolean.TRUE)
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideTestCases")
-	void validateResponsiblility(String constraint, boolean expectedResponsiblity) throws JsonProcessingException {
-		var sut        = new ContentFilterPredicateProvider(MAPPER);
-		var jsonConstraint = MAPPER.readTree(constraint);
-		assertThat(sut.isResponsible(jsonConstraint), is(expectedResponsiblity));
-	}
+    @ParameterizedTest
+    @MethodSource("provideTestCases")
+    void validateResponsibility(String constraint, boolean expectedResponsibility) throws JsonProcessingException {
+        var sut            = new ContentFilterPredicateProvider(MAPPER);
+        var jsonConstraint = MAPPER.readTree(constraint);
+        assertThat(sut.isResponsible(jsonConstraint), is(expectedResponsibility));
+    }
 
-	@Test
-	void when_predicateNotMatching_then_False() throws JsonProcessingException {
-		var sut        = new ContentFilterPredicateProvider(MAPPER);
-		var constraint = MAPPER.readTree("""
-				{
-					"type"    : "filterJsonContent",
-					"actions" : [
-						{
-							"type" : "delete",
-							"path" : "$.key1"
-						}
-					],
-					"conditions" : [
-						{
-							"path" : "$.key1",
-							"type" : "==",
-							"value" : "another value that does not match"
-						}
-					]
-				}
-				""");
-		var handler    = sut.getHandler(constraint);
-		var original   = MAPPER.readTree("""
-				{
-					"key1" : "value1",
-					"key2" : "value2"
-				}
-				""");
-		assertThat(handler.test(original), is(false));
-	}
+    @Test
+    void when_predicateNotMatching_then_False() throws JsonProcessingException {
+        var sut        = new ContentFilterPredicateProvider(MAPPER);
+        var constraint = MAPPER.readTree("""
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [
+                		{
+                			"type" : "delete",
+                			"path" : "$.key1"
+                		}
+                	],
+                	"conditions" : [
+                		{
+                			"path" : "$.key1",
+                			"type" : "==",
+                			"value" : "another value that does not match"
+                		}
+                	]
+                }
+                """);
+        var handler    = sut.getHandler(constraint);
+        var original   = MAPPER.readTree("""
+                {
+                	"key1" : "value1",
+                	"key2" : "value2"
+                }
+                """);
+        assertThat(handler.test(original), is(false));
+    }
 
-	@Test
-	void when_handlerHandlesNull_handlerReturnsNull() throws JsonProcessingException {
-		var    sut        = new ContentFilteringProvider(MAPPER);
-		var    constraint = MAPPER.readTree("""
-				{
-					"type"    : "filterJsonContent",
-					"actions" : [
-						{
-							"type" : "delete",
-							"path" : "$.key1"
-						}
-					]
-				}
-				""");
-		var    handler    = sut.getHandler(constraint);
-		Object original   = null;
-		Object expected   = null;
-		assertThat(handler.apply(original), is(expected));
-	}
-
+    @Test
+    void when_handlerHandlesNull_handlerReturnsNull() throws JsonProcessingException {
+        var    sut        = new ContentFilteringProvider(MAPPER);
+        var    constraint = MAPPER.readTree("""
+                {
+                	"type"    : "filterJsonContent",
+                	"actions" : [
+                		{
+                			"type" : "delete",
+                			"path" : "$.key1"
+                		}
+                	]
+                }
+                """);
+        var    handler    = sut.getHandler(constraint);
+        Object original   = null;
+        Object expected   = null;
+        assertThat(handler.apply(original), is(expected));
+    }
 
 }

@@ -31,7 +31,7 @@ An embedded PDP without specific framework requirements.
 
 ## Spring Boot Embedded PDP
 
-An embedded PDP with Spring Boot auto configuration support.
+An embedded PDP with Spring Boot autoconfiguration support.
 
 ```xml
    <dependency>
@@ -55,7 +55,7 @@ A client library for connecting to a dedicated PDP Server, e.g., SAPL Server LE 
 
 ## Spring Boot Remote PDP
 
-A Spring Boot wrapper around the Remote PDP implementation with Spring Boot auto configuration support.
+A Spring Boot wrapper around the Remote PDP implementation with Spring Boot autoconfiguration support.
 
 ```xml
    <dependency>

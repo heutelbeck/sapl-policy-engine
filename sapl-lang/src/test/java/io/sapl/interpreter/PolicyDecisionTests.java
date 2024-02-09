@@ -31,7 +31,7 @@ class PolicyDecisionTests {
     void fromWhereResult() {
         var decision = PolicyDecision.fromWhereResult("doc", Decision.INDETERMINATE, Val.error("error message"));
         assertThat(decision.getEntitlement()).isEqualTo(Decision.INDETERMINATE);
-        assertThat(decision.getTrace().get(Trace.ENTITILEMENT).textValue()).isEqualTo("INDETERMINATE");
+        assertThat(decision.getTrace().get(Trace.ENTITLEMENT).textValue()).isEqualTo("INDETERMINATE");
         assertThat(decision.getTrace().get(Trace.WHERE).get(Trace.VALUE).textValue())
                 .isEqualTo("|ERROR| error message");
     }
@@ -41,7 +41,7 @@ class PolicyDecisionTests {
         var decision = PolicyDecision.fromWhereResult("doc", Decision.PERMIT, Val.TRUE).withAdvice(Val.of("advice"))
                 .withObligation(Val.of("obligation")).withResource(Val.of("resource"));
         assertThat(decision.getEntitlement()).isEqualTo(Decision.PERMIT);
-        assertThat(decision.getTrace().get(Trace.ENTITILEMENT).textValue()).isEqualTo("PERMIT");
+        assertThat(decision.getTrace().get(Trace.ENTITLEMENT).textValue()).isEqualTo("PERMIT");
         assertThat(decision.getTrace().get(Trace.WHERE).get(Trace.VALUE).asBoolean()).isTrue();
         assertThat(decision.getTrace().get(Trace.OBLIGATIONS).get(0).get(Trace.VALUE).textValue())
                 .isEqualTo("obligation");
@@ -52,7 +52,7 @@ class PolicyDecisionTests {
     @Test
     void withNullEntitlement() {
         var decision = PolicyDecision.fromWhereResult("doc", null, Val.TRUE);
-        assertThat(decision.getTrace().has(Trace.ENTITILEMENT)).isFalse();
+        assertThat(decision.getTrace().has(Trace.ENTITLEMENT)).isFalse();
     }
 
     @Test

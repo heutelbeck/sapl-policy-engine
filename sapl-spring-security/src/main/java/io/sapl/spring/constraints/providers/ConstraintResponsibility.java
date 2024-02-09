@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class ConstraintResposibility {
+public class ConstraintResponsibility {
     private static final String TYPE = "type";
 
     public static boolean isResponsible(JsonNode constraint, String requiredType) {

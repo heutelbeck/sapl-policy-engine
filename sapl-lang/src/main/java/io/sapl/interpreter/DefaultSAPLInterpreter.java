@@ -86,8 +86,9 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
     }
 
     @Override
-    public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDocumentSource,
-            AttributeContext attributeContext, FunctionContext functionContext, Map<String, Val> environmentVariables) {
+    public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authorizationSubscription,
+            String saplDocumentSource, AttributeContext attributeContext, FunctionContext functionContext,
+            Map<String, Val> environmentVariables) {
         final SAPL saplDocument;
         try {
             saplDocument = parse(saplDocumentSource);
@@ -97,7 +98,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
         }
         return saplDocument.matches().flux().switchMap(evaluateBodyIfMatching(saplDocument))
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, environmentVariables))
-                .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
+                .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authorizationSubscription))
                 .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext))
                 .onErrorReturn(AuthorizationDecision.INDETERMINATE);

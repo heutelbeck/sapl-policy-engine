@@ -139,7 +139,7 @@ public class ReportBuilderUtil {
         var report = JSON.objectNode();
         report.set(DOCUMENT_TYPE, JSON.textNode(POLICY));
         report.set(DOCUMENT_NAME, documentTrace.get(Trace.POLICY_NAME));
-        report.set(ENTITLEMENT, documentTrace.get(Trace.ENTITILEMENT));
+        report.set(ENTITLEMENT, documentTrace.get(Trace.ENTITLEMENT));
         if (documentTrace.has(Trace.ERROR_MESSAGE)) {
             report.set(ERROR_MESSAGE, documentTrace.get(Trace.ERROR_MESSAGE));
         }

@@ -233,7 +233,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
          * between KEEPALIVE frames from the remote end before concluding that
          * connectivity is lost.
          * <p>
-         * By default these are set to 20 seconds and 90 seconds respectively.
+         * By default, these are set to 20 seconds and 90 seconds respectively.
          *
          * @param keepAlive   how frequently to emit KEEPALIVE frames
          * @param maxLifeTime how long to allow between KEEPALIVE frames from the remote

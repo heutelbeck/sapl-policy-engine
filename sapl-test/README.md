@@ -35,7 +35,7 @@ SAPL tests use JUnit for executing SAPL unit test cases. Each test is prepared b
 be done in the @BeforeEachStep of a JUnit test case.
 
 The SaplUnitTestFixture defines the name of the SAPL document under test or the path to its file. In addition, the
-fixture sets up PIPs and FunctionLibrarys to be used during test execution.
+fixture sets up PIPs and Function Libraries to be used during test execution.
 
 ```java
     private SaplTestFixture fixture;
@@ -169,7 +169,7 @@ available [here](https://github.com/heutelbeck/sapl-policy-engine/blob/master/sa
 
 The next Step defines the AuthorizationSubscription for the policy evaluation.
 
-* pass an AuthorizationSubscription created by it’s factory methods
+* pass an AuthorizationSubscription created by its factory methods
   ```java
   .when(AuthorizationSubscription.of("willi", "read", "something"))
   ```
@@ -402,7 +402,7 @@ The plugin can be configured via the following parameters:
   the [Sonar Maven Plugin documentation](https://docs.sonarsource.com/sonarcloud/advanced-setup/ci-based-analysis/sonarscanner-for-maven/#configuration)
   for details (defaultValue = false).
 
-* **enableHtmlReport**: When set to true a HTML coverage report is created. This report is similar to JaCoCo reports
+* **enableHtmlReport**: When set to true an HTML coverage report is created. This report is similar to JaCoCo reports
   showing colorized line coverage and the number of covered branches for conditions in a line. The path to the
   index.html on the filesystem is printed in the Maven log. Terminals like Powershell allow clicking on these paths and
   opening the report directly in the browser (defaultValue = true).
@@ -512,7 +512,7 @@ To make the possible syntax combinations easier to understand they are presented
 
 e.g.
 
-* `keyword1 keyword2 [String] keyword3` -> valid since the part in braces is postfixed with a `*` so can be ommited
+* `keyword1 keyword2 [String] keyword3` -> valid since the part in braces is postfixed with a `*` so can be omitted
 * `keyword1 keyword2 keyword3` -> valid since `?` indicates that VALUE is optional
 * `keyword1 keyword2 [String] keyword3 keyword4 [Object] keyword4 [Object]` -> valid since keyword4 and [Object] build a
   group that is expected 0 - n times

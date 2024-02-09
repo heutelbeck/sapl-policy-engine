@@ -53,7 +53,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             "false");
     private static final Collection<String> WHITELIST_OF_KEYWORD_PROPOSALS = Set.of("as");
 
-    public static final Collection<String> AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS = Set.of("subject",
+    public static final Collection<String> AUTHORIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS = Set.of("subject",
             "action", "resource", "environment");
 
     private static final int MINIMUM_KEYWORD_LENGTH = 3;
@@ -67,7 +67,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     /**
-     * Here SPAL filters out very short and blacklisted keywords.
+     * Here SAPL filters out very short and blacklisted keywords.
      */
     @Override
     protected boolean filterKeyword(final Keyword keyword, final ContentAssistContext context) {
@@ -251,7 +251,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void createProposalsContainingSubscriptionElementIdentifiers(ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
-        addProposals(AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS, context, acceptor);
+        addProposals(AUTHORIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS, context, acceptor);
     }
 
     /*

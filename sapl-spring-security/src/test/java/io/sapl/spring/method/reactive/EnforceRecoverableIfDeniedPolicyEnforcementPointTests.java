@@ -257,13 +257,13 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     }
 
     @Test
-    void when_subscribeWithNull_NullpointerExepction() {
+    void when_subscribeWithNull_NullPointerException() {
         Flux<AuthorizationDecision>  decisions           = Flux.empty();
         Flux<String>                 resourceAccessPoint = Flux.empty();
-        ConstraintEnforcementService constraintsService  = mock(ConstraintEnforcementService.class);
+        ConstraintEnforcementService constraintService   = mock(ConstraintEnforcementService.class);
         Class<String>                clazz               = String.class;
         Flux<String>                 sut                 = EnforceRecoverableIfDeniedPolicyEnforcementPoint
-                .of(decisions, resourceAccessPoint, constraintsService, clazz);
+                .of(decisions, resourceAccessPoint, constraintService, clazz);
 
         assertThatThrownBy(() -> sut.subscribe((CoreSubscriber<String>) null)).isInstanceOf(NullPointerException.class);
     }

@@ -158,7 +158,7 @@ class TimesParameterCalledVerificationTests {
 				// test_assertionError_VerificationMessage_Null
 			    Arguments.of(null, "Error verifying the expected number of calls to the mock")
 			);
-		// @formater:on
+		// @formatter:on
 	}
 
 	@ParameterizedTest

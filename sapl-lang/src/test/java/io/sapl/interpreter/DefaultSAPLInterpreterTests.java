@@ -401,18 +401,18 @@ class DefaultSAPLInterpreterTests {
 						INDETERMINATE),
 				// onErrorMap
 				Arguments.of("import standard.* policy \"errors\" permit where onErrorMap(100/0, true);", PERMIT));
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("documentTestCases")
-	void validateDocumentEvaluationResult(String policyDefinition, AuthorizationDecision expected) {
-		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("documentTestCases")
+    void validateDocumentEvaluationResult(String policyDefinition, AuthorizationDecision expected) {
+        assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
+    }
 
-	private void assertThatPolicyEvaluationReturnsExpected(String document, AuthorizationDecision expected) {
-		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, document, attributeCtx, functionCtx, variables))
-				.expectNext(expected).verifyComplete();
-	}
+    private void assertThatPolicyEvaluationReturnsExpected(String document, AuthorizationDecision expected) {
+        StepVerifier.create(INTERPRETER.evaluate(authzSubscription, document, attributeCtx, functionCtx, variables))
+                .expectNext(expected).verifyComplete();
+    }
 
 }

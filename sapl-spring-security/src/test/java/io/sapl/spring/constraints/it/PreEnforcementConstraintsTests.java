@@ -397,7 +397,7 @@ class PreEnforcementConstraintsTests {
 
     @Test
     @WithMockUser()
-    void when_testServiceCalledAndDecisionContainsFailingMethodInvocationMaipulatingObligation_then_accessDenied() {
+    void when_testServiceCalledAndDecisionContainsFailingMethodInvocationManipulatingObligation_then_accessDenied() {
         var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(FAILING_METHOD_INVOCATION_CONSTRAINT));
         var decision = AuthorizationDecision.PERMIT.withObligations(obligations);

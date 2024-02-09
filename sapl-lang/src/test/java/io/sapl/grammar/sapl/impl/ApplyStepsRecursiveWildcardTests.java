@@ -50,7 +50,7 @@ class ApplyStepsRecursiveWildcardTests {
         assertExpressionReturnsErrors(expression);
     }
 
-    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+    private static Stream<Arguments> provideStringsForExpressionEvaluatesToExpectedValue() {
         // @formatter:off
 		return Stream.of(
 				// applyToNull
@@ -64,11 +64,11 @@ class ApplyStepsRecursiveWildcardTests {
 	 			Arguments.of("[1,2,[3,4,5], { \"key\" : [6,7,8], \"key2\": { \"key3\" : 9 } }] |- { @..* : mock.nil }",
 	 			             "[null,null,null,null]")
 	 		);
-		// @formater:on
+		// @formarter:on
 	}
 
 	@ParameterizedTest
-	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
+	@MethodSource("provideStringsForExpressionEvaluatesToExpectedValue")
 	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
 	}

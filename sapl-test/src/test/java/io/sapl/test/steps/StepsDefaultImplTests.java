@@ -66,7 +66,7 @@ class StepsDefaultImplTests {
             where
                 time.dayOfWeek("2021-02-08T16:16:33.616Z") =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";""";
 
-    private static final String POLICY_STREEAMING_PERMIT = """
+    private static final String POLICY_STREAMING_PERMIT = """
             policy "policyStreaming"
             permit
               resource == "heartBeatData"
@@ -206,7 +206,7 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNextPermit_XTimes_Greater1() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_STREEAMING_PERMIT, attrCtx, funcCtx, variables);
+        var steps = new StepsDefaultImplTestsImpl(POLICY_STREAMING_PERMIT, attrCtx, funcCtx, variables);
         steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
                 .givenFunctionOnce("time.secondOf", Val.of(5), Val.of(6), Val.of(7))
                 .when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextPermit(3)
@@ -270,7 +270,7 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNextNotApplicable_XTimes_Greater1() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_STREEAMING_PERMIT, attrCtx, funcCtx, variables);
+        var steps = new StepsDefaultImplTestsImpl(POLICY_STREAMING_PERMIT, attrCtx, funcCtx, variables);
         steps.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "somethingDifferent")).expectNextNotApplicable(1)
                 .verify();
     }

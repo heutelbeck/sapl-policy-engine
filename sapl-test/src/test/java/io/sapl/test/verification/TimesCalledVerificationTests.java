@@ -107,7 +107,7 @@ class TimesCalledVerificationTests {
 				// test_verificationMessageNotEmpty
 			    Arguments.of("VerificationMessage", "VerificationMessage")
 			);
-		// @formater:on
+		// @formatter:on
 	}
 
 	@ParameterizedTest

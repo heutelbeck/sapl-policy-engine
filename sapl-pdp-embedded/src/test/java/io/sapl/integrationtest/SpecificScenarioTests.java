@@ -88,7 +88,7 @@ class SpecificScenarioTests {
             birthdayForAgeInYears(10), BOOK4);
 
     @Test
-    void tutorialAgeCheckSzenario() throws JsonProcessingException {
+    void tutorialAgeCheckScenario() throws JsonProcessingException {
         var policySet = """
                 import time.*
                 import filter.*

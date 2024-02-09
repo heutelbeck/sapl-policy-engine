@@ -158,7 +158,7 @@ dependencies {
 <!-- CODE OF CONDUCT -->
 ## Code of Conduct
 
-This project has adopted a [Code of Conduct](CODE_OF_CONDUCT.md) and it will be enforced in any communication.
+This project has adopted a [Code of Conduct](CODE_OF_CONDUCT.md), and it will be enforced in any communication.
 
 <!-- LICENSE -->
 ## License

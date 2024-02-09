@@ -105,7 +105,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
     private void handleNextDecision(AuthorizationDecision decision) {
         if (decision.getDecision() == Decision.INDETERMINATE) {
             sink.error(new AccessDeniedException(
-                    "The PDP encountered an error during decison making and returned INDETERMINATE."));
+                    "The PDP encountered an error during decision making and returned INDETERMINATE."));
             latestDecision.set(decision);
             constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
             return;
@@ -113,7 +113,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
         if (decision.getDecision() == Decision.NOT_APPLICABLE) {
             sink.error(new AccessDeniedException(
-                    "The PDP has no applicable rules answering the authorization subscription and retuned NOT_APPLICABLE."));
+                    "The PDP has no applicable rules answering the authorization subscription and returned NOT_APPLICABLE."));
             latestDecision.set(decision);
             constraintHandlerBundle.set(new ReactiveConstraintHandlerBundle<>());
             return;
@@ -276,7 +276,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
                     .withError(constraintHandlerBundle.get().handleAllOnErrorConstraints(payload.getError()));
         } catch (Exception e) {
             return ProtectedPayload.withError(
-                    new AccessDeniedException("Error in PEP during contraint-based transformation of exceptions.", e));
+                    new AccessDeniedException("Error in PEP during constraint-based transformation of exceptions.", e));
         }
     }
 

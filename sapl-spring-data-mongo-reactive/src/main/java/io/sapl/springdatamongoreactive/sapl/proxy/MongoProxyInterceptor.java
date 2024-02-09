@@ -50,7 +50,7 @@ import lombok.SneakyThrows;
  * MongoDb database type. A {@link MethodInterceptor} is needed to manipulate
  * the database method query. At the beginning the corresponding
  * {@link AuthorizationSubscription} is searched for and built together if
- * necessary. Afterwards between 4 scenarios is differentiated and acted
+ * necessary. Afterward between 4 scenarios is differentiated and acted
  * accordingly.
  * <p>
  * Scenario 1: The method of the repository, which is to be executed, has a

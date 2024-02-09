@@ -37,7 +37,7 @@ public class QueryManipulationObligationProvider {
     private static final JsonNode     NULL_NODE = JsonNodeFactory.instance.nullNode();
 
     /**
-     * Extracts the query CONDITION of an obligation to apply the the corresponding
+     * Extracts the query CONDITION of an obligation to apply the corresponding
      * QueryManipulation.
      *
      * @param obligation which contains query CONDITIONS.
@@ -52,7 +52,7 @@ public class QueryManipulationObligationProvider {
     }
 
     /**
-     * Extracts the correct obligation from all obligations to apply the the
+     * Extracts the correct obligation from all obligations to apply the
      * corresponding QueryManipulation.
      *
      * @param obligations which contains all obligations.

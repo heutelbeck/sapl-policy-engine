@@ -15,7 +15,7 @@ We do not support old versions, all bug/feature/security updates will be release
 
 **Please do not report security vulnerabilities through public issues.**
 
-Instead please use the [advisory feature](https://github.com/heutelbeck/sapl-policy-engine/security/advisories) to report security vulnerabilities. This enables us to triage and resolve critical vulnerabilities before disclosing them to the public.
+Instead, please use the [advisory feature](https://github.com/heutelbeck/sapl-policy-engine/security/advisories) to report security vulnerabilities. This enables us to triage and resolve critical vulnerabilities before disclosing them to the public.
 
 If you're unable to use this feature you can send a mail to <dominic@heutelbeck.com>.
 
