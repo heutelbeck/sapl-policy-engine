@@ -34,10 +34,8 @@ public class InputStreamHelper {
 
     public static InputStream detectAndConvertEncodingOfStream(InputStream policyInputStream) throws IOException {
 
-        BOMInputStream bomIn = BOMInputStream
-                .builder().setInputStream(policyInputStream).setByteOrderMarks(ByteOrderMark.UTF_16LE,
-                        ByteOrderMark.UTF_16BE, ByteOrderMark.UTF_32LE, ByteOrderMark.UTF_32BE, ByteOrderMark.UTF_8)
-                .get();
+        BOMInputStream bomIn = new BOMInputStream(policyInputStream, ByteOrderMark.UTF_16LE, ByteOrderMark.UTF_16BE,
+                ByteOrderMark.UTF_32LE, ByteOrderMark.UTF_32BE, ByteOrderMark.UTF_8);
 
         if (!bomIn.hasBOM()) {
             // InputStream without BOM is treated as UTF-8
@@ -68,10 +66,7 @@ public class InputStreamHelper {
         return getUtf8InputStream(new InputStreamReader(bomIn, StandardCharsets.UTF_8));
     }
 
-    private static ReaderInputStream getUtf8InputStream(Reader origin) throws IOException {
-        var builder = ReaderInputStream.builder();
-        builder.setCharset(StandardCharsets.UTF_8);
-        builder.setReader(origin);
-        return builder.get();
+    private static ReaderInputStream getUtf8InputStream(Reader origin) {
+        return new ReaderInputStream(origin, StandardCharsets.UTF_8);
     }
 }

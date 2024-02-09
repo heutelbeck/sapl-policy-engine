@@ -103,7 +103,9 @@
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>2.15.1</version>
+			<!-- newer versions may break MQTT intrgration tests due to version
+			conflicts with dependencies used during testing -->
+			<version>2.10.0</version>
 		</dependency>
 
 		<!-- JSON schema validation -->
@@ -123,7 +125,7 @@
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-params</artifactId>
 			<scope>test</scope>
-		</dependency>		
+		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-hamcrest</artifactId>
