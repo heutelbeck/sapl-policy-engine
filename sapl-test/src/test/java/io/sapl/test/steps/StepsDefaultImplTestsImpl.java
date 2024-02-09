@@ -36,7 +36,7 @@ import reactor.test.StepVerifier;
 
 class StepsDefaultImplTestsImpl extends StepsDefaultImpl {
 
-    SAPL document;
+    final SAPL document;
 
     StepsDefaultImplTestsImpl(String document, AttributeContext attrCtx, FunctionContext funcCtx,
             Map<String, Val> variables) {

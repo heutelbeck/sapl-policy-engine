@@ -47,11 +47,11 @@ import reactor.test.StepVerifier;
 class ReportingDecisionInterceptorTests {
 
     private static class TestingPolicyRetrievalPoint implements PolicyRetrievalPoint {
-        public String          permitAllDocument = "policy \"permitAll\" permit";
-        public String          errorDocument     = "policy \"errAll\" permit where 1/0;";
-        public String          attributeDocument = "policy \"attribute\" permit where \"left\".<test.test> == \"Attribute Result\";";
-        public String          setOne            = "set \"set one\" first-applicable policy \"p1 in set one\" permit";
-        public SAPLInterpreter interpreter       = new DefaultSAPLInterpreter();
+        public final String          permitAllDocument = "policy \"permitAll\" permit";
+        public final String          errorDocument     = "policy \"errAll\" permit where 1/0;";
+        public final String          attributeDocument = "policy \"attribute\" permit where \"left\".<test.test> == \"Attribute Result\";";
+        public final String          setOne            = "set \"set one\" first-applicable policy \"p1 in set one\" permit";
+        public final SAPLInterpreter interpreter       = new DefaultSAPLInterpreter();
 
         @Override
         public Flux<PolicyRetrievalResult> retrievePolicies() {

@@ -45,7 +45,7 @@ class QueryManipulationObligationProviderTests {
     static JsonNode           R2DBC_QUERY_MANIPULATION_TYPE_IS_NULL_1;
     static JsonNode           R2DBC_QUERY_MANIPULATION_TYPE_IS_NO_OBJECT;
 
-    static ArrayNode EMPTY_ARRAY_NODE = MAPPER.createArrayNode();
+    static final ArrayNode EMPTY_ARRAY_NODE = MAPPER.createArrayNode();
 
     final JsonNode                            nullNode = JsonNodeFactory.instance.nullNode();
     final QueryManipulationObligationProvider provider = new QueryManipulationObligationProvider();

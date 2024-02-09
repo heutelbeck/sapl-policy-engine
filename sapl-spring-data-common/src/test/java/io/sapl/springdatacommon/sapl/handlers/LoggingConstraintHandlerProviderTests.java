@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class LoggingConstraintHandlerProviderTests {
 
-    LoggingConstraintHandlerProvider loggingConstraintHandlerProvider = new LoggingConstraintHandlerProvider();
+    final LoggingConstraintHandlerProvider loggingConstraintHandlerProvider = new LoggingConstraintHandlerProvider();
 
     static final ObjectMapper MAPPER = new ObjectMapper();
 

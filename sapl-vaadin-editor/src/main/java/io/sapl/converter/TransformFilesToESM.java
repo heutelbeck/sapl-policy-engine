@@ -59,7 +59,7 @@ public class TransformFilesToESM {
         if (!"import".equals(terms[0])) {
             String result = converter.convert(content);
             // first remove the byte order mark, then convert to UTF-8
-            Files.write(path, result.replaceFirst("^\uFEFF", "").getBytes(StandardCharsets.UTF_8));
+            Files.writeString(path, result.replaceFirst("^\uFEFF", ""));
         }
     }
 

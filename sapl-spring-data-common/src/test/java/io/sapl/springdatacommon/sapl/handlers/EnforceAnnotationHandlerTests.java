@@ -48,9 +48,9 @@ class EnforceAnnotationHandlerTests {
     @Autowired
     BeanFactory beanFactory;
 
-    BeanFactory beanFactoryMock = mock(BeanFactory.class);
+    final BeanFactory beanFactoryMock = mock(BeanFactory.class);
 
-    EnforceAnnotationHandler enforceAnnotationHandler = new EnforceAnnotationHandler(beanFactoryMock);
+    final EnforceAnnotationHandler enforceAnnotationHandler = new EnforceAnnotationHandler(beanFactoryMock);
 
     @Test
     void when_methodHasAnEnforceAnnotationWithStaticValues_then_enforceAnnotation() {

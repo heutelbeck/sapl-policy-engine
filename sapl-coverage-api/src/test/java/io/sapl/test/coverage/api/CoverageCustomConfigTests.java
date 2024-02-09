@@ -44,7 +44,7 @@ class CoverageCustomConfigTests {
             }
             Files.createFile(path);
         }
-        Files.write(path, (new PolicySetHit("set1") + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
+        Files.writeString(path, new PolicySetHit("set1") + System.lineSeparator(),
                 StandardOpenOption.APPEND);
 
         // act
