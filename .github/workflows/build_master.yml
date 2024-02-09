@@ -32,7 +32,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     name: Unit Tests (JDK ${{ matrix.java }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    timeout-minutes: 45
 
     steps:
     - name: Harden Runner
@@ -60,7 +60,7 @@ jobs:
     needs: [tests]
     name: SonarQube
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     permissions:
       actions: write
 
@@ -127,7 +127,7 @@ jobs:
     needs: [tests]
     name: SonarCloud
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     
     # permissions:
       # checks: write
@@ -192,7 +192,7 @@ jobs:
     needs: [analyze,sonarcloud_analyze]
     name: Deploy to central
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     
     steps:
     - name: Harden Runner
