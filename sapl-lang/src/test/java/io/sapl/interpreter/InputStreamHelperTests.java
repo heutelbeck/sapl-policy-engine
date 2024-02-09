@@ -47,7 +47,7 @@ class InputStreamHelperTests {
         outputStream.write(0xEF);
         outputStream.write(0xBB);
         outputStream.write(0xBF);
-        outputStream.write(in.getBytes("UTF-8"));
+        outputStream.write(in.getBytes(StandardCharsets.UTF_8));
         byte[] utf16Bytes           = outputStream.toByteArray();
         var    inputStream          = new ByteArrayInputStream(utf16Bytes);
         var    convertedInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(inputStream);
@@ -63,7 +63,7 @@ class InputStreamHelperTests {
         var outputStream = new ByteArrayOutputStream();
         outputStream.write(0xFE);
         outputStream.write(0xFF);
-        outputStream.write(in.getBytes("UTF-16BE"));
+        outputStream.write(in.getBytes(StandardCharsets.UTF_16BE));
         byte[] utf16BytesWithBOM    = outputStream.toByteArray();
         var    inputStream          = new ByteArrayInputStream(utf16BytesWithBOM);
         var    convertedInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(inputStream);
@@ -79,7 +79,7 @@ class InputStreamHelperTests {
         var outputStream = new ByteArrayOutputStream();
         outputStream.write(0xFF);
         outputStream.write(0xFE);
-        outputStream.write(in.getBytes("UTF-16LE"));
+        outputStream.write(in.getBytes(StandardCharsets.UTF_16LE));
         byte[] utf16Bytes           = outputStream.toByteArray();
         var    inputStream          = new ByteArrayInputStream(utf16Bytes);
         var    convertedInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(inputStream);

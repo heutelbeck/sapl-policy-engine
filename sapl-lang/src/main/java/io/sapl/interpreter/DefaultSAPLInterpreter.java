@@ -57,7 +57,7 @@ import reactor.core.publisher.Flux;
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
     private static final String DUMMY_RESOURCE_URI = "policy:/aPolicy.sapl";
-
+    
     private static final String PARSING_ERRORS = "Parsing errors: %s";
 
     private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
@@ -74,9 +74,10 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
         try {
             convertedSaplInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(saplInputStream);
         } catch (IOException e) {
-            log.error(e.getMessage(), e);
+        	var errorMessage = "Invalid byte sequence in InputStream. Could not transform to UTF-8.";
+            log.error(errorMessage, e);
             throw new PolicyEvaluationException(
-                    composeReason("Invalid byte sequence in InputStream. Could not transform to UTF-8"));
+                    composeReason(errorMessage), e);
         }
 
         var sapl       = loadAsResource(convertedSaplInputStream);

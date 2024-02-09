@@ -19,6 +19,8 @@ package io.sapl.mavenplugin.test.coverage.stubs;
 
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,7 +41,7 @@ public class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
         MavenXpp3Reader pomReader = new MavenXpp3Reader();
         Model           model;
         try {
-            model = pomReader.read((new FileReader(new File(getBasedir(), "pom.xml"))));
+			model = pomReader.read((new FileReader(new File(getBasedir(), "pom.xml"), StandardCharsets.UTF_8)));
             setModel(model);
         } catch (Exception e) {
             throw new RuntimeException(e);
