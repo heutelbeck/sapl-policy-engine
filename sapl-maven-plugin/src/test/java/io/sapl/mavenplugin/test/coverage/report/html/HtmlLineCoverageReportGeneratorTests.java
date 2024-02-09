@@ -48,7 +48,7 @@ class HtmlLineCoverageReportGeneratorTests {
     private static final float                           POLICY_SET_HIT_RATIO       = 100;
     private static final float                           POLICY_HIT_RATIO           = 66.6f;
     private static final float                           POLICY_CONDITION_HIT_RATIO = 43.9f;
-    private static final HtmlLineCoverageReportGenerator GENERATOR                  = new HtmlLineCoverageReportGenerator();;
+    private static final HtmlLineCoverageReportGenerator GENERATOR                  = new HtmlLineCoverageReportGenerator();
 
     @Test
     void test(@TempDir Path tempDir) throws MojoExecutionException {

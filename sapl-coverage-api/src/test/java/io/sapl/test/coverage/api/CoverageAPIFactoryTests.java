@@ -26,24 +26,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class CoverageAPIFactoryTests {
 
-    @AfterEach
-    void cleanup() {
-        TestFileHelper.deleteDirectory(Paths.get("target/tmp").toFile());
-    }
-
     @Test
-    void test() throws IOException {
+    void test(@TempDir Path tempDir) throws IOException {
 
-        Path hitDir = Paths.get("target/tmp/hits");
+        Path hitDir = tempDir.resolve("hits");
 
         assertThat(countFilesInDir(hitDir)).isZero();
 
-        constructCoverageHitRecorder(Paths.get("target/tmp"));
+        constructCoverageHitRecorder(tempDir);
 
         assertThat(countFilesInDir(hitDir)).isEqualTo(3);
     }

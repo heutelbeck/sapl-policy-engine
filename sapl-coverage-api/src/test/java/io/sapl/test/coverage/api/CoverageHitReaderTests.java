@@ -24,13 +24,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
@@ -38,26 +36,11 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 
 class CoverageHitReaderTests {
 
-    private Path basedir;
-
-    private CoverageHitReader reader;
-
-    @BeforeEach
-    void setup() {
-        this.basedir = Paths.get("target").resolve("sapl-coverage");
-        this.reader  = new CoverageHitAPIFile(this.basedir);
-        this.reader.cleanCoverageHitFiles();
-    }
-
-    @AfterEach
-    void cleanup() {
-        this.reader.cleanCoverageHitFiles();
-    }
-
     @Test
-    void testCoverageReading_PolicySets() throws Exception {
+    void testCoverageReading_PolicySets(@TempDir Path tempDir) throws Exception {
+        var reader = new CoverageHitAPIFile(tempDir);
         // arrange
-        var path = this.basedir.resolve("hits").resolve("_policySetHits.txt");
+        var path = tempDir.resolve("hits").resolve("_policySetHits.txt");
         if (!Files.exists(path)) {
             var parent = path.getParent();
             if (parent != null) {
@@ -71,7 +54,7 @@ class CoverageHitReaderTests {
                 StandardOpenOption.APPEND);
 
         // act
-        List<PolicySetHit> resultPolicySetHits = this.reader.readPolicySetHits();
+        List<PolicySetHit> resultPolicySetHits = reader.readPolicySetHits();
 
         // assert
         assertThat(resultPolicySetHits).hasSize(2);
@@ -80,9 +63,10 @@ class CoverageHitReaderTests {
     }
 
     @Test
-    void testCoverageReading_Polices() throws Exception {
+    void testCoverageReading_Polices(@TempDir Path tempDir) throws Exception {
+        var reader = new CoverageHitAPIFile(tempDir);
         // arrange
-        var path = this.basedir.resolve("hits").resolve("_policyHits.txt");
+        var path = tempDir.resolve("hits").resolve("_policyHits.txt");
         if (!Files.exists(path)) {
             var parent = path.getParent();
             if (parent != null) {
@@ -96,7 +80,7 @@ class CoverageHitReaderTests {
                 StandardOpenOption.APPEND);
 
         // act
-        List<PolicyHit> resultPolicyHits = this.reader.readPolicyHits();
+        List<PolicyHit> resultPolicyHits = reader.readPolicyHits();
 
         // assert
         assertThat(resultPolicyHits).hasSize(2);
@@ -107,9 +91,10 @@ class CoverageHitReaderTests {
     }
 
     @Test
-    void testCoverageReading_PolicyConditions() throws Exception {
+    void testCoverageReading_PolicyConditions(@TempDir Path tempDir) throws Exception {
+        var reader = new CoverageHitAPIFile(tempDir);
         // arrange
-        var hitPath = this.basedir.resolve("hits").resolve("_policyConditionHits.txt");
+        var hitPath = tempDir.resolve("hits").resolve("_policyConditionHits.txt");
         if (!Files.exists(hitPath)) {
             var parent = hitPath.getParent();
             if (parent != null) {
@@ -123,7 +108,7 @@ class CoverageHitReaderTests {
                 .getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
 
         // act
-        List<PolicyConditionHit> resultPolicyConditionHits = this.reader.readPolicyConditionHits();
+        List<PolicyConditionHit> resultPolicyConditionHits = reader.readPolicyConditionHits();
 
         // assert
         assertThat(resultPolicyConditionHits).hasSize(2);
@@ -138,8 +123,9 @@ class CoverageHitReaderTests {
     }
 
     @Test
-    void testCoverageReading_PolicySets_FileNotExist() {
-        assertThatThrownBy(() -> this.reader.readPolicySetHits()).isInstanceOf(NoSuchFileException.class);
+    void testCoverageReading_PolicySets_FileNotExist(@TempDir Path tempDir) {
+        var reader = new CoverageHitAPIFile(tempDir);
+        assertThatThrownBy(() -> reader.readPolicySetHits()).isInstanceOf(NoSuchFileException.class);
     }
 
 }

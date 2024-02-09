@@ -17,15 +17,14 @@
  */
 package io.sapl.springdatacommon.sapl.handlers;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class LoggingConstraintHandlerProviderTests {
 
@@ -125,7 +124,7 @@ class LoggingConstraintHandlerProviderTests {
         var actual = loggingConstraintHandlerProvider.getHandler(constraint);
 
         // THEN
-        assertTrue(actual instanceof Runnable);
+        assertInstanceOf(Runnable.class, actual);
         actual.run();
     }
 }

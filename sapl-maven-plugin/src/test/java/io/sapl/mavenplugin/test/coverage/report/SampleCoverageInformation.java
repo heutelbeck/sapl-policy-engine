@@ -29,7 +29,7 @@ import lombok.experimental.UtilityClass;
 public class SampleCoverageInformation {
 
     private record LineMarking(int lineNumber, LineCoveredValue value, int coveredBranches, int branchesToCover) {
-    };
+    }
 
     // @formatter:off
     private static final List<LineMarking> LINE_MARKINGS = List.of(

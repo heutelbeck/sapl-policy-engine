@@ -19,13 +19,9 @@ package io.sapl.grammar.ide.contentassist;
 
 import static io.sapl.grammar.ide.contentassist.ExpressionSchemaResolver.offsetOf;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.Assignment;
 import org.eclipse.xtext.GrammarUtil;
@@ -277,17 +273,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             ContentAssistContext context, IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         var attributeContext = pdpConfiguration.attributeContext();
         var schemas          = attributeContext.getAttributeSchemas();
-        var proposals        = proposalsWithImportsForTemplate(template, context);
-        proposals.add(template);
-        addProposalsWithSharedDocumentation(proposals, documentation, context, acceptor);
-        var schema = schemas.get(fullyQualifiedName);
-        if (schema != null) {
-            for (var prefix : proposals) {
-                var extendedProposals = SchemaProposalGenerator.getCodeTemplates(prefix, schema,
-                        pdpConfiguration.variables());
-                addProposals(extendedProposals, context, acceptor);
-            }
-        }
+        createProposals(schemas, fullyQualifiedName, template, documentation, context, acceptor, pdpConfiguration);
     }
 
     /*
@@ -309,7 +295,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             ContentAssistContext context, IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         var functionContext = pdpConfiguration.functionContext();
         var schemas         = functionContext.getFunctionSchemas();
-        var proposals       = proposalsWithImportsForTemplate(template, context);
+        createProposals(schemas, fullyQualifiedName, template, documentation, context, acceptor, pdpConfiguration);
+    }
+
+    private void createProposals(Map<String, JsonNode> schemas, String fullyQualifiedName, String template,
+            String documentation, ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
+            PDPConfiguration pdpConfiguration) {
+        var proposals = proposalsWithImportsForTemplate(template, context);
         proposals.add(template);
         addProposalsWithSharedDocumentation(proposals, documentation, context, acceptor);
         var schema = schemas.get(fullyQualifiedName);
