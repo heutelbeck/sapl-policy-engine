@@ -85,8 +85,8 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTests {
 
     final EmbeddedPolicyDecisionPoint pdpMock = mock(EmbeddedPolicyDecisionPoint.class);
 
-    final R2dbcEntityTemplate       r2dbcEntityTemplateMock = mock(R2dbcEntityTemplate.class, Answers.RETURNS_DEEP_STUBS);
-    final BeanFactory               beanFactoryMock         = mock(BeanFactory.class);
+    final R2dbcEntityTemplate r2dbcEntityTemplateMock = mock(R2dbcEntityTemplate.class, Answers.RETURNS_DEEP_STUBS);
+    final BeanFactory         beanFactoryMock         = mock(BeanFactory.class);
     @SuppressWarnings("unchecked")
     final // mocking of generic type
     Flux<Map<String, Object>> fluxMap                 = mock(Flux.class);

@@ -30,9 +30,7 @@ import lombok.NonNull;
 
 public class DisjunctiveFormula {
 
-    static final String CONSTRUCTION_FAILED     = "Failed to create instance, empty collection provided.";
-    static final String EVALUATION_NOT_POSSIBLE = "Evaluation Error: Attempting to evaluate empty formula.";
-
+    static final String                   CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";
     private final List<ConjunctiveClause> clauses;
 
     private int hash;

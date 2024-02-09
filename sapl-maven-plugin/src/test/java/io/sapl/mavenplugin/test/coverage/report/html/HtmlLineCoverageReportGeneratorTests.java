@@ -98,7 +98,7 @@ class HtmlLineCoverageReportGeneratorTests {
                 .mockStatic(WebDependencyFactory.class)) {
             var nonExistingFiles = List
                     .of(new WebDependency("I do not exist", "I do not exist", "I do not exist", "I do not exist"));
-            mockedDependencyFactory.when(() -> WebDependencyFactory.getWebDependencies()).thenReturn(nonExistingFiles);
+            mockedDependencyFactory.when(WebDependencyFactory::getWebDependencies).thenReturn(nonExistingFiles);
             assertThrows(MojoExecutionException.class,
                     () -> GENERATOR.generateHtmlReport(SampleCoverageInformation.documents(), tempDir,
                             POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));

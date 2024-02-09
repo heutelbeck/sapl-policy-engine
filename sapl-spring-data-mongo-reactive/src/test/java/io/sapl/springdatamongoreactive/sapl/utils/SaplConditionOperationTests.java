@@ -41,7 +41,7 @@ class SaplConditionOperationTests {
     static ArrayNode          CONDITIONS;
     static ArrayNode          CONDITIONS_WITH_OR_PART;
     static JsonNode           NOT_VALID_CONDITIONS;
-    static final ArrayNode          EMPTY_ARRAY_NODE = MAPPER.createArrayNode();
+    static final ArrayNode    EMPTY_ARRAY_NODE = MAPPER.createArrayNode();
 
     @BeforeAll
     public static void setUp() throws JsonProcessingException {

@@ -44,8 +44,7 @@ class CoverageCustomConfigTests {
             }
             Files.createFile(path);
         }
-        Files.writeString(path, new PolicySetHit("set1") + System.lineSeparator(),
-                StandardOpenOption.APPEND);
+        Files.writeString(path, new PolicySetHit("set1") + System.lineSeparator(), StandardOpenOption.APPEND);
 
         // act
         List<PolicySetHit> resultPolicySetHits = reader.readPolicySetHits();
