@@ -20,8 +20,7 @@ package io.sapl.interpreter;
 import java.io.InputStream;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
@@ -65,8 +64,7 @@ public interface SAPLInterpreter {
      * @return A {@link Flux} of {@link AuthorizationDecision} objects.
      */
     Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDocumentSource,
-            AttributeContext attributeContext, FunctionContext functionContext,
-            Map<String, JsonNode> environmentVariables);
+            AttributeContext attributeContext, FunctionContext functionContext, Map<String, Val> environmentVariables);
 
     /**
      * Method which analyzes a String containing a SAPL document.

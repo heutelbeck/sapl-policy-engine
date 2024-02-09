@@ -21,8 +21,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -47,7 +45,7 @@ public class StepBuilder {
      * @return {@link GivenStep} to start constructing the test case.
      */
     static GivenStep newBuilderAtGivenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
-            AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
+            AttributeContext attrCtx, FunctionContext funcCtx, Map<String, Val> variables) {
         return new Steps(prp, pdpConfig, attrCtx, funcCtx, variables);
     }
 
@@ -57,7 +55,7 @@ public class StepBuilder {
      * @return {@link WhenStep} to start constructing the test case.
      */
     static WhenStep newBuilderAtWhenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
-            AttributeContext attrCtx, FunctionContext funcCtx, Map<String, JsonNode> variables) {
+            AttributeContext attrCtx, FunctionContext funcCtx, Map<String, Val> variables) {
         return new Steps(prp, pdpConfig, attrCtx, funcCtx, variables);
     }
 
@@ -76,7 +74,7 @@ public class StepBuilder {
         private final VariablesAndCombinatorSource pdpConfig;
 
         Steps(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig, AttributeContext attrCtx,
-                FunctionContext funcCtx, Map<String, JsonNode> variables) {
+                FunctionContext funcCtx, Map<String, Val> variables) {
             this.prp                     = prp;
             this.pdpConfig               = pdpConfig;
             this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);

@@ -66,6 +66,7 @@ public class Trace {
     public static final String OBLIGATIONS                = "obligations";
     public static final String OPERATOR                   = "operator";
     public static final String POLICY_NAME                = "policyName";
+    public static final String POLICY_SET                 = "policySet";
     public static final String POLICY_SET_NAME            = "policySetName";
     public static final String RESOURCE                   = "resource";
     public static final String RIGHT                      = "right";

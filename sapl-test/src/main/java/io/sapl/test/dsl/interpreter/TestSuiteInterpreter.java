@@ -18,6 +18,12 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
+import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
@@ -75,7 +81,8 @@ class TestSuiteInterpreter {
 
         if (integrationTestSuite.getPdpVariables() instanceof io.sapl.test.grammar.sapltest.Object pdpVariables) {
             final var pdpEnvironmentVariables = valueInterpreter.destructureObject(pdpVariables);
-            integrationTestFixture = integrationTestFixture.withPDPVariables(pdpEnvironmentVariables);
+            integrationTestFixture = integrationTestFixture
+                    .withPDPVariables(packageJsonNodesInVal(pdpEnvironmentVariables));
         }
 
         if (integrationTestSuite.isCombiningAlgorithmDefined()) {
@@ -85,6 +92,12 @@ class TestSuiteInterpreter {
         }
 
         return integrationTestFixture;
+    }
+
+    private Map<String, Val> packageJsonNodesInVal(Map<String, JsonNode> originalMap) {
+        var newMap = new HashMap<String, Val>();
+        originalMap.forEach((key, json) -> newMap.put(key, Val.of(json)));
+        return newMap;
     }
 
     private SaplIntegrationTestFixture handlePoliciesByIdentifier(final PoliciesByIdentifier policiesByIdentifier) {

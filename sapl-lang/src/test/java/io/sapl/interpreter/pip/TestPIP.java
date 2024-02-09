@@ -21,7 +21,6 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
@@ -39,20 +38,20 @@ public class TestPIP {
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     @Attribute
-    public Flux<Val> echo(Val value, Map<String, JsonNode> variables) {
+    public Flux<Val> echo(Val value, Map<String, Val> variables) {
         return Flux.just(value);
     }
 
     @Attribute
-    public Flux<Val> echoRepeat(Val value, Map<String, JsonNode> variables, Val repetitions) {
+    public Flux<Val> echoRepeat(Val value, Map<String, Val> variables, Val repetitions) {
         return Flux.just(Val
                 .of(StringUtils.repeat(value.orElse(JSON.textNode("undefined")).asText(), repetitions.get().asInt())));
     }
 
     @Attribute
-    public Flux<Val> someVariableOrNull(Val value, Map<String, JsonNode> variables) {
+    public Flux<Val> someVariableOrNull(Val value, Map<String, Val> variables) {
         if (value.isDefined() && variables.containsKey(value.get().asText())) {
-            return Flux.just(Val.of(variables.get(value.get().asText()).deepCopy()));
+            return Flux.just(variables.get(value.get().asText()));
         }
         return Val.fluxOfNull();
     }

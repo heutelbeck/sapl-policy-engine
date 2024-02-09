@@ -37,8 +37,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
@@ -55,7 +53,6 @@ class SaplMqttDefaultResponseIT {
 
     private static final long            DELAY_MS = 1000L;
     private static final JsonNodeFactory JSON     = JsonNodeFactory.instance;
-    private static final ObjectMapper    MAPPER   = new ObjectMapper();
 
     @TempDir
     Path configDir;
@@ -161,8 +158,8 @@ class SaplMqttDefaultResponseIT {
     }
 
     @SneakyThrows
-    private static JsonNode customPipConfig() {
-        return MAPPER.readTree("""
+    private static Val customPipConfig() {
+        return Val.of("""
                 {
                   "defaultBrokerConfigName" : "production",
                   "emitAtRetry" : "false",
@@ -177,8 +174,8 @@ class SaplMqttDefaultResponseIT {
                 """);
     }
 
-    private static Map<String, JsonNode> buildCustomConfig() {
-        return Map.of("action", MAPPER.nullNode(), "environment", MAPPER.nullNode(), "mqttPipConfig", customPipConfig(),
-                "resource", MAPPER.nullNode(), "subject", MAPPER.nullNode());
+    private static Map<String, Val> buildCustomConfig() {
+        return Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig", customPipConfig(), "resource",
+                Val.NULL, "subject", Val.NULL);
     }
 }

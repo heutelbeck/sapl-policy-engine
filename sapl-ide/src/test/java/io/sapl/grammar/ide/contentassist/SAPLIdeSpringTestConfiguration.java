@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PDPConfiguration;
@@ -46,7 +47,7 @@ class SAPLIdeSpringTestConfiguration {
     PDPConfigurationProvider pdpConfiguration() {
         var attributeContext = new TestAttributeContext();
         var functionContext  = new TestFunctionContext();
-        var variables        = new HashMap<String, JsonNode>();
+        var variables        = new HashMap<String, Val>();
 
         load("action_schema", variables);
         load("address_schema", variables);
@@ -68,7 +69,7 @@ class SAPLIdeSpringTestConfiguration {
     }
 
     @SneakyThrows
-    private void load(List<String> schemaFiles, Map<String, JsonNode> variables) {
+    private void load(List<String> schemaFiles, Map<String, Val> variables) {
         var schemasArray = JsonNodeFactory.instance.arrayNode();
         for (var schemaFile : schemaFiles) {
             try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
@@ -77,16 +78,16 @@ class SAPLIdeSpringTestConfiguration {
                 schemasArray.add(MAPPER.readValue(is, JsonNode.class));
             }
         }
-        variables.put("SCHEMAS", schemasArray);
+        variables.put("SCHEMAS", Val.of(schemasArray));
     }
 
     @SneakyThrows
-    private void load(String schemaFile, Map<String, JsonNode> variables) {
+    private void load(String schemaFile, Map<String, Val> variables) {
         try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
             if (is == null)
                 throw new RuntimeException(schemaFile + ".json not found");
             var schema = MAPPER.readValue(is, JsonNode.class);
-            variables.put(schemaFile, schema);
+            variables.put(schemaFile, Val.of(schema));
         }
     }
 

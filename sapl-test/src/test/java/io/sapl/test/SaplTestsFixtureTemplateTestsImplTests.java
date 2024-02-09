@@ -27,6 +27,8 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.interpreter.Val;
+
 class SaplTestsFixtureTemplateTestsImplTests {
 
     private SaplTestsFixtureTemplateTestsImpl sut;
@@ -53,16 +55,16 @@ class SaplTestsFixtureTemplateTestsImplTests {
 
     @Test
     void test_registerVariable() {
-        this.sut.registerVariable("test", this.mapper.createObjectNode());
+        this.sut.registerVariable("test", Val.of(this.mapper.createObjectNode()));
         assertThat(this.sut.getVariablesMap()).containsKey("test");
     }
 
     @Test
     void test_registerVariable_twoTimes() {
-        this.sut.registerVariable("test", this.mapper.createObjectNode());
-        var objectNode = this.mapper.createObjectNode();
+        this.sut.registerVariable("test", Val.ofEmptyObject());
+        var empty = Val.ofEmptyObject();
         assertThatExceptionOfType(SaplTestException.class)
-                .isThrownBy(() -> this.sut.registerVariable("test", objectNode))
+                .isThrownBy(() -> this.sut.registerVariable("test", empty))
                 .withMessage("The VariableContext already contains a key \"test\"");
     }
 

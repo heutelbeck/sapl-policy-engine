@@ -28,9 +28,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.NonNull;
@@ -68,11 +70,22 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
             configs.forEachByteArrayThrowingIOException((Resource res, byte[] rawDocument) -> {
                 log.debug("Loading configuration {}", res.getPath());
                 var jsonDocument = new String(rawDocument, StandardCharsets.UTF_8);
-                this.config = mapper.readValue(jsonDocument, PolicyDecisionPointConfiguration.class);
+                var jsonNode     = mapper.readValue(jsonDocument, JsonNode.class);
+                this.config = new PolicyDecisionPointConfiguration();
+                if (jsonNode.has("algorithm")) {
+                    this.config
+                            .setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
+                }
+                var variables = new HashMap<String, Val>();
+                if (jsonNode.has("variables")) {
+                    jsonNode.get("variables").fields().forEachRemaining(field -> variables.put(field.getKey(),
+                            Val.of(field.getValue()).withTrace(VariablesAndCombinatorSource.class)));
+                }
+                this.config.setVariables(variables);
             });
         } catch (IOException e) {
-            throw new InitializationException(
-                    "Failed to load configuration pdp.json from " + configPath + "in resoures", e);
+            throw new InitializationException(e,
+                    "Failed to load configuration pdp.json from '" + configPath + "' in resoures");
         }
     }
 
@@ -82,7 +95,7 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
     }
 
     @Override
-    public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+    public Flux<Optional<Map<String, Val>>> getVariables() {
         return Flux.just(config.getVariables()).map(HashMap::new).map(Optional::of);
     }
 

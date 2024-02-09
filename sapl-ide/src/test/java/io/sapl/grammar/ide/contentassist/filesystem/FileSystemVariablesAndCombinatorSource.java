@@ -33,6 +33,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
@@ -94,22 +95,22 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
     }
 
     @Override
-    public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+    public Flux<Optional<Map<String, Val>>> getVariables() {
 
-        Map<String, JsonNode> schemaMap = new HashMap<>();
-        File[]                jsonFiles = new File(configPath).listFiles((dir, name) -> name.endsWith(".json"));
+        Map<String, Val> schemaMap = new HashMap<>();
+        File[]           jsonFiles = new File(configPath).listFiles((dir, name) -> name.endsWith(".json"));
 
         if ((jsonFiles != null ? jsonFiles.length : 0) > 0) {
             for (File jsonFile : jsonFiles)
                 try {
                     String   keyString = jsonFile.getName().substring(0, jsonFile.getName().lastIndexOf('.'));
                     JsonNode node      = MAPPER.readTree(jsonFile);
-                    schemaMap.put(keyString, node);
+                    schemaMap.put(keyString, Val.of(node));
                 } catch (Exception e) {
                     log.info("Error reading variables from file system: {}", e.getMessage());
                 }
         }
-        Optional<Map<String, JsonNode>> optSchemaMap = Optional.ofNullable(schemaMap);
+        Optional<Map<String, Val>> optSchemaMap = Optional.ofNullable(schemaMap);
 
         return Flux.just(optSchemaMap);
     }

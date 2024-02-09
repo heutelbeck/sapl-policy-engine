@@ -19,8 +19,6 @@ package io.sapl.pdp;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -35,7 +33,7 @@ public class TestPIP {
     public static final String DESCRIPTION = "Policy information Point for testing";
 
     @Attribute
-    public Flux<Val> upper(@Text Val leftHandValue, Map<String, JsonNode> variables) {
+    public Flux<Val> upper(@Text Val leftHandValue, Map<String, Val> variables) {
         return Flux.just(Val.of(leftHandValue.get().asText().toUpperCase()));
     }
 
