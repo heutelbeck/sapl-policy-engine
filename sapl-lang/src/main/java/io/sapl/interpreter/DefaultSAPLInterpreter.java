@@ -56,7 +56,7 @@ import reactor.core.publisher.Flux;
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
     private static final String DUMMY_RESOURCE_URI = "policy:/aPolicy.sapl";
-
+    
     private static final String PARSING_ERRORS = "Parsing errors: %s";
 
     private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
@@ -68,12 +68,27 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
     @Override
     public SAPL parse(InputStream saplInputStream) {
-        var sapl       = loadAsResource(saplInputStream);
+
+        InputStream convertedSaplInputStream;
+        try {
+            convertedSaplInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(saplInputStream);
+        } catch (IOException e) {
+        	var errorMessage = "Invalid byte sequence in InputStream. Could not transform to UTF-8.";
+            log.error(errorMessage, e);
+            throw new PolicyEvaluationException(
+                    composeReason(errorMessage), e);
+        }
+
+        var sapl       = loadAsResource(convertedSaplInputStream);
         var diagnostic = Diagnostician.INSTANCE.validate(sapl);
         if (diagnostic.getSeverity() == Diagnostic.OK)
             return sapl;
 
         throw new PolicyEvaluationException(composeReason(diagnostic));
+    }
+
+    private String composeReason(String s) {
+        return String.format("SAPL Validation Error: [%s]", s);
     }
 
     private String composeReason(Diagnostic diagnostic) {
