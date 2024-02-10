@@ -34,7 +34,7 @@ public class MultiImplCustom extends MultiImpl {
     }
 
     private Val multiply(Val left, Val right) {
-        return Val.of(left.decimalValue().multiply(right.decimalValue())).withTrace(Multi.class,
+        return Val.of(left.decimalValue().multiply(right.decimalValue())).withTrace(Multi.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 

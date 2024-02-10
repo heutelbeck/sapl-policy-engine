@@ -26,6 +26,7 @@ import static io.sapl.springdatar2dbc.sapl.utils.annotation.AnnotationUtilities.
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Objects;
+
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.BeanFactory;
@@ -49,7 +50,7 @@ import lombok.SneakyThrows;
  * MongoDb database type. A {@link MethodInterceptor} is needed to manipulate
  * the database method query. At the beginning the corresponding
  * {@link AuthorizationSubscription} is searched for and built together if
- * necessary. Afterwards between 4 scenarios is differentiated and acted
+ * necessary. Afterward between 4 scenarios is differentiated and acted
  * accordingly.
  * <p>
  * Scenario 1: The method of the repository, which is to be executed, has a

@@ -21,7 +21,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import lombok.Getter;
 import org.springframework.data.mapping.context.MappingContext;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.mapping.MongoPersistentEntity;
@@ -35,6 +34,7 @@ import org.springframework.data.repository.query.parser.PartTree;
 import org.springframework.util.ReflectionUtils;
 
 import io.sapl.springdatamongoreactive.sapl.utils.Utilities;
+import lombok.Getter;
 import lombok.SneakyThrows;
 
 public class ReflectedMongoQueryCreatorInstantiator {

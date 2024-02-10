@@ -22,6 +22,7 @@ import static io.sapl.grammar.ide.contentassist.ExpressionSchemaResolver.offsetO
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -35,6 +36,7 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Strings;
 
 import io.sapl.grammar.sapl.Import;
@@ -57,7 +59,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             "false");
     private static final Collection<String> WHITELIST_OF_KEYWORD_PROPOSALS = Set.of("as");
 
-    public static final Collection<String> AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS = Set.of("subject",
+    public static final Collection<String> AUTHORIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS = Set.of("subject",
             "action", "resource", "environment");
 
     private static final int MINIMUM_KEYWORD_LENGTH = 3;
@@ -71,7 +73,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     /**
-     * Here SPAL filters out very short and blacklisted keywords.
+     * Here SAPL filters out very short and blacklisted keywords.
      */
     @Override
     protected boolean filterKeyword(final Keyword keyword, final ContentAssistContext context) {
@@ -255,7 +257,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void createProposalsContainingSubscriptionElementIdentifiers(ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor) {
-        addProposals(AUTHORIRIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS, context, acceptor);
+        addProposals(AUTHORIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS, context, acceptor);
     }
 
     /*
@@ -277,17 +279,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             ContentAssistContext context, IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         var attributeContext = pdpConfiguration.attributeContext();
         var schemas          = attributeContext.getAttributeSchemas();
-        var proposals        = proposalsWithImportsForTemplate(template, context);
-        proposals.add(template);
-        addProposalsWithSharedDocumentation(proposals, documentation, context, acceptor);
-        var schema = schemas.get(fullyQualifiedName);
-        if (schema != null) {
-            for (var prefix : proposals) {
-                var extendedProposals = SchemaProposalGenerator.getCodeTemplates(prefix, schema,
-                        pdpConfiguration.variables());
-                addProposals(extendedProposals, context, acceptor);
-            }
-        }
+        createProposals(schemas, fullyQualifiedName, template, documentation, context, acceptor, pdpConfiguration);
     }
 
     /*
@@ -309,7 +301,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             ContentAssistContext context, IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         var functionContext = pdpConfiguration.functionContext();
         var schemas         = functionContext.getFunctionSchemas();
-        var proposals       = proposalsWithImportsForTemplate(template, context);
+        createProposals(schemas, fullyQualifiedName, template, documentation, context, acceptor, pdpConfiguration);
+    }
+
+    private void createProposals(Map<String, JsonNode> schemas, String fullyQualifiedName, String template,
+            String documentation, ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
+            PDPConfiguration pdpConfiguration) {
+        var proposals = proposalsWithImportsForTemplate(template, context);
         proposals.add(template);
         addProposalsWithSharedDocumentation(proposals, documentation, context, acceptor);
         var schema = schemas.get(fullyQualifiedName);

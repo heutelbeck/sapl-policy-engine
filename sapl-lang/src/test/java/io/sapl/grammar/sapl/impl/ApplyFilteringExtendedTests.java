@@ -48,7 +48,7 @@ class ApplyFilteringExtendedTests {
         assertExpressionReturnsError("(10/0) |- { @.name : filter.remove }", "Division by zero");
     }
 
-    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+    private static Stream<Arguments> provideStringsForExpressionEvaluatesToExpectedValue() {
         // @formatter:off
 		return Stream.of(
 				// No filter Statement
@@ -148,7 +148,7 @@ class ApplyFilteringExtendedTests {
 	}
 
 	@ParameterizedTest
-	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
+	@MethodSource("provideStringsForExpressionEvaluatesToExpectedValue")
 	void expressionEvaluatesToExpectedValue(String expression, String expected) {
 		assertExpressionEvaluatesTo(expression, expected);
 	}

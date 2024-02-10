@@ -338,6 +338,7 @@ class EnforcedSchemaTests {
                 .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
 
+        assertThat(match).isNotNull();
         assertThat(match.getBoolean()).isEqualTo(expected);
 
         var implicitMatch = MatchingUtil.matches(sapl.getImplicitTargetExpression(), sapl)
@@ -346,6 +347,7 @@ class EnforcedSchemaTests {
                 .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
 
+        assertThat(implicitMatch).isNotNull();
         assertThat(implicitMatch.getBoolean()).isEqualTo(expected);
     }
 

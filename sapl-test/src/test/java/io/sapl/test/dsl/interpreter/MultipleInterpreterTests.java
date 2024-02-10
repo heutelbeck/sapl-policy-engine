@@ -54,7 +54,7 @@ class MultipleInterpreterTests {
     }
 
     @Test
-    void getAmountFromMultiple_handlesNull_throwsSaplTestException() {
+    void getAmountFromMultiple_handlesNullAmount_throwsSaplTestException() {
         final var multiple = mock(Multiple.class);
 
         when(multiple.getAmount()).thenReturn(null);
@@ -62,12 +62,12 @@ class MultipleInterpreterTests {
         final var exception = assertThrows(SaplTestException.class,
                 () -> multipleInterpreter.getAmountFromMultiple(multiple));
 
-        assertEquals("Amount is null", exception.getMessage());
+        assertEquals("Amount needs to be a natural number larger than 1", exception.getMessage());
     }
 
     @ParameterizedTest
-    @ValueSource(ints = { -2, -1, 0, 1, Integer.MIN_VALUE })
-    void getAmountFromMultiple_handlesMultipleSmallerThan2_throwsSaplTestException(final int amount) {
+    @ValueSource(doubles = { -2, -1, 0, 1, Integer.MIN_VALUE, Double.MIN_VALUE, Double.MAX_VALUE, -0.33, -0.5, 0.5 })
+    void getAmountFromMultiple_handlesInvalidAmount_throwsSaplTestException(final Double amount) {
         final var multiple = mock(Multiple.class);
 
         when(multiple.getAmount()).thenReturn(BigDecimal.valueOf(amount));
@@ -75,20 +75,7 @@ class MultipleInterpreterTests {
         final var exception = assertThrows(SaplTestException.class,
                 () -> multipleInterpreter.getAmountFromMultiple(multiple));
 
-        assertEquals("Amount needs to be larger than 1", exception.getMessage());
-    }
-
-    @ParameterizedTest
-    @ValueSource(doubles = { Long.MIN_VALUE, Long.MAX_VALUE, -0.33, -0.5, 0.5 })
-    void getAmountFromMultiple_handlesInvalidMultiple_throwsSaplTestException(final Double amount) {
-        final var multiple = mock(Multiple.class);
-
-        when(multiple.getAmount()).thenReturn(BigDecimal.valueOf(amount));
-
-        final var exception = assertThrows(SaplTestException.class,
-                () -> multipleInterpreter.getAmountFromMultiple(multiple));
-
-        assertEquals("Amount has invalid format", exception.getMessage());
+        assertEquals("Amount needs to be a natural number larger than 1", exception.getMessage());
     }
 
     @ParameterizedTest

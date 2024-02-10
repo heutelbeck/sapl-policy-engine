@@ -174,7 +174,7 @@ public class FilterFunctionLibrary {
 
     /**
      * Extracts the length of blacken from the parameters or returns
-     * {@link #BLACKEN_LENGTH_INVALID_VALUE}
+     * {@link #BLACKEN_TYPE_INDEX}
      *
      * @param parameters the parameters to extract the length from (if possible)
      * @return the length of blacken or empty if the length is not provided

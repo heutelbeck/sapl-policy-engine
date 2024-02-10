@@ -56,7 +56,7 @@ import io.sapl.springdatamongoreactive.sapl.utils.SaplConditionOperation;
 
 class SaplPartTreeCriteriaCreatorTests {
 
-    ReactiveMongoTemplate reactiveMongoTemplateMock = mock(ReactiveMongoTemplate.class);
+    final ReactiveMongoTemplate reactiveMongoTemplateMock = mock(ReactiveMongoTemplate.class);
 
     static final ObjectMapper MAPPER = new ObjectMapper();
 

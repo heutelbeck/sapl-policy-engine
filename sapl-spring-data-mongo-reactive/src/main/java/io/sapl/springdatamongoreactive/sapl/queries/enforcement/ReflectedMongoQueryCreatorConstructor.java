@@ -33,7 +33,7 @@ class ReflectedMongoQueryCreatorConstructor {
 
     protected Constructor<?> getDeclaredConstructor(Class<?> class1, Class<?> class2, Class<?> class3, Class<?> class4)
             throws InvocationTargetException {
-        Constructor<?> constructor = null;
+        Constructor<?> constructor;
         try {
             constructor = mongoQueryCreator.getDeclaredConstructor(class1, class2, class3, class4);
         } catch (NoSuchMethodException | SecurityException e) {

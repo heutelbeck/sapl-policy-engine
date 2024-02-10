@@ -29,6 +29,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 
 import org.hamcrest.Matcher;
@@ -42,11 +43,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.test.TestHelper;
 import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sapltest.AnyVal;
 import io.sapl.test.grammar.sapltest.Attribute;
 import io.sapl.test.grammar.sapltest.AttributeWithParameters;
 import io.sapl.test.grammar.sapltest.IsJsonNull;
+import io.sapl.test.grammar.sapltest.ParameterMatchers;
 import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.sapltest.ValMatcher;
 import io.sapl.test.grammar.sapltest.ValWithMatcher;
@@ -151,7 +154,7 @@ class AttributeInterpreterTests {
         private Matcher<io.sapl.api.interpreter.Val> parentValueMatcherMock;
 
         @Test
-        void interpretAttributeWithParameters_withNullParameters_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
+        void interpretAttributeWithParameters_withNullParameterMatchers_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var attributeWithParametersMock = mock(AttributeWithParameters.class);
 
             when(attributeWithParametersMock.getName()).thenReturn("fooAttribute");
@@ -167,7 +170,7 @@ class AttributeInterpreterTests {
             final var returnValMock = mock(Val.class);
             when(valueInterpreterMock.getValFromValue(returnValueMock)).thenReturn(returnValMock);
 
-            when(attributeWithParametersMock.getParameters()).thenReturn(null);
+            when(attributeWithParametersMock.getParameterMatchers()).thenReturn(null);
 
             when(givenOrWhenStepMock.givenAttribute("fooAttribute", whenParentValue(parentValueMatcherMock),
                     returnValMock)).thenReturn(givenOrWhenStepMock);
@@ -179,7 +182,69 @@ class AttributeInterpreterTests {
         }
 
         @Test
-        void interpretAttributeWithParameters_withEmptyParameters_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
+        void interpretAttributeWithParameters_withNullMatchersInParameterMatchers_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
+            final var attributeWithParametersMock = mock(AttributeWithParameters.class);
+
+            when(attributeWithParametersMock.getName()).thenReturn("fooAttribute");
+
+            final var valMatcherMock = mock(ValMatcher.class);
+            when(attributeWithParametersMock.getParentMatcher()).thenReturn(valMatcherMock);
+
+            when(matcherInterpreterMock.getHamcrestValMatcher(valMatcherMock)).thenReturn(parentValueMatcherMock);
+
+            final var returnValueMock = mock(Value.class);
+            when(attributeWithParametersMock.getReturnValue()).thenReturn(returnValueMock);
+
+            final var returnValMock = mock(Val.class);
+            when(valueInterpreterMock.getValFromValue(returnValueMock)).thenReturn(returnValMock);
+
+            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            when(attributeWithParametersMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
+
+            when(parameterMatchersMock.getMatchers()).thenReturn(null);
+
+            when(givenOrWhenStepMock.givenAttribute("fooAttribute", whenParentValue(parentValueMatcherMock),
+                    returnValMock)).thenReturn(givenOrWhenStepMock);
+
+            final var result = attributeInterpreter.interpretAttributeWithParameters(givenOrWhenStepMock,
+                    attributeWithParametersMock);
+
+            assertEquals(givenOrWhenStepMock, result);
+        }
+
+        @Test
+        void interpretAttributeWithParameters_withEmptyMatchersInParameterMatchers_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
+            final var attributeWithParametersMock = mock(AttributeWithParameters.class);
+
+            when(attributeWithParametersMock.getName()).thenReturn("fooAttribute");
+
+            final var valMatcherMock = mock(ValMatcher.class);
+            when(attributeWithParametersMock.getParentMatcher()).thenReturn(valMatcherMock);
+
+            when(matcherInterpreterMock.getHamcrestValMatcher(valMatcherMock)).thenReturn(parentValueMatcherMock);
+
+            final var returnValueMock = mock(Value.class);
+            when(attributeWithParametersMock.getReturnValue()).thenReturn(returnValueMock);
+
+            final var returnValMock = mock(Val.class);
+            when(valueInterpreterMock.getValFromValue(returnValueMock)).thenReturn(returnValMock);
+
+            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            when(attributeWithParametersMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
+
+            TestHelper.mockEListResult(parameterMatchersMock::getMatchers, Collections.emptyList());
+
+            when(givenOrWhenStepMock.givenAttribute("fooAttribute", whenParentValue(parentValueMatcherMock),
+                    returnValMock)).thenReturn(givenOrWhenStepMock);
+
+            final var result = attributeInterpreter.interpretAttributeWithParameters(givenOrWhenStepMock,
+                    attributeWithParametersMock);
+
+            assertEquals(givenOrWhenStepMock, result);
+        }
+
+        @Test
+        void interpretAttributeWithParameters_withEmptyParameterMatchers_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var attributeWithParameters = buildAttributeWithParameters(
                     "attribute \"fooAttribute\" with parent value \"Foo\" returns \"BAR\"");
 
@@ -199,7 +264,7 @@ class AttributeInterpreterTests {
         }
 
         @Test
-        void interpretAttributeWithParameters_withMultipleParameters_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
+        void interpretAttributeWithParameters_withMultipleParameterMatchers_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var matcher1Mock                      = mock(Matcher.class);
             final var matcher2Mock                      = mock(Matcher.class);
             final var attributeParametersArgumentCaptor = ArgumentCaptor.forClass(AttributeParameters.class);

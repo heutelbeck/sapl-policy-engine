@@ -42,7 +42,7 @@ class QueryManipulationExecutorTests {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     R2dbcEntityTemplate r2dbcEntityTemplateMock;
 
-    Map<String, Object> userHashMap = Map.of("1", new Person(123, "Cathrin", "Second", 32, Role.ADMIN, true));
+    final Map<String, Object> userHashMap = Map.of("1", new Person(123, "Cathrin", "Second", 32, Role.ADMIN, true));
 
     @Test
     void when_r2dbcEntityTemplateWasFoundAndQueryContainsWHERE_then_executeQuery() {

@@ -24,8 +24,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.MockCall;
@@ -62,8 +60,7 @@ public class AttributeMockTiming implements AttributeMock {
     }
 
     @Override
-    public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, JsonNode> variables,
-            List<Flux<Val>> args) {
+    public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, Val> variables, List<Flux<Val>> args) {
         // ignore arguments
 
         this.mockRunInformation.saveCall(new MockCall());
@@ -73,8 +70,8 @@ public class AttributeMockTiming implements AttributeMock {
         }
 
         return Flux.interval(this.timing).map(number -> this.returnValues[number.intValue()])
-                .take(this.returnValues.length)
-                .map(val -> val.withTrace(AttributeMockTiming.class, Map.of("attributeName", Val.of(attributeName))));
+                .take(this.returnValues.length).map(val -> val.withTrace(AttributeMockTiming.class, true,
+                        Map.of("attributeName", Val.of(attributeName))));
     }
 
     @Override

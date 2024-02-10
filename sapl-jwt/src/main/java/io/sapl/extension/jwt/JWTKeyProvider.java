@@ -100,7 +100,7 @@ public class JWTKeyProvider {
         var lTTL = DEFAULT_CACHING_TTL;
         var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
         // nested if-statement in order to cover all possible branches during testing
-        // (eg. null && canConvertToLong not possible)
+        // (e.g. null && canConvertToLong not possible)
         if (jTTL != null) {
             if (jTTL.canConvertToLong()) {
                 lTTL = jTTL.longValue();

@@ -21,9 +21,9 @@ import org.springframework.security.authorization.AuthorizationDecision;
 
 import lombok.Getter;
 
+@Getter
 public class SaplAuthorizationDecision extends AuthorizationDecision {
 
-    @Getter
     SaplAttribute attribute;
 
     public SaplAuthorizationDecision(boolean granted, SaplAttribute attribute) {

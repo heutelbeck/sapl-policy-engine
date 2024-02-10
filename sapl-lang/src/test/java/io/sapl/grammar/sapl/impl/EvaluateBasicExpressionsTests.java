@@ -58,17 +58,17 @@ class EvaluateBasicExpressionsTests {
 	 			// evaluateBasicFunctionException
 	 			Arguments.of("exception(1,2,3)", "Unknown function exception")
 	 		);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("errorExpressions")
-	void expressionReturnsError(String expression, String expected) {
-		assertExpressionReturnsError(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("errorExpressions")
+    void expressionReturnsError(String expression, String expected) {
+        assertExpressionReturnsError(expression, expected);
+    }
 
-	private static Stream<Arguments> expressionTestCases() {
-		// @formatter:off
+    private static Stream<Arguments> expressionTestCases() {
+        // @formatter:off
 		return Stream.of(
 	 			// evaluateBasicValue
 	 			Arguments.of("null", "null"),
@@ -104,19 +104,19 @@ class EvaluateBasicExpressionsTests {
 	 			Arguments.of("mock.parameters(null, \"Herbert\", 123)",
 	 			             "[null, \"Herbert\", 123]")
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("expressionTestCases")
-	void expressionEvaluatesToExpectedValue(String expression, String expected) {
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("expressionTestCases")
+    void expressionEvaluatesToExpectedValue(String expression, String expected) {
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 
-	@Test
-	void evaluateBasicFunctionOneFluxOfArgs() {
-		var expression = "mock.parameters(\"\".<test.numbers>)";
-		var expected   = new String[] { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]" };
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @Test
+    void evaluateBasicFunctionOneFluxOfArgs() {
+        var expression = "mock.parameters(\"\".<test.numbers>)";
+        var expected   = new String[] { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]" };
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 }

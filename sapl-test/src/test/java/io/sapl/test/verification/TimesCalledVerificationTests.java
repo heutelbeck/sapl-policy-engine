@@ -107,18 +107,18 @@ class TimesCalledVerificationTests {
 				// test_verificationMessageNotEmpty
 			    Arguments.of("VerificationMessage", "VerificationMessage")
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideTestCases")
-	void checkVerificationMessage(String given, String expected) {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar")));
-		var matcher      = is(2);
-		var verification = new TimesCalledVerification(matcher);
+    @ParameterizedTest
+    @MethodSource("provideTestCases")
+    void checkVerificationMessage(String given, String expected) {
+        var runInfo = new MockRunInformation("foo");
+        runInfo.saveCall(new MockCall(Val.of("bar")));
+        var matcher      = is(2);
+        var verification = new TimesCalledVerification(matcher);
 
-		assertThatThrownBy(() -> verification.verify(runInfo, given)).isInstanceOf(AssertionError.class)
-				.hasMessageContaining(expected);
-	}
+        assertThatThrownBy(() -> verification.verify(runInfo, given)).isInstanceOf(AssertionError.class)
+                .hasMessageContaining(expected);
+    }
 }

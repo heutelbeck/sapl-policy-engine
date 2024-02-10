@@ -20,7 +20,6 @@ package io.sapl.interpreter;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
@@ -33,7 +32,7 @@ public class MockXACMLPatientProfilePIP {
     public static final String NAME = "patient";
 
     @Attribute
-    public Flux<Val> profile(Val value, Map<String, JsonNode> variables) throws JsonProcessingException {
+    public Flux<Val> profile(Val value, Map<String, Val> variables) throws JsonProcessingException {
         String json = "{" + "	\"patient\": {" + "		\"name\": {" + "			\"first\": \"Bartholomew\","
                 + "			\"last\": \"Simpson\"" + "		}," + "		\"contact\": {"
                 + "			\"street\": \"27 Shelbyville Road\"," + "			\"email\": null" + "		},"

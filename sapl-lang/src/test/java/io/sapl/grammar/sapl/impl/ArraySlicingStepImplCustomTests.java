@@ -43,17 +43,17 @@ class ArraySlicingStepImplCustomTests {
 	 			// filterErrorOnZeroStep
 	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9] |- { @[: :0] : mock.nil }", "Step must not be zero.")
 	 		);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("errorExpressions")
-	void expressionReturnsError(String expression, String expected) {
-		assertExpressionReturnsError(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("errorExpressions")
+    void expressionReturnsError(String expression, String expected) {
+        assertExpressionReturnsError(expression, expected);
+    }
 
-	private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
-		// @formatter:off
+    private static Stream<Arguments> provideStringsForExpressionEvaluatesToExpectedValue() {
+        // @formatter:off
 		return Stream.of(
 	 			// defaultsToIdentity
 	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9][:]",
@@ -135,12 +135,12 @@ class ArraySlicingStepImplCustomTests {
 	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9] |- { @[:-2] : mock.nil }",
 	 			             "[null,null,null,null,null,null,null,null,8,9]")
 	 		);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
-	void expressionEvaluatesToExpectedValue(String expression, String expected) {
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("provideStringsForExpressionEvaluatesToExpectedValue")
+    void expressionEvaluatesToExpectedValue(String expression, String expected) {
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 }

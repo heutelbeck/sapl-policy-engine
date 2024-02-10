@@ -60,8 +60,8 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
     private Flux<Val> resolveFilterOrSubTemplate(Val value) {
         if (filter != null) {
-            return filter.apply(value).contextWrite(
-                    ctx -> AuthorizationContext.setRelativeNode(ctx, value.withTrace(BasicExpression.class, value)));
+            return filter.apply(value).contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx,
+                    value.withTrace(BasicExpression.class, true, value)));
         }
         if (subtemplate != null) {
             return applySubTemplate(value);
@@ -71,17 +71,17 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
     private Flux<Val> applySubTemplate(Val value) {
         if (!value.isArray()) {
-            return subtemplate.evaluate().contextWrite(
-                    ctx -> AuthorizationContext.setRelativeNode(ctx, value.withTrace(BasicExpression.class, value)));
+            return subtemplate.evaluate().contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx,
+                    value.withTrace(BasicExpression.class, true, value)));
         }
         var array = value.getArrayNode();
         if (array.isEmpty()) {
-            return Flux.just(value.withTrace(BasicExpression.class, value));
+            return Flux.just(value.withTrace(BasicExpression.class, true, value));
         }
         var itemFluxes = new ArrayList<Flux<Val>>(array.size());
         for (var element : array) {
             itemFluxes.add(subtemplate.evaluate().contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx,
-                    Val.of(element).withTrace(BasicExpression.class, value))));
+                    Val.of(element).withTrace(BasicExpression.class, true, value))));
         }
         return Flux.combineLatest(itemFluxes, RepackageUtil::recombineArray);
     }

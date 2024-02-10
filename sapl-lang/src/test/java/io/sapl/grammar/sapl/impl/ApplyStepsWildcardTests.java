@@ -44,7 +44,7 @@ class ApplyStepsWildcardTests {
         assertExpressionReturnsErrors(expression);
     }
 
-    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+    private static Stream<Arguments> provideStringsForExpressionEvaluatesToExpectedValue() {
         // @formatter:off
 		return Stream.of(
 	 			// wildcardStepOnArrayIsIdentity
@@ -89,12 +89,12 @@ class ApplyStepsWildcardTests {
 	 			Arguments.of("[ {\"a\" : 1},{\"b\" : 2}] |- { @[*].b : mock.nil }",
 	 			             "[ {\"a\" : 1},{\"b\" : null}]")
 	 		);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
-	void expressionEvaluatesToExpectedValue(String expression, String expected) {
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("provideStringsForExpressionEvaluatesToExpectedValue")
+    void expressionEvaluatesToExpectedValue(String expression, String expected) {
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 }

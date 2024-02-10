@@ -50,108 +50,112 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
     private final PolicyRetrievalPoint     policyRetrievalPoint;
 
     @Override
-    public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-        return decideTraced(authzSubscription).map(TracedDecision::getAuthorizationDecision).distinctUntilChanged();
+    public Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription) {
+        return decideTraced(authorizationSubscription).map(TracedDecision::getAuthorizationDecision)
+                .distinctUntilChanged();
     }
 
-    public Flux<TracedDecision> decideTraced(AuthorizationSubscription authzSubscription) {
-        return configurationProvider.pdpConfiguration().switchMap(decideSubscription(authzSubscription));
+    public Flux<TracedDecision> decideTraced(AuthorizationSubscription authorizationSubscription) {
+        return configurationProvider.pdpConfiguration().switchMap(decideSubscription(authorizationSubscription));
     }
 
     private Function<? super PDPConfiguration, Publisher<? extends TracedDecision>> decideSubscription(
-            AuthorizationSubscription authzSubscription) {
+            AuthorizationSubscription authorizationSubscription) {
         return pdpConfiguration -> {
             var combiningAlgorithm = pdpConfiguration.documentsCombinator();
             if (pdpConfiguration.isValid()) {
-                var subscription = pdpConfiguration.subscriptionInterceptorChain().apply(authzSubscription);
+                var subscription = pdpConfiguration.subscriptionInterceptorChain().apply(authorizationSubscription);
                 return retrieveAndCombineDocuments(pdpConfiguration.documentsCombinator(), subscription)
                         .map(pdpConfiguration.decisionInterceptorChain())
-                        .contextWrite(buildSubscriptionScopedContext(pdpConfiguration, authzSubscription));
+                        .contextWrite(buildSubscriptionScopedContext(pdpConfiguration, authorizationSubscription));
             } else {
                 var decision = CombinedDecision.error(
                         combiningAlgorithm == null ? "Misconfigured PDP." : combiningAlgorithm.getName(),
                         "PDP In Invalid State.");
-                return Flux.just(PDPDecision.of(authzSubscription, decision));
+                return Flux.just(PDPDecision.of(authorizationSubscription, decision));
             }
         };
     }
 
     private Function<Context, Context> buildSubscriptionScopedContext(PDPConfiguration pdpConfiguration,
-            AuthorizationSubscription authzSubscription) {
+            AuthorizationSubscription authorizationSubscription) {
         return ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, pdpConfiguration.attributeContext());
             ctx = AuthorizationContext.setFunctionContext(ctx, pdpConfiguration.functionContext());
             ctx = AuthorizationContext.setVariables(ctx, pdpConfiguration.variables());
-            ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
+            ctx = AuthorizationContext.setSubscriptionVariables(ctx, authorizationSubscription);
             return ctx;
         };
     }
 
     private Flux<PDPDecision> retrieveAndCombineDocuments(CombiningAlgorithm documentsCombinator,
-            AuthorizationSubscription authzSubscription) {
+            AuthorizationSubscription authorizationSubscription) {
         return policyRetrievalPoint.retrievePolicies()
-                .switchMap(combineDocuments(documentsCombinator, authzSubscription));
+                .switchMap(combineDocuments(documentsCombinator, authorizationSubscription));
     }
 
     private Function<? super PolicyRetrievalResult, Publisher<? extends PDPDecision>> combineDocuments(
-            CombiningAlgorithm documentsCombinator, AuthorizationSubscription authzSubscription) {
+            CombiningAlgorithm documentsCombinator, AuthorizationSubscription authorizationSubscription) {
         return policyRetrievalResult -> {
             if (!policyRetrievalResult.isPrpValidState() || policyRetrievalResult.isErrorsInTarget()) {
                 var combinedDecision = CombinedDecision.of(AuthorizationDecision.INDETERMINATE,
                         "PRP Detected Error in Targets");
-                return Flux.just(PDPDecision.of(authzSubscription, combinedDecision,
+                return Flux.just(PDPDecision.of(authorizationSubscription, combinedDecision,
                         policyRetrievalResult.getMatchingDocuments()));
             }
             var policyElements = policyRetrievalResult.getMatchingDocuments().stream().map(SAPL::getPolicyElement)
                     .toList();
             return documentsCombinator.combinePolicies(policyElements).map(combinedDecision -> PDPDecision
-                    .of(authzSubscription, combinedDecision, policyRetrievalResult.getMatchingDocuments()));
+                    .of(authorizationSubscription, combinedDecision, policyRetrievalResult.getMatchingDocuments()));
         };
     }
 
     @Override
-    public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
-        if (multiAuthzSubscription.hasAuthorizationSubscriptions()) {
-            final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = createIdentifiableAuthzDecisionFluxes(
-                    multiAuthzSubscription);
-            return Flux.merge(identifiableAuthzDecisionFluxes);
+    public Flux<IdentifiableAuthorizationDecision> decide(
+            MultiAuthorizationSubscription multiAuthorizationSubscription) {
+        if (multiAuthorizationSubscription.hasAuthorizationSubscriptions()) {
+            final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthorizationDecisionFluxes = createIdentifiableAuthorizationDecisionFluxes(
+                    multiAuthorizationSubscription);
+            return Flux.merge(identifiableAuthorizationDecisionFluxes);
         }
         return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
     }
 
     @Override
-    public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
-        if (multiAuthzSubscription.hasAuthorizationSubscriptions()) {
-            final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = createIdentifiableAuthzDecisionFluxes(
-                    multiAuthzSubscription);
-            return Flux.combineLatest(identifiableAuthzDecisionFluxes, this::collectAuthorizationDecisions);
+    public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthorizationSubscription) {
+        if (multiAuthorizationSubscription.hasAuthorizationSubscriptions()) {
+            final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthorizationDecisionFluxes = createIdentifiableAuthorizationDecisionFluxes(
+                    multiAuthorizationSubscription);
+            return Flux.combineLatest(identifiableAuthorizationDecisionFluxes, this::collectAuthorizationDecisions);
         }
         return Flux.just(MultiAuthorizationDecision.indeterminate());
     }
 
-    private List<Flux<IdentifiableAuthorizationDecision>> createIdentifiableAuthzDecisionFluxes(
+    private List<Flux<IdentifiableAuthorizationDecision>> createIdentifiableAuthorizationDecisionFluxes(
             Iterable<IdentifiableAuthorizationSubscription> multiDecision) {
-        final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthzDecisionFluxes = new ArrayList<>();
-        for (IdentifiableAuthorizationSubscription identifiableAuthzSubscription : multiDecision) {
-            final String                                  subscriptionId                = identifiableAuthzSubscription
+        final List<Flux<IdentifiableAuthorizationDecision>> identifiableAuthorizationDecisionFluxes = new ArrayList<>();
+        for (IdentifiableAuthorizationSubscription identifiableAuthorizationSubscription : multiDecision) {
+            final String                                  subscriptionId                        = identifiableAuthorizationSubscription
                     .authorizationSubscriptionId();
-            final AuthorizationSubscription               authzSubscription             = identifiableAuthzSubscription
+            final AuthorizationSubscription               authorizationSubscription             = identifiableAuthorizationSubscription
                     .authorizationSubscription();
-            final Flux<IdentifiableAuthorizationDecision> identifiableAuthzDecisionFlux = decide(authzSubscription)
-                    .map(authzDecision -> new IdentifiableAuthorizationDecision(subscriptionId, authzDecision));
-            identifiableAuthzDecisionFluxes.add(identifiableAuthzDecisionFlux);
+            final Flux<IdentifiableAuthorizationDecision> identifiableAuthorizationDecisionFlux = decide(
+                    authorizationSubscription)
+                    .map(authorizationDecision -> new IdentifiableAuthorizationDecision(subscriptionId,
+                            authorizationDecision));
+            identifiableAuthorizationDecisionFluxes.add(identifiableAuthorizationDecisionFlux);
         }
-        return identifiableAuthzDecisionFluxes;
+        return identifiableAuthorizationDecisionFluxes;
     }
 
     private MultiAuthorizationDecision collectAuthorizationDecisions(Object[] values) {
-        final MultiAuthorizationDecision multiAuthzDecision = new MultiAuthorizationDecision();
+        final MultiAuthorizationDecision multiAuthorizationDecision = new MultiAuthorizationDecision();
         for (Object value : values) {
             IdentifiableAuthorizationDecision ir = (IdentifiableAuthorizationDecision) value;
-            multiAuthzDecision.setAuthorizationDecisionForSubscriptionWithId(ir.getAuthorizationSubscriptionId(),
-                    ir.getAuthorizationDecision());
+            multiAuthorizationDecision.setAuthorizationDecisionForSubscriptionWithId(
+                    ir.getAuthorizationSubscriptionId(), ir.getAuthorizationDecision());
         }
-        return multiAuthzDecision;
+        return multiAuthorizationDecision;
     }
 
     public void destroy() {

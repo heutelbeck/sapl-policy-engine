@@ -43,7 +43,7 @@ public class ElementOfImplCustom extends ElementOfImpl {
     }
 
     private Val tracedElementOf(Val needle, Val haystack) {
-        return elementOf(needle, haystack).withTrace(ElementOf.class,
+        return elementOf(needle, haystack).withTrace(ElementOf.class, false,
                 Map.of(Trace.NEEDLE, needle, Trace.HAYSTACK, haystack));
     }
 

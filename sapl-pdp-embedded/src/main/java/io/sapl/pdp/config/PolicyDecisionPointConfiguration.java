@@ -20,8 +20,7 @@ package io.sapl.pdp.config;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -38,6 +37,6 @@ public class PolicyDecisionPointConfiguration {
 
     private PolicyDocumentCombiningAlgorithm algorithm = PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES;
 
-    private Map<String, JsonNode> variables = new HashMap<>();
+    private Map<String, Val> variables = new HashMap<>();
 
 }

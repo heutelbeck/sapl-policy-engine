@@ -37,7 +37,7 @@ public class SchemaLoadingUtil {
         try {
             return MAPPER.readValue(attributeSchema, JsonNode.class);
         } catch (JsonProcessingException e) {
-            throw new InitializationException(INVALID_SCHEMA_DEFINITION, e);
+            throw new InitializationException(e, INVALID_SCHEMA_DEFINITION);
         }
     }
 
@@ -49,7 +49,7 @@ public class SchemaLoadingUtil {
             }
             return MAPPER.readValue(is, JsonNode.class);
         } catch (IOException e) {
-            throw new InitializationException(ERROR_LOADING_SCHEMA_FROM_RESOURCES, e);
+            throw new InitializationException(e, ERROR_LOADING_SCHEMA_FROM_RESOURCES);
         }
     }
 

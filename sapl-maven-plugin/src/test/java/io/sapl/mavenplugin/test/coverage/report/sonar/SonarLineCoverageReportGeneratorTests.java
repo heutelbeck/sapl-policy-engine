@@ -19,25 +19,24 @@ package io.sapl.mavenplugin.test.coverage.report.sonar;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.testing.SilentLog;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import io.sapl.mavenplugin.test.coverage.TestFileHelper;
-import io.sapl.mavenplugin.test.coverage.report.model.LineCoveredValue;
-import io.sapl.mavenplugin.test.coverage.report.model.SaplDocumentCoverageInformation;
+import io.sapl.mavenplugin.test.coverage.PathHelper;
+import io.sapl.mavenplugin.test.coverage.report.SampleCoverageInformation;
 import io.sapl.mavenplugin.test.coverage.report.sonar.model.Coverage;
 import io.sapl.mavenplugin.test.coverage.report.sonar.model.ObjectFactory;
 import jakarta.xml.bind.JAXBContext;
@@ -45,40 +44,15 @@ import jakarta.xml.bind.JAXBException;
 
 class SonarLineCoverageReportGeneratorTests {
 
-    private SonarLineCoverageReportGenerator generator;
-
-    private Collection<SaplDocumentCoverageInformation> documents;
-
-    private final Path base = Paths.get("target/sapl-coverage/sonar");
-
-    @BeforeEach
-    void setup() {
-        TestFileHelper.deleteDirectory(base.toFile());
-
-        this.generator = new SonarLineCoverageReportGenerator();
-        var document = new SaplDocumentCoverageInformation(Paths.get("target/classes/policies/policy_1.sapl"), 12);
-        document.markLine(1, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(2, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(3, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(4, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(5, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(6, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(7, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(8, LineCoveredValue.FULLY, 1, 1);
-        document.markLine(9, LineCoveredValue.IRRELEVANT, 0, 0);
-        document.markLine(10, LineCoveredValue.PARTLY, 1, 2);
-        document.markLine(11, LineCoveredValue.NEVER, 1, 2);
-        document.markLine(12, LineCoveredValue.NEVER, 1, 2);
-        documents = List.of(document);
-    }
+    private static final SonarLineCoverageReportGenerator GENERATOR = new SonarLineCoverageReportGenerator();
 
     @Test
-    void test() throws IOException, MojoExecutionException {
+    void test(@TempDir Path tempDir) throws IOException, MojoExecutionException {
 
-        generator.generateSonarLineCoverageReport(documents, new SilentLog(), Paths.get("target/sapl-coverage"),
+        GENERATOR.generateSonarLineCoverageReport(SampleCoverageInformation.documents(), new SilentLog(), tempDir,
                 "policies", Paths.get(".").toFile());
 
-        List<String> lines = Files.readAllLines(base.resolve("sonar-generic-coverage.xml"));
+        List<String> lines = Files.readAllLines(tempDir.resolve("sonar/sonar-generic-coverage.xml"));
         assertEquals(12, lines.size());
         assertEquals("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>", lines.get(0));
         assertEquals("<coverage version=\"1\">", lines.get(1));
@@ -99,21 +73,23 @@ class SonarLineCoverageReportGeneratorTests {
     }
 
     @Test
-    void test_IOException() {
-        try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class)) {
-            mockedFiles.when(() -> Files.createFile(Mockito.any())).thenThrow(IOException.class);
-            assertThrows(MojoExecutionException.class, () -> generator.generateSonarLineCoverageReport(documents,
-                    new SilentLog(), Paths.get("target/sapl-coverage"), "policies", Paths.get(".").toFile()));
+    void test_IOException(@TempDir Path tempDir) {
+        try (MockedStatic<PathHelper> mockedHelper = Mockito.mockStatic(PathHelper.class)) {
+            mockedHelper.when(() -> PathHelper.createFile(any())).thenThrow(IOException.class);
+            assertThrows(MojoExecutionException.class,
+                    () -> GENERATOR.generateSonarLineCoverageReport(SampleCoverageInformation.documents(),
+                            new SilentLog(), tempDir, "policies", Paths.get(".").toFile()));
         }
     }
 
     @Test
-    void test_JAXBException() {
+    void test_JAXBException(@TempDir Path tempDir) {
         try (MockedStatic<JAXBContext> jaxbContext = Mockito.mockStatic(JAXBContext.class)) {
             jaxbContext.when(() -> JAXBContext.newInstance(Coverage.class, ObjectFactory.class))
                     .thenThrow(JAXBException.class);
-            assertThrows(MojoExecutionException.class, () -> generator.generateSonarLineCoverageReport(documents,
-                    new SilentLog(), Paths.get("target/sapl-coverage"), "policies", Paths.get(".").toFile()));
+            assertThrows(MojoExecutionException.class,
+                    () -> GENERATOR.generateSonarLineCoverageReport(SampleCoverageInformation.documents(),
+                            new SilentLog(), tempDir, "policies", Paths.get(".").toFile()));
         }
     }
 

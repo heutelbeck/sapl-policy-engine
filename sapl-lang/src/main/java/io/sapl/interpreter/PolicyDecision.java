@@ -164,7 +164,7 @@ public class PolicyDecision implements DocumentEvaluationResult {
         trace.set(Trace.POLICY_NAME, Val.JSON.textNode(documentName));
         trace.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
         if (entitlement != null)
-            trace.set(Trace.ENTITILEMENT, Val.JSON.textNode(entitlement.toString()));
+            trace.set(Trace.ENTITLEMENT, Val.JSON.textNode(entitlement.toString()));
         errorMessage.ifPresent(error -> trace.set(Trace.ERROR_MESSAGE, Val.JSON.textNode(errorMessage.get())));
         targetResult.ifPresent(target -> trace.set(Trace.TARGET, target.getTrace()));
         whereResult.ifPresent(where -> trace.set(Trace.WHERE, where.getTrace()));

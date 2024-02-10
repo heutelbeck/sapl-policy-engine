@@ -100,6 +100,13 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<!-- newer versions may break MQTT intrgration tests due to version
+			conflicts with dependencies used during testing -->
+			<version>2.10.0</version>
+		</dependency>
 
 		<!-- JSON schema validation -->
 		<dependency>
@@ -118,7 +125,7 @@
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-params</artifactId>
 			<scope>test</scope>
-		</dependency>		
+		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-hamcrest</artifactId>
@@ -355,25 +362,6 @@
 								</resource>
 							</resources>
 						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<version>3.6.0</version>
-				<configuration>
-					<descriptors>
-						<descriptor>jar-with-ecore-model.xml</descriptor>
-					</descriptors>
-					<appendAssemblyId>true</appendAssemblyId>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
 					</execution>
 				</executions>
 			</plugin>

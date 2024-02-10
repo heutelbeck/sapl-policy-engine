@@ -23,9 +23,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
@@ -47,7 +47,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private PolicyDocumentCombiningAlgorithm pdpAlgorithm = null;
-    private Map<String, JsonNode>            pdpVariables = null;
+    private Map<String, Val>                 pdpVariables = null;
 
     private final Supplier<PolicyRetrievalPoint>         prpSupplier;
     private final Supplier<VariablesAndCombinatorSource> variablesAndCombinatorSourceSupplier;
@@ -93,7 +93,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
      * @param variables a {@link Map} of variables
      * @return the test fixture
      */
-    public SaplIntegrationTestFixture withPDPVariables(Map<String, JsonNode> variables) {
+    public SaplIntegrationTestFixture withPDPVariables(Map<String, Val> variables) {
         this.pdpVariables = variables;
         return this;
     }

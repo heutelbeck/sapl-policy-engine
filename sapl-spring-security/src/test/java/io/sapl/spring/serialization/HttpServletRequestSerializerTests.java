@@ -100,7 +100,7 @@ class HttpServletRequestSerializerTests {
         request.addHeader("header1", new String[] { "value1a", "value1b" });
         request.addHeader("header2", "value2");
         // attention: the behavior of MockHttpServletRequest is odd
-        // one header is only added for real if another one is added afterwards
+        // one header is only added for real if another one is added afterward
         // here header 2 adds header 1 and header 3 adds header 2
         // and header 3 is never really added
         request.addHeader("header3", "value2");

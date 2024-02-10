@@ -50,7 +50,7 @@ public interface CoverageHitReader {
      * io.sapl.grammar.sapl.Condition's
      *
      * @return List of {@link PolicySetHit}
-     * @throws IOException
+     * @throws IOException in case of IO problems
      */
     List<PolicyConditionHit> readPolicyConditionHits() throws IOException;
 

@@ -110,202 +110,216 @@ class ClasspathPolicyRetrievalPointTests {
 				// return_empty_result_for_non_matching_subscription
 			    Arguments.of("it/policies", Boolean.FALSE)
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideTestCases")
-	void validateSimmilarScenarionsWhereNoMatchValidState(String path, boolean hasErrors) {
-		var prp = new ClasspathPolicyRetrievalPoint(Paths.get(path), this.interpreter);
+    @ParameterizedTest
+    @MethodSource("provideTestCases")
+    void validateSimmilarScenarionsWhereNoMatchValidState(String path, boolean hasErrors) {
+        var prp = new ClasspathPolicyRetrievalPoint(Paths.get(path), this.interpreter);
 
-		var result = prp.retrievePolicies().contextWrite(ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			return AuthorizationContext.setSubscriptionVariables(ctx, EMPTY_SUBSCRIPTION);
-		}).blockFirst();
+        var result = prp.retrievePolicies().contextWrite(ctx -> {
+            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+            ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+            return AuthorizationContext.setSubscriptionVariables(ctx, EMPTY_SUBSCRIPTION);
+        }).blockFirst();
 
-		assertThat(result, notNullValue());
-		assertThat(result.getMatchingDocuments(), empty());
-		assertThat(result.isErrorsInTarget(), is(hasErrors));
-		assertThat(result.isPrpValidState(), is(true));
-	}
+        assertThat(result, notNullValue());
+        assertThat(result.getMatchingDocuments(), empty());
+        assertThat(result.isErrorsInTarget(), is(hasErrors));
+        assertThat(result.isPrpValidState(), is(true));
+    }
 
-	@Test
-	void return_matching_document_for_valid_subscription() {
-		var prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/policies"), this.interpreter);
+    @Test
+    void return_matching_document_for_valid_subscription() {
+        var prp = new ClasspathPolicyRetrievalPoint(Paths.get("it/policies"), this.interpreter);
 
-		var authzSubscription1 = AuthorizationSubscription.of(null, "read", null);
-		var result1            = prp.retrievePolicies().contextWrite(ctx -> {
-									ctx = AuthorizationContext.setAttributeContext(ctx,
-											new AnnotationAttributeContext());
-									ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-									ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-									ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription1);
-									return ctx;
-								})
-				.blockFirst();
+        var authzSubscription1 = AuthorizationSubscription.of(null, "read", null);
+        var result1            = prp.retrievePolicies().contextWrite(ctx -> {
+                                   ctx = AuthorizationContext.setAttributeContext(ctx,
+                                           new AnnotationAttributeContext());
+                                   ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+                                   ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+                                   ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription1);
+                                   return ctx;
+                               })
+                .blockFirst();
 
-		assertThat(result1, notNullValue());
-		assertThat(result1.getMatchingDocuments().size(), is(1));
-		assertThat(result1.isErrorsInTarget(), is(false));
+        assertThat(result1, notNullValue());
+        assertThat(result1.getMatchingDocuments().size(), is(1));
+        assertThat(result1.isErrorsInTarget(), is(false));
 
-		assertThat(result1.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy read"));
+        assertThat(result1.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy read"));
 
-		var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "ice cream");
+        var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "ice cream");
 
-		var result2 = prp.retrievePolicies().contextWrite(ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription2);
-			return ctx;
-		}).blockFirst();
+        var result2 = prp.retrievePolicies().contextWrite(ctx -> {
+            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+            ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+            ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription2);
+            return ctx;
+        }).blockFirst();
 
-		assertThat(result2, notNullValue());
-		assertThat(result2.getMatchingDocuments().size(), is(1));
-		assertThat(result2.isErrorsInTarget(), is(false));
-		assertThat(result2.isPrpValidState(), is(true));
+        assertThat(result2, notNullValue());
+        assertThat(result2.getMatchingDocuments().size(), is(1));
+        assertThat(result2.isErrorsInTarget(), is(false));
+        assertThat(result2.isPrpValidState(), is(true));
 
-		assertThat(result2.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy eat ice cream"));
-	}
+        assertThat(result2.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy eat ice cream"));
+    }
 
-	@Test
-	void test_matchingReturnsError() {
-		var prp               = new ClasspathPolicyRetrievalPoint(Paths.get("it/error2"), this.interpreter);
-		var authzSubscription = AuthorizationSubscription.of("WILLI", "access", "foo", "");
+    @Test
+    void test_matchingReturnsError() {
+        var prp               = new ClasspathPolicyRetrievalPoint(Paths.get("it/error2"), this.interpreter);
+        var authzSubscription = AuthorizationSubscription.of("WILLI", "access", "foo", "");
 
-		var result = prp.retrievePolicies().contextWrite(ctx -> {
-			ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-			ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-			ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
-			return AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
-		}).blockFirst();
+        var result = prp.retrievePolicies().contextWrite(ctx -> {
+            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+            ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
+            return AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
+        }).blockFirst();
 
-		Assertions.assertThat(result.isErrorsInTarget()).isTrue();
-	}
+        Assertions.assertThat(result.isErrorsInTarget()).isTrue();
+    }
 
-	@Nested
-	@DisplayName("Read policies from document names tests")
-	class ReadPoliciesFromDocumentNamesTests {
-		private PolicyRetrievalResult getResultFromPRP(final PolicyRetrievalPoint policyRetrievalPoint, final AuthorizationSubscription authorizationSubscription) {
-			return policyRetrievalPoint.retrievePolicies().contextWrite(ctx -> {
-				ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
-				ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
-				ctx = AuthorizationContext.setVariables(ctx, Collections.emptyMap());
-				return AuthorizationContext.setSubscriptionVariables(ctx ,authorizationSubscription);
-			}).blockFirst();
-		}
+    @Nested
+    @DisplayName("Read policies from document names tests")
+    class ReadPoliciesFromDocumentNamesTests {
+        private PolicyRetrievalResult getResultFromPRP(final PolicyRetrievalPoint policyRetrievalPoint,
+                final AuthorizationSubscription authorizationSubscription) {
+            return policyRetrievalPoint.retrievePolicies().contextWrite(ctx -> {
+                ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+                ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
+                ctx = AuthorizationContext.setVariables(ctx, Collections.emptyMap());
+                return AuthorizationContext.setSubscriptionVariables(ctx, authorizationSubscription);
+            }).blockFirst();
+        }
 
-		@Test
-		void givenNullDocumentNames_resultContainsNoErrorAndNoDocuments() {
-			final var prp = new ClasspathPolicyRetrievalPoint((List<String>)null, interpreter);
-			final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
+        @Test
+        void givenNullDocumentNames_resultContainsNoErrorAndNoDocuments() {
+            final var prp    = new ClasspathPolicyRetrievalPoint((List<String>) null, interpreter);
+            final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
 
-			assertThat(result, notNullValue());
-			assertThat(result.getMatchingDocuments(), empty());
-			assertThat(result.isErrorsInTarget(), is(false));
-			assertThat(result.isPrpValidState(), is(true));
-		}
+            assertThat(result, notNullValue());
+            assertThat(result.getMatchingDocuments(), empty());
+            assertThat(result.isErrorsInTarget(), is(false));
+            assertThat(result.isPrpValidState(), is(true));
+        }
 
-		@Test
-		void givenEmptyDocumentNames_resultContainsNoErrorAndNoDocuments() {
-			final var prp = new ClasspathPolicyRetrievalPoint(Collections.emptyList(), interpreter);
-			final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
+        @Test
+        void givenEmptyDocumentNames_resultContainsNoErrorAndNoDocuments() {
+            final var prp    = new ClasspathPolicyRetrievalPoint(Collections.emptyList(), interpreter);
+            final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
 
-			assertThat(result, notNullValue());
-			assertThat(result.getMatchingDocuments(), empty());
-			assertThat(result.isErrorsInTarget(), is(false));
-			assertThat(result.isPrpValidState(), is(true));
-		}
+            assertThat(result, notNullValue());
+            assertThat(result.getMatchingDocuments(), empty());
+            assertThat(result.isErrorsInTarget(), is(false));
+            assertThat(result.isPrpValidState(), is(true));
+        }
 
-		@Test
-		void givenNullValueInDocumentNames_throwsSaplTestException() {
-			final var documentNames = Collections.<String>singletonList(null);
-			final var exception = assertThrows(SaplTestException.class, () -> new ClasspathPolicyRetrievalPoint(documentNames, interpreter));
+        @Test
+        void givenNullValueInDocumentNames_throwsSaplTestException() {
+            final var documentNames = Collections.<String>singletonList(null);
+            final var exception     = assertThrows(SaplTestException.class,
+                    () -> new ClasspathPolicyRetrievalPoint(documentNames, interpreter));
 
-			assertEquals("Encountered invalid policy name", exception.getMessage());
-		}
+            assertEquals("Encountered invalid policy name", exception.getMessage());
+        }
 
-		@Test
-		void givenEmptyValueInDocumentNames_throwsSaplTestException() {
-			final var saplDocumentNames = List.of("");
+        @Test
+        void givenEmptyValueInDocumentNames_throwsSaplTestException() {
+            final var saplDocumentNames = List.of("");
 
-			final var exception = assertThrows(SaplTestException.class, () -> new ClasspathPolicyRetrievalPoint(saplDocumentNames, interpreter));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> new ClasspathPolicyRetrievalPoint(saplDocumentNames, interpreter));
 
-			assertEquals("Encountered invalid policy name", exception.getMessage());
-		}
+            assertEquals("Encountered invalid policy name", exception.getMessage());
+        }
 
-		@Test
-		void givenSinglePolicyWithError_resultContainsErrorAndEmptyDocuments() {
-			final var prp = new ClasspathPolicyRetrievalPoint(List.of("it/error/policy_with_error"), interpreter);
+        @Test
+        void givenSinglePolicyWithError_resultContainsErrorAndEmptyDocuments() {
+            final var prp = new ClasspathPolicyRetrievalPoint(List.of("it/error/policy_with_error"), interpreter);
 
-			final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
+            final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
 
-			assertThat(result, notNullValue());
-			assertThat(result.getMatchingDocuments(), empty());
-			assertThat(result.isErrorsInTarget(), is(true));
-			assertThat(result.isPrpValidState(), is(true));
-		}
+            assertThat(result, notNullValue());
+            assertThat(result.getMatchingDocuments(), empty());
+            assertThat(result.isErrorsInTarget(), is(true));
+            assertThat(result.isPrpValidState(), is(true));
+        }
 
-		@Test
-		void givenMultiplePoliciesWithError_resultContainsErrorAndEmptyDocuments() {
-			final var prp = new ClasspathPolicyRetrievalPoint(List.of("it/error/policy_with_error", "it/error2/policy.sapl"), interpreter);
+        @Test
+        void givenMultiplePoliciesWithError_resultContainsErrorAndEmptyDocuments() {
+            final var prp = new ClasspathPolicyRetrievalPoint(
+                    List.of("it/error/policy_with_error", "it/error2/policy.sapl"), interpreter);
 
-			final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
+            final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
 
-			assertThat(result, notNullValue());
-			assertThat(result.getMatchingDocuments(), empty());
-			assertThat(result.isErrorsInTarget(), is(true));
-			assertThat(result.isPrpValidState(), is(true));
-		}
+            assertThat(result, notNullValue());
+            assertThat(result.getMatchingDocuments(), empty());
+            assertThat(result.isErrorsInTarget(), is(true));
+            assertThat(result.isPrpValidState(), is(true));
+        }
 
-		@Test
-		void givenOnePolicyWithErrorAndOnePolicyNotMatching_resultContainsErrorAndEmptyDocuments() {
-			final var prp = new ClasspathPolicyRetrievalPoint(List.of("it/error/policy_with_error", "it/policies/policy_1.sapl"), interpreter);
+        @Test
+        void givenOnePolicyWithErrorAndOnePolicyNotMatching_resultContainsErrorAndEmptyDocuments() {
+            final var prp = new ClasspathPolicyRetrievalPoint(
+                    List.of("it/error/policy_with_error", "it/policies/policy_1.sapl"), interpreter);
 
-			final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
+            final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
 
-			assertThat(result, notNullValue());
-			assertThat(result.getMatchingDocuments(), empty());
-			assertThat(result.isErrorsInTarget(), is(true));
-			assertThat(result.isPrpValidState(), is(true));
-		}
+            assertThat(result, notNullValue());
+            assertThat(result.getMatchingDocuments(), empty());
+            assertThat(result.isErrorsInTarget(), is(true));
+            assertThat(result.isPrpValidState(), is(true));
+        }
 
-		@Test
-		void givenOnePolicyWithErrorAndOneValidMatchingPolicyAndOneInvalidPolicy_throwsPolicyEvaluationException() {
-			final var saplDocumentNames = List.of("it/error/policy_with_error", "it/policies/policy_1", "it/invalid/invalid_policy");
+        @Test
+        void givenOnePolicyWithErrorAndOneValidMatchingPolicyAndOneInvalidPolicy_throwsPolicyEvaluationException() {
+            final var saplDocumentNames = List.of("it/error/policy_with_error", "it/policies/policy_1",
+                    "it/invalid/invalid_policy");
 
-			final var exception = assertThrows(PolicyEvaluationException.class, () -> new ClasspathPolicyRetrievalPoint(saplDocumentNames, interpreter));
+            final var exception = assertThrows(PolicyEvaluationException.class,
+                    () -> new ClasspathPolicyRetrievalPoint(saplDocumentNames, interpreter));
 
-			assertEquals("Parsing errors: [XtextSyntaxDiagnostic: null:2 Incomplete policy, expected an entitlement, e.g. deny or permit]", exception.getMessage());
-		}
+            assertEquals(
+                    "Parsing errors: [XtextSyntaxDiagnostic: null:2 Incomplete policy, expected an entitlement, e.g. deny or permit]",
+                    exception.getMessage());
+        }
 
-		@Test
-		void givenOnePolicyWithErrorAndOneValidNonMatchingPolicy_returnsErrorAndMatchingPolicy() {
-			final var prp = new ClasspathPolicyRetrievalPoint(List.of("it/error/policy_with_error", "it/policies/policy_2", "it/error2/policy.sapl"), interpreter);
+        @Test
+        void givenOnePolicyWithErrorAndOneValidNonMatchingPolicy_returnsErrorAndMatchingPolicy() {
+            final var prp = new ClasspathPolicyRetrievalPoint(
+                    List.of("it/error/policy_with_error", "it/policies/policy_2", "it/error2/policy.sapl"),
+                    interpreter);
 
-			final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
+            final var result = getResultFromPRP(prp, EMPTY_SUBSCRIPTION);
 
-			assertThat(result, notNullValue());
-			assertThat(result.getMatchingDocuments(), empty());
-			assertThat(result.isErrorsInTarget(), is(true));
-			assertThat(result.isPrpValidState(), is(true));
-		}
+            assertThat(result, notNullValue());
+            assertThat(result.getMatchingDocuments(), empty());
+            assertThat(result.isErrorsInTarget(), is(true));
+            assertThat(result.isPrpValidState(), is(true));
+        }
 
-		@Test
-		void givenOnePolicyWithErrorAndOneValidMatchingPolicy_returnsErrorAndMatchingPolicy() {
-			final var prp = new ClasspathPolicyRetrievalPoint(List.of("it/error/policy_with_error", "it/policies/policy_2", "it/error2/policy.sapl"), interpreter);
+        @Test
+        void givenOnePolicyWithErrorAndOneValidMatchingPolicy_returnsErrorAndMatchingPolicy() {
+            final var prp = new ClasspathPolicyRetrievalPoint(
+                    List.of("it/error/policy_with_error", "it/policies/policy_2", "it/error2/policy.sapl"),
+                    interpreter);
 
-			final var authorizationSubscription = AuthorizationSubscription.of("Willi", "eat", "ice cream");
-			final var result = getResultFromPRP(prp, authorizationSubscription);
+            final var authorizationSubscription = AuthorizationSubscription.of("Willi", "eat", "ice cream");
+            final var result                    = getResultFromPRP(prp, authorizationSubscription);
 
-			assertThat(result, notNullValue());
-			assertThat(result.getMatchingDocuments().size(), is(1));
-			assertThat(result.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy eat ice cream"));
-			assertThat(result.isErrorsInTarget(), is(true));
-			assertThat(result.isPrpValidState(), is(true));
-		}
-	}
+            assertThat(result, notNullValue());
+            assertThat(result.getMatchingDocuments().size(), is(1));
+            assertThat(result.getMatchingDocuments().get(0).getPolicyElement().getSaplName(),
+                    is("policy eat ice cream"));
+            assertThat(result.isErrorsInTarget(), is(true));
+            assertThat(result.isPrpValidState(), is(true));
+        }
+    }
 
 }

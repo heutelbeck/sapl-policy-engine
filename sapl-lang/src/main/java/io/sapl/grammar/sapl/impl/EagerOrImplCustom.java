@@ -40,7 +40,7 @@ public class EagerOrImplCustom extends EagerOrImpl {
     }
 
     private Val or(Val left, Val right) {
-        return Val.of(left.getBoolean() || right.getBoolean()).withTrace(EagerOr.class,
+        return Val.of(left.getBoolean() || right.getBoolean()).withTrace(EagerOr.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 

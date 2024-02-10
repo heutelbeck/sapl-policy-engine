@@ -46,7 +46,7 @@ public class Trace {
     public static final String DIVISOR                    = "divisor";
     public static final String DOCUMENT_TYPE              = "documentType";
     public static final String ELEMENT_INDEX              = "elementIndex";
-    public static final String ENTITILEMENT               = "entitlement";
+    public static final String ENTITLEMENT                = "entitlement";
     public static final String ERROR_MESSAGE              = "errorMessage";
     public static final String EVALUATED_POLICIES         = "evaluatedPolicies";
     public static final String EXPLANATION                = "explanation";
@@ -66,6 +66,7 @@ public class Trace {
     public static final String OBLIGATIONS                = "obligations";
     public static final String OPERATOR                   = "operator";
     public static final String POLICY_NAME                = "policyName";
+    public static final String POLICY_SET                 = "policySet";
     public static final String POLICY_SET_NAME            = "policySetName";
     public static final String RESOURCE                   = "resource";
     public static final String RIGHT                      = "right";
@@ -99,7 +100,7 @@ public class Trace {
      * @param operation class implementing the traced operation.
      * @param arguments traced arguments.
      */
-    public Trace(Class<?> operation, Traced... arguments) {
+    public Trace(Class<?> operation, Val... arguments) {
         this.operation = operation;
         var i = 0;
         for (var argument : arguments) {
@@ -116,7 +117,7 @@ public class Trace {
      * @param operation class implementing the traced operation.
      * @param arguments traced arguments with parameter names.
      */
-    public Trace(Class<?> operation, Map<String, Traced> arguments) {
+    public Trace(Class<?> operation, Map<String, Val> arguments) {
         this.operation = operation;
         for (var argument : arguments.entrySet()) {
             this.arguments.add(new ExpressionArgument(argument.getKey(), argument.getValue()));
@@ -141,7 +142,7 @@ public class Trace {
      * @param operation     class implementing the traced operation.
      * @param arguments     traced arguments.
      */
-    public Trace(Traced leftHandValue, Class<?> operation, Traced... arguments) {
+    public Trace(Val leftHandValue, Class<?> operation, Val... arguments) {
         this.operation = operation;
         this.arguments.add(new ExpressionArgument(LEFT_HAND_VALUE, leftHandValue));
         var i = 0;

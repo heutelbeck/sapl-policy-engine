@@ -23,6 +23,7 @@ import org.assertj.core.api.Assertions;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
+import io.sapl.test.grammar.sapltest.Object;
 import io.sapl.test.grammar.sapltest.TestException;
 import io.sapl.test.grammar.sapltest.TestSuite;
 import lombok.AccessLevel;
@@ -55,15 +56,19 @@ public final class TestCase implements TestNode, Runnable {
 
     @Override
     public void run() {
-        final var environment          = dslTestCase
-                .getEnvironment() instanceof io.sapl.test.grammar.sapltest.Object object ? object : null;
+        final var environment = dslTestCase.getEnvironment();
+
+        if (environment != null && !(environment instanceof io.sapl.test.grammar.sapltest.Object)) {
+            throw new SaplTestException("Environment needs to be an object");
+        }
+
         final var fixtureRegistrations = dslTestCase.getRegistrations();
         final var givenSteps           = dslTestCase.getGivenSteps();
 
         final var needsMocks  = givenSteps != null && !givenSteps.isEmpty();
         final var testFixture = stepConstructor.constructTestFixture(fixtureRegistrations, testSuite);
 
-        final var initialTestCase = stepConstructor.constructTestCase(testFixture, environment, needsMocks);
+        final var initialTestCase = stepConstructor.constructTestCase(testFixture, (Object) environment, needsMocks);
 
         if (dslTestCase.getExpectation() instanceof TestException) {
             Assertions.assertThatExceptionOfType(SaplTestException.class)

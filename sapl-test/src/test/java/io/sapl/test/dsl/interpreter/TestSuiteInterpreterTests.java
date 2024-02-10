@@ -46,8 +46,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.TestHelper;
@@ -410,7 +409,7 @@ class TestSuiteInterpreterTests {
                     .when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder"))
                     .thenReturn(saplIntegrationTestFixtureMock);
 
-            final var pdpEnvironmentVariablesMock = Collections.<String, JsonNode>emptyMap();
+            final var pdpEnvironmentVariablesMock = Collections.<String, Val>emptyMap();
             when(valueInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
                 final io.sapl.test.grammar.sapltest.Object environment = invocationOnMock.getArgument(0);
 

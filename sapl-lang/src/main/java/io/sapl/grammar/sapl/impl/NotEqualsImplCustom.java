@@ -40,7 +40,8 @@ public class NotEqualsImplCustom extends NotEqualsImpl {
     }
 
     private Val notEqual(Val left, Val right) {
-        return Val.notEqual(left, right).withTrace(NotEquals.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+        return Val.notEqual(left, right).withTrace(NotEquals.class, false,
+                Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 
     }
 

@@ -49,9 +49,9 @@ public class OrImplCustom extends OrImpl {
             // Lazy evaluation of the right expression
             if (!leftResult.getBoolean()) {
                 return getRight().evaluate().map(Val::requireBoolean).map(rightResult -> rightResult.withTrace(Or.class,
-                        Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult)));
+                        false, Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult)));
             }
-            return Flux.just(Val.TRUE.withTrace(Or.class, Map.of(Trace.LEFT, leftResult)));
+            return Flux.just(Val.TRUE.withTrace(Or.class, false, Map.of(Trace.LEFT, leftResult)));
         });
     }
 
