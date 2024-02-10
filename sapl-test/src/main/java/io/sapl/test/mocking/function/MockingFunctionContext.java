@@ -106,7 +106,7 @@ public class MockingFunctionContext implements FunctionContext {
 
         FunctionMock mock = this.registeredMocks.get(function);
         if (mock != null) {
-            return mock.evaluateFunctionCall(parameters).withTrace(MockingFunctionContext.class, functionTrace);
+            return mock.evaluateFunctionCall(parameters).withTrace(MockingFunctionContext.class, false, functionTrace);
         } else {
             return this.originalFunctionContext.evaluate(function, parameters);
         }

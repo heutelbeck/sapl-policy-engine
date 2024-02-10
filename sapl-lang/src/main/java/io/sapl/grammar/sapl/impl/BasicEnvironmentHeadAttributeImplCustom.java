@@ -41,8 +41,8 @@ public class BasicEnvironmentHeadAttributeImplCustom extends BasicEnvironmentHea
                     AuthorizationContext.getImports(ctx));
 
             if (TargetExpressionUtil.isInTargetExpression(this))
-                return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR, fullyQualifiedName)
-                        .withTrace(AttributeFinderStep.class, Map.of(Trace.ATTRIBUTE, Val.of(fullyQualifiedName))));
+                return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR, fullyQualifiedName).withTrace(
+                        AttributeFinderStep.class, false, Map.of(Trace.ATTRIBUTE, Val.of(fullyQualifiedName))));
 
             return AuthorizationContext.getAttributeContext(ctx).evaluateEnvironmentAttribute(fullyQualifiedName,
                     getArguments(), AuthorizationContext.getVariables(ctx)).next();

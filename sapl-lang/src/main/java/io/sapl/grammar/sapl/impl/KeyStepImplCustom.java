@@ -42,7 +42,7 @@ public class KeyStepImplCustom extends KeyStepImpl {
 
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        return Flux.just(applyToValue(parentValue, id).withTrace(KeyStep.class,
+        return Flux.just(applyToValue(parentValue, id).withTrace(KeyStep.class, true,
                 Map.of(Trace.PARENT_VALUE, parentValue, Trace.IDENTIFIER, Val.of(id))));
     }
 
@@ -99,7 +99,7 @@ public class KeyStepImplCustom extends KeyStepImpl {
         while (fields.hasNext()) {
             var field = fields.next();
             var key   = field.getKey();
-            var value = Val.of(field.getValue()).withTrace(KeyStep.class,
+            var value = Val.of(field.getValue()).withTrace(KeyStep.class, true,
                     Map.of(Trace.UNFILTERED_VALUE, unfilteredValue, Trace.KEY, Val.of(key)));
             if (field.getKey().equals(id)) {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
@@ -127,13 +127,14 @@ public class KeyStepImplCustom extends KeyStepImpl {
             FilterStatement statement) {
         var array = unfilteredValue.getArrayNode();
         if (array.isEmpty()) {
-            return Flux.just(unfilteredValue.withTrace(KeyStep.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
+            return Flux.just(
+                    unfilteredValue.withTrace(KeyStep.class, true, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
         }
         var elementFluxes = new ArrayList<Flux<Val>>(array.size());
         var elements      = array.elements();
         var i             = 0;
         while (elements.hasNext()) {
-            var element = Val.of(elements.next()).withTrace(KeyStep.class,
+            var element = Val.of(elements.next()).withTrace(KeyStep.class, true,
                     Map.of(Trace.UNFILTERED_VALUE, unfilteredValue, Trace.INDEX, Val.of(i++)));
             if (element.isObject()) {
                 // array element is an object. apply this step to the object.

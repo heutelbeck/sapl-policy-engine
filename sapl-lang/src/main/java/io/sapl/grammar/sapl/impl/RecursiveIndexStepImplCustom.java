@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Trace;
-import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.RecursiveIndexStep;
@@ -47,13 +46,13 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        return Flux.just(applyToValue(parentValue).withTrace(RecursiveIndexStep.class,
+        return Flux.just(applyToValue(parentValue).withTrace(RecursiveIndexStep.class, true,
                 Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(index.intValue()))));
     }
 
     public Val applyToValue(@NonNull Val parentValue) {
         if (parentValue.isError()) {
-            return parentValue.withParentTrace(getClass(), parentValue);
+            return parentValue.withParentTrace(RecursiveIndexStep.class, true, parentValue);
         }
         if (parentValue.isUndefined()) {
             return Val.ofEmptyArray();
@@ -96,14 +95,14 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
         if (!parentValue.isArray()) {
             // this means the element does not get selected does not get filtered
-            return Flux.just(parentValue.withTrace(RecursiveIndexStep.class,
+            return Flux.just(parentValue.withTrace(RecursiveIndexStep.class, true,
                     Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(index))));
         }
         var array         = parentValue.getArrayNode();
         var idx           = normalizeIndex(index, array.size());
         var elementFluxes = new ArrayList<Flux<Val>>(array.size());
         for (var i = 0; i < array.size(); i++) {
-            var element = Val.of(array.get(i)).withTrace(RecursiveIndexStep.class,
+            var element = Val.of(array.get(i)).withTrace(RecursiveIndexStep.class, true,
                     Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(index)));
             if (i == idx) {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
@@ -113,10 +112,10 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
                                     statement.isEach())
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue))
                             .map(filteredValue -> {
-                                var trace = new HashMap<String, Traced>();
+                                var trace = new HashMap<String, Val>();
                                 trace.put(Trace.UNFILTERED_VALUE, element);
                                 trace.put(Trace.FILTERED, filteredValue);
-                                return filteredValue.withTrace(RecursiveIndexStep.class, trace);
+                                return filteredValue.withTrace(RecursiveIndexStep.class, true, trace);
                             }));
                 } else {
                     // there are more steps. descent with them
@@ -139,7 +138,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
             var field      = fields.next();
             var key        = field.getKey();
             var value      = field.getValue();
-            var fieldValue = Val.of(value).withTrace(RecursiveIndexStep.class,
+            var fieldValue = Val.of(value).withTrace(RecursiveIndexStep.class, true,
                     Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(idx), Trace.KEY, Val.of(key)));
             fieldFluxes.add(doApplyFilterStatement(idx, fieldValue, stepId, statement).map(val -> Tuples.of(key, val)));
         }

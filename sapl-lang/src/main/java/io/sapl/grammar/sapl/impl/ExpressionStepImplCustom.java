@@ -19,7 +19,6 @@ package io.sapl.grammar.sapl.impl;
 
 import java.util.Map;
 
-import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ExpressionStep;
 import io.sapl.grammar.sapl.FilterStatement;
@@ -53,7 +52,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
         if (parentValue.isError()) {
-            return Flux.just(parentValue.withParentTrace(ExpressionStep.class, parentValue));
+            return Flux.just(parentValue.withParentTrace(ExpressionStep.class, false, parentValue));
         }
         if (parentValue.isArray()) {
             return expression.evaluate().map(index -> extractValueAt(parentValue, index));
@@ -62,14 +61,14 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
             return expression.evaluate().map(index -> extractKey(parentValue, index));
         }
         return Flux.just(Val.error(EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S_ERROR, parentValue)
-                .withParentTrace(ExpressionStep.class, parentValue));
+                .withParentTrace(ExpressionStep.class, false, parentValue));
     }
 
     @Override
     public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
         if (!parentValue.isArray() && !parentValue.isObject()) {
             // this means the element does not get selected does not get filtered
-            return Flux.just(parentValue.withParentTrace(ExpressionStep.class, parentValue));
+            return Flux.just(parentValue.withParentTrace(ExpressionStep.class, true, parentValue));
         }
         return expression.evaluate().concatMap(key -> applyFilterStatement(key, parentValue, stepId, statement));
     }
@@ -85,42 +84,42 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
         }
         return Flux
                 .just(Val.error("Type mismatch. Tried to access {} with {}", parentValue.getValType(), key.getValType())
-                        .withParentTrace(ExpressionStep.class, parentValue));
+                        .withParentTrace(ExpressionStep.class, false, parentValue));
     }
 
     private Val extractValueAt(Val parentValue, Val index) {
-        var trace = Map.<String, Traced>of("parentValue", parentValue, "expressionResult", index);
+        var trace = Map.<String, Val>of("parentValue", parentValue, "expressionResult", index);
         if (index.isError()) {
-            return index.withTrace(ExpressionStep.class, trace);
+            return index.withTrace(ExpressionStep.class, false, trace);
         }
         if (!index.isNumber()) {
             return Val.error(ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S_ERROR, index)
-                    .withTrace(ExpressionStep.class, trace);
+                    .withTrace(ExpressionStep.class, false, trace);
         }
         var idx   = index.get().asInt();
         var array = parentValue.get();
         if (idx < 0 || idx > array.size()) {
             return Val.error(INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D_ERROR, array.size(), idx)
-                    .withTrace(ExpressionStep.class, trace);
+                    .withTrace(ExpressionStep.class, false, trace);
         }
-        return Val.of(array.get(idx)).withTrace(ExpressionStep.class, trace);
+        return Val.of(array.get(idx)).withTrace(ExpressionStep.class, true, trace);
     }
 
     private Val extractKey(Val parentValue, Val key) {
-        var trace = Map.<String, Traced>of("parentValue", parentValue, "expressionResult", key);
+        var trace = Map.<String, Val>of("parentValue", parentValue, "expressionResult", key);
         if (key.isError()) {
-            return key.withTrace(ExpressionStep.class, trace);
+            return key.withTrace(ExpressionStep.class, false, trace);
         }
         if (!key.isTextual()) {
             return Val.error(OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S_ERROR, key)
-                    .withTrace(ExpressionStep.class, trace);
+                    .withTrace(ExpressionStep.class, false, trace);
         }
         var fieldName = key.get().asText();
         var object    = parentValue.getObjectNode();
         if (!object.has(fieldName)) {
-            return Val.UNDEFINED.withTrace(ExpressionStep.class, trace);
+            return Val.UNDEFINED.withTrace(ExpressionStep.class, true, trace);
         }
-        return Val.of(object.get(fieldName)).withTrace(ExpressionStep.class, trace);
+        return Val.of(object.get(fieldName)).withTrace(ExpressionStep.class, true, trace);
     }
 
 }

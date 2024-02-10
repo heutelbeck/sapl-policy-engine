@@ -42,7 +42,7 @@ public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttribu
 
             if (TargetExpressionUtil.isInTargetExpression(this))
                 return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(AttributeFinderStep.class,
-                        Map.of(Trace.ATTRIBUTE, Val.of(attributeName))));
+                        false, Map.of(Trace.ATTRIBUTE, Val.of(attributeName))));
 
             return AuthorizationContext.getAttributeContext(ctxView).evaluateEnvironmentAttribute(attributeName,
                     getArguments(), AuthorizationContext.getVariables(ctxView)).distinctUntilChanged();

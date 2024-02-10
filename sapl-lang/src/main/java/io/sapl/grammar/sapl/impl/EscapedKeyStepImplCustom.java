@@ -36,7 +36,7 @@ public class EscapedKeyStepImplCustom extends EscapedKeyStepImpl {
 
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        return Flux.just(KeyStepImplCustom.applyToValue(parentValue, id).withTrace(EscapedKeyStep.class,
+        return Flux.just(KeyStepImplCustom.applyToValue(parentValue, id).withTrace(EscapedKeyStep.class, true,
                 Map.of(Trace.PARENT_VALUE, parentValue, Trace.IDENTIFIER, Val.of(id))));
     }
 
