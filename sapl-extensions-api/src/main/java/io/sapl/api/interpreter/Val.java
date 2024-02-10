@@ -265,6 +265,9 @@ public class Val implements Traced {
         if (!inheritsSecretStatusOfTrace)
             return newVal;
 
+        if (leftHandValue.isSecret())
+            return newVal.asSecret();
+
         for (var argument : arguments) {
             if (argument.isSecret()) {
                 newVal = newVal.asSecret();
