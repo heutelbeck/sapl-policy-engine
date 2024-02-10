@@ -149,9 +149,11 @@ public class SaplMqttClient {
         // building mqtt message flux
         try {
             JsonNode pipMqttClientConfig = null;
-            if (variables != null && variables.containsKey(ENVIRONMENT_MQTT_PIP_CONFIG)) {
+            if (variables != null) {
                 var pipMqttClientConfigVal = variables.get(ENVIRONMENT_MQTT_PIP_CONFIG);
-                pipMqttClientConfig = pipMqttClientConfigVal.isDefined() ? pipMqttClientConfigVal.get() : null;
+                if (pipMqttClientConfigVal != null) {
+                    pipMqttClientConfig = pipMqttClientConfigVal.isDefined() ? pipMqttClientConfigVal.get() : null;
+                }
             }
             var messageFlux = buildMqttMessageFlux(topic, qos, mqttPipConfig, pipMqttClientConfig);
             return addDefaultValueToMessageFlux(pipMqttClientConfig, mqttPipConfig, messageFlux)
