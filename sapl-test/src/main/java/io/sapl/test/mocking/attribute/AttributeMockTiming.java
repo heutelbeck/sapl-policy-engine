@@ -70,8 +70,8 @@ public class AttributeMockTiming implements AttributeMock {
         }
 
         return Flux.interval(this.timing).map(number -> this.returnValues[number.intValue()])
-                .take(this.returnValues.length)
-                .map(val -> val.withTrace(AttributeMockTiming.class, Map.of("attributeName", Val.of(attributeName))));
+                .take(this.returnValues.length).map(val -> val.withTrace(AttributeMockTiming.class, true,
+                        Map.of("attributeName", Val.of(attributeName))));
     }
 
     @Override
