@@ -43,7 +43,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
     protected static final String MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION = "Attribute access is forbidden in schema expression.";
 
     // @formatter:off
-    protected static final Map<EClass,String> TARGET_EXPRESSION_BLACKLIST = Map.of(
+    protected static final Map<EClass,String> BLOCKED_TARGET_EXPRESSION_ELEMENTS = Map.of(
                 SaplPackage.Literals.OR,                               MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION,
                 SaplPackage.Literals.AND,                              MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION,
                 SaplPackage.Literals.ATTRIBUTE_FINDER_STEP,            MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION,
@@ -54,7 +54,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
     // @formatter:on
 
     // @formatter:off
-    protected static final Map<EClass,String> SCHEMA_EXPRESSION_BLACKLIST = Map.of(
+    protected static final Map<EClass,String> BLOCKED_SCHEMA_EXPRESSION_ELEMENTS = Map.of(
                 SaplPackage.Literals.ATTRIBUTE_FINDER_STEP,            MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION,
                 SaplPackage.Literals.HEAD_ATTRIBUTE_FINDER_STEP,       MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION,
                 SaplPackage.Literals.BASIC_ENVIRONMENT_ATTRIBUTE,      MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION,
@@ -69,7 +69,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
      */
     @Check
     public void policyRuleNoAndAllowedInTargetExpression(final Policy policy) {
-        for (var blacklistEntry : TARGET_EXPRESSION_BLACKLIST.entrySet()) {
+        for (var blacklistEntry : BLOCKED_TARGET_EXPRESSION_ELEMENTS.entrySet()) {
             genericCheckForElementInAST(policy.getTargetExpression(), blacklistEntry.getKey(),
                     blacklistEntry.getValue());
         }
@@ -82,7 +82,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
      */
     @Check
     public void policyRuleNoAndAllowedInTargetExpression(final PolicySet policySet) {
-        for (var blacklistEntry : TARGET_EXPRESSION_BLACKLIST.entrySet()) {
+        for (var blacklistEntry : BLOCKED_TARGET_EXPRESSION_ELEMENTS.entrySet()) {
             genericCheckForElementInAST(policySet.getTargetExpression(), blacklistEntry.getKey(),
                     blacklistEntry.getValue());
         }
@@ -95,7 +95,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
      */
     @Check
     public void policyRuleNoAndAllowedInTargetExpression(final Schema schema) {
-        for (var blacklistEntry : SCHEMA_EXPRESSION_BLACKLIST.entrySet()) {
+        for (var blacklistEntry : BLOCKED_SCHEMA_EXPRESSION_ELEMENTS.entrySet()) {
             genericCheckForElementInAST(schema.getSchemaExpression(), blacklistEntry.getKey(),
                     blacklistEntry.getValue());
         }
@@ -108,7 +108,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
      */
     @Check
     public void policyRuleNoAndAllowedInTargetExpression(final ValueDefinition valueDefinition) {
-        for (var blacklistEntry : SCHEMA_EXPRESSION_BLACKLIST.entrySet()) {
+        for (var blacklistEntry : BLOCKED_SCHEMA_EXPRESSION_ELEMENTS.entrySet()) {
             for (var schemaExpression : valueDefinition.getSchemaVarExpression()) {
                 genericCheckForElementInAST(schemaExpression, blacklistEntry.getKey(), blacklistEntry.getValue());
             }
