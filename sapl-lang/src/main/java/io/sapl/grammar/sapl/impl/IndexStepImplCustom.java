@@ -49,7 +49,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        return Flux.just(applyToValue(parentValue).withTrace(IndexStep.class,
+        return Flux.just(applyToValue(parentValue).withTrace(IndexStep.class, true,
                 Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(index))));
     }
 
@@ -83,19 +83,19 @@ public class IndexStepImplCustom extends IndexStepImpl {
             FilterStatement statement) {
         if (!parentValue.isArray()) {
             // this means the element does not get selected does not get filtered
-            return Flux.just(parentValue.withTrace(IndexStep.class,
+            return Flux.just(parentValue.withTrace(IndexStep.class, true,
                     Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(index))));
         }
         var array = parentValue.getArrayNode();
         var idx   = normalizeIndex(index, array);
         if (idx < 0 || idx >= array.size()) {
             // this means the element does not get selected does not get filtered
-            return Flux.just(parentValue.withTrace(IndexStep.class,
+            return Flux.just(parentValue.withTrace(IndexStep.class, true,
                     Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(index))));
         }
         var elementFluxes = new ArrayList<Flux<Val>>(array.size());
         for (var i = 0; i < array.size(); i++) {
-            var element = Val.of(array.get(i)).withTrace(IndexStep.class, Map.of(Trace.PARENT_VALUE, parentValue,
+            var element = Val.of(array.get(i)).withTrace(IndexStep.class, true, Map.of(Trace.PARENT_VALUE, parentValue,
                     Trace.ELEMENT_INDEX, Val.of(i), Trace.SELECTED_INDEX, Val.of(index)));
             if (i == idx) {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {

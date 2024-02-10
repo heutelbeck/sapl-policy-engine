@@ -45,12 +45,12 @@ public class AndImplCustom extends AndImpl {
         var left = getLeft().evaluate().map(Val::requireBoolean);
         return left.switchMap(leftResult -> {
             if (leftResult.isError()) {
-                return Flux.just(leftResult.withTrace(And.class, Map.of(Trace.LEFT, leftResult)));
+                return Flux.just(leftResult.withTrace(And.class, false, Map.of(Trace.LEFT, leftResult)));
             }
             // Lazy evaluation of the right expression
             if (Boolean.TRUE.equals(leftResult.getBoolean())) {
                 return getRight().evaluate().map(Val::requireBoolean).map(rightResult -> rightResult
-                        .withTrace(And.class, Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult)));
+                        .withTrace(And.class, false, Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult)));
             }
             return Flux.just(Val.FALSE);
         });

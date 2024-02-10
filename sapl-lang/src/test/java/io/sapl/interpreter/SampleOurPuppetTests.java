@@ -114,7 +114,7 @@ class SampleOurPuppetTests {
                         "address" : {
                             "zip" : resource.address.zip |- filter.blacken(1)
                         }
-                    }                        
+                    }
                 ""","""
                 {
                     "patientid":"123456789012345678901212345678901234567890121234567890123456789999",
@@ -124,7 +124,7 @@ class SampleOurPuppetTests {
                         "zip":"1XXXX"
                     }
                 }
-                """                
+                """
                 ),
                 Arguments.of("patientdataDoctor","",
                         """
@@ -179,13 +179,13 @@ class SampleOurPuppetTests {
                                 "J",
                                 "E"
                             ]
-                        }"""                      
+                        }"""
                         ),
                 Arguments.of("situationsFamilymember",
                         """
                         There is a history of annotated contexts with sensor data, status,
-                        puppet reaction etc. for a patient. This data might be used by a 
-                        doctor in a consultation. However, a family member shall only have 
+                        puppet reaction etc. for a patient. This data might be used by a
+                        doctor in a consultation. However, a family member shall only have
                         access to the status of the latest entry.
                         """,
                         """
@@ -355,7 +355,7 @@ class SampleOurPuppetTests {
                                             "situation":"NORMAL"
                                         }
                                     ]
-                                }"""                        
+                                }"""
                         ),
                 Arguments.of("situationsPuppetIntroducer",
                         "Let's assume puppet introducers can access only the contexts from the same day",
@@ -445,7 +445,7 @@ class SampleOurPuppetTests {
         );
         // @formatter:off
     }
-    
+
     @SneakyThrows
     @ParameterizedTest
     @MethodSource("provideTestCases")

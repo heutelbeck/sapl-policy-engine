@@ -878,14 +878,15 @@ class ValTests {
 
     @Test
     void withParentTrace() {
-        var givenTracedValue2 = Val.of("Y").withParentTrace(getClass(), Val.of("X"));
+        var givenTracedValue2 = Val.of("Y").withParentTrace(getClass(), true, Val.of("X"));
         assertThatJson(givenTracedValue2.getTrace()).inPath("$.value").isString().isEqualTo("Y");
         assertThatJson(givenTracedValue2.getTrace()).inPath("$.trace.arguments.parentValue.value").isEqualTo("X");
     }
 
     @Test
     void withTraceOfArgumentMap() {
-        var givenTracedValue3 = Val.of("Z").withTrace(getClass(), Map.of("arg1", Val.of("X"), "arg2", Val.of("Y")));
+        var givenTracedValue3 = Val.of("Z").withTrace(getClass(), true,
+                Map.of("arg1", Val.of("X"), "arg2", Val.of("Y")));
         assertThatJson(givenTracedValue3.getTrace()).inPath("$.value").isString().isEqualTo("Z");
         assertThatJson(givenTracedValue3.getTrace()).inPath("$.trace.arguments.arg1.value").isEqualTo("X");
         assertThatJson(givenTracedValue3.getTrace()).inPath("$.trace.arguments.arg2.value").isEqualTo("Y");
@@ -893,7 +894,7 @@ class ValTests {
 
     @Test
     void withTraceOfArgumentArray() {
-        var givenTracedValue4 = Val.of("A").withTrace(getClass(), Val.of("X"), Val.of("Y"), Val.of("Z"));
+        var givenTracedValue4 = Val.of("A").withTrace(getClass(), true, Val.of("X"), Val.of("Y"), Val.of("Z"));
         assertThatJson(givenTracedValue4.getTrace()).inPath("$.value").isString().isEqualTo("A");
         assertThatJson(givenTracedValue4.getTrace()).inPath("$.trace.arguments.['arguments[0]'].value").isEqualTo("X");
         assertThatJson(givenTracedValue4.getTrace()).inPath("$.trace.arguments.['arguments[1]'].value").isEqualTo("Y");
@@ -902,14 +903,15 @@ class ValTests {
 
     @Test
     void withTraceOfSingleElementArgumentArray() {
-        var givenTracedValue4 = Val.of("A").withTrace(getClass(), Val.of("X"));
+        var givenTracedValue4 = Val.of("A").withTrace(getClass(), true, Val.of("X"));
         assertThatJson(givenTracedValue4.getTrace()).inPath("$.value").isString().isEqualTo("A");
         assertThatJson(givenTracedValue4.getTrace()).inPath("$.trace.arguments.argument.value").isEqualTo("X");
     }
 
     @Test
     void withTraceWithLeftHandAndArgumentArray() {
-        var givenTracedValue5 = Val.of("B").withTrace(Val.of("A"), getClass(), Val.of("X"), Val.of("Y"), Val.of("Z"));
+        var givenTracedValue5 = Val.of("B").withTrace(Val.of("A"), getClass(), true, Val.of("X"), Val.of("Y"),
+                Val.of("Z"));
         assertThatJson(givenTracedValue5.getTrace()).inPath("$.value").isString().isEqualTo("B");
         assertThatJson(givenTracedValue5.getTrace()).inPath("$.trace.arguments.['arguments[0]'].value").isEqualTo("X");
         assertThatJson(givenTracedValue5.getTrace()).inPath("$.trace.arguments.['arguments[1]'].value").isEqualTo("Y");
@@ -919,7 +921,7 @@ class ValTests {
 
     @Test
     void withTraceWithLeftHandAndArgumentArrayOfOneElement() {
-        var givenTracedValue5 = Val.of("B").withTrace(Val.of("A"), getClass(), Val.of("X"));
+        var givenTracedValue5 = Val.of("B").withTrace(Val.of("A"), getClass(), true, Val.of("X"));
         assertThatJson(givenTracedValue5.getTrace()).inPath("$.value").isString().isEqualTo("B");
         assertThatJson(givenTracedValue5.getTrace()).inPath("$.trace.arguments.argument.value").isEqualTo("X");
         assertThatJson(givenTracedValue5.getTrace()).inPath("$.trace.arguments.leftHandValue.value").isEqualTo("A");
@@ -927,7 +929,7 @@ class ValTests {
 
     @Test
     void withTraceOfNamedParameters() {
-        var givenTracedValue6 = Val.of("Q").withTrace(getClass(), new ExpressionArgument("left", Val.of("A")),
+        var givenTracedValue6 = Val.of("Q").withTrace(getClass(), true, new ExpressionArgument("left", Val.of("A")),
                 new ExpressionArgument("right", Val.of("B")));
         assertThatJson(givenTracedValue6.getTrace()).inPath("$.value").isString().isEqualTo("Q");
         assertThatJson(givenTracedValue6.getTrace()).inPath("$.trace.arguments.left.value").isEqualTo("A");

@@ -41,7 +41,7 @@ public class MoreImplCustom extends MoreImpl {
     }
 
     private Val moreThan(Val left, Val right) {
-        return Val.of(left.decimalValue().compareTo(right.decimalValue()) > 0).withTrace(More.class,
+        return Val.of(left.decimalValue().compareTo(right.decimalValue()) > 0).withTrace(More.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 

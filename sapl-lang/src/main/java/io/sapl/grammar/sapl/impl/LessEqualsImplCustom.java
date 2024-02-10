@@ -40,7 +40,7 @@ public class LessEqualsImplCustom extends LessEqualsImpl {
     }
 
     private Val lessOrEqual(Val left, Val right) {
-        return Val.of(left.decimalValue().compareTo(right.decimalValue()) <= 0).withTrace(LessEquals.class,
+        return Val.of(left.decimalValue().compareTo(right.decimalValue()) <= 0).withTrace(LessEquals.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 
