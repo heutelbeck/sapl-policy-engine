@@ -712,6 +712,145 @@ class ValTests {
     }
 
     @Test
+    void secretsManagementWithArrayOfExpressionArguments() throws JsonProcessingException {
+        var secret         = Val.ofJson("""
+                {
+                    "key":"secret"
+                }
+                """).asSecret().withTrace(getClass());
+        var secretArgument = new ExpressionArgument("secretArgument", secret);
+        var publicArgument = new ExpressionArgument("publicArgument", secret);
+
+        var tracedVal = Val.of(123).withTrace(getClass(), true, secretArgument, publicArgument);
+        assertThat(tracedVal.isSecret()).isTrue();
+        assertThat(tracedVal).hasToString("SECRET");
+    }
+
+    @Test
+    void secretsManagementWithArrayOfExpressionArgumentsNoInherit() throws JsonProcessingException {
+        var secret         = Val.ofJson("""
+                {
+                    "key":"secret"
+                }
+                """).asSecret().withTrace(getClass());
+        var secretArgument = new ExpressionArgument("secretArgument", secret);
+        var publicArgument = new ExpressionArgument("publicArgument", secret);
+
+        var tracedVal = Val.of(123).withTrace(getClass(), false, secretArgument, publicArgument);
+        assertThat(tracedVal.isSecret()).isFalse();
+        assertThat(tracedVal).hasToString("123");
+    }
+
+    @Test
+    void secretsManagementWithArrayOfArguments() throws JsonProcessingException {
+        var secret    = Val.ofJson("""
+                {
+                    "key":"secret"
+                }
+                """).asSecret().withTrace(getClass());
+        var tracedVal = Val.of(123).withTrace(getClass(), true, secret, Val.of("not secret"));
+        assertThat(tracedVal.isSecret()).isTrue();
+        assertThat(tracedVal).hasToString("SECRET");
+    }
+
+    @Test
+    void secretsManagementWithArrayOfArgumentsNoInherit() throws JsonProcessingException {
+        var secret    = Val.ofJson("""
+                {
+                    "key":"secret"
+                }
+                """).asSecret().withTrace(getClass());
+        var tracedVal = Val.of(123).withTrace(getClass(), false, Val.of("not secret"), secret);
+        assertThat(tracedVal.isSecret()).isFalse();
+        assertThat(tracedVal).hasToString("123");
+    }
+
+    @Test
+    void secretsManagementWithArrayOfArgumentsAndLeftHand() throws JsonProcessingException {
+        var secret    = Val.ofJson("""
+                {
+                    "key":"secret"
+                }
+                """).asSecret().withTrace(getClass());
+        var tracedVal = Val.of(123).withTrace(Val.of("left hand no secret"), getClass(), true, secret,
+                Val.of("not secret"));
+        assertThat(tracedVal.isSecret()).isTrue();
+        assertThat(tracedVal).hasToString("SECRET");
+
+        var tracedVal2 = Val.of(123).withTrace(secret, getClass(), true, Val.of("not secret"),
+                Val.of("also not secret"));
+        assertThat(tracedVal2.isSecret()).isTrue();
+        assertThat(tracedVal2).hasToString("SECRET");
+
+    }
+
+    @Test
+    void secretsManagementWithArrayOfArgumentsNoInheritAndLeftHand() throws JsonProcessingException {
+        var secret    = Val.ofJson("""
+                {
+                    "key":"secret"
+                }
+                """).asSecret().withTrace(getClass());
+        var tracedVal = Val.of(123).withTrace(Val.of("left hand no secret"), getClass(), false, secret,
+                Val.of("not secret"));
+        assertThat(tracedVal.isSecret()).isFalse();
+        assertThat(tracedVal).hasToString("123");
+
+        var tracedVal2 = Val.of(123).withTrace(secret, getClass(), false, Val.of("not secret"),
+                Val.of("also not secret"));
+        assertThat(tracedVal.isSecret()).isFalse();
+        assertThat(tracedVal2).hasToString("123");
+    }
+
+    @Test
+    void secretsManagementWithMapOfArguments() throws JsonProcessingException {
+        var secret    = Val.ofJson("""
+                {
+                    "key":"secret"
+                }
+                """).asSecret().withTrace(getClass());
+        var tracedVal = Val.of(123).withTrace(getClass(), true, Map.of("a", secret, "b", Val.of("not secret")));
+        assertThat(tracedVal.isSecret()).isTrue();
+        assertThat(tracedVal).hasToString("SECRET");
+    }
+
+    @Test
+    void secretsManagementWithMapOfArgumentsNoInherit() throws JsonProcessingException {
+        var secret    = Val.ofJson("""
+                {
+                    "key":"secret"
+                }
+                """).asSecret().withTrace(getClass());
+        var tracedVal = Val.of(123).withTrace(getClass(), false, Map.of("a", secret, "b", Val.of("not secret")));
+        assertThat(tracedVal.isSecret()).isFalse();
+        assertThat(tracedVal).hasToString("123");
+    }
+
+    @Test
+    void secretsManagementWithParentValue() throws JsonProcessingException {
+        var secret    = Val.ofJson("""
+                {
+                    "key":"secret"
+                }
+                """).asSecret().withTrace(getClass());
+        var tracedVal = Val.of(123).withParentTrace(getClass(), true, secret);
+        assertThat(tracedVal.isSecret()).isTrue();
+        assertThat(tracedVal).hasToString("SECRET");
+    }
+
+    @Test
+    void secretsManagementWithPArentValueNoInherit() throws JsonProcessingException {
+        var secret    = Val.ofJson("""
+                {
+                    "key":"secret"
+                }
+                """).asSecret().withTrace(getClass());
+        var tracedVal = Val.of(123).withParentTrace(getClass(), false, secret);
+        assertThat(tracedVal.isSecret()).isFalse();
+        assertThat(tracedVal).hasToString("123");
+    }
+
+    @Test
     void withTraceNoArguments() {
         var givenTracedValue1 = Val.of("X").withTrace(getClass());
         assertThatJson(givenTracedValue1.getTrace()).inPath("$.trace.operator").isString().isEqualTo("ValTests");
