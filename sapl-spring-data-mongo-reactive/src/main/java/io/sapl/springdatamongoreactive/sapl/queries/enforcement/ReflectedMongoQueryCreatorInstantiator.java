@@ -34,16 +34,23 @@ import org.springframework.data.repository.query.parser.PartTree;
 import org.springframework.util.ReflectionUtils;
 
 import io.sapl.springdatamongoreactive.sapl.utils.Utilities;
+import lombok.Getter;
 import lombok.SneakyThrows;
 
 public class ReflectedMongoQueryCreatorInstantiator {
 
     private ProjectionFactory                                                           projectionFactory;
+    /**
+     * -- GETTER -- Returns the created convertingParameterAccessor.
+     *
+     * @return the convertingParameterAccessor.
+     */
+    @Getter
     private ConvertingParameterAccessor                                                 convertingParameterAccessor;
     private MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext;
     private final ReflectedMongoQueryCreatorConstructor                                 mongoQueryCreator;
-    private Class<?>                                                                    repository;
-    private ReactiveMongoTemplate                                                       reactiveMongoTemplate;
+    private final Class<?>                                                              repository;
+    private final ReactiveMongoTemplate                                                 reactiveMongoTemplate;
 
     public ReflectedMongoQueryCreatorInstantiator(ReactiveMongoTemplate reactiveMongoTemplate, Class<?> repository) {
         this.repository            = repository;
@@ -107,15 +114,6 @@ public class ReflectedMongoQueryCreatorInstantiator {
                 ConvertingParameterAccessor.class, MappingContext.class, boolean.class);
         ReflectionUtils.makeAccessible(constructor);
         return constructor;
-    }
-
-    /**
-     * Returns the created convertingParameterAccessor.
-     *
-     * @return the convertingParameterAccessor.
-     */
-    public ConvertingParameterAccessor getConvertingParameterAccessor() {
-        return this.convertingParameterAccessor;
     }
 
 }

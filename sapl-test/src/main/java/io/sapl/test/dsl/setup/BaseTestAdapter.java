@@ -25,6 +25,17 @@ import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.utils.DocumentHelper;
 
+/**
+ * The primary entrypoint to run tests using the
+ * {@link io.sapl.test.grammar.sapltest.SAPLTest} DSL. By extending this class
+ * you can provide a custom Adapter for a test framework of your choice, see the
+ * module {@link io.sapl.test.junit} for an example usage.
+ *
+ * @param <T> The target type of your adapter, which is used in
+ *            {@link BaseTestAdapter#convertTestContainerToTargetRepresentation(TestContainer)}
+ *            to convert from the high level abstraction {@link TestContainer}
+ *            to your target representation.
+ */
 public abstract class BaseTestAdapter<T> {
 
     private final SaplTestInterpreter saplTestInterpreter;

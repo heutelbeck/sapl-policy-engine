@@ -262,7 +262,7 @@ public class AnnotationFunctionContext implements FunctionContext {
             throw new InitializationException(
                     "Cannot initialize functions. If no function library instance is provided, the method of a function must be static. "
                             + method.getName()
-                            + " is not static. In case your function implementation cannot have the method as static because it depends on library state or injected dependecies, make sure to register the library as an instance instead of a class.");
+                            + " is not static. In case your function implementation cannot have the method as static because it depends on library state or injected dependencies, make sure to register the library as an instance instead of a class.");
         }
     }
 

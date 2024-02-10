@@ -158,51 +158,51 @@ class TimesParameterCalledVerificationTests {
 				// test_assertionError_VerificationMessage_Null
 			    Arguments.of(null, "Error verifying the expected number of calls to the mock")
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideTestCases")
-	void verifyMessage(String given, String expected) {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
+    @ParameterizedTest
+    @MethodSource("provideTestCases")
+    void verifyMessage(String given, String expected) {
+        var runInfo = new MockRunInformation("foo");
+        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
+        runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
 
-		var matcher = comparesEqualTo(2);
+        var matcher = comparesEqualTo(2);
 
-		var expectedParameters = new LinkedList<Matcher<Val>>();
-		expectedParameters.add(is(Val.of("xxx")));
-		expectedParameters.add(is(Val.of(2)));
-		var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
-				expectedParameters);
+        var expectedParameters = new LinkedList<Matcher<Val>>();
+        expectedParameters.add(is(Val.of("xxx")));
+        expectedParameters.add(is(Val.of(2)));
+        var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
+                expectedParameters);
 
-		assertThatThrownBy(() -> verification.verify(runInfo, given)).isInstanceOf(AssertionError.class)
-				.hasMessageContaining(expected);
+        assertThatThrownBy(() -> verification.verify(runInfo, given)).isInstanceOf(AssertionError.class)
+                .hasMessageContaining(expected);
 
-		assertThat(runInfo.getCalls()).hasSize(4);
-		assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
-		assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
-		assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
-	}
+        assertThat(runInfo.getCalls()).hasSize(4);
+        assertThat(runInfo.getCalls().get(0).isUsed()).isFalse();
+        assertThat(runInfo.getCalls().get(1).isUsed()).isTrue();
+        assertThat(runInfo.getCalls().get(2).isUsed()).isFalse();
+        assertThat(runInfo.getCalls().get(3).isUsed()).isFalse();
+    }
 
-	@Test
-	void test_Exception_CountOfExpectedParameterNotEqualsFunctionCallParametersCount() {
-		var runInfo = new MockRunInformation("foo");
-		runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
-		runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
-		runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
+    @Test
+    void test_Exception_CountOfExpectedParameterNotEqualsFunctionCallParametersCount() {
+        var runInfo = new MockRunInformation("foo");
+        runInfo.saveCall(new MockCall(Val.of("bar"), Val.of(1)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(2)));
+        runInfo.saveCall(new MockCall(Val.of("yyy"), Val.of(3)));
+        runInfo.saveCall(new MockCall(Val.of("xxx"), Val.of(3)));
 
-		var matcher            = comparesEqualTo(2);
-		var expectedParameters = new LinkedList<Matcher<Val>>();
-		expectedParameters.add(is(Val.of("xxx")));
-		var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
-				expectedParameters);
+        var matcher            = comparesEqualTo(2);
+        var expectedParameters = new LinkedList<Matcher<Val>>();
+        expectedParameters.add(is(Val.of("xxx")));
+        var verification = new TimesParameterCalledVerification(new TimesCalledVerification(matcher),
+                expectedParameters);
 
-		assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> verification.verify(runInfo));
-	}
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> verification.verify(runInfo));
+    }
 
 }

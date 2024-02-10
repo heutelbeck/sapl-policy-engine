@@ -59,7 +59,6 @@ class PostEnforcePolicyEnforcementPointTests {
     private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;
     private static final String          ORIGINAL_RETURN_OBJECT = "original return object";
     private static final String          CHANGED_RETURN_OBJECT  = "changed return object";
-    private static final String          USER                   = "user";
 
     @MockBean
     private PolicyDecisionPoint pdp;
@@ -101,7 +100,7 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_errorDuringBundleConstruction_then_AccessDenied() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenThrow(new IllegalStateException("TEST FAILURE"));
@@ -110,15 +109,15 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_bundleIsNull_then_AccessDenied() {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
         assertThrows(AccessDeniedException.class, () -> testService.doSomething());
     }
 
     @Test
-    @WithMockUser(USER)
-    void when_AfterAndDecideIsPermit_then_ReturnOriginalReturnObject() throws Throwable {
+    @WithMockUser()
+    void when_AfterAndDecideIsPermit_then_ReturnOriginalReturnObject() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
@@ -126,7 +125,7 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_AfterAndDecideIsDeny_then_ThrowAccessDeniedException() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
@@ -135,7 +134,7 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_AfterBeforeAndDecideNotApplicable_then_ThrowAccessDeniedException() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
@@ -145,7 +144,7 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_AfterAndDecideIsIndeterminate_then_ThrowAccessDeniedException() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
@@ -155,7 +154,7 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
+    @WithMockUser()
     void when_AfterAndDecideIsEmpty_then_ThrowAccessDeniedException() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
@@ -164,8 +163,8 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void when_AfterAndDecideIsPermitWithResource_then_ReturnTheReplacementObject() throws Throwable {
+    @WithMockUser()
+    void when_AfterAndDecideIsPermitWithResource_then_ReturnTheReplacementObject() {
         var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
                 FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
                 FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
@@ -176,9 +175,8 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject()
-            throws Throwable {
+    @WithMockUser()
+    void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject() {
         var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
                 FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
                 FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
@@ -190,8 +188,8 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsEmptyOptional_then_ReturnEmpty() throws Throwable {
+    @WithMockUser()
+    void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsEmptyOptional_then_ReturnEmpty() {
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any()))
                 .thenReturn(BlockingConstraintHandlerBundle.BLOCKING_NOOP);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
@@ -199,9 +197,8 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     @Test
-    @WithMockUser(USER)
-    void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsEmptyOptionalAndResourcePresent_then_ReturnResourceOptional()
-            throws Throwable {
+    @WithMockUser()
+    void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsEmptyOptionalAndResourcePresent_then_ReturnResourceOptional() {
         var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
                 FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
                 FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);

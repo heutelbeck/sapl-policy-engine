@@ -208,7 +208,7 @@ terminal FILTER:
 terminal SUBTEMPLATE:
 	'::' ;
 
-terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard  Unary operator for negation/plus prefix
+terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard unary operator for negation/plus prefix
 	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;
 
 terminal fragment DIGIT:

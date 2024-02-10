@@ -34,6 +34,7 @@ public class PredicateInfo implements Comparable<PredicateInfo> {
 
     private static final double EPSILON = 0.000000001;
 
+    @Getter
     private final Predicate predicate;
 
     private final Set<ConjunctiveClause> unsatisfiableConjunctionsIfFalse = new HashSet<>();
@@ -73,10 +74,6 @@ public class PredicateInfo implements Comparable<PredicateInfo> {
 
     public Set<ConjunctiveClause> getUnsatisfiableConjunctionsIfTrue() {
         return Collections.unmodifiableSet(unsatisfiableConjunctionsIfTrue);
-    }
-
-    public Predicate getPredicate() {
-        return predicate;
     }
 
     public void addUnsatisfiableConjunctionIfFalse(ConjunctiveClause clause) {

@@ -31,7 +31,7 @@ public class SimpleFunctionLibrary {
 
     @Function
     public Val length(Val parameter) {
-        Val result = Val.UNDEFINED;
+        Val result;
         if (parameter.isArray()) {
             result = Val.of(parameter.get().size());
         } else if (parameter.isTextual()) {

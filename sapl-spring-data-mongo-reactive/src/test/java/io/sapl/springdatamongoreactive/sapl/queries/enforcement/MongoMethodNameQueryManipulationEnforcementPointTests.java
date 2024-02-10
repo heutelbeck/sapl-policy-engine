@@ -80,9 +80,9 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
     final Flux<TestUser> data           = Flux.just(aaron, brian, cathrin);
     final ArrayNode      emptyArrayNode = MAPPER.createArrayNode();
 
-    ReactiveMongoTemplate       reactiveMongoTemplateMock = mock(ReactiveMongoTemplate.class);
-    EmbeddedPolicyDecisionPoint pdpMock                   = mock(EmbeddedPolicyDecisionPoint.class);
-    BeanFactory                 beanFactoryMock           = mock(BeanFactory.class, Answers.RETURNS_DEEP_STUBS);
+    final ReactiveMongoTemplate       reactiveMongoTemplateMock = mock(ReactiveMongoTemplate.class);
+    final EmbeddedPolicyDecisionPoint pdpMock                   = mock(EmbeddedPolicyDecisionPoint.class);
+    final BeanFactory                 beanFactoryMock           = mock(BeanFactory.class, Answers.RETURNS_DEEP_STUBS);
 
     MockedStatic<ConstraintHandlerUtils> constraintHandlerUtilsMock;
 
@@ -170,7 +170,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                             .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                             .thenReturn(OBLIGATIONS);
 
-                    var mongoMethodNameQueryManipulationEnforcementPoint = new MongoMethodNameQueryManipulationEnforcementPoint<TestUser>(
+                    var mongoMethodNameQueryManipulationEnforcementPoint = new MongoMethodNameQueryManipulationEnforcementPoint<>(
                             enforcementData);
 
                     var mongoQueryManipulationObligationProviderMock = mongoQueryManipulationObligationProviderMockedConstruction
@@ -235,7 +235,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                             .thenReturn(Flux.just(new AuthorizationDecision(Decision.DENY)));
                     when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
 
-                    var mongoMethodNameQueryManipulationEnforcementPoint = new MongoMethodNameQueryManipulationEnforcementPoint<TestUser>(
+                    var mongoMethodNameQueryManipulationEnforcementPoint = new MongoMethodNameQueryManipulationEnforcementPoint<>(
                             enforcementData);
                     var accessDeniedException                            = mongoMethodNameQueryManipulationEnforcementPoint
                             .enforce();
@@ -269,8 +269,8 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                             new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Cathrin")), null);
                     var authSub                   = AuthorizationSubscription.of("subject", "permitTest", "resource",
                             "environment");
-                    var enforcementData           = new QueryManipulationEnforcementData<TestUser>(
-                            mongoMethodInvocationTest, beanFactoryMock, TestUser.class, pdpMock, authSub);
+                    var enforcementData           = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest,
+                            beanFactoryMock, TestUser.class, pdpMock, authSub);
 
                     // WHEN
                     when(pdpMock.decide(any(AuthorizationSubscription.class)))
@@ -283,7 +283,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                             .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                             .thenReturn(OBLIGATIONS);
 
-                    var mongoMethodNameQueryManipulationEnforcementPoint = new MongoMethodNameQueryManipulationEnforcementPoint<TestUser>(
+                    var mongoMethodNameQueryManipulationEnforcementPoint = new MongoMethodNameQueryManipulationEnforcementPoint<>(
                             enforcementData);
 
                     var mongoQueryManipulationObligationProviderMock = mongoQueryManipulationObligationProviderMockedConstruction
@@ -337,8 +337,8 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                             new ArrayList<>(List.of(int.class)), new ArrayList<>(List.of(30)), Mono.just(cathrin));
                     var authSub                   = AuthorizationSubscription.of("subject", "permitTest", "resource",
                             "environment");
-                    var enforcementData           = new QueryManipulationEnforcementData<TestUser>(
-                            mongoMethodInvocationTest, beanFactoryMock, TestUser.class, pdpMock, authSub);
+                    var enforcementData           = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest,
+                            beanFactoryMock, TestUser.class, pdpMock, authSub);
 
                     // WHEN
                     when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
@@ -349,7 +349,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                             .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                             .thenReturn(OBLIGATIONS);
 
-                    var mongoMethodNameQueryManipulationEnforcementPoint = new MongoMethodNameQueryManipulationEnforcementPoint<TestUser>(
+                    var mongoMethodNameQueryManipulationEnforcementPoint = new MongoMethodNameQueryManipulationEnforcementPoint<>(
                             enforcementData);
 
                     var mongoQueryManipulationObligationProviderMock = mongoQueryManipulationObligationProviderMockedConstruction
@@ -403,8 +403,8 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                             new ArrayList<>(List.of(int.class)), new ArrayList<>(List.of(30)), new Throwable());
                     var authSub                   = AuthorizationSubscription.of("subject", "permitTest", "resource",
                             "environment");
-                    var enforcementData           = new QueryManipulationEnforcementData<TestUser>(
-                            mongoMethodInvocationTest, beanFactoryMock, TestUser.class, pdpMock, authSub);
+                    var enforcementData           = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest,
+                            beanFactoryMock, TestUser.class, pdpMock, authSub);
 
                     // WHEN
                     when(beanFactoryMock.getBean(ReactiveMongoTemplate.class)).thenReturn(reactiveMongoTemplateMock);
@@ -415,7 +415,7 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
                             .when(() -> ConstraintHandlerUtils.getObligations(any(AuthorizationDecision.class)))
                             .thenReturn(OBLIGATIONS);
 
-                    var mongoMethodNameQueryManipulationEnforcementPoint = new MongoMethodNameQueryManipulationEnforcementPoint<TestUser>(
+                    var mongoMethodNameQueryManipulationEnforcementPoint = new MongoMethodNameQueryManipulationEnforcementPoint<>(
                             enforcementData);
 
                     var mongoQueryManipulationObligationProviderMock = mongoQueryManipulationObligationProviderMockedConstruction

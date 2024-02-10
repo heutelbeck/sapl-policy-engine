@@ -24,7 +24,6 @@ import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSVerifier;
@@ -45,7 +44,7 @@ import reactor.core.publisher.Mono;
  * Attributes obtained from JSON Web Tokens (JWT)
  * <p>
  * Attributes depend on the JWT's validity, meaning they can change their state
- * over time according to the JWT's signature, maturity and expiration.
+ * over time according to the JWT's signature, maturity, and expiration.
  * <p>
  * Public keys must be fetched from the trusted authentication server for
  * validating signatures. For this purpose, the url and http method for fetching
@@ -143,7 +142,7 @@ public class JWTPolicyInformationPoint {
      * @return a TRUE Val, iff the token is valid.
      */
     @Attribute
-    public Flux<Val> valid(@Text Val rawToken, Map<String, JsonNode> variables) {
+    public Flux<Val> valid(@Text Val rawToken, Map<String, Val> variables) {
         return validityState(rawToken, variables).map(ValidityState.VALID::equals).map(Val::of);
     }
 
@@ -157,11 +156,11 @@ public class JWTPolicyInformationPoint {
      * @return Flux representing the JWT's validity over time
      */
     @Attribute(docs = VALIDITY_DOCS)
-    public Flux<Val> validity(@Text Val rawToken, Map<String, JsonNode> variables) {
+    public Flux<Val> validity(@Text Val rawToken, Map<String, Val> variables) {
         return validityState(rawToken, variables).map(Object::toString).map(Val::of);
     }
 
-    private Flux<ValidityState> validityState(@Text Val rawToken, Map<String, JsonNode> variables) {
+    private Flux<ValidityState> validityState(@Text Val rawToken, Map<String, Val> variables) {
 
         if (rawToken == null || !rawToken.isTextual())
             return Flux.just(ValidityState.MALFORMED);
@@ -192,10 +191,10 @@ public class JWTPolicyInformationPoint {
         });
     }
 
-    private Mono<Boolean> validateSignature(SignedJWT signedJwt, Map<String, JsonNode> variables) {
+    private Mono<Boolean> validateSignature(SignedJWT signedJwt, Map<String, Val> variables) {
 
         var jwtConfig = variables.get(JWT_KEY);
-        if (jwtConfig == null) {
+        if (jwtConfig == null || !jwtConfig.isDefined()) {
             log.error(JWT_CONFIG_MISSING_ERROR);
             return Mono.just(Boolean.FALSE);
         }
@@ -203,7 +202,7 @@ public class JWTPolicyInformationPoint {
         var keyId = signedJwt.getHeader().getKeyID();
 
         Mono<RSAPublicKey> publicKey       = null;
-        var                whitelist       = jwtConfig.get(WHITELIST_VARIABLES_KEY);
+        var                whitelist       = jwtConfig.get().get(WHITELIST_VARIABLES_KEY);
         var                isFromWhitelist = false;
         if (whitelist != null && whitelist.get(keyId) != null) {
             var key = JWTEncodingDecodingUtils.jsonNodeToKey(whitelist.get(keyId));
@@ -214,7 +213,7 @@ public class JWTPolicyInformationPoint {
         }
 
         if (publicKey == null) {
-            var jPublicKeyServer = jwtConfig.get(PUBLIC_KEY_VARIABLES_KEY);
+            var jPublicKeyServer = jwtConfig.get().get(PUBLIC_KEY_VARIABLES_KEY);
 
             if (jPublicKeyServer == null)
                 return Mono.just(Boolean.FALSE);

@@ -68,7 +68,7 @@ class GenericCoverageReporterTests {
     @Test
     void test_standard() throws IOException {
         // arrange
-        Path                     path          = Paths.get("target/classes/policies/policy_1.sapl");
+        Path                     path          = Paths.get("src/test/resources/policies/policy_1.sapl");
         String                   sapl          = Files.readString(path);
         int                      lineCount     = Files.readAllLines(path).size();
         Collection<SaplDocument> documents     = List
@@ -645,7 +645,7 @@ class GenericCoverageReporterTests {
 
     @Test
     void test_policyBodyMultipleStatementsPerLine_WithValue_markFullyWhenNever() {
-        // cannot be reached due to isLastStatementHit if clause
+        // cannot be reached due to isLastStatementHit if-clause
 
         SaplDocumentCoverageInformation coverage = new SaplDocumentCoverageInformation(null, 1);
         coverage.markLine(1, LineCoveredValue.NEVER, 1, 1);
@@ -654,7 +654,7 @@ class GenericCoverageReporterTests {
 
     @Test
     void test_policyBodyMultipleStatementsPerLine_WithValue_markNeverWhenFully() {
-        // cannot normally be reached due to isLastStatementHit if clause
+        // cannot normally be reached due to isLastStatementHit if-clause
 
         SaplDocumentCoverageInformation coverage = new SaplDocumentCoverageInformation(null, 1);
         coverage.markLine(1, LineCoveredValue.FULLY, 1, 1);

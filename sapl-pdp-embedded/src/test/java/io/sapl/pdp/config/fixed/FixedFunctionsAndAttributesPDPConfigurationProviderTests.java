@@ -33,7 +33,7 @@ import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
 
     @Test
-    void do_test() throws Exception {
+    void do_test() {
         var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
         var attrCtx  = new AnnotationAttributeContext();
         var funcCtx  = new AnnotationFunctionContext();
@@ -41,7 +41,6 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
                 List.of());
         var config   = provider.pdpConfiguration().blockFirst();
         provider.destroy();
-
         assertThat(config.documentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
         assertThat(config.attributeContext(), is(attrCtx));
         assertThat(config.functionContext(), is(funcCtx));

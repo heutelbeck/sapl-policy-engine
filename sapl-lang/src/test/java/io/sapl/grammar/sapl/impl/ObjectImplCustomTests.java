@@ -34,7 +34,7 @@ class ObjectImplCustomTests {
         assertExpressionReturnsErrors("{ \"a\": 1/0 }");
     }
 
-    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+    private static Stream<Arguments> provideStringsForExpressionEvaluatesToExpectedValue() {
         // @formatter:off
 		return Stream.of(
 	 			// simpleObjectToVal
@@ -46,12 +46,12 @@ class ObjectImplCustomTests {
 	 			// dropsUndefined
                 Arguments.of("{ \"a\": true, \"b\": false, \"c\": undefined }","{ \"a\": true, \"b\": false }")
 	 		);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
-	void expressionEvaluatesToExpectedValue(String expression, String expected) {
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("provideStringsForExpressionEvaluatesToExpectedValue")
+    void expressionEvaluatesToExpectedValue(String expression, String expected) {
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 }

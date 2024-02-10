@@ -47,8 +47,8 @@ class QueryManipulationEnforcementPointFactoryTests {
     @Autowired
     QueryManipulationEnforcementPointFactory queryManipulationEnforcementPointFactory;
 
-    BeanFactory                 beanFactoryMock = mock(BeanFactory.class);
-    EmbeddedPolicyDecisionPoint pdpMock         = mock(EmbeddedPolicyDecisionPoint.class);
+    final BeanFactory                 beanFactoryMock = mock(BeanFactory.class);
+    final EmbeddedPolicyDecisionPoint pdpMock         = mock(EmbeddedPolicyDecisionPoint.class);
 
     private static final MethodInvocationForTesting mongoMethodInvocationTest = new MethodInvocationForTesting(
             "findAllByFirstname", new ArrayList<>(List.of(String.class)), null, null);
@@ -61,8 +61,8 @@ class QueryManipulationEnforcementPointFactoryTests {
 
             // GIVEN
             var authSub         = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
-            var enforcementData = new QueryManipulationEnforcementData<TestUser>(mongoMethodInvocationTest,
-                    beanFactoryMock, TestUser.class, pdpMock, authSub);
+            var enforcementData = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest, beanFactoryMock,
+                    TestUser.class, pdpMock, authSub);
 
             // WHEN
             var result = queryManipulationEnforcementPointFactory
@@ -82,8 +82,8 @@ class QueryManipulationEnforcementPointFactoryTests {
 
             // GIVEN
             var authSub         = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
-            var enforcementData = new QueryManipulationEnforcementData<TestUser>(mongoMethodInvocationTest,
-                    beanFactoryMock, TestUser.class, pdpMock, authSub);
+            var enforcementData = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest, beanFactoryMock,
+                    TestUser.class, pdpMock, authSub);
 
             // WHEN
             var result = queryManipulationEnforcementPointFactory
@@ -103,8 +103,8 @@ class QueryManipulationEnforcementPointFactoryTests {
 
             // GIVEN
             var authSub         = AuthorizationSubscription.of("subject", "permitTest", "resource", "environment");
-            var enforcementData = new QueryManipulationEnforcementData<TestUser>(mongoMethodInvocationTest,
-                    beanFactoryMock, TestUser.class, pdpMock, authSub);
+            var enforcementData = new QueryManipulationEnforcementData<>(mongoMethodInvocationTest, beanFactoryMock,
+                    TestUser.class, pdpMock, authSub);
 
             // WHEN
             var result = queryManipulationEnforcementPointFactory

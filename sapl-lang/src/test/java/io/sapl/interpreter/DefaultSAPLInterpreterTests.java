@@ -40,12 +40,12 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.FilterFunctionLibrary;
@@ -105,7 +105,7 @@ class DefaultSAPLInterpreterTests {
 
     private static AnnotationFunctionContext functionCtx;
 
-    private static Map<String, JsonNode> variables;
+    private static Map<String, Val> variables;
 
     @BeforeAll
     static void beforeAll() throws JsonProcessingException, InitializationException {
@@ -116,7 +116,7 @@ class DefaultSAPLInterpreterTests {
         functionCtx.loadLibrary(SimpleFunctionLibrary.class);
         functionCtx.loadLibrary(FilterFunctionLibrary.class);
         functionCtx.loadLibrary(StandardFunctionLibrary.class);
-        variables = new HashMap<String, JsonNode>();
+        variables = new HashMap<>();
 
     }
 
@@ -401,18 +401,18 @@ class DefaultSAPLInterpreterTests {
 						INDETERMINATE),
 				// onErrorMap
 				Arguments.of("import standard.* policy \"errors\" permit where onErrorMap(100/0, true);", PERMIT));
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("documentTestCases")
-	void validateDocumentEvaluationResult(String policyDefinition, AuthorizationDecision expected) {
-		assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("documentTestCases")
+    void validateDocumentEvaluationResult(String policyDefinition, AuthorizationDecision expected) {
+        assertThatPolicyEvaluationReturnsExpected(policyDefinition, expected);
+    }
 
-	private void assertThatPolicyEvaluationReturnsExpected(String document, AuthorizationDecision expected) {
-		StepVerifier.create(INTERPRETER.evaluate(authzSubscription, document, attributeCtx, functionCtx, variables))
-				.expectNext(expected).verifyComplete();
-	}
+    private void assertThatPolicyEvaluationReturnsExpected(String document, AuthorizationDecision expected) {
+        StepVerifier.create(INTERPRETER.evaluate(authzSubscription, document, attributeCtx, functionCtx, variables))
+                .expectNext(expected).verifyComplete();
+    }
 
 }

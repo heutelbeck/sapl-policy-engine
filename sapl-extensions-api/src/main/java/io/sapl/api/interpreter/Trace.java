@@ -46,7 +46,7 @@ public class Trace {
     public static final String DIVISOR                    = "divisor";
     public static final String DOCUMENT_TYPE              = "documentType";
     public static final String ELEMENT_INDEX              = "elementIndex";
-    public static final String ENTITILEMENT               = "entitlement";
+    public static final String ENTITLEMENT                = "entitlement";
     public static final String ERROR_MESSAGE              = "errorMessage";
     public static final String EVALUATED_POLICIES         = "evaluatedPolicies";
     public static final String EXPLANATION                = "explanation";
@@ -66,6 +66,7 @@ public class Trace {
     public static final String OBLIGATIONS                = "obligations";
     public static final String OPERATOR                   = "operator";
     public static final String POLICY_NAME                = "policyName";
+    public static final String POLICY_SET                 = "policySet";
     public static final String POLICY_SET_NAME            = "policySetName";
     public static final String RESOURCE                   = "resource";
     public static final String RIGHT                      = "right";

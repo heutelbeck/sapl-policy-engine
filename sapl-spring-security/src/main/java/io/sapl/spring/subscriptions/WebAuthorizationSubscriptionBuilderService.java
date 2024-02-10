@@ -163,7 +163,7 @@ public class WebAuthorizationSubscriptionBuilderService {
                     // drop of not mappable to JSON
                 }
             }
-            if (array.size() > 0)
+            if (!array.isEmpty())
                 java.set("arguments", array);
         }
         actionNode.set("java", java);

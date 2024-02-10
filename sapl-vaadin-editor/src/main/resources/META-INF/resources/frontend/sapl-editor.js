@@ -108,7 +108,8 @@ class SAPLEditor extends LitElement {
       gutters: ["CodeMirror-lint-markers"],
       extraKeys: {"Ctrl-Space": "autocomplete"},
       hintOptions: {
-        container: widget_container
+        container: widget_container,
+        updateOnCursorActivity: false
       },
       theme: "default"
     });

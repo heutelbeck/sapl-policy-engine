@@ -67,13 +67,14 @@ class PolicyBodyImplCustomTests {
 	 			// lazyStatementEvaluation
 	 			Arguments.of("policy \"p\" permit true where false; (10/0);", NOT_APPLICABLE)
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideTestCases")
-	void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
-		var policy   = INTERPRETER.parse(policySource);
-		StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(hasDecision(expected)).verifyComplete();
-	}
+    @ParameterizedTest
+    @MethodSource("provideTestCases")
+    void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
+        var policy = INTERPRETER.parse(policySource);
+        StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
+                .expectNextMatches(hasDecision(expected)).verifyComplete();
+    }
 }

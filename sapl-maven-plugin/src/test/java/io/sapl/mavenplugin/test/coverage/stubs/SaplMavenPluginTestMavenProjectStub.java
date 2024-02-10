@@ -18,10 +18,11 @@
 package io.sapl.mavenplugin.test.coverage.stubs;
 
 import java.io.File;
+import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.io.input.XmlStreamReader;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
@@ -36,10 +37,20 @@ public class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
      * Create Stub
      */
     public SaplMavenPluginTestMavenProjectStub() {
+        initialize();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public File getBasedir() {
+        return new File(super.getBasedir() + "/src/test/resources/pom/");
+    }
+
+    protected final void initialize() {
         MavenXpp3Reader pomReader = new MavenXpp3Reader();
         Model           model;
         try {
-            model = pomReader.read(new XmlStreamReader(new File(getBasedir(), "pom.xml")));
+            model = pomReader.read((new FileReader(new File(getBasedir(), "pom.xml"), StandardCharsets.UTF_8)));
             setModel(model);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -68,12 +79,6 @@ public class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
         List<String> testCompileSourceRoots = new ArrayList<>();
         testCompileSourceRoots.add(getBasedir() + "/src/test/java");
         setTestCompileSourceRoots(testCompileSourceRoots);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public File getBasedir() {
-        return new File(super.getBasedir() + "/src/test/resources/pom/");
     }
 
 }

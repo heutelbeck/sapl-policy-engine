@@ -20,6 +20,7 @@ package io.sapl.springdatacommon.handlers;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +36,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.regex.Pattern;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.springdatacommon.sapl.Enforce;
 import lombok.SneakyThrows;

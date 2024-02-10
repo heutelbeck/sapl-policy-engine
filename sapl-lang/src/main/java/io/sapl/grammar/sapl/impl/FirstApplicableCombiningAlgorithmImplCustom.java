@@ -86,7 +86,7 @@ public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicable
                 return Flux.just(policyElement.targetResult(match));
             }
 
-            return policyElement.evaluate();
+            return policyElement.evaluate().map(result -> result.withTargetResult(match));
         });
     }
 

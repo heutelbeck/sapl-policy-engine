@@ -29,11 +29,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -49,8 +49,7 @@ public class SampleXACMLTests {
     private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
     private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
     private static final AnnotationFunctionContext  FUNCTION_CTX     = new AnnotationFunctionContext();
-    private static final Map<String, JsonNode>      SYSTEM_VARIABLES = Collections
-            .unmodifiableMap(new HashMap<String, JsonNode>());
+    private static final Map<String, Val>           SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
     @BeforeAll
     public static void setUpClass() throws InitializationException {

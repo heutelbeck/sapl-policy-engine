@@ -79,7 +79,7 @@ public class ReportBuilderUtil {
         }
 
         var evaluatedPolices = combinedDecision.get(Trace.EVALUATED_POLICIES);
-        if (evaluatedPolices != null && evaluatedPolices.isArray() && evaluatedPolices.size() > 0) {
+        if (evaluatedPolices != null && evaluatedPolices.isArray() && !evaluatedPolices.isEmpty()) {
             report.set(DOCUMENT_REPORTS, documentReports(evaluatedPolices));
         }
         return report;
@@ -139,7 +139,7 @@ public class ReportBuilderUtil {
         var report = JSON.objectNode();
         report.set(DOCUMENT_TYPE, JSON.textNode(POLICY));
         report.set(DOCUMENT_NAME, documentTrace.get(Trace.POLICY_NAME));
-        report.set(ENTITLEMENT, documentTrace.get(Trace.ENTITILEMENT));
+        report.set(ENTITLEMENT, documentTrace.get(Trace.ENTITLEMENT));
         if (documentTrace.has(Trace.ERROR_MESSAGE)) {
             report.set(ERROR_MESSAGE, documentTrace.get(Trace.ERROR_MESSAGE));
         }

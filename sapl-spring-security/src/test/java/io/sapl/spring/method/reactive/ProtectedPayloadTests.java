@@ -35,7 +35,7 @@ class ProtectedPayloadTests {
         assertThat(pp.isError()).isFalse();
         assertThat(pp.hasPayload()).isTrue();
         StepVerifier.create(pp.getPayload()).expectNext("Payload").verifyComplete();
-        assertThatThrownBy(() -> pp.getError()).isInstanceOf(NoSuchElementException.class);
+        assertThatThrownBy(pp::getError).isInstanceOf(NoSuchElementException.class);
     }
 
     @Test
@@ -44,7 +44,7 @@ class ProtectedPayloadTests {
         var pp = ProtectedPayload.withError(new RuntimeException("ERROR"));
         assertThat(pp.isError()).isTrue();
         assertThat(pp.hasPayload()).isFalse();
-        assertThatThrownBy(() -> pp.getPayload()).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(pp::getPayload).isInstanceOf(RuntimeException.class);
         assertThat(pp.getError()).hasMessage("ERROR");
     }
 }

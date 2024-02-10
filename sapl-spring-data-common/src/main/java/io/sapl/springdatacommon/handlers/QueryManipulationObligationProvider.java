@@ -21,6 +21,7 @@ import static io.sapl.springdatacommon.sapl.utils.Utilities.CONDITIONS;
 import static io.sapl.springdatacommon.sapl.utils.Utilities.TYPE;
 
 import java.util.Objects;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -36,7 +37,7 @@ public class QueryManipulationObligationProvider {
     private static final JsonNode     NULL_NODE = JsonNodeFactory.instance.nullNode();
 
     /**
-     * Extracts the query CONDITION of an obligation to apply the the corresponding
+     * Extracts the query CONDITION of an obligation to apply the corresponding
      * QueryManipulation.
      *
      * @param obligation which contains query CONDITIONS.
@@ -51,16 +52,14 @@ public class QueryManipulationObligationProvider {
     }
 
     /**
-     * Extracts the correct obligation from all obligations to apply the the
+     * Extracts the correct obligation from all obligations to apply the
      * corresponding QueryManipulation.
      *
      * @param obligations which contains all obligations.
      * @return correct obligation.
      */
     public JsonNode getObligation(Iterable<JsonNode> obligations, String queryType) {
-        var iterator = obligations.iterator();
-        while (iterator.hasNext()) {
-            var obligation = iterator.next();
+        for (JsonNode obligation : obligations) {
             return obligationIsFine(obligation, queryType) ? obligation : NULL_NODE;
 
         }
@@ -75,9 +74,7 @@ public class QueryManipulationObligationProvider {
      * @return true if an obligation can be applied.
      */
     public boolean isResponsible(Iterable<JsonNode> obligations, String queryType) {
-        var iterator = obligations.iterator();
-        while (iterator.hasNext()) {
-            var obligation = iterator.next();
+        for (JsonNode obligation : obligations) {
             return obligationIsFine(obligation, queryType);
         }
         return false;

@@ -71,17 +71,17 @@ class IndexStepImplCustomTests {
 	 			// filterNonArray
 	 			Arguments.of("666 |- { @[2] : mock.nil }", "666")
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("expressionTestCases")
-	void expressionEvaluatesToExpectedValue(String expression, String expected) {
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("expressionTestCases")
+    void expressionEvaluatesToExpectedValue(String expression, String expected) {
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 
-	private static Stream<Arguments> errorExpressions() {
-		// @formatter:off
+    private static Stream<Arguments> errorExpressions() {
+        // @formatter:off
 		return Stream.of(
 	 			// applyPositiveOutOfBoundsToArrayNode1
 	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9][100]", "Index out of bounds. Index must be between 0 and 10, was: 100"),
@@ -95,12 +95,12 @@ class IndexStepImplCustomTests {
 	 			// applyNegativeOutOfBoundsToArrayNode
 	 			Arguments.of("[0,1,2,3,4,5,6,7,8,9][-12]", "Index out of bounds. Index must be between 0 and 10, was: -2")
 	 		);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("errorExpressions")
-	void expressionReturnsError(String expression, String expected) {
-		assertExpressionReturnsError(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("errorExpressions")
+    void expressionReturnsError(String expression, String expected) {
+        assertExpressionReturnsError(expression, expected);
+    }
 }

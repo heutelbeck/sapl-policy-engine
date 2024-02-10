@@ -57,18 +57,29 @@ class StepsDefaultImplTests {
 
     private FunctionContext funcCtx;
 
-    private Map<String, JsonNode> variables;
+    private Map<String, Val> variables;
 
-    private static final String POLICY_SIMPLE_FUNCTION = "policy \"policyWithSimpleFunction\"\r\n" + "permit\r\n"
-            + "    action == \"read\"\r\n" + "where\r\n"
-            + "    time.dayOfWeek(\"2021-02-08T16:16:33.616Z\") =~ \"MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY\";";
+    private static final String POLICY_SIMPLE_FUNCTION = """
+            policy "policyWithSimpleFunction"
+            permit
+                action == "read"
+            where
+                time.dayOfWeek("2021-02-08T16:16:33.616Z") =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY";""";
 
-    private static final String POLICY_STREEAMING_PERMIT = "policy \"policyStreaming\"\r\n" + "permit\r\n"
-            + "  resource == \"heartBeatData\"\r\n" + "where\r\n" + "  subject == \"ROLE_DOCTOR\";\r\n"
-            + "  var interval = 2;\r\n" + "  time.secondOf(<time.now(interval)>) > 4;";
+    private static final String POLICY_STREAMING_PERMIT = """
+            policy "policyStreaming"
+            permit
+              resource == "heartBeatData"
+            where
+              subject == "ROLE_DOCTOR";
+              var interval = 2;
+              time.secondOf(<time.now(interval)>) > 4;""";
 
-    private static final String POLICY_INDETERMINATE = "policy \"policy division by zero\"\r\n" + "permit\r\n"
-            + "where\r\n    17 / 0;";
+    private static final String POLICY_INDETERMINATE = """
+            policy "policy division by zero"
+            permit
+            where
+                17 / 0;""";
 
     @BeforeEach
     void setUp() {
@@ -93,8 +104,12 @@ class StepsDefaultImplTests {
 
     @Test
     void test_mockAttribute_withParentValue() {
-        var policy_Attribute_WithAttributeAsParentValue = "policy \"policy\"\r\n" + "permit\r\n" + "where\r\n"
-                + "  var test = true;\r\n" + "  test.<pip.attribute1>.<pip.attribute2> < 50;";
+        var policy_Attribute_WithAttributeAsParentValue = """
+                policy "policy"
+                permit
+                where
+                  var test = true;
+                  test.<pip.attribute1>.<pip.attribute2> < 50;""";
         var steps                                       = new StepsDefaultImplTestsImpl(
                 policy_Attribute_WithAttributeAsParentValue, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1", Val.of(true), Val.of(false))
@@ -106,9 +121,12 @@ class StepsDefaultImplTests {
 
     @Test
     void test_mockAttribute_withParentValueAndArguments() {
-        var policy_Attribute_WithAttributeAsParentValueAndArguments = "policy \"policy\"\r\n" + "permit\r\n"
-                + "where\r\n" + "  var parentValue = true;\r\n"
-                + "  parentValue.<pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;";
+        var policy_Attribute_WithAttributeAsParentValueAndArguments = """
+                policy "policy"
+                permit
+                where
+                  var parentValue = true;
+                  parentValue.<pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;""";
         var steps                                                   = new StepsDefaultImplTestsImpl(
                 policy_Attribute_WithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
@@ -129,9 +147,12 @@ class StepsDefaultImplTests {
 
     @Test
     void test_mockAttribute_withParentValueAndArguments_ForEnvironmentAttribute() {
-        var policy_EnvironmentAttribute_WithAttributeAsParentValueAndArguments = "policy \"policy\"\r\n" + "permit\r\n"
-                + "where\r\n" + "  var parentValue = true;\r\n"
-                + "  <pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;";
+        var policy_EnvironmentAttribute_WithAttributeAsParentValueAndArguments = """
+                policy "policy"
+                permit
+                where
+                  var parentValue = true;
+                  <pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;""";
         var steps                                                              = new StepsDefaultImplTestsImpl(
                 policy_EnvironmentAttribute_WithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
@@ -185,7 +206,7 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNextPermit_XTimes_Greater1() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_STREEAMING_PERMIT, attrCtx, funcCtx, variables);
+        var steps = new StepsDefaultImplTestsImpl(POLICY_STREAMING_PERMIT, attrCtx, funcCtx, variables);
         steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
                 .givenFunctionOnce("time.secondOf", Val.of(5), Val.of(6), Val.of(7))
                 .when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextPermit(3)
@@ -201,9 +222,14 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNextDeny_XTimes_Greater1() {
-        var policy_Streaming_Deny = "policy \"policyStreaming\"\r\n" + "deny\r\n"
-                + "  resource == \"heartBeatData\"\r\n" + "where\r\n" + "  subject == \"ROLE_DOCTOR\";\r\n"
-                + "  var interval = 2;\r\n" + "  time.secondOf(<time.now(interval)>) > 4;";
+        var policy_Streaming_Deny = """
+                policy "policyStreaming"
+                deny
+                  resource == "heartBeatData"
+                where
+                  subject == "ROLE_DOCTOR";
+                  var interval = 2;
+                  time.secondOf(<time.now(interval)>) > 4;""";
         var steps                 = new StepsDefaultImplTestsImpl(policy_Streaming_Deny, attrCtx, funcCtx, variables);
         steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
                 .givenFunctionOnce("time.secondOf", Val.of(5), Val.of(6), Val.of(7))
@@ -219,9 +245,14 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNextIndeterminate_XTimes_Greater1() {
-        var policy_Streaming_Indeterminate = "policy \"policyStreaming\"\r\n" + "permit\r\n"
-                + "  resource == \"heartBeatData\"\r\n" + "where\r\n" + "  subject == \"ROLE_DOCTOR\";\r\n"
-                + "  var interval = 2;\r\n" + "  time.secondOf(<time.now(interval)>) > 4;" + "  17 / 0;";
+        var policy_Streaming_Indeterminate = """
+                policy "policyStreaming"
+                permit
+                  resource == "heartBeatData"
+                where
+                  subject == "ROLE_DOCTOR";
+                  var interval = 2;
+                  time.secondOf(<time.now(interval)>) > 4;  17 / 0;""";
         var steps                          = new StepsDefaultImplTestsImpl(policy_Streaming_Indeterminate, attrCtx,
                 funcCtx, variables);
         steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
@@ -239,7 +270,7 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNextNotApplicable_XTimes_Greater1() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_STREEAMING_PERMIT, attrCtx, funcCtx, variables);
+        var steps = new StepsDefaultImplTestsImpl(POLICY_STREAMING_PERMIT, attrCtx, funcCtx, variables);
         steps.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "somethingDifferent")).expectNextNotApplicable(1)
                 .verify();
     }

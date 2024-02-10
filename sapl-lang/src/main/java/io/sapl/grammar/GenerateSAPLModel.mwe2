@@ -30,7 +30,7 @@ Workflow {
     }
     
     component = org.eclipse.emf.mwe2.ecore.EcoreGenerator {
-        genModel = "platform:/resource/sapl-lang/src/main/model/custom/SAPL.genmodel"
+        genModel = "platform:/resource/sapl-lang/src/main/resources/SAPL.genmodel"
         srcPath = "platform:/resource/sapl-lang/src/main/java"
     }
 }

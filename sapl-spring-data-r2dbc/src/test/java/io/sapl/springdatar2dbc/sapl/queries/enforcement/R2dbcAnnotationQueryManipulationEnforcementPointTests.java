@@ -83,12 +83,13 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTests {
     final Flux<Person> malindaAsFlux  = Flux.just(malinda);
     final ArrayNode    emptyArrayNode = MAPPER.createArrayNode();
 
-    EmbeddedPolicyDecisionPoint pdpMock = mock(EmbeddedPolicyDecisionPoint.class);
+    final EmbeddedPolicyDecisionPoint pdpMock = mock(EmbeddedPolicyDecisionPoint.class);
 
-    R2dbcEntityTemplate       r2dbcEntityTemplateMock = mock(R2dbcEntityTemplate.class, Answers.RETURNS_DEEP_STUBS);
-    BeanFactory               beanFactoryMock         = mock(BeanFactory.class);
-    @SuppressWarnings("unchecked") // mocking of generic type
-    Flux<Map<String, Object>> fluxMap                 = mock(Flux.class);;
+    final R2dbcEntityTemplate r2dbcEntityTemplateMock = mock(R2dbcEntityTemplate.class, Answers.RETURNS_DEEP_STUBS);
+    final BeanFactory         beanFactoryMock         = mock(BeanFactory.class);
+    @SuppressWarnings("unchecked")
+    final // mocking of generic type
+    Flux<Map<String, Object>> fluxMap                 = mock(Flux.class);
 
     MockedStatic<ConstraintHandlerUtils>           constraintHandlerUtilsMock;
     MockedStatic<QueryAnnotationParameterResolver> queryAnnotationParameterResolverMockedStatic;
@@ -147,7 +148,6 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTests {
                 .readValue(R2DBC_QUERY_MANIPULATION_WITH_AND_CONJUNCTION.get("conditions").toString(), ArrayNode.class);
         CONDITION_WITH_OR_CONJUNCTION                 = MAPPER
                 .readValue(R2DBC_QUERY_MANIPULATION_WITH_OR_CONJUNCTION.get("conditions").toString(), ArrayNode.class);
-        ;
     }
 
     @BeforeEach

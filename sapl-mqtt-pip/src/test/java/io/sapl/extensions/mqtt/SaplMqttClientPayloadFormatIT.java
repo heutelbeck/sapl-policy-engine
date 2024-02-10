@@ -43,7 +43,6 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.embedded.EmbeddedHiveMQ;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.InitializationException;
 import reactor.test.StepVerifier;
 
 class SaplMqttClientPayloadFormatIT {
@@ -81,7 +80,7 @@ class SaplMqttClientPayloadFormatIT {
 
     @Test
     @Timeout(15)
-    void when_mqttMessageContentTypeIsJson_then_getValOfJson() throws InitializationException {
+    void when_mqttMessageContentTypeIsJson_then_getValOfJson() {
         // GIVEN
         var topic       = JSON.arrayNode().add(JSON_TOPIC);
         var jsonMessage = JSON.arrayNode().add("message1").add(JSON.objectNode().put("key", "value"));
@@ -98,7 +97,7 @@ class SaplMqttClientPayloadFormatIT {
 
     @Test
     @Timeout(10)
-    void when_inconsistentMqttMessageIsPublished_then_getValOfError() throws InitializationException {
+    void when_inconsistentMqttMessageIsPublished_then_getValOfError() {
         // GIVEN
         var topic       = JSON.arrayNode().add("topic");
         var jsonMessage = "{test}";
@@ -119,7 +118,7 @@ class SaplMqttClientPayloadFormatIT {
 
     @Test
     @Timeout(10)
-    void when_mqttMessagePayloadIsFormatIsByteArray_then_getArrayOfBytesAsInts() throws InitializationException {
+    void when_mqttMessagePayloadIsFormatIsByteArray_then_getArrayOfBytesAsIntegers() {
         // GIVEN
         var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
         var message = "byteArray";
@@ -138,8 +137,7 @@ class SaplMqttClientPayloadFormatIT {
 
     @Test
     @Timeout(10)
-    void when_mqttMessagePayloadIsUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsText()
-            throws InitializationException {
+    void when_mqttMessagePayloadIsUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsText() {
         // GIVEN
         var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
         var message = "byteArray";
@@ -156,8 +154,7 @@ class SaplMqttClientPayloadFormatIT {
 
     @Test
     @Timeout(10)
-    void when_mqttMessagePayloadIsNonValidUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsBytes()
-            throws InitializationException {
+    void when_mqttMessagePayloadIsNonValidUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsBytes() {
         // GIVEN
         var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
         var message = "ßß";

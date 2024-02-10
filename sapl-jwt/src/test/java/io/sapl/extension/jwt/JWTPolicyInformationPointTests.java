@@ -35,7 +35,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -187,7 +186,7 @@ class JWTPolicyInformationPointTests {
 
     @Test
     void validity_withEmptyEnvironment_shouldBeUntrusted() throws JOSEException {
-        var variables = Map.<String, JsonNode>of();
+        var variables = Map.<String, Val>of();
         var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         var claims    = new JWTClaimsSet.Builder().build();
         var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -198,7 +197,7 @@ class JWTPolicyInformationPointTests {
 
     @Test
     void validity_withUriEnvironmentMissingServer_shouldBeUntrusted() throws JOSEException {
-        var variables = Map.<String, JsonNode>of("jwt", MAPPER.createObjectNode());
+        var variables = Map.of("jwt", Val.ofEmptyObject());
         var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         var claims    = new JWTClaimsSet.Builder().build();
         var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -224,7 +223,7 @@ class JWTPolicyInformationPointTests {
         dispatcher.setDispatchMode(DispatchMode.True);
         var jwtNode   = MAPPER.createObjectNode().set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY,
                 JsonTestUtility.serverNode(server, null, "invalid TTL format"));
-        var variables = Map.of("jwt", jwtNode);
+        var variables = Map.of("jwt", Val.of(jwtNode));
         var header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
         var claims    = new JWTClaimsSet.Builder().build();
         var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -274,7 +273,7 @@ class JWTPolicyInformationPointTests {
     @Test
     void validity_withWrongAlgorithm_shouldBeIncompatible() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.True);
-        var variables = Map.<String, JsonNode>of();
+        var variables = Map.<String, Val>of();
         var header    = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
         var claims    = new JWTClaimsSet.Builder().build();
         var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
@@ -286,7 +285,7 @@ class JWTPolicyInformationPointTests {
     @Test
     void valid_withWrongAlgorithm_shouldBeFalse() throws JOSEException {
         dispatcher.setDispatchMode(DispatchMode.True);
-        var variables = Map.<String, JsonNode>of();
+        var variables = Map.<String, Val>of();
         var header    = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
         var claims    = new JWTClaimsSet.Builder().build();
         var source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);

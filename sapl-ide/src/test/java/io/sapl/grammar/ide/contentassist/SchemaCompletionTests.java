@@ -31,7 +31,7 @@ import org.springframework.test.context.ContextConfiguration;
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 class SchemaCompletionTests extends CompletionTests {
 
-    List<String> environmentVariableNames = List.of("calendar_schema");
+    final List<String> environmentVariableNames = List.of("calendar_schema");
 
     /**
      * Tests regarding the preamble
@@ -243,22 +243,26 @@ class SchemaCompletionTests extends CompletionTests {
     void testCompletion_PolicyBody_NotSuggestEnumKeywords() {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
-                    policy "test" permit where var bar = 3; var foo = "test" schema
-                    {
-                       "type": "object",
-                       "properties": {
-                     	"java": {
-                     		"type": "object",
-                     		"properties": {
-                     			"name": {
-                     				"type": "string",
-                     				"enum": ["registerNewCustomer",
-                     				         "changeAddress"]
-                     			}
-                     		}
-                         }
-                       }
-                     };
+                    policy "test"
+                    permit
+                    where
+                        var bar = 3;
+                        var foo = "test" schema
+                                    {
+                                       "type": "object",
+                                       "properties": {
+                                         	"java": {
+                                         		"type": "object",
+                                         		"properties": {
+                                         			"name": {
+                                         				"type": "string",
+                                         				"enum": ["registerNewCustomer",
+                                         				         "changeAddress"]
+                                         			}
+                                         		}
+                                         }
+                                       }
+                                     };
                      foo""";
 
             String cursor = "foo";
@@ -267,43 +271,10 @@ class SchemaCompletionTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo.name.registerNewCustomer", "foo.name.changeAddress");
+                var expected = List.of("foo", "foo.java", "foo.java.name");
                 var unwanted = List.of("foo.", "foo.name.enum[0]", "foo.name.enum[1]");
                 assertProposalsSimple(expected, completionList);
                 assertDoesNotContainProposals(unwanted, completionList);
-            });
-        });
-    }
-
-    @Test
-    void testCompletion_PolicyBody_Invalid_EnumArray() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = """
-                    policy "test" permit where var bar = 3; var foo = "test" schema
-                    {
-                       "type": "object",
-                       "properties": {
-                     	"java": {
-                     		"type": "object",
-                     		"properties": {
-                     			"name": {
-                     				"type": "number",
-                     				"enum": [{"first_name": "Alice"}, {"second_name": "Smith"}]
-                     			}
-                     		}
-                         }
-                       }
-                     };
-                     foo""";
-
-            String cursor = "foo";
-            it.setModel(policy);
-            it.setLine(15);
-            it.setColumn(cursor.length());
-
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo", "foo.name", "foo.name.first_name", "foo.name.second_name");
-                assertProposalsSimple(expected, completionList);
             });
         });
     }
@@ -328,7 +299,7 @@ class SchemaCompletionTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo", "foo.Avenue", "foo.Street");
+                var expected = List.of("foo[]");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -490,8 +461,16 @@ class SchemaCompletionTests extends CompletionTests {
             it.setLine(11);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("subject.name", "subject.children", "subject.children.name",
-                        "subject.children.children");
+                var expected = List.of("subject", "subject.children", "subject.children[]",
+                        "subject.children[].children", "subject.children[].children[]",
+                        "subject.children[].children[].children", "subject.children[].children[].children[]",
+                        "subject.children[].children[].children[].children",
+                        "subject.children[].children[].children[].children[]",
+                        "subject.children[].children[].children[].children[].children",
+                        "subject.children[].children[].children[].children[].children[]",
+                        "subject.children[].children[].children[].children[].name",
+                        "subject.children[].children[].children[].name", "subject.children[].children[].name",
+                        "subject.children[].name", "subject.name");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -557,7 +536,7 @@ class SchemaCompletionTests extends CompletionTests {
                         "type": "object",
                         "properties": {
                           "name": { "type": "string" },
-                          "shipping_address": { "$ref": "address_schema" }
+                          "shipping_address": { "$ref": "https://example.com/address.schema.json" }
                          }
                       }
                      policy "test" deny where subject""";
@@ -582,7 +561,7 @@ class SchemaCompletionTests extends CompletionTests {
                         "type": "object",
                         "properties": {
                           "name": { "type": "string" },
-                          "place_of_birth": { "$ref": "calendar_schema/#/properties/geo" }
+                          "place_of_birth": { "$ref": "https://example.com/calendar.schema.json#/properties/geo" }
                          }
                       }
                      policy "test" deny where subject""";
@@ -591,8 +570,7 @@ class SchemaCompletionTests extends CompletionTests {
             it.setLine(8);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("subject", "subject.name", "subject.place_of_birth",
-                        "subject.place_of_birth.latitude.minimum");
+                var expected = List.of("subject", "subject.name", "subject.place_of_birth");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -721,7 +699,7 @@ class SchemaCompletionTests extends CompletionTests {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
                     import schemaTest.*
-                    policy "test" deny where var foo = person;
+                    policy "test" deny where var foo = person();
                     foo""";
 
             String cursor = "foo";
@@ -741,7 +719,7 @@ class SchemaCompletionTests extends CompletionTests {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
                     import schemaTest as test
-                    policy "test" deny where var foo = test.person;
+                    policy "test" deny where var foo = test.person();
                     foo""";
 
             String cursor = "foo";

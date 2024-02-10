@@ -17,10 +17,6 @@
  */
 package io.sapl.test.grammar.validation;
 
-import com.google.inject.Inject;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import io.sapl.test.grammar.sapltest.SapltestPackage;
-import io.sapl.test.grammar.tests.SAPLTestInjectorProvider;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
@@ -30,6 +26,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import com.google.inject.Inject;
+
+import io.sapl.test.grammar.sapltest.SAPLTest;
+import io.sapl.test.grammar.sapltest.SapltestPackage;
+import io.sapl.test.grammar.tests.SAPLTestInjectorProvider;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(SAPLTestInjectorProvider.class)
@@ -69,14 +71,14 @@ class SAPLTestValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(doubles = { 0, 1, 1.5, 1.8 })
-    void multipleAmountNeedsToBeNaturalNumberLargerThanOne_handlesInvalidAmount_returnsError(final double number)
+    @ValueSource(doubles = { -2, -1, 0, 1, Integer.MIN_VALUE, Double.MIN_VALUE, Double.MAX_VALUE, -0.33, -0.5, 0.5 })
+    void multipleAmountNeedsToBeNaturalNumberLargerThanOne_handlesInvalidAmount_hasError(final double number)
             throws Exception {
         final var testDefinition = """
                  test "scenario" {
                     scenario "scenario"
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect - permit %f times;
+                    then expect - permit %s times;
                 }""".formatted(number);
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertError(result, SapltestPackage.eINSTANCE.getMultiple(), null,
@@ -84,8 +86,8 @@ class SAPLTestValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = { 2, 123, Integer.MAX_VALUE })
-    void multipleAmountNeedsToBeNaturalNumberLargerThanOne_handlesValidAmount_returnsNoError(final int number)
+    @ValueSource(ints = { 5, 12341, 2, 12, Integer.MAX_VALUE })
+    void multipleAmountNeedsToBeNaturalNumberLargerThanOne_handlesValidAmount_hasNoError(final int number)
             throws Exception {
         final var testDefinition = """
                  test "scenario" {
@@ -98,7 +100,7 @@ class SAPLTestValidatorTest {
     }
 
     @Test
-    void testCaseMayContainVirtualTimeOnlyOnce_handlesMultipleVirtualTimeDefinitions_returnsError() throws Exception {
+    void testCaseMayContainVirtualTimeOnlyOnce_handlesMultipleVirtualTimeDefinitions_hasError() throws Exception {
         final var testDefinition = """
                  test "scenario" {
                     scenario "scenario"
@@ -114,7 +116,7 @@ class SAPLTestValidatorTest {
     }
 
     @Test
-    void testCaseMayContainVirtualTimeOnlyOnce_handlesSingleVirtualTimeDefinition_returnsNoError() throws Exception {
+    void testCaseMayContainVirtualTimeOnlyOnce_handlesSingleVirtualTimeDefinition_hasNoError() throws Exception {
         final var testDefinition = """
                  test "scenario" {
                     scenario "scenario"
@@ -123,6 +125,62 @@ class SAPLTestValidatorTest {
                     when subject "willi" attempts action "read" on resource "something"
                     then expect permit;
                 }""";
+        final var result         = this.parseHelper.parse(testDefinition);
+        this.validator.assertNoErrors(result);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "\\\\x", "[a-zA-Z", "(0-9" })
+    void stringMatchesRegexMustContainValidRegex_handlesInvalidRegex_hasError(final String regex) throws Exception {
+        final var testDefinition = """
+                 test "scenario" {
+                    scenario "scenario"
+                    when subject "willi" attempts action "read" on resource "something"
+                    then expect decision with resource matching text with regex "%s";
+                }""".formatted(regex);
+        final var result         = this.parseHelper.parse(testDefinition);
+        this.validator.assertError(result, SapltestPackage.eINSTANCE.getStringMatchesRegex(), null,
+                SAPLTestValidator.MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "[a-zA-Z]", "abc", "abc.?" })
+    void stringMatchesRegexMustContainValidRegex_handlesValidRegex_hasNoError(final String regex) throws Exception {
+        final var testDefinition = """
+                 test "scenario" {
+                    scenario "scenario"
+                    when subject "willi" attempts action "read" on resource "something"
+                    then expect decision with resource matching text with regex "%s";
+                }""".formatted(regex);
+        final var result         = this.parseHelper.parse(testDefinition);
+        this.validator.assertNoErrors(result);
+    }
+
+    @ParameterizedTest
+    @ValueSource(doubles = { -1, 0, 0.5, Integer.MAX_VALUE + 1D, -5, -0.1 })
+    void stringWithLengthNeedsToBeNaturalNumberLargerThanZero_handlesInvalidLength_hasError(final double number)
+            throws Exception {
+        final var testDefinition = """
+                 test "scenario" {
+                    scenario "scenario"
+                    when subject "willi" attempts action "read" on resource "something"
+                    then expect decision with resource matching text with length %s;
+                }""".formatted(number);
+        final var result         = this.parseHelper.parse(testDefinition);
+        this.validator.assertError(result, SapltestPackage.eINSTANCE.getStringWithLength(), null,
+                SAPLTestValidator.MSG_INVALID_STRING_WITH_LENGTH);
+    }
+
+    @ParameterizedTest
+    @ValueSource(doubles = { 1, 5, Integer.MAX_VALUE, 555 })
+    void stringWithLengthNeedsToBeNaturalNumberLargerThanZero_handlesValidLength_hasNoError(final double number)
+            throws Exception {
+        final var testDefinition = """
+                 test "scenario" {
+                    scenario "scenario"
+                    when subject "willi" attempts action "read" on resource "something"
+                    then expect decision with resource matching text with length %s;
+                }""".formatted(number);
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertNoErrors(result);
     }

@@ -38,7 +38,7 @@ class DefaultSAPLInterpreterPolicySetTests {
 
     private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-    private AuthorizationSubscription authzSubscription;
+    private AuthorizationSubscription authorizationSubscription;
 
     private AnnotationAttributeContext attributeCtx;
 
@@ -46,9 +46,9 @@ class DefaultSAPLInterpreterPolicySetTests {
 
     @BeforeEach
     void setUp() throws InitializationException {
-        authzSubscription = new AuthorizationSubscription(null, null, null, null);
-        attributeCtx      = new AnnotationAttributeContext();
-        functionCtx       = new AnnotationFunctionContext();
+        authorizationSubscription = new AuthorizationSubscription(null, null, null, null);
+        attributeCtx              = new AnnotationAttributeContext();
+        functionCtx               = new AnnotationFunctionContext();
         functionCtx.loadLibrary(FilterFunctionLibrary.class);
     }
 
@@ -119,7 +119,8 @@ class DefaultSAPLInterpreterPolicySetTests {
                 "policy \"testp1\" permit transform true |- replace(false)";
 
         StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policySet, attributeCtx, functionCtx, new HashMap<>()))
+                .create(INTERPRETER.evaluate(authorizationSubscription, policySet, attributeCtx, functionCtx,
+                        new HashMap<>()))
                 .assertNext(decision -> assertThat(decision.getResource(), is(optionalWithValue(jsonBoolean(false)))))
                 .verifyComplete();
     }
@@ -181,8 +182,8 @@ class DefaultSAPLInterpreterPolicySetTests {
     }
 
     private void assertThatDocumentEvaluationReturnsExpected(String document, AuthorizationDecision expected) {
-        StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, document, attributeCtx, functionCtx, new HashMap<>()))
+        StepVerifier.create(
+                INTERPRETER.evaluate(authorizationSubscription, document, attributeCtx, functionCtx, new HashMap<>()))
                 .expectNext(expected).verifyComplete();
     }
 

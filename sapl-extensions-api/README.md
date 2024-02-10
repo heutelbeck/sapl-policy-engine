@@ -127,12 +127,12 @@ Input parameters of the method may be annotated with type validation annotations
 
 A typical use-case for attribute finder is retrieving attribute data from an external data source. If this is a network service like an API or database, the attribute finder usually must know the network address and credentials to authenticate with the service. Such data should never be hardcoded in the PIP. Also, developers should never store this data in policies. In SAPL, developers should store this information and further configuration data for PIPs in the environment variables. For the SAPL Server LT these variables are stored in the pdp.json configuration file, and for the SAPL Server CE they can be edited via the UI.
 
-To access the environment variables, attribute finder methods can consume a Map<String,JsonNode>. The PDP will inject this map at runtime. The map contains all variables available in the current evaluation scope. This map must be the first parameter of the left-hand parameter, or it must be the first parameter for environment attributes. Note that attempting to overload an attribute name with and without variables as a parameter that accept the same number of other parameters will fail. The engine cannot disambiguate these two attributes at runtime.
+To access the environment variables, attribute finder methods can consume a Map<String, Val>. The PDP will inject this map at runtime. The map contains all variables available in the current evaluation scope. This map must be the first parameter of the left-hand parameter, or it must be the first parameter for environment attributes. Note that attempting to overload an attribute name with and without variables as a parameter that accept the same number of other parameters will fail. The engine cannot disambiguate these two attributes at runtime.
 
 ```java
 /* subject.<user.attribute> definition would clash with last example if defined at the same time in the same PIP*/
 @Attribute(name = "attribute", docs = "documentation")
-public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute, Map<String,JsonNode> variables) {
+public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute, Map<String, Val> variables) {
     ...
 }
 ```
@@ -152,7 +152,7 @@ Optionally, the environment attribute can consume variables:
 ```java
 /* <user.attribute> definition would clash with last example if defined at the same time in the same PIP */
 @Attribute(name = "attribute", docs = "documentation")
-public Flux<Val> attribute(Map<String,JsonNode> variables) {
+public Flux<Val> attribute(Map<String, Val> variables) {
     ...
 }
 ```
@@ -164,7 +164,7 @@ Regardless of if the attribute is an environment attribute or not, the parameter
 ```java
 /* subject.<user.attribute("param1",123)> */
 @Attribute(name = "attribute", docs = "documentation")
-public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute, Map<String,JsonNode> variables, @Text Flux<Val> param1, @Number Flux<Val> param2) {
+public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute, Map<String, Val> variables, @Text Flux<Val> param1, @Number Flux<Val> param2) {
     ...
 }
 ```
@@ -174,7 +174,7 @@ Additionally, using Java variable argument lists, it is possible to declare attr
 ```java
 /* subject.<user.attribute("AA","BB","CC")> */
 @Attribute(name = "attribute", docs = "documentation")
-public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute, Map<String,JsonNode> variables, @Text Flux<Val>... params) {
+public Flux<Val> attribute(@Object Val leftHandObjectOfTheAttribute, Map<String, Val> variables, @Text Flux<Val>... params) {
     ...
 }
 ```

@@ -19,6 +19,7 @@
 package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -26,6 +27,8 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -35,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -65,6 +69,8 @@ class StringMatcherInterpreterTests {
 
     protected final MockedStatic<Matchers> matchersMockedStatic = mockStatic(Matchers.class);
 
+    protected final MockedStatic<Pattern> patternMockedStatic = mockStatic(Pattern.class, Answers.CALLS_REAL_METHODS);
+
     @BeforeEach
     void setUp() {
         stringMatcherInterpreter = new StringMatcherInterpreter();
@@ -73,6 +79,7 @@ class StringMatcherInterpreterTests {
     @AfterEach
     void tearDown() {
         matchersMockedStatic.close();
+        patternMockedStatic.close();
     }
 
     private <T extends StringMatcher> T buildStringMatcher(final String input, final Class<T> clazz) {
@@ -180,11 +187,28 @@ class StringMatcherInterpreterTests {
     void getHamcrestStringMatcher_handlesStringMatchesRegex_returnsMatchesRegexMatcher() {
         final var stringMatcher = buildStringMatcher("with regex \"fooRegex\"", StringMatchesRegex.class);
 
-        matchersMockedStatic.when(() -> Matchers.matchesRegex("fooRegex")).thenReturn(matcherMock);
+        final var patternMock = mock(Pattern.class);
+        patternMockedStatic.when(() -> Pattern.compile("fooRegex")).thenReturn(patternMock);
+
+        matchersMockedStatic.when(() -> Matchers.matchesRegex(patternMock)).thenReturn(matcherMock);
 
         final var result = stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher);
 
         assertEquals(matcherMock, result);
+    }
+
+    @Test
+    void getHamcrestStringMatcher_handlesStringMatchesRegexWithInvalidRegex_throwsSaplTestException() {
+        final var stringMatcher = buildStringMatcher("with regex \"invalid\"", StringMatchesRegex.class);
+
+        final var expectedException = new PatternSyntaxException("invalid format", "invalid", -1);
+        patternMockedStatic.when(() -> Pattern.compile("invalid")).thenThrow(expectedException);
+
+        final var exception = assertThrows(SaplTestException.class,
+                () -> stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher));
+
+        assertEquals("The given regex has an invalid format", exception.getMessage());
+        assertEquals(expectedException, exception.getCause());
     }
 
     @Test
@@ -266,7 +290,7 @@ class StringMatcherInterpreterTests {
     }
 
     @ParameterizedTest
-    @ValueSource(doubles = { -1, 0.5, Integer.MAX_VALUE + 1D, -5, -0.1 })
+    @ValueSource(doubles = { -1, 0, 0.5, Integer.MAX_VALUE + 1D, -5, -0.1 })
     void getHamcrestStringMatcher_handlesStringWithLengthWithInvalidInteger_throwsSaplTestException(
             double returnValue) {
         final var stringMatcherMock = mock(StringWithLength.class);
@@ -275,11 +299,12 @@ class StringMatcherInterpreterTests {
         final var exception = assertThrows(SaplTestException.class,
                 () -> stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcherMock));
 
-        assertEquals("String length needs to be an natural number", exception.getMessage());
+        assertEquals("String length needs to be an natural number larger than 0", exception.getMessage());
+        assertInstanceOf(ArithmeticException.class, exception.getCause());
     }
 
     @ParameterizedTest
-    @ValueSource(ints = { 1, 5, Integer.MAX_VALUE, 0, 555 })
+    @ValueSource(ints = { 1, 5, Integer.MAX_VALUE, 555 })
     void getHamcrestStringMatcher_handlesStringWithLengthWithValidInteger_returnsHasLengthMatcher(int returnValue) {
         final var stringMatcherMock = mock(StringWithLength.class);
         when(stringMatcherMock.getLength()).thenReturn(BigDecimal.valueOf(returnValue));

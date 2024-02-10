@@ -41,4 +41,14 @@ public class InitializationException extends Exception {
         super(String.format(format, args));
     }
 
+    /**
+     * Create a new PolicyEvaluationException
+     *
+     * @param format format string
+     * @param args   arguments for format string
+     */
+    public InitializationException(Throwable cause, String format, Object... args) {
+        super(String.format(format, args), cause);
+    }
+
 }

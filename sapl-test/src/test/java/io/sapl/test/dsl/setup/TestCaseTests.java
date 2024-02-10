@@ -201,20 +201,13 @@ class TestCaseTests {
     }
 
     @Test
-    void from_withNonObjectEnvironmentBuildsFixtureWithoutEnvironment_returnsTestCase() {
+    void from_handlesNonObjectEnvironment_throwsSaplTestException() {
         final var valueMock = mock(Value.class);
         when(dslTestCaseMock.getEnvironment()).thenReturn(valueMock);
 
-        final var fixtureRegistrationsMock = mockFixtureRegistrations(Collections.emptyList());
-        final var givenStepsMock           = mockGivenSteps(Collections.emptyList());
+        final var exception = assertThrows(SaplTestException.class, assertDynamicTestAndGetRunnable()::run);
 
-        final var testFixtureMock = mockTestFixture(fixtureRegistrationsMock);
-
-        final var verifyStepMock = mockTestBuildingChain(givenStepsMock, testFixtureMock, dslTestCaseMock, null, false);
-
-        assertDynamicTestAndGetRunnable().run();
-
-        verify(verifyStepMock, times(1)).verify();
+        assertEquals("Environment needs to be an object", exception.getMessage());
     }
 
     @Test

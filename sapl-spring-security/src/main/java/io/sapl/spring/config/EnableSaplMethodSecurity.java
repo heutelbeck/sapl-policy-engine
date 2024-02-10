@@ -57,7 +57,7 @@ public @interface EnableSaplMethodSecurity {
     /**
      * Indicate how security advice should be applied. The default is
      * {@link AdviceMode#PROXY}.
-     *
+     * <p>
      * ASPECTJ is not supported.
      *
      * @see AdviceMode

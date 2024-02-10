@@ -25,14 +25,17 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
@@ -73,7 +76,23 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
             return Optional.of(defaultConfiguration);
         }
         try {
-            return Optional.of(MAPPER.readValue(configurationFile.toFile(), PolicyDecisionPointConfiguration.class));
+            var jsonNode = MAPPER.readValue(configurationFile.toFile(), JsonNode.class);
+
+            var config = new PolicyDecisionPointConfiguration();
+
+            if (jsonNode == null)
+                return Optional.empty();
+
+            if (jsonNode.has("algorithm")) {
+                config.setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
+            }
+            var variables = new HashMap<String, Val>();
+            if (jsonNode.has("variables")) {
+                jsonNode.get("variables").fields().forEachRemaining(field -> variables.put(field.getKey(),
+                        Val.of(field.getValue()).withTrace(VariablesAndCombinatorSource.class)));
+            }
+            config.setVariables(variables);
+            return Optional.of(config);
         } catch (IOException e) {
             log.info("Error reading PDP configuration file. No configuration available.", e);
             return Optional.empty();
@@ -90,7 +109,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
     }
 
     @Override
-    public Flux<Optional<Map<String, JsonNode>>> getVariables() {
+    public Flux<Optional<Map<String, Val>>> getVariables() {
         return Flux.from(configFlux)
                 .switchMap(config -> config
                         .map(policyDecisionPointConfiguration -> Flux

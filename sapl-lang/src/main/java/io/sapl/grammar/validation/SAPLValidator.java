@@ -17,12 +17,17 @@
  */
 package io.sapl.grammar.validation;
 
+import java.util.Map;
+
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.Check;
 
 import io.sapl.grammar.sapl.Policy;
+import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SaplPackage;
+import io.sapl.grammar.sapl.Schema;
+import io.sapl.grammar.sapl.ValueDefinition;
 
 /**
  * This class contains custom validation rules.
@@ -32,78 +37,93 @@ import io.sapl.grammar.sapl.SaplPackage;
  */
 public class SAPLValidator extends AbstractSAPLValidator {
 
-    protected static final String MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Lazy and (&&) is not allowed, please use eager and (&) instead.";
+    protected static final String MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION     = "Lazy AND (&&) is not allowed in target expressions, please use eager and (&) instead.";
+    protected static final String MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION      = "Lazy OR (||) is not allowed in target expressions, please use eager or (|) instead.";
+    protected static final String MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Attribute access is forbidden in target expression.";
+    protected static final String MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION = "Attribute access is forbidden in schema expression.";
 
-    protected static final String MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "Lazy or (||) is not allowed, please use eager or (|) instead.";
+    // @formatter:off
+    protected static final Map<EClass,String> TARGET_EXPRESSION_BLACKLIST = Map.of(
+                SaplPackage.Literals.OR,                               MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION,
+                SaplPackage.Literals.AND,                              MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION,
+                SaplPackage.Literals.ATTRIBUTE_FINDER_STEP,            MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION,
+                SaplPackage.Literals.HEAD_ATTRIBUTE_FINDER_STEP,       MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION,
+                SaplPackage.Literals.BASIC_ENVIRONMENT_ATTRIBUTE,      MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION,
+                SaplPackage.Literals.BASIC_ENVIRONMENT_HEAD_ATTRIBUTE, MSG_ATTRIBUTES_NOT_ALLOWED_IN_TARGET_EXPRESSION
+            );
+    // @formatter:on
 
-    protected static final String MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "AttributeFinderStep is not allowed in target expression.";
-
-    protected static final String MSG_HAFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "HeadAttributeFinderStep is not allowed in target expression.";
-
-    protected static final String MSG_BEA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "BasicEnvironmentAttribute is not allowed in target expression.";
-
-    protected static final String MSG_BEHA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION = "BasicEnvironmentHeadAttribute is not allowed in target expression.";
+    // @formatter:off
+    protected static final Map<EClass,String> SCHEMA_EXPRESSION_BLACKLIST = Map.of(
+                SaplPackage.Literals.ATTRIBUTE_FINDER_STEP,            MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION,
+                SaplPackage.Literals.HEAD_ATTRIBUTE_FINDER_STEP,       MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION,
+                SaplPackage.Literals.BASIC_ENVIRONMENT_ATTRIBUTE,      MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION,
+                SaplPackage.Literals.BASIC_ENVIRONMENT_HEAD_ATTRIBUTE, MSG_ATTRIBUTES_NOT_ALLOWED_IN_SCHEMA_EXPRESSION
+            );
+    // @formatter:on
 
     /**
-     * No lazy And operators are allowed in the target expression.
+     * Eager Boolean logic and attributes forbidden in target expressions
      *
      * @param policy a policy
      */
     @Check
     public void policyRuleNoAndAllowedInTargetExpression(final Policy policy) {
-        genericCheckForTargetExpression(policy, SaplPackage.Literals.AND,
-                SAPLValidator.MSG_AND_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+        for (var blacklistEntry : TARGET_EXPRESSION_BLACKLIST.entrySet()) {
+            genericCheckForElementInAST(policy.getTargetExpression(), blacklistEntry.getKey(),
+                    blacklistEntry.getValue());
+        }
     }
 
     /**
-     * No lazy Or operators are allowed in the target expression.
+     * Eager Boolean logic and attributes forbidden in target expressions
      *
-     * @param policy a policy
+     * @param policySet a policy set
      */
     @Check
-    public void policyRuleNoOrAllowedInTargetExpression(final Policy policy) {
-        genericCheckForTargetExpression(policy, SaplPackage.Literals.OR,
-                SAPLValidator.MSG_OR_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    public void policyRuleNoAndAllowedInTargetExpression(final PolicySet policySet) {
+        for (var blacklistEntry : TARGET_EXPRESSION_BLACKLIST.entrySet()) {
+            genericCheckForElementInAST(policySet.getTargetExpression(), blacklistEntry.getKey(),
+                    blacklistEntry.getValue());
+        }
     }
 
     /**
-     * No lazy Or operators are allowed in the target expression.
+     * Attributes forbidden in schema expressions
      *
-     * @param policy a policy
+     * @param schema a schema statement
      */
     @Check
-    public void policyRuleNoAttributeFinderAllowedInTargetExpression(final Policy policy) {
-        genericCheckForTargetExpression(policy, SaplPackage.Literals.ATTRIBUTE_FINDER_STEP,
-                SAPLValidator.MSG_AFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
-    }
-
-    @Check
-    public void policyRuleNoHeaderAttributeFinderAllowedInTargetExpression(final Policy policy) {
-        genericCheckForTargetExpression(policy, SaplPackage.Literals.HEAD_ATTRIBUTE_FINDER_STEP,
-                SAPLValidator.MSG_HAFS_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
-    }
-
-    @Check
-    public void policyRuleNoBasicEnvironmentAttributeAllowedInTargetExpression(final Policy policy) {
-        genericCheckForTargetExpression(policy, SaplPackage.Literals.BASIC_ENVIRONMENT_ATTRIBUTE,
-                SAPLValidator.MSG_BEA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
-    }
-
-    @Check
-    public void policyRuleNoBasicHeadEnvironmentAttributeAllowedInTargetExpression(final Policy policy) {
-        genericCheckForTargetExpression(policy, SaplPackage.Literals.BASIC_ENVIRONMENT_HEAD_ATTRIBUTE,
-                SAPLValidator.MSG_BEHA_IS_NOT_ALLOWED_IN_TARGET_EXPRESSION);
+    public void policyRuleNoAndAllowedInTargetExpression(final Schema schema) {
+        for (var blacklistEntry : SCHEMA_EXPRESSION_BLACKLIST.entrySet()) {
+            genericCheckForElementInAST(schema.getSchemaExpression(), blacklistEntry.getKey(),
+                    blacklistEntry.getValue());
+        }
     }
 
     /**
-     * looks for given class in the target expression of given Policy
+     * Attributes forbidden in schema expressions
      *
-     * @param policy  a policy
-     * @param aClass  class to look up
-     * @param message an error message
+     * @param valueDefinition a value definition statement
      */
-    public void genericCheckForTargetExpression(final Policy policy, final EClass aClass, final String message) {
-        var foundItem = containsClass(policy.getTargetExpression(), aClass);
+    @Check
+    public void policyRuleNoAndAllowedInTargetExpression(final ValueDefinition valueDefinition) {
+        for (var blacklistEntry : SCHEMA_EXPRESSION_BLACKLIST.entrySet()) {
+            for (var schemaExpression : valueDefinition.getSchemaVarExpression()) {
+                genericCheckForElementInAST(schemaExpression, blacklistEntry.getKey(), blacklistEntry.getValue());
+            }
+        }
+    }
+
+    /**
+     * looks for given class in a subtree of the AST
+     *
+     * @param startNode start node
+     * @param aClass    forbidden type
+     * @param message   an error message
+     */
+    public void genericCheckForElementInAST(final EObject startNode, final EClass aClass, final String message) {
+        var foundItem = containsClass(startNode, aClass);
         if (foundItem != null) {
             error(message, foundItem, null);
         }
@@ -117,6 +137,9 @@ public class SAPLValidator extends AbstractSAPLValidator {
      * @return discovered object or null
      */
     public EObject containsClass(final EObject eObj, final EClass eClass) {
+        if (eObj == null)
+            return null;
+
         if (eClass.isSuperTypeOf(eObj.eClass()))
             return eObj;
 

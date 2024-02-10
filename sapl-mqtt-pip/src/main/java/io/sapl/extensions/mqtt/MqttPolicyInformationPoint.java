@@ -19,8 +19,6 @@ package io.sapl.extensions.mqtt;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -55,7 +53,7 @@ public class MqttPolicyInformationPoint {
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
     @Attribute(name = "messages", docs = "Subscribes to topic(s) with certain quality of service level")
-    public Flux<Val> messages(@Text @Array Val topic, Map<String, JsonNode> variables) {
+    public Flux<Val> messages(@Text @Array Val topic, Map<String, Val> variables) {
         return saplMqttClient.buildSaplMqttMessageFlux(topic, variables);
     }
 
@@ -72,7 +70,7 @@ public class MqttPolicyInformationPoint {
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
     @Attribute(name = "messages", docs = "Subscribes to topic(s) with certain quality of service level")
-    public Flux<Val> messages(@Text @Array Val topic, Map<String, JsonNode> variables, @Int Val qos) {
+    public Flux<Val> messages(@Text @Array Val topic, Map<String, Val> variables, @Int Val qos) {
         return saplMqttClient.buildSaplMqttMessageFlux(topic, variables, qos);
     }
 
@@ -101,7 +99,7 @@ public class MqttPolicyInformationPoint {
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
     @Attribute(name = "messages", docs = "Subscribes to topic(s) with certain quality of service level")
-    public Flux<Val> messages(@Text @Array Val topic, Map<String, JsonNode> variables, @Int Val qos,
+    public Flux<Val> messages(@Text @Array Val topic, Map<String, Val> variables, @Int Val qos,
             @Text @Array @JsonObject Val mqttPipConfig) {
         return saplMqttClient.buildSaplMqttMessageFlux(topic, variables, qos, mqttPipConfig);
     }

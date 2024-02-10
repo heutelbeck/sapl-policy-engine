@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
@@ -75,7 +74,7 @@ class ResourcesPRPTests {
     }
 
     @Test
-    void doTest() throws InitializationException {
+    void doTest() {
         var interpreter = new DefaultSAPLInterpreter();
         var source      = new ResourcesPrpUpdateEventSource("/policies", interpreter);
         var prp         = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(),

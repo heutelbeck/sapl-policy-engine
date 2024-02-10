@@ -76,18 +76,18 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
         var decisions   = new LinkedList<DocumentEvaluationResult>();
         for (var policyDecision : policyDecisions) {
             decisions.add(policyDecision);
-            var authzDecision = policyDecision.getAuthorizationDecision();
-            if (authzDecision.getDecision() == DENY) {
+            var authorizationDecision = policyDecision.getAuthorizationDecision();
+            if (authorizationDecision.getDecision() == DENY) {
                 entitlement = DENY;
             }
-            if (authzDecision.getDecision() == INDETERMINATE && entitlement != DENY) {
+            if (authorizationDecision.getDecision() == INDETERMINATE && entitlement != DENY) {
                 entitlement = INDETERMINATE;
             }
-            if (authzDecision.getDecision() == PERMIT && entitlement == NOT_APPLICABLE) {
+            if (authorizationDecision.getDecision() == PERMIT && entitlement == NOT_APPLICABLE) {
                 entitlement = PERMIT;
             }
-            collector.add(authzDecision);
-            if (authzDecision.getResource().isPresent()) {
+            collector.add(authorizationDecision);
+            if (authorizationDecision.getResource().isPresent()) {
                 if (resource.isPresent()) {
                     /*
                      * This is a transformation uncertainty. another policy already defined a
@@ -98,7 +98,7 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
                         entitlement = INDETERMINATE;
                     }
                 } else {
-                    resource = authzDecision.getResource();
+                    resource = authorizationDecision.getResource();
                 }
             }
         }

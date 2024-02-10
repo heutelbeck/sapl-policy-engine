@@ -18,6 +18,7 @@
 package io.sapl.springdatacommon.sapl.handlers;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
 
 class LoggingConstraintHandlerProviderTests {
 
-    LoggingConstraintHandlerProvider loggingConstraintHandlerProvider = new LoggingConstraintHandlerProvider();
+    final LoggingConstraintHandlerProvider loggingConstraintHandlerProvider = new LoggingConstraintHandlerProvider();
 
     static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -125,7 +126,7 @@ class LoggingConstraintHandlerProviderTests {
         var actual = loggingConstraintHandlerProvider.getHandler(constraint);
 
         // THEN
-        assertTrue(Runnable.class.isInstance(actual));
+        assertInstanceOf(Runnable.class, actual);
         actual.run();
     }
 }

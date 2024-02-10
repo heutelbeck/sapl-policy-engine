@@ -36,7 +36,7 @@ class TreeWalkerTests {
 
     static class BasicGroupMockBuilder {
 
-        BasicGroup mock = mock(BasicGroup.class, RETURNS_DEEP_STUBS);
+        final BasicGroup mock = mock(BasicGroup.class, RETURNS_DEEP_STUBS);
 
         static BasicGroupMockBuilder newBuilder() {
             return new BasicGroupMockBuilder();

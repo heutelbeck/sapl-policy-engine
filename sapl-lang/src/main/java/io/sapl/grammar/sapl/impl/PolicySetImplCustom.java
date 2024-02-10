@@ -21,8 +21,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.PolicySet;
+import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.PolicySetDecision;
@@ -44,8 +46,15 @@ public class PolicySetImplCustom extends PolicySetImpl {
         if (!policyNamesAreUnique()) {
             return Flux.just(PolicySetDecision.error(getSaplName(), NAMES_NOT_UNIQUE_ERROR));
         }
-        var combinedDecisions = evaluateValueDefinitionsAndPolicies(0);
-        return combinedDecisions.map(combined -> PolicySetDecision.of(combined, getSaplName()));
+        var combinedDecisions = evaluateValueDefinitionsAndPolicies(0)
+                .contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx));
+        return combinedDecisions
+                .map(combined -> (DocumentEvaluationResult) PolicySetDecision.of(combined, getSaplName()))
+                .onErrorResume(this::importFailure);
+    }
+
+    private Flux<DocumentEvaluationResult> importFailure(Throwable error) {
+        return Flux.just(importError(error.getMessage()));
     }
 
     /**
@@ -83,9 +92,9 @@ public class PolicySetImplCustom extends PolicySetImpl {
         var valueDefinition           = valueDefinitions.get(valueDefinitionId);
         var evaluatedValueDefinitions = valueDefinition.getEval().evaluate();
         return evaluatedValueDefinitions.switchMap(value -> evaluateValueDefinitionsAndPolicies(valueDefinitionId + 1)
-                .contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(), value.withTrace(
-                        PolicySet.class,
-                        Map.of("policySet", Val.of(saplName), "variableName", Val.of(valueDefinition.getName()))))));
+                .contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(),
+                        value.withTrace(PolicySet.class, Map.of(Trace.POLICY_SET, Val.of(saplName), Trace.VARIABLE_NAME,
+                                Val.of(valueDefinition.getName()), Trace.VALUE, value)))));
     }
 
     private Flux<CombinedDecision> evaluateAndCombinePoliciesOfSet() {
