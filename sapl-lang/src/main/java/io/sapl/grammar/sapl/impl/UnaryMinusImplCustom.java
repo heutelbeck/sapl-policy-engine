@@ -31,7 +31,7 @@ public class UnaryMinusImplCustom extends UnaryMinusImpl {
     }
 
     private Val negate(Val value) {
-        return Val.of(value.decimalValue().negate()).withTrace(UnaryMinus.class, value);
+        return Val.of(value.decimalValue().negate()).withTrace(UnaryMinus.class, true, value);
     }
 
 }

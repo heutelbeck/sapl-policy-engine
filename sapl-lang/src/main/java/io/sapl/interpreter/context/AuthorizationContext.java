@@ -30,9 +30,11 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import reactor.util.context.Context;
 import reactor.util.context.ContextView;
 
+@Slf4j
 @UtilityClass
 public class AuthorizationContext {
 
@@ -93,6 +95,7 @@ public class AuthorizationContext {
             assertVariableNameNotReserved(name);
             variables.put(name, variable.getValue());
         }
+        variables.forEach((k, v) -> log.error("CTX putting {} {}:{}", v.isSecret() ? "*" : "", k, v));
 
         return ctx.put(VARIABLES, variables);
     }

@@ -34,7 +34,7 @@ public class MinusImplCustom extends MinusImpl {
     }
 
     private Val subtract(Val minuend, Val subtrahend) {
-        return Val.of(minuend.decimalValue().subtract(subtrahend.decimalValue())).withTrace(Minus.class,
+        return Val.of(minuend.decimalValue().subtract(subtrahend.decimalValue())).withTrace(Minus.class, false,
                 Map.of(Trace.MINUEND, minuend, Trace.SUBTRAHEND, subtrahend));
     }
 

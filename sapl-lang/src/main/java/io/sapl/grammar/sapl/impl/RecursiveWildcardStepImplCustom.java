@@ -43,7 +43,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
 
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        return Flux.just(applyToValue(parentValue).withTrace(RecursiveWildcardStep.class,
+        return Flux.just(applyToValue(parentValue).withTrace(RecursiveWildcardStep.class, true,
                 Map.of(Trace.PARENT_VALUE, parentValue)));
     }
 

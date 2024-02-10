@@ -37,7 +37,7 @@ public class BasicIdentifierImplCustom extends BasicIdentifierImpl {
         return Flux.deferContextual(ctx -> {
             var identifierFlux = Flux.just(AuthorizationContext.getVariable(ctx, getIdentifier()));
             return identifierFlux.switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v))
-                    .map(val -> val.withTrace(BasicIdentifier.class,
+                    .map(val -> val.withTrace(BasicIdentifier.class, true,
                             Map.of(Trace.IDENTIFIER, Val.of(getIdentifier()), Trace.VALUE, val)));
         });
     }
