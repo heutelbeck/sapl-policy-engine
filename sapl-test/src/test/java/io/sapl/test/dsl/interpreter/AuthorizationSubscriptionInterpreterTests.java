@@ -68,7 +68,7 @@ class AuthorizationSubscriptionInterpreterTests {
     }
 
     private void mockValInterpreter(Map<String, Val> expectedValueToReturnValue) {
-        when(valueInterpreterMock.getValFromValue(any())).thenAnswer(invocationOnMock -> {
+        when(valueInterpreterMock.getValFromValue(any(StringLiteral.class))).thenAnswer(invocationOnMock -> {
             final StringLiteral value = invocationOnMock.getArgument(0);
             return expectedValueToReturnValue.get(value.getString());
         });
@@ -129,7 +129,7 @@ class AuthorizationSubscriptionInterpreterTests {
     @Test
     void constructAuthorizationSubscription_correctlyInterpretsAuthorizationSubscriptionWithNullMappedEnvironment_throwsSaplTestException() {
         final var authorizationSubscription = buildAuthorizationSubscription(
-                "subject \"subject\" attempts action \"action\" on resource \"resource\" with environment \"environment\"");
+                "subject \"subject\" attempts action \"action\" on resource \"resource\" with environment { }");
 
         final var subject  = Val.of("subject");
         final var action   = Val.of("action");
@@ -146,14 +146,17 @@ class AuthorizationSubscriptionInterpreterTests {
     @Test
     void constructAuthorizationSubscription_correctlyInterpretsAuthorizationSubscription_returnsSAPLAuthorizationSubscription() {
         final var authorizationSubscription = buildAuthorizationSubscription(
-                "subject \"foo\" attempts action \"action\" on resource \"resource\" with environment \"environment\"");
+                "subject \"foo\" attempts action \"action\" on resource \"resource\" with environment { }");
 
         final var subject     = Val.of("subject");
         final var action      = Val.of("action");
         final var resource    = Val.of("resource");
-        final var environment = Val.of("environment");
+        final var environment = Val.ofEmptyObject();
 
-        mockValInterpreter(Map.of("foo", subject, "action", action, "resource", resource, "environment", environment));
+        mockValInterpreter(Map.of("foo", subject, "action", action, "resource", resource));
+
+        when(valueInterpreterMock.getValFromValue(any(io.sapl.test.grammar.sapltest.Object.class)))
+                .thenReturn(environment);
 
         final var saplAuthorizationSubscriptionMock = mock(io.sapl.api.pdp.AuthorizationSubscription.class);
         authorizationSubscriptionMockedStatic.when(() -> io.sapl.api.pdp.AuthorizationSubscription.of(subject.get(),

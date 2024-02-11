@@ -18,6 +18,7 @@
 package io.sapl.grammar.ide.contentassist;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
@@ -27,8 +28,9 @@ import org.springframework.context.annotation.Configuration;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import io.sapl.interpreter.InitializationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PDPConfiguration;
@@ -42,10 +44,10 @@ class SAPLIdeSpringTestConfiguration {
     private final static ObjectMapper MAPPER = new ObjectMapper();
 
     @Bean
-    PDPConfigurationProvider pdpConfiguration() throws InitializationException {
+    PDPConfigurationProvider pdpConfiguration() {
         var attributeContext = new TestAttributeContext();
         var functionContext  = new TestFunctionContext();
-        var variables        = new HashMap<String, JsonNode>();
+        var variables        = new HashMap<String, Val>();
 
         load("action_schema", variables);
         load("address_schema", variables);
@@ -56,24 +58,37 @@ class SAPLIdeSpringTestConfiguration {
         load("vehicle_schema", variables);
         load("schema_with_additional_keywords", variables);
 
+        load(List.of("action_schema", "address_schema", "calendar_schema", "general_schema",
+                "geographical_location_schema", "subject_schema", "vehicle_schema", "schema_with_additional_keywords"),
+                variables);
+
         var staticPlaygroundConfiguration = new PDPConfiguration(attributeContext, functionContext, variables,
                 CombiningAlgorithmFactory.getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES),
                 UnaryOperator.identity(), UnaryOperator.identity());
-        return new PDPConfigurationProvider() {
-            @Override
-            public Flux<PDPConfiguration> pdpConfiguration() {
-                return Flux.just(staticPlaygroundConfiguration);
-            }
-        };
+        return () -> Flux.just(staticPlaygroundConfiguration);
     }
 
     @SneakyThrows
-    private void load(String schemaFile, Map<String, JsonNode> variables) {
+    private void load(List<String> schemaFiles, Map<String, Val> variables) {
+        var schemasArray = JsonNodeFactory.instance.arrayNode();
+        for (var schemaFile : schemaFiles) {
+            try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
+                if (is == null)
+                    throw new RuntimeException(schemaFile + ".json not found");
+                schemasArray.add(MAPPER.readValue(is, JsonNode.class));
+            }
+        }
+        variables.put("SCHEMAS", Val.of(schemasArray));
+    }
+
+    @SneakyThrows
+    private void load(String schemaFile, Map<String, Val> variables) {
         try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
             if (is == null)
                 throw new RuntimeException(schemaFile + ".json not found");
             var schema = MAPPER.readValue(is, JsonNode.class);
-            variables.put(schemaFile, schema);
+            variables.put(schemaFile, Val.of(schema));
         }
     }
+
 }

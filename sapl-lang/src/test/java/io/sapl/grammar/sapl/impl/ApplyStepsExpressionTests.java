@@ -71,7 +71,7 @@ class ApplyStepsExpressionTests {
         assertExpressionEvaluatesTo("{ \"key\" : true }[(\"no_ke\"+\"y\")]", Val.UNDEFINED);
     }
 
-    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+    private static Stream<Arguments> provideStringsForExpressionEvaluatesToExpectedValue() {
         // @formatter:off
 		return Stream.of(
 				// applyToArrayWithNumberExpressionResult
@@ -91,12 +91,12 @@ class ApplyStepsExpressionTests {
 	 			Arguments.of("{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"cb\" : [0,1,2,3], \"d\" : [0,1,2,3] } |- { @[(\"c\"+\"b\")] : filter.remove }",
 	 					     "{ \"ab\" : [0,1,2,3], \"bb\" : [0,1,2,3], \"d\" : [0,1,2,3] }")
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
-	void expressionEvaluatesToExpectedValue(String expression, String expected) {
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("provideStringsForExpressionEvaluatesToExpectedValue")
+    void expressionEvaluatesToExpectedValue(String expression, String expected) {
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 }

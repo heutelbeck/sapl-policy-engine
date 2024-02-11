@@ -39,7 +39,6 @@ import org.reactivestreams.Publisher;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
@@ -124,7 +123,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
     @Override
     public Flux<Val> evaluateAttribute(String attributeName, Val leftHandValue, Arguments arguments,
-            Map<String, JsonNode> variables) {
+            Map<String, Val> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), false);
         if (attributeMetadata == null)
             return Flux.just(Val.error(UNKNOWN_ATTRIBUTE_ERROR, attributeName));
@@ -133,7 +132,7 @@ public class AnnotationAttributeContext implements AttributeContext {
 
     @Override
     public Flux<Val> evaluateEnvironmentAttribute(String attributeName, Arguments arguments,
-            Map<String, JsonNode> variables) {
+            Map<String, Val> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), true);
         if (attributeMetadata == null)
             return Flux.just(Val.error(UNKNOWN_ATTRIBUTE_ERROR, attributeName));
@@ -141,7 +140,7 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     private Flux<Val> evaluateEnvironmentAttribute(String attributeName, AttributeFinderMetadata attributeMetadata,
-            Arguments arguments, Map<String, JsonNode> variables) {
+            Arguments arguments, Map<String, Val> variables) {
         var pip    = attributeMetadata.getPolicyInformationPoint();
         var method = attributeMetadata.getFunction();
         return attributeFinderArguments(attributeMetadata, arguments, variables)
@@ -166,7 +165,7 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     private Flux<Val> evaluateAttribute(String attributeName, AttributeFinderMetadata attributeMetadata,
-            Val leftHandValue, Arguments arguments, Map<String, JsonNode> variables) {
+            Val leftHandValue, Arguments arguments, Map<String, Val> variables) {
 
         var pip    = attributeMetadata.getPolicyInformationPoint();
         var method = attributeMetadata.getFunction();
@@ -181,7 +180,7 @@ public class AnnotationAttributeContext implements AttributeContext {
         return invocationParameters -> {
             try {
                 return ((Flux<Val>) method.invoke(pip, invocationParameters)).map(val -> {
-                    var trace = new HashMap<String, Traced>();
+                    var trace = new HashMap<String, Val>();
                     trace.put("attribute", Val.of(attributeName));
                     for (int i = 0; i < invocationParameters.length; i++) {
                         if (invocationParameters[i] instanceof Val)
@@ -191,7 +190,7 @@ public class AnnotationAttributeContext implements AttributeContext {
                         }
                     }
                     trace.put("timestamp", Val.of(Instant.now().toString()));
-                    return val.withTrace(AttributeContext.class, trace);
+                    return val.withTrace(AttributeContext.class, false, trace);
                 });
             } catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
                 return Flux.just(ErrorUtil.causeOrMessage(e));
@@ -220,7 +219,7 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Arguments arguments,
-            Map<String, JsonNode> variables) {
+            Map<String, Val> variables) {
 
         var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
@@ -240,12 +239,12 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     private Function<Object[], Object[]> argumentCombiner(AttributeFinderMetadata attributeMetadata,
-            Map<String, JsonNode> variables, int numberOfInvocationParameters, Optional<Val> leftHandValue) {
+            Map<String, Val> variables, int numberOfInvocationParameters, Optional<Val> leftHandValue) {
         return argumentValues -> combineArguments(attributeMetadata, variables, numberOfInvocationParameters,
                 argumentValues, leftHandValue);
     }
 
-    private Object[] combineArguments(AttributeFinderMetadata attributeMetadata, Map<String, JsonNode> variables,
+    private Object[] combineArguments(AttributeFinderMetadata attributeMetadata, Map<String, Val> variables,
             int numberOfInvocationParameters, Object[] argumentValues, Optional<Val> leftHandValue) {
         var invocationArguments = new Object[numberOfInvocationParameters];
         var argumentIndex       = 0;
@@ -273,7 +272,7 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
-            Arguments arguments, Map<String, JsonNode> variables) {
+            Arguments arguments, Map<String, Val> variables) {
 
         var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
@@ -345,7 +344,7 @@ public class AnnotationAttributeContext implements AttributeContext {
         loadPolicyInformationPoint(null, pipClass);
     }
 
-    private final void loadPolicyInformationPoint(Object pip, Class<?> pipClass) throws InitializationException {
+    private void loadPolicyInformationPoint(Object pip, Class<?> pipClass) throws InitializationException {
         var pipAnnotation = pipClass.getAnnotation(PolicyInformationPoint.class);
 
         if (pipAnnotation == null)
@@ -423,7 +422,7 @@ public class AnnotationAttributeContext implements AttributeContext {
             throw new InitializationException(
                     "Cannot initialize PIPs. If no PIP instance is provided, the method of an attribute finder must be static. "
                             + method.getName()
-                            + " is not static. In case your PIP implementation cannot have the method as static because it depends on PIP state or injected dependecies, make sure to register the PIP as an instance instead of a class.");
+                            + " is not static. In case your PIP implementation cannot have the method as static because it depends on PIP state or injected dependencies, make sure to register the PIP as an instance instead of a class.");
         }
     }
 
@@ -531,7 +530,7 @@ public class AnnotationAttributeContext implements AttributeContext {
                 .getActualTypeArguments()[0];
         var secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[indexOfParameter])
                 .getActualTypeArguments()[1];
-        return String.class.isAssignableFrom(firstTypeArgument) && JsonNode.class.isAssignableFrom(secondTypeArgument);
+        return String.class.isAssignableFrom(firstTypeArgument) && Val.class.isAssignableFrom(secondTypeArgument);
     }
 
     @Override
@@ -625,7 +624,7 @@ public class AnnotationAttributeContext implements AttributeContext {
                 for (var doc : pipDocumentations) {
                     documentedAttributeCodeTemplates.putIfAbsent(doc.name, doc.description);
                     Optional.ofNullable(doc.getDocumentation().get(attributeCodeTemplate)).ifPresent(
-                            template -> documentedAttributeCodeTemplates.put(attribute.fullyQualifiedName(), template));
+                            template -> documentedAttributeCodeTemplates.put(attributeCodeTemplate, template));
                 }
             }
         }

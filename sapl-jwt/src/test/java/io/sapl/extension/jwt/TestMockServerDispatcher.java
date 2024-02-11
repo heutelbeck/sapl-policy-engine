@@ -53,20 +53,14 @@ class TestMockServerDispatcher extends Dispatcher {
         if (!kidToPubKeyMap.containsKey(requestedId))
             return new MockResponse().setResponseCode(404);
 
-        switch (this.dispatchMode) {
-        case Bogus:
-            return this.dispatchBogusKey();
-        case Invalid:
-            return this.dispatchInvalidKey(requestedId);
-        case True:
-            return this.dispatchTrueKey(requestedId);
-        case Wrong:
-            return this.dispatchWrongKey();
-        case Basic:
-            return this.dispatchBasicKey(requestedId);
-        default:
-            return new MockResponse().setResponseCode(404);
-        }
+        return switch (this.dispatchMode) {
+        case Bogus -> this.dispatchBogusKey();
+        case Invalid -> this.dispatchInvalidKey(requestedId);
+        case True -> this.dispatchTrueKey(requestedId);
+        case Wrong -> this.dispatchWrongKey();
+        case Basic -> this.dispatchBasicKey(requestedId);
+        default -> new MockResponse().setResponseCode(404);
+        };
     }
 
     private MockResponse dispatchTrueKey(String requestedId) {

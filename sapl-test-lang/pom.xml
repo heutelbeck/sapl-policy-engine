@@ -17,7 +17,8 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
@@ -98,13 +99,15 @@
 				<configuration>
 					<mainClass>org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher</mainClass>
 					<arguments>
-						<argument>/${project.basedir}/src/main/java/io/sapl/test/grammar/GenerateSAPLTest.mwe2</argument>
+						<argument>
+							/${project.basedir}/src/main/java/io/sapl/test/grammar/GenerateSAPLTest.mwe2</argument>
 						<argument>-p</argument>
 						<argument>rootPath=/${project.basedir}/..</argument>
 					</arguments>
 					<classpathScope>compile</classpathScope>
 					<includePluginDependencies>true</includePluginDependencies>
-					<cleanupDaemonThreads>false</cleanupDaemonThreads><!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
+					<cleanupDaemonThreads>false</cleanupDaemonThreads><!-- see
+					https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
 				</configuration>
 			</plugin>
 			<plugin>
@@ -113,25 +116,29 @@
 				<configuration>
 					<filesets combine.children="append">
 						<fileset>
-							<directory>${basedir}/../sapl-test-lang/src/main/xtext-gen/</directory>
+							<directory>
+								${basedir}/../sapl-test-lang/src/main/xtext-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>
 						</fileset>
 						<fileset>
-							<directory>${basedir}/../sapl-test-lang/src/test/xtext-gen/</directory>
+							<directory>
+								${basedir}/../sapl-test-lang/src/test/xtext-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>
 						</fileset>
 						<fileset>
-							<directory>${basedir}/../sapl-test-ide/src/main/xtext-gen/</directory>
+							<directory>
+								${basedir}/../sapl-test-ide/src/main/xtext-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>
 						</fileset>
 						<fileset>
-							<directory>${basedir}/../sapl-test-web/src/main/xtext-gen/</directory>
+							<directory>
+								${basedir}/../sapl-test-web/src/main/xtext-gen/</directory>
 							<includes>
 								<include>**/*</include>
 							</includes>
@@ -165,6 +172,9 @@
 										<exclude>**/*.g</exclude>
 									</excludes>
 								</resource>
+								<resource>
+									<directory>model/generated</directory>
+								</resource>
 							</resources>
 						</configuration>
 					</execution>
@@ -188,25 +198,6 @@
 								</resource>
 							</resources>
 						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<version>3.4.1</version>
-				<configuration>
-					<descriptors>
-						<descriptor>jar-with-ecore-model.xml</descriptor>
-					</descriptors>
-					<appendAssemblyId>false</appendAssemblyId>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
 					</execution>
 				</executions>
 			</plugin>

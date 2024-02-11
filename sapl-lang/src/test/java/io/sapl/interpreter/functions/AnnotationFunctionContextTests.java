@@ -29,7 +29,8 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -192,25 +193,25 @@ class AnnotationFunctionContextTests {
 
     @Test
     void codeTemplatesAreGenerated() throws InitializationException {
-        @FunctionLibrary(name = "test")
+        @FunctionLibrary(name = "test", description = "library docs")
         class TestLib {
 
-            @Function
+            @Function(docs = "doc1")
             public Val hello() {
                 return Val.TRUE;
             }
 
-            @Function
+            @Function(docs = "doc2")
             public Val helloVarArgs(Val... aVarArgs) {
                 return Val.TRUE;
             }
 
-            @Function
+            @Function(docs = "doc3")
             public Val helloTwoArgs(Val arg1, Val arg2) {
                 return Val.TRUE;
             }
 
-            @Function
+            @Function(docs = "doc4")
             public Val helloThreeArgs(Val arg1, Val arg2, Val arg3) {
                 throw new PolicyEvaluationException();
             }
@@ -221,13 +222,12 @@ class AnnotationFunctionContextTests {
         assertThat(actualFullyQualified,
                 containsInAnyOrder("test.helloThreeArgs", "test.helloVarArgs", "test.helloTwoArgs", "test.hello"));
 
-        var actualTemplates = context.getCodeTemplates();
-        actualTemplates = context.getCodeTemplates();
-        assertThat(actualTemplates, containsInAnyOrder("test.hello()", "test.helloThreeArgs(arg1, arg2, arg3)",
+        var simpleTemplates = context.getCodeTemplates();
+        assertThat(simpleTemplates, containsInAnyOrder("test.hello()", "test.helloThreeArgs(arg1, arg2, arg3)",
                 "test.helloTwoArgs(arg1, arg2)", "test.helloVarArgs(aVarArgs...)"));
-        actualTemplates = context.getCodeTemplates();
-        assertThat(actualTemplates, containsInAnyOrder("test.hello()", "test.helloThreeArgs(arg1, arg2, arg3)",
-                "test.helloTwoArgs(arg1, arg2)", "test.helloVarArgs(aVarArgs...)"));
+        var actualTemplates = context.getDocumentedCodeTemplates();
+        assertThat(actualTemplates.values(),
+                containsInAnyOrder("library docs", "doc1", "doc1", "doc2", "doc2", "doc3", "doc3", "doc4", "doc4"));
     }
 
     @Test
@@ -270,7 +270,7 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
-    void badParameterChemaDetected() throws InitializationException {
+    void badParameterSchemaDetected() throws InitializationException {
         var context = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
         assertThat(context.evaluate("annotation.schemaFromBadJson", Val.of("123")), valError());
@@ -348,7 +348,7 @@ class AnnotationFunctionContextTests {
 
     @ParameterizedTest
     @MethodSource("parameterProviderForParamLocationTests")
-    void paramLocationSchemaTests(String function) throws InitializationException, JsonProcessingException {
+    void paramLocationSchemaTests(String function) throws InitializationException {
         var context = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
         assertThat(context.evaluate(function, Val.of(true)), is(Val.of(true)));
@@ -502,7 +502,7 @@ class AnnotationFunctionContextTests {
         }
 
         @Function
-        public static Val emptySchemaInParameterAnnotation(@Schema(value = "") Val jsonObject) {
+        public static Val emptySchemaInParameterAnnotation(@Schema() Val jsonObject) {
             return Val.of(true);
         }
 

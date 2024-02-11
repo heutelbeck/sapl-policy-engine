@@ -77,7 +77,7 @@ public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpReques
 
     private void writeHeaders(ServerHttpRequest value, JsonGenerator gen) throws IOException {
         var headers = value.getHeaders();
-        if (headers.size() == 0)
+        if (headers.isEmpty())
             return;
         gen.writeObjectFieldStart(HEADERS);
         for (var entry : headers.entrySet()) {

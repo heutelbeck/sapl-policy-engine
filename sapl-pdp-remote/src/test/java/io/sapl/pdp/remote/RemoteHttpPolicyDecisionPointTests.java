@@ -48,7 +48,7 @@ import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import reactor.core.publisher.Hooks;
+import reactor.netty.http.client.HttpClient;
 import reactor.test.StepVerifier;
 
 class RemoteHttpPolicyDecisionPointTests {
@@ -72,7 +72,6 @@ class RemoteHttpPolicyDecisionPointTests {
         // Route MockWebServer logs to shared logs
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
-        Hooks.onOperatorDebug();
     }
 
     @BeforeEach
@@ -80,7 +79,7 @@ class RemoteHttpPolicyDecisionPointTests {
         server = new MockWebServer();
         server.start();
         pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(this.server.url("/").toString())
-                .basicAuth("secret", "key").build();
+                .withHttpClient(HttpClient.create()).basicAuth("secret", "key").build();
         pdp.setBackoffFactor(2);
         pdp.setFirstBackoffMillis(100);
         pdp.setMaxBackOffMillis(200);

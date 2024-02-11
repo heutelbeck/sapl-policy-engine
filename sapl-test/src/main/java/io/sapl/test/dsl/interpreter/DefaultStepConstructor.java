@@ -59,7 +59,7 @@ public final class DefaultStepConstructor implements StepConstructor {
     }
 
     @Override
-    public WhenStep constructWhenStep(final List<GivenStep> givenSteps, GivenOrWhenStep initialTestCase) {
+    public WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep initialTestCase) {
         return defaultWhenStepConstructor.constructWhenStep(givenSteps, initialTestCase);
     }
 

@@ -40,7 +40,7 @@ public class LessImplCustom extends LessImpl {
     }
 
     private Val lessThan(Val left, Val right) {
-        return Val.of(left.decimalValue().compareTo(right.decimalValue()) < 0).withTrace(Less.class,
+        return Val.of(left.decimalValue().compareTo(right.decimalValue()) < 0).withTrace(Less.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 

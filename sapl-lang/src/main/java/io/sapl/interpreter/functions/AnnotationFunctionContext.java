@@ -118,20 +118,20 @@ public class AnnotationFunctionContext implements FunctionContext {
         }
         var metadata = functions.get(function);
         if (metadata == null)
-            return Val.error(UNKNOWN_FUNCTION_ERROR, function).withTrace(FunctionContext.class, functionTrace);
+            return Val.error(UNKNOWN_FUNCTION_ERROR, function).withTrace(FunctionContext.class, false, functionTrace);
 
         var funParams = metadata.getFunction().getParameters();
 
         if (metadata.isVarArgsParameters()) {
-            return evaluateVarArgsFunction(metadata, funParams, parameters).withTrace(FunctionContext.class,
+            return evaluateVarArgsFunction(metadata, funParams, parameters).withTrace(FunctionContext.class, false,
                     functionTrace);
         }
         if (metadata.getNumberOfParameters() == parameters.length) {
             return evaluateFixedParametersFunction(metadata, funParams, parameters).withTrace(FunctionContext.class,
-                    functionTrace);
+                    false, functionTrace);
         }
         return Val.error(ILLEGAL_NUMBER_OF_PARAMETERS_ERROR, metadata.getNumberOfParameters(), parameters.length)
-                .withTrace(FunctionContext.class, functionTrace);
+                .withTrace(FunctionContext.class, false, functionTrace);
     }
 
     private Val evaluateFixedParametersFunction(FunctionMetadata metadata, Parameter[] funParams, Val... parameters) {
@@ -262,7 +262,7 @@ public class AnnotationFunctionContext implements FunctionContext {
             throw new InitializationException(
                     "Cannot initialize functions. If no function library instance is provided, the method of a function must be static. "
                             + method.getName()
-                            + " is not static. In case your function implementation cannot have the method as static because it depends on library state or injected dependecies, make sure to register the library as an instance instead of a class.");
+                            + " is not static. In case your function implementation cannot have the method as static because it depends on library state or injected dependencies, make sure to register the library as an instance instead of a class.");
         }
     }
 

@@ -51,11 +51,11 @@ import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sapltest.AnyVal;
 import io.sapl.test.grammar.sapltest.Function;
 import io.sapl.test.grammar.sapltest.FunctionInvokedOnce;
-import io.sapl.test.grammar.sapltest.FunctionParameters;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.Multiple;
 import io.sapl.test.grammar.sapltest.NumberLiteral;
 import io.sapl.test.grammar.sapltest.Once;
+import io.sapl.test.grammar.sapltest.ParameterMatchers;
 import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.sapltest.ValWithValue;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
@@ -128,7 +128,7 @@ class FunctionInterpreterTests {
         }
 
         @Test
-        void interpretFunction_withoutTimesCalledVerificationAndNullFunctionParameters_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+        void interpretFunction_withoutTimesCalledVerificationAndNullParameterMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final var function = buildFunction("function \"fooFunction\" returns \"bar\"");
 
             final var expectedVal = Val.of("bar");
@@ -143,13 +143,13 @@ class FunctionInterpreterTests {
         }
 
         @Test
-        void interpretFunction_withoutTimesCalledVerificationAndNullFunctionParametersMatchers_throwsSaplTestException() {
+        void interpretFunction_withoutTimesCalledVerificationAndNullParameterMatchers_throwsSaplTestException() {
             final var functionMock = mock(Function.class);
 
-            final var functionParametersMock = mock(FunctionParameters.class);
-            when(functionMock.getParameters()).thenReturn(functionParametersMock);
+            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            when(functionMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
-            when(functionParametersMock.getMatchers()).thenReturn(null);
+            when(parameterMatchersMock.getMatchers()).thenReturn(null);
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
@@ -158,13 +158,13 @@ class FunctionInterpreterTests {
         }
 
         @Test
-        void interpretFunction_withoutTimesCalledVerificationAndEmptyFunctionParametersMatchers_throwsSaplTestException() {
+        void interpretFunction_withoutTimesCalledVerificationAndEmptyParameterMatchers_throwsSaplTestException() {
             final var functionMock = mock(Function.class);
 
-            final var functionParametersMock = mock(FunctionParameters.class);
-            when(functionMock.getParameters()).thenReturn(functionParametersMock);
+            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            when(functionMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
-            TestHelper.mockEListResult(functionParametersMock::getMatchers, Collections.emptyList());
+            TestHelper.mockEListResult(parameterMatchersMock::getMatchers, Collections.emptyList());
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunction(givenOrWhenStepMock, functionMock));
@@ -173,7 +173,7 @@ class FunctionInterpreterTests {
         }
 
         @Test
-        void interpretFunction_withoutTimesCalledVerificationAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+        void interpretFunction_withoutTimesCalledVerificationAndParameterMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final var function = buildFunction("function \"fooFunction\" parameters matching any returns \"bar\"");
 
             when(matcherInterpreterMock.getHamcrestValMatcher(any(AnyVal.class))).thenReturn(valMatcherMock);
@@ -195,7 +195,7 @@ class FunctionInterpreterTests {
         }
 
         @Test
-        void interpretFunction_withTimesCalledVerificationBeingOnceAndNullFunctionParameters_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+        void interpretFunction_withTimesCalledVerificationBeingOnceAndNullParameterMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final var function = buildFunction("function \"fooFunction\" returns \"bar\" called once");
 
             final var expectedVal = Val.of("bar");
@@ -214,7 +214,7 @@ class FunctionInterpreterTests {
         }
 
         @Test
-        void interpretFunction_withTimesCalledVerificationBeingMultipleAndNullFunctionParametersMatchers_throwsSaplTestException() {
+        void interpretFunction_withTimesCalledVerificationBeingMultipleAndNullParameterMatchers_throwsSaplTestException() {
             final var functionMock = mock(Function.class);
             final var multipleMock = mock(Multiple.class);
 
@@ -228,10 +228,10 @@ class FunctionInterpreterTests {
                 return 1;
             });
 
-            final var functionParametersMock = mock(FunctionParameters.class);
-            when(functionMock.getParameters()).thenReturn(functionParametersMock);
+            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            when(functionMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
-            when(functionParametersMock.getMatchers()).thenReturn(null);
+            when(parameterMatchersMock.getMatchers()).thenReturn(null);
 
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
             importsMockedStatic.when(() -> Imports.times(3)).thenReturn(timesCalledVerificationMock);
@@ -243,16 +243,16 @@ class FunctionInterpreterTests {
         }
 
         @Test
-        void interpretFunction_withTimesCalledVerificationBeingOnceAndEmptyFunctionParametersMatchers_throwsSaplTestException() {
+        void interpretFunction_withTimesCalledVerificationBeingOnceAndEmptyParameterMatchers_throwsSaplTestException() {
             final var functionMock = mock(Function.class);
             final var onceMock     = mock(Once.class);
 
             when(functionMock.getTimesCalled()).thenReturn(onceMock);
 
-            final var functionParametersMock = mock(FunctionParameters.class);
-            when(functionMock.getParameters()).thenReturn(functionParametersMock);
+            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            when(functionMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
-            TestHelper.mockEListResult(functionParametersMock::getMatchers, Collections.emptyList());
+            TestHelper.mockEListResult(parameterMatchersMock::getMatchers, Collections.emptyList());
 
             final var timesCalledVerificationMock = mock(TimesCalledVerification.class);
             importsMockedStatic.when(() -> Imports.times(1)).thenReturn(timesCalledVerificationMock);
@@ -264,7 +264,7 @@ class FunctionInterpreterTests {
         }
 
         @Test
-        void interpretFunction_withTimesCalledVerificationBeingMultipleAndFunctionParametersMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
+        void interpretFunction_withTimesCalledVerificationBeingMultipleAndParameterMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final var function = buildFunction(
                     "function \"fooFunction\" parameters matching \"parameter\" returns \"bar\" called 3 times");
 

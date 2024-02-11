@@ -56,7 +56,7 @@
 #            open up the server for malicious probing and exfiltration 
 #            attepts via the authorization endpoints, potentially 
 #            (depending on your policies) leading to unaothorized 
-#            access to your organizations data.
+#            access to your organization's data.
 #  
 # This option is controlled by the property io.sapl.server-lt.allowNoAuth
 # which can be set to True or False.
@@ -95,7 +95,7 @@ io.sapl:
     # Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==
     #
     # There are various command line tools to hash a password with Argon2. 
-    # The server also comes with an utility to create credentials for Basic Authentication
+    # The server also comes with utilities to create credentials for Basic Authentication
     #
     # Run: java -jar sapl-server-lt-3.0.0-SNAPSHOT.jar -basicCredentials
     #
@@ -185,7 +185,7 @@ io.sapl.pdp.embedded:
 #
 # A comma-separated list of directories can be set in loader.path. 
 # Here the server will pick up additional JARs and if the contained beans are in a sub package of 
-# 'io.sapl.server', or if the JARs are instrumented with the matching Spring auto configuration,
+# 'io.sapl.server', or if the JARs are instrumented with the matching Spring autoconfiguration,
 # the libraries amd PIPs will be loaded at startup.
 #   
 # loader.path: /pdp/data/lib
@@ -213,6 +213,10 @@ server:
       key-store-password: changeme
       key-password: changeme
       key-alias: netty
+
+# Set the time between keep-alive frames in seconds. These messages are required to avoid that an inactive tcp connection
+# is dropped by a firewall or other network components. The default vlaue 0 disables keep-alive messages.
+# io.sapl.server-lt.keep-alive: 15
 
 # Rsocket configuration
 spring.rsocket.server:

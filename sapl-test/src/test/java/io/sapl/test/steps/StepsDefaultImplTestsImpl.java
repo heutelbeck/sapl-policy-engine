@@ -20,8 +20,7 @@ package io.sapl.test.steps;
 import java.util.LinkedList;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
@@ -37,10 +36,10 @@ import reactor.test.StepVerifier;
 
 class StepsDefaultImplTestsImpl extends StepsDefaultImpl {
 
-    SAPL document;
+    final SAPL document;
 
     StepsDefaultImplTestsImpl(String document, AttributeContext attrCtx, FunctionContext funcCtx,
-            Map<String, JsonNode> variables) {
+            Map<String, Val> variables) {
         this.document                = new DefaultSAPLInterpreter().parse(document);
         this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
         this.mockingAttributeContext = new MockingAttributeContext(attrCtx);

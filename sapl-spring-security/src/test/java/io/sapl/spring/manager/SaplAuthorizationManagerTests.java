@@ -26,8 +26,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
@@ -44,7 +42,6 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.BlockingConstraintHandlerBundle;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import reactor.core.publisher.Flux;
 
@@ -71,7 +68,7 @@ class SaplAuthorizationManagerTests {
     }
 
     @Test
-    void whenPermit_thenGranted() throws IOException, ServletException {
+    void whenPermit_thenGranted() {
         var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
         var ctx = mock(RequestAuthorizationContext.class);
@@ -81,7 +78,7 @@ class SaplAuthorizationManagerTests {
     }
 
     @Test
-    void whenIndeterminate_thenDenied() throws IOException, ServletException {
+    void whenIndeterminate_thenDenied() {
         var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
         var ctx = mock(RequestAuthorizationContext.class);
@@ -90,7 +87,7 @@ class SaplAuthorizationManagerTests {
     }
 
     @Test
-    void whenNullDecision_thenDenied() throws IOException, ServletException {
+    void whenNullDecision_thenDenied() {
         var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.empty());
         var ctx = mock(RequestAuthorizationContext.class);
@@ -98,7 +95,7 @@ class SaplAuthorizationManagerTests {
     }
 
     @Test
-    void whenHasResource_thenDenied() throws IOException, ServletException {
+    void whenHasResource_thenDenied() {
         var sut      = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         var decision = AuthorizationDecision.PERMIT.withResource(mapper.createObjectNode());
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
@@ -107,7 +104,7 @@ class SaplAuthorizationManagerTests {
     }
 
     @Test
-    void whenObligationsFail_thenAccessDenied() throws IOException, ServletException {
+    void whenObligationsFail_thenAccessDenied() {
         var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
         doThrow(new AccessDeniedException("")).when(bundle).handleOnDecisionConstraints();

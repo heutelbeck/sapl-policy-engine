@@ -25,7 +25,6 @@ import java.util.function.Supplier;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.ConditionStep;
@@ -49,7 +48,7 @@ public class FilterAlgorithmUtil {
     public static Flux<Val> applyFilter(@NonNull Val unfilteredValue, int stepId, Supplier<Flux<Val>> selector,
             @NonNull FilterStatement statement, Class<?> operationType) {
         if (unfilteredValue.isError()) {
-            return Flux.just(unfilteredValue.withParentTrace(ConditionStep.class, unfilteredValue));
+            return Flux.just(unfilteredValue.withParentTrace(ConditionStep.class, true, unfilteredValue));
         }
         if (unfilteredValue.isArray()) {
             return applyFilterOnArray(unfilteredValue, stepId, selector, statement, operationType);
@@ -57,24 +56,26 @@ public class FilterAlgorithmUtil {
         if (unfilteredValue.isObject()) {
             return applyFilterOnObject(unfilteredValue, stepId, selector, statement, operationType);
         }
-        return Flux.just(unfilteredValue.withTrace(ConditionStep.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
+        return Flux
+                .just(unfilteredValue.withTrace(ConditionStep.class, true, Map.of(UNFILTERED_VALUE, unfilteredValue)));
     }
 
     public static Flux<Val> applyFilterOnArray(Val unfilteredValue, int stepId, Supplier<Flux<Val>> selector,
             FilterStatement statement, Class<?> operationType) {
         if (!unfilteredValue.isArray()) {
-            return Flux.just(unfilteredValue.withTrace(ConditionStep.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
+            return Flux.just(
+                    unfilteredValue.withTrace(ConditionStep.class, true, Map.of(UNFILTERED_VALUE, unfilteredValue)));
         }
         var array = unfilteredValue.getArrayNode();
         if (array.isEmpty()) {
-            return Flux.just(unfilteredValue.withTrace(operationType, Map.of(UNFILTERED_VALUE, unfilteredValue)));
+            return Flux.just(unfilteredValue.withTrace(operationType, true, Map.of(UNFILTERED_VALUE, unfilteredValue)));
         }
         var elementFluxes = new ArrayList<Flux<Val>>(array.size());
         var iter          = array.elements();
         var elementCount  = 0;
         while (iter.hasNext()) {
             var element       = iter.next();
-            var elementValue  = Val.of(element).withTrace(operationType, Map.of("from", unfilteredValue));
+            var elementValue  = Val.of(element).withTrace(operationType, true, Map.of("from", unfilteredValue));
             var index         = elementCount++;
             var conditions    = selector.get()
                     .contextWrite(ctx -> AuthorizationContext.setRelativeNodeWithIndex(ctx, elementValue, index));
@@ -88,18 +89,21 @@ public class FilterAlgorithmUtil {
     public static Flux<Val> applyFilterOnObject(Val unfilteredValue, int stepId, Supplier<Flux<Val>> selector,
             FilterStatement statement, Class<?> operationType) {
         if (!unfilteredValue.isObject()) {
-            return Flux.just(unfilteredValue.withTrace(ConditionStep.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
+            return Flux.just(
+                    unfilteredValue.withTrace(ConditionStep.class, true, Map.of(UNFILTERED_VALUE, unfilteredValue)));
         }
         var object = unfilteredValue.getObjectNode();
         if (object.isEmpty()) {
-            return Flux.just(unfilteredValue.withTrace(ConditionStep.class, Map.of(UNFILTERED_VALUE, unfilteredValue)));
+            return Flux.just(
+                    unfilteredValue.withTrace(ConditionStep.class, true, Map.of(UNFILTERED_VALUE, unfilteredValue)));
         }
         var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
         var iter        = object.fields();
         while (iter.hasNext()) {
             var field          = iter.next();
             var key            = field.getKey();
-            var originalValue  = Val.of(field.getValue()).withTrace(operationType, Map.of("from", unfilteredValue));
+            var originalValue  = Val.of(field.getValue()).withTrace(operationType, true,
+                    Map.of("from", unfilteredValue));
             var conditions     = selector.get()
                     .contextWrite(ctx -> AuthorizationContext.setRelativeNodeWithKey(ctx, originalValue, key));
             var filteredFields = conditions
@@ -113,30 +117,30 @@ public class FilterAlgorithmUtil {
     private static Function<Val, Flux<Val>> applyFilterIfConditionMet(Val elementValue, Val unfilteredValue, int stepId,
             FilterStatement statement, String elementIdentifier) {
         return conditionResult -> {
-            var trace = Map.<String, Traced>of(UNFILTERED_VALUE, unfilteredValue, "conditionResult", conditionResult,
+            var trace = Map.<String, Val>of(UNFILTERED_VALUE, unfilteredValue, "conditionResult", conditionResult,
                     elementIdentifier, elementValue);
             if (conditionResult.isError()) {
-                return Flux.just(conditionResult.withTrace(ConditionStep.class, trace));
+                return Flux.just(conditionResult.withTrace(ConditionStep.class, true, trace));
             }
             if (!conditionResult.isBoolean()) {
                 return Flux.just(Val.error(TYPE_MISMATCH_CONDITION_NOT_BOOLEAN_S, conditionResult)
-                        .withTrace(ConditionStep.class, trace));
+                        .withTrace(ConditionStep.class, true, trace));
             }
             if (conditionResult.getBoolean()) {
-                var elementValueTraced = elementValue.withTrace(ConditionStep.class, trace);
+                var elementValueTraced = elementValue.withTrace(ConditionStep.class, true, trace);
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter
                     return applyFilterFunction(elementValueTraced, statement.getArguments(), statement.getFsteps(),
                             statement.isEach())
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx,
-                                    unfilteredValue.withTrace(ConditionStep.class, trace)));
+                                    unfilteredValue.withTrace(ConditionStep.class, true, trace)));
                 } else {
                     // there are more steps. descent with them
                     return statement.getTarget().getSteps().get(stepId + 1).applyFilterStatement(elementValueTraced,
                             stepId + 1, statement);
                 }
             } else {
-                return Flux.just(elementValue.withTrace(ConditionStep.class, trace));
+                return Flux.just(elementValue.withTrace(ConditionStep.class, true, trace));
             }
         };
     }
@@ -144,25 +148,25 @@ public class FilterAlgorithmUtil {
     public static Flux<Val> applyFilterFunction(Val unfilteredValue, Arguments arguments, Iterable<String> fsteps,
             boolean each) {
         if (unfilteredValue.isError()) {
-            return Flux.just(unfilteredValue.withTrace(FilterComponent.class, unfilteredValue));
+            return Flux.just(unfilteredValue.withTrace(FilterComponent.class, true, unfilteredValue));
         }
         if (unfilteredValue.isUndefined()) {
-            return Flux.just(
-                    Val.error(TYPE_MISMATCH_UNFILTERED_UNDEFINED).withTrace(FilterComponent.class, unfilteredValue));
+            return Flux.just(Val.error(TYPE_MISMATCH_UNFILTERED_UNDEFINED).withTrace(FilterComponent.class, true,
+                    unfilteredValue));
         }
 
         if (!each) {
             return FunctionUtil.combineArgumentFluxes(arguments)
                     .concatMap(parameters -> FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(fsteps,
                             unfilteredValue, parameters))
-                    .map(val -> val.withTrace(FilterComponent.class,
+                    .map(val -> val.withTrace(FilterComponent.class, true,
                             Map.of(UNFILTERED_VALUE, unfilteredValue, "filterResult", val)));
         }
 
         // "|- each" may only be applied to arrays
         if (!unfilteredValue.isArray()) {
             return Flux.just(Val.error(TYPE_MISMATCH_EACH_ON_NON_ARRAY + unfilteredValue.getValType())
-                    .withTrace(FilterComponent.class, unfilteredValue));
+                    .withTrace(FilterComponent.class, true, unfilteredValue));
         }
 
         var rootArray      = (ArrayNode) unfilteredValue.get();
@@ -171,7 +175,7 @@ public class FilterAlgorithmUtil {
             var elementsEvaluations = new ArrayList<Mono<Val>>(rootArray.size());
             var index               = 0;
             for (var element : rootArray) {
-                var elementVal = Val.of(element).withTrace(FilterComponent.class,
+                var elementVal = Val.of(element).withTrace(FilterComponent.class, true,
                         Map.of(UNFILTERED_VALUE, unfilteredValue, "index", Val.of(index++)));
                 elementsEvaluations
                         .add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(fsteps, elementVal, parameters));

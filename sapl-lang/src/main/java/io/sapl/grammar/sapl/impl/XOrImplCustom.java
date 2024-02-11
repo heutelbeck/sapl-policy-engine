@@ -40,7 +40,7 @@ public class XOrImplCustom extends XOrImpl {
     }
 
     private Val xor(Val left, Val right) {
-        return Val.of(left.getBoolean() ^ right.getBoolean()).withTrace(XOr.class,
+        return Val.of(left.getBoolean() ^ right.getBoolean()).withTrace(XOr.class, true,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 

@@ -680,7 +680,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_malformedConditionGEQNotANmber_then_AccessConstraintViolationException() throws JsonProcessingException {
+    void when_malformedConditionGEQNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
         var sut        = new ContentFilteringProvider(MAPPER);
         var constraint = MAPPER.readTree("""
                 {
@@ -704,7 +704,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_malformedConditionLeqNotANmber_then_AccessConstraintViolationException() throws JsonProcessingException {
+    void when_malformedConditionLeqNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
         var sut        = new ContentFilteringProvider(MAPPER);
         var constraint = MAPPER.readTree("""
                 {
@@ -728,7 +728,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_malformedConditionLtNotANmber_then_AccessConstraintViolationException() throws JsonProcessingException {
+    void when_malformedConditionLtNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
         var sut        = new ContentFilteringProvider(MAPPER);
         var constraint = MAPPER.readTree("""
                 {
@@ -752,7 +752,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_malformedConditionGtNotANmber_then_AccessConstraintViolationException() throws JsonProcessingException {
+    void when_malformedConditionGtNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
         var sut        = new ContentFilteringProvider(MAPPER);
         var constraint = MAPPER.readTree("""
                 {
@@ -825,7 +825,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_constraintNull_then_AccessConstraintViolationException() throws JsonProcessingException {
+    void when_constraintNull_then_AccessConstraintViolationException() {
         var sut = new ContentFilteringProvider(MAPPER);
         assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(null));
     }
@@ -856,14 +856,14 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_malformedConstrintNonObject_then_AccessConstraintViolationException() throws JsonProcessingException {
+    void when_malformedConstraintNonObject_then_AccessConstraintViolationException() throws JsonProcessingException {
         var sut        = new ContentFilteringProvider(MAPPER);
         var constraint = MAPPER.readTree("123");
         assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
     }
 
     @Test
-    void when_malformedConstrintConditionsNotArray_then_AccessConstraintViolationException()
+    void when_malformedConstraintConditionsNotArray_then_AccessConstraintViolationException()
             throws JsonProcessingException {
         var sut        = new ContentFilteringProvider(MAPPER);
         var constraint = MAPPER.readTree("""
@@ -882,7 +882,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_malformedConstrintConditionsEmpty_then_actionAppliedAndConditionAlwaysTrue()
+    void when_malformedConstraintConditionsEmpty_then_actionAppliedAndConditionAlwaysTrue()
             throws JsonProcessingException {
         var sut        = new ContentFilteringProvider(MAPPER);
         var constraint = MAPPER.readTree("""
@@ -914,7 +914,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_malformedConditionTypeunknown_then_AccessConstraintViolationException() throws JsonProcessingException {
+    void when_malformedConditionTypeUnknown_then_AccessConstraintViolationException() throws JsonProcessingException {
         var sut        = new ContentFilteringProvider(MAPPER);
         var constraint = MAPPER.readTree("""
                 {
@@ -1226,7 +1226,7 @@ class ContentFilteringProviderTests {
     }
 
     @Test
-    void when_handlerHandlesListEqNumberDataNotNumber_handlerNoBodification() throws JsonProcessingException {
+    void when_handlerHandlesListEqNumberDataNotNumber_handlerNoModification() throws JsonProcessingException {
         var sut        = new ContentFilteringProvider(MAPPER);
         var constraint = MAPPER.readTree("""
                 {
@@ -2085,7 +2085,7 @@ class ContentFilteringProviderTests {
                 		{
                 			"type"        : "replace",
                 			"path"        : "$.key1",
-                			"replacement" : \"replaced\"
+                			"replacement" : "replaced"
                 		}
                 	]
                 }

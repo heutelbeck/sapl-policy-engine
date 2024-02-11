@@ -40,7 +40,7 @@ public class MoreEqualsImplCustom extends MoreEqualsImpl {
     }
 
     private Val moreOrEqual(Val left, Val right) {
-        return Val.of(left.decimalValue().compareTo(right.decimalValue()) >= 0).withTrace(MoreEquals.class,
+        return Val.of(left.decimalValue().compareTo(right.decimalValue()) >= 0).withTrace(MoreEquals.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 

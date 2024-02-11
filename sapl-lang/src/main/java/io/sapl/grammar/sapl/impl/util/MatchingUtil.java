@@ -46,8 +46,8 @@ public class MatchingUtil {
                 .onErrorResume(error -> Mono.just(Val.error(error))).next().defaultIfEmpty(Val.FALSE)
                 .flatMap(result -> {
                     if (result.isError() || !result.isBoolean()) {
-                        return Mono.just(
-                                Val.error(CONDITION_NOT_BOOLEAN_ERROR, result).withTrace(PolicyElement.class, result));
+                        return Mono.just(Val.error(CONDITION_NOT_BOOLEAN_ERROR, result).withTrace(PolicyElement.class,
+                                false, result));
                     }
                     return Mono.just(result);
                 });

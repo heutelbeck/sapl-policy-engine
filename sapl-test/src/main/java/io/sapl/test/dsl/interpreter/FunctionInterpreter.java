@@ -53,7 +53,7 @@ class FunctionInterpreter {
             timesCalled = 1;
         }
 
-        final var parameters   = interpretFunctionParameters(function.getParameters());
+        final var parameters   = interpretFunctionParameters(function.getParameterMatchers());
         final var returnValue  = valueInterpreter.getValFromValue(function.getReturnValue());
         final var functionName = function.getName();
 
@@ -98,12 +98,12 @@ class FunctionInterpreter {
     }
 
     private FunctionParameters interpretFunctionParameters(
-            final io.sapl.test.grammar.sapltest.FunctionParameters functionParameters) {
-        if (functionParameters == null) {
+            final io.sapl.test.grammar.sapltest.ParameterMatchers parameterMatchers) {
+        if (parameterMatchers == null) {
             return null;
         }
 
-        final var functionParameterMatchers = functionParameters.getMatchers();
+        final var functionParameterMatchers = parameterMatchers.getMatchers();
 
         if (functionParameterMatchers == null || functionParameterMatchers.isEmpty()) {
             throw new SaplTestException("No FunctionParameterMatcher found");

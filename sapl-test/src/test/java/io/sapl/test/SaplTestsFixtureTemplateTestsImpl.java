@@ -19,8 +19,7 @@ package io.sapl.test;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
+import io.sapl.api.interpreter.Val;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.WhenStep;
 
@@ -38,7 +37,7 @@ public class SaplTestsFixtureTemplateTestsImpl extends SaplTestFixtureTemplate {
         return null;
     }
 
-    public Map<String, JsonNode> getVariablesMap() {
+    public Map<String, Val> getVariablesMap() {
         return this.variables;
     }
 

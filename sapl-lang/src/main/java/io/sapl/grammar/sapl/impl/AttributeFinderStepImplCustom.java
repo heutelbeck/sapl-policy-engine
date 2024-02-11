@@ -51,15 +51,15 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
             var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), getImports(ctxView));
 
             if (parentValue.isError()) {
-                return Flux.just(parentValue.withTrace(AttributeFinderStep.class,
+                return Flux.just(parentValue.withTrace(AttributeFinderStep.class, false,
                         Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
             if (TargetExpressionUtil.isInTargetExpression(this)) {
                 return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(AttributeFinderStep.class,
-                        Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
+                        false, Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
             if (parentValue.isUndefined()) {
-                return Flux.just(Val.error(UNDEFINED_VALUE_ERROR).withTrace(AttributeFinderStep.class,
+                return Flux.just(Val.error(UNDEFINED_VALUE_ERROR).withTrace(AttributeFinderStep.class, false,
                         Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
 

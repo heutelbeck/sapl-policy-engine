@@ -19,13 +19,11 @@ package io.sapl.test.coverage.api;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import io.sapl.test.coverage.api.model.PolicyHit;
@@ -33,58 +31,42 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 
 class CoverageHitRecorderTests {
 
-    private Path basedir;
-
-    private CoverageHitRecorder recorder;
-
-    @BeforeEach
-    void setup() {
-        this.basedir  = Paths.get("target").resolve("sapl-coverage");
-        this.recorder = new CoverageHitAPIFile(this.basedir);
-        this.recorder.cleanCoverageHitFiles();
-        this.recorder.createCoverageHitFiles();
-    }
-
-    @AfterEach
-    void cleanup() {
-        this.recorder.cleanCoverageHitFiles();
-    }
-
     @Test
-    void testCoverageRecording() throws Exception {
+    void testCoverageRecording(@TempDir Path tempDir) throws Exception {
+        var recorder = new CoverageHitAPIFile(tempDir);
         // arrange
-        Path FILE_PATH_POLICY_SET_HITS       = this.basedir.resolve("hits").resolve("_policySetHits.txt");
-        Path FILE_PATH_POLICY_HITS           = this.basedir.resolve("hits").resolve("_policyHits.txt");
-        Path FILE_PATH_POLICY_CONDITION_HITS = this.basedir.resolve("hits").resolve("_policyConditionHits.txt");
+        Path FILE_PATH_POLICY_SET_HITS       = tempDir.resolve("hits").resolve("_policySetHits.txt");
+        Path FILE_PATH_POLICY_HITS           = tempDir.resolve("hits").resolve("_policyHits.txt");
+        Path FILE_PATH_POLICY_CONDITION_HITS = tempDir.resolve("hits").resolve("_policyConditionHits.txt");
 
         // act
-        this.recorder.recordPolicySetHit(new PolicySetHit("set1"));
-        this.recorder.recordPolicyHit(new PolicyHit("set1", "policy11"));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy11", 7, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy11", 8, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy11", 9, true));
-        this.recorder.recordPolicyHit(new PolicyHit("set1", "policy12"));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy12", 7, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy12", 8, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy12", 9, true));
-        this.recorder.recordPolicySetHit(new PolicySetHit("set2"));
-        this.recorder.recordPolicyHit(new PolicyHit("set2", "policy21"));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 7, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 8, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 9, true));
-        this.recorder.recordPolicyHit(new PolicyHit("set2", "policy22"));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 7, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 8, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 9, true));
-        this.recorder.recordPolicySetHit(new PolicySetHit("set2"));
-        this.recorder.recordPolicyHit(new PolicyHit("set2", "policy21"));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 7, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 8, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 9, true));
-        this.recorder.recordPolicyHit(new PolicyHit("set2", "policy22"));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 7, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 8, true));
-        this.recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 9, true));
+        recorder.recordPolicySetHit(new PolicySetHit("set1"));
+        recorder.recordPolicyHit(new PolicyHit("set1", "policy11"));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy11", 7, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy11", 8, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy11", 9, true));
+        recorder.recordPolicyHit(new PolicyHit("set1", "policy12"));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy12", 7, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy12", 8, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set1", "policy12", 9, true));
+        recorder.recordPolicySetHit(new PolicySetHit("set2"));
+        recorder.recordPolicyHit(new PolicyHit("set2", "policy21"));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 7, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 8, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 9, true));
+        recorder.recordPolicyHit(new PolicyHit("set2", "policy22"));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 7, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 8, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 9, true));
+        recorder.recordPolicySetHit(new PolicySetHit("set2"));
+        recorder.recordPolicyHit(new PolicyHit("set2", "policy21"));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 7, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 8, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy21", 9, true));
+        recorder.recordPolicyHit(new PolicyHit("set2", "policy22"));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 7, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 8, true));
+        recorder.recordPolicyConditionHit(new PolicyConditionHit("set2", "policy22", 9, true));
 
         // assert
         List<String> resultPolicySetHits = Files.readAllLines(FILE_PATH_POLICY_SET_HITS);
@@ -128,12 +110,13 @@ class CoverageHitRecorderTests {
     }
 
     @Test
-    void testCoverageWriting_FileNotExist() {
+    void testCoverageWriting_FileNotExist(@TempDir Path tempDir) {
+        var recorder = new CoverageHitAPIFile(tempDir);
         // arrange
         // simulate something deletes expected files during runtime
-        this.recorder.cleanCoverageHitFiles();
+        recorder.cleanCoverageHitFiles();
         // act
-        this.recorder.recordPolicySetHit(new PolicySetHit("set"));
+        recorder.recordPolicySetHit(new PolicySetHit("set"));
         // assert
         Assertions.assertThatNoException();
     }

@@ -148,8 +148,8 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> implements Quer
 
     /**
      * Manipulates the original query by appending the conditions from the decision,
-     * if the the original query contains the keyword ' where '. Else just append
-     * the conditions from the obligation.
+     * if the original query contains the keyword ' where '. Else just append the
+     * conditions from the obligation.
      *
      * @param query     is the original value from the
      *                  {@link org.springframework.data.r2dbc.repository.Query}

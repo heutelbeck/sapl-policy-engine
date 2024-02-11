@@ -76,7 +76,7 @@ class EmbeddedPDPPropertiesValidationTests {
 
     @Test
     void whenIndexIsInvalid_thenContextFailsLoading() {
-        contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOUORCES",
+        contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOURCES",
                 "io.sapl.pdp.embedded.index=I AM INVALID", "io.sapl.pdp.embedded.configPath=" + tempDir,
                 "io.sapl.pdp.embedded.policiesPath=" + tempDir).run(context -> assertThat(context).hasFailed());
     }

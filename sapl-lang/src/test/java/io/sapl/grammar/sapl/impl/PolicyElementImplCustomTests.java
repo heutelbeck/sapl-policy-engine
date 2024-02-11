@@ -44,26 +44,27 @@ class PolicyElementImplCustomTests {
 	 			// trueTargetDosMatch
 	 			Arguments.of("policy \"p\" permit true", Val.TRUE)
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@MethodSource("provideTestCases")
-	void policyElementEvaluatesToExpectedValue(String policySource, Val expected) {
-		var policy   = INTERPRETER.parse(policySource);
-		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected).verifyComplete();
-	}
+    @MethodSource("provideTestCases")
+    void policyElementEvaluatesToExpectedValue(String policySource, Val expected) {
+        var policy = INTERPRETER.parse(policySource);
+        StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
+                .verifyComplete();
+    }
 
-	@ParameterizedTest
-	@ValueSource(strings = {
-			// undefinedTargetErrors
-			"policy \"p\" permit undefined",
-			// errorTargetErrors
-			"policy \"p\" permit (10/0)",
-			// nonBooleanTargetErrors
-			"policy \"p\" permit \"abc\""
-		})
-	void policyElementEvaluatesToError(String policySource) {
-		var policy = INTERPRETER.parse(policySource);
-		StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNextMatches(Val::isError).verifyComplete();
-	}
+    @ParameterizedTest
+    @ValueSource(strings = {
+            // undefinedTargetErrors
+            "policy \"p\" permit undefined",
+            // errorTargetErrors
+            "policy \"p\" permit (10/0)",
+            // nonBooleanTargetErrors
+            "policy \"p\" permit \"abc\"" })
+    void policyElementEvaluatesToError(String policySource) {
+        var policy = INTERPRETER.parse(policySource);
+        StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext))
+                .expectNextMatches(Val::isError).verifyComplete();
+    }
 }

@@ -72,13 +72,12 @@ public class EquivalenceAndHashUtil {
             return 0;
         }
         int hash = HASH_SEED_PRIME;
-        if (featureInstance instanceof EList<?> eListFeatureInscance) {
-            var thizList = eListFeatureInscance;
-            for (Object element : thizList) {
+        if (featureInstance instanceof EList<?> eListFeatureInstance) {
+            for (Object element : eListFeatureInstance) {
                 hash = PRIME * hash + hash(element, imports);
             }
-        } else if (featureInstance instanceof EObject eObjectFeatureInscance) {
-            hash = PRIME * hash + semanticHash(eObjectFeatureInscance, imports);
+        } else if (featureInstance instanceof EObject eObjectFeatureInstance) {
+            hash = PRIME * hash + semanticHash(eObjectFeatureInstance, imports);
         } else {
             hash = PRIME * hash + featureInstance.hashCode();
         }

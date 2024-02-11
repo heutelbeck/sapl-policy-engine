@@ -22,8 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.test.dsl.lang.DefaultSaplTestInterpreter;
-
 class SaplTestInterpreterFactoryTests {
 
     @Test

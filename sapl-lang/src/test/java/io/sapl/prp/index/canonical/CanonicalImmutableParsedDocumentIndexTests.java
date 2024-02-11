@@ -51,13 +51,13 @@ import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Maps;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
@@ -83,7 +83,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
     private CanonicalImmutableParsedDocumentIndex emptyIndex;
 
-    private Map<String, JsonNode> variables;
+    private Map<String, Val> variables;
 
     @BeforeAll
     static void beforeClass() {

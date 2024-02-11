@@ -179,6 +179,11 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
             return this;
         }
 
+        public RemoteHttpPolicyDecisionPointBuilder withHttpClient(HttpClient httpClient) {
+            this.httpClient = httpClient;
+            return this;
+        }
+
         public <O> RemoteHttpPolicyDecisionPointBuilder option(ChannelOption<O> key, @Nullable O value) {
             this.httpClient = this.httpClient.option(key, value);
             return this;

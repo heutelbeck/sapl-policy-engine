@@ -104,6 +104,21 @@ class DefaultTestCaseConstructorTests {
     }
 
     @Test
+    void constructTestCase_handlesNullEnvironmentVariables_returnsGivenOrWhenStep() {
+        final var environment = buildObject("{}");
+
+        when(valueInterpreterMock.destructureObject(any())).thenReturn(null);
+
+        when(saplTestFixtureMock.constructTestCaseWithMocks()).thenReturn(givenOrWhenStepMock);
+
+        final var result = defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, environment, true);
+
+        assertEquals(givenOrWhenStepMock, result);
+
+        verifyNoMoreInteractions(saplTestFixtureMock);
+    }
+
+    @Test
     void constructTestCase_handlesSingleEnvironmentVariable_returnsGivenOrWhenStep() {
         final var environment = buildObject("{ \"key\": \"value\" }");
 
@@ -126,7 +141,7 @@ class DefaultTestCaseConstructorTests {
 
         assertEquals(givenOrWhenStepMock, result);
 
-        verify(saplTestFixtureMock, times(1)).registerVariable("key", expectedJsonNode);
+        verify(saplTestFixtureMock, times(1)).registerVariable("key", Val.of(expectedJsonNode));
 
         verifyNoMoreInteractions(saplTestFixtureMock);
     }
@@ -167,8 +182,8 @@ class DefaultTestCaseConstructorTests {
 
         assertEquals(givenOrWhenStepMock, result);
 
-        verify(saplTestFixtureMock, times(1)).registerVariable("key", expectedJsonNode);
-        verify(saplTestFixtureMock, times(1)).registerVariable("key2", expectedJsonNode2);
+        verify(saplTestFixtureMock, times(1)).registerVariable("key", Val.of(expectedJsonNode));
+        verify(saplTestFixtureMock, times(1)).registerVariable("key2", Val.of(expectedJsonNode2));
 
         verifyNoMoreInteractions(saplTestFixtureMock);
     }

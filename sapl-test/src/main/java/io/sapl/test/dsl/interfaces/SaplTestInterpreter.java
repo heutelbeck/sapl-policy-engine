@@ -22,6 +22,12 @@ import java.io.InputStream;
 
 import io.sapl.test.grammar.sapltest.SAPLTest;
 
+/**
+ * Allows to define a custom Interpreter to create a {@link SAPLTest} instance
+ * from a text input. Can be used in a class derived from
+ * {@link io.sapl.test.dsl.setup.BaseTestAdapter} to customize the interpreter
+ * logic.
+ */
 public interface SaplTestInterpreter {
     SAPLTest loadAsResource(InputStream inputStream);
 

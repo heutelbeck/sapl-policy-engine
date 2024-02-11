@@ -18,6 +18,12 @@
 
 package io.sapl.test.dsl.interfaces;
 
+/**
+ * Provides an abstraction for a {@link io.sapl.test.dsl.setup.TestCase} and
+ * {@link io.sapl.test.dsl.setup.TestContainer} to enable execution and nesting
+ * of {@link io.sapl.test.dsl.setup.TestCase} instances.
+ *
+ */
 public interface TestNode {
     String getIdentifier();
 }

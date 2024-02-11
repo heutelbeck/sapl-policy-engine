@@ -76,7 +76,7 @@ public class SecurityConfiguration {
 
         if (noAuthenticationMechanismIsDefined()) {
             throw new IllegalStateException(
-                    "No authentication mechanism for clients defined. Set up your local/container configuration. If the server should respond to unauthenticated resuests, this has to be explicitly activated.");
+                    "No authentication mechanism for clients defined. Set up your local/container configuration. If the server should respond to unauthenticated requests, this has to be explicitly activated.");
         }
 
         if (pdpProperties.isAllowNoAuth()) {

@@ -21,8 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.WhenStep;
@@ -39,7 +38,7 @@ public interface SaplTestFixture {
 
     SaplTestFixture registerFunctionLibrary(Class<?> staticLibrary) throws InitializationException;
 
-    SaplTestFixture registerVariable(String key, JsonNode value);
+    SaplTestFixture registerVariable(String key, Val value);
 
     default Path resolveCoverageBaseDir() {
         // if configured via system property because of custom path or custom maven

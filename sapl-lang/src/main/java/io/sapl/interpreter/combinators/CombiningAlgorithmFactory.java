@@ -34,7 +34,7 @@ import lombok.experimental.UtilityClass;
 public class CombiningAlgorithmFactory {
 
     private static final CombiningAlgorithm PERMIT_UNLESS_DENY_ALGORITHM  = new PermitUnlessDenyCombiningAlgorithmImplCustom();
-    private static final CombiningAlgorithm PPERMIT_OVERRIDES_ALGORITHM   = new PermitOverridesCombiningAlgorithmImplCustom();
+    private static final CombiningAlgorithm PERMIT_OVERRIDES_ALGORITHM    = new PermitOverridesCombiningAlgorithmImplCustom();
     private static final CombiningAlgorithm DENY_OVERRIDES_ALGORITHM      = new DenyOverridesCombiningAlgorithmImplCustom();
     private static final CombiningAlgorithm ONLY_ONE_APPLICABLE_ALGORITHM = new OnlyOneApplicableCombiningAlgorithmImplCustom();
     private static final CombiningAlgorithm DENY_UNLESS_PERMIT_ALGORITHM  = new DenyUnlessPermitCombiningAlgorithmImplCustom();
@@ -43,7 +43,7 @@ public class CombiningAlgorithmFactory {
         if (algorithm == PERMIT_UNLESS_DENY)
             return PERMIT_UNLESS_DENY_ALGORITHM;
         if (algorithm == PERMIT_OVERRIDES)
-            return PPERMIT_OVERRIDES_ALGORITHM;
+            return PERMIT_OVERRIDES_ALGORITHM;
         if (algorithm == DENY_OVERRIDES)
             return DENY_OVERRIDES_ALGORITHM;
         if (algorithm == ONLY_ONE_APPLICABLE)

@@ -24,7 +24,6 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
@@ -49,7 +48,7 @@ class EnforcedSchemaTests {
     private static AnnotationFunctionContext    functionContext;
 
     @BeforeAll
-    static void beforeAll() throws JsonProcessingException, InitializationException {
+    static void beforeAll() throws InitializationException {
         attributeContext = new AnnotationAttributeContext();
         functionContext  = new AnnotationFunctionContext();
         functionContext.loadLibrary(SimpleFunctionLibrary.class);
@@ -59,7 +58,7 @@ class EnforcedSchemaTests {
     }
 
     @Test
-    void when_noEnforcementAndNoTarget_then_matches() throws JsonProcessingException {
+    void when_noEnforcementAndNoTarget_then_matches() {
         var authzSubscription = """
                 {
                     "subject"  : "willi",
@@ -76,7 +75,7 @@ class EnforcedSchemaTests {
     }
 
     @Test
-    void when_noEnforcementButWithTarget_then_matches() throws JsonProcessingException {
+    void when_noEnforcementButWithTarget_then_matches() {
         var authzSubscription = """
                 {
                     "subject"  : "willi",
@@ -93,7 +92,7 @@ class EnforcedSchemaTests {
     }
 
     @Test
-    void when_enforcedSubjectSchemaAndValidSubject_then_matches() throws JsonProcessingException {
+    void when_enforcedSubjectSchemaAndValidSubject_then_matches() {
         var authzSubscription = """
                 {
                     "subject"  : "willi",
@@ -117,7 +116,7 @@ class EnforcedSchemaTests {
     }
 
     @Test
-    void when_enforcedSubjectSchemaAndValidSubjectButTargetNoMatch_then_noMatch() throws JsonProcessingException {
+    void when_enforcedSubjectSchemaAndValidSubjectButTargetNoMatch_then_noMatch() {
         var authzSubscription = """
                 {
                     "subject"  : "willi",
@@ -141,7 +140,7 @@ class EnforcedSchemaTests {
     }
 
     @Test
-    void when_schemaError_then_error() throws JsonProcessingException {
+    void when_schemaError_then_error() {
         var authzSubscription = """
                 {
                     "subject"  : "willi",
@@ -165,7 +164,7 @@ class EnforcedSchemaTests {
     }
 
     @Test
-    void when_elementError_then_error() throws JsonProcessingException {
+    void when_elementError_then_error() {
         var authzSubscription = """
                 {
                     "subject"  : "willi",
@@ -189,8 +188,7 @@ class EnforcedSchemaTests {
     }
 
     @Test
-    void when_enforcedSubjectAndActionSchemaAndValidSubjectAndAction_then_bothMustMatch()
-            throws JsonProcessingException {
+    void when_enforcedSubjectAndActionSchemaAndValidSubjectAndAction_then_bothMustMatch() {
         var bothMatchSubscription      = """
                 {
                     "subject"  : "willi",
@@ -237,7 +235,7 @@ class EnforcedSchemaTests {
     }
 
     @Test
-    void when_enforcedSubjectSchemaAndInvalidSubject_then_notMatching() throws JsonProcessingException {
+    void when_enforcedSubjectSchemaAndInvalidSubject_then_notMatching() {
         var authzSubscription = """
                 {
                     "subject"  : 123,
@@ -261,7 +259,7 @@ class EnforcedSchemaTests {
     }
 
     @Test
-    void when_nonEnforcedSubjectSchemaAndInvalidSubject_then_matching() throws JsonProcessingException {
+    void when_nonEnforcedSubjectSchemaAndInvalidSubject_then_matching() {
         var authzSubscription = """
                 {
                     "subject"  : 123,
@@ -284,7 +282,7 @@ class EnforcedSchemaTests {
     }
 
     @Test
-    void when_enforcedSubjectTwoSchemasSchema_then_bothVersionsMatch() throws JsonProcessingException {
+    void when_enforcedSubjectTwoSchemasSchema_then_bothVersionsMatch() {
         var document = """
                 subject     enforced schema {
                                                 "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -340,6 +338,7 @@ class EnforcedSchemaTests {
                 .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
 
+        assertThat(match).isNotNull();
         assertThat(match.getBoolean()).isEqualTo(expected);
 
         var implicitMatch = MatchingUtil.matches(sapl.getImplicitTargetExpression(), sapl)
@@ -348,6 +347,7 @@ class EnforcedSchemaTests {
                 .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
 
+        assertThat(implicitMatch).isNotNull();
         assertThat(implicitMatch.getBoolean()).isEqualTo(expected);
     }
 

@@ -51,7 +51,7 @@ public class TestSetupUtil {
     }
 
     @SuppressWarnings("unchecked")
-    public static WebAuthorizationSubscriptionBuilderService subsctiptionBuilderService() {
+    public static WebAuthorizationSubscriptionBuilderService subscriptionBuilderService() {
         var mapper                        = objectMapperWithSerializers();
         var mockExpressionHandlerProvider = mock(ObjectProvider.class);
         when(mockExpressionHandlerProvider.getIfAvailable(any()))

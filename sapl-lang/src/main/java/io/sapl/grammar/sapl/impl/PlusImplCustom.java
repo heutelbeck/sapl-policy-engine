@@ -39,12 +39,12 @@ public class PlusImplCustom extends PlusImpl {
 
     private Val plus(Val left, Val right) {
         if (left.isNumber() && right.isNumber())
-            return Val.of(left.get().decimalValue().add(right.get().decimalValue())).withTrace(Plus.class,
+            return Val.of(left.get().decimalValue().add(right.get().decimalValue())).withTrace(Plus.class, false,
                     Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 
         var lStr = left.orElse(UNDEFINED).asText();
         var rStr = right.orElse(UNDEFINED).asText();
-        return Val.of(lStr.concat(rStr)).withTrace(Plus.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+        return Val.of(lStr.concat(rStr)).withTrace(Plus.class, false, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 
 }
