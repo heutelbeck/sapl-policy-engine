@@ -75,7 +75,7 @@ public class AttributeMockForParentValue implements AttributeMock {
         checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
 
         return Flux.just(matchingParameterSpecificMockReturnValues.get().getMockReturnValue()).map(val -> val
-                .withTrace(AttributeMockForParentValue.class, Map.of("attributeName", Val.of(attributeName))));
+                .withTrace(AttributeMockForParentValue.class, true, Map.of("attributeName", Val.of(attributeName))));
     }
 
     private void checkAtLeastOneMatchingMockReturnValueExists(

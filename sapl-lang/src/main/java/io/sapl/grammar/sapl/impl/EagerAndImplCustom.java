@@ -40,7 +40,7 @@ public class EagerAndImplCustom extends EagerAndImpl {
     }
 
     private Val and(Val left, Val right) {
-        return Val.of(left.getBoolean() && right.getBoolean()).withTrace(EagerAnd.class,
+        return Val.of(left.getBoolean() && right.getBoolean()).withTrace(EagerAnd.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 

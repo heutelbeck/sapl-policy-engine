@@ -19,6 +19,7 @@ package io.sapl.mavenplugin.test.coverage.stubs;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,16 +28,14 @@ import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.plugin.testing.stubs.MavenProjectStub;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
 /**
  * Maven test Stub
  */
 public class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
 
-    /**
-     * Create Stub
-     */
-    public SaplMavenPluginTestMavenProjectStub() {
+    public SaplMavenPluginTestMavenProjectStub() throws IOException, XmlPullParserException {
         initialize();
     }
 
@@ -46,15 +45,11 @@ public class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
         return new File(super.getBasedir() + "/src/test/resources/pom/");
     }
 
-    protected final void initialize() {
+    protected final void initialize() throws IOException, XmlPullParserException {
         MavenXpp3Reader pomReader = new MavenXpp3Reader();
         Model           model;
-        try {
-            model = pomReader.read((new FileReader(new File(getBasedir(), "pom.xml"), StandardCharsets.UTF_8)));
-            setModel(model);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        model = pomReader.read((new FileReader(new File(getBasedir(), "pom.xml"), StandardCharsets.UTF_8)));
+        setModel(model);
 
         setGroupId(model.getGroupId());
         setArtifactId(model.getArtifactId());

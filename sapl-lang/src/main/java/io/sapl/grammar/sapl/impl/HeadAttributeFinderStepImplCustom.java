@@ -48,15 +48,15 @@ public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepIm
             var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), getImports(ctxView));
 
             if (parentValue.isError()) {
-                return Flux.just(parentValue.withTrace(HeadAttributeFinderStep.class,
+                return Flux.just(parentValue.withTrace(HeadAttributeFinderStep.class, false,
                         Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
             if (TargetExpressionUtil.isInTargetExpression(this)) {
                 return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(HeadAttributeFinderStep.class,
-                        Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
+                        false, Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
             if (parentValue.isUndefined()) {
-                return Flux.just(Val.error(UNDEFINED_VALUE_ERROR).withTrace(HeadAttributeFinderStep.class,
+                return Flux.just(Val.error(UNDEFINED_VALUE_ERROR).withTrace(HeadAttributeFinderStep.class, false,
                         Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
             return AuthorizationContext.getAttributeContext(ctxView).evaluateAttribute(attributeName, parentValue,

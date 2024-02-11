@@ -147,7 +147,7 @@ public class Val implements Traced {
      * @param trace a trace
      * @return the Val with attached trace.
      */
-    public Val withTrace(Trace trace) {
+    private Val withTrace(Trace trace) {
         return new Val(value, errorMessage, secret, trace);
     }
 
@@ -164,57 +164,117 @@ public class Val implements Traced {
     /**
      * Attaches a trace to the Val including arguments.
      *
-     * @param operation traced operation
-     * @param arguments the arguments
+     * @param operation                   traced operation
+     * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
+     *                                    the new value also is a secret.
+     * @param arguments                   the arguments
      * @return the Val with attached trace
      */
-    public Val withTrace(Class<?> operation, Val... arguments) {
-        return withTrace(new Trace(operation, arguments));
+    public Val withTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, Val... arguments) {
+        var newVal = withTrace(new Trace(operation, arguments));
+
+        if (!inheritsSecretStatusOfTrace)
+            return newVal;
+
+        for (var argument : arguments) {
+            if (argument.isSecret()) {
+                newVal = newVal.asSecret();
+                break;
+            }
+        }
+        return newVal;
     }
 
     /**
      * Attaches a trace to the Val including arguments.
      *
-     * @param operation traced operation
-     * @param arguments the arguments with parameter names
+     * @param operation                   traced operation
+     * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
+     *                                    the new value also is a secret.
+     * @param arguments                   the arguments with parameter names
      * @return the Val with attached trace
      */
-    public Val withTrace(Class<?> operation, Map<String, Traced> arguments) {
-        return withTrace(new Trace(operation, arguments));
+    public Val withTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, Map<String, Val> arguments) {
+        var newVal = withTrace(new Trace(operation, arguments));
+
+        if (!inheritsSecretStatusOfTrace)
+            return newVal;
+
+        for (var entry : arguments.entrySet()) {
+            if (entry.getValue().isSecret()) {
+                newVal = newVal.asSecret();
+                break;
+            }
+        }
+        return newVal;
     }
 
     /**
      * Attaches a trace to the Val parent value.
      *
-     * @param operation   traced operation
-     * @param parentValue the parent value
+     * @param operation                   traced operation
+     * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
+     *                                    the new value also is a secret.
+     * @param parentValue                 the parent value
      * @return the Val with attached trace
      */
-    public Val withParentTrace(Class<?> operation, Traced parentValue) {
-        return withTrace(new Trace(operation, new ExpressionArgument(Trace.PARENT_VALUE, parentValue)));
+    public Val withParentTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, Val parentValue) {
+        var newVal = withTrace(new Trace(operation, new ExpressionArgument(Trace.PARENT_VALUE, parentValue)));
+        if (inheritsSecretStatusOfTrace && parentValue.isSecret()) {
+            return newVal.asSecret();
+        }
+        return newVal;
     }
 
     /**
      * Attaches a trace to the Val including arguments.
      *
-     * @param operation traced operation
-     * @param arguments the arguments with parameter names
+     * @param operation                   traced operation
+     * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
+     *                                    the new value also is a secret.
+     * @param arguments                   the arguments with parameter names
      * @return the Val with attached trace
      */
-    public Val withTrace(Class<?> operation, ExpressionArgument... arguments) {
-        return withTrace(new Trace(operation, arguments));
+    public Val withTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, ExpressionArgument... arguments) {
+        var newVal = withTrace(new Trace(operation, arguments));
+
+        if (!inheritsSecretStatusOfTrace)
+            return newVal;
+
+        for (var argument : arguments) {
+            if (argument.value().isSecret()) {
+                newVal = newVal.asSecret();
+                break;
+            }
+        }
+        return newVal;
     }
 
     /**
      * Attaches a trace to the Val including arguments for attribute finders.
      *
-     * @param leftHandValue left hand value of attribute finder
-     * @param operation     traced operation
-     * @param arguments     the arguments with parameter names
+     * @param leftHandValue               left hand value of attribute finder
+     * @param operation                   traced operation
+     * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
+     *                                    the new value also is a secret.
+     * @param arguments                   the arguments with parameter names
      * @return the Val with attached trace
      */
-    public Val withTrace(Traced leftHandValue, Class<?> operation, Traced... arguments) {
-        return withTrace(new Trace(leftHandValue, operation, arguments));
+    public Val withTrace(Val leftHandValue, Class<?> operation, boolean inheritsSecretStatusOfTrace, Val... arguments) {
+        var newVal = this.withTrace(new Trace(leftHandValue, operation, arguments));
+        if (!inheritsSecretStatusOfTrace)
+            return newVal;
+
+        if (leftHandValue.isSecret())
+            return newVal.asSecret();
+
+        for (var argument : arguments) {
+            if (argument.isSecret()) {
+                newVal = newVal.asSecret();
+                break;
+            }
+        }
+        return newVal;
     }
 
     /**

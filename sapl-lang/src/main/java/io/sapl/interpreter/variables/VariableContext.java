@@ -27,7 +27,9 @@ import com.google.common.collect.Maps;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class VariableContext {
 
     private static final String SUBJECT = "subject";
@@ -43,10 +45,16 @@ public class VariableContext {
     public VariableContext(Map<String, Val> environmentVariables) {
         variables = Maps.newHashMapWithExpectedSize(environmentVariables.size());
         variables.putAll(environmentVariables);
+        variables.forEach((k, v) -> log.error("putting {} {}:{}", v.isSecret() ? "*" : "", k, v));
+
     }
 
     public VariableContext withEnvironmentVariable(String identifier, JsonNode value) {
-        return copy().putEnvironmentVariable(identifier, value);
+        return copy().putEnvironmentVariable(identifier, value, false);
+    }
+
+    public VariableContext withSecretEnvironmentVariable(String identifier, JsonNode value) {
+        return copy().putEnvironmentVariable(identifier, value, true);
     }
 
     public VariableContext forAuthorizationSubscription(AuthorizationSubscription authzSubscription) {
@@ -61,12 +69,16 @@ public class VariableContext {
         return this;
     }
 
-    private VariableContext putEnvironmentVariable(String identifier, JsonNode value) {
+    private VariableContext putEnvironmentVariable(String identifier, JsonNode value, boolean isSecret) {
         if (SUBJECT.equals(identifier) || RESOURCE.equals(identifier) || ACTION.equals(identifier)
                 || ENVIRONMENT.equals(identifier)) {
             throw new PolicyEvaluationException("cannot overwrite request variable: %s", identifier);
         }
-        variables.put(identifier, Val.of(value));
+        if (isSecret) {
+            variables.put(identifier, Val.of(value).asSecret());
+        } else {
+            variables.put(identifier, Val.of(value));
+        }
         return this;
     }
 

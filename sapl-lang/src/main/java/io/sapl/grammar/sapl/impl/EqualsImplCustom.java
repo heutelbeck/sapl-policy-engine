@@ -40,7 +40,7 @@ public class EqualsImplCustom extends EqualsImpl {
     }
 
     private Val tracedEquals(Val left, Val right) {
-        return equals(left, right).withTrace(Equals.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+        return equals(left, right).withTrace(Equals.class, false, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 
     private Val equals(Val left, Val right) {

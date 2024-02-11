@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
@@ -38,7 +37,7 @@ public class StepAlgorithmUtil {
     public Flux<Val> apply(Val parentValue, Supplier<Flux<Val>> selector, String stepParameters,
             Class<?> operationType) {
         if (parentValue.isError()) {
-            return Flux.just(parentValue.withParentTrace(operationType, parentValue));
+            return Flux.just(parentValue.withParentTrace(operationType, true, parentValue));
         }
         if (parentValue.isArray()) {
             return applyOnArray(parentValue, selector, stepParameters, operationType);
@@ -46,22 +45,22 @@ public class StepAlgorithmUtil {
         if (parentValue.isObject()) {
             return applyOnObject(parentValue, selector, stepParameters, operationType);
         }
-        return Flux.just(Val.error(STEP_ACCESS_TYPE_MISMATCH, parentValue).withTrace(operationType, parentValue));
+        return Flux.just(Val.error(STEP_ACCESS_TYPE_MISMATCH, parentValue).withTrace(operationType, true, parentValue));
     }
 
     public static Flux<Val> applyOnArray(Val parentValue, Supplier<Flux<Val>> selector, String stepParameters,
             Class<?> operationType) {
         if (parentValue.isError()) {
-            return Flux.just(parentValue.withParentTrace(operationType, parentValue));
+            return Flux.just(parentValue.withParentTrace(operationType, true, parentValue));
         }
 
         if (!parentValue.isArray()) {
-            return Flux.just(
-                    Val.error(ARRAY_ACCESS_TYPE_MISMATCH, parentValue).withParentTrace(operationType, parentValue));
+            return Flux.just(Val.error(ARRAY_ACCESS_TYPE_MISMATCH, parentValue).withParentTrace(operationType, true,
+                    parentValue));
         }
 
         if (parentValue.isEmpty()) {
-            return Flux.just(Val.ofEmptyArray().withParentTrace(operationType, parentValue));
+            return Flux.just(Val.ofEmptyArray().withParentTrace(operationType, true, parentValue));
         }
         var array   = parentValue.getArrayNode();
         var results = new ArrayList<Flux<Val>>(array.size());
@@ -70,7 +69,7 @@ public class StepAlgorithmUtil {
             var elementValue    = Val.of(element);
             var index           = i;
             var condition       = selector.get().contextWrite(ctx -> AuthorizationContext.setRelativeNodeWithIndex(ctx,
-                    elementValue.withTrace(operationType, Map.of("from", parentValue)), index));
+                    elementValue.withTrace(operationType, true, Map.of("from", parentValue)), index));
             var selectedElement = condition.map(applySelectionToElement(elementValue, stepParameters, operationType,
                     parentValue, "array[" + index + "]"));
             results.add(selectedElement);
@@ -81,16 +80,16 @@ public class StepAlgorithmUtil {
     public static Flux<Val> applyOnObject(Val parentValue, Supplier<Flux<Val>> selector, String stepParameters,
             Class<?> operationType) {
         if (parentValue.isError()) {
-            return Flux.just(parentValue.withParentTrace(operationType, parentValue));
+            return Flux.just(parentValue.withParentTrace(operationType, true, parentValue));
         }
 
         if (!parentValue.isObject()) {
-            return Flux.just(
-                    Val.error(OBJECT_ACCESS_TYPE_MISMATCH, parentValue).withParentTrace(operationType, parentValue));
+            return Flux.just(Val.error(OBJECT_ACCESS_TYPE_MISMATCH, parentValue).withParentTrace(operationType, true,
+                    parentValue));
         }
 
         if (parentValue.isEmpty()) {
-            return Flux.just(Val.ofEmptyArray().withParentTrace(operationType, parentValue));
+            return Flux.just(Val.ofEmptyArray().withParentTrace(operationType, true, parentValue));
         }
 
         var object  = parentValue.getObjectNode();
@@ -101,7 +100,7 @@ public class StepAlgorithmUtil {
             var key       = field.getKey();
             var value     = Val.of(field.getValue());
             var condition = selector.get().contextWrite(ctx -> AuthorizationContext.setRelativeNodeWithKey(ctx,
-                    value.withTrace(operationType, Map.of("from", parentValue)), key));
+                    value.withTrace(operationType, true, Map.of("from", parentValue)), key));
             var selected  = condition
                     .map(applySelectionToElement(value, stepParameters, operationType, parentValue, key));
             results.add(selected);
@@ -112,19 +111,19 @@ public class StepAlgorithmUtil {
     private static Function<Val, Val> applySelectionToElement(Val elementValue, String stepParameters,
             Class<?> operationType, Val parentValue, String elementIdentifier) {
         return conditionResult -> {
-            var trace = new HashMap<String, Traced>();
+            var trace = new HashMap<String, Val>();
             trace.put("parentValue", parentValue);
             trace.put("stepParameters", Val.of(stepParameters));
-            trace.put(elementIdentifier, elementValue.withTrace(operationType, Map.of("from", parentValue)));
+            trace.put(elementIdentifier, elementValue.withTrace(operationType, true, Map.of("from", parentValue)));
             trace.put("conditionResult", conditionResult);
             if (conditionResult.isError()) {
-                return conditionResult.withTrace(operationType, trace);
+                return conditionResult.withTrace(operationType, true, trace);
             }
             if (conditionResult.isBoolean() && conditionResult.getBoolean()) {
-                return elementValue.withTrace(operationType, trace);
+                return elementValue.withTrace(operationType, true, trace);
             }
             // Treat non-boolean as FALSE
-            return Val.UNDEFINED.withTrace(operationType, trace);
+            return Val.UNDEFINED.withTrace(operationType, true, trace);
         };
     }
 
