@@ -20,6 +20,7 @@ package io.sapl.server.lt;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @SpringBootApplication
 @ComponentScan("io.sapl.server")
+@EnableCaching
 @EnableConfigurationProperties(SAPLServerLTProperties.class)
 public class SAPLServerLTApplication {
 

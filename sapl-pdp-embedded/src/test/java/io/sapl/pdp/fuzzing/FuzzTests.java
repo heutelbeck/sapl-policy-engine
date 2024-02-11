@@ -43,16 +43,16 @@ public class FuzzTests {
 
     @BeforeEach
     void setup() throws InitializationException {
-        pdpDenyOverrides = buildPDPWithConfiguration("/pdp-configurations/deny-overrides-configuration");
-        pdpDenyUnlessPermit = buildPDPWithConfiguration("/pdp-configurations/deny-unless-permit-configuration");
-        pdpPermitUnlessDeny = buildPDPWithConfiguration("/pdp-configurations/permit-unless-deny-configuration");
-        pdpPermitOverrides = buildPDPWithConfiguration("/pdp-configurations/permit-overrides-configuration");
+        pdpDenyOverrides     = buildPDPWithConfiguration("/pdp-configurations/deny-overrides-configuration");
+        pdpDenyUnlessPermit  = buildPDPWithConfiguration("/pdp-configurations/deny-unless-permit-configuration");
+        pdpPermitUnlessDeny  = buildPDPWithConfiguration("/pdp-configurations/permit-unless-deny-configuration");
+        pdpPermitOverrides   = buildPDPWithConfiguration("/pdp-configurations/permit-overrides-configuration");
         pdpOnlyOneApplicable = buildPDPWithConfiguration("/pdp-configurations/only-one-applicable-configuration");
     }
 
     @FuzzTest(maxExecutions = 10000L)
     public void decideWithFuzzedSubscriptionTests(FuzzedDataProvider data) {
-        var asciiString = data.consumeAsciiString(100);
+        var asciiString        = data.consumeAsciiString(100);
         var fuzzedSubscription = generateFuzzedSubscriptionFor(asciiString);
         decideWithFuzzedSubscriptionDenyOverrides(fuzzedSubscription);
         decideWithFuzzedSubscriptionDenyUnlessPermit(fuzzedSubscription);
@@ -94,8 +94,8 @@ public class FuzzTests {
 
         int partLength = length / 3;
 
-        String subject = input.substring(0, partLength);
-        String action = input.substring(partLength, 2 * partLength);
+        String subject  = input.substring(0, partLength);
+        String action   = input.substring(partLength, 2 * partLength);
         String resource = input.substring(2 * partLength);
 
         return AuthorizationSubscription.of(subject, action, resource);
@@ -110,7 +110,7 @@ public class FuzzTests {
     }
 
     public void assertFuzzedSubscriptionReturns(PolicyDecisionPoint pdp, AuthorizationSubscription fuzzedSubscription,
-                                                AuthorizationDecision expectedAuthorizationDecision) {
+            AuthorizationDecision expectedAuthorizationDecision) {
         StepVerifier.create(pdp.decide(fuzzedSubscription)).expectNext(expectedAuthorizationDecision).verifyComplete();
     }
 

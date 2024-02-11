@@ -1,5 +1,23 @@
 spring:
   application.name: sapl-server-lt
+  cache:
+    type: hazelcast
+bucket4j:
+  enabled: true
+  filters:
+    - cache-name: buckets
+      filter-method: webflux
+      url: .*
+      http-content-type: application/json;charset=UTF-8
+      filter-order: 1
+      rate-limits:
+        - execute-predicates:
+            - name: PATH=/api/pdp/**
+          bandwidths:
+            - capacity: 5
+              time: 1
+              unit: hours
+
 spring.rsocket.server:
   port: 7000
   transport: tcp
@@ -59,9 +77,15 @@ management:
   endpoint:
     health:
       show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
 io.sapl.pdp.embedded:
   pdp-config-type: FILESYSTEM
 loader.path: /pdp/data/lib
 logging.level:
   "[io.sapl]": INFO   
   "[org.springframework]": INFO
+  "[com.giffing.bucket4j.spring.boot.starter]": DEBUG
