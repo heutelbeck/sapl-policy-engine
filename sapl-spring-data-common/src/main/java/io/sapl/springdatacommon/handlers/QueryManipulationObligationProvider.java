@@ -21,7 +21,6 @@ import static io.sapl.springdatacommon.sapl.utils.Utilities.CONDITIONS;
 import static io.sapl.springdatacommon.sapl.utils.Utilities.TYPE;
 
 import java.util.Objects;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -60,8 +59,12 @@ public class QueryManipulationObligationProvider {
      */
     public JsonNode getObligation(Iterable<JsonNode> obligations, String queryType) {
         for (JsonNode obligation : obligations) {
-            return obligationIsFine(obligation, queryType) ? obligation : NULL_NODE;
-
+            var obligationIsFine = obligationIsFine(obligation, queryType);
+            if (obligationIsFine) {
+                return obligation;
+            } else {
+                return NULL_NODE;
+            }
         }
         return NULL_NODE;
     }
@@ -75,7 +78,10 @@ public class QueryManipulationObligationProvider {
      */
     public boolean isResponsible(Iterable<JsonNode> obligations, String queryType) {
         for (JsonNode obligation : obligations) {
-            return obligationIsFine(obligation, queryType);
+            var obligationIsFine = obligationIsFine(obligation, queryType);
+            if (obligationIsFine) {
+                return true;
+            }
         }
         return false;
     }

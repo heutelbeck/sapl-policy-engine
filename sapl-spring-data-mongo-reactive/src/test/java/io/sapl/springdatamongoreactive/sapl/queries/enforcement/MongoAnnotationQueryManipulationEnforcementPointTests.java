@@ -63,7 +63,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @SuppressWarnings("rawtypes") // mocking of generic types
-class MongoAnnotationQueryManipulationEnforcementPointTest {
+class MongoAnnotationQueryManipulationEnforcementPointTests {
 
     static final ObjectMapper MAPPER                        = new ObjectMapper();
     static ArrayNode          OBLIGATIONS;

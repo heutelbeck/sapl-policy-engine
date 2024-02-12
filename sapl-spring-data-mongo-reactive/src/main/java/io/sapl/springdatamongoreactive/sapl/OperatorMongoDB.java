@@ -20,10 +20,9 @@ package io.sapl.springdatamongoreactive.sapl;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.commons.lang3.NotImplementedException;
-
 import io.sapl.springdatamongoreactive.sapl.utils.SaplCondition;
 import lombok.Getter;
+import org.apache.commons.lang3.NotImplementedException;
 
 /**
  * This enum class is used to use a uniform language when it comes to creating
