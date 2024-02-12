@@ -15,6 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * This package contains the grammar definition of sapl policy files as well as
+ * some configuration to setup sapl and to generate sources for the sapl grammar
+ * with xtext.
+ */
 @org.osgi.annotation.versioning.Version("3.0.0")
 @org.osgi.annotation.bundle.Export
 

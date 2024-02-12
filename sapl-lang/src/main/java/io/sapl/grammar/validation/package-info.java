@@ -15,6 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * This package contains contains custom validation rules. *
+ * <p>
+ * * See <a href=
+ * "https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation">Validation</a>
+ */
 @org.osgi.annotation.versioning.Version("3.0.0")
 @org.osgi.annotation.bundle.Export
 
