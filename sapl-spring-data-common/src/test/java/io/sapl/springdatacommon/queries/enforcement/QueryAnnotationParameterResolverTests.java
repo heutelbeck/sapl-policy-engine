@@ -36,7 +36,7 @@ import io.sapl.springdatacommon.sapl.queries.enforcement.QueryAnnotationParamete
 class QueryAnnotationParameterResolverTests {
 
     @Test
-    void resolveBoundedMethodParametersAndAnnotationParameters() {
+    void when_valuesOfQueryAndMethodParameterAreFitting_resolveBoundedMethodParametersAndAnnotationParameters() {
         // GIVEN
         var r2dbcMethodInvocationTest = new R2dbcMethodInvocation("findAllUsersTest",
                 new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(30, "2")), null);
@@ -82,6 +82,21 @@ class QueryAnnotationParameterResolverTests {
 
         // THEN
         assertEquals(expectedResult, result);
+    }
+
+    @Test
+    void when_queryAnnotationContainsConcatCommand_then_resolveBoundedMethodParametersAndAnnotationParameters() {
+        // GIVEN
+        var r2dbcMethodInvocationTest = new R2dbcMethodInvocation("concatValuesInQueryAnnotation",
+                new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("TT")), null);
+        var expected                  = "SELECT * FROM person WHERE lastname LIKE CONCAT('%', 'TT', '%')";
+
+        // WHEN
+        var actual = QueryAnnotationParameterResolver.resolveBoundedMethodParametersAndAnnotationParameters(
+                r2dbcMethodInvocationTest.getMethod(), r2dbcMethodInvocationTest.getArguments(), true);
+
+        // THEN
+        assertEquals(expected, actual);
     }
 
     @Test

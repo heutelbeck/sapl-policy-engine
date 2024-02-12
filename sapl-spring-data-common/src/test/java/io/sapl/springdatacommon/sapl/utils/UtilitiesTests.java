@@ -45,9 +45,9 @@ import reactor.test.StepVerifier;
 
 class UtilitiesTests {
 
-    final Person       malinda = new Person(1, "Malinda", "Perrot", 53, Role.ADMIN, true);
-    final Person       emerson = new Person(2, "Emerson", "Rowat", 82, Role.USER, false);
-    final Person       yul     = new Person(3, "Yul", "Barukh", 79, Role.USER, true);
+    final Person       malinda = new Person("1", "Malinda", "Perrot", 53, Role.ADMIN, true);
+    final Person       emerson = new Person("2", "Emerson", "Rowat", 82, Role.USER, false);
+    final Person       yul     = new Person("3", "Yul", "Barukh", 79, Role.USER, true);
     final Flux<Person> data    = Flux.just(malinda, emerson, yul);
 
     static Class<?> returnClassOfMonoMethod;
