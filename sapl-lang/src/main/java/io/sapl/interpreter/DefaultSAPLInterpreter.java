@@ -21,6 +21,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -46,6 +48,7 @@ import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -69,16 +72,16 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
     @Override
     public SAPL parse(InputStream saplInputStream) {
 
-        InputStream convertedSaplInputStream;
         try {
-            convertedSaplInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(saplInputStream);
+            saplInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(saplInputStream);
+            saplInputStream = assertNoIllegalBidiUnicodeCharactersPresentInStream(saplInputStream);
         } catch (IOException e) {
-            var errorMessage = "Invalid byte sequence in InputStream. Could not transform to UTF-8.";
+            var errorMessage = "Invalid byte sequence in InputStream.";
             log.error(errorMessage, e);
             throw new PolicyEvaluationException(composeReason(errorMessage), e);
         }
 
-        var sapl       = loadAsResource(convertedSaplInputStream);
+        var sapl       = loadAsResource(saplInputStream);
         var diagnostic = Diagnostician.INSTANCE.validate(sapl);
         if (diagnostic.getSeverity() == Diagnostic.OK)
             return sapl;
@@ -162,4 +165,57 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
         return (SAPL) resource.getContents().get(0);
     }
 
+    private static InputStream assertNoIllegalBidiUnicodeCharactersPresentInStream(InputStream stream)
+            throws IOException {
+        ByteArrayInputStream         bais = new ByteArrayInputStream(stream.readAllBytes());
+        int                          current;
+        ByteSequenceValidationBuffer buf  = new ByteSequenceValidationBuffer();
+        while ((current = bais.read()) != -1) {
+            buf.addByte(current);
+            if (buf.checkForIllegalSequence()) {
+                final String message = "Illegal bidirectional unicode control characters were recognised in the input stream.";
+                throw new PolicyEvaluationException(PARSING_ERRORS, message);
+            }
+        }
+        bais.reset();
+        return bais;
+    }
+
+    @NoArgsConstructor
+    static class ByteSequenceValidationBuffer {
+        static final int BUFFER_SIZE = 3;
+        // @formatter:off
+		static List<int[]> illegalSequences =
+				new ArrayList<>(List.of(
+					new int[] { 0xE2, 0x81, 0xA6 }, // unicode LRI
+					new int[] { 0xE2, 0x81, 0xA7}, // unicode RLI
+					new int[] { 0xE2, 0x81, 0xA9 }, // unicode PDI
+					new int[] { 0xE2, 0x80, 0xAE} // unicode RLO
+		));
+		// @formatter:on
+
+        private int[] buffer       = new int[BUFFER_SIZE];
+        private int   currentIndex = 0;
+
+        void addByte(int b) {
+            buffer[currentIndex] = b;
+            currentIndex         = (currentIndex + 1) % BUFFER_SIZE;
+        }
+
+        boolean checkForIllegalSequence() {
+            for (var s : illegalSequences) {
+                int tmp = currentIndex;
+                for (int i = 0; i < s.length; i++) {
+                    if (s[i] != buffer[tmp]) {
+                        break;
+                    }
+                    if (i == s.length - 1) {
+                        return true;
+                    }
+                    tmp = (tmp + 1) % BUFFER_SIZE;
+                }
+            }
+            return false;
+        }
+    }
 }
