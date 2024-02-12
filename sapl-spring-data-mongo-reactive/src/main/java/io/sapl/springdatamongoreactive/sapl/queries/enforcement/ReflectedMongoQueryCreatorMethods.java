@@ -17,15 +17,13 @@
  */
 package io.sapl.springdatamongoreactive.sapl.queries.enforcement;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Iterator;
-
+import lombok.SneakyThrows;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.util.ReflectionUtils;
 
-import lombok.SneakyThrows;
+import java.lang.reflect.Method;
+import java.util.Iterator;
 
 public class ReflectedMongoQueryCreatorMethods {
 
@@ -60,9 +58,6 @@ public class ReflectedMongoQueryCreatorMethods {
      * @param part     is a part of a PartTree.
      * @param iterator is an iterator built from all parameters.
      * @return a new {@link Criteria}.
-     * @throws InvocationTargetException
-     * @throws IllegalArgumentException
-     * @throws IllegalAccessException
      */
     @SneakyThrows // throws IllegalAccessException, IllegalArgumentException,
                   // InvocationTargetException

@@ -30,6 +30,8 @@ import io.sapl.springdatamongoreactive.sapl.utils.annotation.SaplProtectedMongoR
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Nonnull;
+
 @Repository
 public interface ReactiveMongoTestUserRepository
         extends ReactiveMongoRepository<TestUser, ObjectId>, MongoDbRepositoryTestCustom<TestUser, ObjectId> {
@@ -50,8 +52,9 @@ public interface ReactiveMongoTestUserRepository
 
     Flux<TestUser> findAllByFirstnameOrAgeBefore(String firstname, int age);
 
+    @Nonnull
     @EnforceMongoReactive(subject = "test", action = "test", resource = "test", environment = "{\"testNode\"!!\"testValue\"}")
-    Mono<TestUser> findById(ObjectId id);
+    Mono<TestUser> findById(@Nonnull ObjectId id);
 
     @EnforceMongoReactive(subject = "test", action = "test", resource = "#setResource('field', #firstname)", environment = "test")
     Flux<TestUser> findByIdBefore(ObjectId id);
@@ -76,6 +79,7 @@ public interface ReactiveMongoTestUserRepository
 
     Flux<TestUser> findAllBy();
 
+    @Nonnull
     Flux<TestUser> findAll();
 
     Flux<TestUser> findAllByAgeBefore(int age);

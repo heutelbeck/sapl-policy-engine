@@ -34,18 +34,11 @@ import org.springframework.data.repository.query.parser.PartTree;
 import org.springframework.util.ReflectionUtils;
 
 import io.sapl.springdatamongoreactive.sapl.utils.Utilities;
-import lombok.Getter;
 import lombok.SneakyThrows;
 
 public class ReflectedMongoQueryCreatorInstantiator {
 
     private ProjectionFactory                                                           projectionFactory;
-    /**
-     * -- GETTER -- Returns the created convertingParameterAccessor.
-     *
-     * @return the convertingParameterAccessor.
-     */
-    @Getter
     private ConvertingParameterAccessor                                                 convertingParameterAccessor;
     private MappingContext<? extends MongoPersistentEntity<?>, MongoPersistentProperty> mappingContext;
     private final ReflectedMongoQueryCreatorConstructor                                 mongoQueryCreator;
@@ -66,10 +59,6 @@ public class ReflectedMongoQueryCreatorInstantiator {
      * @param method     is the original repository method.
      * @param parameters are the parameters of the method.
      * @return new instance of MongoQueryCreator.
-     * @throws InvocationTargetException
-     * @throws IllegalArgumentException
-     * @throws IllegalAccessException
-     * @throws InstantiationException
      */
     @SneakyThrows // throws InvocationTargetException, InstantiationException,
                   // IllegalAccessException, IllegalArgumentException
@@ -114,6 +103,15 @@ public class ReflectedMongoQueryCreatorInstantiator {
                 ConvertingParameterAccessor.class, MappingContext.class, boolean.class);
         ReflectionUtils.makeAccessible(constructor);
         return constructor;
+    }
+
+    /**
+     * Returns the created convertingParameterAccessor.
+     *
+     * @return the convertingParameterAccessor.
+     */
+    public ConvertingParameterAccessor getConvertingParameterAccessor() {
+        return this.convertingParameterAccessor;
     }
 
 }

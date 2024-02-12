@@ -115,6 +115,7 @@ class MongoProxyInterceptorTests {
         var result            = (Flux<TestUser>) proxyMongoHandler.invoke(mongoMethodInvocationTest);
 
         // THEN
+        assert result != null;
         StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
 
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
@@ -145,6 +146,7 @@ class MongoProxyInterceptorTests {
         var result            = (Flux<TestUser>) proxyMongoHandler.invoke(mongoMethodInvocationTest);
 
         // THEN
+        assert result != null;
         StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
 
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class),
@@ -176,6 +178,7 @@ class MongoProxyInterceptorTests {
         var result            = (Flux<TestUser>) proxyMongoHandler.invoke(mongoMethodInvocationTest);
 
         // THEN
+        assert result != null;
         StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
 
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class),
@@ -198,6 +201,7 @@ class MongoProxyInterceptorTests {
         var result            = (Flux<TestUser>) proxyMongoHandler.invoke(mongoMethodInvocationTest);
 
         // THEN
+        assert result != null;
         StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
 
         verify(authSubHandlerMock, never()).getAuthSub(any(Class.class), any(MethodInvocation.class),
@@ -227,6 +231,7 @@ class MongoProxyInterceptorTests {
         var result            = (Flux<TestUser>) proxyMongoHandler.invoke(mongoMethodInvocationTest);
 
         // THEN
+        assert result != null;
         StepVerifier.create(result).expectNext(aaron).expectNext(brian).expectNext(cathrin).verifyComplete();
 
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
@@ -256,6 +261,7 @@ class MongoProxyInterceptorTests {
         var result            = (Mono<TestUser>) proxyMongoHandler.invoke(mongoMethodInvocationTest);
 
         // THEN
+        assert result != null;
         StepVerifier.create(result).expectNext(aaron).verifyComplete();
 
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
@@ -285,6 +291,7 @@ class MongoProxyInterceptorTests {
         var result            = (List<TestUser>) proxyMongoHandler.invoke(mongoMethodInvocationTest);
 
         // THEN
+        assert result != null;
         assertEquals(result.get(0), aaron);
 
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
