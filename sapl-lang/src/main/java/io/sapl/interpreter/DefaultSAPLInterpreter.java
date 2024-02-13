@@ -20,6 +20,8 @@ package io.sapl.interpreter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -167,18 +169,20 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
     private static InputStream assertNoIllegalBidiUnicodeCharactersPresentInStream(InputStream stream)
             throws IOException {
-        ByteArrayInputStream         bais = new ByteArrayInputStream(stream.readAllBytes());
-        int                          current;
-        ByteSequenceValidationBuffer buf  = new ByteSequenceValidationBuffer();
-        while ((current = bais.read()) != -1) {
-            buf.addByte(current);
-            if (buf.checkForIllegalSequence()) {
-                final String message = "Illegal bidirectional unicode control characters were recognised in the input stream.";
-                throw new PolicyEvaluationException(PARSING_ERRORS, message);
+		var newInputStream = new PipedInputStream();
+		int current;
+		var buf = new ByteSequenceValidationBuffer();
+        try (var outputStream = new PipedOutputStream(newInputStream)) {
+            while ((current = stream.read()) != -1) {
+                buf.addByte(current);
+                if (buf.checkForIllegalSequence()) {
+                    final String message = "Illegal bidirectional unicode control characters were recognised in the input stream.";
+                    throw new PolicyEvaluationException(PARSING_ERRORS, message);
+                }
+                outputStream.write(current);
             }
         }
-        bais.reset();
-        return bais;
+        return newInputStream;
     }
 
     @NoArgsConstructor
