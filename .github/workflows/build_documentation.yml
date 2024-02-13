@@ -59,7 +59,7 @@ jobs:
       uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
       env:
         GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
-        SRC_FOLDER: sapl-documentation/src/md
+        SRC_FOLDER: sapl-documentation
         DEST_OWNER: heutelbeck
         DEST_REPO: sapl-pages
         DEST_BRANCH: master
