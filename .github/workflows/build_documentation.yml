@@ -43,23 +43,12 @@ jobs:
         lfs: true
         fetch-depth: 0
       
-    - name: Set up JDK 11
+    - name: Set up JDK 17
       uses: actions/setup-java@de1bb2b0c5634f0fc4438d7aa9944e68f9bf86cc # v3.6.0
       with:
-        java-version: 11
+        java-version: 17
         distribution: adopt
   
-    - name: Cache Maven dependencies
-      uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11  
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
-          
-    - name: Build Documentation
-      run: mvn -B generate-resources -pl sapl-documentation
-
     - name: Get version
       id: get-version
       run: |
@@ -70,9 +59,9 @@ jobs:
       uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
       env:
         GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
-        SRC_FOLDER: sapl-documentation/target/generated-docs
+        SRC_FOLDER: sapl-documentation/src/md
         DEST_OWNER: heutelbeck
         DEST_REPO: sapl-pages
         DEST_BRANCH: master
-        DEST_FOLDER: docs/${{ steps.get-version.outputs.VERSION }}
+        DEST_FOLDER: documentation-md/${{ steps.get-version.outputs.VERSION }}
         DEST_PREDEPLOY_CLEANUP: "rm -rf docs/${{ steps.get-version.outputs.VERSION }}/*"        
