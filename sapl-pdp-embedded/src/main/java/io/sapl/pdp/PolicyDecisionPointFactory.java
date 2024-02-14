@@ -46,6 +46,7 @@ import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
 import io.sapl.pip.TimePolicyInformationPoint;
+import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
@@ -153,6 +154,7 @@ public class PolicyDecisionPointFactory {
             StaticPolicyInformationPointSupplier staticPips) throws InitializationException {
         var attributeCtx = new AnnotationAttributeContext();
         attributeCtx.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
+        attributeCtx.loadPolicyInformationPoint(new HttpPolicyInformationPoint(new ObjectMapper()));
         attributeCtx.loadPolicyInformationPoints(pips);
         attributeCtx.loadPolicyInformationPoints(staticPips);
         return attributeCtx;
@@ -161,7 +163,6 @@ public class PolicyDecisionPointFactory {
     private static PolicyRetrievalPoint constructResourcesPolicyRetrievalPoint(String resourcePath) {
         var seedIndex = constructDocumentIndex();
         var source    = new ResourcesPrpUpdateEventSource(resourcePath, new DefaultSAPLInterpreter());
-
         return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
     }
 

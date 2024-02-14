@@ -115,6 +115,16 @@
 			<version>1.3.1</version>
 		</dependency>
 
+		<!-- Webflux for the reactive WebClient -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-webflux</artifactId>
+		</dependency>
+		<!-- Dependency for the Repeat and Back-Off -->
+		<dependency>
+			<groupId>io.projectreactor.addons</groupId>
+			<artifactId>reactor-extra</artifactId>
+		</dependency>
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>

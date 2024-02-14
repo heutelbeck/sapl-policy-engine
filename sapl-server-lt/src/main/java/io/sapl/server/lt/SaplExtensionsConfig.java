@@ -24,13 +24,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
+import io.sapl.pip.http.HttpPolicyInformationPoint;
 
 @Configuration
 public class SaplExtensionsConfig {
+
+    @Bean
+    HttpPolicyInformationPoint httpPolicyInformationPoint(ObjectMapper mapper) {
+        return new HttpPolicyInformationPoint(mapper);
+    }
 
     @Bean
     StaticPolicyInformationPointSupplier mqttPolicyInformationPoint() {
