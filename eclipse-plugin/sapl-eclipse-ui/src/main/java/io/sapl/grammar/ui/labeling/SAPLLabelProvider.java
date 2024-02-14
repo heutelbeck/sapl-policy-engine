@@ -36,14 +36,4 @@ public class SAPLLabelProvider extends DefaultEObjectLabelProvider {
     public SAPLLabelProvider(AdapterFactoryLabelProvider delegate) {
         super(delegate);
     }
-
-    // Labels and icons can be computed like this:
-
-    // String text(Greeting ele) {
-    // return "A greeting to " + ele.getName();
-    // }
-    //
-    // String image(Greeting ele) {
-    // return "Greeting.gif";
-    // }
 }

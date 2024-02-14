@@ -21,18 +21,6 @@
 <feature id="sapl-eclipse-feature"
 	label="SAPL Feature "
 	version="3.0.0.qualifier">
-<!--	<plugin-->
-<!--			id="sapl-lang"-->
-<!--			download-size="0"-->
-<!--			install-size="0"-->
-<!--			version="0.0.0"-->
-<!--			unpack="false"/>-->
-<!--	<plugin-->
-<!--			id="sapl-ide"-->
-<!--			download-size="0"-->
-<!--			install-size="0"-->
-<!--			version="0.0.0"-->
-<!--			unpack="false"/>-->
 	<plugin
 			id="sapl-eclipse-ui"
 			download-size="0"
