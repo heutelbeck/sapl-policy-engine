@@ -21,6 +21,8 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
@@ -49,7 +51,7 @@ import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.One;
+import reactor.core.publisher.Sinks.Many;
 import reactor.retry.Repeat;
 
 @RequiredArgsConstructor
@@ -197,24 +199,34 @@ public class ReactiveWebClient {
         var headers = new HttpHeaders();
         setHeaders(headers, requestHeaders);
 
-        Sinks.One<WebSocketSession> receiveBuffer = Sinks.one();
-        client.execute(uri, headers, session -> handleSession(session, body, receiveBuffer)).subscribe();
-        return receiveBuffer.asMono().flatMapMany(this::listenToIncomingDataFromWebSocket);
+        var             sessionReference = new AtomicReference<WebSocketSession>();
+        Sinks.Many<Val> receiveBuffer    = Sinks.many().unicast().onBackpressureBuffer();
+        client.execute(uri, headers, session -> {
+            sessionReference.set(session);
+            return handleSession(session, body, receiveBuffer);
+        }).subscribe();
+        return receiveBuffer.asFlux().doOnTerminate(
+                () -> Optional.ofNullable(sessionReference.get()).ifPresent(session -> session.close().subscribe())).doOnNext(x->{
+                    System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXX");
+                    System.out.println("x:"+x);
+                    System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXX");
+                });
     }
 
-    private Mono<Void> handleSession(WebSocketSession session, JsonNode body, One<WebSocketSession> receiveBuffer) {
-        receiveBuffer.tryEmitValue(session);
-        return body == null ? Mono.empty() : Mono.just(session.textMessage(body.asText())).then();
+    private Mono<Void> handleSession(WebSocketSession session, JsonNode body, Many<Val> receiveBuffer) {
+        if (body != null)
+            session.textMessage(body.asText());
+        return listenToIncomingDataFromWebSocket(session, receiveBuffer);
     }
 
-    private Flux<Val> listenToIncomingDataFromWebSocket(WebSocketSession session) {
-        return session.receive().map(WebSocketMessage::getPayloadAsText).concatMap(payload -> {
+    private Mono<Void> listenToIncomingDataFromWebSocket(WebSocketSession session, Many<Val> receiveBuffer) {
+        return session.receive().map(WebSocketMessage::getPayloadAsText).doOnNext(payload -> {
             try {
-                return Mono.just(Val.ofJson(payload));
+                receiveBuffer.tryEmitNext(Val.ofJson(payload));
             } catch (JsonProcessingException e) {
-                return Val.errorFlux(e.getMessage());
+                receiveBuffer.tryEmitNext(Val.error(e.getMessage()));
             }
-        }).doOnTerminate(() -> session.close().subscribe());
+        }).then();
     }
 
 }

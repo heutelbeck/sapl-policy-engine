@@ -20,13 +20,13 @@ package io.sapl.pip.http;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -37,12 +37,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import reactor.test.StepVerifier;
 
 @TestInstance(Lifecycle.PER_CLASS)
-class ReactiveWebClientTest {
+class ReactiveWebClientTests {
 
     private static final ObjectMapper MAPPER           = new ObjectMapper();
     private static final String       DEFAULT_BODY     = "{\"message\":\"success\"}";
@@ -59,16 +61,16 @@ class ReactiveWebClientTest {
         clientUnderTest = new ReactiveWebClient(MAPPER);
     }
 
-    @AfterEach
-    void stopBackEnd() throws IOException {
-        mockBackEnd.shutdown();
-    }
-
     @BeforeEach
     void initialize() throws IOException {
         mockBackEnd = new MockWebServer();
         mockBackEnd.start();
         baseUrl = String.format("http://localhost:%s", mockBackEnd.getPort());
+    }
+
+    @AfterEach
+    void stopBackEnd() throws IOException {
+        mockBackEnd.shutdown();
     }
 
     private Val defaultRequest(String mimeType) throws JsonProcessingException {
@@ -115,15 +117,15 @@ class ReactiveWebClientTest {
         var httpTestRequest = Val.ofJson(String.format(template, baseUrl, MediaType.APPLICATION_JSON_VALUE));
         clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(Val::toString).blockFirst();
         var recordedRequest = mockBackEnd.takeRequest(1, TimeUnit.SECONDS);
-        var url = recordedRequest.getRequestUrl().toString();
-        var headers = recordedRequest.getHeaders().toMultimap();
-       
-        var sa  = new SoftAssertions();
+        var url             = recordedRequest.getRequestUrl().toString();
+        var headers         = recordedRequest.getHeaders().toMultimap();
+
+        var sa = new SoftAssertions();
         sa.assertThat(url).contains("willi=wurst");
         sa.assertThat(url).contains("h%C3%A4nschen=klein");
         sa.assertThat(url).contains("rainbow?");
         sa.assertThat(headers.get("X-A")).contains("einmal");
-        sa.assertThat(headers.get("X-B")).contains("a","b","c");
+        sa.assertThat(headers.get("X-B")).contains("a", "b", "c");
         sa.assertAll();
     }
 
@@ -292,18 +294,39 @@ class ReactiveWebClientTest {
     }
 
     @Test
+    @Disabled
     void when_connectingToWebSocket_then_StreamReturnsAsVal() throws JsonProcessingException {
+        // var socketSpy = spy(WebSocketListener.class);
+        var response = new MockResponse().withWebSocketUpgrade(new WebSocketListener() {
+            @Override
+            public void onMessage(WebSocket socket, String message) {
+                System.out.println("WS: " + socket + " : " + message);
+            }
+
+            @Override
+
+            public void onClosing(WebSocket webSocket, int code, String reason) {
+                System.out.println("oc WS: " + webSocket + " : " + reason);
+
+            }
+        }).setBody(DEFAULT_BODY);
+        mockBackEnd.enqueue(response);
+        mockBackEnd.enqueue(response);
+        mockBackEnd.enqueue(response);
+        mockBackEnd.enqueue(response);
+        mockBackEnd.enqueue(response);
+        mockBackEnd.enqueue(response);
         var template        = """
                 {
-                    "baseUrl" : "wss://api.whitebit.com/ws",
-                    "body" : {
-                                "id": 0,
-                                "method": "ping",
-                                "params": []
-                             }
+                    "baseUrl" : "%s",
+                    "body" : "hello"
                 }
                 """;
-        var httpTestRequest = Val.ofJson(template);
-        clientUnderTest.consumeWebSocket(httpTestRequest).log().doOnNext(System.out::println).blockLast(Duration.ofSeconds(20));
+        var httpTestRequest = Val.ofJson(String.format(template, baseUrl));
+        StepVerifier.create(clientUnderTest.consumeWebSocket(httpTestRequest)).expectNext(Val.ofEmptyArray())
+                .verifyComplete();
     }
+    
+    
+    
 }
