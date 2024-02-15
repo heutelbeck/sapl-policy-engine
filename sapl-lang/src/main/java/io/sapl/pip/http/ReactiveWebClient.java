@@ -19,6 +19,7 @@ package io.sapl.pip.http;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Map;
 
 import org.springframework.core.ParameterizedTypeReference;
@@ -29,186 +30,191 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
+import org.springframework.web.util.UriBuilder;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.TextNode;
 
-import lombok.Getter;
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.One;
 import reactor.retry.Repeat;
 
-@Slf4j
 @RequiredArgsConstructor
 public class ReactiveWebClient {
 
+    static final String                  NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR = "No base URL specified for web request.";
+    private static final String          BASE_URL                                    = "baseUrl";
+    private static final String          PATH                                        = "path";
+    private static final String          URL_PARAMS                                  = "urlParameters";
+    private static final String          HEADERS                                     = "headers";
+    private static final String          BODY                                        = "body";
+    private static final String          POLLING_INTERVAL                            = "pollingIntervalMs";
+    private static final String          REPEAT_TIMES                                = "repetitions";
+    private static final String          ACCEPT_MEDIATYPE                            = "accept";
+    private static final String          CONTENT_MEDIATYPE                           = "contentType";
+    private static final long            DEFAULT_POLLING_INTERVALL_MS                = 1000L;
+    private static final long            DEFAULT_REPETITIONS                         = Long.MAX_VALUE;
+    private static final JsonNodeFactory JSON                                        = JsonNodeFactory.instance;
+    private static final TextNode        APPLICATION_JSON                            = JSON
+            .textNode(MediaType.APPLICATION_JSON.toString());
+
     private final ObjectMapper mapper;
-
-    private static final String          ACCEPT_MEDIATYPE  = "acceptMediaType";
-    private static final String          CONTENT_MEDIATYPE = "contentType";
-    private static final JsonNodeFactory JSON              = JsonNodeFactory.instance;
-
-    private Sinks.Many<String>   sendBuffer;
-    private Sinks.Many<JsonNode> receiveBuffer;
-
-    @Getter
-    private WebSocketSession webSocketSession;
-    private Disposable       subscription;
-
-    public Flux<JsonNode> connectToSocket(JsonNode requestSettings) {
-        try {
-            return connectToSocket(JsonHandler.getJsonBaseUrl(requestSettings),
-                    JsonHandler.getJsonPath(requestSettings), JsonHandler.getJsonHeaders(requestSettings, mapper));
-        } catch (RequestSettingException e) {
-            return Flux.error(e);
-        }
-    }
-
-    public Flux<JsonNode> connectToSocket(String baseUrl, String path, Map<String, String> requestHeaders) {
-
-        URI                         uri    = URI.create(baseUrl + path);
-        ReactorNettyWebSocketClient client = new ReactorNettyWebSocketClient();
-        sendBuffer        = Sinks.many().unicast().onBackpressureBuffer();
-        receiveBuffer     = Sinks.many().unicast().onBackpressureBuffer();
-        this.subscription = client
-                .execute(uri, RequestHandler.setHeaders(new HttpHeaders(), requestHeaders), this::handleSession)
-                .then(Mono.fromRunnable(this::onClose)).subscribe();
-        return receiveBuffer.asFlux();
-    }
-
-    public void disconnectSocket() {
-        if (subscription != null && !subscription.isDisposed()) {
-            subscription.dispose();
-            subscription = null;
-            onClose();
-        }
-    }
 
     /**
      * <p>
-     * Connects to an endpoint and produces a Flux<JsonNode>
+     * Connects to an HTTP service and produces a Flux<Val>
      * </p>
      *
-     * @param the @see HttpMethod to execute and a @see JsonNode containing the
-     *            settings
-     * @return a @see Flux<@see JsonNode>
+     * @param the @see HttpMethod to execute and a @see Val containing the settings
+     * @return a @see Flux<@see Val>
      */
-    public Flux<JsonNode> connect(HttpMethod method, JsonNode requestSettings) {
-        try {
-            return connect(method, JsonHandler.getJsonBaseUrl(requestSettings),
-                    JsonHandler.getJsonPath(requestSettings), JsonHandler.getJsonUrlParams(requestSettings, mapper),
-                    JsonHandler.getJsonHeaders(requestSettings, mapper),
-                    JsonHandler.getJsonBody(requestSettings, mapper),
-                    JsonHandler.getJsonMediaType(requestSettings, ACCEPT_MEDIATYPE),
-                    JsonHandler.getJsonMediaType(requestSettings, CONTENT_MEDIATYPE),
-                    JsonHandler.getJsonPollingInterval(requestSettings),
-                    JsonHandler.getJsonRepeatTimes(requestSettings));
-        } catch (Exception e) {
-            return Flux.error(e);
-        }
-    }
+    public Flux<Val> httpRequest(HttpMethod method, Val requestSettings) {
+        var baseUrl            = baseUrl(requestSettings);
+        var path               = requestSettings.fieldValOrElse(PATH, Val.of("")).get().asText();
+        var urlParameters      = toStringMap(requestSettings.fieldJsonNodeOrElse(URL_PARAMS, JSON::objectNode));
+        var requestHeaders     = requestSettings.fieldJsonNodeOrElse(HEADERS, JSON::objectNode);
+        var pollingIntervallMs = longOrDefault(requestSettings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS);
+        var repetitions        = longOrDefault(requestSettings, REPEAT_TIMES, DEFAULT_REPETITIONS);
+        var accept             = toMediaType(requestSettings.fieldJsonNodeOrElse(ACCEPT_MEDIATYPE, APPLICATION_JSON));
+        var contentType        = toMediaType(requestSettings.fieldJsonNodeOrElse(CONTENT_MEDIATYPE, APPLICATION_JSON));
+        var body               = requestSettings.fieldJsonNodeOrElse(BODY, (JsonNode) null);
 
-    public Flux<JsonNode> connect(HttpMethod method, String baseUrl, String path, Map<String, String> urlParameters,
-            Map<String, String> requestHeaders, JsonNode body, MediaType acceptMediaType, MediaType contentType,
-            int pollingInterval, long repeatTimes) {
+        // @formatter:off
+        var spec = WebClient.builder()
+                            .baseUrl(baseUrl).build()
+                            .method(method)
+                            .uri(u -> setUrlParams(u, urlParameters).path(path).build())
+                            .headers(h -> setHeaders(h,requestHeaders))
+                            .accept(accept);
+        // @formatter:on
 
-        RequestHeadersSpec<?> client;
-
-        if (method == HttpMethod.GET) {
-
-            log.debug("case get: {}", method.toString());
-            client = RequestHandler.setGetRequest(createWebClient(baseUrl).method(method), path, urlParameters,
-                    requestHeaders, acceptMediaType);
-        } else {
-            log.debug("case method default: {}", method.toString());
-            client = RequestHandler.setRequest(createWebClient(baseUrl).method(method), path, urlParameters,
-                    requestHeaders, body, acceptMediaType, contentType);
+        RequestHeadersSpec<?> client = spec;
+        if (method != HttpMethod.GET && body != null) {
+            client = spec.contentType(contentType).bodyValue(body);
         }
 
-        switch (acceptMediaType.toString()) {
-        case MediaType.TEXT_EVENT_STREAM_VALUE: // text/event-stream
-            try {
-                log.debug("case sse");
-                return retrieveSSE(client)
-                        .doOnNext(r -> log.debug("ReactiveWebClient sse receiving: {}", r.toString()));
-            } catch (Exception e) {
-                return Flux.error(e);
-            }
-
-        case MediaType.TEXT_PLAIN_VALUE: // text/plain
-            log.debug("case string");
-            return returnFlux(exchangeToMono(String.class, client).map(JSON::textNode), pollingInterval, repeatTimes)
-                    .doOnNext(r -> log.debug("ReactiveWebClient String receiving: ", r.toString()));
-
+        switch (accept.toString()) {
+        case MediaType.TEXT_EVENT_STREAM_VALUE:
+            return retrieveSSE(client).map(Val::of).onErrorResume(this::mapError);
+        case MediaType.APPLICATION_JSON_VALUE:
+            return poll(exchangeToMono(JsonNode.class, client).map(Val::of).onErrorResume(this::mapError),
+                    pollingIntervallMs, repetitions);
         default:
-            log.debug("case flux");
-            return returnFlux(exchangeToMono(JsonNode.class, client), pollingInterval, repeatTimes)
-                    .doOnNext(r -> log.debug("ReactiveWebClient default receiving: ", r.toString()));
-
+            return poll(exchangeToMono(String.class, client).map(Val::of).onErrorResume(this::mapError),
+                    pollingIntervallMs, repetitions);
         }
-
     }
 
-    // private methods
+    private void setHeaders(HttpHeaders headers, JsonNode requestHeaders) {
+        requestHeaders.fields().forEachRemaining(field -> {
+            var key   = field.getKey();
+            var value = field.getValue();
+            if (value.isArray()) {
+                var elements = new ArrayList<String>();
+                value.elements().forEachRemaining(e -> elements.add(e.asText()));
+                headers.put(key, elements);
+            } else {
+                headers.set(key, value.asText());
+            }
+        });
+    }
 
-    private WebClient createWebClient(String baseUrl) {
-        return WebClient.builder().baseUrl(baseUrl).build();
+    private String baseUrl(Val requestSettings) {
+        return requestSettings.fieldJsonNodeOrElseThrow(BASE_URL,
+                () -> new PolicyEvaluationException(NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR)).asText();
+    }
+
+    private long longOrDefault(Val requestSettings, String fieldName, long defaultValue) {
+        var value = requestSettings.fieldJsonNodeOrElse(fieldName, () -> JSON.numberNode(defaultValue));
+        if (!value.isNumber())
+            throw new PolicyEvaluationException(
+                    fieldName + " must be an integer in HTTP requestSpecification, but was: " + value.getNodeType());
+        return value.longValue();
+    }
+
+    private Map<String, String> toStringMap(JsonNode node) {
+        return mapper.convertValue(node, new TypeReference<Map<String, String>>() {
+        });
+    }
+
+    public MediaType toMediaType(JsonNode mediaTypeJson) {
+        return MediaType.parseMediaType(mediaTypeJson.asText());
+    }
+
+    static UriBuilder setUrlParams(UriBuilder uri, Map<String, String> urlParams) {
+        for (var param : urlParams.entrySet()) {
+            uri = uri.queryParam(param.getKey(), param.getValue());
+        }
+        return uri;
     }
 
     private Flux<JsonNode> retrieveSSE(RequestHeadersSpec<?> client) {
-
         ParameterizedTypeReference<ServerSentEvent<JsonNode>> type = new ParameterizedTypeReference<ServerSentEvent<JsonNode>>() {
         };
-
-        return client.retrieve().bodyToFlux(type).doOnNext(r -> log.debug("ReactiveWebClient SSE: {}", r))
-                .map(e -> e.data());
-
+        return client.retrieve().bodyToFlux(type).map(ServerSentEvent::data);
     }
 
-    private Flux<JsonNode> returnFlux(Mono<JsonNode> in, int pollingInterval, long repeatTimes) {
-        return in.repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofSeconds(pollingInterval))));
+    private Flux<Val> poll(Mono<Val> in, long pollingInterval, long repeatTimes) {
+        return in.repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))));
     }
 
     private <T> Mono<T> exchangeToMono(Class<T> clazz, RequestHeadersSpec<?> in) {
-
         return in.retrieve()
                 .onStatus(HttpStatusCode::isError,
                         clientResponse -> clientResponse.createException()
-                                .flatMap(error -> Mono.error(new RuntimeException(error.getMessage()))))
+                                .flatMap(error -> Mono.error(new PolicyEvaluationException(error.getMessage()))))
                 .bodyToMono(clazz);
-
     }
 
-    private Mono<Void> handleSession(WebSocketSession session) {
-        onOpen(session);
-
-        Mono<Void> input  = session.receive().map(WebSocketMessage::getPayloadAsText)
-                .map(res -> mapper.convertValue(res, JsonNode.class)).doOnNext(res -> {
-                                      receiveBuffer.tryEmitNext(res);
-                                      log.debug(
-                                              (String.format("ReactiveWebClient socket output: %1$s", res.toString())));
-                                  })
-                .then();
-        Mono<Void> output = session.send(sendBuffer.asFlux().map(session::textMessage));
-        return Mono.zip(input, output).then();
+    private Mono<Val> mapError(Throwable e) {
+        if (e instanceof WebClientResponseException clientException) {
+            return Mono.just(Val.error(clientException.getRootCause()));
+        }
+        return Mono.just(Val.error(e));
     }
 
-    private void onOpen(WebSocketSession session) {
-        this.webSocketSession = session;
-        log.debug("ReactiveWebClient: Session opened");
+    public Flux<Val> consumeWebSocket(Val requestSettings) {
+        var baseUrl        = baseUrl(requestSettings);
+        var path           = requestSettings.fieldValOrElse(PATH, Val.of("")).get().asText();
+        var requestHeaders = requestSettings.fieldJsonNodeOrElse(HEADERS, JSON::objectNode);
+        var uri            = URI.create(baseUrl + path);
+        var body           = requestSettings.fieldJsonNodeOrElse(BODY, (JsonNode) null);
+        var client         = new ReactorNettyWebSocketClient();
+
+        var headers = new HttpHeaders();
+        setHeaders(headers, requestHeaders);
+
+        Sinks.One<WebSocketSession> receiveBuffer = Sinks.one();
+        client.execute(uri, headers, session -> handleSession(session, body, receiveBuffer)).subscribe();
+        return receiveBuffer.asMono().flatMapMany(this::listenToIncomingDataFromWebSocket);
     }
 
-    private void onClose() {
-        webSocketSession.close();
-        webSocketSession = null;
-        log.debug("ReactiveWebClient: Session closed");
+    private Mono<Void> handleSession(WebSocketSession session, JsonNode body, One<WebSocketSession> receiveBuffer) {
+        receiveBuffer.tryEmitValue(session);
+        return body == null ? Mono.empty() : Mono.just(session.textMessage(body.asText())).then();
     }
+
+    private Flux<Val> listenToIncomingDataFromWebSocket(WebSocketSession session) {
+        return session.receive().map(WebSocketMessage::getPayloadAsText).concatMap(payload -> {
+            try {
+                return Mono.just(Val.ofJson(payload));
+            } catch (JsonProcessingException e) {
+                return Val.errorFlux(e.getMessage());
+            }
+        }).doOnTerminate(() -> session.close().subscribe());
+    }
+
 }
