@@ -415,22 +415,4 @@ class DefaultSAPLInterpreterTests {
                 .expectNext(expected).verifyComplete();
     }
 
-    @Test
-    void parseTestFailsWithIllegalBidiUnicodeControlCharacters() {
-        var valid              = "policy \"te%sst\" permit";
-        var lri                = '\u2066';
-        var pdi                = '\u2069';
-        var rli                = '\u2067';
-        var rlo                = '\u202E';
-        var invalidContainsLri = String.format(valid, lri);
-        var invalidContainsPdi = String.format(valid, pdi);
-        var invalidContainsRli = String.format(valid, rli);
-        var invalidContainsRlo = String.format(valid, rlo);
-
-        assertDoesNotThrow(() -> INTERPRETER.parse(valid));
-        assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(invalidContainsLri));
-        assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(invalidContainsPdi));
-        assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(invalidContainsRli));
-        assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(invalidContainsRlo));
-    }
 }

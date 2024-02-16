@@ -27,9 +27,7 @@ import com.google.common.collect.Maps;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class VariableContext {
 
     private static final String SUBJECT = "subject";
@@ -45,8 +43,6 @@ public class VariableContext {
     public VariableContext(Map<String, Val> environmentVariables) {
         variables = Maps.newHashMapWithExpectedSize(environmentVariables.size());
         variables.putAll(environmentVariables);
-        variables.forEach((k, v) -> log.error("putting {} {}:{}", v.isSecret() ? "*" : "", k, v));
-
     }
 
     public VariableContext withEnvironmentVariable(String identifier, JsonNode value) {

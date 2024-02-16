@@ -227,3 +227,5 @@ spring.rsocket.server:
       key-store-password: changeme
       key-password: changeme
       key-alias: netty
+logging.level:
+  "[io.sapl]": DEBUG   

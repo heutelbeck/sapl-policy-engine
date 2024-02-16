@@ -41,6 +41,9 @@ import lombok.Getter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ *
+ */
 public class Val implements Traced {
 
     static final String ERROR_LITERAL                              = "ERROR";
@@ -534,12 +537,84 @@ public class Val implements Traced {
     }
 
     /**
+     * Returns the given field or the alternative given.
+     *
+     * @param fieldName     the field name
+     * @param errorSupplier supplier for error if field not present.
+     * @return the field vale if Val is an object with the field. Else throw.
+     * @throws Exception if field is not present supplied Exception is thrown.
+     */
+    public JsonNode fieldJsonNodeOrElseThrow(String fieldName, Supplier<? extends RuntimeException> errorSupplier) {
+        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        if (!isObjectAndFieldIsPresent)
+            throw errorSupplier.get();
+
+        return value.get(fieldName);
+    }
+
+    /**
+     * Returns the given field or the alternative given.
+     *
+     * @param fieldName the field name
+     * @param other     alternative to return if undefined, error, nonObject, or
+     *                  field not present
+     * @return the field vale if Val is an object with the field. Else returns
+     *         other.
+     */
+    public JsonNode fieldJsonNodeOrElse(String fieldName, JsonNode other) {
+        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        return isObjectAndFieldIsPresent ? value.get(fieldName) : other;
+    }
+
+    /**
+     * Returns the given field or the supplied alternative given.
+     *
+     * @param fieldName the field name
+     * @param other     alternative supplier to return if undefined, error,
+     *                  nonObject, or field not present
+     * @return the field vale if Val is an object with the field. Else returns
+     *         other.
+     */
+    public JsonNode fieldJsonNodeOrElse(String fieldName, Supplier<JsonNode> other) {
+        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        return isObjectAndFieldIsPresent ? value.get(fieldName) : other.get();
+    }
+
+    /**
+     * Returns the given field or the alternative given.
+     *
+     * @param fieldName the field name
+     * @param other     alternative to return if undefined, error, nonObject, or
+     *                  field not present
+     * @return the field vale if Val is an object with the field. Else returns
+     *         other.
+     */
+    public Val fieldValOrElse(String fieldName, Val other) {
+        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        return isObjectAndFieldIsPresent ? Val.of(value.get(fieldName)) : other;
+    }
+
+    /**
+     * Returns the given field or the supplied alternative given.
+     *
+     * @param fieldName the field name
+     * @param other     alternative supplier to return if undefined, error,
+     *                  nonObject, or field not present
+     * @return the field vale if Val is an object with the field. Else returns
+     *         other.
+     */
+    public Val fieldValOrElse(String fieldName, Supplier<Val> other) {
+        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        return isObjectAndFieldIsPresent ? Val.of(value.get(fieldName)) : other.get();
+    }
+
+    /**
      * Returns the supplied given other if the Val is undefined or an error.
      *
      * @param other a JSON node
      * @return the result of other if Val undefined or error.
      */
-    public JsonNode orElseGet(Supplier<? extends JsonNode> other) {
+    public JsonNode orElse(Supplier<? extends JsonNode> other) {
         return isDefined() ? value : other.get();
     }
 
