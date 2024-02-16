@@ -109,7 +109,8 @@ class ReactiveWebClientWebSocketTests {
         @Override
         public Mono<Void> handle(WebSocketSession webSocketSession) {
             return webSocketSession
-                    .send(Flux.interval(Duration.ofMillis(1000)).map(Object::toString).map(webSocketSession::textMessage))
+                    .send(Flux.interval(Duration.ofMillis(1000)).map(Object::toString)
+                            .map(webSocketSession::textMessage))
                     .and(webSocketSession.receive().map(WebSocketMessage::getPayloadAsText));
         }
     }

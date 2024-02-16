@@ -18,13 +18,20 @@
 package io.sapl.interpreter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.interpreter.InputStreamHelper.TrojanSourceGuardInputStream;
 
 class InputStreamHelperTests {
 
@@ -122,5 +129,41 @@ class InputStreamHelperTests {
         var out = new String(convertedInputStream.readAllBytes(), StandardCharsets.UTF_8);
 
         assertThat(out).isEqualTo(in);
+    }
+
+    @Test
+    void assertNoIllegalBidiUnicodeCharactersPresentInStreamCatchesIllegalCharacters() throws IOException {
+        var valid              = "policy \"te%sst\" permit";
+        var lri                = '\u2066';
+        var pdi                = '\u2069';
+        var rli                = '\u2067';
+        var rlo                = '\u202E';
+        var validStream        = new TrojanSourceGuardInputStream(
+                new ByteArrayInputStream(valid.getBytes(StandardCharsets.UTF_8)));
+        var invalidContainsLri = new TrojanSourceGuardInputStream(
+                new ByteArrayInputStream(String.format(valid, lri).getBytes(StandardCharsets.UTF_8)));
+        var invalidContainsPdi = new TrojanSourceGuardInputStream(
+                new ByteArrayInputStream(String.format(valid, pdi).getBytes(StandardCharsets.UTF_8)));
+        var invalidContainsRli = new TrojanSourceGuardInputStream(
+                new ByteArrayInputStream(String.format(valid, rli).getBytes(StandardCharsets.UTF_8)));
+        var invalidContainsRlo = new TrojanSourceGuardInputStream(
+                new ByteArrayInputStream(String.format(valid, rlo).getBytes(StandardCharsets.UTF_8)));
+
+        var utf8 = StandardCharsets.UTF_8.name();
+        assertThat(IOUtils.toString(validStream, utf8)).isEqualTo(valid);
+        assertThrows(PolicyEvaluationException.class, () -> IOUtils.toString(invalidContainsLri, utf8));
+        assertThrows(PolicyEvaluationException.class, () -> IOUtils.toString(invalidContainsPdi, utf8));
+        assertThrows(PolicyEvaluationException.class, () -> IOUtils.toString(invalidContainsRli, utf8));
+        assertThrows(PolicyEvaluationException.class, () -> IOUtils.toString(invalidContainsRlo, utf8));
+    }
+
+    @Test
+    @Timeout(10)
+    void checkSize() throws IOException {
+        var utf8     = StandardCharsets.UTF_8.name();
+        var testCase = "*".repeat(10000000);
+        assertDoesNotThrow(() -> IOUtils.toString(
+                new TrojanSourceGuardInputStream(new ByteArrayInputStream(testCase.getBytes(StandardCharsets.UTF_8))),
+                utf8));
     }
 }
