@@ -53,9 +53,7 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
             saplDocuments.forEachByteArrayThrowingIOException((Resource res, byte[] rawDocument) -> {
                 log.debug("Loading SAPL document: {}", res.getPath());
                 var document = new String(rawDocument, StandardCharsets.UTF_8);
-                log.info("document:{}", document);
-                var update = new Update(Type.PUBLISH, interpreter.parse(document), document);
-                log.info("update done");
+                var update   = new Update(Type.PUBLISH, interpreter.parse(document), document);
                 updates.add(update);
             });
         } catch (PolicyEvaluationException e) {
