@@ -19,13 +19,13 @@ package io.sapl.pip.http;
 
 import org.springframework.http.HttpMethod;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
+@RequiredArgsConstructor
 @PolicyInformationPoint(name = "http", description = "Generic PIP for accessing and polling web resources.")
 public class HttpPolicyInformationPoint {
 
@@ -35,11 +35,8 @@ public class HttpPolicyInformationPoint {
     private static final String PATCH_DOCS  = "Sends an HTTP PATCH request to the url provided in the value parameter and returns a flux of responses.";
     private static final String DELETE_DOCS = "Sends an HTTP DELETE request to the url provided in the value parameter and returns a flux of responses.";
     private static final String SOCKET_DOCS = "Connects to a web socket";
-    private ReactiveWebClient   webClient;
 
-    public HttpPolicyInformationPoint(ObjectMapper mapper) {
-        webClient = new ReactiveWebClient(mapper);
-    }
+    private final ReactiveWebClient webClient;
 
     @EnvironmentAttribute(docs = GET_DOCS)
     public Flux<Val> get(Val requestSettings) {

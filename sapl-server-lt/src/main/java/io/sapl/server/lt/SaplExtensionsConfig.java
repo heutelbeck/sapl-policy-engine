@@ -31,13 +31,19 @@ import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
+import io.sapl.pip.http.ReactiveWebClient;
 
 @Configuration
 public class SaplExtensionsConfig {
 
     @Bean
-    HttpPolicyInformationPoint httpPolicyInformationPoint(ObjectMapper mapper) {
-        return new HttpPolicyInformationPoint(mapper);
+    ReactiveWebClient reactiveWebClient(ObjectMapper mapper) {
+        return new ReactiveWebClient(mapper);
+    }
+
+    @Bean
+    HttpPolicyInformationPoint httpPolicyInformationPoint(ReactiveWebClient reactiveWebClient) {
+        return new HttpPolicyInformationPoint(reactiveWebClient);
     }
 
     @Bean

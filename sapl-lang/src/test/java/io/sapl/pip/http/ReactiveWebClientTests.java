@@ -319,11 +319,11 @@ class ReactiveWebClientTests {
         var template        = """
                 {
                     "baseUrl" : "%s",
-                    "body" : "hello"
+                    "body" : { "hello" : "abc" }
                 }
                 """;
         var httpTestRequest = Val.ofJson(String.format(template, baseUrl));
-        StepVerifier.create(clientUnderTest.consumeWebSocket(httpTestRequest)).expectNext(Val.ofEmptyArray())
+        StepVerifier.create(clientUnderTest.consumeWebSocket(httpTestRequest)).expectNext(Val.of("{ \"hello\" : \"abc\" }"))
                 .verifyComplete();
     }
     

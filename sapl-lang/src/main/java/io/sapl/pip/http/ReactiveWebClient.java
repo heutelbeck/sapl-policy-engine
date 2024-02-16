@@ -120,6 +120,34 @@ public class ReactiveWebClient {
         }
     }
 
+    /**
+     * @param requestSettings the request specification
+     * @return a Flux of incoming messages
+     */
+    public Flux<Val> consumeWebSocket(Val requestSettings) {
+        var baseUrl        = baseUrl(requestSettings);
+        var path           = requestSettings.fieldValOrElse(PATH, Val.of("")).get().asText();
+        var requestHeaders = requestSettings.fieldJsonNodeOrElse(HEADERS, JSON::objectNode);
+        var uri            = URI.create(baseUrl + path);
+        var body           = requestSettings.fieldJsonNodeOrElse(BODY, (JsonNode) null);
+        var client         = new ReactorNettyWebSocketClient();
+
+        var headers = new HttpHeaders();
+        setHeaders(headers, requestHeaders);
+
+        var             sessionReference = new AtomicReference<WebSocketSession>();
+        Sinks.Many<Val> receiveBuffer    = Sinks.many().unicast().onBackpressureBuffer();
+        client.execute(uri, headers, session -> {
+            sessionReference.set(session);
+            return sendAndListen(session, body, receiveBuffer);
+        }).subscribe();
+        // @formatter:off
+        return receiveBuffer.asFlux()
+                            .doOnCancel(() -> terminateSession(sessionReference))
+                            .doOnTerminate(() -> terminateSession(sessionReference));
+        // @formatter:on
+    }
+
     private void setHeaders(HttpHeaders headers, JsonNode requestHeaders) {
         requestHeaders.fields().forEachRemaining(field -> {
             var key   = field.getKey();
@@ -188,38 +216,18 @@ public class ReactiveWebClient {
         return Mono.just(Val.error(e));
     }
 
-    public Flux<Val> consumeWebSocket(Val requestSettings) {
-        var baseUrl        = baseUrl(requestSettings);
-        var path           = requestSettings.fieldValOrElse(PATH, Val.of("")).get().asText();
-        var requestHeaders = requestSettings.fieldJsonNodeOrElse(HEADERS, JSON::objectNode);
-        var uri            = URI.create(baseUrl + path);
-        var body           = requestSettings.fieldJsonNodeOrElse(BODY, (JsonNode) null);
-        var client         = new ReactorNettyWebSocketClient();
-
-        var headers = new HttpHeaders();
-        setHeaders(headers, requestHeaders);
-
-        var             sessionReference = new AtomicReference<WebSocketSession>();
-        Sinks.Many<Val> receiveBuffer    = Sinks.many().unicast().onBackpressureBuffer();
-        client.execute(uri, headers, session -> {
-            sessionReference.set(session);
-            return handleSession(session, body, receiveBuffer);
-        }).subscribe();
-        return receiveBuffer.asFlux().doOnTerminate(
-                () -> Optional.ofNullable(sessionReference.get()).ifPresent(session -> session.close().subscribe())).doOnNext(x->{
-                    System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXX");
-                    System.out.println("x:"+x);
-                    System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXX");
-                });
+    private Mono<Void> sendAndListen(WebSocketSession session, JsonNode body, Many<Val> receiveBuffer) {
+        var send   = body == null ? Mono.empty() : session.send(Mono.just(session.textMessage(body.asText())));
+        var listen = listenAndSendEventsToSink(session, receiveBuffer);
+        return send.and(listen);
     }
 
-    private Mono<Void> handleSession(WebSocketSession session, JsonNode body, Many<Val> receiveBuffer) {
-        if (body != null)
-            session.textMessage(body.asText());
-        return listenToIncomingDataFromWebSocket(session, receiveBuffer);
+    private void terminateSession(AtomicReference<WebSocketSession> sessionReference) {
+        Optional.ofNullable(sessionReference.get()).filter(WebSocketSession::isOpen)
+                .ifPresent(session -> session.close().subscribe());
     }
 
-    private Mono<Void> listenToIncomingDataFromWebSocket(WebSocketSession session, Many<Val> receiveBuffer) {
+    private Mono<Void> listenAndSendEventsToSink(WebSocketSession session, Many<Val> receiveBuffer) {
         return session.receive().map(WebSocketMessage::getPayloadAsText).doOnNext(payload -> {
             try {
                 receiveBuffer.tryEmitNext(Val.ofJson(payload));

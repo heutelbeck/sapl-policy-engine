@@ -18,14 +18,46 @@
 package io.sapl.functions;
 
 import static io.sapl.hamcrest.Matchers.val;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.core.JsonParseException;
+
 import io.sapl.api.interpreter.Val;
 
 class StandardFunctionLibraryTests {
+
+    private final static String HTML_DOCUMENT = """
+            <!DOCTYPE html>
+            <html>
+            <body>
+            <p>First</p>
+            <p>Second</p>
+            </body>
+            </html>
+            """;
+
+    private final static String XML_DOCUMENT = """
+            <Flower>
+                <name>Poppy</name>
+                <color>RED</color>
+                <petals>9</petals>
+            </Flower>
+            """;
+
+    @Test
+    void xmlToJsonTest() throws Exception {
+        var html = StandardFunctionLibrary.xmlToJson(Val.of(HTML_DOCUMENT));
+        assertThat(html.get().get("body").get("p").get(0).asText()).isEqualTo("First");
+        var xml = StandardFunctionLibrary.xmlToJson(Val.of(XML_DOCUMENT));
+        assertThat(xml.get().get("name").asText()).isEqualTo("Poppy");
+        assertThatThrownBy(() -> StandardFunctionLibrary.xmlToJson(Val.of("}NOT/><XML")))
+                .isInstanceOf(JsonParseException.class);
+    }
 
     @Test
     void lengthOfEmptyIsZero() {

@@ -1,10 +1,8 @@
 package io.sapl.pip.http;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -14,16 +12,12 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
-import org.springframework.web.util.HtmlUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,54 +32,68 @@ import reactor.test.StepVerifier;
 @EnableAutoConfiguration
 @SpringBootTest(properties = "spring.main.web-application-type=reactive", webEnvironment = WebEnvironment.RANDOM_PORT)
 class ReactiveWebClientWebSocketTests {
-    private final static String MESSAGE = """
-            {
-                "data" : 123
-            }
-            """;
 
+    @LocalServerPort
+    private Integer port;
+
+    @Test
+    void when_sendBodyToEcho_then_receiveEcho() throws JsonProcessingException, InterruptedException {
+        var template        = """
+                {
+                    "baseUrl" : "%s",
+                    "body" : "\\\"hello\\\""
+                }
+                """;
+        var httpTestRequest = Val.ofJson(String.format(template, "ws://localhost:" + port + "/echo"));
+        var streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).next();
+        StepVerifier.create(streamUnderTest).expectNext(Val.of("hello")).expectComplete()
+                .verify(Duration.ofSeconds(5L));
+    }
+
+    @Test
+    void when_sendBodyNonJSONToEcho_then_receiveEchoButError() throws JsonProcessingException, InterruptedException {
+        var template        = """
+                {
+                    "baseUrl" : "%s",
+                    "body" : "hello"
+                }
+                """;
+        var httpTestRequest = Val.ofJson(String.format(template, "ws://localhost:" + port + "/echo"));
+        var streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).next();
+        StepVerifier.create(streamUnderTest)
+                .expectNextMatches(val -> val.isError() && val.getMessage().contains("Unrecognized token"))
+                .expectComplete().verify(Duration.ofSeconds(5L));
+    }
+
+    @Test
+    void when_sendNoBodyToCounter_then_receiveStreamOfNumbers() throws JsonProcessingException, InterruptedException {
+        var template        = """
+                {
+                    "baseUrl" : "%s"
+                }
+                """;
+        var httpTestRequest = Val.ofJson(String.format(template, "ws://localhost:" + port + "/counter"));
+        var streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).take(3);
+        StepVerifier.create(streamUnderTest).expectNext(Val.of(0)).expectNext(Val.of(1)).expectNext(Val.of(2))
+                .expectComplete().verify(Duration.ofSeconds(5L));
+    }
 
     @Component
     public static class EchoHandler implements WebSocketHandler {
         @Override
         public Mono<Void> handle(WebSocketSession webSocketSession) {
-            return webSocketSession.send(webSocketSession.receive().doOnNext(System.out::println).map(WebSocketMessage::getPayloadAsText)
+            return webSocketSession.send(webSocketSession.receive().map(WebSocketMessage::getPayloadAsText)
                     .map(webSocketSession::textMessage));
         }
     }
-    
-    public record Request(String name) {
-    }
-
-    public record Response(String message) {
-    }
-
-    public record Event(String eventId, String eventDt) {
-    }
-
-    @LocalServerPort
-    private Integer port;
 
     @Component
-    public static class EventEmitter implements WebSocketHandler {
-        private static final ObjectMapper MAPPER = new ObjectMapper();
-
-        private Flux<String> eventFlux = Flux.generate(sink -> {
-            Event event = new Event(UUID.randomUUID().toString(), Instant.now().toString());
-            try {
-                sink.next(MAPPER.writeValueAsString(event));
-            } catch (JsonProcessingException e) {
-                sink.error(e);
-            }
-        });
-
-        private Flux<String> intervalFlux = Flux.interval(Duration.ofMillis(1000L)).zipWith(eventFlux,
-                (time, event) -> event);
-
+    public static class CounterHandler implements WebSocketHandler {
         @Override
         public Mono<Void> handle(WebSocketSession webSocketSession) {
-            return webSocketSession.send(intervalFlux.map(webSocketSession::textMessage))
-                    .and(webSocketSession.receive().map(WebSocketMessage::getPayloadAsText).log());
+            return webSocketSession
+                    .send(Flux.interval(Duration.ofMillis(50)).map(Object::toString).map(webSocketSession::textMessage))
+                    .and(webSocketSession.receive().map(WebSocketMessage::getPayloadAsText));
         }
     }
 
@@ -93,18 +101,19 @@ class ReactiveWebClientWebSocketTests {
     public static class WebSocketConfig {
 
         @Bean
-        EventEmitter reactiveWebSocketHandler() {
-            return new EventEmitter();
+        CounterHandler reactiveWebSocketHandler() {
+            return new CounterHandler();
         }
+
         @Bean
         EchoHandler echoHandler() {
             return new EchoHandler();
         }
 
         @Bean
-        HandlerMapping webSocketHandlerMapping(EventEmitter webSocketHandler, EchoHandler echoHandler) {
+        HandlerMapping webSocketHandlerMapping(CounterHandler counterHandler, EchoHandler echoHandler) {
             Map<String, WebSocketHandler> map = new HashMap<>();
-            map.put("/event-emitter", webSocketHandler);
+            map.put("/counter", counterHandler);
             map.put("/echo", echoHandler);
 
             SimpleUrlHandlerMapping handlerMapping = new SimpleUrlHandlerMapping();
@@ -114,17 +123,4 @@ class ReactiveWebClientWebSocketTests {
         }
     }
 
-    @Test
-    void testEventStream() throws JsonProcessingException {
-        var template        = """
-                {
-                    "baseUrl" : "%s",
-                    "body" : "hello"
-                }
-                """;
-        var httpTestRequest = Val.ofJson(String.format(template, "ws://localhost:" + port + "/event-emitter"));
-        var clientUnderTest = new ReactiveWebClient(new ObjectMapper());
-        StepVerifier.create(clientUnderTest.consumeWebSocket(httpTestRequest)).expectNext(Val.ofEmptyArray())
-                .verifyComplete();
-    }
 }
