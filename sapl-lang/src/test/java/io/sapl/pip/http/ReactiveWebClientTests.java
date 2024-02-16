@@ -26,10 +26,7 @@ import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
@@ -37,13 +34,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
-import okhttp3.WebSocket;
-import okhttp3.WebSocketListener;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import reactor.test.StepVerifier;
 
-@TestInstance(Lifecycle.PER_CLASS)
 class ReactiveWebClientTests {
 
     private static final ObjectMapper MAPPER           = new ObjectMapper();
@@ -293,40 +287,4 @@ class ReactiveWebClientTests {
                 .expectComplete().verify();
     }
 
-    @Test
-    @Disabled
-    void when_connectingToWebSocket_then_StreamReturnsAsVal() throws JsonProcessingException {
-        // var socketSpy = spy(WebSocketListener.class);
-        var response = new MockResponse().withWebSocketUpgrade(new WebSocketListener() {
-            @Override
-            public void onMessage(WebSocket socket, String message) {
-                System.out.println("WS: " + socket + " : " + message);
-            }
-
-            @Override
-
-            public void onClosing(WebSocket webSocket, int code, String reason) {
-                System.out.println("oc WS: " + webSocket + " : " + reason);
-
-            }
-        }).setBody(DEFAULT_BODY);
-        mockBackEnd.enqueue(response);
-        mockBackEnd.enqueue(response);
-        mockBackEnd.enqueue(response);
-        mockBackEnd.enqueue(response);
-        mockBackEnd.enqueue(response);
-        mockBackEnd.enqueue(response);
-        var template        = """
-                {
-                    "baseUrl" : "%s",
-                    "body" : { "hello" : "abc" }
-                }
-                """;
-        var httpTestRequest = Val.ofJson(String.format(template, baseUrl));
-        StepVerifier.create(clientUnderTest.consumeWebSocket(httpTestRequest)).expectNext(Val.of("{ \"hello\" : \"abc\" }"))
-                .verifyComplete();
-    }
-    
-    
-    
 }

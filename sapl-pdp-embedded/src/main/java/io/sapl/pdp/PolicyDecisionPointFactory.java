@@ -155,7 +155,8 @@ public class PolicyDecisionPointFactory {
             StaticPolicyInformationPointSupplier staticPips) throws InitializationException {
         var attributeCtx = new AnnotationAttributeContext();
         attributeCtx.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
-        attributeCtx.loadPolicyInformationPoint(new HttpPolicyInformationPoint(new ReactiveWebClient(new ObjectMapper())));
+        attributeCtx
+                .loadPolicyInformationPoint(new HttpPolicyInformationPoint(new ReactiveWebClient(new ObjectMapper())));
         attributeCtx.loadPolicyInformationPoints(pips);
         attributeCtx.loadPolicyInformationPoints(staticPips);
         return attributeCtx;
