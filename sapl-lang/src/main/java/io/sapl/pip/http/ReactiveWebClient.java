@@ -57,21 +57,21 @@ import reactor.retry.Repeat;
 @RequiredArgsConstructor
 public class ReactiveWebClient {
 
-    static final String                  NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR = "No base URL specified for web request.";
-    private static final String          BASE_URL                                    = "baseUrl";
-    private static final String          PATH                                        = "path";
-    private static final String          URL_PARAMS                                  = "urlParameters";
-    private static final String          HEADERS                                     = "headers";
-    private static final String          BODY                                        = "body";
-    private static final String          POLLING_INTERVAL                            = "pollingIntervalMs";
-    private static final String          REPEAT_TIMES                                = "repetitions";
-    private static final String          ACCEPT_MEDIATYPE                            = "accept";
-    private static final String          CONTENT_MEDIATYPE                           = "contentType";
-    private static final long            DEFAULT_POLLING_INTERVALL_MS                = 1000L;
-    private static final long            DEFAULT_REPETITIONS                         = Long.MAX_VALUE;
-    private static final JsonNodeFactory JSON                                        = JsonNodeFactory.instance;
-    private static final TextNode        APPLICATION_JSON                            = JSON
-            .textNode(MediaType.APPLICATION_JSON.toString());
+    static final String NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR = "No base URL specified for web request.";
+    static final String BASE_URL                                    = "baseUrl";
+    static final String PATH                                        = "path";
+    static final String URL_PARAMS                                  = "urlParameters";
+    static final String HEADERS                                     = "headers";
+    static final String BODY                                        = "body";
+    static final String POLLING_INTERVAL                            = "pollingIntervalMs";
+    static final String REPEAT_TIMES                                = "repetitions";
+    static final String ACCEPT_MEDIATYPE                            = "accept";
+    static final String CONTENT_MEDIATYPE                           = "contentType";
+    static final long   DEFAULT_POLLING_INTERVALL_MS                = 1000L;
+    static final long   DEFAULT_REPETITIONS                         = Long.MAX_VALUE;
+
+    private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
+    private static final TextNode        APPLICATION_JSON = JSON.textNode(MediaType.APPLICATION_JSON.toString());
 
     private final ObjectMapper mapper;
 

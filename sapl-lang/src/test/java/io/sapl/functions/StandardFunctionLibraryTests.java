@@ -84,7 +84,6 @@ class StandardFunctionLibraryTests {
         object.set("key4", Val.JSON.booleanNode(false));
         object.set("key5", Val.JSON.booleanNode(false));
         assertThat(StandardFunctionLibrary.length(Val.of(object)), is(val(5)));
-
     }
 
     @Test
