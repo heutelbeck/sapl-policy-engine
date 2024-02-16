@@ -682,9 +682,9 @@ class ValTests {
     @Test
     void orElseGet() {
         var sa = new SoftAssertions();
-        sa.assertThat(Val.TRUE.orElseGet(JSON::arrayNode)).isEqualTo(JSON.booleanNode(true));
-        sa.assertThat(Val.error().orElseGet(JSON::arrayNode)).isEqualTo(JSON.arrayNode());
-        sa.assertThat(Val.UNDEFINED.orElseGet(JSON::arrayNode)).isEqualTo(JSON.arrayNode());
+        sa.assertThat(Val.TRUE.orElse(JSON::arrayNode)).isEqualTo(JSON.booleanNode(true));
+        sa.assertThat(Val.error().orElse(JSON::arrayNode)).isEqualTo(JSON.arrayNode());
+        sa.assertThat(Val.UNDEFINED.orElse(JSON::arrayNode)).isEqualTo(JSON.arrayNode());
         sa.assertAll();
     }
 
@@ -693,7 +693,61 @@ class ValTests {
         var calledWithValue = new HashSet<JsonNode>();
         Val.TRUE.ifDefined(calledWithValue::add);
         assertThat(calledWithValue).hasSize(1);
+    }
 
+    @Test
+    void fieldJsonNodeOrElseThrow() throws Exception {
+        var val = Val.ofJson("{ \"field\":123 }");
+        var sa  = new SoftAssertions();
+        sa.assertThat(val.fieldJsonNodeOrElseThrow("field", () -> new RuntimeException()))
+                .isEqualTo(JSON.numberNode(123));
+        sa.assertThatThrownBy(() -> val.fieldJsonNodeOrElseThrow("no field", () -> new RuntimeException()))
+                .isInstanceOf(RuntimeException.class);
+        sa.assertThatThrownBy(() -> Val.UNDEFINED.fieldJsonNodeOrElseThrow("no field", () -> new RuntimeException()))
+                .isInstanceOf(RuntimeException.class);
+        sa.assertAll();
+    }
+
+    @Test
+    void fieldJsonNodeOrElseSupplier() throws Exception {
+        var val = Val.ofJson("{ \"field\":123 }");
+        var sa  = new SoftAssertions();
+        sa.assertThat(val.fieldJsonNodeOrElse("field", () -> JSON.numberNode(321))).isEqualTo(JSON.numberNode(123));
+        sa.assertThat(val.fieldJsonNodeOrElse("no field", () -> JSON.numberNode(321))).isEqualTo(JSON.numberNode(321));
+        sa.assertThat(Val.UNDEFINED.fieldJsonNodeOrElse("no field", () -> JSON.numberNode(321)))
+                .isEqualTo(JSON.numberNode(321));
+        sa.assertAll();
+    }
+
+    @Test
+    void fieldJsonNodeOrElse() throws Exception {
+        var val = Val.ofJson("{ \"field\":123 }");
+        var sa  = new SoftAssertions();
+        sa.assertThat(val.fieldJsonNodeOrElse("field", JSON.numberNode(321))).isEqualTo(JSON.numberNode(123));
+        sa.assertThat(val.fieldJsonNodeOrElse("no field", JSON.numberNode(321))).isEqualTo(JSON.numberNode(321));
+        sa.assertThat(Val.UNDEFINED.fieldJsonNodeOrElse("no field", JSON.numberNode(321)))
+                .isEqualTo(JSON.numberNode(321));
+        sa.assertAll();
+    }
+
+    @Test
+    void fieldValOrElseSupplier() throws Exception {
+        var val = Val.ofJson("{ \"field\":123 }");
+        var sa  = new SoftAssertions();
+        sa.assertThat(val.fieldValOrElse("field", () -> Val.of(321))).isEqualTo(Val.of(123));
+        sa.assertThat(val.fieldValOrElse("no field", () -> Val.of(321))).isEqualTo(Val.of(321));
+        sa.assertThat(Val.UNDEFINED.fieldValOrElse("no field", () -> Val.of(321))).isEqualTo(Val.of(321));
+        sa.assertAll();
+    }
+
+    @Test
+    void fieldValOrElse() throws Exception {
+        var val = Val.ofJson("{ \"field\":123 }");
+        var sa  = new SoftAssertions();
+        sa.assertThat(val.fieldValOrElse("field", Val.of(321))).isEqualTo(Val.of(123));
+        sa.assertThat(val.fieldValOrElse("no field", Val.of(321))).isEqualTo(Val.of(321));
+        sa.assertThat(Val.UNDEFINED.fieldValOrElse("no field", Val.of(321))).isEqualTo(Val.of(321));
+        sa.assertAll();
     }
 
     @Test
