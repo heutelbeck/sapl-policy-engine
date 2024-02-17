@@ -65,7 +65,7 @@ If the body is missing (or does not contain any condition statement), the policy
 
 #### Variable Assignment
 
-A variable assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression. The assignment can be followed by the optional keyword `schema` and one or more schema expressions separated by `,`. The schema expression(s) must evaluate to a valid JSON schema.
+A variable assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression. The assignment can be followed by the optional keyword `schema` and one or more schema expressions separated by `,`. The schema expression(s) must evaluate to a valid JSON schema. The schema will only be used by the code completion while editing polices with a dedicated editor.
 
 After a variable assignment, the result of evaluating the expression can be used in later conditions within the same policy under the specified name. This is useful because it allows to execute time-consuming calculations or requests to external attribute stores only once, and the result can be used in multiple expressions. Additionally, it can make policies shorter and improve readability.
 
