@@ -277,15 +277,6 @@
 		<super type="org.eclipse.xtext.ui.check.expensive"/>
 		<persistent value="true"/>
 	</extension>
-	<extension point="org.eclipse.ui.preferencePages">
-		<page
-			category="io.sapl.grammar.ui.SAPL"
-			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.ui.validation.ValidatorPreferencePage"
-			id="io.sapl.grammar.ui.SAPL.validator.preferencePage"
-			name="Errors/Warnings">
-			<keywordReference id="io.sapl.ui.keyword_sapl"/>
-		</page>
-	</extension>
 	<extension point="org.eclipse.xtext.builder.participant">
 		<participant
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.builder.IXtextBuilderParticipant"
