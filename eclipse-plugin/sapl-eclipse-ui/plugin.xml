@@ -37,7 +37,7 @@
 			default="true"
 			extensions="sapl"
 			id="io.sapl.grammar.ui.SAPL"
-			name="Domainmodel Editor">
+			name="SAPL Editor">
 		</editor>
 	</extension>
 	<extension
@@ -108,22 +108,22 @@
 		<page
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.ui.editor.preferences.LanguageRootPreferencePage"
 			id="io.sapl.grammar.ui.SAPL"
-			name="Domainmodel">
-			<keywordReference id="io.sapl.ui.keyword_Domainmodel"/>
+			name="SAPL">
+			<keywordReference id="io.sapl.ui.keyword_sapl"/>
 		</page>
 		<page
 			category="io.sapl.grammar.ui.SAPL"
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.ui.editor.syntaxcoloring.SyntaxColoringPreferencePage"
 			id="io.sapl.grammar.ui.SAPL.coloring"
 			name="Syntax Coloring">
-			<keywordReference id="io.sapl.ui.keyword_Domainmodel"/>
+			<keywordReference id="io.sapl.ui.keyword_sapl"/>
 		</page>
 		<page
 			category="io.sapl.grammar.ui.SAPL"
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.ui.editor.templates.XtextTemplatePreferencePage"
 			id="io.sapl.grammar.ui.SAPL.templates"
 			name="Templates">
-			<keywordReference id="io.sapl.ui.keyword_Domainmodel"/>
+			<keywordReference id="io.sapl.ui.keyword_sapl"/>
 		</page>
 	</extension>
 	<extension
@@ -131,8 +131,8 @@
 		<page
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.ui.editor.preferences.LanguageRootPreferencePage"
 			id="io.sapl.grammar.ui.SAPL"
-			name="Domainmodel">
-			<keywordReference id="io.sapl.ui.keyword_Domainmodel"/>
+			name="SAPL">
+			<keywordReference id="io.sapl.ui.keyword_sapl"/>
 			<enabledWhen>
 				<adapt type="org.eclipse.core.resources.IProject"/>
 			</enabledWhen>
@@ -142,8 +142,8 @@
 	<extension
 		point="org.eclipse.ui.keywords">
 		<keyword
-			id="io.sapl.ui.keyword_Domainmodel"
-			label="Domainmodel"/>
+			id="io.sapl.ui.keyword_sapl"
+			label="SAPL"/>
 	</extension>
 	<extension
 		point="org.eclipse.ui.commands">
@@ -237,7 +237,7 @@
 			base-type="org.eclipse.core.runtime.text"
 			file-extensions="sapl"
 			id="io.sapl.grammar.ui.SAPL.contenttype"
-			name="Domainmodel File"
+			name="sapl File"
 			priority="normal">
 		</content-type>
 	</extension>
@@ -257,22 +257,22 @@
 	</extension>
 	<!-- marker definitions for io.sapl.grammar.ui.SAPL -->
 	<extension
-			id="domainmodel.check.fast"
-			name="Domainmodel Problem"
+			id="sapl.check.fast"
+			name="SAPL Problem"
 			point="org.eclipse.core.resources.markers">
 		<super type="org.eclipse.xtext.ui.check.fast"/>
 		<persistent value="true"/>
 	</extension>
 	<extension
-			id="domainmodel.check.normal"
-			name="Domainmodel Problem"
+			id="sapl.check.normal"
+			name="SAPL Problem"
 			point="org.eclipse.core.resources.markers">
 		<super type="org.eclipse.xtext.ui.check.normal"/>
 		<persistent value="true"/>
 	</extension>
 	<extension
-			id="domainmodel.check.expensive"
-			name="Domainmodel Problem"
+			id="sapl.check.expensive"
+			name="SAPL Problem"
 			point="org.eclipse.core.resources.markers">
 		<super type="org.eclipse.xtext.ui.check.expensive"/>
 		<persistent value="true"/>
@@ -283,7 +283,7 @@
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.ui.validation.ValidatorPreferencePage"
 			id="io.sapl.grammar.ui.SAPL.validator.preferencePage"
 			name="Errors/Warnings">
-			<keywordReference id="io.sapl.ui.keyword_Domainmodel"/>
+			<keywordReference id="io.sapl.ui.keyword_sapl"/>
 		</page>
 	</extension>
 	<extension point="org.eclipse.xtext.builder.participant">
@@ -297,7 +297,7 @@
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.builder.preferences.BuilderPreferencePage"
 			id="io.sapl.grammar.ui.SAPL.compiler.preferencePage"
 			name="Compiler">
-			<keywordReference id="io.sapl.ui.keyword_Domainmodel"/>
+			<keywordReference id="io.sapl.ui.keyword_sapl"/>
 		</page>
 	</extension>
 	<extension point="org.eclipse.ui.propertyPages">
@@ -306,7 +306,7 @@
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.builder.preferences.BuilderPreferencePage"
 			id="io.sapl.grammar.ui.SAPL.compiler.propertyPage"
 			name="Compiler">
-			<keywordReference id="io.sapl.ui.keyword_Domainmodel"/>
+			<keywordReference id="io.sapl.ui.keyword_sapl"/>
 			<enabledWhen>
 				<adapt type="org.eclipse.core.resources.IProject"/>
 			</enabledWhen>
@@ -372,7 +372,7 @@
 			point="org.eclipse.ui.ide.markerResolution">
 		<markerResolutionGenerator
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
-			markerType="org.example.sapl.ui.domainmodel.check.fast">
+			markerType="io.sapl.ui.sapl.check.fast">
 			<attribute
 				name="FIXABLE_KEY"
 				value="true">
@@ -380,7 +380,7 @@
 		</markerResolutionGenerator>
 		<markerResolutionGenerator
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
-			markerType="org.example.sapl.ui.domainmodel.check.normal">
+			markerType="io.sapl.ui.sapl.check.normal">
 			<attribute
 				name="FIXABLE_KEY"
 				value="true">
@@ -388,7 +388,7 @@
 		</markerResolutionGenerator>
 		<markerResolutionGenerator
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.ui.editor.quickfix.MarkerResolutionGenerator"
-			markerType="org.example.sapl.ui.domainmodel.check.expensive">
+			markerType="io.sapl.ui.sapl.check.expensive">
 			<attribute
 				name="FIXABLE_KEY"
 				value="true">
@@ -426,7 +426,7 @@
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.ui.refactoring.ui.RefactoringPreferencePage"
 			id="io.sapl.grammar.ui.SAPL.refactoring"
 			name="Refactoring">
-			<keywordReference id="io.sapl.ui.keyword_Domainmodel"/>
+			<keywordReference id="io.sapl.ui.keyword_sapl"/>
 		</page>
 	</extension>
 	<extension point="org.eclipse.compare.contentViewers">
@@ -441,7 +441,7 @@
 	<extension point="org.eclipse.compare.contentMergeViewers">
 		<viewer id="io.sapl.grammar.ui.SAPL.compare.contentMergeViewers"
 			class="io.sapl.grammar.ui.SAPLExecutableExtensionFactory:org.eclipse.xtext.ui.compare.InjectableViewerCreator"
-			extensions="sapl" label="Domainmodel Compare">
+			extensions="sapl" label="SAPL Compare">
 		</viewer>
 		<contentTypeBinding
 			contentTypeId="io.sapl.grammar.ui.SAPL.contenttype"
