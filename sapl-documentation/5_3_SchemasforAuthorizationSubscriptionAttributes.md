@@ -7,7 +7,7 @@ grand_parent: SAPL Reference
 nav_order: 4
 ---
 
-## Schemas for Authorization Subscription Attributes
+## Schemas for Authorization Subscriptions
 
 SAPL offers the possibility to predefine the structure of the elements of an authorization subscription using [JSON schema](https://json-schema.org/). Schemas used should follow the 2020-12 JSON Schema version. 
 
