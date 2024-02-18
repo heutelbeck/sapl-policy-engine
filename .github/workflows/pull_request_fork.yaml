@@ -102,6 +102,7 @@ jobs:
         name: pr_build
         path: |
           **/src
+          !**/node_modules/*/src
           **/target/spotbugsXml.xml
           **/target/classes
           **/target/test-classes
