@@ -68,8 +68,12 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void lazyLoadDependencies() {
         if (pdpConfigurationProvider == null) {
-            pdpConfigurationProvider = SpringContext.getBean(PDPConfigurationProvider.class);
+            pdpConfigurationProvider = getPDPConfigurationProvider();
         }
+    }
+
+    protected PDPConfigurationProvider getPDPConfigurationProvider() {
+        return SpringContext.getBean(PDPConfigurationProvider.class);
     }
 
     /**

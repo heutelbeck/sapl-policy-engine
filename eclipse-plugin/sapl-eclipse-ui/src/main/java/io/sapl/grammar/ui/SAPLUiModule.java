@@ -20,7 +20,11 @@
  */
 package io.sapl.grammar.ui;
 
+import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
+import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
+import org.eclipse.xtext.ui.editor.contentassist.IContentProposalProvider;
+import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.
@@ -29,5 +33,14 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
 
     public SAPLUiModule(AbstractUIPlugin plugin) {
         super(plugin);
+    }
+
+    @Override
+    public Class<? extends IContentProposalProvider> bindIContentProposalProvider() {
+        return UiToIdeContentProposalProvider.class;
+    }
+
+    public Class<? extends IdeContentProposalProvider> bindIdeContentProposalProvider() {
+        return SAPLUiContentProposalProvider.class;
     }
 }

@@ -9,6 +9,7 @@ Bundle-ActivationPolicy: lazy
 Require-Bundle: sapl-lang,
  sapl-ide,
  sapl-pdp-embedded,
+ sapl-extensions-api,
  org.eclipse.xtext.ui,
  org.eclipse.xtext.ui.shared,
  org.eclipse.xtext.ui.codetemplates.ui,
@@ -17,7 +18,7 @@ Require-Bundle: sapl-lang,
  org.eclipse.ui,
  org.eclipse.compare,
  org.eclipse.xtext.builder
-Import-Package: org.apache.log4j
+Import-Package: org.apache.log4j, reactor.core.publisher
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Export-Package: io.sapl.grammar.ui.quickfix,
  io.sapl.grammar.ui.contentassist,
