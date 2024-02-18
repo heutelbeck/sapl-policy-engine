@@ -16,7 +16,8 @@
  * limitations under the License.
  */
 /**
- * This package contains classes which provide content assist proposals for sapl.
+ * This package contains classes which provide content assist proposals for
+ * sapl.
  */
 @org.osgi.annotation.versioning.Version("3.0.0")
 @org.osgi.annotation.bundle.Export
