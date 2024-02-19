@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.interpreter.InputStreamHelper.TrojanSourceGuardInputStream;
 
 class InputStreamHelperTests {
 
@@ -138,15 +137,15 @@ class InputStreamHelperTests {
         var pdi                = '\u2069';
         var rli                = '\u2067';
         var rlo                = '\u202E';
-        var validStream        = new TrojanSourceGuardInputStream(
-                new ByteArrayInputStream(valid.getBytes(StandardCharsets.UTF_8)));
-        var invalidContainsLri = new TrojanSourceGuardInputStream(
-                new ByteArrayInputStream(String.format(valid, lri).getBytes(StandardCharsets.UTF_8)));
-        var invalidContainsPdi = new TrojanSourceGuardInputStream(
+        var validStream        = InputStreamHelper
+                .convertToTrojanSourceSecureStream(new ByteArrayInputStream(valid.getBytes(StandardCharsets.UTF_8)));
+        var invalidContainsLri = InputStreamHelper.convertToTrojanSourceSecureStream(
+                new ByteArrayInputStream((String.format(valid, lri).getBytes(StandardCharsets.UTF_8))));
+        var invalidContainsPdi = InputStreamHelper.convertToTrojanSourceSecureStream(
                 new ByteArrayInputStream(String.format(valid, pdi).getBytes(StandardCharsets.UTF_8)));
-        var invalidContainsRli = new TrojanSourceGuardInputStream(
+        var invalidContainsRli = InputStreamHelper.convertToTrojanSourceSecureStream(
                 new ByteArrayInputStream(String.format(valid, rli).getBytes(StandardCharsets.UTF_8)));
-        var invalidContainsRlo = new TrojanSourceGuardInputStream(
+        var invalidContainsRlo = InputStreamHelper.convertToTrojanSourceSecureStream(
                 new ByteArrayInputStream(String.format(valid, rlo).getBytes(StandardCharsets.UTF_8)));
 
         var utf8 = StandardCharsets.UTF_8.name();
@@ -162,8 +161,7 @@ class InputStreamHelperTests {
     void checkSize() throws IOException {
         var utf8     = StandardCharsets.UTF_8.name();
         var testCase = "*".repeat(10000000);
-        assertDoesNotThrow(() -> IOUtils.toString(
-                new TrojanSourceGuardInputStream(new ByteArrayInputStream(testCase.getBytes(StandardCharsets.UTF_8))),
-                utf8));
+        assertDoesNotThrow(() -> IOUtils.toString(InputStreamHelper.convertToTrojanSourceSecureStream(
+                new ByteArrayInputStream(testCase.getBytes(StandardCharsets.UTF_8))), utf8));
     }
 }

@@ -43,7 +43,6 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.InputStreamHelper.TrojanSourceGuardInputStream;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
@@ -72,7 +71,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
         try {
             saplInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(saplInputStream);
-            saplInputStream = new TrojanSourceGuardInputStream(saplInputStream);
+            saplInputStream = InputStreamHelper.convertToTrojanSourceSecureStream(saplInputStream);
         } catch (IOException e) {
             var errorMessage = "Invalid byte sequence in InputStream.";
             log.error(errorMessage, e);
