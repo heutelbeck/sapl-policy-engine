@@ -81,9 +81,14 @@ management:
     web:
       exposure:
         include: "*"
-
-io.sapl.pdp.embedded:
-  pdp-config-type: FILESYSTEM
+io.sapl:
+  pdp.embedded:
+    pdp-config-type: FILESYSTEM
+  server-lt:
+    allowNoAuth: false
+    allowBasicAuth: false
+    allowApiKeyAuth: false
+    allowOauth2Auth: false
 loader.path: /pdp/data/lib
 logging.level:
   "[io.sapl]": INFO   

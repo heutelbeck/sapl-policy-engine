@@ -22,11 +22,14 @@ import org.bson.types.ObjectId;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
+import java.io.Serial;
+
 public class OidObjectMapper extends ObjectMapper {
 
     /**
      *
      */
+    @Serial
     private static final long serialVersionUID = -1238167469457710403L;
 
     /**

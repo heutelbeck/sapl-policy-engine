@@ -32,7 +32,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Person {
-    int     id;
+    String  id;
     String  firstname;
     String  lastname;
     int     age;

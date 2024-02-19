@@ -127,6 +127,7 @@ class R2dbcProxyInterceptorTests {
         var result            = (Flux<Person>) proxyR2dbcHandler.invoke(methodInvocationMock);
 
         // THEN
+        assert result != null;
         StepVerifier.create(result).expectNext(malinda).expectNext(emerson).expectNext(yul).verifyComplete();
 
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
@@ -155,6 +156,7 @@ class R2dbcProxyInterceptorTests {
         var result            = (Flux<Person>) proxyR2dbcHandler.invoke(methodInvocationMock);
 
         // THEN
+        assert result != null;
         StepVerifier.create(result).expectNext(malinda).expectNext(emerson).expectNext(yul).verifyComplete();
 
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class),
@@ -182,6 +184,7 @@ class R2dbcProxyInterceptorTests {
         var result            = (Flux<Person>) proxyR2dbcHandler.invoke(methodInvocationMock);
 
         // THEN
+        assert result != null;
         StepVerifier.create(result).expectNext(malinda).expectNext(emerson).expectNext(yul).verifyComplete();
 
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
@@ -209,6 +212,7 @@ class R2dbcProxyInterceptorTests {
         var result            = (Mono<Person>) proxyR2dbcHandler.invoke(methodInvocationMock);
 
         // THEN
+        assert result != null;
         StepVerifier.create(result).expectNext(malinda).verifyComplete();
 
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
@@ -237,6 +241,7 @@ class R2dbcProxyInterceptorTests {
         var result            = (List<Person>) proxyR2dbcHandler.invoke(methodInvocationMock);
 
         // THEN
+        assert result != null;
         assertEquals(result.get(0), malinda);
 
         verify(authSubHandlerMock, times(1)).getAuthSub(any(Class.class), any(MethodInvocation.class), any());
@@ -294,6 +299,7 @@ class R2dbcProxyInterceptorTests {
         var result            = (Flux<Person>) proxyR2dbcHandler.invoke(methodInvocationMock);
 
         // THEN
+        assert result != null;
         StepVerifier.create(result).expectNext(emerson).verifyComplete();
 
         verify(authSubHandlerMock, never()).getAuthSub(any(Class.class), any(MethodInvocation.class),

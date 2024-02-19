@@ -18,6 +18,7 @@
 package io.sapl.functions;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
@@ -27,23 +28,17 @@ import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
+import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 @FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION)
 public class StandardFunctionLibrary {
 
-    private static final String ON_ERROR_MAP_DOC = "onErrorMap(guardedExpression, fallbackExpression): If the guarded expression evaluates to an error, return the evaluation result of the fallbackExpression.";
-
-    /**
-     * Library name and prefix
-     */
-    public static final String NAME = "standard";
-
-    /**
-     * Library description
-     */
+    public static final String NAME        = "standard";
     public static final String DESCRIPTION = "This library contains the mandatory functions for the SAPL implementation.";
+
+    private static final String ON_ERROR_MAP_DOC = "onErrorMap(guardedExpression, fallbackExpression): If the guarded expression evaluates to an error, return the evaluation result of the fallbackExpression.";
 
     private static final String LENGTH_DOC = "length(JSON_VALUE): For STRING it returns the length of the STRING. "
             + "For ARRAY, it returns the number of elements in the array. "
@@ -54,6 +49,10 @@ public class StandardFunctionLibrary {
             + "For NUMBER or BOOLEAN it returns a JSON node representing the value converted to a string. "
             + "For NULL it returns a JSON node representing the empty string. "
             + "For ARRAY or OBJECT the function will return an error.";
+
+    public static final String XML_TO_JSON_DOC = "xmlToJson(TEXT) Converts XML to JSON";
+
+    private static final XmlMapper XML_MAPPER = new XmlMapper();
 
     @Function(docs = LENGTH_DOC)
     public static Val length(@Array @Text @JsonObject Val parameter) {
@@ -86,4 +85,9 @@ public class StandardFunctionLibrary {
         return guardedExpression;
     }
 
+    @SneakyThrows
+    @Function(docs = XML_TO_JSON_DOC)
+    public Val xmlToJson(@Text Val xml) {
+        return Val.of(XML_MAPPER.readTree(xml.getText()));
+    }
 }
