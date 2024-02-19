@@ -36,6 +36,7 @@
 			contributorClass="org.eclipse.ui.editors.text.TextEditorActionContributor"
 			default="true"
 			extensions="sapl"
+			icon="icons/sapl-icon.png"
 			id="io.sapl.grammar.ui.SAPL"
 			name="SAPL Editor">
 		</editor>
