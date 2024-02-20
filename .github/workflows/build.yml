@@ -70,6 +70,11 @@ jobs:
         java-version: ${{ matrix.java }}
         cache: 'maven'
 
+    - name: Set up Node.js
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      with:
+        node-version: '20'
+
     - name: Configure Servers
       # Not allowed for PRs from forks and from Dependabot. Secrets are not accessible
       # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
@@ -211,6 +216,11 @@ jobs:
         distribution: temurin
         java-version: 17
         cache: 'maven'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      with:
+        node-version: '20'
 
     - name: Configure Servers
       uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
