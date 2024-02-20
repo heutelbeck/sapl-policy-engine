@@ -164,6 +164,9 @@ jobs:
           **/pom.xml
           **/META-INF
           **/*.target
+          **/category.xml
+          **/feature.xml
+          **/plugin.xml
           pom.xml
           pr_data.txt
           .git
