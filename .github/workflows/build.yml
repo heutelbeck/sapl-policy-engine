@@ -49,7 +49,7 @@ jobs:
     permissions:
       actions: write # for Mattraks/delete-workflow-runs and to push SAPL Server LT image to repo
       checks: write # for scacap/action-surefire-report to publish result as PR check
-    timeout-minutes: 35
+    timeout-minutes: 45
 
     steps:
     - name: Harden Runner
@@ -191,7 +191,7 @@ jobs:
     needs: [build]
     name: Deploy to Central
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     
     steps:
     - name: Harden Runner
