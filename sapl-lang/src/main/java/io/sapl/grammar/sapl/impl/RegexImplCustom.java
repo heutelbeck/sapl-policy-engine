@@ -51,13 +51,13 @@ public class RegexImplCustom extends RegexImpl {
             return right;
         }
         if (!left.isTextual()) {
-            return Val.FALSE.withTrace(Regex.class, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+            return Val.FALSE.withTrace(Regex.class, false, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
         }
         try {
-            return Val.of(Pattern.matches(right.getText(), left.getText())).withTrace(Regex.class,
+            return Val.of(Pattern.matches(right.getText(), left.getText())).withTrace(Regex.class, false,
                     Map.of(Trace.LEFT, left, Trace.RIGHT, right));
         } catch (PatternSyntaxException e) {
-            return Val.error(REGEX_SYNTAX_ERROR, right).withTrace(Regex.class,
+            return Val.error(REGEX_SYNTAX_ERROR, right).withTrace(Regex.class, false,
                     Map.of(Trace.LEFT, left, Trace.RIGHT, right));
         }
     }

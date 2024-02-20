@@ -43,7 +43,7 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
         if (relativeNode.isUndefined())
             return Flux.just(Val.error(NO_RELATIVE_NODE_ERROR).withTrace(BasicRelative.class));
 
-        return Flux.just(relativeNode.withTrace(BasicRelative.class, relativeNode))
+        return Flux.just(relativeNode.withTrace(BasicRelative.class, true, relativeNode))
                 .switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));
     }
 

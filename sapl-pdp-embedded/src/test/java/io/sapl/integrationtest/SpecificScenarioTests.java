@@ -88,7 +88,7 @@ class SpecificScenarioTests {
             birthdayForAgeInYears(10), BOOK4);
 
     @Test
-    void tutorialAgeCheckSzenario() throws JsonProcessingException {
+    void tutorialAgeCheckScenario() throws JsonProcessingException {
         var policySet = """
                 import time.*
                 import filter.*
@@ -148,10 +148,9 @@ class SpecificScenarioTests {
             var algorithm                    = CombiningAlgorithmFactory
                     .getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES);
             var jsonReportingInterceptor     = new ReportingDecisionInterceptor(MAPPER, false, true, true, true);
-            var decisionInterceptorChain     = jsonReportingInterceptor;
             var subscriptionInterceptorChain = UnaryOperator.<AuthorizationSubscription>identity();
             var config                       = new PDPConfiguration(attributeContext, functionContext, variables,
-                    algorithm, decisionInterceptorChain, subscriptionInterceptorChain);
+                    algorithm, jsonReportingInterceptor, subscriptionInterceptorChain);
             return Flux.just(config);
 
         }

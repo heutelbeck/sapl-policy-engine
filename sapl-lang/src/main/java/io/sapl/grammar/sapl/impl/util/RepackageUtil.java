@@ -44,8 +44,8 @@ public class RepackageUtil {
             }
         }
         if (error != null)
-            return error.withTrace(Object.class, tracedElements);
-        return Val.of(object).withTrace(Object.class, tracedElements);
+            return error.withTrace(Object.class, true, tracedElements);
+        return Val.of(object).withTrace(Object.class, true, tracedElements);
     }
 
     public Val recombineArray(Object[] oElements) {
@@ -66,8 +66,8 @@ public class RepackageUtil {
             }
         }
         if (error != null)
-            return error.withTrace(Array.class, tracedElements);
-        return Val.of(array).withTrace(Array.class, tracedElements);
+            return error.withTrace(Array.class, true, tracedElements);
+        return Val.of(array).withTrace(Array.class, true, tracedElements);
     }
 
 }

@@ -65,7 +65,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @SuppressWarnings("rawtypes") // mocking of generic types
-class MongoMethodNameQueryManipulationEnforcementPointTest {
+class MongoMethodNameQueryManipulationEnforcementPointTests {
 
     static final ObjectMapper MAPPER                        = new ObjectMapper();
     static ArrayNode          OBLIGATIONS;
@@ -80,9 +80,9 @@ class MongoMethodNameQueryManipulationEnforcementPointTest {
     final Flux<TestUser> data           = Flux.just(aaron, brian, cathrin);
     final ArrayNode      emptyArrayNode = MAPPER.createArrayNode();
 
-    ReactiveMongoTemplate       reactiveMongoTemplateMock = mock(ReactiveMongoTemplate.class);
-    EmbeddedPolicyDecisionPoint pdpMock                   = mock(EmbeddedPolicyDecisionPoint.class);
-    BeanFactory                 beanFactoryMock           = mock(BeanFactory.class, Answers.RETURNS_DEEP_STUBS);
+    final ReactiveMongoTemplate       reactiveMongoTemplateMock = mock(ReactiveMongoTemplate.class);
+    final EmbeddedPolicyDecisionPoint pdpMock                   = mock(EmbeddedPolicyDecisionPoint.class);
+    final BeanFactory                 beanFactoryMock           = mock(BeanFactory.class, Answers.RETURNS_DEEP_STUBS);
 
     MockedStatic<ConstraintHandlerUtils> constraintHandlerUtilsMock;
 

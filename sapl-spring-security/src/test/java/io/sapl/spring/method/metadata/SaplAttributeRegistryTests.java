@@ -123,7 +123,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenAnnotationOnlyCoplexInterfaceHierarchy_ThenReturnsThat() {
+    void whenAnnotationOnlyComplexInterfaceHierarchy_ThenReturnsThat() {
         class Implementation implements CombinedInterface {
 
             @Override

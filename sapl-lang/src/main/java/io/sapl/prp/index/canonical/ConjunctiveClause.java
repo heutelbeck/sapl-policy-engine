@@ -30,8 +30,7 @@ import lombok.NonNull;
 
 public class ConjunctiveClause {
 
-    static final String CONSTRUCTION_FAILED     = "Failed to create instance, empty collection provided.";
-    static final String EVALUATION_NOT_POSSIBLE = "Evaluation Error: Attempting to evaluate empty clause.";
+    static final String CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";
 
     private int hash;
 

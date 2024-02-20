@@ -30,10 +30,11 @@ Application security is a top priority in the development of SAPL. The SAPL proj
 
 Requirements for local installation.
 
-- min. Java Development Kit 17 and Java compatible Operating System
-- min. Maven 3.9 
+- Java Development Kit 17 or a newer version
+- Operating system that is compatible with java
+- Maven 3.9 or a newer version
 
-## Implementation of the Server LT
+## Prerequisites and download
 
 SAPL Server LT comes in two forms: an executable Java JAR file for OpenJDK 17 (or later) and an OCI container. The server's full source code is also available for building, running from source, and auditing.
 
@@ -49,27 +50,11 @@ Ensure that the Java executables are added to the system path.
 
 To be done: setup download of release and snapshot via GitHub packages.
 
-#### Server Execution
-
-**Note:** Failure to configure the server will prevent it from starting. This may seem inconvenient, but it is necessary for security reasons. The default configuration does not include any well-known public secrets that could compromise the deployment's security. Please refer to the [Configuration](https://nextcloud.ftk.de/index.php/apps/files?dir=/2023%20-%20Fachpraktikum/Teams/IT_Grundschutz/Dokumentation/GitHub_Readmes/SAPL-Policy-Engine&fileid=581409#configuration) section for proper server setup instructions.
-
-Once configured, start the server using the following command:
-
-```shell
-java -jar sapl-server-lt-3.0.0-SNAPSHOT.jar
-```
-
 ### Running from Source
-
-**Note:** Running from source is not intended for production environments. If doing so, **you accept the risk** of running with publicly known credentials and TLS certificates if you accidently use the development configuration of the server.
-
-It is likely that you only need to run the server from the source if you are a contributor to the policy engine project.
-
-The source code includes a small development configuration of the server which contains some pre-configured credentials and a self-signed certificate for setting up TLS.
 
 #### Prerequisites
 
-To build SAPL Server LT from source, first ensure that [OpenJDK 17](https://openjdk.org/projects/jdk/17/) or newer is installed. There are several distributions available, such as [Eclipse Temurin](https://adoptium.net/de/temurin/releases/) suppling binaries for different platforms.
+To build SAPL Server LT from source, first ensure that [OpenJDK 17](https://openjdk.org/projects/jdk/17/) or newer is installed. There are several distributions available, such as [Eclipse Temurin](https://adoptium.net/de/temurin/releases/) supplying binaries for different platforms.
 
 SAPL uses Apache Maven as its build system, which must be installed and can be downloaded from the [Apache Maven Download Page](https://maven.apache.org/download.cgi).
 
@@ -81,138 +66,23 @@ The source of the policy engine is found on the public [GitHub](https://github.c
 
 You can either download the source as a ZIP file and unzip the archive, or clone the repository using git:
 
-```shell
+```
 git clone https://github.com/heutelbeck/sapl-policy-engine.git
 ```
 
 #### Build the Engine and Server locally
 
-To build the engine including the server application go to the `sapl-policy-engine`  folder and execute the following command:
+To build the engine including the server application go to the `sapl-policy-engine` folder and execute the following command:
 
-```shell
+```
 mvn install
 ```
 
 After a few minutes the complete engine and server should be built. There are two options to run the server after the build concluded.
 
-#### Running the Server using Maven
-
-Change the current directory to `sapl-policy-engine/sapl-server-lt` and execute the following command:
-
-```shell
-mvn spring-boot:run
-```
-
-If started from this folder, the application will start with a demonstration configuration located in  `sapl-policy-engine/sapl-server-lt` which sets up TLS with a self-signed certificate. Further, the PDP API will require basic authentication. For the demonstration configuration a default client is configured with the key (username) `xwuUaRD65G` and the secret (password) `3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_`. This means that any API request expects the header `Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==` or else access to the PDP API will be denied. The demonstration configuration also sets up the PDP to monitor the folder `~/sapl`, i.e., the folder `sapl` in the users home folder, for PDP configuration and SAPL documents (i.e., policies).
-
-#### Running the Server as a JAR
-
-After the build concludes an executable JAR will be available in the folder `sapl-policy-engine/sapl-server-lt/target`. This JAR can be used in the same way as a downloaded SAPL Server LT binary, as descibed under [Java OpenJDK](#java-openjdk).
-
-**Note:** If the JAR is executed from within the folder `sapl-policy-engine/sapl-server-lt` using the command `java -jar target/sapl-server-lt-3.0.0-SNAPSHOT.jar` the server will pick up the same demonstration configuration as described above.
-
-### Kubernetes/Docker
-
-The server application is available as container image. Here, the server is not configured with any TLS security or authentication. It is expected that in deployment this responsibility is delegated to the infrastructure, e.g., a matching Kubernetes Ingress.
-
-#### Running Directly as a Docker Container
-
-In order to run the server locally for testing in an environment like Docker Desktop, you can run the current image as follows:
-
-```shell
-docker run -d --name sapl-server-lt -p 8080:8080 --mount source=sapl-server-lt,target=/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-snapshot
-```
-
-```shell
-docker run -d --name sapl-server-lt -p 8080:8080 -v c:\sapl\policies:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-snapshot
-```
-
-If your server does not want to start, you will most likely have to specify a keystore. To do this, it is recommended that you first create a new Docker volume and store the keystore there. In the following example, we have created a volume 'config', which is mounted on /pdp/data within the container. We use the start parameter SPRING_CONFIG_ADDITIONAL_LOCATION to inform the application that an application.yml should also be searched for in this folder. The application.yml under /pdp/data also contains the configuration for your keystore:
-
-```
-docker run -d --name sapl-server-lt -p 8080:8080 -v config:/pdp/data -e SPRING_CONFIG_ADDITIONAL_LOCATION=file:/pdp/data/ ghcr.io/heutelbeck/sapl-server-lt:3.0.0-snapshot
-```
-
-Afterward you can check if the service is online under: http://localhost:8080/actuator/health.
-
-Depending on your host OS and virtualization environment, these volumes may be located at:
-
-- Docker Desktop on Windows WSL2: `\\wsl$\docker-desktop-data\version-pack-data\community\docker\volumes\sapl-server-lt\_data`
-- Docker Desktop on Windows Hyper-V: `C:\Users\Public\Documents\Hyper-V\Virtual hard disks\sapl-server-lt\_data`
-- Docker on Linux: `/var/lib/docker/volumes/sapl-server-lt/_data`
-- Docker Desktop on Windows with shared folder: `c:\sapl\policies` (or as changed)
-
-#### Running on Kubernetes
-
-This section will describe the deployment on a bare metal Kubernetes installation which has Port 80 and 443 exposed to the Internet as well as Desktop Docker on Windows and will use the Kubernetes nginx-ingress-controller as well as cert-manager to manage the Let's Encrypt certificates (Only if Ports are exposed to the Internet so Let's Encrypt can access the URL)
-
-##### Prerequisites
-
-Installed Kubernetes v1.23 Install NGINX Ingress Controller according to https://kubernetes.github.io/ingress-nginx/deploy/
-
-```shell
-helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace --set controller.hostNetwork=true,controller.kind=DaemonSet
-```
-
-Install Cert-Manager according to https://cert-manager.io/docs/installation/kubernetes/ (Only for Use with exposed Ports and matching DNS Entries):
-
-```shell
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/cert-manager.yaml
-```
-
-Change the Email address in the Clusterissuer.yaml (Line email: user@email.com):
-
-```shell
-wget https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/clusterissuer.yml
-kubectl apply -f clusterissuer.yml -n your-namespace
-```
-
-##### Bare Metal Kubernetes
-
-This section assumes that the Kubernetes is installed on a Linux OS i.e. Ubuntu
-
-First apply the Persistent Volume yaml
-
-```shell
-kubectl create namespace sapl-server-lt
-kubectl apply -f https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-pv.yml -n sapl-server-lt
-```
-
-Then download the Baremetal yaml file
-
-```shell
-wget https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-baremetal.yml
-```
-
-change the URL in the Ingress section
-
-```
-  tls:
-    - hosts:
-        - sapl.exampleurl.com
-      secretName: sapl.lt.local-tls
-  rules:
-    - host: sapl.exampleurl.com
-```
-
-then apply the yaml file
-
-```shell
-kubectl apply -f sapl-server-lt-baremetal.yml -n sapl-server-lt
-```
-
-Create the secret with htpasswd, you will be asked to enter the password:
-
-```shell
-htpasswd -c auth Username
-kubectl create secret generic basic-auth --from-file=auth -n sapl-server-lt
-```
-
-The service should be reachable under the URL defined in the Ingress section of the sapl-server-lt-baremetal.yml <https://sapl.exampleurl.com/actuator/health>.
-
 ## Configuration
 
-To start up SAPL Server LT, basic configuration is required. This includes configuring [client application authentication](#Managing%20Client%20Applications) and [TLS](#TLS%20Configuration). SAPL Server LT is implemented using [Spring Boot](https://spring.io/projects/spring-boot/), which offers flexible tools for application configuration. The Spring Boot documentation for [Externalized Configuration](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config) provides helpful guidelines to follow. It is important to note the order in which configurations are loaded and can overwrite each other.
+To start up SAPL Server LT, basic configuration is required. This includes configuring [client application authentication](#managing-client-authentications) and [TLS](#tls-configuration). SAPL Server LT is implemented using [Spring Boot](https://spring.io/projects/spring-boot/), which offers flexible tools for application configuration. The Spring Boot documentation for [Externalized Configuration](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config) provides helpful guidelines to follow. It is important to note the order in which configurations are loaded and can overwrite each other.
 
 In summary, the application's configuration is controlled by key-value pairs known as properties. These properties are provided to the application through `.properties` files, `.yml` files, or environment variables. The method of providing these values depends on the specific target environment.
 
@@ -222,9 +92,11 @@ As a starting point, you can start by putting an `application.yml` file in a fol
 
 ### Configure the embedded PDP
 
+The SAPL Server LT includes an [embedded PDP](https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-pdp-embedded) that can be configured using the following settings.
+
 #### Configuration Type
 
-The `io.sapl.pdp.embedded.pdp-config-type` property allows you to set the source for the [configuration](#Configuration%20Path) and [policies](#Policy%20Storage%20Location). You can choose between the values `RESOURCES` and `FILESYSTEM`. This property defaults to the `RESOURCES` value if no configuration is provided. The `FILESYSTEM` value is preconfigured by default.
+The `io.sapl.pdp.embedded.pdp-config-type` property allows you to set the source for the [configuration](#configuration-path) and [policies](#policy-storage-location). You can choose between the values `RESOURCES` and `FILESYSTEM`. This property defaults to the `RESOURCES` value if no configuration is provided. The `FILESYSTEM` value is preconfigured by default.
 
 If the property is set to `RESOURCES`, the system will load a predetermined set of documents and `pdp.json` from the bundled resource during runtime. These resources cannot be updated while the system is running.
 
@@ -259,21 +131,29 @@ permit
 
 #### Configuration Path
 
-The property `io.sapl.pdp.embedded.config-path` specifies the folder path where the `pdp.json` file is saved. If [pdpConfigType](#Configuration%20Type) is set to `RESOURCES`, the root of the context path is `/`. If [pdpConfigType](#Configuration%20Type) is set to `FILESYSTEM`, it must be a valid path in the system's file system.
+The property `io.sapl.pdp.embedded.config-path` specifies the folder path where the `pdp.json` file is saved. Any changes made to the file are immediately applied at runtime and for current subscriptions.
 
-**Note:** When specifying a path, ensure that the backslash character `\` is replaced with the forward slash character `/`.
+If [pdpConfigType](#configuration-type) is set to `RESOURCES`, the root of the context path is `/`. If [pdpConfigType](#configuration-type) is set to `FILESYSTEM`, it must be a valid path in the system's file system.
 
-The server monitors and searches the `/policies` directory for the `pdp.json` file without requiring any additional configuration. In the preconfigured example, the server monitors the path `~/sapl`, which refers to the `sapl` folder in the current user's home directory, for the `pdp.json` file. Any changes made to the file are immediately applied at runtime and for current subscriptions.
+If the `io.sapl.pdp.embedded.config-path` property is not configured differently, the server will search for the `pdp.json` file in the `/policies` directory. 
+
+In the [preconfigured example](https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-server-lt/config), the server monitors the path `~/sapl`, which refers to the `sapl` folder in the current user's home directory, for the `pdp.json` file.
+
+If the SAPL server runs in a [Docker container](#running-directly-as-a-docker-container), the path `/pdp/data` is monitored.
 
 ### Managing SAPL Policies
 
 #### Policy Storage Location
 
-The property `io.sapl.pdp.embedded.policies-path` specifies the folder path where the `*.sapl` documents are stored. If [pdpConfigType](#Configuration%20Type) is set to `RESOURCES`, the root of the context path is `/`. If [pdpConfigType](#Configuration%20Type) is set to `FILESYSTEM`, it must be a valid path in the system's file system.
+The property `io.sapl.pdp.embedded.policies-path` specifies the path of the folder where the `*.sapl` documents are saved. When specifying a path, only include the parent or main folder. Subfolders within the main folder will be automatically searched and monitored. Any changes made are immediately taken into account at runtime and for current subscriptions.
 
-**Note:** When specifying a path, ensure that the backslash character `\` is replaced with the forward slash character `/`.
+If [pdpConfigType](#configuration-type) is set to `RESOURCES`, the root of the context path is `/`. If [pdpConfigType](#configuration-type) is set to `FILESYSTEM`, it must be a valid path in the system's file system.
 
-The server monitors and searches the `/policies` directory for SAPL policies without requiring any configuration. SAPL policies are documents that end with `*.sapl`. In the preconfigured example, the server monitors the path `~/sapl`, which refers to the `sapl` folder in the current user's home directory, for SAPL documents. Any changes made are immediately taken into account at runtime and for current subscriptions.
+By default, the server monitors and searches for SAPL policies in the `/policies` directory. SAPL policies are documents that end with `*.sapl`.
+
+In the [preconfigured example](https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-server-lt/config), the server monitors the path `~/sapl`, which refers to the `sapl` folder in the current user's home directory, for SAPL documents.
+
+If the SAPL server runs in a [Docker container](#running-directly-as-a-docker-container), the path `/pdp/data` is monitored.
 
 For test purposes, a simple policy `myfirstpolicy.sapl` can be created in the configured folder. The following policy always returns a permit as the decision:
 
@@ -303,7 +183,7 @@ If an existing policy is to be changed, the following procedure is recommended:
 
 ### Managing Client Applications
 
-SAPL Server LT supports several authentication schemes for client applications. By default none is activated and the server will deny to start up until at least one scheme is active. Multiple authentication mechanisms can be enabled simultaneously.
+SAPL Server LT supports several authentication schemes for client applications. By default, none is activated and the server will deny to start up until at least one scheme is active. Multiple authentication mechanisms can be enabled simultaneously.
 
 #### No Authentication
 
@@ -331,7 +211,7 @@ To add the client, set the property `io.sapl.server-lt.key` to an arbitrary name
 
 If you do not have a tool at hand for Argon2 password hashing, the SAPL Server LT binary can be used to generate a new reasonably secure random key and secret pair:
 
-```shell
+```
  java -jar sapl-server-lt-3.0.0-SNAPSHOT.jar -basicCredentials
 ```
 
@@ -339,7 +219,7 @@ This will print the pair to the console. Doing so will not start up an instance 
 
 Example Output:
 
-```java
+```
 17:14:34.571 [main] INFO io.sapl.server.lt.SAPLServerLTApplication -- Generating new Argon2 encoded secret...
 17:14:34.636 [main] INFO io.sapl.server.lt.SAPLServerLTApplication -- Key             : IV73cRiudj
 17:14:34.644 [main] INFO io.sapl.server.lt.SAPLServerLTApplication -- Secret Plaintext: FZdvjLKSu*Q'7+4!'zXIC694,a3sY9Sm
@@ -348,13 +228,13 @@ Example Output:
 
 In this case you would set `io.sapl.server-lt.key` to `IV73cRiudj` and `io.sapl.server-lt.secret` to `$argon2id$v=19$m=16384,t=2,p=1$0shkuN10K05DsOPQVgm/Sw$FrWeTPKCfqkUcJ6u0DNKkaKDqkIZC7NefwzW5XYkoRA`.
 
-Also take note of the plain text of the secret as it will not be stored. Also make sure that the output of this tool is not visible in any logs and you properly clear your screen.
+Also take note of the plain text of the secret as it will not be stored. Also make sure that the output of this tool is not visible in any logs, and you properly clear your screen.
 
 #### API Keys
 
 In SAPL Server LT, API keys are a way of managing more than one client application with individual secrets.
 
-Each clients is assigned to an individual API key and can authenticate by providing the following HTTP header: `API_KEY: <API KEY>`. For example: `API_KEY: phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc`.
+Each client is assigned to an individual API key and can authenticate by providing the following HTTP header: `API_KEY: <API KEY>`. For example: `API_KEY: phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc`.
 
 **Use Case:** Managing multiple clients with high traffic and low latency requirements.
 
@@ -370,7 +250,7 @@ To add a client, create a random key with at least a length of 32 characters. An
 
 If you do not have a tool at hand to create a good random key, the SAPL Server LT binary can be used to generate a new reasonably secure random key:
 
-```shell
+```
  java -jar sapl-server-lt-3.0.0-SNAPSHOT.jar -newKey
 ```
 
@@ -378,26 +258,26 @@ This will print the pair to the console. Doing so will not start up an instance 
 
 Example Output:
 
-```java
+```
 17:33:04.474 [main] INFO io.sapl.server.lt.SAPLServerLTApplication -- Generating new API Key...
 17:33:04.536 [main] INFO io.sapl.server.lt.SAPLServerLTApplication -- API key: h.a.2wOojs6K'qhHip6X$,1kU8vH')UK
 ```
 
 The new API key can now be added in the configuration. If you want to test whether access via the API key works, you can use the following command:
 
-```json
+```
 curl -k -H "API_KEY: MY-API-Key" -H "Content-Type: application/json" -d '{"subject":"WILLI","action":"read","resource":"something"}' https://localhost:8443/api/pdp/decide
 ```
 
 You should receive something like this:
 
-```json
+```
 data:{"decision":"NOT_APPLICABLE"}
 ```
 
 If you want to check whether your policies are working, you can create a test policy as described under *Managing SAPL policies* and check the server's decision. With the policy mentioned in the section, the following response should now appear:
 
-```json
+```
 data:{"decision":"PERMIT"}
 ```
 
@@ -409,7 +289,7 @@ For example, the URI for a local Keycloak instance with the realm 'SAPL' must lo
 
 You can check whether authentication with JWT works by including the bearer token from the oauth2 server in the HTTP header. To do this, you must first receive a token from your oauth2 server and then execute the following command:
 
-```bash
+```
 curl -k -v -X POST -H "Authorisation: Bearer <token>" -H "Content-Type: application/json" -d '{"subject": "WILLI", "action": "read", "resource": "something"}' https://localhost:8443/api/pdp/decide
 ```
 
@@ -430,7 +310,7 @@ server:
 
 If you are unsure about the key alias, you can display it using the Java keytool via `keytool -list -v -keystore <Path to Keystore.p12>`. The output will show you the alias name for the certificate. You should see something like this:
 
-```j
+```yaml
 Alias name: tomcat
 Creation date: Oct 21, 2023
 Entry type: PrivateKeyEntry
@@ -472,7 +352,7 @@ server:
       - TLSv1.2
 ```
 
-For specific recommondations please have a look at the [BSI technical guidelines](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/Technische-Richtlinien/TR-nach-Thema-sortiert/tr02102/tr-02102.html).
+For specific recommendations, please have a look at the [BSI technical guidelines](https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/Technische-Richtlinien/TR-nach-Thema-sortiert/tr02102/tr-02102.html).
 
 ### Logging Configuration
 
@@ -524,17 +404,152 @@ Where       : true
 
 If you need to write the logs to a file, refer to the [Spring documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.logging.file-output) for the procedure.
 
+## Running the Server LT
+
+### JAVA OpenJDK
+
+**Note:** Failure to configure the server will prevent it from starting. This may seem inconvenient, but it is necessary for security reasons. The default configuration does not include any well-known public secrets that could compromise the deployment's security. Please refer to the [Configuration](#configuration) section for proper server setup instructions.
+
+Once configured, start the server using the following command:
+
+```shell
+java -jar sapl-server-lt-3.0.0-SNAPSHOT.jar
+```
+
+### Running from Source
+
+**Note:** Running from source is not intended for production environments. If doing so, **you accept the risk** of running with publicly known credentials and TLS certificates if you accidentally use the development configuration of the server.
+
+It is likely that you only need to run the server from the source if you are a contributor to the policy engine project.
+
+The source code includes a small development configuration of the server which contains some pre-configured credentials and a self-signed certificate for setting up TLS.
+
+#### Running the Server using Maven
+
+Change the current directory to `sapl-policy-engine/sapl-server-lt` and execute the following command:
+
+```shell
+mvn spring-boot:run
+```
+
+If started from this folder, the application will start with a demonstration configuration located in  `sapl-policy-engine/sapl-server-lt` which sets up TLS with a self-signed certificate. Further, the PDP API will require basic authentication. For the demonstration configuration a default client is configured with the key (username) `xwuUaRD65G` and the secret (password) `3j_PK71bjy!hN3*xq.xZqveU)t5hKLR_`. This means that any API request expects the header `Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==` or else access to the PDP API will be denied. The demonstration configuration also sets up the PDP to monitor the folder `~/sapl`, i.e., the folder `sapl` in the users home folder, for PDP configuration and SAPL documents (i.e., policies).
+
+#### Running the Server as a JAR
+
+After the build concludes an executable JAR will be available in the folder `sapl-policy-engine/sapl-server-lt/target`. This JAR can be used in the same way as a downloaded SAPL Server LT binary, as described under [Java OpenJDK](#java-openjdk).
+
+**Note:** If the JAR is executed from within the folder `sapl-policy-engine/sapl-server-lt` using the command `java -jar target/sapl-server-lt-3.0.0-SNAPSHOT.jar` the server will pick up the same demonstration configuration as described above.
+
+### Kubernetes/Docker
+
+The server application is available as container image. Here, the server is not configured with any TLS security or authentication. It is expected that in deployment this responsibility is delegated to the infrastructure, e.g., a matching Kubernetes Ingress.
+
+#### Running Directly as a Docker Container
+
+In order to run the server locally for testing in an environment like Docker Desktop, you can run the current image as follows:
+
+```
+docker run -d --name sapl-server-lt -p 8080:8080 --mount source=sapl-server-lt,target=/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-snapshot
+```
+
+```
+docker run -d --name sapl-server-lt -p 8080:8080 -v c:\sapl\policies:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-snapshot
+```
+
+If your server does not want to start, you will most likely have to specify a keystore. To do this, it is recommended that you first create a new Docker volume and store the keystore there. In the following example, we have created a volume 'config', which is mounted on `/pdp/data` within the container. We use the start parameter `SPRING_CONFIG_ADDITIONAL_LOCATION` to inform the application that an `application.yml` should also be searched for in this folder. The `application.yml` under `/pdp/data` also contains the configuration for your keystore:
+
+```
+docker run -d --name sapl-server-lt -p 8080:8080 -v config:/pdp/data -e SPRING_CONFIG_ADDITIONAL_LOCATION=file:/pdp/data/ ghcr.io/heutelbeck/sapl-server-lt:3.0.0-snapshot
+```
+
+Afterward you can check if the service is online under: http://localhost:8080/actuator/health.
+
+Depending on your host OS and virtualization environment, these volumes may be located at:
+
+- Docker Desktop on Windows WSL2: `\\wsl$\docker-desktop-data\version-pack-data\community\docker\volumes\sapl-server-lt\_data`
+- Docker Desktop on Windows Hyper-V: `C:\Users\Public\Documents\Hyper-V\Virtual hard disks\sapl-server-lt\_data`
+- Docker on Linux: `/var/lib/docker/volumes/sapl-server-lt/_data`
+- Docker Desktop on Windows with shared folder: `c:\sapl\policies` (or as changed)
+
+#### Running on Kubernetes
+
+This section will describe the deployment on a bare metal Kubernetes installation which has Port 80 and 443 exposed to the Internet as well as Desktop Docker on Windows and will use the Kubernetes nginx-ingress-controller as well as cert-manager to manage the Let's Encrypt certificates (Only if Ports are exposed to the Internet so Let's Encrypt can access the URL)
+
+##### Prerequisites
+
+Installed Kubernetes v1.23 Install NGINX Ingress Controller according to https://kubernetes.github.io/ingress-nginx/deploy/
+
+```
+helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace --set controller.hostNetwork=true,controller.kind=DaemonSet
+```
+
+Install Cert-Manager according to https://cert-manager.io/docs/installation/kubernetes/ (Only for Use with exposed Ports and matching DNS Entries):
+
+```
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/cert-manager.yaml
+```
+
+Change the Email address in the Clusterissuer.yaml (Line email: user@email.com):
+
+```
+wget https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/clusterissuer.yml
+kubectl apply -f clusterissuer.yml -n your-namespace
+```
+
+##### Bare Metal Kubernetes
+
+This section assumes that the Kubernetes is installed on a Linux OS i.e. Ubuntu
+
+First apply the Persistent Volume yaml
+
+```
+kubectl create namespace sapl-server-lt
+kubectl apply -f https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-pv.yml -n sapl-server-lt
+```
+
+Then download the bare metal yaml file
+
+```
+wget https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-baremetal.yml
+```
+
+change the URL in the Ingress section
+
+```
+  tls:
+    - hosts:
+        - sapl.exampleurl.com
+      secretName: sapl.lt.local-tls
+  rules:
+    - host: sapl.exampleurl.com
+```
+
+then apply the yaml file
+
+```
+kubectl apply -f sapl-server-lt-baremetal.yml -n sapl-server-lt
+```
+
+Create the secret with htpasswd, you will be asked to enter the password:
+
+```
+htpasswd -c auth Username
+kubectl create secret generic basic-auth --from-file=auth -n sapl-server-lt
+```
+
+The service should be reachable under the URL defined in the Ingress section of the sapl-server-lt-baremetal.yml <https://sapl.exampleurl.com/actuator/health>.
+
 ## Testing the SAPL Server LT
 
 A sample application that can be configured to use this PDP server (remote PDP) can be found in the [demo-applications](https://github.com/heutelbeck/sapl-demos) project for the SAPL Policy Engine in the module `sapl-demo-remote`.
 
 A self-signed certificate for localhost testing can be generated using the JDKs keytool, or [mkcert](https://github.com/FiloSottile/mkcert). Examples:
 
-```shell
+```
 keytool -genkeypair -keystore keystore.p12 -dname "CN=localhost, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown" -keypass changeme -storepass changeme -keyalg RSA -alias netty -ext SAN=dns:localhost,ip:127.0.0.1
 ```
 
-```shell
+```
 mkcert -pkcs12 -p12-file self-signed-cert.p12 localhost 127.0.0.1 ::1
 ```
 
@@ -542,8 +557,39 @@ mkcert -pkcs12 -p12-file self-signed-cert.p12 localhost 127.0.0.1 ::1
 
 To support new attributes and functions, the matching libraries have to be deployed alongside the server application. One way to do so is to create your own server project and add the libraries to the dependencies of the application via Maven dependencies and to add the matching packages to the component scanning of Spring Boot and/or to provide matching configurations. Alternatively, the SAPL Server LT supports side-loading of external JARs.
 
-To load a custom PIP, the PIP has to be built as a JAR, and all dependencies not already provided by the server have to be provided as JARs as well. Alternatively, the PIP can be packaged as a so-called "fat JAR" including all dependencies. This can be achieved using the (Maven Dependency Plugin)[https://maven.apache.org/plugins/maven-dependency-plugin/], and an example for this approach can be found here: <https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension>.
+**Note:** Changes only take effect upon restart of the server application.
+
+### Side-loading of external JARs
+
+To load a custom PIP, the PIP has to be built as a JAR, and all dependencies not already provided by the server have to be provided as JARs as well. Alternatively, the PIP can be packaged as a so-called "fat JAR" including all dependencies. This can be achieved using the [Maven Dependency Plugin](https://maven.apache.org/plugins/maven-dependency-plugin/), and an example for this approach can be found here: <https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-extension>.
 
 The SAPL Server LT will scan all packages below `io.sapl.server` for Spring beans or configurations providing PIPs or Function libraries at startup and load them automatically. Thus, the custom libraries must provide at least a matching spring configuration under this package.
 
-The JAR files are to be put into the folder `/pdp/data/lib` in the directory where policies are stored. Changes only take effect upon restart of the server application. To change the folder, overwrite the property `loader.path`.
+#### Side-loading with a locally running server
+
+When attempting to perform a side-loading of an external JAR, starting the server locally using `mvn spring-boot:run` or the corresponding IDE tools is not possible due to how Spring sets up class loading. Instead, you must directly execute the JAR of the SAPL Server LT and specify the path to the folder containing the external JAR with dependencies that need to be loaded from the page.
+
+The method for executing the SAPL Server LT command varies depending on the operating system and shell being used. While the basic command is universal, the method for entering certain character strings differs between shells.
+
+To run SAPL Server LT on Windows using the standard Windows command prompt, enter the following:
+
+```
+java -Dloader.path="c:\PATH TO JAR WITH DEPENDECIES FOLDER" -jar .\sapl-server-lt-3.0.0-SNAPSHOT.jar
+```
+
+Under PowerShell, strings are escaped differently:
+
+```
+java -D'loader.path'='c:\PATH TO JAR WITH DEPENDECIES FOLDER' -jar .\sapl-server-lt-3.0.0-SNAPSHOT.jar
+```
+
+The command for Linux and Bash is:
+
+```
+java -Dloader.path=file:/PATH_TO_JAR_WITH_DEPENDECIES_FOLDER -jar .\sapl-server-lt-3.0.0-SNAPSHOT.jar
+```
+
+#### Side-loading with a Docker container
+
+The Docker container searches for JARs for side-loading in the `/pdp/data/lib` folder by default.  
+To avoid moving files directly into the container, you can mount a volume under the path `/pdp/data`, as explained in the chapter [Running Directly as a Docker container](#running-directly-as-a-docker-container). If you create a folder named `lib` in this volume, you can store the JARs that need to be considered for side-loading in it.

@@ -90,7 +90,7 @@ The individual attributes of the annotation can be filled with JSON strings. To 
 
 ### By Bean 
 In order to be able to offer the ``AuthorizationSubscription`` as a bean, the bean must have a specific name. For this purpose, the name of the bean must consist of the name of the method and the name of the repository. 
-If no bean is found for the specific method, a general bean is searched for for the entire repository. The name of the general bean is made up of the keyword ``generalProtection`` and the name of the repository. However, no error is triggered if, for example, an attribute is missing, there is no annotation or no bean was found at all.
+If no bean is found for the specific method, a general bean is searched for the entire repository. The name of the general bean is made up of the keyword ``generalProtection`` and the name of the repository. However, no error is triggered if, for example, an attribute is missing, there is no annotation or no bean was found at all.
 The following is an example of the naming of the bean.
 
 | Type                | Name                                                      |

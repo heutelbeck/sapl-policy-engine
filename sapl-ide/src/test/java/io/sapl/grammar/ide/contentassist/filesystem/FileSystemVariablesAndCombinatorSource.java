@@ -110,7 +110,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
                     log.info("Error reading variables from file system: {}", e.getMessage());
                 }
         }
-        Optional<Map<String, Val>> optSchemaMap = Optional.ofNullable(schemaMap);
+        Optional<Map<String, Val>> optSchemaMap = Optional.of(schemaMap);
 
         return Flux.just(optSchemaMap);
     }

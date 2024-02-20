@@ -135,7 +135,7 @@ class SaplIntegrationTestFixtureTests {
         void test_invalidPDPConfigPath_givenVariablesAndCombiningAlgorithmOverridesConfig() {
             var       fixture   = new SaplIntegrationTestFixture("it/empty",
                     List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
-            final var variables = Map.<String, Val>of("test", Val.of(mapper.createObjectNode().numberNode(1)));
+            final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(1)));
             fixture.withPDPVariables(variables)
                     .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)
                     .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
@@ -162,7 +162,7 @@ class SaplIntegrationTestFixtureTests {
         void test_validConfigPath_givenVariablesOverridesConfig() {
             var       fixture   = new SaplIntegrationTestFixture("policiesIT",
                     List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
-            final var variables = Map.<String, Val>of("test", Val.of(mapper.createObjectNode().numberNode(1)));
+            final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(1)));
             fixture.withPDPVariables(variables).constructTestCase()
                     .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
         }
@@ -171,7 +171,7 @@ class SaplIntegrationTestFixtureTests {
         void test_validConfigPath_givenVariablesAndCombiningAlgorithmOverridesConfig() {
             var       fixture   = new SaplIntegrationTestFixture("policiesIT",
                     List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
-            final var variables = Map.<String, Val>of("test", Val.of(mapper.createObjectNode().numberNode(1)));
+            final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(1)));
             fixture.withPDPVariables(variables)
                     .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)
                     .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
@@ -281,7 +281,7 @@ class SaplIntegrationTestFixtureTests {
         @Test
         void test_usesGivenVariablesAndConfigCombiningAlgorithm() {
             var       fixture   = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
-            final var variables = Map.<String, Val>of("test", Val.of(mapper.createObjectNode().numberNode(2)));
+            final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(2)));
             fixture.withPDPVariables(variables).constructTestCase()
                     .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
         }
@@ -289,7 +289,7 @@ class SaplIntegrationTestFixtureTests {
         @Test
         void test_givenVariablesAndCombiningAlgorithmOverridesConfig() {
             var       fixture   = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
-            final var variables = Map.<String, Val>of("test", Val.of(2));
+            final var variables = Map.of("test", Val.of(2));
             fixture.withPDPVariables(variables)
                     .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT)
                     .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()

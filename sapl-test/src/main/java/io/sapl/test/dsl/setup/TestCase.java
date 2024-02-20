@@ -18,12 +18,12 @@
 
 package io.sapl.test.dsl.setup;
 
-import io.sapl.test.grammar.sapltest.Object;
 import org.assertj.core.api.Assertions;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
+import io.sapl.test.grammar.sapltest.Object;
 import io.sapl.test.grammar.sapltest.TestException;
 import io.sapl.test.grammar.sapltest.TestSuite;
 import lombok.AccessLevel;

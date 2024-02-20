@@ -47,18 +47,18 @@ import reactor.test.StepVerifier;
 class ReportingDecisionInterceptorTests {
 
     private static class TestingPolicyRetrievalPoint implements PolicyRetrievalPoint {
-        public String          permitAllDocument = "policy \"permitAll\" permit";
-        public String          errorDocument     = "policy \"errAll\" permit where 1/0;";
-        public String          attributeDocument = "policy \"attribute\" permit where \"left\".<test.test> == \"Attribute Result\";";
-        public String          setOne            = "set \"set one\" first-applicable policy \"p1 in set one\" permit";
-        public SAPLInterpreter interpreter       = new DefaultSAPLInterpreter();
+        public static final String   PERMIT_ALL_DOCUMENT = "policy \"permitAll\" permit";
+        public static final String   ERROR_DOCUMENT      = "policy \"errAll\" permit where 1/0;";
+        public static final String   ATTRIBUTE_DOCUMENT  = "policy \"attribute\" permit where \"left\".<test.test> == \"Attribute Result\";";
+        public static final String   SET_ONE             = "set \"set one\" first-applicable policy \"p1 in set one\" permit";
+        public final SAPLInterpreter interpreter         = new DefaultSAPLInterpreter();
 
         @Override
         public Flux<PolicyRetrievalResult> retrievePolicies() {
-            var permitAll = interpreter.parse(permitAllDocument);
-            var error     = interpreter.parse(errorDocument);
-            var attribute = interpreter.parse(attributeDocument);
-            var one       = interpreter.parse(setOne);
+            var permitAll = interpreter.parse(PERMIT_ALL_DOCUMENT);
+            var error     = interpreter.parse(ERROR_DOCUMENT);
+            var attribute = interpreter.parse(ATTRIBUTE_DOCUMENT);
+            var one       = interpreter.parse(SET_ONE);
             return Flux.just(new PolicyRetrievalResult().withMatch(permitAll).withMatch(error).withMatch(attribute)
                     .withMatch(one));
         }

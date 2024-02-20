@@ -53,7 +53,7 @@ class ApplyFilteringSimpleTests {
         assertExpressionReturnsErrors("{} |- each filter.remove");
     }
 
-    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+    private static Stream<Arguments> provideStringsForExpressionEvaluatesToExpectedValue() {
         // @formatter:off
 		return Stream.of(
 	 			// Remove each array
@@ -68,12 +68,12 @@ class ApplyFilteringSimpleTests {
 	 			Arguments.of("[ null, 5 ] |- each mock.emptyString(null)",
 	 					     "[ \"\", \"\" ]")
 				);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
-	void expressionEvaluatesToExpectedValue(String expression, String expected) {
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("provideStringsForExpressionEvaluatesToExpectedValue")
+    void expressionEvaluatesToExpectedValue(String expression, String expected) {
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 }

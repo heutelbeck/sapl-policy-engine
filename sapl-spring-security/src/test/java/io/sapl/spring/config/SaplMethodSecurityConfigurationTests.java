@@ -47,7 +47,7 @@ class SaplMethodSecurityConfigurationTests {
     }
 
     @Test
-    void whenRan_withDefaultProviderthenRegistrationHappens() {
+    void whenRan_withDefaultProviderThenRegistrationHappens() {
         var defaults = mock(GrantedAuthorityDefaults.class);
         new ApplicationContextRunner().withUserConfiguration(OnlyBlockingSaplMethodSecurityConfiguration.class)
                 .withBean(GrantedAuthorityDefaults.class, () -> defaults)

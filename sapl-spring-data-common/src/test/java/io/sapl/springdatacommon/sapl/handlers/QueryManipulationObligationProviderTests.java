@@ -45,7 +45,7 @@ class QueryManipulationObligationProviderTests {
     static JsonNode           R2DBC_QUERY_MANIPULATION_TYPE_IS_NULL_1;
     static JsonNode           R2DBC_QUERY_MANIPULATION_TYPE_IS_NO_OBJECT;
 
-    static ArrayNode EMPTY_ARRAY_NODE = MAPPER.createArrayNode();
+    final static ArrayNode EMPTY_ARRAY_NODE = MAPPER.createArrayNode();
 
     final JsonNode                            nullNode = JsonNodeFactory.instance.nullNode();
     final QueryManipulationObligationProvider provider = new QueryManipulationObligationProvider();
@@ -174,7 +174,7 @@ class QueryManipulationObligationProviderTests {
         var condition = provider.getConditions(R2DBC_QUERY_MANIPULATION_CONDITION_IS_NO_ARRAY);
 
         // THEN
-        assertEquals(condition, EMPTY_ARRAY_NODE);
+        assertEquals(EMPTY_ARRAY_NODE, condition);
     }
 
     @Test
@@ -185,7 +185,7 @@ class QueryManipulationObligationProviderTests {
         var condition = provider.getConditions(R2DBC_QUERY_MANIPULATION_CONDITION_IS_EMPTY);
 
         // THEN
-        assertEquals(condition, EMPTY_ARRAY_NODE);
+        assertEquals(EMPTY_ARRAY_NODE, condition);
     }
 
     @Test
@@ -196,7 +196,7 @@ class QueryManipulationObligationProviderTests {
         var condition = provider.getConditions(R2DBC_QUERY_MANIPULATION_HAS_NO_CONDITION_KEY);
 
         // THEN
-        assertEquals(condition, EMPTY_ARRAY_NODE);
+        assertEquals(EMPTY_ARRAY_NODE, condition);
     }
 
     @Test

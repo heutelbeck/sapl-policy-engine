@@ -49,9 +49,9 @@ class RemoteRsocketDecisionPointServerIT {
     private static final int    SAPL_SERVER_RSOCKET_PORT = 7000;
     private static final String CONTAINER_IMAGE          = "ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT";
 
-    AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of("Willi", "eat", "apple");
+    final AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of("Willi", "eat", "apple");
 
-    AuthorizationSubscription deniedSubscription = AuthorizationSubscription.of("Willi", "eat", "ice");
+    final AuthorizationSubscription deniedSubscription = AuthorizationSubscription.of("Willi", "eat", "ice");
 
     @SpringBootConfiguration
     static class TestConfiguration {

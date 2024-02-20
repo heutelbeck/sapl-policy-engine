@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Trace;
-import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.RecursiveKeyStep;
@@ -48,7 +47,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        return Flux.just(applyToValue(parentValue).withTrace(RecursiveKeyStep.class,
+        return Flux.just(applyToValue(parentValue).withTrace(RecursiveKeyStep.class, true,
                 Map.of(Trace.PARENT_VALUE, parentValue, Trace.KEY, Val.of(id))));
     }
 
@@ -97,7 +96,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
         }
 
         // this means the element does not get selected does not get filtered
-        return Flux.just(unfilteredValue.withTrace(RecursiveKeyStep.class,
+        return Flux.just(unfilteredValue.withTrace(RecursiveKeyStep.class, true,
                 Map.of(Trace.UNFILTERED_VALUE, unfilteredValue, Trace.KEY, Val.of(id))));
     }
 
@@ -110,11 +109,11 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
         while (fields.hasNext()) {
             var field = fields.next();
             var key   = field.getKey();
-            var trace = new HashMap<String, Traced>();
+            var trace = new HashMap<String, Val>();
             trace.put(Trace.UNFILTERED_VALUE, unfilteredValue);
             trace.put(Trace.KEY, Val.of(id));
             trace.put("[\"+key+\"]", Val.of(key));
-            var value = Val.of(field.getValue()).withTrace(RecursiveKeyStep.class, trace);
+            var value = Val.of(field.getValue()).withTrace(RecursiveKeyStep.class, true, trace);
             if (field.getKey().equals(id)) {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter
@@ -143,18 +142,18 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
         var array = unfilteredValue.getArrayNode();
 
         if (array.isEmpty()) {
-            return Flux.just(unfilteredValue.withTrace(RecursiveKeyStep.class,
+            return Flux.just(unfilteredValue.withTrace(RecursiveKeyStep.class, true,
                     Map.of(Trace.UNFILTERED_VALUE, unfilteredValue, Trace.KEY, Val.of(id))));
         }
         var elementFluxes = new ArrayList<Flux<Val>>(array.size());
         var elements      = array.elements();
         var index         = 0;
         while (elements.hasNext()) {
-            var trace = new HashMap<String, Traced>();
+            var trace = new HashMap<String, Val>();
             trace.put(Trace.UNFILTERED_VALUE, unfilteredValue);
             trace.put(Trace.KEY, Val.of(id));
             trace.put(Trace.INDEX, Val.of(index++));
-            var element = Val.of(elements.next()).withTrace(RecursiveKeyStep.class, trace);
+            var element = Val.of(elements.next()).withTrace(RecursiveKeyStep.class, true, trace);
             if (element.isObject()) {
                 // array element is an object. apply this step to the object.
                 elementFluxes.add(applyFilterStatementToObject(id, element, stepId, statement));

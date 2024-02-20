@@ -60,14 +60,14 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
             log.error("Error in SAPL document: {}", e.getMessage());
             log.error("The application will continue to boot up. "
                     + "However, the PDP will act as if there was an error during each "
-                    + "authorization subscription/requiest.");
+                    + "authorization subscription/request.");
             updates.clear();
             updates.add(new Update(Type.INCONSISTENT, null, null));
         } catch (IOException e) {
             log.error("Failed to load SAPL policies/policy sets from the resources. "
                     + "The application will continue to boot up. "
                     + "However, the PDP will act as if there was an error during each "
-                    + "authorization subscription/requiest.", e);
+                    + "authorization subscription/request.", e);
             updates.clear();
             updates.add(new Update(Type.INCONSISTENT, null, null));
         }

@@ -17,10 +17,12 @@
  */
 package io.sapl.springdatacommon.handlers;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.util.Arrays;
-
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.springdatacommon.sapl.Enforce;
+import lombok.SneakyThrows;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanFactory;
@@ -29,16 +31,10 @@ import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.Arrays;
 import java.util.regex.Pattern;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.springdatacommon.sapl.Enforce;
-import lombok.SneakyThrows;
 
 /**
  * This service is responsible for processing the {@link Enforce} annotation.
@@ -170,8 +166,6 @@ public class EnforceAnnotationHandler {
      *
      * @param jsonString is the json string.
      * @return the converted JsonNode.
-     * @throws JsonProcessingException
-     * @throws JsonMappingException
      */
     @SneakyThrows // throws JsonMappingException, JsonProcessingException
     private JsonNode buildJsonNodeByString(Object jsonString) {

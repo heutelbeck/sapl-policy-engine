@@ -86,9 +86,9 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTests {
     final Person    malinda        = new Person(1, "Malinda", "Perrot", 53, Role.ADMIN, true);
     final ArrayNode emptyArrayNode = MAPPER.createArrayNode();
 
-    EmbeddedPolicyDecisionPoint pdpMock         = mock(EmbeddedPolicyDecisionPoint.class);
-    BeanFactory                 beanFactoryMock = mock(BeanFactory.class, Answers.RETURNS_DEEP_STUBS);
-    Flux<Map<String, Object>>   fluxMap         = mock(Flux.class);
+    final EmbeddedPolicyDecisionPoint pdpMock         = mock(EmbeddedPolicyDecisionPoint.class);
+    final BeanFactory                 beanFactoryMock = mock(BeanFactory.class, Answers.RETURNS_DEEP_STUBS);
+    final Flux<Map<String, Object>>   fluxMap         = mock(Flux.class);
 
     MockedStatic<ConstraintHandlerUtils>            constraintHandlerUtilsMock;
     MockedStatic<PartTreeToSqlQueryStringConverter> partTreeToSqlQueryStringConverterMock;

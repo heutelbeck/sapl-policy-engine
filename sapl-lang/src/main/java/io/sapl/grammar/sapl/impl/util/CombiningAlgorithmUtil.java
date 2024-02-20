@@ -77,7 +77,7 @@ public class CombiningAlgorithmUtil {
         return Val
                 .error("Type mismatch. Target expression must evaluate to Boolean. Was: %s",
                         targetExpressionResult.getValType())
-                .withTrace(CombiningAlgorithm.class, targetExpressionResult);
+                .withTrace(CombiningAlgorithm.class, false, targetExpressionResult);
     }
 
 }

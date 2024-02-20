@@ -25,6 +25,8 @@ import org.aopalliance.intercept.MethodInvocation;
 
 import lombok.AllArgsConstructor;
 
+import javax.annotation.Nonnull;
+
 @AllArgsConstructor
 public class MongoReactiveMethodInvocation implements MethodInvocation {
 
@@ -33,18 +35,21 @@ public class MongoReactiveMethodInvocation implements MethodInvocation {
     ArrayList<Object>   argumentValues;
     Object              proceedObject;
 
+    @Nonnull
     @Override
     public Method getMethod() {
         try {
-            return MongoReactiveUserRepository.class.getMethod(methodName, argumentClasses.toArray(new Class[0]));
+            return MongoReactiveUserRepository.class.getMethod(methodName,
+                    argumentClasses.toArray(new Class[argumentClasses.size()]));
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
     }
 
+    @Nonnull
     @Override
     public Object[] getArguments() {
-        return argumentValues.toArray(new Object[0]);
+        return argumentValues.toArray(new Object[argumentValues.size()]);
     }
 
     @Override
@@ -57,6 +62,7 @@ public class MongoReactiveMethodInvocation implements MethodInvocation {
         return this;
     }
 
+    @Nonnull
     @Override
     public AccessibleObject getStaticPart() {
         throw new InternalError();

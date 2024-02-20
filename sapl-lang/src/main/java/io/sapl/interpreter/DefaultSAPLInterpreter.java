@@ -68,12 +68,26 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
     @Override
     public SAPL parse(InputStream saplInputStream) {
+
+        try {
+            saplInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(saplInputStream);
+            saplInputStream = InputStreamHelper.convertToTrojanSourceSecureStream(saplInputStream);
+        } catch (IOException e) {
+            var errorMessage = "Invalid byte sequence in InputStream.";
+            log.error(errorMessage, e);
+            throw new PolicyEvaluationException(composeReason(errorMessage), e);
+        }
+
         var sapl       = loadAsResource(saplInputStream);
         var diagnostic = Diagnostician.INSTANCE.validate(sapl);
         if (diagnostic.getSeverity() == Diagnostic.OK)
             return sapl;
 
         throw new PolicyEvaluationException(composeReason(diagnostic));
+    }
+
+    private String composeReason(String s) {
+        return String.format("SAPL Validation Error: [%s]", s);
     }
 
     private String composeReason(Diagnostic diagnostic) {
@@ -86,8 +100,9 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
     }
 
     @Override
-    public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDocumentSource,
-            AttributeContext attributeContext, FunctionContext functionContext, Map<String, Val> environmentVariables) {
+    public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authorizationSubscription,
+            String saplDocumentSource, AttributeContext attributeContext, FunctionContext functionContext,
+            Map<String, Val> environmentVariables) {
         final SAPL saplDocument;
         try {
             saplDocument = parse(saplDocumentSource);
@@ -97,7 +112,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
         }
         return saplDocument.matches().flux().switchMap(evaluateBodyIfMatching(saplDocument))
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, environmentVariables))
-                .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
+                .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authorizationSubscription))
                 .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext))
                 .onErrorReturn(AuthorizationDecision.INDETERMINATE);

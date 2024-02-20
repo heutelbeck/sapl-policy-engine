@@ -66,12 +66,12 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
         var decisions   = new LinkedList<DocumentEvaluationResult>();
         for (var policyDecision : policyDecisions) {
             decisions.add(policyDecision);
-            var authzDecision = policyDecision.getAuthorizationDecision();
-            if (authzDecision.getDecision() == PERMIT) {
+            var authorizationDecision = policyDecision.getAuthorizationDecision();
+            if (authorizationDecision.getDecision() == PERMIT) {
                 entitlement = PERMIT;
             }
-            collector.add(authzDecision);
-            if (authzDecision.getResource().isPresent()) {
+            collector.add(authorizationDecision);
+            if (authorizationDecision.getResource().isPresent()) {
                 if (resource.isPresent()) {
                     // this is a transformation uncertainty.
                     // another policy already defined a transformation
@@ -79,7 +79,7 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
                     // However, DENY overrides with this algorithm.
                     entitlement = DENY;
                 } else {
-                    resource = authzDecision.getResource();
+                    resource = authorizationDecision.getResource();
                 }
             }
         }

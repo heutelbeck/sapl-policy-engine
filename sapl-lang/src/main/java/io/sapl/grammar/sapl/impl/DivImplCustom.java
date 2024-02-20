@@ -23,7 +23,6 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 import io.sapl.api.interpreter.Trace;
-import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Div;
 import reactor.core.publisher.Flux;
@@ -45,10 +44,10 @@ public class DivImplCustom extends DivImpl {
     }
 
     private Val divide(Val dividend, Val divisor) {
-        var trace = Map.<String, Traced>of(Trace.DIVIDEND, dividend, Trace.DIVISOR, divisor);
+        var trace = Map.<String, Val>of(Trace.DIVIDEND, dividend, Trace.DIVISOR, divisor);
         if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
-            return Val.error(DIVISION_BY_ZERO_ERROR).withTrace(Div.class, trace);
-        return Val.of(dividend.decimalValue().divide(divisor.decimalValue())).withTrace(Div.class, trace);
+            return Val.error(DIVISION_BY_ZERO_ERROR).withTrace(Div.class, false, trace);
+        return Val.of(dividend.decimalValue().divide(divisor.decimalValue())).withTrace(Div.class, false, trace);
     }
 
 }

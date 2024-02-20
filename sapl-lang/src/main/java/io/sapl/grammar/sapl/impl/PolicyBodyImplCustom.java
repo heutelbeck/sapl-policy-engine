@@ -48,7 +48,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 
     protected Flux<Val> evaluateStatements(Val previousResult, int statementId) {
         if (previousResult.isError() || !previousResult.getBoolean() || statementId == statements.size())
-            return Flux.just(previousResult.withTrace(PolicyBody.class,
+            return Flux.just(previousResult.withTrace(PolicyBody.class, false,
                     Map.of(Trace.PREVIOUS_CONDITION_RESULT, previousResult)));
 
         var statement = statements.get(statementId);
@@ -61,8 +61,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
     }
 
     private Flux<Val> evaluateValueStatement(Val previousResult, int statementId, ValueDefinition valueDefinition) {
-        var valueStream = valueDefinition.getEval().evaluate().map(
-                val -> val.withTrace(PolicyBody.class, Map.of(Trace.VARIABLE_NAME, Val.of(valueDefinition.getName()))));
+        var valueStream = valueDefinition.getEval().evaluate().map(val -> val.withTrace(PolicyBody.class, true,
+                Map.of(Trace.VARIABLE_NAME, Val.of(valueDefinition.getName()))));
         return valueStream.switchMap(value -> evaluateStatements(previousResult, statementId + 1)
                 .contextWrite(setVariable(valueDefinition.getName(), value)));
     }
@@ -80,7 +80,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
         if (conditionResult.isBoolean() || conditionResult.isError())
             return conditionResult;
 
-        return Val.error(STATEMENT_NOT_BOOLEAN_ERROR, conditionResult).withTrace(PolicyBody.class,
+        return Val.error(STATEMENT_NOT_BOOLEAN_ERROR, conditionResult).withTrace(PolicyBody.class, false,
                 Map.of(Trace.PREVIOUS_CONDITION_RESULT, conditionResult));
     }
 

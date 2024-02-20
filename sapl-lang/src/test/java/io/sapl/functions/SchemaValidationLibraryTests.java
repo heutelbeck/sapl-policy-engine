@@ -18,7 +18,7 @@
 package io.sapl.functions;
 
 import static io.sapl.functions.SchemaValidationLibrary.isCompliant;
-import static io.sapl.functions.SchemaValidationLibrary.isCompliantWithExteralSchemas;
+import static io.sapl.functions.SchemaValidationLibrary.isCompliantWithExternalSchemas;
 import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.is;
@@ -66,7 +66,7 @@ class SchemaValidationLibraryTests {
 
     @Test
     @SneakyThrows
-    void testDereferencing() {
+    void testDereference() {
         var externals = MAPPER.createArrayNode();
         externals.add(MAPPER.readValue("""
                  {
@@ -104,7 +104,7 @@ class SchemaValidationLibraryTests {
                     }
                 """);
 
-        assertThat(isCompliantWithExteralSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
+        assertThat(isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
 
         var invalid = Val.ofJson("""
                     {
@@ -114,13 +114,13 @@ class SchemaValidationLibraryTests {
                     }
                 """);
 
-        assertThat(isCompliantWithExteralSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
-        assertThat(isCompliantWithExteralSchemas(invalid, specificSchema, externalsAsVal), is(val(false)));
+        assertThat(isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
+        assertThat(isCompliantWithExternalSchemas(invalid, specificSchema, externalsAsVal), is(val(false)));
     }
 
     @Test
     @SneakyThrows
-    void testDereferencingDefs() {
+    void testDereferenceDefs() {
         var externals = MAPPER.createArrayNode();
         externals.add(MAPPER.readValue("""
                  {
@@ -163,7 +163,7 @@ class SchemaValidationLibraryTests {
                     }
                 """);
 
-        assertThat(isCompliantWithExteralSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
+        assertThat(isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
 
         var invalid = Val.ofJson("""
                     {
@@ -173,8 +173,8 @@ class SchemaValidationLibraryTests {
                     }
                 """);
 
-        assertThat(isCompliantWithExteralSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
-        assertThat(isCompliantWithExteralSchemas(invalid, specificSchema, externalsAsVal), is(val(false)));
+        assertThat(isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
+        assertThat(isCompliantWithExternalSchemas(invalid, specificSchema, externalsAsVal), is(val(false)));
     }
 
     @Test

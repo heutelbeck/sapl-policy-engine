@@ -38,11 +38,11 @@ public class SchemaValidationLibrary {
 
     public static final String DESCRIPTION = "This library contains the mandatory functions for testing the compliance of a JSON value with a JSON schema.";
 
-    private static final String ISCOMPLIANTWITHSCHEMA_VAL_DOC = "isCompliantWithSchema(validationSubject, schema):"
+    private static final String IS_COMPLIANT_WITH_SCHEMA_VAL_DOC = "isCompliantWithSchema(validationSubject, schema):"
             + "tests compliance of the validationSubject with the provided schema. The schema itself cannot be validated and improper schema definitions may lead to unexcpected results."
             + "If validationSubject is compliant with schema, returns TRUE, else returns FALSE.";
 
-    private static final String ISCOMPLIANTWITHSCHEMA_VAL_EXTERNAL_DOC = "isCompliantWithSchema(validationSubject, schema, externalSchemas):"
+    private static final String IS_COMPLIANT_WITH_SCHEMA_VAL_EXTERNAL_DOC = "isCompliantWithSchema(validationSubject, schema, externalSchemas):"
             + "tests compliance of the validationSubject with the provided schema. The schema itself cannot be validated and improper schema definitions may lead to unexcpected results."
             + "If validationSubject is compliant with schema, returns TRUE, else returns FALSE. If the schema contains external references to other schemas, the validation function looks up the schemas in externalSchemas based on explicitly defined $id field in the schemas. If no $id$ field is provided, the schema will not be detectable.";
 
@@ -54,13 +54,13 @@ public class SchemaValidationLibrary {
 
     private static final String ID = "$id";
 
-    @Function(docs = ISCOMPLIANTWITHSCHEMA_VAL_DOC, schema = RETURNS_BOOLEAN)
+    @Function(docs = IS_COMPLIANT_WITH_SCHEMA_VAL_DOC, schema = RETURNS_BOOLEAN)
     public static Val isCompliant(Val validationSubject, @JsonObject Val jsonSchema) {
-        return isCompliantWithExteralSchemas(validationSubject, jsonSchema, Val.ofEmptyArray());
+        return isCompliantWithExternalSchemas(validationSubject, jsonSchema, Val.ofEmptyArray());
     }
 
-    @Function(docs = ISCOMPLIANTWITHSCHEMA_VAL_EXTERNAL_DOC, schema = RETURNS_BOOLEAN)
-    public static Val isCompliantWithExteralSchemas(Val validationSubject, @JsonObject Val jsonSschema, Val externals) {
+    @Function(docs = IS_COMPLIANT_WITH_SCHEMA_VAL_EXTERNAL_DOC, schema = RETURNS_BOOLEAN)
+    public static Val isCompliantWithExternalSchemas(Val validationSubject, @JsonObject Val jsonSchema, Val externals) {
         if (validationSubject.isError()) {
             return validationSubject;
         }
@@ -84,7 +84,7 @@ public class SchemaValidationLibrary {
                 .build();
 
         try {
-            var validator = schemaFactory.getSchema(jsonSschema.getJsonNode());
+            var validator = schemaFactory.getSchema(jsonSchema.getJsonNode());
             var messages  = validator.validate(validationSubject.get());
             return Val.of(messages.isEmpty());
         } catch (JsonSchemaException e) {

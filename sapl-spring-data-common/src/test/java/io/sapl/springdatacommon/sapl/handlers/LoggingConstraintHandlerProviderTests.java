@@ -17,9 +17,6 @@
  */
 package io.sapl.springdatacommon.sapl.handlers;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -27,9 +24,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.springdatacommon.handlers.LoggingConstraintHandlerProvider;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 class LoggingConstraintHandlerProviderTests {
 
-    LoggingConstraintHandlerProvider loggingConstraintHandlerProvider = new LoggingConstraintHandlerProvider();
+    final LoggingConstraintHandlerProvider loggingConstraintHandlerProvider = new LoggingConstraintHandlerProvider();
 
     static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -116,16 +115,16 @@ class LoggingConstraintHandlerProviderTests {
     void when_constraintIsResponsible_then_getHandler() throws JsonProcessingException {
         // GIVEN
         var constraint = MAPPER.readTree("""
-                 		{
-                  "id": "log",
-                  "message": "You are using SAPL for protection of database."
-                }
-                			""");
+                {
+                       "id": "log",
+                       "message": "You are using SAPL for protection of database."
+                     }
+                """);
         // WHEN
         var actual = loggingConstraintHandlerProvider.getHandler(constraint);
 
         // THEN
-        assertTrue(actual instanceof Runnable);
+        assertNotNull(actual);
         actual.run();
     }
 }

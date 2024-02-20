@@ -36,16 +36,16 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
     @Override
     public Flux<Val> apply(Val unfilteredValue) {
         if (unfilteredValue.isError()) {
-            return Flux.just(
-                    unfilteredValue.withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
+            return Flux.just(unfilteredValue.withTrace(FilterExtended.class, true,
+                    Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
         }
         if (unfilteredValue.isUndefined()) {
             return Flux.just(Val.error(FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR)
-                    .withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
+                    .withTrace(FilterExtended.class, true, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
         }
         if (statements == null) {
-            return Flux.just(
-                    unfilteredValue.withTrace(FilterExtended.class, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
+            return Flux.just(unfilteredValue.withTrace(FilterExtended.class, true,
+                    Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
         }
         return Flux.just(unfilteredValue).switchMap(applyFilterStatements());
     }

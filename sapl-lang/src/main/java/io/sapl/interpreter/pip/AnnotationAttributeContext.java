@@ -39,7 +39,6 @@ import org.reactivestreams.Publisher;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
@@ -181,7 +180,7 @@ public class AnnotationAttributeContext implements AttributeContext {
         return invocationParameters -> {
             try {
                 return ((Flux<Val>) method.invoke(pip, invocationParameters)).map(val -> {
-                    var trace = new HashMap<String, Traced>();
+                    var trace = new HashMap<String, Val>();
                     trace.put("attribute", Val.of(attributeName));
                     for (int i = 0; i < invocationParameters.length; i++) {
                         if (invocationParameters[i] instanceof Val)
@@ -191,7 +190,7 @@ public class AnnotationAttributeContext implements AttributeContext {
                         }
                     }
                     trace.put("timestamp", Val.of(Instant.now().toString()));
-                    return val.withTrace(AttributeContext.class, trace);
+                    return val.withTrace(AttributeContext.class, false, trace);
                 });
             } catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
                 return Flux.just(ErrorUtil.causeOrMessage(e));
@@ -423,7 +422,7 @@ public class AnnotationAttributeContext implements AttributeContext {
             throw new InitializationException(
                     "Cannot initialize PIPs. If no PIP instance is provided, the method of an attribute finder must be static. "
                             + method.getName()
-                            + " is not static. In case your PIP implementation cannot have the method as static because it depends on PIP state or injected dependecies, make sure to register the PIP as an instance instead of a class.");
+                            + " is not static. In case your PIP implementation cannot have the method as static because it depends on PIP state or injected dependencies, make sure to register the PIP as an instance instead of a class.");
         }
     }
 

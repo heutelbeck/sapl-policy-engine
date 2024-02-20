@@ -270,7 +270,7 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
-    void badParameterChemaDetected() throws InitializationException {
+    void badParameterSchemaDetected() throws InitializationException {
         var context = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
         assertThat(context.evaluate("annotation.schemaFromBadJson", Val.of("123")), valError());

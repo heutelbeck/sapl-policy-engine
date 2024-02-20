@@ -34,7 +34,7 @@ class ApplyStepsRecursiveIndexTests {
         assertExpressionReturnsErrors("(10/0)..[5]");
     }
 
-    private static Stream<Arguments> provideStringsForexpressionEvaluatesToExpectedValue() {
+    private static Stream<Arguments> provideStringsForExpressionEvaluatesToExpectedValue() {
         // @formatter:off
 		return Stream.of(
 				// recursiveIndexStepOnUndefinedEmpty
@@ -72,17 +72,17 @@ class ApplyStepsRecursiveIndexTests {
 	 					   + "|- { @..[0][0] : filter.remove }",
 	 					     "{ \"key\" : \"value1\", \"array1\" : [ [ 2,3 ], { \"key\" : \"value3\" } ], \"array2\" : [ [2,3], 2, 3, 4, 5 ] }")
 			);
-		// @formater:on
-	}
+		// @formatter:on
+    }
 
-	@ParameterizedTest
-	@MethodSource("provideStringsForexpressionEvaluatesToExpectedValue")
-	void expressionEvaluatesToExpectedValue(String expression, String expected) {
-		assertExpressionEvaluatesTo(expression, expected);
-	}
+    @ParameterizedTest
+    @MethodSource("provideStringsForExpressionEvaluatesToExpectedValue")
+    void expressionEvaluatesToExpectedValue(String expression, String expected) {
+        assertExpressionEvaluatesTo(expression, expected);
+    }
 
-	@Test
-	void handleError() {
-	    assertExpressionReturnsErrors("[ 4, (1/0), (2/0), (3/0) ]..[-4]");
-	}
+    @Test
+    void handleError() {
+        assertExpressionReturnsErrors("[ 4, (1/0), (2/0), (3/0) ]..[-4]");
+    }
 }

@@ -44,7 +44,7 @@ import reactor.core.publisher.Mono;
  * Attributes obtained from JSON Web Tokens (JWT)
  * <p>
  * Attributes depend on the JWT's validity, meaning they can change their state
- * over time according to the JWT's signature, maturity and expiration.
+ * over time according to the JWT's signature, maturity, and expiration.
  * <p>
  * Public keys must be fetched from the trusted authentication server for
  * validating signatures. For this purpose, the url and http method for fetching

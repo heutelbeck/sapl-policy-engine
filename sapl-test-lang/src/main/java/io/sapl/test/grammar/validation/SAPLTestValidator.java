@@ -20,16 +20,18 @@
  */
 package io.sapl.test.grammar.validation;
 
+import java.time.format.DateTimeParseException;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import org.eclipse.xtext.validation.Check;
+
 import io.sapl.test.grammar.sapltest.Duration;
 import io.sapl.test.grammar.sapltest.Multiple;
 import io.sapl.test.grammar.sapltest.StringMatchesRegex;
 import io.sapl.test.grammar.sapltest.StringWithLength;
 import io.sapl.test.grammar.sapltest.TestCase;
 import io.sapl.test.grammar.sapltest.VirtualTime;
-import java.time.format.DateTimeParseException;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-import org.eclipse.xtext.validation.Check;
 
 /**
  * This class contains custom validation rules.

@@ -41,6 +41,9 @@ import lombok.Getter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ *
+ */
 public class Val implements Traced {
 
     static final String ERROR_LITERAL                              = "ERROR";
@@ -88,7 +91,7 @@ public class Val implements Traced {
      */
     public static final Val NULL = Val.of(JSON.nullNode());
 
-    private static final NumericAwareComparator NUMBERIC_AWARE_COMPARATOR = new NumericAwareComparator();
+    private static final NumericAwareComparator NUMERIC_AWARE_COMPARATOR = new NumericAwareComparator();
 
     private final JsonNode value;
     private final String   errorMessage;
@@ -147,7 +150,7 @@ public class Val implements Traced {
      * @param trace a trace
      * @return the Val with attached trace.
      */
-    public Val withTrace(Trace trace) {
+    private Val withTrace(Trace trace) {
         return new Val(value, errorMessage, secret, trace);
     }
 
@@ -164,57 +167,117 @@ public class Val implements Traced {
     /**
      * Attaches a trace to the Val including arguments.
      *
-     * @param operation traced operation
-     * @param arguments the arguments
+     * @param operation                   traced operation
+     * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
+     *                                    the new value also is a secret.
+     * @param arguments                   the arguments
      * @return the Val with attached trace
      */
-    public Val withTrace(Class<?> operation, Val... arguments) {
-        return withTrace(new Trace(operation, arguments));
+    public Val withTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, Val... arguments) {
+        var newVal = withTrace(new Trace(operation, arguments));
+
+        if (!inheritsSecretStatusOfTrace)
+            return newVal;
+
+        for (var argument : arguments) {
+            if (argument.isSecret()) {
+                newVal = newVal.asSecret();
+                break;
+            }
+        }
+        return newVal;
     }
 
     /**
      * Attaches a trace to the Val including arguments.
      *
-     * @param operation traced operation
-     * @param arguments the arguments with parameter names
+     * @param operation                   traced operation
+     * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
+     *                                    the new value also is a secret.
+     * @param arguments                   the arguments with parameter names
      * @return the Val with attached trace
      */
-    public Val withTrace(Class<?> operation, Map<String, Traced> arguments) {
-        return withTrace(new Trace(operation, arguments));
+    public Val withTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, Map<String, Val> arguments) {
+        var newVal = withTrace(new Trace(operation, arguments));
+
+        if (!inheritsSecretStatusOfTrace)
+            return newVal;
+
+        for (var entry : arguments.entrySet()) {
+            if (entry.getValue().isSecret()) {
+                newVal = newVal.asSecret();
+                break;
+            }
+        }
+        return newVal;
     }
 
     /**
      * Attaches a trace to the Val parent value.
      *
-     * @param operation   traced operation
-     * @param parentValue the parent value
+     * @param operation                   traced operation
+     * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
+     *                                    the new value also is a secret.
+     * @param parentValue                 the parent value
      * @return the Val with attached trace
      */
-    public Val withParentTrace(Class<?> operation, Traced parentValue) {
-        return withTrace(new Trace(operation, new ExpressionArgument(Trace.PARENT_VALUE, parentValue)));
+    public Val withParentTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, Val parentValue) {
+        var newVal = withTrace(new Trace(operation, new ExpressionArgument(Trace.PARENT_VALUE, parentValue)));
+        if (inheritsSecretStatusOfTrace && parentValue.isSecret()) {
+            return newVal.asSecret();
+        }
+        return newVal;
     }
 
     /**
      * Attaches a trace to the Val including arguments.
      *
-     * @param operation traced operation
-     * @param arguments the arguments with parameter names
+     * @param operation                   traced operation
+     * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
+     *                                    the new value also is a secret.
+     * @param arguments                   the arguments with parameter names
      * @return the Val with attached trace
      */
-    public Val withTrace(Class<?> operation, ExpressionArgument... arguments) {
-        return withTrace(new Trace(operation, arguments));
+    public Val withTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, ExpressionArgument... arguments) {
+        var newVal = withTrace(new Trace(operation, arguments));
+
+        if (!inheritsSecretStatusOfTrace)
+            return newVal;
+
+        for (var argument : arguments) {
+            if (argument.value().isSecret()) {
+                newVal = newVal.asSecret();
+                break;
+            }
+        }
+        return newVal;
     }
 
     /**
      * Attaches a trace to the Val including arguments for attribute finders.
      *
-     * @param leftHandValue left hand value of attribute finder
-     * @param operation     traced operation
-     * @param arguments     the arguments with parameter names
+     * @param leftHandValue               left hand value of attribute finder
+     * @param operation                   traced operation
+     * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
+     *                                    the new value also is a secret.
+     * @param arguments                   the arguments with parameter names
      * @return the Val with attached trace
      */
-    public Val withTrace(Traced leftHandValue, Class<?> operation, Traced... arguments) {
-        return withTrace(new Trace(leftHandValue, operation, arguments));
+    public Val withTrace(Val leftHandValue, Class<?> operation, boolean inheritsSecretStatusOfTrace, Val... arguments) {
+        var newVal = this.withTrace(new Trace(leftHandValue, operation, arguments));
+        if (!inheritsSecretStatusOfTrace)
+            return newVal;
+
+        if (leftHandValue.isSecret())
+            return newVal.asSecret();
+
+        for (var argument : arguments) {
+            if (argument.isSecret()) {
+                newVal = newVal.asSecret();
+                break;
+            }
+        }
+        return newVal;
     }
 
     /**
@@ -474,12 +537,84 @@ public class Val implements Traced {
     }
 
     /**
+     * Returns the given field or the alternative given.
+     *
+     * @param fieldName     the field name
+     * @param errorSupplier supplier for error if field not present.
+     * @return the field vale if Val is an object with the field. Else throw.
+     * @throws Exception if field is not present supplied Exception is thrown.
+     */
+    public JsonNode fieldJsonNodeOrElseThrow(String fieldName, Supplier<? extends RuntimeException> errorSupplier) {
+        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        if (!isObjectAndFieldIsPresent)
+            throw errorSupplier.get();
+
+        return value.get(fieldName);
+    }
+
+    /**
+     * Returns the given field or the alternative given.
+     *
+     * @param fieldName the field name
+     * @param other     alternative to return if undefined, error, nonObject, or
+     *                  field not present
+     * @return the field vale if Val is an object with the field. Else returns
+     *         other.
+     */
+    public JsonNode fieldJsonNodeOrElse(String fieldName, JsonNode other) {
+        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        return isObjectAndFieldIsPresent ? value.get(fieldName) : other;
+    }
+
+    /**
+     * Returns the given field or the supplied alternative given.
+     *
+     * @param fieldName the field name
+     * @param other     alternative supplier to return if undefined, error,
+     *                  nonObject, or field not present
+     * @return the field vale if Val is an object with the field. Else returns
+     *         other.
+     */
+    public JsonNode fieldJsonNodeOrElse(String fieldName, Supplier<JsonNode> other) {
+        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        return isObjectAndFieldIsPresent ? value.get(fieldName) : other.get();
+    }
+
+    /**
+     * Returns the given field or the alternative given.
+     *
+     * @param fieldName the field name
+     * @param other     alternative to return if undefined, error, nonObject, or
+     *                  field not present
+     * @return the field vale if Val is an object with the field. Else returns
+     *         other.
+     */
+    public Val fieldValOrElse(String fieldName, Val other) {
+        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        return isObjectAndFieldIsPresent ? Val.of(value.get(fieldName)) : other;
+    }
+
+    /**
+     * Returns the given field or the supplied alternative given.
+     *
+     * @param fieldName the field name
+     * @param other     alternative supplier to return if undefined, error,
+     *                  nonObject, or field not present
+     * @return the field vale if Val is an object with the field. Else returns
+     *         other.
+     */
+    public Val fieldValOrElse(String fieldName, Supplier<Val> other) {
+        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        return isObjectAndFieldIsPresent ? Val.of(value.get(fieldName)) : other.get();
+    }
+
+    /**
      * Returns the supplied given other if the Val is undefined or an error.
      *
      * @param other a JSON node
      * @return the result of other if Val undefined or error.
      */
-    public JsonNode orElseGet(Supplier<? extends JsonNode> other) {
+    public JsonNode orElse(Supplier<? extends JsonNode> other) {
         return isDefined() ? value : other.get();
     }
 
@@ -563,7 +698,7 @@ public class Val implements Traced {
         if (value == null) {
             return true;
         }
-        return value.equals(NUMBERIC_AWARE_COMPARATOR, other.get());
+        return value.equals(NUMERIC_AWARE_COMPARATOR, other.get());
     }
 
     @Override

@@ -99,4 +99,7 @@ public interface R2dbcPersonRepository
 
     @SaplProtected
     Stream<Person> findAllByAgeLessThan(int age);
+
+    @Query("SELECT * FROM person WHERE lastname LIKE CONCAT('%', (:lastnameContains), '%')")
+    Flux<Person> concatValuesInQueryAnnotation(String lastnameContains);
 }

@@ -55,13 +55,13 @@ import io.sapl.util.filemonitoring.FileDeletedEvent;
 
 class ImmutableFileIndexTests {
 
-    private static final SAPLInterpreter INTERPERETER  = new DefaultSAPLInterpreter();
+    private static final SAPLInterpreter INTERPRETER   = new DefaultSAPLInterpreter();
     private static final String          POLICY_1      = "policy \"policy1\" permit";
     private static final String          POLICY_1_NAME = "policy1";
-    private static final SAPL            SAPL_1        = INTERPERETER.parse(POLICY_1);
+    private static final SAPL            SAPL_1        = INTERPRETER.parse(POLICY_1);
     private static final String          POLICY_2      = "policy \"policy2\" permit";
     private static final String          POLICY_2_NAME = "policy2";
-    private static final SAPL            SAPL_2        = INTERPERETER.parse(POLICY_2);
+    private static final SAPL            SAPL_2        = INTERPRETER.parse(POLICY_2);
     private static final String          PATH          = "/";
 
     @Test
@@ -69,7 +69,7 @@ class ImmutableFileIndexTests {
         try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
             mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
                     .thenThrow(new IOException());
-            var sut           = new ImmutableFileIndex(PATH, INTERPERETER);
+            var sut           = new ImmutableFileIndex(PATH, INTERPRETER);
             var actualUpdates = sut.getUpdateEvent();
             assertThat(actualUpdates.getUpdates(), is(arrayWithSize(1)));
             assertThat(actualUpdates.getUpdates(), arrayContainingInAnyOrder(
@@ -89,7 +89,7 @@ class ImmutableFileIndexTests {
             mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
                     .thenReturn(mockDirectoryStream);
             mockedFiles.when(() -> Files.readString(any())).thenThrow(new IOException());
-            var sut           = new ImmutableFileIndex(PATH, INTERPERETER);
+            var sut           = new ImmutableFileIndex(PATH, INTERPRETER);
             var actualUpdates = sut.getUpdateEvent();
             assertThat(actualUpdates.getUpdates(), is(arrayWithSize(1)));
             assertThat(actualUpdates.getUpdates(),

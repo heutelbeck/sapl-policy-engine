@@ -45,9 +45,9 @@ class HandleProceedingDataTests {
     @Test
     void when_proceedingDataIsTypeOfFlux_then_justProceed() {
         // GIVEN
-        final Person malinda = new Person(1, "Malinda", "Perrot", 53, Role.ADMIN, true);
-        final Person emerson = new Person(2, "Emerson", "Rowat", 82, Role.USER, false);
-        final Person yul     = new Person(3, "Yul", "Barukh", 79, Role.USER, true);
+        final Person malinda = new Person("1", "Malinda", "Perrot", 53, Role.ADMIN, true);
+        final Person emerson = new Person("2", "Emerson", "Rowat", 82, Role.USER, false);
+        final Person yul     = new Person("3", "Yul", "Barukh", 79, Role.USER, true);
 
         final Flux<Person> data = Flux.just(malinda, emerson, yul);
 
@@ -71,7 +71,7 @@ class HandleProceedingDataTests {
     @Test
     void when_proceedingDataIsTypeOfMono_then_convertToFlux() {
         // GIVEN
-        final Person       malinda    = new Person(1, "Malinda", "Perrot", 53, Role.ADMIN, true);
+        final Person       malinda    = new Person("1", "Malinda", "Perrot", 53, Role.ADMIN, true);
         final Mono<Person> dataAsMono = Mono.just(malinda);
 
         var domainType                = Person.class;
