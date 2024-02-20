@@ -53,7 +53,8 @@ jobs:
       id: get-version
       run: |
         VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
-        echo "::set-output name=version::$VERSION"     
+        #echo "::set-output name=version::$VERSION" 
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
                       
     - name: Push Documentation to Website
       uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
