@@ -167,8 +167,8 @@ Distributed under the Apache 2.0 License. See [LICENSE.md](./LICENSE.md) for mor
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[build-status-shield]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build_master.yml/badge.svg
-[build-status-url]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build_master.yml
+[build-status-shield]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build.yml/badge.svg?branch=master
+[build-status-url]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build.yml?branch=master
 [sonarcloud-status-shield]: https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=alert_status
 [sonarcloud-status-url]: https://sonarcloud.io/dashboard?id=heutelbeck_sapl-policy-engine
 [security-rating-shield]: https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=security_rating
