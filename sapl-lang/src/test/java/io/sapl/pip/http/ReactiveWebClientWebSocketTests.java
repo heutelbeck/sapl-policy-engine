@@ -29,7 +29,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -95,7 +94,6 @@ class ReactiveWebClientWebSocketTests {
                 .expectComplete().verify(Duration.ofSeconds(5L));
     }
 
-    @Component
     public static class EchoHandler implements WebSocketHandler {
         @Override
         public Mono<Void> handle(WebSocketSession webSocketSession) {
@@ -104,7 +102,6 @@ class ReactiveWebClientWebSocketTests {
         }
     }
 
-    @Component
     public static class CounterHandler implements WebSocketHandler {
         @Override
         public Mono<Void> handle(WebSocketSession webSocketSession) {

@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux;
 @UtilityClass
 public class CombiningAlgorithmUtil {
 
-    public static Flux<CombinedDecision> eagerlyCombinePolicyElements(List<PolicyElement> policyElements,
+    public static Flux<CombinedDecision> eagerlyCombinePolicyElements(Collection<PolicyElement> policyElements,
             Function<DocumentEvaluationResult[], CombinedDecision> combinator, String algorithmName,
             AuthorizationDecision defaultDecisionIfEmpty) {
         if (policyElements.isEmpty())

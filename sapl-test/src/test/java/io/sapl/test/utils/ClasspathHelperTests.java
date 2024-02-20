@@ -93,9 +93,9 @@ class ClasspathHelperTests {
         when(url.toURI()).thenThrow(new URISyntaxException("XXX", "YYY"));
         Mockito.when(classLoader.getResource(Mockito.any())).thenReturn(url);
 
-        assertThatExceptionOfType(RuntimeException.class)
+        assertThatExceptionOfType(URISyntaxException.class)
                 .isThrownBy(() -> ClasspathHelper.findPathOnClasspath(classLoader, "test.sapl"))
-                .withMessage("java.net.URISyntaxException: YYY: XXX");
+                .withMessage("YYY: XXX");
     }
 
 }

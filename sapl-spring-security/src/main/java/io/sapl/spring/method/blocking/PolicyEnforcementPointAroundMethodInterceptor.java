@@ -35,7 +35,6 @@ import io.sapl.spring.method.metadata.EnforceRecoverableIfDenied;
 import io.sapl.spring.method.metadata.EnforceTillDenied;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.PreEnforce;
-import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -58,8 +57,7 @@ public class PolicyEnforcementPointAroundMethodInterceptor
                 SaplAuthorizationInterceptorsOrder.POST_ENFORCE.getOrder(), policyEnforcementPoint);
     }
 
-    public static PolicyEnforcementPointAroundMethodInterceptor reactive(
-            ReactiveSaplMethodInterceptor policyEnforcementPoint) {
+    public static PolicyEnforcementPointAroundMethodInterceptor reactive(MethodInterceptor policyEnforcementPoint) {
         return new PolicyEnforcementPointAroundMethodInterceptor(
                 SaplAuthorizationInterceptorsOrder.PRE_ENFORCE.getOrder(), policyEnforcementPoint);
     }

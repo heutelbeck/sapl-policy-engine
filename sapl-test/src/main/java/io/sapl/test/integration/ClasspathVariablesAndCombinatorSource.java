@@ -17,7 +17,6 @@
  */
 package io.sapl.test.integration;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,8 +32,8 @@ import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.test.utils.ClasspathHelper;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -44,6 +43,7 @@ public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombin
 
     private final PolicyDecisionPointConfiguration config;
 
+    @SneakyThrows
     public ClasspathVariablesAndCombinatorSource(@NonNull String configPath, @NonNull ObjectMapper mapper,
             PolicyDocumentCombiningAlgorithm testInternalConfiguredCombiningAlg,
             Map<String, Val> testInternalConfiguredVariables) {
@@ -60,8 +60,6 @@ public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombin
                 log.info("loading PDP configuration: {}", filePath.toAbsolutePath());
                 pdpConfig = mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
             }
-        } catch (IOException e) {
-            throw Exceptions.propagate(e);
         }
 
         if (pdpConfig == null) {
