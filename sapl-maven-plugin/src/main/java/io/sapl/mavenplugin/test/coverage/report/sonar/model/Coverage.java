@@ -95,15 +95,6 @@ public class Coverage {
 
     protected List<Coverage.File> file;
 
-    /**
-     * -- GETTER -- Gets the value of the version property.
-     * <p>
-     *
-     * -- SETTER -- Sets the value of the version property.
-     *
-     * @return possible object is {@link BigInteger }
-     * @param value allowed object is {@link BigInteger }
-     */
     @Setter
     @Getter
     @XmlAttribute(name = "version", required = true)
@@ -187,15 +178,6 @@ public class Coverage {
 
         protected List<Coverage.File.LineToCover> lineToCover;
 
-        /**
-         * -- GETTER -- Gets the value of the path property.
-         * <p>
-         *
-         * -- SETTER -- Sets the value of the path property.
-         *
-         * @return possible object is {@link String }
-         * @param value allowed object is {@link String }
-         */
         @Setter
         @Getter
         @XmlAttribute(name = "path", required = true)
@@ -266,53 +248,17 @@ public class Coverage {
         @Generated
         public static class LineToCover {
 
-            /**
-             * -- GETTER -- Gets the value of the lineNumber property.
-             * <p>
-             *
-             * -- SETTER -- Sets the value of the lineNumber property.
-             *
-             * @return possible object is {@link BigInteger }
-             * @param value allowed object is {@link BigInteger }
-             */
             @XmlAttribute(name = "lineNumber", required = true)
             @XmlSchemaType(name = "positiveInteger")
             protected BigInteger lineNumber;
 
-            /**
-             * -- GETTER -- Gets the value of the covered property.
-             * <p>
-             *
-             * -- SETTER -- Sets the value of the covered property.
-             *
-             * @return true if covered
-             * @param value indicate if covered
-             */
             @XmlAttribute(name = "covered", required = true)
             protected boolean covered;
 
-            /**
-             * -- GETTER -- Gets the value of the branchesToCover property.
-             * <p>
-             *
-             * -- SETTER -- Sets the value of the branchesToCover property.
-             *
-             * @return possible object is {@link BigInteger }
-             * @param value allowed object is {@link BigInteger }
-             */
             @XmlAttribute(name = "branchesToCover")
             @XmlSchemaType(name = "nonNegativeInteger")
             protected BigInteger branchesToCover;
 
-            /**
-             * -- GETTER -- Gets the value of the coveredBranches property.
-             * <p>
-             *
-             * -- SETTER -- Sets the value of the coveredBranches property.
-             *
-             * @return possible object is {@link BigInteger }
-             * @param value allowed object is {@link BigInteger }
-             */
             @XmlAttribute(name = "coveredBranches")
             @XmlSchemaType(name = "nonNegativeInteger")
             protected BigInteger coveredBranches;

@@ -28,8 +28,7 @@ import org.springframework.data.repository.query.parser.PartTree;
 
 /**
  * This class has the sole task of creating a valid instance of the
- * MongoQueryCreator class from
- * {@link org.springframework.data.mongodb.repository.query} which is needed to
+ * MongoQueryCreator class which is needed to
  * use certain methods of spring data for the query creation.
  */
 public class MongoQueryCreatorFactory {

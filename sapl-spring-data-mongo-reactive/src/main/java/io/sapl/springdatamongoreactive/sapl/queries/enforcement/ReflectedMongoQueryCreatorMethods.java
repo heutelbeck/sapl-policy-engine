@@ -49,8 +49,7 @@ public class ReflectedMongoQueryCreatorMethods {
     }
 
     /**
-     * Fetches the original method named 'create' from
-     * {@link org.springframework.data.mongodb.repository.query} of the class named
+     * Fetches the original method named 'create' of the class named
      * MongoQueryCreator by using reflection and invokes it.
      * <p>
      * Creates a new atomic instance of the criteria object.
@@ -66,9 +65,8 @@ public class ReflectedMongoQueryCreatorMethods {
     }
 
     /**
-     * Fetches the original method named 'and' from
-     * {@link org.springframework.data.mongodb.repository.query} of the class named
-     * MongoQueryCreator by using reflection and invokes it.
+     * Fetches the original method named 'and' of the class named MongoQueryCreator
+     * by using reflection and invokes it.
      * <p>
      * Creates a new criteria object from the given part and and-concatenates it to
      * the given base criteria.
@@ -85,9 +83,8 @@ public class ReflectedMongoQueryCreatorMethods {
     }
 
     /**
-     * Fetches the original method named 'or' from
-     * {@link org.springframework.data.mongodb.repository.query} of the class named
-     * MongoQueryCreator by using reflection and invokes it.
+     * Fetches the original method named 'or' of the class named MongoQueryCreator
+     * by using reflection and invokes it.
      * <p>
      * Or-concatenates the given base criteria to the given new criteria.
      *
