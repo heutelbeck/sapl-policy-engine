@@ -155,12 +155,13 @@ jobs:
       with:
         name: pr_build
         path: |
-          */src
-          */target/spotbugsXml.xml
-          */target/classes
-          */target/test-classes
-          */target/site/jacoco/jacoco.xml
-          */pom.xml
+          **/src
+          !**/node_modules/**/src
+          **/target/spotbugsXml.xml
+          **/target/classes
+          **/target/test-classes
+          **/target/site/jacoco/jacoco.xml
+          **/pom.xml
           pom.xml
           pr_data.txt
           .git
