@@ -162,6 +162,7 @@ jobs:
           **/target/test-classes
           **/target/site/jacoco/jacoco.xml
           **/pom.xml
+          **/META-INF
           pom.xml
           pr_data.txt
           .git
