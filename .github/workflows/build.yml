@@ -70,6 +70,11 @@ jobs:
         java-version: ${{ matrix.java }}
         cache: 'maven'
 
+    - name: Set up Node.js
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      with:
+        node-version: '20'
+
     - name: Configure Servers
       # Not allowed for PRs from forks and from Dependabot. Secrets are not accessible
       # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
@@ -104,11 +109,11 @@ jobs:
       # If not ubuntu on jdk 17: unit tests only.
       run: >
         if ! [[ ${{ matrix.os }} == 'ubuntu-latest' && ${{ matrix.java }} == '17' ]]; then
-          mvn -U -B package javadoc:jar -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          mvn -U -B package -fae javadoc:jar -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         elif [[ "${IS_FORK}" = true || ${{ github.actor }} == 'dependabot[bot]' ]]; then
-          mvn -U -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,spotbugs -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          mvn -U -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,spotbugs -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         else
-          mvn -U -B verify javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          mvn -U -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         fi
 
     - name: Cache Sonar Packages
@@ -211,6 +216,11 @@ jobs:
         distribution: temurin
         java-version: 17
         cache: 'maven'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      with:
+        node-version: '20'
 
     - name: Configure Servers
       uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
