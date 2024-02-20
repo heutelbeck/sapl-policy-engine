@@ -428,15 +428,15 @@
 								<exclude>**/*.xtendbin</exclude>
 								<exclude>**/*._trace</exclude>
 								<exclude>**/README</exclude>
-								<exclude>.clusterfuzzlite/**</exclude>
-								<exclude>node_modules/**</exclude>
-								<exclude>frontend/**</exclude>
-								<exclude>src/test/resources/**</exclude>
-								<exclude>src/test/xtend-gen/**</exclude>
-								<exclude>src/test/xtext-gen/**</exclude>
-								<exclude>src/main/xtend-gen/**</exclude>
-								<exclude>src/main/xtext-gen/**</exclude>
-								<exclude>src/main/emf-gen/**</exclude>
+								<exclude>**/.clusterfuzzlite/**</exclude>
+								<exclude>**/node_modules/**</exclude>
+								<exclude>**/frontend/**</exclude>
+								<exclude>**/src/test/resources/**</exclude>
+								<exclude>**/src/test/xtend-gen/**</exclude>
+								<exclude>**/src/test/xtext-gen/**</exclude>
+								<exclude>**/src/main/xtend-gen/**</exclude>
+								<exclude>**/src/main/xtext-gen/**</exclude>
+								<exclude>**/src/main/emf-gen/**</exclude>
 								<exclude>src/main/resources/**</exclude>
 								<exclude>.gitattributes</exclude>
 								<exclude>.npmrc</exclude>
