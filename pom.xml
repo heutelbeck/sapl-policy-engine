@@ -377,6 +377,7 @@
 					</executions>
 					<configuration>
 						<verbose>false</verbose>
+						<failOnWarnings>true</failOnWarnings>
 						<doclint>none</doclint>
 						<tags>
 							<tag>

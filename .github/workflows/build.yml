@@ -1,0 +1,261 @@
+
+# Copyright © 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+name: Testing and Deployment
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'sapl-documentation/**'
+      - '.github/workflows/**'
+      - '!.github/workflows/build.yml'
+      - '!.github/workflows/sonar_analysis_fork.yaml'
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - 'sapl-documentation/**'
+      - '.github/workflows/**'
+      - '!.github/workflows/build.yml'
+      - '!.github/workflows/sonar_analysis_fork.yaml'
+      - '**.md'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        java: [ '17', '21' ]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+    name: Build (JDK ${{ matrix.java }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      actions: write # for Mattraks/delete-workflow-runs and to push SAPL Server LT image to repo
+      checks: write # for scacap/action-surefire-report to publish result as PR check
+    timeout-minutes: 45
+
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+      with:
+        egress-policy: audit
+
+    - name: Check out
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      with:
+        lfs: true
+        fetch-depth: 0
+
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+      with:
+        distribution: temurin
+        java-version: ${{ matrix.java }}
+        cache: 'maven'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      with:
+        node-version: '20'
+
+    - name: Configure Servers
+      # Not allowed for PRs from forks and from Dependabot. Secrets are not accessible
+      # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
+      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
+      with:
+        githubServer: false
+        servers: |
+          [{
+              "id": "ghcr.io",
+              "username": "${{ secrets.GHUB_USERNAME }}",
+              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+           }]
+
+    - name: Add auth-host to /etc/hosts for OAuth Integration Tests
+      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
+
+    - name: Build Modules
+      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      run: mvn -U -B install -DskipTests
+
+    - name: Build SAPL Server LT Image
+      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      run: mvn -B dockerfile:build -pl sapl-server-lt -P docker -DskipTests
+
+    - name: Run Tests
+      shell: bash # needed to run script on windows os
+      env:
+        IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
+      # Tests: unit tests, it, jacoco, spotbugs. If pr from fork or dependabot: no integration tests.
+      # If not ubuntu on jdk 17: unit tests only.
+      run: >
+        if ! [[ ${{ matrix.os }} == 'ubuntu-latest' && ${{ matrix.java }} == '17' ]]; then
+          mvn -U -B package -fae javadoc:jar -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        elif [[ "${IS_FORK}" = true || ${{ github.actor }} == 'dependabot[bot]' ]]; then
+          mvn -U -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,spotbugs -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        else
+          mvn -U -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        fi
+
+    - name: Cache Sonar Packages
+      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
+    - name: Run SonarQube Analysis
+      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: mvn -B sonar:sonar -pl '!sapl-bom' -Dsonar.login=${SONAR_TOKEN} -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+
+    - name: Run SonarCloud Analysis
+      # Not allowed for PRs from forks and from Dependabot. Secrets are not accessible
+      # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
+      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      env:
+        SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
+      run: >
+        mvn -B sonar:sonar
+        -pl '!sapl-bom'
+        -'Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'
+        -Dsonar.organization=heutelbeck
+        -Dsonar.host.url=https://sonarcloud.io
+        -Dsonar.projectKey=heutelbeck_sapl-policy-engine
+        -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
+
+    - name: Save PR Number # needed for subsequent SonarCloud workflow for PRs from fork
+      if: ${{ github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      run: echo "${{ github.event.number }}" > pr_data.txt
+
+    - name: Upload Artifact # needed for subsequent SonarCloud workflow for PRs from fork
+      if: ${{ github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+      with:
+        name: pr_build
+        path: |
+          **/src
+          !**/node_modules/**/src
+          **/target/spotbugsXml.xml
+          **/target/classes
+          **/target/test-classes
+          **/target/site/jacoco/jacoco.xml
+          **/pom.xml
+          pom.xml
+          pr_data.txt
+          .git
+        retention-days: 1
+
+    - name: Push SAPL Server LT Image
+      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      run: mvn -B dockerfile:push -pl sapl-server-lt -P docker -DskipTests
+
+    - name: Publish Test Report
+      # Not allowed for PRs from forks and from Dependabot. The GITHUB_TOKEN stays read-only
+      # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
+      if: ${{ (success() || failure()) && !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      uses: scacap/action-surefire-report@687f107f48aa55aff279cc5ce598fd9860871a81 # v1.7.3
+
+    - name: Delete Workflow Runs
+      # Not allowed for PRs from forks and from Dependabot. The GITHUB_TOKEN stays read-only
+      # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
+      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      uses: Mattraks/delete-workflow-runs@39f0bbed25d76b34de5594dceab824811479e5de # v2.0.6
+      with:
+        token: ${{ github.token }}
+        repository: ${{ github.repository }}
+        retain_days: 1
+        keep_minimum_runs: 6
+
+    - name: Clean up Local Repository before Caching
+      shell: bash # needed to run script on windows os
+      run: rm -rf ~/.m2/repository/io/sapl
+
+  deploy:
+    if: ${{ github.ref == 'refs/heads/master' }}
+    needs: [build]
+    name: Deploy to Central
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+      with:
+        egress-policy: audit
+
+    - name: Check out
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      with:
+        lfs: true
+        fetch-depth: 0
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+      with:
+        distribution: temurin
+        java-version: 17
+        cache: 'maven'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      with:
+        node-version: '20'
+
+    - name: Configure Servers
+      uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
+      with:
+        githubServer: false
+        servers: |
+          [{
+              "id": "ossrh",
+              "username": "${{ secrets.OSSRH_USERNAME }}",
+              "password": "${{ secrets.OSSRH_PASSWORD }}"
+           },{
+              "id": "ghcr.io",
+              "username": "${{ secrets.GHUB_USERNAME }}",
+              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+           },{
+              "id": "github",
+              "username": "${{ secrets.GHUB_USERNAME }}",
+              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+           }]
+
+    - name: Install GPG Code Signing Key
+      run: |
+        cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+        gpg --list-secret-keys --keyid-format LONG
+
+    - name: Deploy Maven Artifacts
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt -Ppublish -DskipTests clean package deploy
+
+    - name: Trigger CI Build of Downstream Repositories
+      run: |
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server/dispatches --data '{"event_type": "build_application"}'
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-benchmark/dispatches --data '{"event_type": "build_application"}'
+
+    - name: Clean up Local Repository before Caching
+      run: rm -rf ~/.m2/repository/io/sapl
