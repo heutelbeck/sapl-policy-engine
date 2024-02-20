@@ -163,6 +163,7 @@ jobs:
           **/target/site/jacoco/jacoco.xml
           **/pom.xml
           **/META-INF
+          **/*.target
           pom.xml
           pr_data.txt
           .git
