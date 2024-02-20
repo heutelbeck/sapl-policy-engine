@@ -64,6 +64,12 @@
 			<artifactId>org.eclipse.xtext.xtext.generator</artifactId>
 			<version>${xtext.version}</version>
 			<optional>true</optional>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.emf</groupId>
@@ -317,6 +323,13 @@
 						</configuration>
 					</execution>
 				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>org.slf4j</groupId>
+						<artifactId>slf4j-nop</artifactId>
+						<version>2.0.11</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
