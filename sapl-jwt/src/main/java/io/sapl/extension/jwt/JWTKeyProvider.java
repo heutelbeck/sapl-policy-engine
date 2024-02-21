@@ -19,7 +19,6 @@ package io.sapl.extension.jwt;
 
 import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
-import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
@@ -186,7 +185,7 @@ public class JWTKeyProvider {
      * remove all keys from cache, that are older than ttlMillis before now
      */
     private void pruneCache() {
-        var pruneTime   = new Date().toInstant().minusMillis(lastTTL);
+        var pruneTime   = Instant.now().minusMillis(lastTTL);
         var oldestEntry = cachingTimes.peek();
         while (oldestEntry != null && oldestEntry.wasCachedBefore(pruneTime)) {
             keyCache.remove(oldestEntry.getKeyId());
@@ -204,7 +203,7 @@ public class JWTKeyProvider {
 
         CacheEntry(String keyId) {
             this.keyId  = keyId;
-            cachingTime = new Date().toInstant();
+            cachingTime = Instant.now();
         }
 
         boolean wasCachedBefore(Instant instant) {
