@@ -54,7 +54,7 @@ A basic value expression is the simplest type. The value is denoted in the corre
 
 For denoting objects, the keys need to be strings, and the values can be any expression, e.g.
 
-```json
+```python
 {
     "id" : (3+5),
     "name" : functions.generate_name()
@@ -63,7 +63,7 @@ For denoting objects, the keys need to be strings, and the values can be any exp
 
 For arrays, the items can be any expression, e.g.
 
-```json
+```python
 [
     (3+5),
     subject.name
@@ -198,7 +198,7 @@ Given that the following object is stored in the variable `object`:
 
 Structure of `object`
 
-```JSON
+```json
 {
     "key" : "value1",
     "array1" : [
@@ -257,7 +257,14 @@ An expression step returns the value of an attribute with a key or an array item
 A wildcard step can be applied to an object or an array. When applied to an object, it returns an array containing all attribute values. As attributes of an object have no order, the sorting of the result is not defined. When applied to an array, the step just leaves the array untouched.
 
 {: .note }
-> Applied to an object `{"key1":"value1", "key2":"value2"}`, the selection step `.*` or `[*]` returns the following array: `["value1", "value2"]` (possibly with a different sorting of the items). Applied to an array `[1, 2, 3]`, the selection step `.` **or** `[]` returns the original array `[1, 2, 3]`.
+> Applied to an object
+>```python
+> {
+>   "key1":"value1",
+>   "key2":"value2"
+> }
+>```
+> the selection step `.*` or `[*]` returns the following array: `["value1", "value2"]` (possibly with a different sorting of the items). Applied to an array `[1, 2, 3]`, the selection step `.` **or** `[]` returns the original array `[1, 2, 3]`.
 
 
 #### Recursive Descent Step `..key`, `..["key"]`, `..[1]`, `..*` or `..[*]`
@@ -269,15 +276,17 @@ As attributes of an object are not sorted, the order of items in the result arra
 {: .note }
 > Applied to an `object`
 >
+>```python
 > {
-> "key" : "value1",
-> "anotherkey" : {
-> "key" : "value2"
+>   "key" : "value1",
+>   "anotherkey" : {
+>       "key" : "value2"
+>   }
 > }
-> }
-> 
+>```
+>
 > The selection step `object..key` returns the following array: `["value1", "value2"]` (any attribute value with key `key`, the items may be in a different order).
-> 
+>
 > The wildcard selection step `object..` **or** `object..[]` returns `["value1", {"key":"value2"}, "value2"]` (recursively each attribute value and array item in the whole structure `object`, the sorting may be different).
 
 
@@ -324,12 +333,14 @@ Although arrays do not have attributes (they have items), a key step can be appl
 {: .note }
 > Applied to an object
 >
+>```python
 > {
-> "array":\[
-> {"key":"value1"},
-> {"key":"value2"}
-> \]
+>   "array":[
+>       {"key":"value1"},
+>       {"key":"value2"}
+>   ]
 > }
+>```
 >
 > `array.key` returns the following array: `["value1", "value2"]` (the value of the `key` attribute of each item of `array`).
 
@@ -392,7 +403,7 @@ Replaces each char of an attribute or item (which must be a string) by `replacem
 > `filter.replace` and `filter.blacken` are part of the library `filter`. Importing this library through `import filter` makes the functions available under their simple names.
 
 
-```
+```python
 Example
 We take the following object:
 
@@ -414,7 +425,7 @@ If the function filter.blacken is applied to value without specifying any argume
 
 A simple filter component applies a **filter function** to the preceding value. The syntax is:
 
-```
+```python
 BasicExpression |- Function
 ```
 
@@ -422,14 +433,14 @@ BasicExpression |- Function
 
 In case `BasicExpression` evaluates to an array, the whole array is passed to the filter function. The **keyword** `each` before `Function` can be used to apply the function to each array item instead:
 
-```
+```python
 Expression |- each Function
 ```
 
-```
+```python
 Example
 
-Let’s assume our resource contains an array of credit card numbers:
+Let us assume our resource contains an array of credit card numbers:
 
 {
     "numbers": [
@@ -456,7 +467,7 @@ Extended filtering can be used to state more precisely how a value should be alt
 
 E.g., the expression
 
-```
+```python
 resource |- { @.credit_card : blacken }
 ```
 
@@ -464,7 +475,7 @@ would return the original resource except for the value of the attribute `credit
 
 Extended filtering components consist of one or more **filter statements**. Each filter statement has a target expression and specifies a filter function that shall be applied to the attribute value (or to each of its items if the keyword `each` is used). The basic syntax is:
 
-```
+```python
 Expression |- { 
 				FilterStatement, 
 				FilterStatement, 
@@ -474,7 +485,7 @@ Expression |- {
 
 The syntax of a filter statement is:
 
-```
+```python
 each TargetRelativeExpression : Function
 ```
 
@@ -504,7 +515,7 @@ It is possible to define a subtemplate for an array to replace each item of the 
 
 E.g., the basic expression:
 
-```
+```python
 resource.patients :: { "name" : @.name }
 ```
 
@@ -512,13 +523,13 @@ This expression would return the `patients` array from the resource but with eac
 
 The subtemplate is denoted after a double colon:
 
-```
+```python
 Array :: Expression
 ```
 
 This `Expression` represents the replacement template. In this expression, basic relative expressions (starting with `@`) can be used to access the attributes of the current array item. `@` references the array item, which is currently being replaced. `Array` must evaluate to an array. For each item of `Array`, `Expression` is evaluated, and the item is replaced by the result.
 
-```
+```python
 Example
 Given the variable array contains the following array:
 
