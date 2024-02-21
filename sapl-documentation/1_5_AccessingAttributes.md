@@ -16,15 +16,15 @@ Extending the example above, in a real-world application, there will be multiple
 ---
 
 *Introduction - Sample Policy 2*
-{: info }
-> ```asciidoc
-> policy "doctors_get_patient"
-> permit
->   action == "HTTP:GET" &
->   resource =~ "^https://medical\.org/api/patients/\d*$"
-> where
->   subject.username.<user.profile>.function == "doctor";
->```
+
+```python
+ policy "doctors_get_patient"
+ permit
+   action == "HTTP:GET" &
+   resource =~ "^https://medical\.org/api/patients/\d*$"
+ where
+   subject.username.<user.profile>.function == "doctor";
+```
 
 In *line 4* a regular expression is used for identifying a request to any patient’s data (operator `=~`). The authorization subscription resource must match this pattern for the policy to apply.
 
