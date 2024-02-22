@@ -24,14 +24,12 @@ on:
       - 'sapl-documentation/**'
       - '.github/workflows/**'
       - '!.github/workflows/build.yml'
-      - '!.github/workflows/sonar_analysis_fork.yaml'
       - '**.md'
   pull_request:
     paths-ignore:
       - 'sapl-documentation/**'
       - '.github/workflows/**'
       - '!.github/workflows/build.yml'
-      - '!.github/workflows/sonar_analysis_fork.yaml'
       - '**.md'
 
 permissions:
@@ -53,6 +51,9 @@ jobs:
 
     steps:
     - name: Harden Runner
+      # Currently not supported for windows and macos
+      # (see: https://github.com/step-security/harden-runner/discussions/121).
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
       with:
         egress-policy: audit
@@ -124,12 +125,6 @@ jobs:
         key: ${{ runner.os }}-sonar
         restore-keys: ${{ runner.os }}-sonar
 
-    - name: Run SonarQube Analysis
-      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B sonar:sonar -pl '!sapl-bom' -Dsonar.login=${SONAR_TOKEN} -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-
     - name: Run SonarCloud Analysis
       # Not allowed for PRs from forks and from Dependabot. Secrets are not accessible
       # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
@@ -144,6 +139,7 @@ jobs:
         -Dsonar.host.url=https://sonarcloud.io
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
+        -Dsonar.qualitygate.wait=true
 
     - name: Save PR Number # needed for subsequent SonarCloud workflow for PRs from fork
       if: ${{ github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
@@ -180,7 +176,7 @@ jobs:
       # Not allowed for PRs from forks and from Dependabot. The GITHUB_TOKEN stays read-only
       # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
       if: ${{ (success() || failure()) && !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
-      uses: scacap/action-surefire-report@687f107f48aa55aff279cc5ce598fd9860871a81 # v1.7.3
+      uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
 
     - name: Delete Workflow Runs
       # Not allowed for PRs from forks and from Dependabot. The GITHUB_TOKEN stays read-only
