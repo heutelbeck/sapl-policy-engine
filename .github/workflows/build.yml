@@ -131,7 +131,7 @@ jobs:
       if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B sonar:sonar -pl '!sapl-bom' -Dsonar.login=${SONAR_TOKEN} -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      run: mvn -B sonar:sonar -pl '!sapl-bom' -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Run SonarCloud Analysis
       # Not allowed for PRs from forks and from Dependabot. Secrets are not accessible
