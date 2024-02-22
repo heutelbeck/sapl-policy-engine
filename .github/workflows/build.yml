@@ -53,6 +53,9 @@ jobs:
 
     steps:
     - name: Harden Runner
+      # Currently not supported for windows and macos
+      # (see: https://github.com/step-security/harden-runner/discussions/121).
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
       with:
         egress-policy: audit
@@ -128,7 +131,7 @@ jobs:
       if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B sonar:sonar -pl '!sapl-bom' -Dsonar.login=${SONAR_TOKEN} -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      run: mvn -B sonar:sonar -pl '!sapl-bom' -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Run SonarCloud Analysis
       # Not allowed for PRs from forks and from Dependabot. Secrets are not accessible
@@ -144,6 +147,7 @@ jobs:
         -Dsonar.host.url=https://sonarcloud.io
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
+        -Dsonar.qualitygate.wait=true
 
     - name: Save PR Number # needed for subsequent SonarCloud workflow for PRs from fork
       if: ${{ github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
