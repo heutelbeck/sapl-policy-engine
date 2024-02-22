@@ -24,14 +24,12 @@ on:
       - 'sapl-documentation/**'
       - '.github/workflows/**'
       - '!.github/workflows/build.yml'
-      - '!.github/workflows/sonar_analysis_fork.yaml'
       - '**.md'
   pull_request:
     paths-ignore:
       - 'sapl-documentation/**'
       - '.github/workflows/**'
       - '!.github/workflows/build.yml'
-      - '!.github/workflows/sonar_analysis_fork.yaml'
       - '**.md'
 
 permissions:
@@ -127,12 +125,6 @@ jobs:
         key: ${{ runner.os }}-sonar
         restore-keys: ${{ runner.os }}-sonar
 
-    - name: Run SonarQube Analysis
-      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B sonar:sonar -pl '!sapl-bom' -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-
     - name: Run SonarCloud Analysis
       # Not allowed for PRs from forks and from Dependabot. Secrets are not accessible
       # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
@@ -179,7 +171,7 @@ jobs:
       # Not allowed for PRs from forks and from Dependabot. The GITHUB_TOKEN stays read-only
       # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
       if: ${{ (success() || failure()) && !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
-      uses: scacap/action-surefire-report@687f107f48aa55aff279cc5ce598fd9860871a81 # v1.7.3
+      uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
 
     - name: Delete Workflow Runs
       # Not allowed for PRs from forks and from Dependabot. The GITHUB_TOKEN stays read-only
