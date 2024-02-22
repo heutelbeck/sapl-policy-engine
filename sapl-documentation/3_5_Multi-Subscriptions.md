@@ -13,7 +13,7 @@ SAPL allows for bundling multiple authorization subscriptions into one multi-sub
 
 Multi-Subscriptions - JSON Structure
 
-```json
+```python
 {
   "subjects"                   : ["bs@simpsons.com", "ms@simpsons.com"],
   "actions"                    : ["read"],
@@ -36,7 +36,7 @@ The SAPL PDP processes all individual authorization subscriptions contained in t
 
 Single Authorization Decision with Associated Subscription ID - JSON Structure
 
-```json
+```python
 {
 "authorizationSubscriptionId" : "id-1",
 "authorizationDecision"       : {
@@ -49,7 +49,7 @@ Single Authorization Decision with Associated Subscription ID - JSON Structure
 
 Multi-Decision - JSON Structure
 
-```json
+```python
 {
 "authorizationDecisions" : {
 "id-1" : {
