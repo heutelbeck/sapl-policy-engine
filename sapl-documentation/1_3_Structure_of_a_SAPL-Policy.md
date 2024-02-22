@@ -25,7 +25,7 @@ A simple SAPL policy that allows `alice` to `HTTP:GET` the resource `https://med
 
 *Introduction - Sample Policy 1*
 
-```
+```python
 policy "permit_alice_get_patient123" (1)
 permit resource =~ "^https://medical.org/api/patients.*" (2)
 where (3)
