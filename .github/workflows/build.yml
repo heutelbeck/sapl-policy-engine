@@ -171,7 +171,7 @@ jobs:
       # Not allowed for PRs from forks and from Dependabot. The GITHUB_TOKEN stays read-only
       # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
       if: ${{ (success() || failure()) && !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
-      uses: scacap/action-surefire-report@687f107f48aa55aff279cc5ce598fd9860871a81 # v1.7.3
+      uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
 
     - name: Delete Workflow Runs
       # Not allowed for PRs from forks and from Dependabot. The GITHUB_TOKEN stays read-only
