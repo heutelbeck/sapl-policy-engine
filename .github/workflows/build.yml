@@ -127,12 +127,6 @@ jobs:
         key: ${{ runner.os }}-sonar
         restore-keys: ${{ runner.os }}-sonar
 
-    - name: Run SonarQube Analysis
-      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B sonar:sonar -pl '!sapl-bom' -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-
     - name: Run SonarCloud Analysis
       # Not allowed for PRs from forks and from Dependabot. Secrets are not accessible
       # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
