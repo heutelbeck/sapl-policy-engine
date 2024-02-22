@@ -24,14 +24,12 @@ on:
       - 'sapl-documentation/**'
       - '.github/workflows/**'
       - '!.github/workflows/build.yml'
-      - '!.github/workflows/sonar_analysis_fork.yaml'
       - '**.md'
   pull_request:
     paths-ignore:
       - 'sapl-documentation/**'
       - '.github/workflows/**'
       - '!.github/workflows/build.yml'
-      - '!.github/workflows/sonar_analysis_fork.yaml'
       - '**.md'
 
 permissions:
