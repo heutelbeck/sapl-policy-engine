@@ -1,0 +1,9 @@
+services:
+    traccar:
+        image: traccar/traccar:latest
+        ports:
+           - "5000-5150:5000-5150"
+           - "8082:8082"
+        volumes: 
+            - ./opt/traccar/data:/opt/traccar/data:rw
+            - ./opt/traccar/logs:/opt/traccar/logs:rw

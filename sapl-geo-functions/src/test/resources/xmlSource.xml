@@ -1,0 +1,30 @@
+<xmlSource>
+	<gml>
+		<gml:Point>
+			<gml:coordinates>
+				10.0,12.0 
+			</gml:coordinates>
+		</gml:Point>
+		<gml:Polygon>
+		  <gml:outerBoundaryIs>
+			<gml:LinearRing>
+			  <gml:coordinates>
+				10.0,12.0 10.0,14.0 12.0,10.0 13.0,14.0 10.0,12.0 
+			  </gml:coordinates>
+			</gml:LinearRing>
+		  </gml:outerBoundaryIs>
+		</gml:Polygon>
+	</gml>
+	<kml>
+		<Polygon>
+		  <outerBoundaryIs>
+			  <LinearRing>
+				<coordinates>10.0,12.0 10.0,14.0 12.0,10.0 13.0,14.0 10.0,12.0</coordinates>
+			  </LinearRing>
+		  </outerBoundaryIs>
+		</Polygon>
+		<Point>
+			<coordinates>10.0,12.0</coordinates>
+		</Point>
+	</kml>
+</xmlSource>
