@@ -53,6 +53,9 @@ jobs:
 
     steps:
     - name: Harden Runner
+      # Currently not supported for windows and macos
+      # (see: https://github.com/step-security/harden-runner/discussions/121).
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
       with:
         egress-policy: audit
