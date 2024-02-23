@@ -33,7 +33,7 @@ public class SaplAssertions {
      *                                              .hasResource()
      *                                              .isObject()
      *                                              .containsKey("key");
-     * </pre>
+     * }</pre>
      * @param actual a Val to be examined.
      * @return new assertion for chaining.
      */
@@ -49,7 +49,7 @@ public class SaplAssertions {
      * assertThatVal(Val.ofJson("{\"key\" : \"value\"}").hasValue()
      *                                                  .isObject()
      *                                                  .containsKey("key");
-     * </pre>
+     * }</pre>
      * @param actual an AuthorizationDecision to be examined.
      * @return new assertion for chaining.
      */
