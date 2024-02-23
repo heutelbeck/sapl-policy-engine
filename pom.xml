@@ -92,7 +92,6 @@
 		<jacoco.version>0.8.11</jacoco.version>
 		<snakeyaml.version>2.2</snakeyaml.version>
 		<sonar.version>3.9.1.2184</sonar.version>
-		<sonar.host.url>https://sonar.ftk.de</sonar.host.url>
 		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
 		<spotbugs.version>4.7.3.6</spotbugs.version>
 		<sbcontrib.version>7.6.0</sbcontrib.version>
