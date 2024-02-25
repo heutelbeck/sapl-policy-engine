@@ -97,10 +97,6 @@ public class TraccarSocketManager {
     public Flux<ObjectNode> connect(GeoPipResponseFormat format) {
 
         client = new ReactiveWebClient(mapper);
-        var headers = new HashMap<String, String>();
-        headers.put("cookie", getSessionCookie());
-
-        var param = Val.of("");
 
         var template = """
                 {
@@ -119,8 +115,7 @@ public class TraccarSocketManager {
             e.printStackTrace();
         }
 
-        var flux = client.consumeWebSocket(request)
-        		.map(v -> v.get())
+        var flux = client.consumeWebSocket(request).map(v -> v.get())
                 .flatMap(msg -> handler.mapPosition(msg, deviceId, format))
                 .flatMap(res -> handler.getGeofences(res, deviceId, format))
                 .map(res -> mapper.convertValue(res, ObjectNode.class));

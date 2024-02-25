@@ -113,7 +113,7 @@ public class TraccarSessionHandler {
                 ArrayNode pos1 = (ArrayNode) in.findValue(POSITIONS);
                 for (var p : pos1) {
                     if (p.findValue(DEVICEID).toPrettyString().equals(Integer.toString(deviceId))) {
-                    	return p;
+                        return p;
 
                     }
                 }
@@ -187,7 +187,6 @@ public class TraccarSessionHandler {
                 break;
             case KML:
                 try {
-
                     fenceRes.add(mapFence(geoFence,
                             GeometryConverter
                                     .geometryToKML(

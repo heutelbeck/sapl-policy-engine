@@ -70,7 +70,7 @@ public class TraccarSessionManager {
             uri = new URI("http://" + serverName + "/api/session");
 
         } catch (URISyntaxException e) {
-        	System.out.println("TraccarSessionmanager.establishSession");
+            System.out.println("TraccarSessionmanager.establishSession");
             e.printStackTrace();
 
         }
@@ -92,7 +92,7 @@ public class TraccarSessionManager {
             req = HttpRequest.newBuilder().uri(uri).headers("Content-Type", "application/x-www-form-urlencoded")
                     .POST(HttpRequest.BodyPublishers.ofString(form)).build();
         } catch (Exception e) {
-        	System.out.println("TraccarSessionmanager.establishSession2");
+            System.out.println("TraccarSessionmanager.establishSession2");
             e.printStackTrace();
         }
 
@@ -103,13 +103,13 @@ public class TraccarSessionManager {
             session       = createTraccarSession(res.body());
 
         } catch (IOException e) {
-        	System.out.println("TraccarSessionmanager.establishSession3.1");
+            System.out.println("TraccarSessionmanager.establishSession3.1");
             e.printStackTrace();
         } catch (InterruptedException e) {
-        	System.out.println("TraccarSessionmanager.establishSession3.2");
+            System.out.println("TraccarSessionmanager.establishSession3.2");
             e.printStackTrace();
         } catch (Exception e) {
-        	System.out.println("TraccarSessionmanager.establishSession3.3");
+            System.out.println("TraccarSessionmanager.establishSession3.3");
         }
         // 617662
     }

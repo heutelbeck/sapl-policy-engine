@@ -20,6 +20,7 @@ package testProject;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.traccar.TraccarSocketManager;
+import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.pip.http.ReactiveWebClient;
 
@@ -54,7 +55,10 @@ public class Program {
 		trc.subscribe(
 	      		 content ->{ 
      			 var a = content.toString();
+     			 //var b = mapper.convertValue(a, GeoPipResponse.class);
+     			 //System.out.println("res: " + b.getDeviceId());
      			 System.out.println("traccar content: " + a);
+     			 
      		 },
    	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
    	      () -> System.out.println("Completed!!!")
