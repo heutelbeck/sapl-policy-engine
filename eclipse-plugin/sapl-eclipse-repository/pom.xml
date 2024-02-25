@@ -33,17 +33,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-eclipse-ui</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-ide</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-lang</artifactId>
+			<artifactId>sapl-eclipse-feature</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 	</dependencies>

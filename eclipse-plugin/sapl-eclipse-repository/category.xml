@@ -22,9 +22,6 @@
 	<feature id="sapl-eclipse-feature" version="0.0.0">
 		<category name="main"/>
 	</feature>
-	<feature id="sapl-eclipse-feature.source" version="0.0.0">
-		<category name="main.source"/>
-	</feature>
 	<category-def name="main" label="SAPL"/>
 	<category-def name="main.source" label="SAPL (Sources)"/>
 </site>
