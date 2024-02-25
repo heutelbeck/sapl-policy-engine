@@ -113,7 +113,6 @@ public class TraccarSessionHandler {
                 ArrayNode pos1 = (ArrayNode) in.findValue(POSITIONS);
                 for (var p : pos1) {
                     if (p.findValue(DEVICEID).toPrettyString().equals(Integer.toString(deviceId))) {
-                        System.out.println("pos:" + p.toString());
                     	return p;
 
                     }

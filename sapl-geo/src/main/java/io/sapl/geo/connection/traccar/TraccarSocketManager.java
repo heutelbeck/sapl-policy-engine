@@ -55,7 +55,7 @@ public class TraccarSocketManager {
     }
 
     private final TraccarSessionManager sessionManager;
-//    private URI                         uri;
+
     private String              url;
     private static ObjectMapper mapper;
 
