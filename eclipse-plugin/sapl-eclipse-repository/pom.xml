@@ -85,6 +85,9 @@
 					<artifactId>tycho-p2-repository-plugin</artifactId>
 					<configuration>
 						<includeAllDependencies>true</includeAllDependencies>
+						<filterProvided>true</filterProvided>
+						<addPomRepositoryReferences>true</addPomRepositoryReferences>
+						<addIUTargetRepositoryReferences>true</addIUTargetRepositoryReferences>
 					</configuration>
 				</plugin>
 			</plugins>
