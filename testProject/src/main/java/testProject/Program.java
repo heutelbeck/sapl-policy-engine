@@ -59,7 +59,7 @@ public class Program {
                 "password":"Aig1979.",
             	"server":"127.0.0.1:8082",
             	"protocol":"http",
-            	"responseFormat":"GEOJSON",
+            	"responseFormat":"GML",
             	"deviceId":1
             }
             """;

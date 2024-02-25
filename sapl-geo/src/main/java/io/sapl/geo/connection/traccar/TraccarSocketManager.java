@@ -17,25 +17,20 @@
  */
 package io.sapl.geo.connection.traccar;
 
-import java.util.HashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.pip.http.ReactiveWebClient;
-//import io.sapl.server.RequestSettingException;
+import io.sapl.geo.pip.GeoPipResponseFormat;
+import io.sapl.api.interpreter.PolicyEvaluationException;
+
 import reactor.core.publisher.Flux;
 
 public class TraccarSocketManager {
-
-    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private static final String DEVICEID       = "deviceId";
     private static final String USER           = "user";
@@ -48,17 +43,13 @@ public class TraccarSocketManager {
 //    private WebSocketSession     session;
 
     private int               deviceId;
-    private ReactiveWebClient client;
-
     public int getDeviceId() {
         return deviceId;
     }
 
     private final TraccarSessionManager sessionManager;
-
     private String              url;
     private static ObjectMapper mapper;
-
     private TraccarSessionHandler handler;
 
     private TraccarSocketManager(String user, String password, String serverName, String protocol, int deviceId,
@@ -73,11 +64,7 @@ public class TraccarSocketManager {
         this.handler  = new TraccarSessionHandler(sessionManager.getSessionCookie(), serverName, protocol, mapper);
     }
 
-    public static TraccarSocketManager getNew(String user, String password, String server, String protocol,
-            int deviceId, ObjectMapper mapper) throws Exception {
-
-        return new TraccarSocketManager(user, password, server, protocol, deviceId, mapper);
-    }
+  
 
     public static Flux<Val> connectToTraccar(JsonNode settings, ObjectMapper mapper)
     {
@@ -86,19 +73,8 @@ public class TraccarSocketManager {
 	    	var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings), getProtocol(settings),
 	                getDeviceId(settings), mapper);
 	    	return socketManager.connect(getResponseFormat(settings))
-	    			.doOnNext(r ->{
-	    				
-	    				var a = r;
-	    			})
-	    			.map(r -> {
-	    				
-	    				var a = Val.of(r);
-	    				return a;
-	    			})
-	    			//.map(Val::of)
+	    			.map(Val::of)
 	       		 .onErrorResume(e -> {
-	       			 var a = e;
-	       			 System.out.println(e.getStackTrace());
 	       			 return Flux.just(Val.error(e));
 	       			 }
 	       		 );
@@ -109,11 +85,15 @@ public class TraccarSocketManager {
     	
     }
 
-    
+    public static TraccarSocketManager getNew(String user, String password, String server, String protocol,
+            int deviceId, ObjectMapper mapper) throws Exception {
 
-    public Flux<ObjectNode> connect(GeoPipResponseFormat format) throws JsonProcessingException {
+        return new TraccarSocketManager(user, password, server, protocol, deviceId, mapper);
+    }
 
-        client = new ReactiveWebClient(mapper);
+    public Flux<ObjectNode> connect(GeoPipResponseFormat format) throws Exception {
+
+        var client = new ReactiveWebClient(mapper);
 
         var template = """
                 {
@@ -124,13 +104,8 @@ public class TraccarSocketManager {
                     }
                 }
                 """;
-        Val request  = Val.of("");
-//        try {
-            request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, getSessionCookie()));
-//        } catch (JsonProcessingException e) {
-//            System.out.println("TraccarSocketManager.connect");
-//            e.printStackTrace();
-//        }
+
+        var request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, getSessionCookie()));
 
         var flux = client.consumeWebSocket(request).map(v -> v.get())
                 .flatMap(msg -> handler.mapPosition(msg, deviceId, format))
@@ -141,11 +116,7 @@ public class TraccarSocketManager {
         return flux;
     }
 
-    public String getSessionCookie() {
 
-        return sessionManager.getSessionCookie();
-
-    }
     
 //    public void disconnect() {
 //
@@ -158,51 +129,55 @@ public class TraccarSocketManager {
 //        return Optional.ofNullable(session);
 //    }
 
-    private static String getUser(JsonNode requestSettings) throws Exception {
+ 
+    public String getSessionCookie() {
+
+        return sessionManager.getSessionCookie();
+
+    }
+    
+    private static String getUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(USER)) {
             return requestSettings.findValue(USER).asText();
         } else {
-            throw new Exception("No User found");
-            // throw new RequestSettingException("No User found");
+            throw new PolicyEvaluationException("No User found");
+
         }
 
     }
 
-    private static String getPassword(JsonNode requestSettings) throws Exception {
+    private static String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(PASSWORD)) {
             return requestSettings.findValue(PASSWORD).asText();
         } else {
 
-            throw new Exception("No Password found");
-//            throw new RequestSettingException("No Password found");
+            throw new PolicyEvaluationException("No Password found");
         }
 
     }
 
-    private static String getServer(JsonNode requestSettings) throws Exception {
+    private static String getServer(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(SERVER)) {
             return requestSettings.findValue(SERVER).asText();
         } else {
-            throw new Exception("No Server found");
-//            throw new RequestSettingException("No Server found");
+            throw new PolicyEvaluationException("No Server found");
+
         }
 
     }
 
-    private static int getDeviceId(JsonNode requestSettings) throws Exception {
+    private static int getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(DEVICEID)) {
             return requestSettings.findValue(DEVICEID).asInt();
         } else {
 
-//            throw new RequestSettingException("No Device ID found");
-            throw new Exception("No Device ID found");
+            throw new PolicyEvaluationException("No Device ID found");
         }
 
     }
 
-    private static String getProtocol(JsonNode requestSettings) throws Exception {
+    private static String getProtocol(JsonNode requestSettings) {
         if (requestSettings.has(PROTOCOL)) {
-
             return requestSettings.findValue(PROTOCOL).asText();
         } else {
 
@@ -216,10 +191,9 @@ public class TraccarSocketManager {
             return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT), GeoPipResponseFormat.class);
         } else {
 
-//            throw new RequestSettingException("No Response Format found");
-            throw new Exception("No Response Format found");
+        	return GeoPipResponseFormat.GEOJSON;
         }
 
     }
-
+    
 }

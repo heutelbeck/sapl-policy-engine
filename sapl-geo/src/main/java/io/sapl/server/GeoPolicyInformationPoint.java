@@ -59,13 +59,6 @@ public class GeoPolicyInformationPoint {
         }
     }
 
-//    public Flux<Val> connectToTraccar(int deviceId, String serverName, String traccarUser, String password,
-//            boolean https, GeoPipResponseFormat format) {
-//         var traccarSocket = TraccarSocketManager.getNew(traccarUser, password, serverName, deviceId, https);
-//        traccarSockets.put(deviceId, traccarSocket);
-//        traccarSocket.connect(format);
-//        return traccarSocket.receive().map(Val::of);
-//    }
 
     /*
      * public void disconnectTraccar(int deviceId) {

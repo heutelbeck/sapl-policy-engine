@@ -92,12 +92,12 @@ public class TraccarSessionManager {
         var client = HttpClient.newBuilder()
         	      .connectTimeout(Duration.ofSeconds(10))
         	      .build();
-        HttpResponse res = null;
-        res = client.send(req, BodyHandlers.ofString());
+ 
+        var res = client.send(req, BodyHandlers.ofString());
 
         if(res.statusCode() == 200) {
 	        sessionCookie = res.headers().firstValue("set-cookie").get();
-	        session       = createTraccarSession(res.body().toString());
+	        session       = createTraccarSession(res.body());
         }else {
         	throw new PolicyEvaluationException("Session could not be established. Server respondet with " + res.statusCode());
         }
