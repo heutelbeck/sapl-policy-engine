@@ -19,7 +19,7 @@
 
 -->
 <feature id="sapl-eclipse-feature"
-	label="SAPL Feature "
+	label="SAPL"
 	version="3.0.0.qualifier">
 	<plugin
 			id="sapl-eclipse-ui"
