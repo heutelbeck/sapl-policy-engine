@@ -21,6 +21,8 @@ import java.util.HashMap;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -32,15 +34,15 @@ public class TraccarRestManager {
 
     // Logger logger = LoggerFactory.getLogger(TraccarRestManager.class);
 
-    private static final String COOKIE = "cookie";
-    // private final String sessionCookie;
+    private static final String     COOKIE  = "cookie";
+    private final String            sessionCookie;
     private ReactiveWebClient       webClient;
     private String                  baseURL;
     private HashMap<String, String> headers = new HashMap<>();
 
     public TraccarRestManager(String sessionCookie, String serverName, String protocol, ObjectMapper mapper) {
-        baseURL = protocol + "://" + serverName;
-        // this.sessionCookie = sessionCookie;
+        baseURL            = protocol + "://" + serverName;
+        this.sessionCookie = sessionCookie;
         headers.put(COOKIE, sessionCookie);
         webClient = new ReactiveWebClient(mapper);
     }
@@ -49,18 +51,30 @@ public class TraccarRestManager {
 
         var params = new HashMap<String, String>();
         params.put("deviceId", deviceId);
-        
-        var param = Val.of("");
-        
-//        return webClient.getMono(baseURL, "api/geofences", params, headers, MediaType.APPLICATION_JSON);
-        // return webClient.getFluxComplete(baseURL, "api/geofences", params, headers,
-        // MediaType.APPLICATION_JSON, 0, 0)
-        // .next();
-        
-        return webClient.httpRequest(HttpMethod.GET, param).next().map(v -> v.get());
-        
-//        return webClient.httpRequest(HttpMethod.GET, baseURL, "api/geofences", params, headers, null,
-//                MediaType.APPLICATION_JSON, null, 1, 1).next();
+
+        var template = """
+                {
+                    "baseUrl" : "%s",
+                    "path" : "%s",
+                    "accept" : "%s",
+                    "repetitions" : 1,
+                    "headers" : {
+                        "cookie" : "%s",
+                        "deviceId" : "%s"
+                    }
+                }
+                """;
+        Val request  = Val.of("");
+        try {
+            request = Val.ofJson(String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE,
+                    sessionCookie, deviceId));
+        } catch (JsonProcessingException e) {
+            System.out.println("getGeofences");
+            e.printStackTrace();
+        }
+
+        return webClient.httpRequest(HttpMethod.GET, request).next().map(v -> v.get());
+
     }
 
 }

@@ -20,6 +20,9 @@ package io.sapl.geo.connection.traccar;
 import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -62,14 +65,7 @@ public class TraccarSocketManager {
             ObjectMapper mapper) {
 
         url = "ws://" + serverName + "/api/socket";
-//        try {
-//
-//            uri = new URI("ws://" + serverName + "/api/socket");
 
-//        } catch (URISyntaxException e) {
-//
-//            e.printStackTrace();
-//        }
         TraccarSocketManager.mapper = mapper;
         this.sessionManager         = new TraccarSessionManager(user, password, serverName);
 
@@ -84,8 +80,8 @@ public class TraccarSocketManager {
     }
 
     public static Flux<ObjectNode> connectToTraccar(JsonNode settings, ObjectMapper mapper)
-            //throws RequestSettingException {
-    	      throws Exception{
+            // throws RequestSettingException {
+            throws Exception {
         var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings), getProtocol(settings),
                 getDeviceId(settings), mapper);
         return socketManager.connect(getResponseFormat(settings));
@@ -105,14 +101,29 @@ public class TraccarSocketManager {
         headers.put("cookie", getSessionCookie());
 
         var param = Val.of("");
-        
-        var flux = client.consumeWebSocket(param).map(v -> v.get()).flatMap(msg -> handler.mapPosition(msg, deviceId, format))
+
+        var template = """
+                {
+                    "baseUrl" : "%s",
+                    "accept" : "%s",
+                    "headers" : {
+                        "cookie": "%s"
+                    }
+                }
+                """;
+        Val request  = Val.of("");
+        try {
+            request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, getSessionCookie()));
+        } catch (JsonProcessingException e) {
+            System.out.println("TraccarSocketManager.connect");
+            e.printStackTrace();
+        }
+
+        var flux = client.consumeWebSocket(request)
+        		.map(v -> v.get())
+                .flatMap(msg -> handler.mapPosition(msg, deviceId, format))
                 .flatMap(res -> handler.getGeofences(res, deviceId, format))
                 .map(res -> mapper.convertValue(res, ObjectNode.class));
-        
-//        var flux = client.consumeWebSocket(url, "", headers).flatMap(msg -> handler.mapPosition(msg, deviceId, format))
-//                .flatMap(res -> handler.getGeofences(res, deviceId, format))
-//                .map(res -> mapper.convertValue(res, ObjectNode.class));
 
         System.out.println("Traccar-Client connected.");
         return flux;
@@ -133,8 +144,8 @@ public class TraccarSocketManager {
         if (requestSettings.has(USER)) {
             return requestSettings.findValue(USER).asText();
         } else {
-        	throw new Exception("No User found");
-            //throw new RequestSettingException("No User found");
+            throw new Exception("No User found");
+            // throw new RequestSettingException("No User found");
         }
 
     }
@@ -144,7 +155,7 @@ public class TraccarSocketManager {
             return requestSettings.findValue(PASSWORD).asText();
         } else {
 
-        	throw new Exception("No Password found");
+            throw new Exception("No Password found");
 //            throw new RequestSettingException("No Password found");
         }
 
@@ -154,7 +165,7 @@ public class TraccarSocketManager {
         if (requestSettings.has(SERVER)) {
             return requestSettings.findValue(SERVER).asText();
         } else {
-        	 throw new Exception("No Server found");
+            throw new Exception("No Server found");
 //            throw new RequestSettingException("No Server found");
         }
 
@@ -166,7 +177,7 @@ public class TraccarSocketManager {
         } else {
 
 //            throw new RequestSettingException("No Device ID found");
-        	throw new Exception("No Device ID found");
+            throw new Exception("No Device ID found");
         }
 
     }
@@ -188,7 +199,7 @@ public class TraccarSocketManager {
         } else {
 
 //            throw new RequestSettingException("No Response Format found");
-        	throw new Exception("No Response Format found");
+            throw new Exception("No Response Format found");
         }
 
     }

@@ -70,8 +70,9 @@ public class GeoPolicyInformationPoint {
 //        return traccarSocket.receive().map(Val::of);
 //    }
 
-   /* public void disconnectTraccar(int deviceId) {
-
-        traccarSockets.get(deviceId).disconnect();
-    }*/
+    /*
+     * public void disconnectTraccar(int deviceId) {
+     *
+     * traccarSockets.get(deviceId).disconnect(); }
+     */
 }

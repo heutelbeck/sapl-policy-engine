@@ -187,16 +187,16 @@
 		    <scope>test</scope>
 		</dependency>
 	
-		<dependency>
+		<!--dependency>
 		    <groupId>io.projectreactor</groupId>
 		    <artifactId>reactor-core</artifactId>
-		    <version>3.5.6</version><!--$NO-MVN-MAN-VER$-->
-		</dependency>
+		    <version>3.5.6</version--><!--$NO-MVN-MAN-VER$-->
+		<!--/dependency>
 		<dependency>
 		    <groupId>io.projectreactor.netty</groupId>
 		    <artifactId>reactor-netty</artifactId>
-		    <version>1.1.7</version><!--$NO-MVN-MAN-VER$-->
-		</dependency>
+		    <version>1.1.7</version--><!--$NO-MVN-MAN-VER$-->
+		<!--/dependency-->
 
 		<dependency>
 			<!-- If you want to use the extensions in a Spring application and do 
@@ -208,7 +208,7 @@
 				your PDP. -->
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context</artifactId>
-			<version>6.0.12</version>
+			<!--version>6.0.12</version-->
 			<scope>provided</scope>
 		</dependency>
 

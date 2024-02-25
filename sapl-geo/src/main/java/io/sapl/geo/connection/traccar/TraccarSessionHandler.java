@@ -64,7 +64,6 @@ public class TraccarSessionHandler {
     }
 
     public Flux<GeoPipResponse> mapPosition(JsonNode in, int deviceId, GeoPipResponseFormat format) {
-
         JsonNode pos = getPositionFromMessage(in, deviceId);
 
         if (pos.has(DEVICEID)) {
@@ -110,13 +109,12 @@ public class TraccarSessionHandler {
 
         try {
 
-            currentObj = MAPPER.readTree(in.asText());
-
-            if (currentObj.has(POSITIONS)) {
-                ArrayNode pos1 = (ArrayNode) currentObj.findValue(POSITIONS);
+            if (in.has(POSITIONS)) {
+                ArrayNode pos1 = (ArrayNode) in.findValue(POSITIONS);
                 for (var p : pos1) {
                     if (p.findValue(DEVICEID).toPrettyString().equals(Integer.toString(deviceId))) {
-                        return p;
+                        System.out.println("pos:" + p.toString());
+                    	return p;
 
                     }
                 }
