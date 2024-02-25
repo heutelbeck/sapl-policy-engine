@@ -38,7 +38,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class Program {
 
 
-	public static void main( String[] args ) throws JsonProcessingException
+	public static void main( String[] args ) throws Exception
     {
 		
 		ObjectMapper mapper = new ObjectMapper();
@@ -48,15 +48,28 @@ public class Program {
         var httpCl = new ReactiveWebClient(new ObjectMapper());
         
 
-		var traccarSocket =  TraccarSocketManager.getNew("longhair089@yahoo.de", "Aig1979.", "127.0.0.1:8082", "http", 1, new ObjectMapper());
-		
-		var trc = traccarSocket.connect(GeoPipResponseFormat.KML );
+//		var traccarSocket =  TraccarSocketManager.getNew("longhair089@yahoo.de", "Aig1979.", "128.0.0.1:8082", "http", 1, new ObjectMapper());
 //		
+//		var trc = traccarSocket.connect(GeoPipResponseFormat.WKT );
+////		
+        
+        var st = """
+                {
+                "user":"longhair089@yahoo.de",
+                "password":"Aig1979.",
+            	"server":"127.0.0.1:8082",
+            	"protocol":"http",
+            	"responseFormat":"GEOJSON",
+            	"deviceId":1
+            }
+            """;
+        var node = Val.ofJson(st).get();
+        var trc = TraccarSocketManager.connectToTraccar( node, mapper);
 		trc.subscribe(
 	      		 content ->{ 
-     			 var a = content.toString();
-     			 //var b = mapper.convertValue(a, GeoPipResponse.class);
-     			 //System.out.println("res: " + b.getDeviceId());
+     			 var a = content.get().toString();
+     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+     			 System.out.println("res: " + b.getDeviceId());
      			 System.out.println("traccar content: " + a);
      			 
      		 },

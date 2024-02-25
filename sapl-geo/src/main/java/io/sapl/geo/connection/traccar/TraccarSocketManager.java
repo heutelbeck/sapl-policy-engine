@@ -62,7 +62,7 @@ public class TraccarSocketManager {
     private TraccarSessionHandler handler;
 
     private TraccarSocketManager(String user, String password, String serverName, String protocol, int deviceId,
-            ObjectMapper mapper) {
+            ObjectMapper mapper) throws Exception {
 
         url = "ws://" + serverName + "/api/socket";
 
@@ -74,27 +74,44 @@ public class TraccarSocketManager {
     }
 
     public static TraccarSocketManager getNew(String user, String password, String server, String protocol,
-            int deviceId, ObjectMapper mapper) {
+            int deviceId, ObjectMapper mapper) throws Exception {
 
         return new TraccarSocketManager(user, password, server, protocol, deviceId, mapper);
     }
 
-    public static Flux<ObjectNode> connectToTraccar(JsonNode settings, ObjectMapper mapper)
-            // throws RequestSettingException {
-            throws Exception {
-        var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings), getProtocol(settings),
-                getDeviceId(settings), mapper);
-        return socketManager.connect(getResponseFormat(settings));
+    public static Flux<Val> connectToTraccar(JsonNode settings, ObjectMapper mapper)
+    {
+        
+    	try {
+	    	var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings), getProtocol(settings),
+	                getDeviceId(settings), mapper);
+	    	return socketManager.connect(getResponseFormat(settings))
+	    			.doOnNext(r ->{
+	    				
+	    				var a = r;
+	    			})
+	    			.map(r -> {
+	    				
+	    				var a = Val.of(r);
+	    				return a;
+	    			})
+	    			//.map(Val::of)
+	       		 .onErrorResume(e -> {
+	       			 var a = e;
+	       			 System.out.println(e.getStackTrace());
+	       			 return Flux.just(Val.error(e));
+	       			 }
+	       		 );
 
+    	}catch(Exception e) {
+    		return Flux.just(Val.error(e));
+    	}
+    	
     }
 
-    public String getSessionCookie() {
+    
 
-        return sessionManager.getSessionCookie();
-
-    }
-
-    public Flux<ObjectNode> connect(GeoPipResponseFormat format) {
+    public Flux<ObjectNode> connect(GeoPipResponseFormat format) throws JsonProcessingException {
 
         client = new ReactiveWebClient(mapper);
 
@@ -108,12 +125,12 @@ public class TraccarSocketManager {
                 }
                 """;
         Val request  = Val.of("");
-        try {
+//        try {
             request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, getSessionCookie()));
-        } catch (JsonProcessingException e) {
-            System.out.println("TraccarSocketManager.connect");
-            e.printStackTrace();
-        }
+//        } catch (JsonProcessingException e) {
+//            System.out.println("TraccarSocketManager.connect");
+//            e.printStackTrace();
+//        }
 
         var flux = client.consumeWebSocket(request).map(v -> v.get())
                 .flatMap(msg -> handler.mapPosition(msg, deviceId, format))
@@ -124,6 +141,12 @@ public class TraccarSocketManager {
         return flux;
     }
 
+    public String getSessionCookie() {
+
+        return sessionManager.getSessionCookie();
+
+    }
+    
 //    public void disconnect() {
 //
 //        client.disconnectSocket();

@@ -32,7 +32,6 @@ import reactor.core.publisher.Mono;
 
 public class TraccarRestManager {
 
-    // Logger logger = LoggerFactory.getLogger(TraccarRestManager.class);
 
     private static final String     COOKIE  = "cookie";
     private final String            sessionCookie;

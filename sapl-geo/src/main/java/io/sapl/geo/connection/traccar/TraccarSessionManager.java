@@ -23,10 +23,10 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-
+import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
-
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -34,7 +34,11 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.interpreter.PolicyEvaluationException;
 
 public class TraccarSessionManager {
 
@@ -55,7 +59,7 @@ public class TraccarSessionManager {
         return session;
     }
 
-    public TraccarSessionManager(String user, String password, String server) {
+    public TraccarSessionManager(String user, String password, String server) throws Exception {
         this.user     = user;
         this.password = password;
 
@@ -63,17 +67,9 @@ public class TraccarSessionManager {
 
     }
 
-    private void establishSession(String serverName) {
+    private void establishSession(String serverName) throws Exception {
 
-        try {
-
-            uri = new URI("http://" + serverName + "/api/session");
-
-        } catch (URISyntaxException e) {
-            System.out.println("TraccarSessionmanager.establishSession");
-            e.printStackTrace();
-
-        }
+        uri = new URI("http://" + serverName + "/api/session");
 
         Map<String, String> bodyProperties = new HashMap<String, String>() {
             private static final long serialVersionUID = 1L;
@@ -88,77 +84,53 @@ public class TraccarSessionManager {
                 .collect(Collectors.joining("&"));
 
         HttpRequest req = null;
-        try {
+
             req = HttpRequest.newBuilder().uri(uri).headers("Content-Type", "application/x-www-form-urlencoded")
                     .POST(HttpRequest.BodyPublishers.ofString(form)).build();
-        } catch (Exception e) {
-            System.out.println("TraccarSessionmanager.establishSession2");
-            e.printStackTrace();
+
+
+        var client = HttpClient.newBuilder()
+        	      .connectTimeout(Duration.ofSeconds(10))
+        	      .build();
+        HttpResponse res = null;
+        res = client.send(req, BodyHandlers.ofString());
+
+        if(res.statusCode() == 200) {
+	        sessionCookie = res.headers().firstValue("set-cookie").get();
+	        session       = createTraccarSession(res.body().toString());
+        }else {
+        	throw new PolicyEvaluationException("Session could not be established. Server respondet with " + res.statusCode());
         }
 
-        var client = HttpClient.newHttpClient();
-        try {
-            var res = client.send(req, BodyHandlers.ofString());
-            sessionCookie = res.headers().firstValue("set-cookie").get();
-            session       = createTraccarSession(res.body());
-
-        } catch (IOException e) {
-            System.out.println("TraccarSessionmanager.establishSession3.1");
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            System.out.println("TraccarSessionmanager.establishSession3.2");
-            e.printStackTrace();
-        } catch (Exception e) {
-            System.out.println("TraccarSessionmanager.establishSession3.3");
-        }
         // 617662
     }
 
-    private TraccarSession createTraccarSession(String json) {
+    private TraccarSession createTraccarSession(String json) throws Exception {
 
         ObjectMapper   mapper = new ObjectMapper();
         TraccarSession session;
-        try {
-            session = mapper.convertValue(mapper.readTree(json), TraccarSession.class);
-            var c = 1;
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            session = new TraccarSession();
-        }
 
-        return session;// new GsonBuilder().setPrettyPrinting().create().fromJson(json,
-                       // TraccarSession.class);
+        session = mapper.convertValue(mapper.readTree(json), TraccarSession.class);
+
+        return session;
+                      
 
     }
 
-    public Boolean closeTraccarSession() {
+    public Boolean closeTraccarSession() throws Exception {
 
         HttpRequest req = null;
-        try {
-            req = HttpRequest.newBuilder().uri(uri).header("cookie", sessionCookie).DELETE().build();
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        req = HttpRequest.newBuilder().uri(uri).header("cookie", sessionCookie).DELETE().build();
 
         var client = HttpClient.newHttpClient();
-
-        try {
-            var res = client.send(req, BodyHandlers.ofString());
-            if (res.statusCode() == 204) {
-                logger.info("Traccar Session for DeviceId " + "" + "closed.");
-                return true;
-            }
-        } catch (IOException e) {
-
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-
-            e.printStackTrace();
-        } catch (Exception e) {
-
+        var res = client.send(req, BodyHandlers.ofString());
+        if (res.statusCode() == 204) {
+            logger.info("Traccar Session for DeviceId " + "" + "closed.");
+            return true;
         }
-        return false;
+    
+    return false;
+    
     }
 
 }

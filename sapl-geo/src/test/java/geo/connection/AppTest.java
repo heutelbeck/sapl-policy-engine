@@ -69,7 +69,7 @@ public class AppTest {
     }
 
     @Test
-    void test() {
+    void test() throws Exception {
         String exp = source.getJsonSource().get("ResponseWKT").toPrettyString();
         String res;
 
