@@ -63,6 +63,13 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <extensions>true</extensions>
                 <version>5.1.9</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>biz.aQute.bnd</groupId>
+                        <artifactId>biz.aQute.bndlib</artifactId>
+                        <version>7.0.0</version>
+                    </dependency>
+                </dependencies>
                 <configuration>
                     <instructions>
                         <Embed-Dependency>
