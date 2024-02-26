@@ -480,6 +480,7 @@
 						<genmodel>XML_STYLE</genmodel>
 						<xtext>SLASHSTAR_STYLE</xtext>
 						<config>SCRIPT_STYLE</config>
+						<target>XML_STYLE</target>
 					</mapping>
 				</configuration>
 				<executions>

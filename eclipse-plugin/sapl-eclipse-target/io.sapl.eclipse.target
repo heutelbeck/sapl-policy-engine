@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<?pde version="3.8"?>
 <!--
 
-    Copyright (C) 2017-2023 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -19,6 +18,7 @@
     limitations under the License.
 
 -->
+<?pde version="3.8"?>
 <target name="io.sapl.eclipse.target" sequenceNumber="1">
 	<locations>
 		<location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
