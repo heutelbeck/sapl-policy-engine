@@ -76,16 +76,7 @@
                             !groovy
                         </Import-Package>
                         <_exportcontents>
-                            org.springframework.core.*;version="6.1.2",
-                            org.springframework.beans;version="6.1.2",
-                            org.springframework.beans.*;version="6.1.2",
-                            org.springframework.context;version="6.1.2",
-                            org.springframework.context.*;version="6.1.2",
-                            org.springframework.http.*;version="6.1.2",
-                            org.springframework.stereotype;version="6.1.2",
-                            org.springframework.stereotype.*;version="6.1.2",
-                            org.springframework.web.reactive.*;version="6.1.2",
-                            org.springframework.web.util.*;version="6.1.2"
+                            org.springframework.*;version="6.1.3",
                         </_exportcontents>
                         <Bundle-ClassPath>{maven-dependencies}</Bundle-ClassPath>
                         <Embed-Transitive>true</Embed-Transitive>
