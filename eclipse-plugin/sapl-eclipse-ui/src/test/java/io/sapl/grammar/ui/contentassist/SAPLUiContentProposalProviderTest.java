@@ -30,8 +30,7 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 class SAPLUiContentProposalProviderTest {
 
@@ -40,6 +39,7 @@ class SAPLUiContentProposalProviderTest {
         var              sut              = new SAPLUiContentProposalProvider();
         PDPConfiguration pdpConfiguration = sut.getPDPConfigurationProvider().pdpConfiguration().blockFirst();
 
+        assertThat(pdpConfiguration, is(not(nullValue())));
         assertThat(pdpConfiguration.isValid(), is(true));
         assertThat(pdpConfiguration.functionContext().getAvailableLibraries(), contains(FilterFunctionLibrary.NAME,
                 StandardFunctionLibrary.NAME, TemporalFunctionLibrary.NAME, SchemaValidationLibrary.NAME));
