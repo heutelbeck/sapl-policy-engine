@@ -22,18 +22,23 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import jakarta.validation.constraints.NotNull;
 import lombok.experimental.UtilityClass;
 
+/**
+ * Assertions for SAPL Val and AuthorizationDecision.
+ * 
+ * @author Mohammed Aljer
+ * @author Dominic Heutelbeck
+ */
 @UtilityClass
 public class SaplAssertions {
 
     /**
-     * Assert AuthorizationDecision properties with possibility to chain assertions like this:
+     * Assert AuthorizationDecision properties with possibility to chain assertions
+     * like this:
      *
      * <pre>{@code
-     * assertThatAuthorizationDecision(someDecision).isPermit()
-     *                                              .hasResource()
-     *                                              .isObject()
-     *                                              .containsKey("key");
+     * assertThatAuthorizationDecision(someDecision).isPermit().hasResource().isObject().containsKey("key");
      * }</pre>
+     * 
      * @param actual a Val to be examined.
      * @return new assertion for chaining.
      */
@@ -50,6 +55,7 @@ public class SaplAssertions {
      *                                                  .isObject()
      *                                                  .containsKey("key");
      * }</pre>
+     * 
      * @param actual an AuthorizationDecision to be examined.
      * @return new assertion for chaining.
      */

@@ -28,6 +28,12 @@ import net.javacrumbs.jsonunit.assertj.JsonAssert.ConfigurableJsonAssert;
 import net.javacrumbs.jsonunit.assertj.JsonAssertions;
 import net.javacrumbs.jsonunit.assertj.JsonListAssert;
 
+/**
+ * Assertions for SAPL AuthorizationDecision.
+ * 
+ * @author Mohammed Aljer
+ * @author Dominic Heutelbeck
+ */
 public class AuthorizationDecisionAssert extends AbstractAssert<AuthorizationDecisionAssert, AuthorizationDecision> {
 
     AuthorizationDecisionAssert(AuthorizationDecision actual) {

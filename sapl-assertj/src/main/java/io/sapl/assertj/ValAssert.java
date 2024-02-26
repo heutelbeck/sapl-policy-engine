@@ -25,6 +25,12 @@ import jakarta.validation.constraints.NotNull;
 import net.javacrumbs.jsonunit.assertj.JsonAssert.ConfigurableJsonAssert;
 import net.javacrumbs.jsonunit.assertj.JsonAssertions;
 
+/**
+ * Assertions for SAPL Val.
+ * 
+ * @author Mohammed Aljer
+ * @author Dominic Heutelbeck
+ */
 public class ValAssert extends AbstractAssert<ValAssert, Val> {
 
     ValAssert(Val actual) {
