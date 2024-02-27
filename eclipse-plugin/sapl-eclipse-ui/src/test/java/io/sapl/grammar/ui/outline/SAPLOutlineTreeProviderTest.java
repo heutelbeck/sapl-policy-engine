@@ -19,10 +19,12 @@ package io.sapl.grammar.ui.outline;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 class SAPLOutlineTreeProviderTest {
 
     @Test
     void testInstantiation() {
-        new SAPLOutlineTreeProvider();
+        assertDoesNotThrow(SAPLOutlineTreeProvider::new);
     }
 }

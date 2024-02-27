@@ -19,10 +19,12 @@ package io.sapl.grammar.ui.quickfix;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 class SAPLQuickfixProviderTest {
 
     @Test
     void testInstantiation() {
-        new SAPLQuickfixProvider();
+        assertDoesNotThrow(SAPLQuickfixProvider::new);
     }
 }

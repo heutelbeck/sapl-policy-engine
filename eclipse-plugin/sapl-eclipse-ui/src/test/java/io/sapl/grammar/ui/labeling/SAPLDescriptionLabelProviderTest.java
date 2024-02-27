@@ -19,10 +19,12 @@ package io.sapl.grammar.ui.labeling;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 class SAPLDescriptionLabelProviderTest {
 
     @Test
     void testInstantiation() {
-        new SAPLDescriptionLabelProvider();
+        assertDoesNotThrow(SAPLDescriptionLabelProvider::new);
     }
 }

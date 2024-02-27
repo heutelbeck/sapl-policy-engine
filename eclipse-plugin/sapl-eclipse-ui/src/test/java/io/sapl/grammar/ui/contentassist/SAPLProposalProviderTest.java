@@ -19,10 +19,12 @@ package io.sapl.grammar.ui.contentassist;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 class SAPLProposalProviderTest {
 
     @Test
     void testInstantiation() {
-        new SAPLProposalProvider();
+        assertDoesNotThrow(SAPLProposalProvider::new);
     }
 }
