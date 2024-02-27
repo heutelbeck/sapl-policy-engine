@@ -17,36 +17,18 @@
  */
 package io.sapl.grammar.ui.contentassist;
 
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.SchemaValidationLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.pdp.config.PDPConfiguration;
+import io.sapl.pdp.config.PDPConfigurationProvider;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
-import java.util.function.UnaryOperator;
-
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 
 class SAPLUiContentProposalProviderTest {
 
     @Test
     void getPDPConfigurationProvider() {
-        var              sut              = new SAPLUiContentProposalProvider();
-        PDPConfiguration pdpConfiguration = sut.getPDPConfigurationProvider().pdpConfiguration().blockFirst();
-
-        assertThat(pdpConfiguration, is(not(nullValue())));
-        assertThat(pdpConfiguration.isValid(), is(true));
-        assertThat(pdpConfiguration.functionContext().getAvailableLibraries(), contains(FilterFunctionLibrary.NAME,
-                StandardFunctionLibrary.NAME, TemporalFunctionLibrary.NAME, SchemaValidationLibrary.NAME));
-        assertThat(pdpConfiguration.variables(), is(Map.of()));
-        assertThat(pdpConfiguration.documentsCombinator(),
-                is(CombiningAlgorithmFactory.getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)));
-        assertThat(pdpConfiguration.decisionInterceptorChain(), is(UnaryOperator.identity()));
-        assertThat(pdpConfiguration.subscriptionInterceptorChain(), is(UnaryOperator.identity()));
+        PDPConfigurationProvider pdpConfigurationProvider = () -> null;
+        var                      sut                      = new SAPLUiContentProposalProvider(pdpConfigurationProvider);
+        assertThat(sut.getPDPConfigurationProvider(), is(pdpConfigurationProvider));
     }
 }

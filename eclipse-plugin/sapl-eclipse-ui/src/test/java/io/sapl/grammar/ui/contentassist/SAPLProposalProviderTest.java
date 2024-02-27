@@ -17,22 +17,12 @@
  */
 package io.sapl.grammar.ui.contentassist;
 
-import com.google.inject.Inject;
-import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
-import io.sapl.pdp.config.PDPConfigurationProvider;
+import org.junit.jupiter.api.Test;
 
-public class SAPLUiContentProposalProvider extends SAPLContentProposalProvider {
+class SAPLProposalProviderTest {
 
-    private PDPConfigurationProvider pdpConfigurationProvider;
-
-    @Inject
-    public SAPLUiContentProposalProvider(PDPConfigurationProvider pdpConfigurationProvider) {
-        this.pdpConfigurationProvider = pdpConfigurationProvider;
+    @Test
+    void testInstantiation() {
+        new SAPLProposalProvider();
     }
-
-    @Override
-    protected PDPConfigurationProvider getPDPConfigurationProvider() {
-        return pdpConfigurationProvider;
-    }
-
 }

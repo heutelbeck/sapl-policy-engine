@@ -15,24 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ui.contentassist;
+package io.sapl.grammar.ui.labeling;
 
-import com.google.inject.Inject;
-import io.sapl.grammar.ide.contentassist.SAPLContentProposalProvider;
-import io.sapl.pdp.config.PDPConfigurationProvider;
+import org.junit.jupiter.api.Test;
 
-public class SAPLUiContentProposalProvider extends SAPLContentProposalProvider {
+class SAPLDescriptionLabelProviderTest {
 
-    private PDPConfigurationProvider pdpConfigurationProvider;
-
-    @Inject
-    public SAPLUiContentProposalProvider(PDPConfigurationProvider pdpConfigurationProvider) {
-        this.pdpConfigurationProvider = pdpConfigurationProvider;
+    @Test
+    void testInstantiation() {
+        new SAPLDescriptionLabelProvider();
     }
-
-    @Override
-    protected PDPConfigurationProvider getPDPConfigurationProvider() {
-        return pdpConfigurationProvider;
-    }
-
 }
