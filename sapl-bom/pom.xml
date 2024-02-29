@@ -169,21 +169,6 @@
 				<artifactId>sapl-jwt</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-axon</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-vaadin</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-	        <dependency>
-				<groupId>${project.groupId}</groupId>
-    	        <artifactId>sapl-mqtt</artifactId>
-				<version>${project.version}</version>
-	        </dependency>
 	        <dependency>
 				<groupId>${project.groupId}</groupId>
     	        <artifactId>sapl-mqtt-pip</artifactId>
