@@ -183,6 +183,71 @@
 	</build>
 	<profiles>
 		<profile>
+			<id>release</id>
+			<build>
+				<plugins>
+					<!-- <plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jarsigner-plugin</artifactId>
+				<version>3.0.0</version>
+				<configuration>
+					<alias>selfsigned</alias>
+					<storepass>password</storepass>
+					<keypass>password</keypass>
+				</configuration>
+				<executions>
+					<execution>
+						<id>sign</id>
+						<goals>
+							<goal>sign</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>verify</id>
+						<goals>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin> -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>3.1.0</version>
+						<configuration>
+							<!-- prevent gpg from using PIN entry programs -->
+							<gpgArguments>
+								<arg>--pinentry-mode</arg>
+								<arg>loopback</arg>
+							</gpgArguments>
+						</configuration>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.spdx</groupId>
+						<artifactId>spdx-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>build-spdx</id>
+								<phase>package</phase>
+								<goals>
+									<goal>createSPDX</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
 			<id>docker</id>
 			<build>
 				<plugins>

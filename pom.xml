@@ -89,6 +89,7 @@
 		<assertj.version>3.25.3</assertj.version>
 		<license-maven-plugin.version>4.2</license-maven-plugin.version>
 		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
+		<spdx-maven-plugin.version>0.6.5</spdx-maven-plugin.version>
 		<jacoco.version>0.8.11</jacoco.version>
 		<snakeyaml.version>2.2</snakeyaml.version>
 		<sonar.version>3.9.1.2184</sonar.version>
@@ -363,6 +364,11 @@
 					<groupId>com.spotify</groupId>
 					<artifactId>dockerfile-maven-plugin</artifactId>
 					<version>${dockerfile-maven-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.spdx</groupId>
+					<artifactId>spdx-maven-plugin</artifactId>
+					<version>${spdx-maven-plugin.version}</version>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
