@@ -136,11 +136,11 @@
 		<module>sapl-spring-data-r2dbc</module>
 		<module>sapl-spring-data-mongo-reactive</module>
 		<module>sapl-spring-data-common</module>
-		<module>eclipse-plugin/sapl-eclipse-ui</module>
-		<module>eclipse-plugin/sapl-eclipse-target</module>
-		<module>eclipse-plugin/sapl-eclipse-thirdparty</module>
-		<module>eclipse-plugin/sapl-eclipse-feature</module>
-		<module>eclipse-plugin/sapl-eclipse-repository</module>
+		<module>sapl-eclipse-plugin/sapl-eclipse-ui</module>
+		<module>sapl-eclipse-plugin/sapl-eclipse-target</module>
+		<module>sapl-eclipse-plugin/sapl-eclipse-thirdparty</module>
+		<module>sapl-eclipse-plugin/sapl-eclipse-feature</module>
+		<module>sapl-eclipse-plugin/sapl-eclipse-repository</module>
 	</modules>
 	<dependencyManagement>
 		<dependencies>
