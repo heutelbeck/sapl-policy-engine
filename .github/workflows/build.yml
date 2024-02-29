@@ -215,7 +215,7 @@ jobs:
 
   deploy:
     if: ${{ github.ref == 'refs/heads/master' }}
-   # needs: [build]
+    needs: [build]
     name: Deploy to Central
     runs-on: ubuntu-latest
     timeout-minutes: 35
