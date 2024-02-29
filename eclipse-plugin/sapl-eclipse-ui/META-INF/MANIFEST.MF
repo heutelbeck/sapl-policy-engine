@@ -1,0 +1,27 @@
+Manifest-Version: 1.0
+Automatic-Module-Name: sapl-eclipse-ui
+Bundle-ManifestVersion: 2
+Bundle-Name: sapl-ui
+Bundle-Vendor: My Company
+Bundle-Version: 3.0.0.qualifier
+Bundle-SymbolicName: sapl-eclipse-ui; singleton:=true
+Bundle-ActivationPolicy: lazy
+Require-Bundle: sapl-lang,
+ sapl-ide,
+ sapl-pdp-embedded,
+ sapl-extensions-api,
+ io.projectreactor.reactor-core,
+ org.eclipse.xtext.ui,
+ org.eclipse.xtext.ui.shared,
+ org.eclipse.xtext.ui.codetemplates.ui,
+ org.eclipse.ui.editors;bundle-version="3.14.300",
+ org.eclipse.ui.ide;bundle-version="3.18.500",
+ org.eclipse.ui,
+ org.eclipse.compare,
+ org.eclipse.xtext.builder
+Import-Package: org.apache.log4j
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+Export-Package: io.sapl.grammar.ui.quickfix,
+ io.sapl.grammar.ui.contentassist,
+ sapl_eclipse_ui.internal
+Bundle-Activator: sapl_eclipse_ui.internal.Sapl_eclipse_uiActivator

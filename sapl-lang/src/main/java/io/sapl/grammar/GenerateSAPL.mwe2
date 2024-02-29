@@ -41,6 +41,11 @@ Workflow {
 				runtimeTest = {
 					enabled = true
 				}
+				eclipsePlugin = {
+				    enabled = true
+				    name = "sapl_eclipse_ui"
+				    root = "${rootPath}/eclipse-plugin/sapl-eclipse-ui"
+				}
 				web = {
 					name = "sapl-web"			
 					enabled = true

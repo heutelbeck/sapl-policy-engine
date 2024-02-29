@@ -97,6 +97,7 @@
 		<sbcontrib.version>7.6.0</sbcontrib.version>
 		<failsafe.version>3.2.5</failsafe.version>
 		<surefire.version>3.2.5</surefire.version>
+		<tycho.version>4.0.6</tycho.version>
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
 		<argLine />
 	</properties>
@@ -134,6 +135,11 @@
 		<module>sapl-spring-data-r2dbc</module>
 		<module>sapl-spring-data-mongo-reactive</module>		
 		<module>sapl-spring-data-common</module>
+		<module>eclipse-plugin/sapl-eclipse-ui</module>
+		<module>eclipse-plugin/sapl-eclipse-target</module>
+		<module>eclipse-plugin/sapl-eclipse-thirdparty</module>
+		<module>eclipse-plugin/sapl-eclipse-feature</module>
+		<module>eclipse-plugin/sapl-eclipse-repository</module>
 	</modules>
 	<dependencyManagement>
 		<dependencies>
@@ -397,6 +403,11 @@
 						</tags>
 					</configuration>
 				</plugin>
+				<plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>3.1.1</version>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>
@@ -440,6 +451,7 @@
 								<exclude>src/main/resources/**</exclude>
 								<exclude>.gitattributes</exclude>
 								<exclude>.npmrc</exclude>
+								<exclude>.tycho-consumer-pom.xml</exclude>
 								<exclude>
 									src/main/java/io/sapl/grammar/web/SAPLWebSetup.java</exclude>
 								<exclude>
@@ -469,6 +481,7 @@
 						<genmodel>XML_STYLE</genmodel>
 						<xtext>SLASHSTAR_STYLE</xtext>
 						<config>SCRIPT_STYLE</config>
+						<target>XML_STYLE</target>
 					</mapping>
 				</configuration>
 				<executions>
@@ -483,6 +496,60 @@
 				<groupId>org.sonarsource.scanner.maven</groupId>
 				<artifactId>sonar-maven-plugin</artifactId>
 				<version>${sonar.version}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-maven-plugin</artifactId>
+				<version>${tycho.version}</version>
+				<extensions>true</extensions>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>target-platform-configuration</artifactId>
+				<version>${tycho.version}</version>
+				<configuration>
+					<target>
+						<artifact>
+							<groupId>io.sapl</groupId>
+							<artifactId>sapl-eclipse-target</artifactId>
+							<version>${project.version}</version>
+						</artifact>
+					</target>
+					<environments>
+						<environment>
+							<os>macosx</os>
+							<ws>cocoa</ws>
+							<arch>x86_64</arch>
+						</environment>
+						<environment>
+							<os>win32</os>
+							<ws>win32</ws>
+							<arch>x86_64</arch>
+						</environment>
+						<environment>
+							<os>linux</os>
+							<ws>gtk</ws>
+							<arch>x86_64</arch>
+						</environment>
+					</environments>
+					<dependency-resolution>
+						<extraRequirements>
+							<requirement>
+								<type>eclipse-plugin</type>
+								<id>org.eclipse.xtext.logging</id>
+								<versionRange>1.2.24</versionRange>
+							</requirement>
+							<!-- to get the org.eclipse.osgi.compatibility.state plugin if the target
+								platform is Luna or later. (backward compatible with kepler and previous
+								versions) see https://bugs.eclipse.org/bugs/show_bug.cgi?id=492149 -->
+							<requirement>
+								<type>eclipse-feature</type>
+								<id>org.eclipse.rcp</id>
+								<versionRange>0.0.0</versionRange>
+							</requirement>
+						</extraRequirements>
+					</dependency-resolution>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
@@ -545,7 +612,6 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-deploy-plugin</artifactId>
-						<version>3.1.1</version>
 						<configuration>
 							<skip>true</skip>
 						</configuration>

@@ -110,7 +110,49 @@
 			<scope>test</scope>
 			<version>0.22.1</version>
 		</dependency>
+		<!-- OSGi -->
+		<dependency>
+			<groupId>org.osgi</groupId>
+			<artifactId>org.osgi.annotation.bundle</artifactId>
+			<scope>provided</scope>
+		</dependency>
 	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>biz.aQute.bnd</groupId>
+				<artifactId>bnd-maven-plugin</artifactId>
+				<version>6.4.0</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>bnd-process</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<!-- Lombok is not needed as a runtime dependency but is automatically detected as one due when
+                    SneakyThrows is in use because it leaves traces in the class files. This can be removed when the
+                    project uses a version of lombok which contains a fix for
+                     https://github.com/projectlombok/lombok/issues/3601 -->
+					<bnd>
+						Import-Package: !lombok,*
+					</bnd>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifestFile>
+							${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+					</archive>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 
 	<profiles>
 		<profile>
@@ -138,3 +180,4 @@
 	</profiles>
 
 </project>
+
