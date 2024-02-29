@@ -89,6 +89,16 @@
 				<artifactId>sapl-ide</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+					<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>sapl-hancrest</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+					<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>sapl-assertj</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-web</artifactId>
