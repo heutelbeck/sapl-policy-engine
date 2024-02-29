@@ -203,7 +203,7 @@ jobs:
 
   deploy:
     if: ${{ github.ref == 'refs/heads/master' }}
-    needs: [build]
+   # needs: [build]
     name: Deploy to Central
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -262,7 +262,7 @@ jobs:
         gpg --list-secret-keys --keyid-format LONG
 
     - name: Deploy Maven Artifacts
-      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-eclipse-feature,!sapl-eclipse-repository,!sapl-eclipse-tatget,!sapl-eclipse-thirdparty,!sapl-eclipse-ui -Ppublish -DskipTests clean package deploy
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-eclipse-feature,!sapl-eclipse-repository,!sapl-eclipse-target,!sapl-eclipse-thirdparty,!sapl-eclipse-ui -Ppublish -DskipTests clean package deploy
 
     - name: Trigger CI Build of Downstream Repositories
       run: |
