@@ -24,7 +24,7 @@ import lombok.experimental.UtilityClass;
 
 /**
  * Assertions for SAPL Val and AuthorizationDecision.
- * 
+ *
  * @author Mohammed Aljer
  * @author Dominic Heutelbeck
  */
@@ -38,7 +38,7 @@ public class SaplAssertions {
      * <pre>{@code
      * assertThatAuthorizationDecision(someDecision).isPermit().hasResource().isObject().containsKey("key");
      * }</pre>
-     * 
+     *
      * @param actual a Val to be examined.
      * @return new assertion for chaining.
      */
@@ -55,7 +55,7 @@ public class SaplAssertions {
      *                                                  .isObject()
      *                                                  .containsKey("key");
      * }</pre>
-     * 
+     *
      * @param actual an AuthorizationDecision to be examined.
      * @return new assertion for chaining.
      */
