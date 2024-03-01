@@ -36,7 +36,6 @@ import io.sapl.geofunctions.WktConverter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-
 public class TraccarSessionHandler {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

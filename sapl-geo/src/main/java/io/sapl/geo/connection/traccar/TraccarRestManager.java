@@ -29,7 +29,6 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.pip.http.ReactiveWebClient;
 import reactor.core.publisher.Mono;
 
-
 public class TraccarRestManager {
 
     private static final String     COOKIE  = "cookie";

@@ -30,7 +30,6 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 
 import reactor.core.publisher.Flux;
 
-
 public class TraccarSocketManager {
 
     private static final String DEVICEID       = "deviceId";
@@ -52,7 +51,7 @@ public class TraccarSocketManager {
     private final TraccarSessionManager sessionManager;
     private String                      url;
 
-    private TraccarSessionHandler       handler;
+    private TraccarSessionHandler handler;
 
     private TraccarSocketManager(String user, String password, String serverName, String protocol, int deviceId,
             ObjectMapper mapper) throws Exception {
@@ -60,8 +59,9 @@ public class TraccarSocketManager {
         url = "ws://" + serverName + "/api/socket";
 
         this.sessionManager = new TraccarSessionManager(user, password, serverName, mapper);
-        this.deviceId = deviceId;
-        this.handler  = new TraccarSessionHandler(sessionManager.getSessionCookie(), serverName, protocol, mapper);
+        this.deviceId       = deviceId;
+        this.handler        = new TraccarSessionHandler(sessionManager.getSessionCookie(), serverName, protocol,
+                mapper);
     }
 
     public static TraccarSocketManager getNew(String user, String password, String server, String protocol,
@@ -69,8 +69,7 @@ public class TraccarSocketManager {
 
         return new TraccarSocketManager(user, password, server, protocol, deviceId, mapper);
     }
-    
-    
+
     public static Flux<Val> connectToTraccar(JsonNode settings, ObjectMapper mapper) {
 
         try {
@@ -78,15 +77,13 @@ public class TraccarSocketManager {
                     getProtocol(settings), getDeviceId(settings), mapper);
             return socketManager.connect(getResponseFormat(settings, mapper), mapper).map(Val::of).onErrorResume(e -> {
                 return Flux.just(Val.error(e));
-            }).doAfterTerminate(() -> socketManager.disconnect());
+            }).doFinally(s -> socketManager.disconnect());
 
         } catch (Exception e) {
             return Flux.just(Val.error(e));
         }
 
     }
-
-
 
     public Flux<ObjectNode> connect(GeoPipResponseFormat format, ObjectMapper mapper) throws Exception {
 
@@ -114,16 +111,16 @@ public class TraccarSocketManager {
     }
 
     public void disconnect() {
-
+        System.out.println("Trying to close Traccar-Session.");
         try {
-        	if(this.sessionManager.closeTraccarSession()) {
-        		System.out.println("Traccar-Client disconnected.");
-        	}else{
-        		throw new Exception();
-        	}
-        }catch(Exception e) {
-        	throw new PolicyEvaluationException("Traccar-Session could not be closed");
-        }    	
+            if (this.sessionManager.closeTraccarSession()) {
+                System.out.println("Traccar-Client disconnected.");
+            } else {
+                throw new Exception();
+            }
+        } catch (Exception e) {
+            throw new PolicyEvaluationException("Traccar-Session could not be closed");
+        }
     }
 
 //    public Optional<WebSocketSession> getSession() {
@@ -186,7 +183,8 @@ public class TraccarSocketManager {
 
     }
 
-    private static GeoPipResponseFormat getResponseFormat(JsonNode requestSettings, ObjectMapper mapper) throws Exception {
+    private static GeoPipResponseFormat getResponseFormat(JsonNode requestSettings, ObjectMapper mapper)
+            throws Exception {
         if (requestSettings.has(RESPONSEFORMAT)) {
             return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT), GeoPipResponseFormat.class);
         } else {

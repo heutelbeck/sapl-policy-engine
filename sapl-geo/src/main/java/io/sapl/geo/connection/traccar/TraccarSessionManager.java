@@ -17,7 +17,6 @@
  */
 package io.sapl.geo.connection.traccar;
 
-
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -36,7 +35,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 
-
 public class TraccarSessionManager {
 
     private final String user;
@@ -44,7 +42,7 @@ public class TraccarSessionManager {
     private URI          uri;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private ObjectMapper mapper;
-    private String sessionCookie;
+    private String       sessionCookie;
 
     public String getSessionCookie() {
         return sessionCookie;
@@ -59,15 +57,14 @@ public class TraccarSessionManager {
     public TraccarSessionManager(String user, String password, String server, ObjectMapper mapper) throws Exception {
         this.user     = user;
         this.password = password;
-        this.mapper = mapper;
+        this.mapper   = mapper;
         establishSession(server);
 
     }
 
     private void establishSession(String serverName) throws Exception {
 
-    
-        //uri = new URI("http://" + serverName + "/api/session");
+        // uri = new URI("http://" + serverName + "/api/session");
         uri = new URI(String.format("http://%s/api/session", serverName));
         Map<String, String> bodyProperties = new HashMap<String, String>() {
             private static final long serialVersionUID = 1L;

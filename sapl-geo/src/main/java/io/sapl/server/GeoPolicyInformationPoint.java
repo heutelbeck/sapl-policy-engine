@@ -27,7 +27,6 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.geo.connection.traccar.TraccarSocketManager;
 import reactor.core.publisher.Flux;
 
-
 @Component
 @PolicyInformationPoint(name = GeoPolicyInformationPoint.NAME, description = GeoPolicyInformationPoint.DESCRIPTION)
 public class GeoPolicyInformationPoint {

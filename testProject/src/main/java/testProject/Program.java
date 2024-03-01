@@ -66,7 +66,7 @@ public class Program {
             """;
         var node = Val.ofJson(st).get();
         var trc = TraccarSocketManager.connectToTraccar( node, mapper);
-		trc.subscribe(
+		var dis = trc.subscribe(
 	      		 content ->{ 
      			 var a = content.get().toString();
      			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
@@ -144,13 +144,20 @@ public class Program {
 
 			
 		try {
-			Thread.sleep(500000);
+			Thread.sleep(30000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
+		dis.dispose();
 		
+		try {
+			Thread.sleep(30000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		System.out.println("End");
 
