@@ -82,7 +82,8 @@ class RemoteRsocketDecisionPointServerIT {
         return baseContainer.withImagePullPolicy(PullPolicy.neverPull())
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                 .withClasspathResourceMapping("keystore.p12", "/pdp/data/keystore.p12", BindMode.READ_ONLY)
-                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT).waitingFor(Wait.forListeningPort())
+                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
+                .waitingFor(Wait.forLogMessage(".*Started SAPLServerLTApplication.*\\n", 1))
                 .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data")
                 .withEnv("spring_rsocket_server_address", "0.0.0.0")
                 .withEnv("spring_rsocket_server_ssl_key-store-type", "PKCS12")
@@ -103,7 +104,8 @@ class RemoteRsocketDecisionPointServerIT {
         return baseContainer.withImagePullPolicy(PullPolicy.neverPull())
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                 .withClasspathResourceMapping("keystore.p12", "/pdp/data/keystore.p12", BindMode.READ_ONLY)
-                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT).waitingFor(Wait.forListeningPort())
+                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
+                .waitingFor(Wait.forLogMessage(".*Started SAPLServerLTApplication.*\\n", 1))
                 .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data")
                 .withEnv("server_ssl_enabled", "false")
                 .withEnv("spring_rsocket_server_ssl_enabled", "false")
@@ -161,7 +163,8 @@ class RemoteRsocketDecisionPointServerIT {
     void whenRequestingDecisionFromRsocketPdp_withOauth2Auth_thenDecisionIsProvided() {
         try (var oauthBaseContainer = new GenericContainer<>(
                 DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:2.1.0"));
-                var oauth2Container = oauthBaseContainer.withExposedPorts(8080).waitingFor(Wait.forListeningPort())) {
+                var oauth2Container = oauthBaseContainer.withExposedPorts(8080)
+                        .waitingFor(Wait.forListeningPort())) {
             oauth2Container.start();
 
             try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
