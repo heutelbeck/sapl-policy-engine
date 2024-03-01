@@ -112,6 +112,7 @@ jobs:
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -P docker -DskipTests
 
     - name: Log in to the Container registry
+      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
       uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
       with:
         registry: ghcr.io
