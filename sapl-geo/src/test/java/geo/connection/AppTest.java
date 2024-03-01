@@ -28,6 +28,7 @@ import java.nio.file.Paths;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -36,6 +37,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.connection.traccar.TraccarRestManager;
+import io.sapl.geo.connection.traccar.TraccarSessionManager;
 import io.sapl.geo.connection.traccar.TraccarSocketManager;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
@@ -50,8 +53,8 @@ public class AppTest {
 
     @Container
 
-    public static GenericContainer traccarServer = new GenericContainer(DockerImageName.parse("traccar/traccar:latest"))
-            .withExposedPorts(8082)
+    public static GenericContainer traccarServer = new GenericContainer<>(
+            DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082)
             .withFileSystemBind(resourceDirectory + "/opt/traccar/logs", "/opt/traccar/logs", BindMode.READ_WRITE)
             .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
             .withReuse(true);
@@ -66,7 +69,7 @@ public class AppTest {
     void test() throws Exception {
         String exp = source.getJsonSource().get("ResponseWKT").toPrettyString();
 
-        var st   = """
+        var st  = """
                     {
                     "user":"test@fake.de",
                     "password":"1234",
@@ -76,8 +79,9 @@ public class AppTest {
                 	"deviceId":1
                 }
                 """;
-        var val  = Val.ofJson(String.format(st, address));
-        var res  = TraccarSocketManager.connectToTraccar(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+        var val = Val.ofJson(String.format(st, address));
+        var res = TraccarSocketManager.connectToTraccar(val.get(), new ObjectMapper()).blockFirst().get()
+                .toPrettyString();
 
         assertEquals(exp, res);
 

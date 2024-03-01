@@ -38,7 +38,6 @@ public class GeoPolicyInformationPoint {
 
     public static final String DESCRIPTION = "PIP for geographical data.";
 
-   
     private final ObjectMapper mapper;
 
     public GeoPolicyInformationPoint(ObjectMapper _mapper) {
@@ -50,15 +49,14 @@ public class GeoPolicyInformationPoint {
     public Flux<Val> connectToTraccar(Val leftHandValue, Val variables) {
 
         try {
-            return TraccarSocketManager.connectToTraccar(variables.get(), mapper);//.map(Val::of)
-                    //.onErrorResume(e -> Flux.just(Val.error(e)));
+            return TraccarSocketManager.connectToTraccar(variables.get(), mapper);// .map(Val::of)
+            // .onErrorResume(e -> Flux.just(Val.error(e)));
         } catch (Exception e) {
 
             return Flux.just(Val.error(e));
 
         }
     }
-
 
     /*
      * public void disconnectTraccar(int deviceId) {

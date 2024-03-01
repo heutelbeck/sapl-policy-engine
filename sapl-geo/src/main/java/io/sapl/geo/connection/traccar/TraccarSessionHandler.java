@@ -106,7 +106,6 @@ public class TraccarSessionHandler {
 
     private JsonNode getPositionFromMessage(JsonNode in, int deviceId) {
 
-
         if (in.has(POSITIONS)) {
             ArrayNode pos1 = (ArrayNode) in.findValue(POSITIONS);
             for (var p : pos1) {
@@ -125,56 +124,62 @@ public class TraccarSessionHandler {
         if (response.getDeviceId() != 0) {
 
 //            return rest.getGeofences(Integer.toString(deviceId)).map(fences -> mapGeofences(response, format, fences));
-        	return rest.getGeofences(Integer.toString(deviceId)).flatMap(fences -> mapGeofences(response, format, fences));
-        	
+            return rest.getGeofences(Integer.toString(deviceId))
+                    .flatMap(fences -> mapGeofences(response, format, fences));
+
         }
         return Mono.just(response);
     }
 
     private Mono<GeoPipResponse> mapGeofences(GeoPipResponse response, GeoPipResponseFormat format, JsonNode in) {
-        JsonNode fences = MAPPER.createArrayNode();
+        JsonNode              fences   = MAPPER.createArrayNode();
         List<TraccarGeofence> fenceRes = new ArrayList<>();
-        
+
         try {
             fences = MAPPER.readTree(in.toString());
-        
-            for (JsonNode geoFence : fences) {
-            	switch (format) {
 
-	            	case GEOJSON:
-	                    fenceRes.add(mapFence(geoFence, 
-	                    					  MAPPER.convertValue(GeometryConverter.geometryToGeoJsonNode(
-	                    							  				WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText())))
-	                                    .get(), JsonNode.class)));
-	                    break;
-	                
-	            	case WKT:
-	            		fenceRes.add(mapFence(geoFence,
-	            							  MAPPER.convertValue(geoFence.findValue(AREA).asText(), JsonNode.class)));
-	            		break;
-	                
-	            	case GML:
-	                    fenceRes.add(mapFence(geoFence,
-	                            			  GeometryConverter.geometryToGML(WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText())))
-	                                    .get()));
-	                    break;
-	
-	            	case KML:
-	                    fenceRes.add(mapFence(geoFence,
-	                            			  GeometryConverter.geometryToKML(WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText())))
-	                                    .get()));
-	
-		            default:
-		
-		                break;
-		            }
+            for (JsonNode geoFence : fences) {
+                switch (format) {
+
+                case GEOJSON:
+                    fenceRes.add(mapFence(geoFence,
+                            MAPPER.convertValue(GeometryConverter
+                                    .geometryToGeoJsonNode(
+                                            WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText())))
+                                    .get(), JsonNode.class)));
+                    break;
+
+                case WKT:
+                    fenceRes.add(
+                            mapFence(geoFence, MAPPER.convertValue(geoFence.findValue(AREA).asText(), JsonNode.class)));
+                    break;
+
+                case GML:
+                    fenceRes.add(mapFence(geoFence,
+                            GeometryConverter
+                                    .geometryToGML(
+                                            WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText())))
+                                    .get()));
+                    break;
+
+                case KML:
+                    fenceRes.add(mapFence(geoFence,
+                            GeometryConverter
+                                    .geometryToKML(
+                                            WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText())))
+                                    .get()));
+
+                default:
+
+                    break;
+                }
 
             }
-            
-        }catch(Exception e) {
-        	return Mono.error(e);
+
+        } catch (Exception e) {
+            return Mono.error(e);
         }
-        
+
         response.setGeoFences(fenceRes);
         return Mono.just(response);
 

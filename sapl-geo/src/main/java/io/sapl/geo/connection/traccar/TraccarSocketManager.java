@@ -42,15 +42,16 @@ public class TraccarSocketManager {
 //    private Disposable           subscription;
 //    private WebSocketSession     session;
 
-    private int               deviceId;
+    private int deviceId;
+
     public int getDeviceId() {
         return deviceId;
     }
 
     private final TraccarSessionManager sessionManager;
-    private String              url;
-    private static ObjectMapper mapper;
-    private TraccarSessionHandler handler;
+    private String                      url;
+    private static ObjectMapper         mapper;
+    private TraccarSessionHandler       handler;
 
     private TraccarSocketManager(String user, String password, String serverName, String protocol, int deviceId,
             ObjectMapper mapper) throws Exception {
@@ -64,25 +65,19 @@ public class TraccarSocketManager {
         this.handler  = new TraccarSessionHandler(sessionManager.getSessionCookie(), serverName, protocol, mapper);
     }
 
-  
+    public static Flux<Val> connectToTraccar(JsonNode settings, ObjectMapper mapper) {
 
-    public static Flux<Val> connectToTraccar(JsonNode settings, ObjectMapper mapper)
-    {
-        
-    	try {
-	    	var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings), getProtocol(settings),
-	                getDeviceId(settings), mapper);
-	    	return socketManager.connect(getResponseFormat(settings))
-	    			.map(Val::of)
-	       		 .onErrorResume(e -> {
-	       			 return Flux.just(Val.error(e));
-	       			 }
-	       		 );
+        try {
+            var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings),
+                    getProtocol(settings), getDeviceId(settings), mapper);
+            return socketManager.connect(getResponseFormat(settings)).map(Val::of).onErrorResume(e -> {
+                return Flux.just(Val.error(e));
+            });
 
-    	}catch(Exception e) {
-    		return Flux.just(Val.error(e));
-    	}
-    	
+        } catch (Exception e) {
+            return Flux.just(Val.error(e));
+        }
+
     }
 
     public static TraccarSocketManager getNew(String user, String password, String server, String protocol,
@@ -116,8 +111,6 @@ public class TraccarSocketManager {
         return flux;
     }
 
-
-    
 //    public void disconnect() {
 //
 //        client.disconnectSocket();
@@ -129,13 +122,12 @@ public class TraccarSocketManager {
 //        return Optional.ofNullable(session);
 //    }
 
- 
     public String getSessionCookie() {
 
         return sessionManager.getSessionCookie();
 
     }
-    
+
     private static String getUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(USER)) {
             return requestSettings.findValue(USER).asText();
@@ -191,9 +183,9 @@ public class TraccarSocketManager {
             return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT), GeoPipResponseFormat.class);
         } else {
 
-        	return GeoPipResponseFormat.GEOJSON;
+            return GeoPipResponseFormat.GEOJSON;
         }
 
     }
-    
+
 }

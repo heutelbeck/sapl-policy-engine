@@ -85,21 +85,19 @@ public class TraccarSessionManager {
 
         HttpRequest req = null;
 
-            req = HttpRequest.newBuilder().uri(uri).headers("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString(form)).build();
+        req = HttpRequest.newBuilder().uri(uri).headers("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(form)).build();
 
+        var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
-        var client = HttpClient.newBuilder()
-        	      .connectTimeout(Duration.ofSeconds(10))
-        	      .build();
- 
         var res = client.send(req, BodyHandlers.ofString());
 
-        if(res.statusCode() == 200) {
-	        sessionCookie = res.headers().firstValue("set-cookie").get();
-	        session       = createTraccarSession(res.body());
-        }else {
-        	throw new PolicyEvaluationException("Session could not be established. Server respondet with " + res.statusCode());
+        if (res.statusCode() == 200) {
+            sessionCookie = res.headers().firstValue("set-cookie").get();
+            session       = createTraccarSession(res.body());
+        } else {
+            throw new PolicyEvaluationException(
+                    "Session could not be established. Server respondet with " + res.statusCode());
         }
 
         // 617662
@@ -113,7 +111,6 @@ public class TraccarSessionManager {
         session = mapper.convertValue(mapper.readTree(json), TraccarSession.class);
 
         return session;
-                      
 
     }
 
@@ -123,14 +120,14 @@ public class TraccarSessionManager {
         req = HttpRequest.newBuilder().uri(uri).header("cookie", sessionCookie).DELETE().build();
 
         var client = HttpClient.newHttpClient();
-        var res = client.send(req, BodyHandlers.ofString());
+        var res    = client.send(req, BodyHandlers.ofString());
         if (res.statusCode() == 204) {
             logger.info("Traccar Session for DeviceId " + "" + "closed.");
             return true;
         }
-    
-    return false;
-    
+
+        return false;
+
     }
 
 }
