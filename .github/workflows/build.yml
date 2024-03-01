@@ -106,13 +106,13 @@ jobs:
       if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
       run: mvn -U -B install -DskipTests
 
-    - name: Build SAPL Server LT Image
-      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
-      run: mvn -B spring-boot:build-image -pl sapl-server-lt -P docker -DskipTests
+#    - name: Build SAPL Server LT Image
+#      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+#      run: mvn -B spring-boot:build-image -pl sapl-server-lt -P docker -DskipTests
 
     - name: Push SAPL Server LT Image
       if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
-      run: mvn -B spring-boot:build-image -Dspring-boot.build-image.publish=true -Ddocker.publishRegistry.username=${{ secrets.GHUB_USERNAME }} -Ddocker.publishRegistry.token=${{ secrets.GHUB_ACCESS_TOKEN }} -Ddocker.publishRegistry.url=https://ghcr.io -pl sapl-server-lt -P docker -DskipTests
+      run: mvn -B spring-boot:build-image -Dspring-boot.build-image.publish=true -Ddocker.publishRegistry.username=${{ github.actor }}  -Ddocker.publishRegistry.token=${{ secrets.GITHUB_TOKEN }} -Ddocker.publishRegistry.url=https://ghcr.io -pl sapl-server-lt -P docker -DskipTests
 
     - name: Run Tests
       shell: bash # needed to run script on windows os
