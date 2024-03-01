@@ -125,7 +125,7 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT        
         
     - name: Push
-      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
       run: |
         "docker push 'ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}/*"
 
