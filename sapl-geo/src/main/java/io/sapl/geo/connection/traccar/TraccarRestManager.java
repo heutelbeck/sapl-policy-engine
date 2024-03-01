@@ -32,7 +32,6 @@ import reactor.core.publisher.Mono;
 
 public class TraccarRestManager {
 
-
     private static final String     COOKIE  = "cookie";
     private final String            sessionCookie;
     private ReactiveWebClient       webClient;
@@ -67,13 +66,12 @@ public class TraccarRestManager {
         try {
             request = Val.ofJson(String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE,
                     sessionCookie, deviceId));
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             System.out.println("getGeofences");
             e.printStackTrace();
         }
 
-        return webClient.httpRequest(HttpMethod.GET, request).next().map(v -> v.get());
-
+        return webClient.httpRequest(HttpMethod.GET, request).next().map(v -> v.get());      
     }
 
 }

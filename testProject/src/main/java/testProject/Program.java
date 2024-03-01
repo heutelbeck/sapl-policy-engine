@@ -19,6 +19,7 @@ package testProject;
 
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.connection.traccar.TraccarRestManager;
 import io.sapl.geo.connection.traccar.TraccarSocketManager;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
@@ -64,23 +65,44 @@ public class Program {
             }
             """;
         var node = Val.ofJson(st).get();
-        var trc = TraccarSocketManager.connectToTraccar( node, mapper);
-		trc.subscribe(
+//        var trc = TraccarSocketManager.connectToTraccar( node, mapper);
+//		trc.subscribe(
+//	      		 content ->{ 
+//     			 var a = content.get().toString();
+//     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+//     			 System.out.println("res: " + b.getDeviceId());
+//     			 System.out.println("traccar content: " + a);
+//     			 
+//     		 },
+//   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+//   	      () -> System.out.println("Completed!!!")
+//   	      );
+
+        
+        
+        
+        //var rest = new TraccarRestManager("JSESSIONID=node01mjbmvv7g2kae174r5drjrz7b20.node0; Path=/", "localhost:50538", "http", mapper);
+
+        //var mono = rest.getGeofences("1");
+        
+        //var block = mono.block();
+        
+        
+        
+        
+        var test = TraccarSocketManager.getNew("test@fake.de", "1234", "localhost:50538", "http", 1, mapper);
+        var testflux = test.connect(GeoPipResponseFormat.WKT);
+        testflux.subscribe(
 	      		 content ->{ 
-     			 var a = content.get().toString();
-     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-     			 System.out.println("res: " + b.getDeviceId());
-     			 System.out.println("traccar content: " + a);
-     			 
-     		 },
-   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-   	      () -> System.out.println("Completed!!!")
-   	      );
-
-
-
-
-		
+    			 var a = content.toString();
+    			 
+    			 System.out.println("testflux content: " + a);
+    			 
+    		 },
+  	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+  	      () -> System.out.println("Completed!!!")
+  	      );
+        
 		 var html        = """
 	                {
 	                    "baseUrl" : "%s",

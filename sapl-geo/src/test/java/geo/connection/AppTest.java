@@ -20,6 +20,7 @@ package geo.connection;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.springframework.http.MediaType;
 
 import static org.junit.Assert.assertEquals;
 
@@ -34,7 +35,9 @@ import org.testcontainers.utility.DockerImageName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import common.SourceProvider;
+import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.traccar.TraccarSocketManager;
+import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -46,15 +49,9 @@ public class AppTest {
     final static String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
 
     @Container
-//	public static DockerComposeContainer traccarServer
-//		= new DockerComposeContainer(new File(resourceDirectory + "/docker-compose.yml"))
-//			.withExposedService("traccar", 8082)
-//			;
 
     public static GenericContainer traccarServer = new GenericContainer(DockerImageName.parse("traccar/traccar:latest"))
             .withExposedPorts(8082)
-            // .withExposedPorts(5000-5150)
-
             .withFileSystemBind(resourceDirectory + "/opt/traccar/logs", "/opt/traccar/logs", BindMode.READ_WRITE)
             .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
             .withReuse(true);
@@ -63,21 +60,25 @@ public class AppTest {
     void setup() {
 
         address = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
-//		final var host = traccarServer.getServiceHost("traccar", 8082);
-//		final var port = traccarServer.getServicePort("traccar", 8082);
-
     }
 
     @Test
     void test() throws Exception {
         String exp = source.getJsonSource().get("ResponseWKT").toPrettyString();
-        String res;
 
-        var traccarSocket = TraccarSocketManager.getNew("test@fake.de", "1234", address, "http", 1, new ObjectMapper());
-        res = traccarSocket.connect(GeoPipResponseFormat.WKT).blockFirst().toPrettyString();
+        var st   = """
+                    {
+                    "user":"test@fake.de",
+                    "password":"1234",
+                	"server":"%s",
+                	"protocol":"http",
+                	"responseFormat":"WKT",
+                	"deviceId":1
+                }
+                """;
+        var val  = Val.ofJson(String.format(st, address));
+        var res  = TraccarSocketManager.connectToTraccar(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
 
-//         System.out.println("result: " + res);
-//         System.out.println("after subsciption");
         assertEquals(exp, res);
 
     }
