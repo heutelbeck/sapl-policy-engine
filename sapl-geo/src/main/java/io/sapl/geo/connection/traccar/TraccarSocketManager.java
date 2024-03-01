@@ -51,7 +51,7 @@ public class TraccarSocketManager {
 
     private final TraccarSessionManager sessionManager;
     private String                      url;
-    private static ObjectMapper         mapper;
+
     private TraccarSessionHandler       handler;
 
     private TraccarSocketManager(String user, String password, String serverName, String protocol, int deviceId,
@@ -59,26 +59,9 @@ public class TraccarSocketManager {
 
         url = "ws://" + serverName + "/api/socket";
 
-        TraccarSocketManager.mapper = mapper;
-        this.sessionManager         = new TraccarSessionManager(user, password, serverName);
-
+        this.sessionManager = new TraccarSessionManager(user, password, serverName, mapper);
         this.deviceId = deviceId;
         this.handler  = new TraccarSessionHandler(sessionManager.getSessionCookie(), serverName, protocol, mapper);
-    }
-
-    public static Flux<Val> connectToTraccar(JsonNode settings, ObjectMapper mapper) {
-
-        try {
-            var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings),
-                    getProtocol(settings), getDeviceId(settings), mapper);
-            return socketManager.connect(getResponseFormat(settings)).map(Val::of).onErrorResume(e -> {
-                return Flux.just(Val.error(e));
-            });
-
-        } catch (Exception e) {
-            return Flux.just(Val.error(e));
-        }
-
     }
 
     public static TraccarSocketManager getNew(String user, String password, String server, String protocol,
@@ -86,8 +69,26 @@ public class TraccarSocketManager {
 
         return new TraccarSocketManager(user, password, server, protocol, deviceId, mapper);
     }
+    
+    
+    public static Flux<Val> connectToTraccar(JsonNode settings, ObjectMapper mapper) {
 
-    public Flux<ObjectNode> connect(GeoPipResponseFormat format) throws Exception {
+        try {
+            var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings),
+                    getProtocol(settings), getDeviceId(settings), mapper);
+            return socketManager.connect(getResponseFormat(settings, mapper), mapper).map(Val::of).onErrorResume(e -> {
+                return Flux.just(Val.error(e));
+            }).doAfterTerminate(() -> socketManager.disconnect());
+
+        } catch (Exception e) {
+            return Flux.just(Val.error(e));
+        }
+
+    }
+
+
+
+    public Flux<ObjectNode> connect(GeoPipResponseFormat format, ObjectMapper mapper) throws Exception {
 
         var client = new ReactiveWebClient(mapper);
 
@@ -112,12 +113,18 @@ public class TraccarSocketManager {
         return flux;
     }
 
-//    public void disconnect() {
-//
-//        client.disconnectSocket();
-//        logger.info("Client disconnected.");
-//
-//    }
+    public void disconnect() {
+
+        try {
+        	if(this.sessionManager.closeTraccarSession()) {
+        		System.out.println("Traccar-Client disconnected.");
+        	}else{
+        		throw new Exception();
+        	}
+        }catch(Exception e) {
+        	throw new PolicyEvaluationException("Traccar-Session could not be closed");
+        }    	
+    }
 
 //    public Optional<WebSocketSession> getSession() {
 //        return Optional.ofNullable(session);
@@ -179,7 +186,7 @@ public class TraccarSocketManager {
 
     }
 
-    private static GeoPipResponseFormat getResponseFormat(JsonNode requestSettings) throws Exception {
+    private static GeoPipResponseFormat getResponseFormat(JsonNode requestSettings, ObjectMapper mapper) throws Exception {
         if (requestSettings.has(RESPONSEFORMAT)) {
             return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT), GeoPipResponseFormat.class);
         } else {

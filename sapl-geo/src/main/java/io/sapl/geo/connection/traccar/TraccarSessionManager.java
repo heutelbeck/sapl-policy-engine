@@ -43,7 +43,7 @@ public class TraccarSessionManager {
     private final String password;
     private URI          uri;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-
+    private ObjectMapper mapper;
     private String sessionCookie;
 
     public String getSessionCookie() {
@@ -56,18 +56,19 @@ public class TraccarSessionManager {
         return session;
     }
 
-    public TraccarSessionManager(String user, String password, String server) throws Exception {
+    public TraccarSessionManager(String user, String password, String server, ObjectMapper mapper) throws Exception {
         this.user     = user;
         this.password = password;
-
+        this.mapper = mapper;
         establishSession(server);
 
     }
 
     private void establishSession(String serverName) throws Exception {
 
-        uri = new URI("http://" + serverName + "/api/session");
-
+    
+        //uri = new URI("http://" + serverName + "/api/session");
+        uri = new URI(String.format("http://%s/api/session", serverName));
         Map<String, String> bodyProperties = new HashMap<String, String>() {
             private static final long serialVersionUID = 1L;
             {
@@ -102,12 +103,7 @@ public class TraccarSessionManager {
 
     private TraccarSession createTraccarSession(String json) throws Exception {
 
-        ObjectMapper   mapper = new ObjectMapper();
-        TraccarSession session;
-
-        session = mapper.convertValue(mapper.readTree(json), TraccarSession.class);
-
-        return session;
+        return mapper.convertValue(mapper.readTree(json), TraccarSession.class);
 
     }
 
