@@ -74,6 +74,8 @@ class RemoteHttpDecisionPointServerIT {
                         .withEnv("io_sapl_server-lt_allowNoAuth", "true")
                         .withEnv("spring_rsocket_server_ssl_enabled", "false")
                         .withEnv("server_ssl_enabled", "false")
+                        .withEnv("io_sapl_pdp_embedded_print-trace","true")
+                        .withEnv("io_sapl_pdp_embedded_print-text-report","true")
                         .withExposedPorts(SAPL_SERVER_PORT)
                         .waitingFor(Wait.forLogMessage(".*Started SAPLServerLTApplication.*\\n", 1))) {
         // @formatter:on
