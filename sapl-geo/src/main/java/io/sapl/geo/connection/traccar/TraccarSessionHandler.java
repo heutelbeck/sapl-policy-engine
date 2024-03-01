@@ -22,10 +22,7 @@ import java.util.List;
 
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.io.ParseException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -38,6 +35,7 @@ import io.sapl.geofunctions.GeometryConverter;
 import io.sapl.geofunctions.WktConverter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
 
 public class TraccarSessionHandler {
 
@@ -122,11 +120,8 @@ public class TraccarSessionHandler {
     public Mono<GeoPipResponse> getGeofences(GeoPipResponse response, int deviceId, GeoPipResponseFormat format) {
 
         if (response.getDeviceId() != 0) {
-
-//            return rest.getGeofences(Integer.toString(deviceId)).map(fences -> mapGeofences(response, format, fences));
             return rest.getGeofences(Integer.toString(deviceId))
                     .flatMap(fences -> mapGeofences(response, format, fences));
-
         }
         return Mono.just(response);
     }

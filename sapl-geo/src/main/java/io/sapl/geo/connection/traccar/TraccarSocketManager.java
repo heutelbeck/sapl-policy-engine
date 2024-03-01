@@ -30,6 +30,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 
 import reactor.core.publisher.Flux;
 
+
 public class TraccarSocketManager {
 
     private static final String DEVICEID       = "deviceId";

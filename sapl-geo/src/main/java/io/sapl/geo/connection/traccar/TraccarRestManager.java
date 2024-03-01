@@ -22,13 +22,13 @@ import java.util.HashMap;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.pip.http.ReactiveWebClient;
 import reactor.core.publisher.Mono;
+
 
 public class TraccarRestManager {
 

@@ -17,9 +17,6 @@
  */
 package io.sapl.server;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +26,7 @@ import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.geo.connection.traccar.TraccarSocketManager;
 import reactor.core.publisher.Flux;
+
 
 @Component
 @PolicyInformationPoint(name = GeoPolicyInformationPoint.NAME, description = GeoPolicyInformationPoint.DESCRIPTION)
