@@ -37,6 +37,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   build:
@@ -110,6 +111,23 @@ jobs:
       if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -P docker -DskipTests
 
+    - name: Log in to the Container registry
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get version
+      id: get-version
+      run: |
+        VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
+        echo "version=$VERSION" >> $GITHUB_OUTPUT        
+        
+    - name: Push
+      run: |
+        "docker push 'ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}/*"
+
     - name: Run Tests
       shell: bash # needed to run script on windows os
       env:
@@ -182,6 +200,7 @@ jobs:
       if: ${{ (success() || failure()) && !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
       uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
 
+ 
 #    - name: Push SAPL Server LT Image
 #      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
 #      run: mvn -B spring-boot:build-image -Dspring-boot.build-image.publish=true -Ddocker.publishRegistry.username=${{ github.actor }}  -Ddocker.publishRegistry.token=${{ secrets.GITHUB_TOKEN }} -Ddocker.publishRegistry.url=https://ghcr.io -pl sapl-server-lt -P docker -DskipTests
