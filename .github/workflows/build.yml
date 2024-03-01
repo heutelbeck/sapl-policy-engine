@@ -37,7 +37,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   build:
@@ -85,20 +84,6 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Configure Servers
-      # Not allowed for PRs from forks and from Dependabot. Secrets are not accessible
-      # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
-      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
-      uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
-      with:
-        githubServer: false
-        servers: |
-          [{
-              "id": "ghcr.io",
-              "username": "${{ secrets.GHUB_USERNAME }}",
-              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
-           }]
-
     - name: Add auth-host to /etc/hosts for OAuth Integration Tests
       if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
       run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
@@ -110,26 +95,6 @@ jobs:
     - name: Build SAPL Server LT Image
       if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -P docker -DskipTests
-
-    - name: Log in to the Container registry
-      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
-      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GHUB_ACCESS_TOKEN }}
-
-    - name: Get version
-      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
-      id: get-version
-      run: |
-        VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
-        echo "version=$VERSION" >> $GITHUB_OUTPUT        
-        
-    - name: Push
-      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
-      run: |
-        docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
 
     - name: Run Tests
       shell: bash # needed to run script on windows os
@@ -203,10 +168,25 @@ jobs:
       if: ${{ (success() || failure()) && !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
       uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
 
- 
-#    - name: Push SAPL Server LT Image
-#      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
-#      run: mvn -B spring-boot:build-image -Dspring-boot.build-image.publish=true -Ddocker.publishRegistry.username=${{ github.actor }}  -Ddocker.publishRegistry.token=${{ secrets.GITHUB_TOKEN }} -Ddocker.publishRegistry.url=https://ghcr.io -pl sapl-server-lt -P docker -DskipTests
+    - name: Log in to the Container registry
+      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHUB_ACCESS_TOKEN }}
+
+    - name: Get version
+      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      id: get-version
+      run: |
+        VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
+        echo "version=$VERSION" >> $GITHUB_OUTPUT        
+        
+    - name: Push Server LT Image to ghcr.io
+      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      run: |
+        docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
 
     - name: Push Eclipse Plugin to Website
       if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
