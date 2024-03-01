@@ -120,6 +120,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Get version
+      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
       id: get-version
       run: |
         VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
@@ -128,7 +129,7 @@ jobs:
     - name: Push
       if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
       run: |
-        "docker push 'ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}"
+        "docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}"
 
     - name: Run Tests
       shell: bash # needed to run script on windows os
