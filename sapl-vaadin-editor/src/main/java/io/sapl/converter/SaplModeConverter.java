@@ -31,6 +31,7 @@ import lombok.experimental.UtilityClass;
 public class SaplModeConverter {
 
     /**
+     * 
      * @param amdCode the AMD code
      * @return code as ESM
      */
