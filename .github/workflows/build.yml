@@ -167,7 +167,7 @@ jobs:
 
   deploy:
     if: ${{ github.ref == 'refs/heads/master' }}
-    #needs: [build]
+    needs: [build]
     name: Publish Project Assets
     runs-on: ubuntu-latest
     timeout-minutes: 35
