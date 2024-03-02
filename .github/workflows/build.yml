@@ -53,12 +53,8 @@ jobs:
     timeout-minutes: 45
     
     env:
-      # Run Sonar and JaCoCo only for Ubuntu JDK 17. All other platforms, just do quick unit tests.
+      # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 17. All other platforms, just do quick unit tests.
       RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }} 
-      # Do not run interation tests if the PR is from a fork or dependabot
-      RUN_INTEGRATION_TESTS: ${{ !github.event.pull_request.head.repo.fork  && (github.actor != 'dependabot[bot]') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17')}}
-      # Upload assets only when action runs in master, Ubuntu, JdK 17
-      UPLOAD_ASSETS: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
       
     steps:
     - name: Harden Runner
@@ -257,7 +253,7 @@ jobs:
               "username": "${{ secrets.GHUB_USERNAME }}",
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            }]
-        
+
     - name: Install GPG Code Signing Key
       run: |
         cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
