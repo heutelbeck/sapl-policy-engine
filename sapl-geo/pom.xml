@@ -107,7 +107,7 @@
 			<version>${geotools.version}</version>
 		</dependency>
 
-		<dependency>
+		<!--dependency>
 			<groupId>net.postgis</groupId>
 			<artifactId>postgis-jdbc</artifactId>
 			<version>2.1.7.2</version>
@@ -117,8 +117,13 @@
 					<artifactId>logback-classic</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
+		</dependency-->
 
+		<dependency>
+		    <groupId>org.postgresql</groupId>
+		    <artifactId>r2dbc-postgresql</artifactId>
+		    <version>1.0.4.RELEASE</version>
+		</dependency>
 
 		<dependency>
 		    <groupId>org.locationtech.jts.io</groupId>

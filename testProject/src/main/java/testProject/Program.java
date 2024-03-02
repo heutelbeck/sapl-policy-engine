@@ -18,13 +18,20 @@
 package testProject;
 
 
+import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
+import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.connection.postgis.PostGisConnection;
 import io.sapl.geo.connection.traccar.TraccarRestManager;
 import io.sapl.geo.connection.traccar.TraccarSocketManager;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.pip.http.ReactiveWebClient;
-
+import reactor.core.publisher.Mono;
+import reactor.retry.Repeat;
+import reactor.core.publisher.Flux;
+import reactor.util.retry.Retry;
+import java.time.Duration;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -54,29 +61,73 @@ public class Program {
 //		var trc = traccarSocket.connect(GeoPipResponseFormat.WKT );
 ////		
         
+        
+        var pg = """
+                {
+                "user":"postgres",
+                "password":"Aig1979.",
+            	"server":"localhost",
+            	"port": 5432,
+            	"dataBase":"nyc",
+            	"table":"geometries",
+            	"column":"geom",
+            	"responseFormat":"KML"
+            }
+            """;
+        var node = Val.ofJson(pg).get();
+        
+        var postgis = PostGisConnection.connectToPostGis(node, mapper);
+        postgis.subscribe(result -> {
+          
+          System.out.println(result);
+      });
+        
+//        var postgis = new PostgresqlConnectionFactory(
+//        		PostgresqlConnectionConfiguration .builder()
+//        		 .username("postgres")
+//	                .password("Aig1979.")    
+//        		.host("localhost")
+//	                .port(5432)
+//	               
+//	                .database("nyc")
+//	                .build());
+//	        
+//        Mono.from(postgis.create())
+//        .flatMapMany(connection -> {
+//            return Flux.from(connection.createStatement("SELECT ST_AsGml(geom) AS gml FROM geometries").execute())
+//                       .flatMap(result -> result.map((row, rowMetadata) -> row.get("gml", String.class)))           
+//                       .repeatWhen((Repeat.times(5-1).fixedBackoff(Duration.ofMillis(1000))));
+//        }).doOnError(error -> {
+//            System.err.println("Error occurred: " + error.getMessage());
+//        })
+//        .subscribe(result -> {
+//            
+//            System.out.println(result);
+//        });
+        
         var st = """
                 {
                 "user":"longhair089@yahoo.de",
                 "password":"Aig1979.",
             	"server":"127.0.0.1:8082",
             	"protocol":"http",
-            	"responseFormat":"GML",
+            	"responseFormat":"WKT",
             	"deviceId":1
             }
             """;
-        var node = Val.ofJson(st).get();
-        var trc = TraccarSocketManager.connectToTraccar( node, mapper);
-		var dis = trc.subscribe(
-	      		 content ->{ 
-     			 var a = content.get().toString();
-     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-     			 System.out.println("res: " + b.getDeviceId());
-     			 System.out.println("traccar content: " + a);
-     			 
-     		 },
-   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-   	      () -> System.out.println("Completed!!!")
-   	      );
+//        var node1 = Val.ofJson(st).get();
+//        var trc = TraccarSocketManager.connectToTraccar( node1, mapper);
+//		var dis = trc.subscribe(
+//	      		 content ->{ 
+//     			 var a = content.get().toString();
+//     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+//     			 System.out.println("res: " + b.getDeviceId());
+//     			 System.out.println("traccar content: " + a);
+//     			 
+//     		 },
+//   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+//   	      () -> System.out.println("Completed!!!")
+//   	      );
 
         
 		
@@ -150,7 +201,7 @@ public class Program {
 			e.printStackTrace();
 		}
 		
-		dis.dispose();
+		//dis.dispose();
 		
 		try {
 			Thread.sleep(30000);

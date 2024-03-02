@@ -74,11 +74,12 @@
 			<artifactId>spring-boot-starter-integration</artifactId>
 			<version>3.2.3</version>
 		</dependency>
-		<!--dependency>
-			<groupId>io.projectreactor.netty</groupId>
-			<artifactId>reactor-netty</artifactId>
-			<version>1.1.10</version>
-		</dependency-->
+		
+		<dependency>
+		    <groupId>org.postgresql</groupId>
+		    <artifactId>r2dbc-postgresql</artifactId>
+		    <version>1.0.4.RELEASE</version>
+		</dependency>
 		
 		<dependency>
 			<groupId>org.projectlombok</groupId>

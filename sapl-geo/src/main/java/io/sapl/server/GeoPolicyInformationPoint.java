@@ -37,9 +37,9 @@ public class GeoPolicyInformationPoint {
 
     private final ObjectMapper mapper;
 
-    public GeoPolicyInformationPoint(ObjectMapper _mapper) {
+    public GeoPolicyInformationPoint(ObjectMapper mapper) {
 
-        this.mapper = _mapper;
+        this.mapper = mapper;
     }
 
     @Attribute(name = "traccar")

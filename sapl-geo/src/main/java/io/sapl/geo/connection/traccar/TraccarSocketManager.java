@@ -25,20 +25,16 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.pip.http.ReactiveWebClient;
+import io.sapl.geo.connection.shared.ConnectionBase;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 
 import reactor.core.publisher.Flux;
 
-public class TraccarSocketManager {
+public class TraccarSocketManager extends ConnectionBase {
 
-    private static final String DEVICEID       = "deviceId";
-    private static final String USER           = "user";
-    private static final String PASSWORD       = "password";
-    private static final String SERVER         = "server";
-    private static final String PROTOCOL       = "protocol";
-    private static final String RESPONSEFORMAT = "responseFormat";
-
+    private static final String DEVICEID = "deviceId";
+    private static final String PROTOCOL = "protocol";
 //    private Disposable           subscription;
 //    private WebSocketSession     session;
 
@@ -133,36 +129,6 @@ public class TraccarSocketManager {
 
     }
 
-    private static String getUser(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(USER)) {
-            return requestSettings.findValue(USER).asText();
-        } else {
-            throw new PolicyEvaluationException("No User found");
-
-        }
-
-    }
-
-    private static String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(PASSWORD)) {
-            return requestSettings.findValue(PASSWORD).asText();
-        } else {
-
-            throw new PolicyEvaluationException("No Password found");
-        }
-
-    }
-
-    private static String getServer(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(SERVER)) {
-            return requestSettings.findValue(SERVER).asText();
-        } else {
-            throw new PolicyEvaluationException("No Server found");
-
-        }
-
-    }
-
     private static int getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(DEVICEID)) {
             return requestSettings.findValue(DEVICEID).asInt();
@@ -179,17 +145,6 @@ public class TraccarSocketManager {
         } else {
 
             return "https";
-        }
-
-    }
-
-    private static GeoPipResponseFormat getResponseFormat(JsonNode requestSettings, ObjectMapper mapper)
-            throws Exception {
-        if (requestSettings.has(RESPONSEFORMAT)) {
-            return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT), GeoPipResponseFormat.class);
-        } else {
-
-            return GeoPipResponseFormat.GEOJSON;
         }
 
     }
