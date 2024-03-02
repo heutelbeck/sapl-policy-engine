@@ -58,7 +58,7 @@ jobs:
       # Run Sonar and JaCoCo only for Ubuntu JDK 17. All other platforms, just do quick unit tests.
       RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }} 
       # Do not run interation tests if the PR is from a fork or dependabot
-      RUN_INTEGRATION_TESTS: ${{ !github.event.pull_request.head.repo.fork  && (github.actor != 'dependabot[bot]') }}
+      RUN_INTEGRATION_TESTS: ${{ !github.event.pull_request.head.repo.fork  && (github.actor != 'dependabot[bot]') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17')}}
       # Upload assets only when action runs in master, Ubuntu, JdK 17
       UPLOAD_ASSETS: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
       
