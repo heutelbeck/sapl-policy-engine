@@ -57,6 +57,7 @@ jobs:
       RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }} 
       
     steps:
+    #Test
     - name: Harden Runner
       # Currently not supported for windows and macos
       # (see: https://github.com/step-security/harden-runner/discussions/121).
