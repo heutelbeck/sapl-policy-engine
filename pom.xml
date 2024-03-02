@@ -99,7 +99,7 @@
 		<failsafe.version>3.2.5</failsafe.version>
 		<surefire.version>3.2.5</surefire.version>
 		<tycho.version>4.0.6</tycho.version>
-		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
+		<docker-registry-url>ghcr.io/flodet-me</docker-registry-url>
 		<maven.deploy.skip>true</maven.deploy.skip>
 		<argLine />
 	</properties>
@@ -617,7 +617,7 @@
 			<id>publish</id>
 			<build>
 				<plugins>
-					<plugin>
+					<!-- <plugin>
 						<groupId>org.sonatype.plugins</groupId>
 						<artifactId>nexus-staging-maven-plugin</artifactId>
 						<version>1.6.13</version>
@@ -636,7 +636,7 @@
 							<nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
 							<autoReleaseAfterClose>true</autoReleaseAfterClose>
 						</configuration>
-					</plugin>
+					</plugin> -->
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
