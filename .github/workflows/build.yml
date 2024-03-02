@@ -52,11 +52,11 @@ jobs:
       checks: write # for scacap/action-surefire-report to publish result as PR check
     timeout-minutes: 45
     
-  env:
-    ORG_SLF4J_SIMPLELOGGER_LOG_ORG_APACHE_MAVEN_CLI_TRANSFER_SLF4MAVENTRANSFERLISENER: WARN
-    IS_MAIN_BUILD: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+    env:
+      ORG_SLF4J_SIMPLELOGGER_LOG_ORG_APACHE_MAVEN_CLI_TRANSFER_SLF4MAVENTRANSFERLISENER: WARN
+      IS_MAIN_BUILD: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
 
-  steps:
+    steps:
     - name: Harden Runner
       # Currently not supported for windows and macos
       # (see: https://github.com/step-security/harden-runner/discussions/121).
