@@ -40,7 +40,6 @@ permissions:
 
 jobs:
   build:
-    if: false
     strategy:
       matrix:
         java: [ '17', '21' ]
