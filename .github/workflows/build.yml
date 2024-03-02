@@ -49,13 +49,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       actions: write # for Mattraks/delete-workflow-runs and to push SAPL Server LT image to repo
-      checks: write # for scacap/action-surefire-report to publish result as PR check
+      checks:  write # for scacap/action-surefire-report to publish result as PR check
     timeout-minutes: 45
     
     env:
       ORG_SLF4J_SIMPLELOGGER_LOG_ORG_APACHE_MAVEN_CLI_TRANSFER_SLF4MAVENTRANSFERLISENER: WARN
-      IS_MAIN_BUILD: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
-
+      RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }} 
+      IS_MAIN_BUILD: ${{ (github.ref == 'refs/heads/master') && (github.actor != 'dependabot[bot]') }}
+      # Do not run interation tests if the PR is from a fork or dependabot
+      RUN_INTEGRATION_TESTS: ${{ !github.event.pull_request.head.repo.fork  && (github.actor != 'dependabot[bot]') }}
+      # Upload assets only when action runs in master, Ubuntu, JdK 17
+      UPLOAD_ASSETS: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      
     steps:
     - name: Harden Runner
       # Currently not supported for windows and macos
@@ -66,12 +71,9 @@ jobs:
         egress-policy: audit
 
     - name: TEST FOR MAIN
-      if: ${env.IS_MAIN_BUILD}
+      if: IS_MAIN_BUILD == 'true'
       run: echo XXX->${{ env.ORG_SLF4J_SIMPLELOGGER_LOG_ORG_APACHE_MAVEN_CLI_TRANSFER_SLF4MAVENTRANSFERLISENER }}
     
-    - name: TEST FOR MAIN2
-      run: echo YYY->${{ env.IS_MAIN_BUILD }}
-
     - name: Check out
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       with:
@@ -96,15 +98,15 @@ jobs:
         node-version: '20'
 
     - name: Add auth-host to /etc/hosts for OAuth Integration Tests
-      if: ${{ env.IS_MAIN_BUILD == 'true' }}
+      if: ${{ env.RUN_INTEGRATION_TESTS == 'true' }}
       run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
 
     - name: Build Modules
-      if: ${{ env.IS_MAIN_BUILD == 'true' }}
+      if: ${{ env.RUN_INTEGRATION_TESTS == 'true' }}
       run: mvn -U -B install -DskipTests
 
     - name: Build SAPL Server LT Image
-      if: ${{ env.IS_MAIN_BUILD == 'true' }}
+      if: ${{ env.RUN_INTEGRATION_TESTS == 'true' }}
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
 
     - name: Run Tests
@@ -115,11 +117,11 @@ jobs:
       # If not ubuntu on jdk 17: unit tests only.
       run: >
         if ! [[ ${{ matrix.os }} == 'ubuntu-latest' && ${{ matrix.java }} == '17' ]]; then
-          mvn -B package -fae javadoc:jar -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          mvn -B package -fae javadoc:jar
         elif [[ "${IS_FORK}" = true || ${{ github.actor }} == 'dependabot[bot]' ]]; then
-          mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,spotbugs -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,spotbugs
         else
-          mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs
         fi
 
     - name: Cache Sonar Packages
