@@ -53,9 +53,10 @@ jobs:
     timeout-minutes: 45
     
     env:
+      # Cleanup maven log. Supresses package download messages but lets errors through.
       ORG_SLF4J_SIMPLELOGGER_LOG_ORG_APACHE_MAVEN_CLI_TRANSFER_SLF4MAVENTRANSFERLISENER: WARN
+      # Run Sonar and JaCoCo only for Ubuntu JDK 17. All other platforms, just do quick unit tests.
       RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }} 
-      IS_MAIN_BUILD: ${{ (github.ref == 'refs/heads/master') && (github.actor != 'dependabot[bot]') }}
       # Do not run interation tests if the PR is from a fork or dependabot
       RUN_INTEGRATION_TESTS: ${{ !github.event.pull_request.head.repo.fork  && (github.actor != 'dependabot[bot]') }}
       # Upload assets only when action runs in master, Ubuntu, JdK 17
@@ -70,10 +71,6 @@ jobs:
       with:
         egress-policy: audit
 
-    - name: TEST FOR MAIN
-      if: env.RUN_ANALYSIS # == 'true'
-      run: echo XXX->${{ env.ORG_SLF4J_SIMPLELOGGER_LOG_ORG_APACHE_MAVEN_CLI_TRANSFER_SLF4MAVENTRANSFERLISENER }}
-    
     - name: Check out
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       with:
@@ -98,32 +95,29 @@ jobs:
         node-version: '20'
 
     - name: Add auth-host to /etc/hosts for OAuth Integration Tests
-      if: ${{ env.RUN_INTEGRATION_TESTS == 'true' }}
+      if: env.RUN_INTEGRATION_TESTS == 'true'
       run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
 
     - name: Build Modules
-      if: ${{ env.RUN_INTEGRATION_TESTS == 'true' }}
+      if: env.RUN_INTEGRATION_TESTS == 'true'
       run: mvn -U -B install -DskipTests
 
     - name: Build SAPL Server LT Image
-      if: ${{ env.RUN_INTEGRATION_TESTS == 'true' }}
+      if: env.RUN_INTEGRATION_TESTS == 'true'
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
 
-    - name: Run Tests
-      shell: bash # needed to run script on windows os
-      env:
-        IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
-      # Tests: unit tests, it, jacoco, spotbugs. If pr from fork or dependabot: no integration tests.
-      # If not ubuntu on jdk 17: unit tests only.
-      run: >
-        if ! [[ ${{ matrix.os }} == 'ubuntu-latest' && ${{ matrix.java }} == '17' ]]; then
-          mvn -B package -fae javadoc:jar
-        elif [[ "${IS_FORK}" = true || ${{ github.actor }} == 'dependabot[bot]' ]]; then
-          mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,spotbugs
-        else
-          mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs
-        fi
-
+    - name: Run Unit Tests Only
+      if: env.RUN_ANALYSIS == 'false'
+      run: mvn -B package -fae javadoc:jar
+      
+    - name: Run Unit Tests, Ananlysis, and Integration Tests
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.RUN_INTEGRATION_TESTS == 'true') }}
+      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs
+    
+    - name: Run Unit Tests, and Analysis without Integration Tests
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.RUN_INTEGRATION_TESTS == 'false') }}
+      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,spotbugs
+       
     - name: Cache Sonar Packages
       if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
       uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
@@ -141,7 +135,6 @@ jobs:
       run: >
         mvn -B sonar:sonar
         -pl '!sapl-bom'
-        -'Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'
         -Dsonar.organization=heutelbeck
         -Dsonar.host.url=https://sonarcloud.io
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
@@ -182,7 +175,7 @@ jobs:
       uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
 
     - name: Log in to the Container registry
-      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      if: env.UPLOAD_ASSETS == 'true'
       uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
       with:
         registry: ghcr.io
@@ -190,19 +183,19 @@ jobs:
         password: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
     - name: Get version
-      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      if: env.UPLOAD_ASSETS == 'true'
       id: get-version
       run: |
         VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
         echo "version=$VERSION" >> $GITHUB_OUTPUT        
         
     - name: Push Server LT Image to ghcr.io
-      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      if: env.UPLOAD_ASSETS == 'true'
       run: |
         docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
 
     - name: Push Eclipse Plugin to Website
-      if: ${{ (github.ref == 'refs/heads/master') && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      if: env.UPLOAD_ASSETS == 'true'
       uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
       env:
         GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
@@ -212,17 +205,6 @@ jobs:
         DEST_BRANCH: master
         DEST_FOLDER: sapl-eclipse-plugin
         DEST_PREDEPLOY_CLEANUP: "rm -rf sapl-eclipse-plugin/*"
-
-    - name: Delete Workflow Runs
-      # Not allowed for PRs from forks and from Dependabot. The GITHUB_TOKEN stays read-only
-      # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
-      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
-      uses: Mattraks/delete-workflow-runs@39f0bbed25d76b34de5594dceab824811479e5de # v2.0.6
-      with:
-        token: ${{ github.token }}
-        repository: ${{ github.repository }}
-        retain_days: 1
-        keep_minimum_runs: 6
 
     - name: Clean up Local Repository before Caching
       shell: bash # needed to run script on windows os
@@ -273,11 +255,7 @@ jobs:
               "id": "ossrh",
               "username": "${{ secrets.OSSRH_USERNAME }}",
               "password": "${{ secrets.OSSRH_PASSWORD }}"
-           },{
-              "id": "ghcr.io",
-              "username": "${{ secrets.GHUB_USERNAME }}",
-              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
-           },{
+           }, {
               "id": "github",
               "username": "${{ secrets.GHUB_USERNAME }}",
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
@@ -296,6 +274,14 @@ jobs:
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server/dispatches --data '{"event_type": "build_application"}'
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
+
+    - name: Delete Workflow Runs
+      uses: Mattraks/delete-workflow-runs@39f0bbed25d76b34de5594dceab824811479e5de # v2.0.6
+      with:
+        token: ${{ github.token }}
+        repository: ${{ github.repository }}
+        retain_days: 1
+        keep_minimum_runs: 6
 
     - name: Clean up Local Repository before Caching
       run: rm -rf ~/.m2/repository/io/sapl
