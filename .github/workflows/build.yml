@@ -242,5 +242,3 @@ jobs:
         retain_days: 1
         keep_minimum_runs: 6
 
-    - name: Clean up Local Repository before Caching
-      run: rm -rf ~/.m2/repository/io/sapl
