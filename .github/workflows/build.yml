@@ -166,7 +166,7 @@ jobs:
 
   deploy:
     if: ${{ github.ref == 'refs/heads/master' }}
-    needs: [build]
+    #needs: [build]
     name: Publish Project Assets
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -199,18 +199,7 @@ jobs:
       uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
       with:
         node-version: '20'
-
-    - name: Push Eclipse Plugin to Website
-      uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
-      env:
-        GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
-        SRC_FOLDER: sapl-eclipse-plugin/sapl-eclipse-repository/target/repository
-        DEST_OWNER: heutelbeck
-        DEST_REPO: sapl-pages
-        DEST_BRANCH: master
-        DEST_FOLDER: sapl-eclipse-plugin
-        DEST_PREDEPLOY_CLEANUP: "rm -rf sapl-eclipse-plugin/*"
-            
+ 
     - name: Configure Servers
       uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
       with:
@@ -232,7 +221,10 @@ jobs:
         gpg --list-secret-keys --keyid-format LONG
 
     - name: Deploy Maven Artifacts
-      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-eclipse-plugin/sapl-eclipse-feature,!sapl-eclipse-plugin/sapl-eclipse-repository,!sapl-eclipse-plugin/sapl-eclipse-target,!sapl-eclipse-plugin/sapl-eclipse-thirdparty,!sapl-eclipse-plugin/sapl-eclipse-ui -Ppublish -DskipTests install deploy
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!:sapl-eclipse-feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui -Ppublish -DskipTests install deploy
+
+    - name: Build All for Server and Eclipse Plugin
+      run: mvn -U -B install -am -DskipTests 
 
     - name: Build SAPL Server LT Image
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
@@ -254,7 +246,16 @@ jobs:
       run: |
         docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
 
-
+    - name: Push Eclipse Plugin to Website
+      uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
+      env:
+        GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
+        SRC_FOLDER: sapl-eclipse-plugin/sapl-eclipse-repository/target/repository
+        DEST_OWNER: heutelbeck
+        DEST_REPO: sapl-pages
+        DEST_BRANCH: master
+        DEST_FOLDER: sapl-eclipse-plugin
+        DEST_PREDEPLOY_CLEANUP: "rm -rf sapl-eclipse-plugin/*"
 
     - name: Trigger CI Build of Downstream Repositories
       run: |
