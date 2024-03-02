@@ -60,7 +60,7 @@ jobs:
     - name: Harden Runner
       # Currently not supported for windows and macos
       # (see: https://github.com/step-security/harden-runner/discussions/121).
-      if: ${{ matrix.os == 'ubuntu-latest' }}
+      if: matrix.os == 'ubuntu-latest'
       uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
       with:
         egress-policy: audit
@@ -76,6 +76,7 @@ jobs:
       # Once installed, if the workflow run is marked as required,
       # PRs introducing known-vulnerable packages will be blocked from merging.
     - name: 'Dependency Review'
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (github.event_name == 'pull_request') }}
       uses: actions/dependency-review-action@4901385134134e04cec5fbe5ddfe3b2c5bd5d976 # v4.0.0
 
     - name: Set up JDK ${{ matrix.java }}
