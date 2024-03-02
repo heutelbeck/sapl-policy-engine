@@ -66,7 +66,7 @@ jobs:
         egress-policy: audit
 
     - name: TEST FOR MAIN
-      if: env.IS_MAIN_BUILD
+      if: ${{ env.IS_MAIN_BUILD }}
       run: echo XXX->${{ env.ORG_SLF4J_SIMPLELOGGER_LOG_ORG_APACHE_MAVEN_CLI_TRANSFER_SLF4MAVENTRANSFERLISENER }}
     
     - name: TEST FOR MAIN2
