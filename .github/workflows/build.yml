@@ -66,7 +66,7 @@ jobs:
         egress-policy: audit
 
     - name: TEST FOR MAIN
-      if: ${{ env.IS_MAIN_BUILD == 'true' }}
+      if: ${env.IS_MAIN_BUILD}
       run: echo XXX->${{ env.ORG_SLF4J_SIMPLELOGGER_LOG_ORG_APACHE_MAVEN_CLI_TRANSFER_SLF4MAVENTRANSFERLISENER }}
     
     - name: TEST FOR MAIN2
@@ -96,15 +96,15 @@ jobs:
         node-version: '20'
 
     - name: Add auth-host to /etc/hosts for OAuth Integration Tests
-      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      if: ${{ env.IS_MAIN_BUILD == 'true' }}
       run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
 
     - name: Build Modules
-      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      if: ${{ env.IS_MAIN_BUILD == 'true' }}
       run: mvn -U -B install -DskipTests
 
     - name: Build SAPL Server LT Image
-      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      if: ${{ env.IS_MAIN_BUILD == 'true' }}
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
 
     - name: Run Tests
