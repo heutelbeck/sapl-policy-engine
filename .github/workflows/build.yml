@@ -98,19 +98,19 @@ jobs:
 
     - name: Build Modules
       if: env.RUN_ANALYSIS == 'true'
-      run: mvn -U -B install -DskipTests -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      run: mvn -U -B install -DskipTests
 
     - name: Build SAPL Server LT Image
       if: env.RUN_ANALYSIS == 'true'
-      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
 
     - name: Run Unit Tests Only
       if: env.RUN_ANALYSIS == 'false'
-      run: mvn -B package -fae javadoc:jar -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      run: mvn -B package -fae javadoc:jar
       
     - name: Run Unit Tests, Ananlysis, and Integration Tests
       if: env.RUN_ANALYSIS == 'true'
-      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs
         
     - name: Cache Sonar Packages
       if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
@@ -134,7 +134,6 @@ jobs:
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
         -Dsonar.qualitygate.wait=true
-        -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Save PR Number # needed for subsequent SonarCloud workflow for PRs from fork
       if: ${{ github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
@@ -225,7 +224,7 @@ jobs:
 
     - name: Deploy Maven Artifacts
       if: env.UPLOAD_ASSETS == 'true'
-      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-eclipse-plugin/sapl-eclipse-feature,!sapl-eclipse-plugin/sapl-eclipse-repository,!sapl-eclipse-plugin/sapl-eclipse-target,!sapl-eclipse-plugin/sapl-eclipse-thirdparty,!sapl-eclipse-plugin/sapl-eclipse-ui -Ppublish -DskipTests package deploy -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-eclipse-plugin/sapl-eclipse-feature,!sapl-eclipse-plugin/sapl-eclipse-repository,!sapl-eclipse-plugin/sapl-eclipse-target,!sapl-eclipse-plugin/sapl-eclipse-thirdparty,!sapl-eclipse-plugin/sapl-eclipse-ui -Ppublish -DskipTests package deploy
 
     - name: Trigger CI Build of Downstream Repositories
       if: env.UPLOAD_ASSETS == 'true'
