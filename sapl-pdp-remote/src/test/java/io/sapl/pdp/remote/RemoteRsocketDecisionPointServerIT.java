@@ -163,8 +163,7 @@ class RemoteRsocketDecisionPointServerIT {
     void whenRequestingDecisionFromRsocketPdp_withOauth2Auth_thenDecisionIsProvided() {
         try (var oauthBaseContainer = new GenericContainer<>(
                 DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:2.1.0"));
-                var oauth2Container = oauthBaseContainer.withExposedPorts(8080)
-                        .waitingFor(Wait.forListeningPort())) {
+                var oauth2Container = oauthBaseContainer.withExposedPorts(8080).waitingFor(Wait.forListeningPort())) {
             oauth2Container.start();
 
             try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));

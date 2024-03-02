@@ -69,7 +69,7 @@ class RemoteHttpDecisionPointServerIT {
     void whenRequestingDecisionFromHttpPdp_withNoAuth_thenDecisionIsProvided() {
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
         // @formatter:off
-                var container = baseContainer.withImagePullPolicy(PullPolicy.neverPull())                        
+                var container = baseContainer.withImagePullPolicy(PullPolicy.neverPull())
                         .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                         .withEnv("io_sapl_server-lt_allowNoAuth", "true")
                         .withEnv("spring_rsocket_server_ssl_enabled", "false")
