@@ -53,8 +53,6 @@ jobs:
     timeout-minutes: 45
     
     env:
-      # Cleanup maven log. Supresses package download messages but lets errors through.
-      ORG_SLF4J_SIMPLELOGGER_LOG_ORG_APACHE_MAVEN_CLI_TRANSFER_SLF4MAVENTRANSFERLISENER: WARN
       # Run Sonar and JaCoCo only for Ubuntu JDK 17. All other platforms, just do quick unit tests.
       RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }} 
       # Do not run interation tests if the PR is from a fork or dependabot
@@ -95,29 +93,25 @@ jobs:
         node-version: '20'
 
     - name: Add auth-host to /etc/hosts for OAuth Integration Tests
-      if: env.RUN_INTEGRATION_TESTS == 'true'
+      if: env.RUN_ANALYSIS == 'true'
       run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
 
     - name: Build Modules
-      if: env.RUN_INTEGRATION_TESTS == 'true'
-      run: mvn -U -B install -DskipTests
+      if: env.RUN_ANALYSIS == 'true'
+      run: mvn -U -B install -DskipTests -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Build SAPL Server LT Image
-      if: env.RUN_INTEGRATION_TESTS == 'true'
-      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
+      if: env.RUN_ANALYSIS == 'true'
+      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Run Unit Tests Only
       if: env.RUN_ANALYSIS == 'false'
-      run: mvn -B package -fae javadoc:jar
+      run: mvn -B package -fae javadoc:jar -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
       
     - name: Run Unit Tests, Ananlysis, and Integration Tests
-      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.RUN_INTEGRATION_TESTS == 'true') }}
-      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs
-    
-    - name: Run Unit Tests, and Analysis without Integration Tests
-      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.RUN_INTEGRATION_TESTS == 'false') }}
-      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,spotbugs
-       
+      if: env.RUN_ANALYSIS == 'true'
+      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+        
     - name: Cache Sonar Packages
       if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
       uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
@@ -140,6 +134,7 @@ jobs:
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
         -Dsonar.qualitygate.wait=true
+        -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Save PR Number # needed for subsequent SonarCloud workflow for PRs from fork
       if: ${{ github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
@@ -206,47 +201,8 @@ jobs:
         DEST_FOLDER: sapl-eclipse-plugin
         DEST_PREDEPLOY_CLEANUP: "rm -rf sapl-eclipse-plugin/*"
 
-    - name: Clean up Local Repository before Caching
-      shell: bash # needed to run script on windows os
-      run: rm -rf ~/.m2/repository/io/sapl
-
-  deploy:
-    if: ${{ github.ref == 'refs/heads/master' }}
-    needs: [build]
-    name: Deploy to Central
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    
-    steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
-      with:
-        egress-policy: audit
-
-    - name: Check out
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      with:
-        lfs: true
-        fetch-depth: 0
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
-      with:
-        distribution: 'temurin'
-        java-version: 17
-        cache: 'maven'
-
-    - name: Setup Maven
-      uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
-      with:
-        maven-version: 3.9.6
-
-    - name: Set up Node.js
-      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-      with:
-        node-version: '20'
-
     - name: Configure Servers
+      if: env.UPLOAD_ASSETS == 'true'
       uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
       with:
         githubServer: false
@@ -262,20 +218,24 @@ jobs:
            }]
 
     - name: Install GPG Code Signing Key
+      if: env.UPLOAD_ASSETS == 'true'
       run: |
         cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
         gpg --list-secret-keys --keyid-format LONG
 
     - name: Deploy Maven Artifacts
-      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-eclipse-plugin/sapl-eclipse-feature,!sapl-eclipse-plugin/sapl-eclipse-repository,!sapl-eclipse-plugin/sapl-eclipse-target,!sapl-eclipse-plugin/sapl-eclipse-thirdparty,!sapl-eclipse-plugin/sapl-eclipse-ui -Ppublish -DskipTests clean package deploy
+      if: env.UPLOAD_ASSETS == 'true'
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-eclipse-plugin/sapl-eclipse-feature,!sapl-eclipse-plugin/sapl-eclipse-repository,!sapl-eclipse-plugin/sapl-eclipse-target,!sapl-eclipse-plugin/sapl-eclipse-thirdparty,!sapl-eclipse-plugin/sapl-eclipse-ui -Ppublish -DskipTests package deploy -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Trigger CI Build of Downstream Repositories
+      if: env.UPLOAD_ASSETS == 'true'
       run: |
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server/dispatches --data '{"event_type": "build_application"}'
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
 
     - name: Delete Workflow Runs
+      if: env.UPLOAD_ASSETS == 'true'
       uses: Mattraks/delete-workflow-runs@39f0bbed25d76b34de5594dceab824811479e5de # v2.0.6
       with:
         token: ${{ github.token }}
