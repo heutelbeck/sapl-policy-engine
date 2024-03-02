@@ -92,9 +92,9 @@ jobs:
       if: env.RUN_ANALYSIS == 'true'
       run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
 
-    - name: Build Modules
+    - name: Build Dependencies of SAPL Server LT
       if: env.RUN_ANALYSIS == 'true'
-      run: mvn -U -B install -DskipTests
+      run: mvn -U -B install -pl sapl-server-lt -am -DskipTests 
 
     - name: Build SAPL Server LT Image
       if: env.RUN_ANALYSIS == 'true'
@@ -173,9 +173,6 @@ jobs:
     
     steps:
     - name: Harden Runner
-      # Currently not supported for windows and macos
-      # (see: https://github.com/step-security/harden-runner/discussions/121).
-      if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
       with:
         egress-policy: audit
@@ -203,12 +200,10 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Build Modules
-      if: env.RUN_ANALYSIS == 'true'
-      run: mvn -U -B install -DskipTests 
+    - name: Build Dependencies of SAPL Server LT
+      run: mvn -U -B install -pl sapl-server-lt -am -DskipTests 
 
     - name: Build SAPL Server LT Image
-      if: env.RUN_ANALYSIS == 'true'
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
 
     - name: Log in to the Container registry
