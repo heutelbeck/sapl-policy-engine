@@ -70,7 +70,7 @@ jobs:
       run: echo XXX->${{ env.ORG_SLF4J_SIMPLELOGGER_LOG_ORG_APACHE_MAVEN_CLI_TRANSFER_SLF4MAVENTRANSFERLISENER }}
     
     - name: TEST FOR MAIN2
-      run: echo YYY->${{ env.ORG_SLF4J_SIMPLELOGGER_LOG_ORG_APACHE_MAVEN_CLI_TRANSFER_SLF4MAVENTRANSFERLISENER }}
+      run: echo YYY->${{ env.IS_MAIN_BUILD }}
 
     - name: Check out
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
