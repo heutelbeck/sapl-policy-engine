@@ -168,8 +168,52 @@ jobs:
       if: ${{ (success() || failure()) && !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
       uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
 
+  deploy:
+    if: ${{ github.ref == 'refs/heads/master' }}
+    needs: [build]
+    name: Publish Project Assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    - name: Harden Runner
+      # Currently not supported for windows and macos
+      # (see: https://github.com/step-security/harden-runner/discussions/121).
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+      with:
+        egress-policy: audit
+
+    - name: Check out
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      with:
+        lfs: true
+        fetch-depth: 0
+
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+      with:
+        distribution: 'temurin'
+        java-version: ${{ matrix.java }}
+        cache: 'maven'
+
+    - name: Setup Maven
+      uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
+      with:
+        maven-version: 3.9.6
+
+    - name: Set up Node.js
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      with:
+        node-version: '20'
+
+    - name: Build Modules
+      if: env.RUN_ANALYSIS == 'true'
+      run: mvn -U -B install -DskipTests 
+
+    - name: Build SAPL Server LT Image
+      if: env.RUN_ANALYSIS == 'true'
+      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
+
     - name: Log in to the Container registry
-      if: env.UPLOAD_ASSETS == 'true'
       uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
       with:
         registry: ghcr.io
@@ -177,19 +221,16 @@ jobs:
         password: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
     - name: Get version
-      if: env.UPLOAD_ASSETS == 'true'
       id: get-version
       run: |
         VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
         echo "version=$VERSION" >> $GITHUB_OUTPUT        
         
     - name: Push Server LT Image to ghcr.io
-      if: env.UPLOAD_ASSETS == 'true'
       run: |
         docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
 
     - name: Push Eclipse Plugin to Website
-      if: env.UPLOAD_ASSETS == 'true'
       uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
       env:
         GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
@@ -199,9 +240,8 @@ jobs:
         DEST_BRANCH: master
         DEST_FOLDER: sapl-eclipse-plugin
         DEST_PREDEPLOY_CLEANUP: "rm -rf sapl-eclipse-plugin/*"
-
+            
     - name: Configure Servers
-      if: env.UPLOAD_ASSETS == 'true'
       uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
       with:
         githubServer: false
@@ -215,30 +255,25 @@ jobs:
               "username": "${{ secrets.GHUB_USERNAME }}",
               "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
            }]
-
+        
     - name: Install GPG Code Signing Key
-      if: env.UPLOAD_ASSETS == 'true'
       run: |
         cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
         gpg --list-secret-keys --keyid-format LONG
 
     - name: Deploy Maven Artifacts
-      if: env.UPLOAD_ASSETS == 'true'
       run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!sapl-eclipse-plugin/sapl-eclipse-feature,!sapl-eclipse-plugin/sapl-eclipse-repository,!sapl-eclipse-plugin/sapl-eclipse-target,!sapl-eclipse-plugin/sapl-eclipse-thirdparty,!sapl-eclipse-plugin/sapl-eclipse-ui -Ppublish -DskipTests package deploy
 
     - name: Trigger CI Build of Downstream Repositories
-      if: env.UPLOAD_ASSETS == 'true'
       run: |
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server/dispatches --data '{"event_type": "build_application"}'
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
 
     - name: Delete Workflow Runs
-      if: env.UPLOAD_ASSETS == 'true'
       uses: Mattraks/delete-workflow-runs@39f0bbed25d76b34de5594dceab824811479e5de # v2.0.6
       with:
         token: ${{ github.token }}
         repository: ${{ github.repository }}
         retain_days: 1
         keep_minimum_runs: 6
-
