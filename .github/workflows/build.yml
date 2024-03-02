@@ -40,6 +40,7 @@ permissions:
 
 jobs:
   build:
+    if: false
     strategy:
       matrix:
         java: [ '17', '21' ]
@@ -266,7 +267,7 @@ jobs:
     - name: Delete Workflow Runs
       uses: Mattraks/delete-workflow-runs@39f0bbed25d76b34de5594dceab824811479e5de # v2.0.6
       with:
-        token: ${{ github.token }}
+        token: ${{ secrets.GHUB_ACCESS_TOKEN }}
         repository: ${{ github.repository }}
         retain_days: 1
         keep_minimum_runs: 6
