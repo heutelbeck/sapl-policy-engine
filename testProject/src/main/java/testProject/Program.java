@@ -71,7 +71,8 @@ public class Program {
             	"dataBase":"nyc",
             	"table":"geometries",
             	"column":"geom",
-            	"responseFormat":"GML"
+            	"responseFormat":"GML",
+            	"where":"Name = 'Point'"
             }
             """;
         var node = Val.ofJson(pg).get();

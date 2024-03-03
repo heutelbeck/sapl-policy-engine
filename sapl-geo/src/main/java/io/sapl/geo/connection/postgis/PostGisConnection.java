@@ -19,7 +19,6 @@ package io.sapl.geo.connection.postgis;
 
 import java.time.Duration;
 
-
 import org.locationtech.jts.geom.Geometry;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,6 +47,7 @@ public class PostGisConnection extends ConnectionBase {
     private static final String DATABASE = "dataBase";
     private static final String TABLE    = "table";
     private static final String COLUMN   = "column";
+    private static final String WHERE    = "where";
 
     private ConnectionFactory connectionFactory;
     private ObjectMapper      mapper;
@@ -71,9 +71,8 @@ public class PostGisConnection extends ConnectionBase {
         try {
             var connection = getNew(getUser(settings), getPassword(settings), getServer(settings), getPort(settings),
                     getDataBase(settings), mapper);
-            return connection
-                    .connect(getResponseFormat(settings, mapper), getTable(settings), getColumn(settings), mapper)
-                    .map(Val::of).onErrorResume(e -> {
+            return connection.connect(getResponseFormat(settings, mapper), getTable(settings), getColumn(settings),
+                    getWhere(settings), mapper).map(Val::of).onErrorResume(e -> {
                         return Flux.just(Val.error(e));
                     });
 
@@ -83,17 +82,17 @@ public class PostGisConnection extends ConnectionBase {
 
     }
 
-    public Flux<ObjectNode> connect(GeoPipResponseFormat format, String table, String column, ObjectMapper mapper) {
+    public Flux<ObjectNode> connect(GeoPipResponseFormat format, String table, String column, String where,
+            ObjectMapper mapper) {
 
         String frmt = "ST_AsGeoJSON";
 
-        var str = "SELECT %s(%s) AS res FROM %s";         // WHERE %s";
-        var sql = String.format(str, frmt, column, table);
+        var str = "SELECT %s(%s) AS res FROM %s %s";
+        var sql = String.format(str, frmt, column, table, where);
 
         return Mono.from(connectionFactory.create()).flatMapMany(connection -> {
             return Flux.from(connection.createStatement(sql).execute())
-                    .flatMap(result -> result.map((row, rowMetadata) -> row.get("res", String.class)))
-                    .doOnNext(s -> {
+                    .flatMap(result -> result.map((row, rowMetadata) -> row.get("res", String.class))).doOnNext(s -> {
 
                         var json = convertResponse(s, format);
                         System.out.println("json: " + json.toString());
@@ -110,7 +109,7 @@ public class PostGisConnection extends ConnectionBase {
                         }
                     }).repeatWhen((Repeat.times(5 - 1).fixedBackoff(Duration.ofMillis(1000))));
         });
-   
+
     }
 
     private JsonNode convertResponse(String in, GeoPipResponseFormat format) {
@@ -187,6 +186,15 @@ public class PostGisConnection extends ConnectionBase {
         } else {
             throw new PolicyEvaluationException("No column-name found");
 
+        }
+
+    }
+
+    private static String getWhere(JsonNode requestSettings) {
+        if (requestSettings.has(WHERE)) {
+            return String.format("WHERE %s", requestSettings.findValue(WHERE).asText());
+        } else {
+            return "";
         }
 
     }
