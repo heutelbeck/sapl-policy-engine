@@ -106,7 +106,7 @@ If the property is set to `FILESYSTEM`, the system will monitor directories for 
 
 The configuration file for the embedded PDP of the SAPL Server LT must be named `pdp.json`. This file allows for the definition of the combining algorithm and variables in JSON format.
 
-The combining algorithm determines how the PDP determines the validity of multiple SAPL policies for a given subscription. The available options for the combining algorithm are: `DENY_UNLESS_PERMIT`, `PERMIT_UNLESS_DENY`, `ONLY_ONE_APPLICABLE`, `DENY_OVERRIDES`, and `PERMIT_OVERRIDES`. Refer to the [documentation](https://sapl.io/docs/latest/sapl-reference.html#combining-algorithm-2) for more information on the combining algorithm.
+The combining algorithm determines how the PDP determines the validity of multiple SAPL policies for a given subscription. The available options for the combining algorithm are: `DENY_UNLESS_PERMIT`, `PERMIT_UNLESS_DENY`, `ONLY_ONE_APPLICABLE`, `DENY_OVERRIDES`, and `PERMIT_OVERRIDES`. Refer to the [documentation](https://sapl.io/docs/latest/6_5_CombiningAlgorithm/) for more information on the combining algorithm.
 
 If the algorithm is not configured, the value `DENY_OVERRIDES` will be selected.
 
@@ -162,7 +162,7 @@ policy "myfirstpolicy"
 permit
 ```
 
-To learn more about writing SAPL policies, refer to the [documentation](https://sapl.io/docs/latest/sapl-reference.html#the-sapl-policy-language).
+To learn more about writing SAPL policies, refer to the [documentation](https://sapl.io/docs/latest/5_0_TheSAPLPolicyLanguage/).
 
 #### Policy Indexing
 
