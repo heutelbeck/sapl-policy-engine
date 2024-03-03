@@ -17,14 +17,10 @@
  */
 package io.sapl.geo.connection.postgis;
 
-import java.io.IOException;
 import java.time.Duration;
 
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.io.ParseException;
-import org.xml.sax.SAXException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,10 +36,8 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.shared.ConnectionBase;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.geofunctions.GeometryConverter;
-import io.sapl.geofunctions.GmlConverter;
 import io.sapl.geofunctions.JsonConverter;
-import io.sapl.geofunctions.KmlConverter;
-import io.sapl.geofunctions.WktConverter;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.retry.Repeat;
@@ -134,19 +128,16 @@ public class PostGisConnection extends ConnectionBase {
 
             case WKT:
                 geo = JsonConverter.geoJsonToGeometry(in);
-                // geo = WktConverter.wktToGeometry(Val.of(in));
                 res = GeometryConverter.geometryToWKT(geo).get();
                 break;
 
             case GML:
                 geo = JsonConverter.geoJsonToGeometry(in);
-//		            geo = GmlConverter.gmlToGeometry(Val.of(in));
                 res = GeometryConverter.geometryToGML(geo).get();
                 break;
 
             case KML:
                 geo = JsonConverter.geoJsonToGeometry(in);
-//		            geo = KmlConverter.kmlToGeometry(Val.of(in));
                 res = GeometryConverter.geometryToKML(geo).get();
                 break;
 
