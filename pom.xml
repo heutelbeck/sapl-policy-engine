@@ -403,6 +403,20 @@
 					<artifactId>maven-deploy-plugin</artifactId>
 					<version>3.1.1</version>
 				</plugin>
+				<!-- This plugin adds checksums during the verify lifecycle phase which is required for some modules so
+				that tycho is able to verify the checksums -->
+				<plugin>
+					<groupId>net.ju-n.maven.plugins</groupId>
+					<artifactId>checksum-maven-plugin</artifactId>
+					<version>1.2</version>
+					<executions>
+						<execution>
+							<goals>
+								<goal>artifacts</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>

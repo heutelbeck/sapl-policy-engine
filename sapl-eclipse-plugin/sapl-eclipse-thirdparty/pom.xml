@@ -97,6 +97,10 @@
 					</instructions>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>net.ju-n.maven.plugins</groupId>
+				<artifactId>checksum-maven-plugin</artifactId>
+			</plugin>
 		</plugins>
 
 		<pluginManagement>
