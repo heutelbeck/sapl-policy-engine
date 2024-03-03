@@ -63,6 +63,9 @@ All code contributions are expected to be reviewed and merged into the master br
 To create a pull request for your code, you need to use a fork (except you are a maintainer). \
 Look up [here][github-fork-guide] how to create a fork and [here][github-fork-pr-guide] to create a pull request.
 
+All commits in your code contribution need to be signed. You can find more information 
+on signing commits [here][github-signing-commits]
+
 **Apply the default provided template to your pull request!**
 
 Once all required pipelines execute, tests pass and the changes are approved, the pull request will be merged by a maintainer.
@@ -106,6 +109,7 @@ branches/lines of code.
 [eclipse-formatter-definition]: https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.user%2Freference%2Fpreferences%2Fjava%2Fcodestyle%2Fref-preferences-formatter.htm
 [github-fork-pr-guide]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork
 [github-fork-guide]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo
+[github-signing-commits]: https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits
 [sonarcloud]: https://sonarcloud.io/project/overview?id=heutelbeck_sapl-policy-engine
 [sonarlint]: https://www.sonarsource.com/products/sonarlint/
 [spotbugs]: https://github.com/spotbugs/spotbugs

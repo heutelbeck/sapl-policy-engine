@@ -20,6 +20,7 @@ Fill out and perform the following checklist before publishing the PR for review
 * [ ] My code follows the code style of this project.
 * [ ] I ran all checks which produced no new errors or warnings for my changes.
 * [ ] I have checked to ensure there aren't other open Pull Requests for the same update/change.
+* [ ] I have signed all my commits.
 
 <!-- 📛📛📛
 All pull requests go through pipelines and careful peer review to ensure the quality of the code, but this does not exempt developers from delivering good code. 
