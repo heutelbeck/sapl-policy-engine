@@ -20,7 +20,6 @@ Require-Bundle: sapl-lang,
  org.eclipse.compare,
  org.eclipse.xtext.builder
 Import-Package: org.apache.log4j
-Bundle-RequiredExecutionEnvironment: JavaSE-17
 Export-Package: io.sapl.grammar.ui.quickfix,
  io.sapl.grammar.ui.contentassist,
  sapl_eclipse_ui.internal
