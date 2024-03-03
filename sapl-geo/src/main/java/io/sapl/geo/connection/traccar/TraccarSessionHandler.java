@@ -21,7 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.PrecisionModel;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -66,7 +68,7 @@ public class TraccarSessionHandler {
 
         if (pos.has(DEVICEID)) {
 
-            GeometryFactory geometryFactory = new GeometryFactory();
+            GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
             var             position        = geometryFactory.createPoint(
                     new Coordinate(pos.findValue(LATITUDE).asDouble(), pos.findValue(LONGITUDE).asDouble()));
             JsonNode        posRes          = MAPPER.createObjectNode();
@@ -133,35 +135,25 @@ public class TraccarSessionHandler {
             fences = MAPPER.readTree(in.toString());
 
             for (JsonNode geoFence : fences) {
-                switch (format) {
+            	
+            	Geometry geo =  WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()),
+						new GeometryFactory(new PrecisionModel(), 4326));
+            	switch (format) {
 
                 case GEOJSON:
-                    fenceRes.add(mapFence(geoFence,
-                            MAPPER.convertValue(GeometryConverter
-                                    .geometryToGeoJsonNode(
-                                            WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText())))
-                                    .get(), JsonNode.class)));
+                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
                     break;
 
                 case WKT:
-                    fenceRes.add(
-                            mapFence(geoFence, MAPPER.convertValue(geoFence.findValue(AREA).asText(), JsonNode.class)));
+                    fenceRes.add( mapFence(geoFence,GeometryConverter.geometryToWKT(geo).get()));
                     break;
 
                 case GML:
-                    fenceRes.add(mapFence(geoFence,
-                            GeometryConverter
-                                    .geometryToGML(
-                                            WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText())))
-                                    .get()));
+                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
                     break;
 
                 case KML:
-                    fenceRes.add(mapFence(geoFence,
-                            GeometryConverter
-                                    .geometryToKML(
-                                            WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText())))
-                                    .get()));
+                    fenceRes.add(mapFence(geoFence,GeometryConverter.geometryToKML(geo).get()));
 
                 default:
 

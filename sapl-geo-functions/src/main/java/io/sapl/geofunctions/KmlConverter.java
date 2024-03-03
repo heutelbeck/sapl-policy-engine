@@ -18,6 +18,7 @@
 package io.sapl.geofunctions;
 
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.kml.KMLReader;
 
@@ -54,6 +55,11 @@ public class KmlConverter {
         }
     }
 
+    public static Geometry kmlToGeometry(Val kml, GeometryFactory factory) throws ParseException {
+
+        return (new KMLReader(factory)).read(kml.getText());
+    }
+    
     public static Geometry kmlToGeometry(Val kml) throws ParseException {
 
         return (new KMLReader()).read(kml.getText());

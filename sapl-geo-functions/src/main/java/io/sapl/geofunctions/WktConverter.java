@@ -18,6 +18,7 @@
 package io.sapl.geofunctions;
 
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 
@@ -54,8 +55,13 @@ public class WktConverter {
         }
     }
 
+    public static Geometry wktToGeometry(Val wkt, GeometryFactory factory) throws ParseException {
+    	
+        return (new WKTReader(factory)).read(wkt.getText());
+    }
+    
     public static Geometry wktToGeometry(Val wkt) throws ParseException {
-
+    	
         return (new WKTReader()).read(wkt.getText());
     }
 

@@ -18,6 +18,7 @@
 package io.sapl.geofunctions;
 
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 
@@ -57,6 +58,12 @@ public class JsonConverter {
         return geoJsonToGeometry(geoJson.getText());
     }
 
+    public static Geometry geoJsonToGeometry(String geoJson, GeometryFactory factory) throws ParseException {
+
+        return (new GeoJsonReader(factory)).read(geoJson);
+    }
+
+    
     public static Geometry geoJsonToGeometry(String geoJson) throws ParseException {
 
         return (new GeoJsonReader()).read(geoJson);
