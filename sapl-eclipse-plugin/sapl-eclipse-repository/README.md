@@ -1,6 +1,6 @@
 # SAPL Eclipse update site 
 
-This module contains an eclipse update site which can be used to install the sapl-eclipse-feature into Eclipse.
+This module contains an eclipse update site which can be used to install the io.sapl.eclipse.feature into Eclipse.
 
 The following steps can be used to test a locally built version of the plugin in the Eclipse IDE:
 - Build the project with `mvn clean install`.
