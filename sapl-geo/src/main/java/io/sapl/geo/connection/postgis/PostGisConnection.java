@@ -91,28 +91,7 @@ public class PostGisConnection extends ConnectionBase {
 
     public Flux<ObjectNode> connect(GeoPipResponseFormat format, String table, String column, ObjectMapper mapper) {
 
-        String frmt;
-        switch (format) {
-        case GEOJSON:
-            frmt = "ST_AsGeoJSON";
-            break;
-
-        case WKT:
-            frmt = "ST_AsText";
-            break;
-
-        case GML:
-            frmt = "ST_AsGml";
-            break;
-
-        case KML:
-            frmt = "ST_AsKML";
-            break;
-
-        default:
-            frmt = "ST_AsText";
-            break;
-        }
+        String frmt = "ST_AsGeoJSON";
 
         var str = "SELECT %s(%s) AS res FROM %s";         // WHERE %s";
         var sql = String.format(str, frmt, column, table);
@@ -120,13 +99,12 @@ public class PostGisConnection extends ConnectionBase {
         return Mono.from(connectionFactory.create()).flatMapMany(connection -> {
             return Flux.from(connection.createStatement(sql).execute())
                     .flatMap(result -> result.map((row, rowMetadata) -> row.get("res", String.class)))
-                    //.doOnNext(s -> System.out.println(s))
-                    .doOnNext(s ->{ 
-                    	
-                    	var json = convertResponse(s, format);
-                    	System.out.println("json: " + json.toString());
+                    .doOnNext(s -> {
+
+                        var json = convertResponse(s, format);
+                        System.out.println("json: " + json.toString());
                     })
-                    
+
                     .map(s -> {
                         try {
 
@@ -138,70 +116,47 @@ public class PostGisConnection extends ConnectionBase {
                         }
                     }).repeatWhen((Repeat.times(5 - 1).fixedBackoff(Duration.ofMillis(1000))));
         });
-
-        // return Flux.just(123).map(f -> mapper.convertValue(f, ObjectNode.class));
+   
     }
 
     private JsonNode convertResponse(String in, GeoPipResponseFormat format) {
 
         Geometry geo;
         JsonNode res = mapper.createObjectNode();
-        switch (format) {
-        case GEOJSON:
-            try {
+
+        try {
+            switch (format) {
+            case GEOJSON:
+
                 geo = JsonConverter.geoJsonToGeometry(in);
                 res = GeometryConverter.geometryToGeoJsonNode(geo).get();
-                var a = 1;
-            } catch (ParseException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            break;
+                break;
 
-        case WKT:
-            try {
-                geo = WktConverter.wktToGeometry(Val.of(in));
+            case WKT:
+                geo = JsonConverter.geoJsonToGeometry(in);
+                // geo = WktConverter.wktToGeometry(Val.of(in));
                 res = GeometryConverter.geometryToWKT(geo).get();
-                var a = 1;
-            } catch (ParseException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            break;
+                break;
 
-        case GML:
-            try {
-                geo = GmlConverter.gmlToGeometry(Val.of(in));
+            case GML:
+                geo = JsonConverter.geoJsonToGeometry(in);
+//		            geo = GmlConverter.gmlToGeometry(Val.of(in));
                 res = GeometryConverter.geometryToGML(geo).get();
-                var a = 1;
-            } catch (SAXException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } catch (ParserConfigurationException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            break;
+                break;
 
-        case KML:
-            try {
-                geo = KmlConverter.kmlToGeometry(Val.of(in));
+            case KML:
+                geo = JsonConverter.geoJsonToGeometry(in);
+//		            geo = KmlConverter.kmlToGeometry(Val.of(in));
                 res = GeometryConverter.geometryToKML(geo).get();
-                var a = 1;
-            } catch (ParseException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                break;
+
+            default:
+                break;
             }
-            break;
 
-        default:
-
-            break;
+        } catch (Exception e) {
+            throw new PolicyEvaluationException(e.getMessage());
         }
-
         return res;
     }
 

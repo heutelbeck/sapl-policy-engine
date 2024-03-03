@@ -71,7 +71,7 @@ public class Program {
             	"dataBase":"nyc",
             	"table":"geometries",
             	"column":"geom",
-            	"responseFormat":"KML"
+            	"responseFormat":"GML"
             }
             """;
         var node = Val.ofJson(pg).get();
