@@ -48,13 +48,15 @@ jobs:
     name: Build (JDK ${{ matrix.java }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     permissions:
-      actions: write # for Mattraks/delete-workflow-runs and to push SAPL Server LT image to repo
       checks:  write # for scacap/action-surefire-report to publish result as PR check
     timeout-minutes: 45
     
     env:
       # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 17. All other platforms, just do quick unit tests.
-      RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }} 
+      RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      # PRs from Dependabot are treated the same as those from forks since secrets are not accessible
+      # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
+      IS_FORK: ${{ github.event.pull_request.head.repo.fork || (github.actor == 'dependabot[bot]') }}
       
     steps:
     - name: Harden Runner
@@ -75,7 +77,7 @@ jobs:
       # surfacing known-vulnerable versions of the packages declared or updated in the PR.
       # Once installed, if the workflow run is marked as required,
       # PRs introducing known-vulnerable packages will be blocked from merging.
-    - name: 'Dependency Review'
+    - name: Dependency Review
       if: ${{ (env.RUN_ANALYSIS == 'true') && (github.event_name == 'pull_request') }}
       uses: actions/dependency-review-action@4901385134134e04cec5fbe5ddfe3b2c5bd5d976 # v4.0.0
 
@@ -112,12 +114,12 @@ jobs:
       if: env.RUN_ANALYSIS == 'false'
       run: mvn -B package -fae javadoc:jar
       
-    - name: Run Unit Tests, Ananlysis, and Integration Tests
+    - name: Run Unit Tests, Analysis, and Integration Tests
       if: env.RUN_ANALYSIS == 'true'
       run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs
         
     - name: Cache Sonar Packages
-      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
       uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
       with:
         path: ~/.sonar/cache
@@ -125,9 +127,7 @@ jobs:
         restore-keys: ${{ runner.os }}-sonar
 
     - name: Run SonarCloud Analysis
-      # Not allowed for PRs from forks and from Dependabot. Secrets are not accessible
-      # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
-      if: ${{ !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
       env:
         SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
       run: >
@@ -140,43 +140,41 @@ jobs:
         -Dsonar.qualitygate.wait=true
 
     - name: Save PR Number # needed for subsequent SonarCloud workflow for PRs from fork
-      if: ${{ github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
       run: echo "${{ github.event.number }}" > pr_data.txt
 
     - name: Upload Artifact # needed for subsequent SonarCloud workflow for PRs from fork
-      if: ${{ github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
       uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
       with:
         name: pr_build
         path: |
           **/src
-          !**/node_modules/**/src
           **/target/spotbugsXml.xml
           **/target/classes
           **/target/test-classes
           **/target/site/jacoco/jacoco.xml
           **/pom.xml
-          **/META-INF
-          **/*.target
-          **/category.xml
-          **/feature.xml
-          **/plugin.xml
           pom.xml
           pr_data.txt
           .git
         retention-days: 1
 
     - name: Publish Test Report
-      # Not allowed for PRs from forks and from Dependabot. The GITHUB_TOKEN stays read-only
-      # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
-      if: ${{ (success() || failure()) && !github.event.pull_request.head.repo.fork && (matrix.os == 'ubuntu-latest') && (matrix.java == '17') && (github.actor != 'dependabot[bot]') }}
+      if: ${{ (success() || failure()) && (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
       uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
+
+    - name: Clean up Local Repository before Caching
+      shell: bash # needed to run script on windows
+      run: rm -rf ~/.m2/repository/io/sapl
 
   deploy:
     if: ${{ github.ref == 'refs/heads/master' }}
     needs: [build]
     name: Publish Project Assets
     runs-on: ubuntu-latest
+    permissions:
+      actions: write # for Mattraks/delete-workflow-runs
     timeout-minutes: 35
     
     steps:
@@ -237,14 +235,14 @@ jobs:
     - name: Build SAPL Server LT Image
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
 
-    - name: Log in to the Container registry
+    - name: Log in to the Container Registry
       uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
-    - name: Get version
+    - name: Get Version
       id: get-version
       run: |
         VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
@@ -274,10 +272,13 @@ jobs:
     - name: Delete Workflow Runs
       uses: Mattraks/delete-workflow-runs@39f0bbed25d76b34de5594dceab824811479e5de # v2.0.6
       with:
-        token: ${{ secrets.GHUB_ACCESS_TOKEN }}
+        token: ${{ github.token }}
         repository: ${{ github.repository }}
         retain_days: 1
         keep_minimum_runs: 6
+
+    - name: Clean up Local Repository before Caching
+      run: rm -rf ~/.m2/repository/io/sapl
         
   openssfscorecard:
     if: ${{ github.ref == 'refs/heads/master' }}  
@@ -298,12 +299,12 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: "Checkout code"
+      - name: Checkout Code
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           persist-credentials: false
 
-      - name: "Run analysis"
+      - name: Run Analysis
         uses: ossf/scorecard-action@0864cf19026789058feabb7e87baa5f140aac736 # v2.3.1
         with:
           results_file: results.sarif
@@ -313,7 +314,6 @@ jobs:
           # - you are installing Scorecard on a *private* repository
           # To create the PAT, follow the steps in https://github.com/ossf/scorecard-action#authentication-with-pat.
           repo_token: ${{ secrets.SCORECARD_TOKEN }}
-
           # Public repositories:
           #   - Publish results to OpenSSF REST API for easy access by consumers
           #   - Allows the repository to include the Scorecard badge.
@@ -325,7 +325,7 @@ jobs:
 
       # Upload the results as artifacts (optional). Commenting out will disable uploads of run results in SARIF
       # format to the repository Actions tab.
-      - name: "Upload artifact"
+      - name: Upload Artifact
         uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         with:
           name: SARIF file
@@ -333,7 +333,7 @@ jobs:
           retention-days: 5
 
       # Upload the results to GitHub's code scanning dashboard.
-      - name: "Upload to code-scanning"
+      - name: Upload to Code-Scanning
         uses: github/codeql-action/upload-sarif@17573ee1cc1b9d061760f3a006fc4aac4f944fd5 # v2.2.4
         with:
           sarif_file: results.sarif
