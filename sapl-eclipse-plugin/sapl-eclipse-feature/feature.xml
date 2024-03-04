@@ -18,7 +18,7 @@
     limitations under the License.
 
 -->
-<feature id="sapl-eclipse-feature"
+<feature id="io.sapl.eclipse.feature"
 	label="SAPL"
 	version="3.0.0.qualifier">
 	<plugin

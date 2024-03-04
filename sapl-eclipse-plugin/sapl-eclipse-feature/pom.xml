@@ -27,7 +27,7 @@
 		<version>3.0.0-SNAPSHOT</version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
-	<artifactId>sapl-eclipse-feature</artifactId>
+	<artifactId>io.sapl.eclipse.feature</artifactId>
 	<name>SAPL Eclipse feature</name>
 	<packaging>eclipse-feature</packaging>
 

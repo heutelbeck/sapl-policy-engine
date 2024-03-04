@@ -38,7 +38,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-eclipse-feature</artifactId>
+			<artifactId>io.sapl.eclipse.feature</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 	</dependencies>
