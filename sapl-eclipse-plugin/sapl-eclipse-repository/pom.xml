@@ -38,7 +38,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-eclipse-feature</artifactId>
+			<artifactId>io.sapl.eclipse.feature</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 	</dependencies>
@@ -89,4 +89,25 @@
 			</plugins>
 		</pluginManagement>
 	</build>
+	<profiles>
+		<profile>
+			<id>publish</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.eclipse.tycho</groupId>
+						<artifactId>tycho-gpg-plugin</artifactId>
+						<version>${tycho.version}</version>
+						<executions>
+							<execution>
+								<goals>
+									<goal>sign-p2-artifacts</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

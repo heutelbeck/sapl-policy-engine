@@ -65,6 +65,7 @@ import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.prp.MatchingDocument;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -220,8 +221,17 @@ class CanonicalImmutableParsedDocumentIndexTests {
         assertNotNull(result);
         assertFalse(result.isErrorsInTarget());
         assertThat(result.getMatchingDocuments(), hasSize(3));
-        assertTrue(result.getMatchingDocuments().contains(doc1));
-        assertTrue(result.getMatchingDocuments().contains(doc2));
+        assertTrue(contains(result.getMatchingDocuments(), doc1));
+        assertTrue(contains(result.getMatchingDocuments(), doc2));
+    }
+
+    private boolean contains(Iterable<MatchingDocument> matches, SAPL doc) {
+        for (var md : matches) {
+            if (doc.equals(md.document())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Test
@@ -249,7 +259,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         assertNotNull(result);
         assertFalse(result.isErrorsInTarget());
         assertThat(result.getMatchingDocuments(), hasSize(1));
-        assertTrue(result.getMatchingDocuments().contains(document));
+        assertTrue(contains(result.getMatchingDocuments(), document));
     }
 
     @Test
@@ -280,7 +290,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         assertNotNull(result);
         assertFalse(result.isErrorsInTarget());
         assertThat(result.getMatchingDocuments(), hasSize(1));
-        assertTrue(result.getMatchingDocuments().contains(document));
+        assertTrue(contains(result.getMatchingDocuments(), document));
     }
 
     @Test
@@ -345,7 +355,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         assertNotNull(result);
         assertFalse(result.isErrorsInTarget());
         assertThat(result.getMatchingDocuments(), hasSize(1));
-        assertTrue(result.getMatchingDocuments().contains(document));
+        assertTrue(contains(result.getMatchingDocuments(), document));
     }
 
     @Test
@@ -375,7 +385,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         assertNotNull(result);
         assertFalse(result.isErrorsInTarget());
         assertThat(result.getMatchingDocuments(), hasSize(1));
-        assertTrue(result.getMatchingDocuments().contains(document));
+        assertTrue(contains(result.getMatchingDocuments(), document));
     }
 
     @Test

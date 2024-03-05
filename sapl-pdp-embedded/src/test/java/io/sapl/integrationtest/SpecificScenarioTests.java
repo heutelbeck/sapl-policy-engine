@@ -47,6 +47,7 @@ import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import io.sapl.pip.TimePolicyInformationPoint;
+import io.sapl.prp.MatchingDocument;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.SneakyThrows;
@@ -176,7 +177,8 @@ class SpecificScenarioTests {
             return Flux.fromIterable(parsedDocuments)
                     .flatMap(sapl -> Mono.just(sapl)
                             .filterWhen(s -> s.matches().map(match -> match.isBoolean() && match.getBoolean())))
-                    .collectList().map(matches -> new PolicyRetrievalResult(matches, false, true))
+                    .map(m -> new MatchingDocument(m.getPolicyElement().getSaplName(), m, Val.TRUE)).collectList()
+                    .map(matches -> new PolicyRetrievalResult(matches, false, true))
                     .onErrorResume(err -> Mono.just(new PolicyRetrievalResult(List.of(), true, false))).flux();
         }
 

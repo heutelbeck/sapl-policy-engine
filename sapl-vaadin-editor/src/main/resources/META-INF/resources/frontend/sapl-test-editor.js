@@ -166,10 +166,16 @@ class SAPLTestEditor extends LitElement {
     if(this.editor !== undefined) {
       if(option === 'readOnly') {
         if(value === true) {
-          this.editor.setOption("theme", 'readOnly');
+        	if(this._isDarkTheme === true) {
+          		this.editor.setOption("theme", 'dracularo');        
+        	} else {
+          		this.editor.setOption("theme", 'readOnly');
+          	}
+        } else if(this._isDarkTheme === true) {
+        	this.editor.setOption("theme", 'dracula');        
         } else {
-          this.editor.setOption("theme", 'default');
-        }
+        	this.editor.setOption("theme", 'default');
+        }        
       }
       this.editor.setOption(option, value);  
     }
