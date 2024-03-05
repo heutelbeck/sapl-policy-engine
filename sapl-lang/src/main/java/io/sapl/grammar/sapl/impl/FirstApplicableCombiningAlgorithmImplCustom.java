@@ -25,6 +25,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
+import io.sapl.prp.MatchingDocument;
 import reactor.core.publisher.Flux;
 
 /**
@@ -56,7 +57,7 @@ import reactor.core.publisher.Flux;
 public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicableCombiningAlgorithmImpl {
 
     @Override
-    public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
+    public Flux<CombinedDecision> combinePolicies(List<MatchingDocument> policies) {
         return combine(0, policies).apply(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, getName()));
     }
 
@@ -65,7 +66,7 @@ public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicable
         return "FIRST_APPLICABLE";
     }
 
-    private Function<CombinedDecision, Flux<CombinedDecision>> combine(int policyId, List<PolicyElement> policies) {
+    private Function<CombinedDecision, Flux<CombinedDecision>> combine(int policyId, List<MatchingDocument> policies) {
         if (policyId == policies.size())
             return Flux::just;
 

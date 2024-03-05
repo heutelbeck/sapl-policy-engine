@@ -30,9 +30,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.impl.util.CombiningAlgorithmUtil;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
+import io.sapl.interpreter.combinators.BasicCombiningAlgorithm;
 import io.sapl.interpreter.combinators.ObligationAdviceCollector;
 import reactor.core.publisher.Flux;
 
@@ -62,7 +62,7 @@ public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverrides
 
     @Override
     public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
+        return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
                 AuthorizationDecision.NOT_APPLICABLE);
     }
 

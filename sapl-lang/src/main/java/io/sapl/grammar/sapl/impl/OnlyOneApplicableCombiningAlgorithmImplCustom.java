@@ -23,9 +23,9 @@ import java.util.List;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.impl.util.CombiningAlgorithmUtil;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
+import io.sapl.interpreter.combinators.BasicCombiningAlgorithm;
 import reactor.core.publisher.Flux;
 
 /**
@@ -53,7 +53,7 @@ public class OnlyOneApplicableCombiningAlgorithmImplCustom extends OnlyOneApplic
 
     @Override
     public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
+        return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
                 AuthorizationDecision.NOT_APPLICABLE);
     }
 
