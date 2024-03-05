@@ -225,7 +225,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         assertTrue(contains(result.getMatchingDocuments(), doc2));
     }
 
-    private boolean contains(List<MatchingDocument> matches, SAPL doc) {
+    private boolean contains(Iterable<MatchingDocument> matches, SAPL doc) {
         for (var md : matches) {
             if (doc.equals(md.document())) {
                 return true;
