@@ -349,7 +349,7 @@ jobs:
       # SLSA provenance verification using slsa-verifier
       - name: Verify SLSA Provenance (slsa-verifier)
         run: |
-          slsa-verifier verify-artifact ./**/sapl-server-lt*.jar  --source-uri "github.com/$GITHUB_REPOSITORY" --provenance-path "./${{ needs.provenance.outputs.provenance-name}}/${{ needs.provenance.outputs.provenance-name}}"
+          slsa-verifier verify-artifact ./**/sapl-server-lt*.jar  --source-uri "github.com/$GITHUB_REPOSITORY" --provenance-path "./${{ needs.sapl-server-lt-provenance.outputs.provenance-name}}/${{ needs.sapl-server-lt-provenance.outputs.provenance-name}}"
 
 
   # Generate provenance for docker image
