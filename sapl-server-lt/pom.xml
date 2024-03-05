@@ -197,29 +197,20 @@
 					</archive>
 				</configuration>
 			</plugin>
+			<!-- Creates SBOM in SPDX format -->
+			<plugin>
+				<groupId>org.spdx</groupId>
+				<artifactId>spdx-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>build-spdx</id>
+						<phase>package</phase>
+						<goals>
+							<goal>createSPDX</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
-	<profiles>
-		<profile>
-			<id>publish</id>
-			<build>
-				<plugins>
-					<!-- Creates SBOM in SPDX format -->
-					<plugin>
-						<groupId>org.spdx</groupId>
-						<artifactId>spdx-maven-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>build-spdx</id>
-								<phase>package</phase>
-								<goals>
-									<goal>createSPDX</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-	</profiles>
 </project>

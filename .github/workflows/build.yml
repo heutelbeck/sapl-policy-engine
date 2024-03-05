@@ -178,6 +178,9 @@ jobs:
     needs: [build]
     name: Publish Project Assets
     runs-on: ubuntu-latest
+    outputs:
+      sapl-server-lt-hashes: ${{ steps.get-server-lt-hash.outputs.hashes }}
+      artifact-version: ${{ steps.get-version.outputs.VERSION }} 
     permissions:
       actions: write # for Mattraks/delete-workflow-runs
     timeout-minutes: 35
@@ -237,6 +240,14 @@ jobs:
     - name: Build All for Server and Eclipse Plugin
       run: mvn -U -B clean install -DskipTests 
 
+    - name: Get hashes of Server LT
+      id: get-server-lt-hash
+      run: |
+        # Save the location of the maven output files for easier reference
+        ARTIFACT_PATTERN=sapl-server-lt/target/sapl-server-lt-*.jar
+
+        echo "hashes=$(sha256sum $ ARTIFACT_PATTERN| base64 -w0)" >> "$GITHUB_OUTPUT"
+
     - name: Build SAPL Server LT Image
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
 
@@ -284,7 +295,109 @@ jobs:
 
     - name: Clean up Local Repository before Caching
       run: rm -rf ~/.m2/repository/io/sapl
+  
+    # Create provenance for the artifact
+  provenance:
+    needs: [ deploy ]
+    permissions:
+      actions: read # To read the workflow path
+      id-token: write # To sign the provenance
+      contents: write # To add assets to a release
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.9.0
+    with:
+      base64-subjects: ${{ needs.deploy.outputs.sapl-server-lt-hashes }}
+  
+    # Verify the provenance of artifact
+  provenance-verify:
+    needs: [ provenance ]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read # To read the workflow path
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        with:
+          egress-policy: audit
+
+      - uses: slsa-framework/slsa-verifier/actions/installer@7e1e47d7d793930ab0082c15c2b971fdb53a3c95  # v2.4.1
+
+      - name: Download the artifact
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+
+      # SLSA provenance verification using slsa-verifier
+      - name: Verify SLSA Provenance (slsa-verifier)
+        run: |
+          slsa-verifier verify-artifact ./**/sapl-server-lt*.jar  --source-uri "github.com/$GITHUB_REPOSITORY" --provenance-path "./${{ needs.provenance.outputs.provenance-name}}/${{ needs.provenance.outputs.provenance-name}}"
+
+  docker-sign:
+    needs: [ deploy ]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      packages: write
+    steps:
+
+      # Install the cosign tool except on PR
+      # https://github.com/sigstore/cosign-installer
+      - name: Harden Runner
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        with:
+          egress-policy: audit
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4 # v3.4.0
+        with:
+          cosign-release: 'v2.2.3'
+      
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      - name: Log into registry ghcr.io
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      # TUTORIAL: https://dev.to/n3wt0n/sign-your-container-images-with-cosign-github-actions-and-github-container-registry-3mni
+      # Write the private key to disk to be accessible by the cosign tool
+      # Can be generated with `cosign generate-key-pair`
+      - name: Write signing cosign key to disk
+        env:
+          # Generate private key of cosign certificate
+          KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}    
+        run: echo "${KEY}" > cosign.key
+
+
+      # Sign the resulting Docker image digest.
+      # This will only write to the public Rekor transparency log when the Docker
+      # repository is public to avoid leaking data.  If you would like to publish
+      # transparency data even for private images, pass --force to cosign below.
+      # https://github.com/sigstore/cosign
+      - name: Sign the published Docker image
+        # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          # The image name and digest are passed from the build job
+          TAGS: ghcr.io/heutelbeck/sapl-server-lt:${{ needs.deploy.outputs.artifact-version }}
+        # This step uses the identity token to provision an ephemeral certificate
+        # against the sigstore community Fulcio instance.
+        run: cosign sign --key cosign.key --yes ${TAGS}
+
+
+      # Write the private key to disk to be accessible by the cosign tool
+      # Can be generated with `cosign generate-key-pair`
+      - name: Write public cosign key to disk
+        env:
+          # Generate private key of cosign certificate
+          KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
+        run: echo "${KEY}" > cosign.pub
         
+
+      - name: Verify docker image signature
+        run: | 
+          cosign verify  ghcr.io/heutelbeck/sapl-server-lt:${{ needs.deploy.outputs.artifact-version }} \
+            --key cosign.pub
+
   openssfscorecard:
     if: ${{ github.ref == 'refs/heads/master' }}  
     name: OpenSSF Scorecard Analysis
