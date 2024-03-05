@@ -15,6 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * This package contains interfaces which can be implemented by a sapl user to
+ * intercept decisions and subscriptions in the pdp.
+ */
 @org.osgi.annotation.versioning.Version("3.0.0")
 @org.osgi.annotation.bundle.Export
 

@@ -82,23 +82,23 @@
 		<junit.version>5.10.2</junit.version>
 		<lombok.version>1.18.30</lombok.version>
 		<spotify.hamcrest.version>1.3.2</spotify.hamcrest.version>
-		<springboot.version>3.2.2</springboot.version>
-		<vaadin.version>24.3.3</vaadin.version>
+		<springboot.version>3.2.3</springboot.version>
+		<vaadin.version>24.3.5</vaadin.version>
 		<reactornetty.version>1.0.40</reactornetty.version>
 		<rsocket.version>1.1.4</rsocket.version>
 		<assertj.version>3.25.3</assertj.version>
 		<license-maven-plugin.version>4.2</license-maven-plugin.version>
-		<dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
 		<jacoco.version>0.8.11</jacoco.version>
 		<snakeyaml.version>2.2</snakeyaml.version>
 		<sonar.version>3.9.1.2184</sonar.version>
-		<sonar.host.url>https://sonar.ftk.de</sonar.host.url>
 		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
 		<spotbugs.version>4.7.3.6</spotbugs.version>
 		<sbcontrib.version>7.6.0</sbcontrib.version>
 		<failsafe.version>3.2.5</failsafe.version>
 		<surefire.version>3.2.5</surefire.version>
+		<tycho.version>4.0.6</tycho.version>
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
+		<maven.deploy.skip>true</maven.deploy.skip>
 		<argLine />
 	</properties>
 
@@ -106,6 +106,7 @@
 		<module>sapl-pdp-api</module>
 		<module>sapl-extensions-api</module>
 		<module>sapl-hamcrest</module>
+		<module>sapl-assertj</module>
 		<module>sapl-generator</module>
 		<module>sapl-lang</module>
 		<module>sapl-ide</module>
@@ -132,8 +133,13 @@
 		<module>sapl-vaadin-theme</module>
 		<module>sapl-vaadin-editor</module>
 		<module>sapl-spring-data-r2dbc</module>
-		<module>sapl-spring-data-mongo-reactive</module>		
+		<module>sapl-spring-data-mongo-reactive</module>
 		<module>sapl-spring-data-common</module>
+		<module>sapl-eclipse-plugin/sapl-eclipse-ui</module>
+		<module>sapl-eclipse-plugin/sapl-eclipse-target</module>
+		<module>sapl-eclipse-plugin/sapl-eclipse-thirdparty</module>
+		<module>sapl-eclipse-plugin/sapl-eclipse-feature</module>
+		<module>sapl-eclipse-plugin/sapl-eclipse-repository</module>
 	</modules>
 	<dependencyManagement>
 		<dependencies>
@@ -353,11 +359,6 @@
 					<version>${license-maven-plugin.version}</version>
 				</plugin>
 				<plugin>
-					<groupId>com.spotify</groupId>
-					<artifactId>dockerfile-maven-plugin</artifactId>
-					<version>${dockerfile-maven-plugin.version}</version>
-				</plugin>
-				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-javadoc-plugin</artifactId>
 					<version>3.6.3</version>
@@ -371,6 +372,7 @@
 					</executions>
 					<configuration>
 						<verbose>false</verbose>
+						<failOnWarnings>true</failOnWarnings>
 						<doclint>none</doclint>
 						<tags>
 							<tag>
@@ -395,6 +397,26 @@
 							</tag>
 						</tags>
 					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-deploy-plugin</artifactId>
+					<version>3.1.1</version>
+				</plugin>
+				<!-- This plugin adds checksums during the verify lifecycle phase which is required for some modules so
+				that tycho is able to verify the checksums -->
+				<plugin>
+					<groupId>net.ju-n.maven.plugins</groupId>
+					<artifactId>checksum-maven-plugin</artifactId>
+					<version>1.2</version>
+					<executions>
+						<execution>
+							<goals>
+								<goal>artifacts</goal>
+							</goals>
+							<phase>package</phase>
+						</execution>
+					</executions>
 				</plugin>
 			</plugins>
 		</pluginManagement>
@@ -427,18 +449,19 @@
 								<exclude>**/*.xtendbin</exclude>
 								<exclude>**/*._trace</exclude>
 								<exclude>**/README</exclude>
-								<exclude>.clusterfuzzlite/**</exclude>
-								<exclude>node_modules/**</exclude>
-								<exclude>frontend/**</exclude>
-								<exclude>src/test/resources/**</exclude>
-								<exclude>src/test/xtend-gen/**</exclude>
-								<exclude>src/test/xtext-gen/**</exclude>
-								<exclude>src/main/xtend-gen/**</exclude>
-								<exclude>src/main/xtext-gen/**</exclude>
-								<exclude>src/main/emf-gen/**</exclude>
+								<exclude>**/.clusterfuzzlite/**</exclude>
+								<exclude>**/node_modules/**</exclude>
+								<exclude>**/frontend/**</exclude>
+								<exclude>**/src/test/resources/**</exclude>
+								<exclude>**/src/test/xtend-gen/**</exclude>
+								<exclude>**/src/test/xtext-gen/**</exclude>
+								<exclude>**/src/main/xtend-gen/**</exclude>
+								<exclude>**/src/main/xtext-gen/**</exclude>
+								<exclude>**/src/main/emf-gen/**</exclude>
 								<exclude>src/main/resources/**</exclude>
 								<exclude>.gitattributes</exclude>
 								<exclude>.npmrc</exclude>
+								<exclude>.tycho-consumer-pom.xml</exclude>
 								<exclude>
 									src/main/java/io/sapl/grammar/web/SAPLWebSetup.java</exclude>
 								<exclude>
@@ -468,6 +491,7 @@
 						<genmodel>XML_STYLE</genmodel>
 						<xtext>SLASHSTAR_STYLE</xtext>
 						<config>SCRIPT_STYLE</config>
+						<target>XML_STYLE</target>
 					</mapping>
 				</configuration>
 				<executions>
@@ -482,6 +506,61 @@
 				<groupId>org.sonarsource.scanner.maven</groupId>
 				<artifactId>sonar-maven-plugin</artifactId>
 				<version>${sonar.version}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-maven-plugin</artifactId>
+				<version>${tycho.version}</version>
+				<extensions>true</extensions>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>target-platform-configuration</artifactId>
+				<version>${tycho.version}</version>
+				<configuration>
+					<target>
+						<artifact>
+							<groupId>io.sapl</groupId>
+							<artifactId>sapl-eclipse-target</artifactId>
+							<version>${project.version}</version>
+						</artifact>
+					</target>
+					<environments>
+						<environment>
+							<os>macosx</os>
+							<ws>cocoa</ws>
+							<arch>x86_64</arch>
+						</environment>
+						<environment>
+							<os>win32</os>
+							<ws>win32</ws>
+							<arch>x86_64</arch>
+						</environment>
+						<environment>
+							<os>linux</os>
+							<ws>gtk</ws>
+							<arch>x86_64</arch>
+						</environment>
+					</environments>
+					<dependency-resolution>
+						<extraRequirements>
+							<requirement>
+								<type>eclipse-plugin</type>
+								<id>org.eclipse.xtext.logging</id>
+								<versionRange>1.2.24</versionRange>
+							</requirement>
+							<!-- to get the org.eclipse.osgi.compatibility.state
+							plugin if the target
+								platform is Luna or later. (backward compatible with kepler and previous
+								versions) see https://bugs.eclipse.org/bugs/show_bug.cgi?id=492149 -->
+							<requirement>
+								<type>eclipse-feature</type>
+								<id>org.eclipse.rcp</id>
+								<versionRange>0.0.0</versionRange>
+							</requirement>
+						</extraRequirements>
+					</dependency-resolution>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
@@ -541,31 +620,6 @@
 			<id>publish</id>
 			<build>
 				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-javadoc-plugin</artifactId>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-deploy-plugin</artifactId>
-						<version>3.1.1</version>
-						<configuration>
-							<skip>true</skip>
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-source-plugin</artifactId>
-						<version>3.2.1</version>
-						<executions>
-							<execution>
-								<id>attach-sources</id>
-								<goals>
-									<goal>jar</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
 					<plugin>
 						<groupId>org.sonatype.plugins</groupId>
 						<artifactId>nexus-staging-maven-plugin</artifactId>
@@ -643,7 +697,7 @@
 							<includeTests>true</includeTests>
 							<addSourceDirs>true</addSourceDirs>
 							<plugins>
-								 <plugin>
+								<plugin>
 									<groupId>com.mebigfatguy.sb-contrib</groupId>
 									<artifactId>sb-contrib</artifactId>
 									<version>${sbcontrib.version}</version>

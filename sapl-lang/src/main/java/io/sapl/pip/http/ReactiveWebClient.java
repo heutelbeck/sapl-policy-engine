@@ -77,11 +77,13 @@ public class ReactiveWebClient {
 
     /**
      * <p>
-     * Connects to an HTTP service and produces a Flux<Val>
+     * Connects to an HTTP service and produces a Flux&lt;Val&gt;
      * </p>
      *
-     * @param the @see HttpMethod to execute and a @see Val containing the settings
-     * @return a @see Flux<@see Val>
+     * @param method          the @see HttpMethod to execute and a @see Val
+     *                        containing the settings
+     * @param requestSettings contains the HTTP parameters for the request.
+     * @return a @see Flux&lt;@see Val&gt;
      */
     public Flux<Val> httpRequest(HttpMethod method, Val requestSettings) {
         var baseUrl            = baseUrl(requestSettings);

@@ -2,5 +2,3 @@ io.sapl:
   pdp.embedded:
     config-path: /pdp/data
     policies-path: /pdp/data
-spring:
-  config.location: file:/pdp/data

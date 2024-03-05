@@ -720,12 +720,12 @@ public class Val implements Traced {
             return 0;
 
         if (json.isArray())
-            return hashCodeOfArrayNode((ArrayNode) json);
+            return hashCodeOfArrayNode(json);
 
         return hashCodeOfObjectNode((ObjectNode) json);
     }
 
-    private static int hashCodeOfArrayNode(ArrayNode arrayNode) {
+    private static int hashCodeOfArrayNode(Iterable<JsonNode> arrayNode) {
         int hash = 1;
 
         for (JsonNode element : arrayNode)

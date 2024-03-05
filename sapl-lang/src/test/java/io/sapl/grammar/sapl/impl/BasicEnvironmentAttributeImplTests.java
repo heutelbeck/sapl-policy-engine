@@ -43,12 +43,12 @@ class BasicEnvironmentAttributeImplTests {
     private static final SaplFactory FACTORY                   = SaplFactoryImpl.eINSTANCE;
     private static final String      ATTRIBUTE                 = "attribute";
     private static final String      FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
+    private static final String[]    ZERO_TO_FIVE              = new String[] { "0", "1", "2", "3", "4", "5" };
 
     @Test
     void evaluateBasicAttributeFlux() {
         var expression = "<test.numbers>";
-        var expected   = new String[] { "0", "1", "2", "3", "4", "5" };
-        assertExpressionEvaluatesTo(expression, expected);
+        assertExpressionEvaluatesTo(expression, ZERO_TO_FIVE);
     }
 
     @Test

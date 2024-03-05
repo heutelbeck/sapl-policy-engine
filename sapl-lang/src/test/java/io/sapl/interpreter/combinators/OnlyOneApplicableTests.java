@@ -38,6 +38,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -138,7 +139,8 @@ class OnlyOneApplicableTests {
         if (errorsInTarget)
             result = result.withError();
         for (var policy : policies) {
-            result = result.withMatch(INTERPRETER.parse(policy));
+            var sapl = INTERPRETER.parse(policy);
+            result = result.withMatch(sapl.getPolicyElement().getSaplName(), sapl, Val.TRUE);
         }
         return result;
     }

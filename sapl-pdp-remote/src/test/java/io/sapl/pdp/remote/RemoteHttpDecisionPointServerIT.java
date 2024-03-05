@@ -74,11 +74,13 @@ class RemoteHttpDecisionPointServerIT {
                         .withEnv("io_sapl_server-lt_allowNoAuth", "true")
                         .withEnv("spring_rsocket_server_ssl_enabled", "false")
                         .withEnv("server_ssl_enabled", "false")
+                        .withEnv("io_sapl_pdp_embedded_print-trace","true")
+                        .withEnv("io_sapl_pdp_embedded_print-text-report","true")
                         .withExposedPorts(SAPL_SERVER_PORT)
-                        .waitingFor(Wait.forListeningPort())) {
+                        .waitingFor(Wait.forLogMessage(".*Started SAPLServerLTApplication.*\\n", 1))) {
         // @formatter:on
             container.start();
-            log.info("connecting to: " + "http://" + container.getHost() + ":"
+            log.debug("connecting to: " + "http://" + container.getHost() + ":"
                     + container.getMappedPort(SAPL_SERVER_PORT));
             var pdp = RemotePolicyDecisionPoint.builder().http()
                     .baseUrl("http://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT)).build();
@@ -105,7 +107,8 @@ class RemoteHttpDecisionPointServerIT {
         return baseContainer.withImagePullPolicy(PullPolicy.neverPull())
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                 .withClasspathResourceMapping("keystore.p12", "/pdp/data/keystore.p12", BindMode.READ_ONLY)
-                .withExposedPorts(SAPL_SERVER_PORT).waitingFor(Wait.forListeningPort())
+                .withExposedPorts(SAPL_SERVER_PORT)
+                .waitingFor(Wait.forLogMessage(".*Started SAPLServerLTApplication.*\\n", 1))
                 .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data")
                 .withEnv("spring_rsocket_server_address", "0.0.0.0")
                 .withEnv("spring_rsocket_server_ssl_key-store-type", "PKCS12")

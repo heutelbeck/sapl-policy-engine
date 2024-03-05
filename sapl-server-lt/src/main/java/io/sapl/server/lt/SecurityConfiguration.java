@@ -67,7 +67,7 @@ public class SecurityConfiguration {
 
     private final SAPLServerLTProperties pdpProperties;
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}")
+    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:#{null}}")
     private String jwtIssuerURI;
 
     @Bean

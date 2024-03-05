@@ -114,7 +114,7 @@ class IntegrationTests {
         assertThat(result.getMatchingDocuments().size(), is(1));
         assertThat(result.isErrorsInTarget(), is(false));
 
-        assertThat(result.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy read"));
+        assertThat(result.getMatchingDocuments().get(0).document().getPolicyElement().getSaplName(), is("policy read"));
 
         var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
@@ -126,7 +126,8 @@ class IntegrationTests {
         assertThat(result.isErrorsInTarget(), is(false));
         assertThat(result.isPrpValidState(), is(true));
 
-        assertThat(result.getMatchingDocuments().get(0).getPolicyElement().getSaplName(), is("policy eat icecream"));
+        assertThat(result.getMatchingDocuments().get(0).document().getPolicyElement().getSaplName(),
+                is("policy eat icecream"));
     }
 
     @Test

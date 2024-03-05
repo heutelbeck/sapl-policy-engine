@@ -139,7 +139,6 @@
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-rsocket-endpoint</artifactId>
-			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.security</groupId>
@@ -167,7 +166,6 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<executions>
-					<!-- create fat JAR, required as boot starter is not parent -->
 					<execution>
 						<goals>
 							<goal>repackage</goal>
@@ -175,10 +173,6 @@
 					</execution>
 				</executions>
 				<configuration>
-					<image>
-						<name>
-							${docker-registry-url}/${project.artifactId}:${project.version}</name>
-					</image>
 					<layout>ZIP</layout>
 					<layers>
 						<enabled>true</enabled>
@@ -193,6 +187,29 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+					<image>
+						<builder>paketobuildpacks/builder-jammy-tiny</builder>
+						<name>${docker-registry-url}/${project.artifactId}:${project.version}</name>
+						<createdDate>now</createdDate>
+						<tags>
+							<tag>${docker-registry-url}/${project.artifactId}:${project.version}</tag>
+						</tags>
+						<buildCache>
+							<volume>
+								<name>cache-${project.artifactId}.build</name>
+							</volume>
+						</buildCache>
+						<launchCache>
+							<volume>
+								<name>cache-${project.artifactId}.launch</name>
+							</volume>
+						</launchCache>
+						<applicationDirectory>/pdp</applicationDirectory>
+						<env>
+							<BPE_SPRING_PROFILES_ACTIVE>docker</BPE_SPRING_PROFILES_ACTIVE>
+							<BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>file:/pdp/data/</BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>
+						</env>
+					</image>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -210,44 +227,4 @@
 			</plugin>
 		</plugins>
 	</build>
-	<profiles>
-		<profile>
-			<id>docker</id>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.springframework.boot</groupId>
-						<artifactId>spring-boot-maven-plugin</artifactId>
-						<configuration>
-							<image>
-								<publish>true</publish>
-							</image>
-						</configuration>
-					</plugin>
-					<plugin>
-						<groupId>com.spotify</groupId>
-						<artifactId>dockerfile-maven-plugin</artifactId>
-						<executions>
-							<execution>
-								<id>default</id>
-								<goals>
-									<goal>build</goal>
-									<goal>push</goal>
-								</goals>
-							</execution>
-						</executions>
-						<configuration>
-							<repository>
-								${docker-registry-url}/${project.artifactId}</repository>
-							<tag>${project.version}</tag>
-							<useMavenSettingsForAuth>true</useMavenSettingsForAuth>
-							<buildArgs>
-								<JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
-							</buildArgs>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-	</profiles>
 </project>

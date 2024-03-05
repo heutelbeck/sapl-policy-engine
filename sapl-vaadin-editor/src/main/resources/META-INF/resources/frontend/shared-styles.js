@@ -621,4 +621,35 @@ export const DarkStyle = css`
 .cm-s-dracula .CodeMirror-activeline-background { background: rgba(255,255,255,0.1); }
 .cm-s-dracula .CodeMirror-matchingbracket { text-decoration: underline; color: white !important; }
 .cm-s-dracula .annotations-gutter { background: #282a36; }
+
+.cm-s-dracularo.CodeMirror, .cm-s-dracularo .CodeMirror-gutters {
+  background-color: #2c2d35 !important;
+  color: #e0e0de !important;
+  border: none;
+}
+.cm-s-dracularo .CodeMirror-gutters { color: #2d2e36; }
+.cm-s-dracularo .CodeMirror-cursor { border-left: solid thin #f8f8f0; }
+.cm-s-dracularo .CodeMirror-linenumber { color: #6D8A88; }
+.cm-s-dracularo .CodeMirror-selected { background: rgba(255, 255, 255, 0.10); }
+.cm-s-dracularo .CodeMirror-line::selection, .cm-s-dracularo .CodeMirror-line > span::selection, .cm-s-dracularo .CodeMirror-line > span > span::selection { background: rgba(255, 255, 255, 0.10); }
+.cm-s-dracularo .CodeMirror-line::-moz-selection, .cm-s-dracularo .CodeMirror-line > span::-moz-selection, .cm-s-dracularo .CodeMirror-line > span > span::-moz-selection { background: rgba(255, 255, 255, 0.10); }
+.cm-s-dracularo span.cm-comment { color: #727ea3; }
+.cm-s-dracularo span.cm-string, .cm-s-dracularo span.cm-string-2 { color: #f3faa5; }
+.cm-s-dracularo span.cm-number { color: #cdacfa; }
+.cm-s-dracularo span.cm-variable { color: #69fa8d; }
+.cm-s-dracularo span.cm-variable-2 { color: #dedede; }
+.cm-s-dracularo span.cm-def { color: #69fa8d; }
+.cm-s-dracularo span.cm-operator { color: #ff91cf; }
+.cm-s-dracularo span.cm-keyword { color: #ff91cf; }
+.cm-s-dracularo span.cm-atom { color: #cdacfa; }
+.cm-s-dracularo span.cm-meta { color: #d6d6d2; }
+.cm-s-dracularo span.cm-tag { color: #ff8fce; }
+.cm-s-dracularo span.cm-attribute { color: #6bfa8f; }
+.cm-s-dracularo span.cm-qualifier { color: #6bfa8f; }
+.cm-s-dracularo span.cm-property { color: #7fddf0; }
+.cm-s-dracularo span.cm-builtin { color: #6bfa8f; }
+.cm-s-dracularo span.cm-variable-3, .cm-s-dracularo span.cm-type { color: #ffc485; }
+.cm-s-dracularo .CodeMirror-activeline-background { background: rgba(255,255,255,0.1); }
+.cm-s-dracularo .CodeMirror-matchingbracket { text-decoration: underline; color: white !important; }
+.cm-s-dracularo .annotations-gutter { background: #2c2d35; }
 `

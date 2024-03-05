@@ -23,17 +23,16 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.utils.DocumentHelper;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Slf4j
 public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
     private final Map<String, SAPL> documents;
@@ -69,23 +68,11 @@ public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
                     return retrievalResult.withError();
                 }
                 if (match.getBoolean()) {
-                    return retrievalResult.withMatch(document);
+                    return retrievalResult.withMatch(document.getPolicyElement().getSaplName(), document, Val.TRUE);
                 }
                 return retrievalResult;
             }));
         }
-
-        return Flux.from(retrieval).doOnNext(this::logMatching);
-    }
-
-    private void logMatching(PolicyRetrievalResult result) {
-        if (result.getMatchingDocuments().isEmpty()) {
-            log.trace("|-- Matching documents: NONE");
-        } else {
-            log.trace("|-- Matching documents:");
-            for (SAPL doc : result.getMatchingDocuments())
-                log.trace("| |-- * {} ", doc);
-        }
-        log.trace("|");
+        return Flux.from(retrieval);
     }
 }

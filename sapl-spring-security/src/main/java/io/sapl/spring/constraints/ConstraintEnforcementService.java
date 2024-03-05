@@ -740,8 +740,7 @@ public class ConstraintEnforcementService {
      * @throws JsonProcessingException  on JSON marshaling error
      * @throws IllegalArgumentException on JSON marshaling error
      */
-    public <T> T unmarshallResource(JsonNode resource, Class<T> clazz)
-            throws JsonProcessingException, IllegalArgumentException {
+    public <T> T unmarshallResource(JsonNode resource, Class<T> clazz) throws JsonProcessingException {
         return mapper.treeToValue(resource, clazz);
     }
 

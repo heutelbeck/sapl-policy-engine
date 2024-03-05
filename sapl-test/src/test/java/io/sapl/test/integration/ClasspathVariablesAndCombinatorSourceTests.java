@@ -63,9 +63,8 @@ class ClasspathVariablesAndCombinatorSourceTests {
         var mapper = Mockito.mock(ObjectMapper.class);
         Mockito.when(mapper.readValue((File) Mockito.any(), Mockito.<Class<PolicyDecisionPointConfiguration>>any()))
                 .thenThrow(new IOException());
-        assertThatExceptionOfType(RuntimeException.class)
-                .isThrownBy(() -> new ClasspathVariablesAndCombinatorSource("policiesIT", mapper, null, null))
-                .withCauseInstanceOf(IOException.class);
+        assertThatExceptionOfType(IOException.class)
+                .isThrownBy(() -> new ClasspathVariablesAndCombinatorSource("policiesIT", mapper, null, null));
     }
 
 }

@@ -15,6 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * This package contains annotations and interfaces which a sapl user can use to
+ * provide functions which can be used in sapl policies.
+ */
 @org.osgi.annotation.versioning.Version("3.0.0")
 @org.osgi.annotation.bundle.Export
 
