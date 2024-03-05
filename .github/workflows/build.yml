@@ -180,7 +180,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       sapl-server-lt-hashes: ${{ steps.get-server-lt-hash.outputs.hashes }}
-      artifact-version: ${{ steps.get-version.outputs.VERSION }} 
+      artifact-version: ${{ steps.get-version.outputs.VERSION }}
+      sapl-server-lt-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }} 
     permissions:
       actions: write # for Mattraks/delete-workflow-runs
     timeout-minutes: 35
@@ -235,22 +236,31 @@ jobs:
         gpg --list-secret-keys --keyid-format LONG
 
     - name: Deploy Maven Artifacts
-      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !sapl-server-lt,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui -Ppublish -DskipTests clean install deploy
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui -Ppublish -DskipTests clean install deploy
 
     - name: Build All for Server and Eclipse Plugin
       run: mvn -U -B clean install -DskipTests 
 
+    - name: Build SAPL Server LT Image
+      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
+
     - name: Get hashes of Server LT
       id: get-server-lt-hash
+      env:
+        # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+        REGISTRY: ghcr.io
+        IMAGE: heutelbeck/sapl-server-lt
       run: |
         # Save the location of the maven output files for easier reference
         ARTIFACT_PATTERN=sapl-server-lt/target/sapl-server-lt-*.jar
 
-        echo "hashes=$(sha256sum $ ARTIFACT_PATTERN| base64 -w0)" >> "$GITHUB_OUTPUT"
+        echo "hashes=$(sha256sum $ARTIFACT_PATTERN | base64 -w0)" >> "$GITHUB_OUTPUT"
 
-    - name: Build SAPL Server LT Image
-      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
-
+        # Save the digest of the Docker image for later use
+        IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{.RepoDigests}}' | sed -e 's/^.*@//' -e 's/]$//')
+        echo "Digest of container" + $IMAGE_DIGEST
+        echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
+    
     - name: Log in to the Container Registry
       uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
       with:
@@ -279,6 +289,18 @@ jobs:
         DEST_FOLDER: sapl-eclipse-plugin
         DEST_PREDEPLOY_CLEANUP: "rm -rf sapl-eclipse-plugin/*"
 
+    # Upload the sapl-server-lt artifact and additional files
+    - name: Upload artifact and signature
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3 
+      with:
+        if-no-files-found: error 
+        path: |
+          sapl-server-lt/target/sapl-server-lt-*.jar
+          sapl-server-lt/target/sapl-server-lt-*.jar.asc
+          sapl-server-lt/target/sapl-server-lt-*.jar.sha1
+          sapl-server-lt/target/sapl-server-lt-*.jar.md5
+          sapl-server-lt/target/site/io.*.spdx.json    
+    
     - name: Trigger CI Build of Downstream Repositories
       run: |
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
@@ -297,7 +319,7 @@ jobs:
       run: rm -rf ~/.m2/repository/io/sapl
   
     # Create provenance for the artifact
-  provenance:
+  sapl-server-lt-provenance:
     needs: [ deploy ]
     permissions:
       actions: read # To read the workflow path
@@ -307,9 +329,9 @@ jobs:
     with:
       base64-subjects: ${{ needs.deploy.outputs.sapl-server-lt-hashes }}
   
-    # Verify the provenance of artifact
-  provenance-verify:
-    needs: [ provenance ]
+  # Verify the provenance of artifact
+  sapl-server-lt-verify:
+    needs: [ sapl-server-lt-provenance ]
     runs-on: ubuntu-latest
     permissions:
       actions: read # To read the workflow path
@@ -329,6 +351,26 @@ jobs:
         run: |
           slsa-verifier verify-artifact ./**/sapl-server-lt*.jar  --source-uri "github.com/$GITHUB_REPOSITORY" --provenance-path "./${{ needs.provenance.outputs.provenance-name}}/${{ needs.provenance.outputs.provenance-name}}"
 
+
+  # Generate provenance for docker image
+  docker-provenance:
+    needs: [ deploy ]
+    permissions:
+      actions: read # for detecting the Github Actions environment.
+      id-token: write # for creating OIDC tokens for signing.
+      packages: write # for uploading attestations.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v1.4.0
+    with:
+      image: ghcr.io/heutelbeck/sapl-server-lt:${{ needs.deploy.outputs.artifact-version }}
+      # The image digest is used to prevent TOCTOU issues.
+      # This is an output of the docker/build-push-action
+      # See: https://github.com/slsa-framework/slsa-verifier#toctou-attacks
+      digest: ${{ needs.deploy.outputs.sapl-server-lt-docker-digest }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+  # Sign the docker image
   docker-sign:
     needs: [ deploy ]
     runs-on: ubuntu-latest
@@ -337,19 +379,19 @@ jobs:
       packages: write
     steps:
 
-      # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Harden Runner
         uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
         with:
           egress-policy: audit
 
+      # Install the cosign tool 
       - name: Install cosign
         uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4 # v3.4.0
         with:
           cosign-release: 'v2.2.3'
       
-      # Login against a Docker registry except on PR
+      # Login against a Docker registry
       # https://github.com/docker/login-action
       - name: Log into registry ghcr.io
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
