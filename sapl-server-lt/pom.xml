@@ -161,8 +161,7 @@
 					</excludes>
 					<image>
 						<builder>paketobuildpacks/builder-jammy-tiny</builder>
-						<name>
-							${docker-registry-url}/${project.artifactId}:${project.version}</name>
+						<name>${docker-registry-url}/${project.artifactId}:${project.version}</name>
 						<createdDate>now</createdDate>
 						<tags>
 							<tag>${docker-registry-url}/${project.artifactId}:${project.version}</tag>
