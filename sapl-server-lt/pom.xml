@@ -204,59 +204,7 @@
 			<id>publish</id>
 			<build>
 				<plugins>
-					<!-- Sign project artifacts with default jarsigner
-					(https://docs.oracle.com/javase/8/docs/technotes/tools/windows/jarsigner.html) -->
-					<!-- Requires a valid certificate in a keystore. -->
-					<!-- Add relevant certificate with -Djarsigner.alias="alias",
-					-Djarsigner.storepass="password" -->
-					<!-- <plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-jarsigner-plugin</artifactId>
-						<version>3.0.0</version>
-						<executions>
-							<execution>
-								<id>sign</id>
-								<goals>
-									<goal>sign</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>verify</id>
-								<goals>
-									<goal>verify</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin> -->
-					<!-- Sign module files with keyless sigstore -->
-					<!-- <plugin>
-						<groupId>dev.sigstore</groupId>
-						<artifactId>sigstore-maven-plugin</artifactId>
-						<version>0.4.0</version>
-						<executions>
-							<execution>
-								<id>sign</id>
-								<goals>
-									<goal>sign</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin> -->
-					<!-- Sign jarfile with keyless sigstore -->
-					<!-- <plugin>
-						<groupId>dev.sigstore</groupId>
-						<artifactId>sigstore-maven-plugin</artifactId>
-						<version>0.4.0</version>
-						<executions>
-						  <execution>
-							<id>sigstore-jarsign</id>
-							<goals>
-							  <goal>jarsign</goal>
-							</goals>
-						  </execution>
-						</executions>
-					  </plugin> -->
-					<!-- Creates SBOM based on SPDX -->
+					<!-- Creates SBOM in SPDX format -->
 					<plugin>
 						<groupId>org.spdx</groupId>
 						<artifactId>spdx-maven-plugin</artifactId>
@@ -266,50 +214,6 @@
 								<phase>package</phase>
 								<goals>
 									<goal>createSPDX</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-					<!-- Enables creation and push of docker images for publish -->
-					<plugin>
-						<groupId>io.fabric8</groupId>
-						<artifactId>docker-maven-plugin</artifactId>
-						<version>0.44.0</version>
-						<configuration>
-							<images>
-								<image>
-									<name>${docker-registry-url}/${project.artifactId}</name>
-									<build>
-										<contextDir>${project.basedir}</contextDir>
-										<buildx>
-											<attestations>
-												<provenance>mode=max</provenance>
-												<sbom>true</sbom>
-											</attestations>
-										</buildx>
-										<tags>
-											<tag>${project.version}</tag>
-										</tags>
-										<args>
-											<JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
-										</args>
-									</build>
-								</image>
-							</images>
-						</configuration>
-						<executions>
-							<execution>
-								<id>build-image</id>
-								<phase>package</phase>
-								<goals>
-									<goal>build</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>push-image</id>
-								<phase>deploy</phase>
-								<goals>
-									<goal>push</goal>
 								</goals>
 							</execution>
 						</executions>
