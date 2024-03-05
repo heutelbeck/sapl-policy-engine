@@ -174,7 +174,7 @@ jobs:
       run: rm -rf ~/.m2/repository/io/sapl
 
   deploy:
-    if: ${{ github.ref == 'refs/heads/master' }}
+    # if: ${{ github.ref == 'refs/heads/master' }} 
     needs: [build]
     name: Publish Project Assets
     runs-on: ubuntu-latest
