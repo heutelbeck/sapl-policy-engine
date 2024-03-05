@@ -59,8 +59,9 @@ class ReportingDecisionInterceptorTests {
             var error     = interpreter.parse(ERROR_DOCUMENT);
             var attribute = interpreter.parse(ATTRIBUTE_DOCUMENT);
             var one       = interpreter.parse(SET_ONE);
-            return Flux.just(new PolicyRetrievalResult().withMatch(permitAll).withMatch(error).withMatch(attribute)
-                    .withMatch(one));
+            return Flux.just(new PolicyRetrievalResult().withMatch("permitAll", permitAll, Val.TRUE)
+                    .withMatch("errAll", error, Val.TRUE).withMatch("attribute", attribute, Val.TRUE)
+                    .withMatch("set one", one, Val.TRUE));
         }
 
     }

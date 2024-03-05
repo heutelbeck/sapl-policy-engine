@@ -39,18 +39,18 @@ import reactor.util.function.Tuples;
 @ToString
 public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
 
-    private final Map<String, SAPL> documentsByName;
+    private final Map<String, SAPL> documentsById;
 
     private final boolean consistent;
 
     public NaiveImmutableParsedDocumentIndex() {
-        documentsByName = new HashMap<>();
-        consistent      = true;
+        documentsById = new HashMap<>();
+        consistent    = true;
     }
 
-    private NaiveImmutableParsedDocumentIndex(Map<String, SAPL> documentsByName, boolean consistent) {
-        this.documentsByName = documentsByName;
-        this.consistent      = consistent;
+    private NaiveImmutableParsedDocumentIndex(Map<String, SAPL> documentsById, boolean consistent) {
+        this.documentsById = documentsById;
+        this.consistent    = consistent;
     }
 
     @Override
@@ -62,11 +62,12 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
         if (!consistent)
             return Mono.just(new PolicyRetrievalResult().withInvalidState());
 
-        var documentsWithMatchingInformation = Flux.merge(documentsByName.values().stream()
+        var documentsWithMatchingInformation = Flux.merge(documentsById.values().stream()
                 .map(document -> document.matches().map(val -> Tuples.of(document, val))).toList());
 
         return documentsWithMatchingInformation.reduce(new PolicyRetrievalResult(),
                 (policyRetrievalResult, documentWithMatchingInformation) -> {
+                    var document = documentWithMatchingInformation.getT1();
                     var match = documentWithMatchingInformation.getT2();
                     if (match.isError())
                         return policyRetrievalResult.withError();
@@ -75,7 +76,8 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
                         return policyRetrievalResult.withError();
                     }
                     if (match.getBoolean())
-                        return policyRetrievalResult.withMatch(documentWithMatchingInformation.getT1());
+                        return policyRetrievalResult.withMatch(document.getPolicyElement().getSaplName(), document,
+                                match);
 
                     return policyRetrievalResult;
                 });
@@ -84,7 +86,7 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
     @Override
     public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
         // Do a shallow copy. String is immutable, and SAPL is assumed to be too.
-        var newDocuments        = new HashMap<>(documentsByName);
+        var newDocuments        = new HashMap<>(documentsById);
         var newConsistencyState = consistent;
         for (var update : event.getUpdates()) {
             if (update.getType() == Type.CONSISTENT) {

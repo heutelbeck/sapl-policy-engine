@@ -26,7 +26,7 @@ import java.util.ArrayList;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 
 class PolicyRetrievalResultTests {
@@ -43,12 +43,12 @@ class PolicyRetrievalResultTests {
 
     @Test
     void whenAllArgsConstructorUsedThenHasProvidedState() {
-        var docs = new ArrayList<SAPL>();
+        var docs = new ArrayList<MatchingDocument>();
         var doc  = INTERPRETER.parse("policy \"x\" permit");
-        docs.add(doc);
+        docs.add(new MatchingDocument("x", doc, Val.TRUE));
         var sut = new PolicyRetrievalResult(docs, true, false);
         assertThat(sut.getPolicyElements().get(0), is(equalTo(doc.getPolicyElement())));
-        assertThat(sut.getMatchingDocuments().get(0).getPolicyElement(), is(doc.getPolicyElement()));
+        assertThat(sut.getMatchingDocuments().get(0).document().getPolicyElement(), is(doc.getPolicyElement()));
         assertThat(sut.isPrpValidState(), is(false));
         assertThat(sut.isErrorsInTarget(), is(true));
     }
@@ -57,9 +57,9 @@ class PolicyRetrievalResultTests {
     void whenNoArgsConstructorUsedThenWithMatchAddsDocument() {
         var sut = new PolicyRetrievalResult();
         var doc = INTERPRETER.parse("policy \"x\" permit");
-        sut = sut.withMatch(doc);
+        sut = sut.withMatch("x", doc, Val.TRUE);
         assertThat(sut.getPolicyElements().get(0), is(equalTo(doc.getPolicyElement())));
-        assertThat(sut.getMatchingDocuments().get(0).getPolicyElement(), is(doc.getPolicyElement()));
+        assertThat(sut.getMatchingDocuments().get(0).document().getPolicyElement(), is(doc.getPolicyElement()));
     }
 
     @Test

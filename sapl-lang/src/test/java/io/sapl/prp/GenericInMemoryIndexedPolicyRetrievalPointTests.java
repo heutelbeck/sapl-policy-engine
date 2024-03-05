@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.prp.index.ImmutableParsedDocumentIndex;
@@ -82,7 +83,7 @@ class GenericInMemoryIndexedPolicyRetrievalPointTests {
         var documentMock = mock(SAPL.class);
         when(documentMock.getPolicyElement()).thenReturn(policyElementMock);
 
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(documentMock);
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch("id", documentMock, Val.TRUE);
         // doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
 
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
@@ -111,7 +112,7 @@ class GenericInMemoryIndexedPolicyRetrievalPointTests {
 
         var documentMock = mock(SAPL.class);
 
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(documentMock);
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch("id", documentMock, Val.TRUE);
         // doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
 
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));

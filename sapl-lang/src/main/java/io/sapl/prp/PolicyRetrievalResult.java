@@ -20,6 +20,7 @@ package io.sapl.prp;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import lombok.AllArgsConstructor;
@@ -34,7 +35,7 @@ import lombok.ToString;
 @AllArgsConstructor
 public class PolicyRetrievalResult {
 
-    List<SAPL> matchingDocuments = new ArrayList<>();
+    List<MatchingDocument> matchingDocuments = new ArrayList<>();
 
     @Getter
     boolean errorsInTarget = false;
@@ -42,17 +43,17 @@ public class PolicyRetrievalResult {
     @Getter
     boolean prpValidState = true;
 
-    public List<SAPL> getMatchingDocuments() {
+    public List<MatchingDocument> getMatchingDocuments() {
         return new ArrayList<>(matchingDocuments);
     }
 
     public List<PolicyElement> getPolicyElements() {
-        return matchingDocuments.stream().map(SAPL::getPolicyElement).toList();
+        return matchingDocuments.stream().map(match -> match.document().getPolicyElement()).toList();
     }
 
-    public PolicyRetrievalResult withMatch(SAPL match) {
+    public PolicyRetrievalResult withMatch(String id, SAPL match, Val targetExpressionResult) {
         var matches = new ArrayList<>(matchingDocuments);
-        matches.add(match);
+        matches.add(new MatchingDocument(id, match, targetExpressionResult));
         return new PolicyRetrievalResult(matches, errorsInTarget, prpValidState);
     }
 

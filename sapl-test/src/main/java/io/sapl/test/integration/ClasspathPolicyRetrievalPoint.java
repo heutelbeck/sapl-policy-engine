@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PolicyRetrievalPoint;
@@ -99,24 +100,13 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
                     return retrievalResult.withError();
                 }
                 if (match.getBoolean()) {
-                    return retrievalResult.withMatch(document);
+                    return retrievalResult.withMatch(document.getPolicyElement().getSaplName(), document, Val.TRUE);
                 }
                 return retrievalResult;
             }));
         }
 
-        return Flux.from(retrieval).doOnNext(this::logMatching);
-    }
-
-    private void logMatching(PolicyRetrievalResult result) {
-        if (result.getMatchingDocuments().isEmpty()) {
-            log.trace("|-- Matching documents: NONE");
-        } else {
-            log.trace("|-- Matching documents:");
-            for (SAPL doc : result.getMatchingDocuments())
-                log.trace("| |-- * {} ", doc);
-        }
-        log.trace("|");
+        return Flux.from(retrieval);
     }
 
 }
