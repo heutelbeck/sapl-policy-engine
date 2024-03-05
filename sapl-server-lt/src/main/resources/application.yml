@@ -77,10 +77,6 @@ management:
   endpoint:
     health:
       show-details: always
-  endpoints:
-    web:
-      exposure:
-        include: "*"
 io.sapl:
   pdp.embedded:
     pdp-config-type: FILESYSTEM
@@ -89,7 +85,6 @@ io.sapl:
     allowBasicAuth: false
     allowApiKeyAuth: false
     allowOauth2Auth: false
-loader.path: /pdp/data/lib
 logging.level:
   "[io.sapl]": INFO   
   "[org.springframework]": INFO
