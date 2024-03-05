@@ -1,6 +1,0 @@
-hazelcast:
-  network:
-    join:
-      tcp-ip:
-        enabled: true
-        interface: 127.0.0.1
