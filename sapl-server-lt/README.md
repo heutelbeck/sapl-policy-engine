@@ -277,7 +277,7 @@ PowerShell (Invoke-WebRequest)
 Invoke-WebRequest -Uri "https://localhost:8443/api/pdp/decide-once" -Method Post -Headers @{"API_KEY"="<API Key>";"Content-Type"="application/json"} -Body '{"subject":"WILLI","action":"read","resource":"something"}'
 ```
 
-PowerShell (Curl)
+PowerShell (curl)
 
 ```
 curl.exe -k -X POST -H 'API_KEY: <API Key>' -H 'Content-Type: application/json' -d '{\"subject\":\"WILLI\",\"action\":\"read\",\"resource\":\"something\"}' https://localhost:8443/api/pdp/decide-once
@@ -321,7 +321,7 @@ PowerShell (Invoke-WebRequest)
 Invoke-WebRequest -Uri "https://localhost:8443/api/pdp/decide-once" -Method Post -Headers @{"Authorization"="Bearer <token>";"Content-Type"="application/json"} -Body '{"subject":"WILLI","action":"read","resource":"something"}'
 ```
 
-PowerShell (Curl)
+PowerShell (curl)
 
 ```
 curl.exe -k -X POST -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' -d '{\"subject\":\"WILLI\",\"action\":\"read\",\"resource\":\"something\"}' https://localhost:8443/api/pdp/decide-once
@@ -482,24 +482,32 @@ After the build concludes an executable JAR will be available in the folder `sap
 
 ### Kubernetes/Docker
 
-The server application is available as container image. Here, the server is not configured with any TLS security or authentication. It is expected that in deployment this responsibility is delegated to the infrastructure, e. g., a matching Kubernetes Ingress.
+The server application is available as container image. This container image is created using [Paketo Builder](https://paketo.io/docs/concepts/builders/) through the [Spring Boot Maven plugin](https://docs.spring.io/spring-boot/docs/current/maven-plugin/reference/htmlsingle/), eliminating the need for a Dockerfile.
+
+Here, the server is not configured with any TLS security or authentication. It is expected that in deployment this responsibility is delegated to the infrastructure, e. g., a matching Kubernetes Ingress.
 
 #### Running Directly as a Docker Container
 
-In order to run the server locally for testing in an environment like Docker Desktop, you can run the current image as follows:
+In order to run the server locally for testing in an environment like Docker Desktop, you can run the current image as follows. To start the container for the SAPL Server LT based on the Docker image, follow these steps: If the image is not available locally, download it from [GitHub](https://github.com/heutelbeck/sapl-policy-engine/pkgs/container/sapl-server-lt). If image-pull-on-run is enabled, as is the case with Docker Desktop, the image does not need to be downloaded beforehand.
+
+In this example, an existing Docker volume with the name sapl-server-lt is mounted in the `/pdp/data` path of the Docker container.
 
 ```
-docker run -d --name sapl-server-lt -p 8443:8443 --mount source=sapl-server-lt,target=/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-snapshot
+docker run -d --name sapl-server-lt -p 8443:8443 --expose=7000 --mount source=sapl-server-lt,target=/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT
 ```
 
-```
-docker run -d --name sapl-server-lt -p 8443:8443 -v c:\sapl\policies:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-snapshot
-```
-
-If your server does not want to start, you will most likely have to specify a keystore. To do this, it is recommended that you first create a new Docker volume and store the keystore there. In the following example, we have created a volume 'config', which is mounted on `/pdp/data` within the container. We use the start parameter `SPRING_CONFIG_ADDITIONAL_LOCATION` to inform the application that an `application.yml` should also be searched for in this folder. The `application.yml` under `/pdp/data` also contains the configuration for your keystore:
+This example demonstrates how the path of the host system is mounted onto the path `/pdp/data` of the Docker container.
 
 ```
-docker run -d --name sapl-server-lt -p 8443:8443 -v config:/pdp/data -e SPRING_CONFIG_ADDITIONAL_LOCATION=file:/pdp/data/ ghcr.io/heutelbeck/sapl-server-lt:3.0.0-snapshot
+docker run -d --name sapl-server-lt -p 8443:8443 --expose=7000 -v c:\sapl\policies:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT
+```
+
+If your server does not want to start, you will most likely have to specify a keystore. To do this, it is recommended that you first create a new Docker volume and store the keystore there. In the following example, we have created a Docker volume 'sapl-server-lt', which is mounted on `/pdp/data` within the container. Alternatively, you can store the keystore in a path on your host system and then mount it under the path `/pdp/data` of your Docker container. 
+
+The default value of the parameter `SPRING_CONFIG_ADDITIONAL_LOCATION` in the Docker image is set to `/pdp/data`. This parameter specifies the location where an additional `application.yml` file should be searched for. The `application.yml` under `/pdp/data` also contains the configuration for your keystore:
+
+```
+docker run -d --name sapl-server-lt -p 8443:8443 --expose=7000 -v sapl-server-lt:/pdp/data -e SPRING_CONFIG_ADDITIONAL_LOCATION=file:/pdp/data/ ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT
 ```
 
 Afterward you can check if the service is online under: <http://localhost:8080/actuator/health>.
@@ -511,9 +519,17 @@ Depending on your host OS and virtualization environment, these volumes may be l
 - Docker on Linux: `/var/lib/docker/volumes/sapl-server-lt/_data`
 - Docker Desktop on Windows with shared folder: `c:\sapl\policies` (or as changed)
 
+#### Creating a Docker image using Maven
+
+The [Spring Boot Maven plugin](https://docs.spring.io/spring-boot/docs/current/maven-plugin/reference/htmlsingle/) is utilized to generate a Docker image through [Paketo Builder](https://paketo.io/docs/concepts/builders/). Thus, the Docker image can also be produced by executing the following command in the SAPL Server LT Maven project directory.
+
+```
+mvn spring-boot:build-image
+```
+
 #### Running on Kubernetes
 
-This section will describe the deployment on a bare metal Kubernetes installation which has Port 80 and 443 exposed to the Internet as well as Desktop Docker on Windows and will use the Kubernetes nginx-ingress-controller as well as cert-manager to manage the Let's Encrypt certificates (Only if Ports are exposed to the Internet so Let's Encrypt can access the URL)
+This section will describe the deployment on a bare metal Kubernetes installation which has the ports 80 and 443 exposed to the internet as well as Desktop Docker on Windows and will use the Kubernetes nginx-ingress-controller as well as cert-manager to manage the Let's Encrypt certificates (only if ports are exposed to the internet so Let's Encrypt can access the URL)
 
 ##### Prerequisites
 
@@ -523,37 +539,75 @@ Installed Kubernetes v1.23 Install NGINX Ingress Controller according to <https:
 helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace --set controller.hostNetwork=true,controller.kind=DaemonSet
 ```
 
-Install Cert-Manager according to <https://cert-manager.io/docs/installation/kubernetes/> (Only for Use with exposed Ports and matching DNS Entries):
+Install Cert-Manager according to <https://cert-manager.io/docs/installation/kubernetes/> (only for use with exposed ports and matching DNS entries):
 
 ```
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.7.2/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.3/cert-manager.yaml
 ```
 
-Change the Email address in the Clusterissuer.yaml (Line email: user@email.com):
+Download the configuration file for the [ClusterIssuer](https://cert-manager.io/docs/concepts/issuer/) in the Kubernetes environment. Choose one of the following commands to use.
+
+CMD/PowerShell/Bash (curl)
+
+```
+curl -o clusterissuer.yml "https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/clusterissuer.yml"
+```
+
+CMD/Bash (wget)
 
 ```
 wget https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/clusterissuer.yml
-kubectl apply -f clusterissuer.yml -n your-namespace
+```
+
+PowerShell (Invoke-WebRequest)
+
+```
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/clusterissuer.yml" -OutFile "clusterissuer.yml"
+```
+
+Change the email address in the `clusterissuer.yml` (Line email: user@email.com). Then execute the resources defined in `clusterissuer.yml` in the namespace you have defined.
+
+```
+kubectl apply -f clusterissuer.yml -n <namespace>
 ```
 
 ##### Bare Metal Kubernetes
 
-This section assumes that the Kubernetes is installed on a Linux OS i.e. Ubuntu
+This section assumes that Kubernetes is installed on a Linux operating system, such as Ubuntu. Alternatively, it is also possible for Windows to activate Kubernetes in Docker Desktop.
 
-First apply the Persistent Volume yaml
+Create the namespace for sapl-server-lt first.
 
 ```
 kubectl create namespace sapl-server-lt
+```
+
+Add the resource for configuring a persistent volume for the SAPL Server LT to the namespace.
+
+```
 kubectl apply -f https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-pv.yml -n sapl-server-lt
 ```
 
-Then download the bare metal yaml file
+Then download the bare metal yaml file. Choose one of the following commands to use.
+
+CMD/PowerShell/Bash (curl)
+
+```
+curl -o sapl-server-lt-baremetal.yml "https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-baremetal.yml"
+```
+
+CMD/Bash (wget)
 
 ```
 wget https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-baremetal.yml
 ```
 
-change the URL in the Ingress section
+PowerShell (Invoke-WebRequest)
+
+```
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-baremetal.yml" -OutFile "sapl-server-lt-baremetal.yml"
+```
+
+Open the file `sapl-server-lt-baremetal.yml` and modify the URL in the Ingress section.
 
 ```
   tls:
@@ -564,16 +618,21 @@ change the URL in the Ingress section
     - host: sapl.exampleurl.com
 ```
 
-then apply the yaml file
+Add the resource for the SAPL Server LT to the namespace.
 
 ```
 kubectl apply -f sapl-server-lt-baremetal.yml -n sapl-server-lt
 ```
 
-Create the secret with htpasswd, you will be asked to enter the password:
+Create a secret using `htpasswd` and enter the password when prompted. To create htpasswd secrets on Windows, you may need to use additional software like XAMPP to run the `htpasswd` command.
 
 ```
 htpasswd -c auth Username
+```
+
+Then create the secret `basic-auth` and fill it with the data from the `auth` file created via htpasswd
+
+```
 kubectl create secret generic basic-auth --from-file=auth -n sapl-server-lt
 ```
 

@@ -161,13 +161,11 @@
 					</excludes>
 					<image>
 						<builder>paketobuildpacks/builder-jammy-tiny</builder>
-						<name>
-							${docker-registry-url}/${project.artifactId}:${project.version}</name>
+						<name>${docker-registry-url}/${project.artifactId}:${project.version}</name>
 						<createdDate>now</createdDate>
 						<tags>
-							<tag>
-							${docker-registry-url}/${project.artifactId}:${project.version}</tag>
-							tag> </tags>
+							<tag>${docker-registry-url}/${project.artifactId}:${project.version}</tag>
+						</tags>
 						<buildCache>
 							<volume>
 								<name>cache-${project.artifactId}.build</name>
@@ -181,6 +179,7 @@
 						<applicationDirectory>/pdp</applicationDirectory>
 						<env>
 							<BPE_SPRING_PROFILES_ACTIVE>docker</BPE_SPRING_PROFILES_ACTIVE>
+							<BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>file:/pdp/data/</BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>
 						</env>
 					</image>
 				</configuration>
