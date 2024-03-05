@@ -14,9 +14,9 @@ bucket4j:
         - execute-predicates:
             - name: PATH=/api/pdp/**
           bandwidths:
-            - capacity: 5
+            - capacity: 60
               time: 1
-              unit: hours
+              unit: minutes
 
 spring.rsocket.server:
   port: 7000
