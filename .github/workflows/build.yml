@@ -244,22 +244,7 @@ jobs:
     - name: Build SAPL Server LT Image
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
 
-    - name: Get hashes of Server LT
-      id: get-server-lt-hash
-      env:
-        # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-        REGISTRY: ghcr.io
-        IMAGE: heutelbeck/sapl-server-lt
-      run: |
-        # Save the location of the maven output files for easier reference
-        ARTIFACT_PATTERN=sapl-server-lt/target/sapl-server-lt-*.jar
 
-        echo "hashes=$(sha256sum $ARTIFACT_PATTERN | base64 -w0)" >> "$GITHUB_OUTPUT"
-
-        # Save the digest of the Docker image for later use
-        IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{.RepoDigests}}' | sed -e 's/^.*@//' -e 's/]$//')
-        echo "Digest of container" + $IMAGE_DIGEST
-        echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
     
     - name: Log in to the Container Registry
       uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
@@ -274,6 +259,22 @@ jobs:
         VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
         echo "version=$VERSION" >> $GITHUB_OUTPUT        
         
+    - name: Get hashes of Server LT
+      id: get-server-lt-hash
+      env:
+        # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+        REGISTRY: ghcr.io
+        IMAGE: heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
+      run: |
+        # Save the location of the maven output files for easier reference
+        ARTIFACT_PATTERN=sapl-server-lt/target/sapl-server-lt-*.jar
+
+        echo "hashes=$(sha256sum $ARTIFACT_PATTERN | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+        # Save the digest of the Docker image for later use
+        IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{.RepoDigests}}' | sed -e 's/^.*@//' -e 's/]$//')
+        echo "Digest of container" + $IMAGE_DIGEST
+        echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
     # - name: Push Server LT Image to ghcr.io
     #   run: |
     #     docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
