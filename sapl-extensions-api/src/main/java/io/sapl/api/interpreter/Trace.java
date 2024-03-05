@@ -44,6 +44,8 @@ public class Trace {
     public static final String COMBINING_ALGORITHM        = "combiningAlgorithm";
     public static final String DIVIDEND                   = "dividend";
     public static final String DIVISOR                    = "divisor";
+    public static final String DOCUMENT_IDENTIFIER        = "documentId";
+    public static final String DOCUMENT_NAME              = "documentName";
     public static final String DOCUMENT_TYPE              = "documentType";
     public static final String ELEMENT_INDEX              = "elementIndex";
     public static final String ENTITLEMENT                = "entitlement";

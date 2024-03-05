@@ -30,8 +30,8 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.TracedDecision;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.CombinedDecision;
+import io.sapl.prp.MatchingDocument;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -46,7 +46,7 @@ public class PDPDecision implements TracedDecision {
     }
 
     AuthorizationSubscription authorizationSubscription;
-    List<SAPL>                matchingDocuments = new LinkedList<>();
+    List<MatchingDocument>    matchingDocuments = new LinkedList<>();
     CombinedDecision          combinedDecision;
     Instant                   timestamp;
     LinkedList<Modification>  modifications     = new LinkedList<>();
@@ -54,7 +54,7 @@ public class PDPDecision implements TracedDecision {
     private record Modification(AuthorizationDecision authorizationDecision, String explanation) {
     }
 
-    private PDPDecision(AuthorizationSubscription authorizationSubscription, List<SAPL> matchingDocuments,
+    private PDPDecision(AuthorizationSubscription authorizationSubscription, List<MatchingDocument> matchingDocuments,
             CombinedDecision combinedDecision, Instant timestamp, List<Modification> modifications) {
         this.authorizationSubscription = authorizationSubscription;
         this.combinedDecision          = combinedDecision;
@@ -64,7 +64,7 @@ public class PDPDecision implements TracedDecision {
     }
 
     public static PDPDecision of(AuthorizationSubscription authorizationSubscription, CombinedDecision combinedDecision,
-            List<SAPL> matchingDocuments) {
+            List<MatchingDocument> matchingDocuments) {
         return new PDPDecision(authorizationSubscription, matchingDocuments, combinedDecision, Instant.now(),
                 List.of());
     }
@@ -96,13 +96,21 @@ public class PDPDecision implements TracedDecision {
         trace.set(Trace.AUTHORIZATION_SUBSCRIPTION, MAPPER.valueToTree(authorizationSubscription));
         trace.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
         var matches = Val.JSON.arrayNode();
-        matchingDocuments.forEach(doc -> matches.add(Val.JSON.textNode(doc.getPolicyElement().getSaplName())));
+        matchingDocuments.forEach(doc -> matches.add(matchTrace(doc)));
         trace.set(Trace.MATCHING_DOCUMENTS, matches);
         trace.set(Trace.COMBINED_DECISION, combinedDecision.getTrace());
         trace.set(Trace.TIMESTAMP, Val.JSON.textNode(timestamp.toString()));
         if (!modifications.isEmpty()) {
             trace.set(Trace.MODIFICATIONS, getModificationsTrace());
         }
+        return trace;
+    }
+
+    private JsonNode matchTrace(MatchingDocument matchingDocument) {
+        var trace = Val.JSON.objectNode();
+        trace.set(Trace.DOCUMENT_IDENTIFIER, Val.JSON.textNode(matchingDocument.id()));
+        trace.set(Trace.DOCUMENT_NAME, Val.JSON.textNode(matchingDocument.id()));
+        trace.set(Trace.TARGET, matchingDocument.targetExpressionResult().getTrace());
         return trace;
     }
 

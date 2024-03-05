@@ -17,26 +17,9 @@
  */
 package io.sapl.prp;
 
-import java.util.Map;
-
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.interpreter.functions.FunctionContext;
-import reactor.core.publisher.Mono;
+import io.sapl.grammar.sapl.SAPL;
 
-public interface InMemoryDocumentIndex {
-
-    void insert(String documentKey, String document);
-
-    void publish(String documentKey);
-
-    void withdraw(String documentKey);
-
-    void updateFunctionContext(FunctionContext functionCtx);
-
-    void setLiveMode();
-
-    Mono<PolicyRetrievalResult> retrievePolicies(AuthorizationSubscription authzSubscription,
-            FunctionContext functionCtx, Map<String, Val> variables);
+public record MatchingDocument(String id, SAPL document, Val targetExpressionResult) {
 
 }

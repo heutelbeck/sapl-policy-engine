@@ -17,6 +17,7 @@
  */
 package io.sapl.prp.index.canonical;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -26,6 +27,7 @@ import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.MatchingDocument;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -60,8 +62,12 @@ public class CanonicalIndexAlgorithm {
             var matching = matchingCtx.getMatchingCandidatesMask();
             var formulas = fetchFormulas(matching, dataContainer);
             var policies = fetchPolicies(formulas, dataContainer);
-
-            return new PolicyRetrievalResult(policies, matchingCtx.isErrorsInTargets(), true);
+            var results  = new ArrayList<MatchingDocument>();
+            for (var policy : policies) {
+                results.add(new MatchingDocument(policy.getPolicyElement().getSaplName(), policy,
+                        Val.TRUE.withTrace(CanonicalIndexAlgorithm.class)));
+            }
+            return new PolicyRetrievalResult(results, matchingCtx.isErrorsInTargets(), true);
         }).onErrorReturn(new PolicyRetrievalResult(Collections.emptyList(), true, true));
     }
 

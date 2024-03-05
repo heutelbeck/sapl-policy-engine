@@ -32,7 +32,6 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.TracedDecision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.pdp.config.PDPConfiguration;
@@ -103,8 +102,8 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
                 return Flux.just(PDPDecision.of(authorizationSubscription, combinedDecision,
                         policyRetrievalResult.getMatchingDocuments()));
             }
-            var policyElements = policyRetrievalResult.getMatchingDocuments().stream().map(SAPL::getPolicyElement)
-                    .toList();
+            var policyElements = policyRetrievalResult.getMatchingDocuments().stream()
+                    .map(match -> match.document().getPolicyElement()).toList();
             return documentsCombinator.combinePolicies(policyElements).map(combinedDecision -> PDPDecision
                     .of(authorizationSubscription, combinedDecision, policyRetrievalResult.getMatchingDocuments()));
         };
