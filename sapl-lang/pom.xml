@@ -445,7 +445,9 @@
                     project uses a version of lombok which contains a fix for
                      https://github.com/projectlombok/lombok/issues/3601 -->
 					<bnd>
-						Import-Package: !lombok,*
+						Import-Package: !lombok,\
+						    com.google.common.*;version="32",\
+						    *
 					</bnd>
 				</configuration>
 			</plugin>
