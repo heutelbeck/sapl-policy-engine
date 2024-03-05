@@ -26,9 +26,9 @@ import org.springframework.context.annotation.ComponentScan;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@EnableCaching
 @SpringBootApplication
 @ComponentScan("io.sapl.server")
-@EnableCaching
 @EnableConfigurationProperties(SAPLServerLTProperties.class)
 public class SAPLServerLTApplication {
 
