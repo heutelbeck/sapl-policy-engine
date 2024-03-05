@@ -98,7 +98,7 @@
 		<failsafe.version>3.2.5</failsafe.version>
 		<surefire.version>3.2.5</surefire.version>
 		<tycho.version>4.0.6</tycho.version>
-		<docker-registry-url>ghcr.io/flodet-me</docker-registry-url>
+		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
 		<maven.deploy.skip>true</maven.deploy.skip>
 		<argLine />
 	</properties>
