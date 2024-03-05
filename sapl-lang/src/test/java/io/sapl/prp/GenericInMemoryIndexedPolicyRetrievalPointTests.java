@@ -83,7 +83,8 @@ class GenericInMemoryIndexedPolicyRetrievalPointTests {
         var documentMock = mock(SAPL.class);
         when(documentMock.getPolicyElement()).thenReturn(policyElementMock);
 
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch("id", documentMock, Val.TRUE);
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(new Document("id", "source", documentMock),
+                Val.TRUE);
         // doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
 
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
@@ -108,12 +109,11 @@ class GenericInMemoryIndexedPolicyRetrievalPointTests {
         // WHEN
         var policyElementMock = mock(PolicyElement.class);
         when(policyElementMock.getSaplName()).thenReturn("SAPL");
-        // when(policyElementMock.getClass()).thenCallRealMethod();
 
         var documentMock = mock(SAPL.class);
 
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch("id", documentMock, Val.TRUE);
-        // doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(new Document("id", "source", documentMock),
+                Val.TRUE);
 
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 

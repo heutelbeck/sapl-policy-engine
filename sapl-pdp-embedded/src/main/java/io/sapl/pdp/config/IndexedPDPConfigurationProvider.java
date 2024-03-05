@@ -15,28 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.prp;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
-import org.junit.jupiter.api.Test;
+package io.sapl.pdp.config;
 
 import reactor.core.publisher.Flux;
 
-class PolicyRetrievalPointTests {
+public interface IndexedPDPConfigurationProvider {
 
-    static class TestPRP implements PolicyRetrievalPoint {
+    Flux<IndexedPDPConfiguration> pdpConfiguration();
 
-        @Override
-        public Flux<PolicyRetrievalResult> retrievePolicies() {
-            return Flux.empty();
-        }
-
-    }
-
-    @Test
-    void when_destroy_then_nothingThrown() {
-        var sut = new TestPRP();
-        assertDoesNotThrow(sut::destroy);
-    }
 }

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.Document;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
@@ -59,9 +60,9 @@ class NaiveImmutableParsedDocumentIndexTests {
         when(saplMock1.matches()).thenReturn(Mono.just(Val.TRUE));
 
         List<Update> updates = new ArrayList<>();
-        updates.add(new Update(Type.CONSISTENT, null, "null"));
-        updates.add(new Update(Type.PUBLISH, saplMock1, "SAPL1"));
-        updates.add(new Update(Type.WITHDRAW, saplMock1, "SAPL1"));
+        updates.add(new Update(Type.CONSISTENT, null));
+        updates.add(new Update(Type.PUBLISH, new Document("id1", "SAPL1", saplMock1)));
+        updates.add(new Update(Type.WITHDRAW, new Document("id2", "SAPL1", saplMock1)));
         var event = new PrpUpdateEvent(updates);
 
         var index2 = index.apply(event);
@@ -75,7 +76,7 @@ class NaiveImmutableParsedDocumentIndexTests {
     void should_return_invalid_result_when_inconsistent_event_was_published() {
         var          index   = new NaiveImmutableParsedDocumentIndex();
         List<Update> updates = new ArrayList<>();
-        updates.add(new Update(Type.INCONSISTENT, null, "null"));
+        updates.add(new Update(Type.INCONSISTENT, new Document(null, "null", null)));
         var event  = new PrpUpdateEvent(updates);
         var index2 = index.apply(event);
 
@@ -112,11 +113,11 @@ class NaiveImmutableParsedDocumentIndexTests {
         when(saplMock4.matches()).thenReturn(Mono.just(Val.FALSE));
 
         List<Update> updates = new ArrayList<>();
-        updates.add(new Update(Type.CONSISTENT, null, "null"));
-        updates.add(new Update(Type.PUBLISH, saplMock1, "SAPL1"));
-        updates.add(new Update(Type.PUBLISH, saplMock2, "SAPL2"));
-        updates.add(new Update(Type.PUBLISH, saplMock3, "SAPL3"));
-        updates.add(new Update(Type.PUBLISH, saplMock4, "SAPL4"));
+        updates.add(new Update(Type.CONSISTENT, null));
+        updates.add(new Update(Type.PUBLISH, new Document("id1", "SAPL1", saplMock1)));
+        updates.add(new Update(Type.PUBLISH, new Document("id2", "SAPL2", saplMock2)));
+        updates.add(new Update(Type.PUBLISH, new Document("id3", "SAPL3", saplMock3)));
+        updates.add(new Update(Type.PUBLISH, new Document("id4", "SAPL4", saplMock4)));
         var event = new PrpUpdateEvent(updates);
 
         var index2 = index.apply(event);

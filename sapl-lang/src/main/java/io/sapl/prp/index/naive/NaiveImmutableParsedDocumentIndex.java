@@ -20,7 +20,7 @@ package io.sapl.prp.index.naive;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.Document;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -39,7 +39,7 @@ import reactor.util.function.Tuples;
 @ToString
 public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
 
-    private final Map<String, SAPL> documentsById;
+    private final Map<String, Document> documentsById;
 
     private final boolean consistent;
 
@@ -48,7 +48,7 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
         consistent    = true;
     }
 
-    private NaiveImmutableParsedDocumentIndex(Map<String, SAPL> documentsById, boolean consistent) {
+    private NaiveImmutableParsedDocumentIndex(Map<String, Document> documentsById, boolean consistent) {
         this.documentsById = documentsById;
         this.consistent    = consistent;
     }
@@ -63,7 +63,7 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
             return Mono.just(new PolicyRetrievalResult().withInvalidState());
 
         var documentsWithMatchingInformation = Flux.merge(documentsById.values().stream()
-                .map(document -> document.matches().map(val -> Tuples.of(document, val))).toList());
+                .map(document -> document.sapl().matches().map(val -> Tuples.of(document, val))).toList());
 
         return documentsWithMatchingInformation.reduce(new PolicyRetrievalResult(),
                 (policyRetrievalResult, documentWithMatchingInformation) -> {
@@ -76,8 +76,7 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
                         return policyRetrievalResult.withError();
                     }
                     if (match.getBoolean())
-                        return policyRetrievalResult.withMatch(document.getPolicyElement().getSaplName(), document,
-                                match);
+                        return policyRetrievalResult.withMatch(document, match);
 
                     return policyRetrievalResult;
                 });
@@ -101,8 +100,8 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
     }
 
     // only PUBLISH or WITHDRAW
-    private void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
-        var name = update.getDocument().getPolicyElement().getSaplName();
+    private void applyUpdate(Map<String, Document> newDocuments, PrpUpdateEvent.Update update) {
+        var name = update.getDocument().sapl().getPolicyElement().getSaplName();
         if (update.getType() == Type.WITHDRAW) {
             newDocuments.remove(name);
         } else {

@@ -1,23 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-
-    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
-
-    SPDX-License-Identifier: Apache-2.0
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
--->
 <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sapl" nsURI="https://sapl.io/sapl/SAPL" nsPrefix="sapl">
   <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//EvaluableDocument">
@@ -357,13 +338,13 @@
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Decision" instanceClassName="io.sapl.api.pdp.Decision"/>
   <eClassifiers xsi:type="ecore:EDataType" name="ValMono" instanceTypeName="reactor.core.publisher.Mono&lt;io.sapl.api.interpreter.Val>"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="PolicyElementList" instanceTypeName="java.util.List&lt;io.sapl.grammar.sapl.PolicyElement>"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="MatchingDocumentsList" instanceTypeName="java.util.List&lt;io.sapl.prp.MatchingDocument>"/>
   <eClassifiers xsi:type="ecore:EClass" name="CombiningAlgorithm" abstract="true">
     <eOperations name="combinePolicies" lowerBound="1" eType="#//CombinedDecisionFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value="Method which evaluates multiple policies within a policy set against an authorization subscription object, combines the results and creates and returns a corresponding authorization decision object. The method is supposed to be used to determine an authorization decision for the SAPL documents known to the PDP. Imports are obtained from the SAPL document.&#xA;@param policies policies of the set currently matching the ongoing authorization subscription.&#xA;@return a {@link Flux} of {@link io.sapl.api.pdp.AuthorizationDecision} objects containing the combined decision, the combined obligation and advice and a transformed resource if applicable. A new authorization decision object is only pushed if it is different from the previous one."/>
       </eAnnotations>
-      <eParameters name="policies" eType="#//PolicyElementList"/>
+      <eParameters name="policies" eType="#//MatchingDocumentsList"/>
     </eOperations>
     <eOperations name="getName" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel"/>
@@ -385,4 +366,6 @@
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="DocumentEvaluationResult" instanceClassName="io.sapl.interpreter.DocumentEvaluationResult"
       serializable="false"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="Document" instanceClassName="io.sapl.prp.Document"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="MatchingDocument" instanceClassName="io.sapl.prp.MatchingDocument"/>
 </ecore:EPackage>

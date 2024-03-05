@@ -38,7 +38,6 @@ class PrpUpdateEventTests {
     void should_return_empty_event_when_initialized_with_null() {
         List<Update> updates = null;
         var          event   = new PrpUpdateEvent(updates);
-
         assertThat(event, notNullValue());
     }
 
@@ -48,8 +47,8 @@ class PrpUpdateEventTests {
         when(saplMock.toString()).thenReturn("SAPL");
         when(saplMock.getPolicyElement().getSaplName()).thenReturn("SAPL");
 
-        var empty = new PrpUpdateEvent.Update(null, null, null);
-        var valid = new PrpUpdateEvent.Update(Type.PUBLISH, saplMock, "SAPL");
+        var empty = new PrpUpdateEvent.Update(null, null);
+        var valid = new PrpUpdateEvent.Update(Type.PUBLISH, new Document("1", "source", saplMock));
 
         assertThat(empty.toString(), is("Update(type=null, documentName=NULL POLICY)"));
         assertThat(valid.toString(), is("Update(type=PUBLISH, documentName='SAPL')"));
