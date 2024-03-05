@@ -93,4 +93,3 @@ loader.path: /pdp/data/lib
 logging.level:
   "[io.sapl]": INFO   
   "[org.springframework]": INFO
-  "[com.giffing.bucket4j.spring.boot.starter]": DEBUG
