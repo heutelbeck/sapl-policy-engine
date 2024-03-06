@@ -322,7 +322,6 @@
   <eClassifiers xsi:type="ecore:EDataType" name="DecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.Decision>"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="PolicyEvaluationException" instanceClassName="io.sapl.api.interpreter.PolicyEvaluationException"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="StringMap" instanceTypeName="java.util.Map&lt;java.lang.String, java.lang.String>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="ValFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.interpreter.Val>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="BooleanMono" instanceTypeName="reactor.core.publisher.Mono&lt;java.lang.Boolean>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Val" instanceClassName="io.sapl.api.interpreter.Val"/>
