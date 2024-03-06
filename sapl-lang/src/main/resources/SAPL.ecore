@@ -317,7 +317,6 @@
       <eParameters name="errorMessage" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eOperations>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EDataType" name="JsonNode" instanceClassName="com.fasterxml.jackson.databind.JsonNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;com.fasterxml.jackson.databind.JsonNode>"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationDecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.AuthorizationDecision>"
