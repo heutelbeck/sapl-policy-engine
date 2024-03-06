@@ -6,5 +6,5 @@ import reactor.core.publisher.Flux;
 
 @FunctionalInterface
 public interface PolicySetCombiningAlgorithm {
-     Flux<CombinedDecision> combinePoliciesInSet(PolicySet policySet);
+    Flux<CombinedDecision> combinePoliciesInSet(PolicySet policySet);
 }

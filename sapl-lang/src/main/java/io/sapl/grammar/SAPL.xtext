@@ -43,13 +43,13 @@ PolicySet:
 	(valueDefinitions+=ValueDefinition ';')*
 	policies+=Policy+ ;
 
-CombiningAlgorithm:
-	  {DenyOverridesCombiningAlgorithm}     'deny-overrides' 
-	| {PermitOverridesCombiningAlgorithm}   'permit-overrides' 
-	| {FirstApplicableCombiningAlgorithm}   'first-applicable' 
-	| {OnlyOneApplicableCombiningAlgorithm} 'only-one-applicable'
-	| {DenyUnlessPermitCombiningAlgorithm}  'deny-unless-permit' 
-	| {PermitUnlessDenyCombiningAlgorithm}  'permit-unless-deny' ;
+CombiningAlgorithm returns ecore::EString:
+	  'deny-overrides' 
+	| 'permit-overrides' 
+	| 'first-applicable' 
+	| 'only-one-applicable'
+	| 'deny-unless-permit' 
+	| 'permit-unless-deny' ;
 
 Policy:
 	{Policy} 'policy' saplName=STRING
