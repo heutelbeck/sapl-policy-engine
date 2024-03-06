@@ -259,6 +259,10 @@ jobs:
         VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
         echo "version=$VERSION" >> $GITHUB_OUTPUT        
         
+    - name: Push Server LT Image to ghcr.io
+      run: |
+        docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
+
     - name: Get hashes of Server LT
       id: get-server-lt-hash
       env:
@@ -274,11 +278,7 @@ jobs:
         # Save the digest of the Docker image for later use
         IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{.RepoDigests}}' | sed -e 's/^.*@//' -e 's/]$//')
         echo "Digest of container" + $IMAGE_DIGEST
-        echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
-    # - name: Push Server LT Image to ghcr.io
-    #   run: |
-    #     docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
-
+        echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT    
     # - name: Push Eclipse Plugin to Website
     #   uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
     #   env:
