@@ -86,13 +86,13 @@
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Step">
-    <eOperations name="apply" lowerBound="1">
+    <eOperations name="apply" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value=""/>
       </eAnnotations>
       <eParameters name="parentValue" eType="#//Val"/>
     </eOperations>
-    <eOperations name="applyFilterStatement" lowerBound="1">
+    <eOperations name="applyFilterStatement" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value=""/>
       </eAnnotations>
@@ -109,7 +109,7 @@
         containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="FilterComponent">
-    <eOperations name="apply" lowerBound="1">
+    <eOperations name="apply" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value=""/>
       </eAnnotations>
@@ -285,7 +285,7 @@
         eType="#//FilterStatement" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Evaluable" abstract="true" interface="true">
-    <eOperations name="evaluate" lowerBound="1">
+    <eOperations name="evaluate" lowerBound="1" eType="#//ValFlux">
       <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
         <details key="documentation" value=""/>
       </eAnnotations>
@@ -317,18 +317,34 @@
       <eParameters name="errorMessage" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     </eOperations>
   </eClassifiers>
+  <eClassifiers xsi:type="ecore:EDataType" name="JsonNode" instanceClassName="com.fasterxml.jackson.databind.JsonNode"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="JsonNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;com.fasterxml.jackson.databind.JsonNode>"
+      serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationDecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.AuthorizationDecision>"
       serializable="false"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="DecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.Decision>"
+      serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="PolicyEvaluationException" instanceClassName="io.sapl.api.interpreter.PolicyEvaluationException"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="StringMap" instanceTypeName="java.util.Map&lt;java.lang.String, java.lang.String>"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="ValFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.interpreter.Val>"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="BooleanMono" instanceTypeName="reactor.core.publisher.Mono&lt;java.lang.Boolean>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Val" instanceClassName="io.sapl.api.interpreter.Val"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationSubscription" instanceClassName="io.sapl.api.pdp.AuthorizationSubscription"
+      serializable="false"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="FunctionContext" instanceClassName="io.sapl.interpreter.functions.FunctionContext"
+      serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationDecision" instanceClassName="io.sapl.api.pdp.AuthorizationDecision"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Decision" instanceClassName="io.sapl.api.pdp.Decision"/>
   <eClassifiers xsi:type="ecore:EDataType" name="ValMono" instanceTypeName="reactor.core.publisher.Mono&lt;io.sapl.api.interpreter.Val>"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="MatchingDocumentsList" instanceTypeName="java.util.List&lt;io.sapl.prp.MatchingDocument>"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="PolicyRetrievalResult" instanceClassName="io.sapl.prp.PolicyRetrievalResult"/>
   <eClassifiers xsi:type="ecore:EDataType" name="DocumentEvaluationResultFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.DocumentEvaluationResult>"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="CombinedDecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.CombinedDecision>"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="DocumentEvaluationResult" instanceClassName="io.sapl.interpreter.DocumentEvaluationResult"
       serializable="false"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="Document" instanceClassName="io.sapl.prp.Document"/>
+  <eClassifiers xsi:type="ecore:EDataType" name="MatchingDocument" instanceClassName="io.sapl.prp.MatchingDocument"/>
 </ecore:EPackage>
