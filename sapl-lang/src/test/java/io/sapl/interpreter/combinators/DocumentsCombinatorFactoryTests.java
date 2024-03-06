@@ -27,11 +27,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.impl.DenyOverridesCombiningAlgorithmImplCustom;
-import io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImplCustom;
-import io.sapl.grammar.sapl.impl.OnlyOneApplicableCombiningAlgorithmImplCustom;
-import io.sapl.grammar.sapl.impl.PermitOverridesCombiningAlgorithmImplCustom;
-import io.sapl.grammar.sapl.impl.PermitUnlessDenyCombiningAlgorithmImplCustom;
+import io.sapl.interpreter.combinators.algorithms.DenyOverrides;
+import io.sapl.interpreter.combinators.old.DenyUnlessPermitCombiningAlgorithmImplCustom;
+import io.sapl.interpreter.combinators.old.OnlyOneApplicableCombiningAlgorithmImplCustom;
+import io.sapl.interpreter.combinators.old.PermitOverridesCombiningAlgorithmImplCustom;
+import io.sapl.interpreter.combinators.old.PermitUnlessDenyCombiningAlgorithmImplCustom;
 
 class DocumentsCombinatorFactoryTests {
 
@@ -50,7 +50,7 @@ class DocumentsCombinatorFactoryTests {
     @Test
     void denyOverrides() {
         assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_OVERRIDES),
-                instanceOf(DenyOverridesCombiningAlgorithmImplCustom.class));
+                instanceOf(DenyOverrides.class));
     }
 
     @Test

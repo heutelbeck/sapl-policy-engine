@@ -29,9 +29,9 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.grammar.sapl.impl.DenyOverridesCombiningAlgorithmImplCustom;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.interpreter.combinators.algorithms.DenyOverrides;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
@@ -81,7 +81,7 @@ class ReportingDecisionInterceptorTests {
         @Override
         @SneakyThrows
         public Flux<PDPConfiguration> pdpConfiguration() {
-            var cAlg         = new DenyOverridesCombiningAlgorithmImplCustom();
+            var cAlg         = new DenyOverrides();
             var dInterceptor = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true, true);
             return Flux.just(new PDPConfiguration(
                     new AnnotationAttributeContext(List::of, () -> List.of(ReportingTestPIP.class)),

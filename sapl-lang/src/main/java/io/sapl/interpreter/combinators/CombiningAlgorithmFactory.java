@@ -17,39 +17,44 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES;
-import static io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm.ONLY_ONE_APPLICABLE;
-import static io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES;
-import static io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY;
+import static io.sapl.interpreter.combinators.algorithms.DenyOverrides.DENY_OVERRIDES;
+import static io.sapl.interpreter.combinators.algorithms.FirstApplicable.FIRST_APPLICABLE;
 
-import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.grammar.sapl.impl.DenyOverridesCombiningAlgorithmImplCustom;
-import io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImplCustom;
-import io.sapl.grammar.sapl.impl.OnlyOneApplicableCombiningAlgorithmImplCustom;
-import io.sapl.grammar.sapl.impl.PermitOverridesCombiningAlgorithmImplCustom;
-import io.sapl.grammar.sapl.impl.PermitUnlessDenyCombiningAlgorithmImplCustom;
+import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.interpreter.combinators.algorithms.DenyOverrides;
+import io.sapl.interpreter.combinators.algorithms.FirstApplicable;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class CombiningAlgorithmFactory {
+    private static final String PERMIT_OVERRIDES    = "permit-overrides";
+    private static final String ONLY_ONE_APPLICABLE = "only-one-applicable";
+    private static final String DENY_UNLESS_PERMIT  = "deny-unless-permit";
+    private static final String PERMIT_UNLESS_DENY  = "permit-unless-deny";
 
-    private static final CombiningAlgorithm PERMIT_UNLESS_DENY_ALGORITHM  = new PermitUnlessDenyCombiningAlgorithmImplCustom();
-    private static final CombiningAlgorithm PERMIT_OVERRIDES_ALGORITHM    = new PermitOverridesCombiningAlgorithmImplCustom();
-    private static final CombiningAlgorithm DENY_OVERRIDES_ALGORITHM      = new DenyOverridesCombiningAlgorithmImplCustom();
-    private static final CombiningAlgorithm ONLY_ONE_APPLICABLE_ALGORITHM = new OnlyOneApplicableCombiningAlgorithmImplCustom();
-    private static final CombiningAlgorithm DENY_UNLESS_PERMIT_ALGORITHM  = new DenyUnlessPermitCombiningAlgorithmImplCustom();
+    public PolicySetCombiningAlgorithm policySetCombiningAlgorithm(String algorithmName) {
+        return switch (algorithmName) {
+        case DENY_OVERRIDES -> DenyOverrides::denyOverrides;
+        case PERMIT_OVERRIDES -> null;
+        case FIRST_APPLICABLE -> FirstApplicable::firstApplicable;
+        case ONLY_ONE_APPLICABLE -> null;
+        case DENY_UNLESS_PERMIT -> null;
+        case PERMIT_UNLESS_DENY -> null;
+        default -> throw new PolicyEvaluationException(
+                String.format("Illegal PolicySetCombiningAlgorithm '%s'.", algorithmName));
+        };
+    }
 
-    public static CombiningAlgorithm getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {
-        if (algorithm == PERMIT_UNLESS_DENY)
-            return PERMIT_UNLESS_DENY_ALGORITHM;
-        if (algorithm == PERMIT_OVERRIDES)
-            return PERMIT_OVERRIDES_ALGORITHM;
-        if (algorithm == DENY_OVERRIDES)
-            return DENY_OVERRIDES_ALGORITHM;
-        if (algorithm == ONLY_ONE_APPLICABLE)
-            return ONLY_ONE_APPLICABLE_ALGORITHM;
-
-        return DENY_UNLESS_PERMIT_ALGORITHM;
+    public DocumentsCombiningAlgorithm documentsCombiningAlgorithm(String algorithmName) {
+        return switch (algorithmName) {
+        case DENY_OVERRIDES -> DenyOverrides::denyOverrides;
+        case PERMIT_OVERRIDES -> null;
+        case ONLY_ONE_APPLICABLE -> null;
+        case DENY_UNLESS_PERMIT -> null;
+        case PERMIT_UNLESS_DENY -> null;
+        default -> throw new PolicyEvaluationException(
+                String.format("Illegal DocumentsCombiningAlgorithm '%s'.", algorithmName));
+        };
     }
 
 }

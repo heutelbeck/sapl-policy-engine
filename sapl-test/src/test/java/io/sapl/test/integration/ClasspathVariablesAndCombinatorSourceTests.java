@@ -30,7 +30,7 @@ import org.mockito.Mockito;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImplCustom;
+import io.sapl.interpreter.combinators.old.DenyUnlessPermitCombiningAlgorithmImplCustom;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import reactor.core.publisher.SignalType;
 

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.sapl.impl;
+package io.sapl.interpreter.combinators.old;
 
 import static io.sapl.api.pdp.Decision.DENY;
 import static io.sapl.api.pdp.Decision.PERMIT;
@@ -35,43 +35,43 @@ import io.sapl.interpreter.combinators.ObligationAdviceCollector;
 import reactor.core.publisher.Flux;
 
 /**
- * This generous algorithm is used if the decision should be a PERMIT except for
- * there is a DENY. It ensures that any decision is either a DENY or a PERMIT.
+ * This strict algorithm is used if the decision should be a DENY except for
+ * there is a PERMIT. It ensures that any decision is either DENY or PERMIT.
  * <p>
  * It works as follows:
  * <p>
- * If any policy document evaluates to DENY or if there is a transformation
+ * - If any policy document evaluates to PERMIT and there is no transformation
  * uncertainty (multiple policies evaluate to PERMIT and at least one of them
- * has a transformation statement), the decision is a DENY.
+ * has a transformation statement), the decision is PERMIT.
  * <p>
- * Otherwise, the decision is PERMIT.
+ * - Otherwise the decision is a DENY.
  */
-public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDenyCombiningAlgorithmImpl {
+public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPermitCombiningAlgorithmImpl {
 
     @Override
     public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
         return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
-                AuthorizationDecision.PERMIT);
+                AuthorizationDecision.DENY);
     }
 
     @Override
     public String getName() {
-        return "PERMIT_UNLESS_DENY";
+        return "DENY_UNLESS_PERMIT";
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
-        var entitlement = PERMIT;
+        var entitlement = DENY;
         var collector   = new ObligationAdviceCollector();
         var resource    = Optional.<JsonNode>empty();
         var decisions   = new LinkedList<DocumentEvaluationResult>();
         for (var policyDecision : policyDecisions) {
             decisions.add(policyDecision);
-            var authzDecision = policyDecision.getAuthorizationDecision();
-            if (authzDecision.getDecision() == DENY) {
-                entitlement = DENY;
+            var authorizationDecision = policyDecision.getAuthorizationDecision();
+            if (authorizationDecision.getDecision() == PERMIT) {
+                entitlement = PERMIT;
             }
-            collector.add(authzDecision);
-            if (authzDecision.getResource().isPresent()) {
+            collector.add(authorizationDecision);
+            if (authorizationDecision.getResource().isPresent()) {
                 if (resource.isPresent()) {
                     // this is a transformation uncertainty.
                     // another policy already defined a transformation
@@ -79,7 +79,7 @@ public class PermitUnlessDenyCombiningAlgorithmImplCustom extends PermitUnlessDe
                     // However, DENY overrides with this algorithm.
                     entitlement = DENY;
                 } else {
-                    resource = authzDecision.getResource();
+                    resource = authorizationDecision.getResource();
                 }
             }
         }

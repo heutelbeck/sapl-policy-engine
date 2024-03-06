@@ -17,7 +17,6 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 
@@ -28,6 +27,7 @@ import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.PolicySetDecision;
+import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 
@@ -67,13 +67,13 @@ public class PolicySetImplCustom extends PolicySetImpl {
     @Override
     public DocumentEvaluationResult targetResult(Val targetValue) {
         if (targetValue.isError())
-            return PolicySetDecision.ofTargetError(getSaplName(), targetValue, this.algorithm.getName());
-        return PolicySetDecision.notApplicable(getSaplName(), targetValue, this.algorithm.getName());
+            return PolicySetDecision.ofTargetError(getSaplName(), targetValue, getAlgorithm());
+        return PolicySetDecision.notApplicable(getSaplName(), targetValue, getAlgorithm());
     }
 
     @Override
     public DocumentEvaluationResult importError(String errorMessage) {
-        return PolicySetDecision.ofImportError(getSaplName(), errorMessage, this.algorithm.getName());
+        return PolicySetDecision.ofImportError(getSaplName(), errorMessage, getAlgorithm());
     }
 
     private boolean policyNamesAreUnique() {
@@ -98,7 +98,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
     }
 
     private Flux<CombinedDecision> evaluateAndCombinePoliciesOfSet() {
-        return getAlgorithm().combinePolicies(new ArrayList<>(policies));
+        return CombiningAlgorithmFactory.policySetCombiningAlgorithm(getAlgorithm()).combinePoliciesInSet(this);
     }
 
 }

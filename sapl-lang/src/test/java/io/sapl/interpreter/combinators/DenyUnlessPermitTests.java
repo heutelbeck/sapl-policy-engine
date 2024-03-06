@@ -38,7 +38,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImplCustom;
+import io.sapl.interpreter.combinators.old.DenyUnlessPermitCombiningAlgorithmImplCustom;
 import reactor.test.StepVerifier;
 
 class DenyUnlessPermitTests {

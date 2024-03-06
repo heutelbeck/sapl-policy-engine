@@ -40,7 +40,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.impl.PermitOverridesCombiningAlgorithmImplCustom;
+import io.sapl.interpreter.combinators.old.PermitOverridesCombiningAlgorithmImplCustom;
 import reactor.test.StepVerifier;
 
 class PermitOverridesTests {

@@ -25,7 +25,6 @@ import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
@@ -99,7 +98,7 @@ public class BasicCombiningAlgorithm {
         return Val
                 .error("Type mismatch. Target expression must evaluate to Boolean. Was: %s",
                         targetExpressionResult.getValType())
-                .withTrace(CombiningAlgorithm.class, false, targetExpressionResult);
+                .withTrace(BasicCombiningAlgorithm.class, false, targetExpressionResult);
     }
 
 }

@@ -32,7 +32,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.impl.FirstApplicableCombiningAlgorithmImplCustom;
+import io.sapl.interpreter.combinators.algorithms.FirstApplicable;
 import reactor.test.StepVerifier;
 
 class FirstApplicableTests {
@@ -45,7 +45,7 @@ class FirstApplicableTests {
 
     @Test
     void noDecisionsIsNotApplicable() {
-        var algorithm = new FirstApplicableCombiningAlgorithmImplCustom();
+        var algorithm = new FirstApplicable();
         StepVerifier.create(algorithm.combinePolicies(List.of())).expectNextMatches(combinedDecision -> combinedDecision
                 .getAuthorizationDecision().getDecision() == Decision.NOT_APPLICABLE).verifyComplete();
     }
