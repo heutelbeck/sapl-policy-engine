@@ -18,11 +18,14 @@
 package io.sapl.geo.connection.postgis;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.locationtech.jts.geom.Geometry;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -66,12 +69,12 @@ public class PostGisConnection extends ConnectionBase {
         return new PostGisConnection(user, password, server, port, dataBase, mapper);
     }
 
-    public static Flux<Val> connectToPostGis(JsonNode settings, ObjectMapper mapper) {
+    public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
 
         try {
             var connection = getNew(getUser(settings), getPassword(settings), getServer(settings), getPort(settings),
                     getDataBase(settings), mapper);
-            return connection.connect(getResponseFormat(settings, mapper), getTable(settings), getColumn(settings),
+            return connection.getFlux(getResponseFormat(settings, mapper), getTable(settings), getColumn(settings),
                     getWhere(settings), mapper).map(Val::of).onErrorResume(e -> {
                         return Flux.just(Val.error(e));
                     });
@@ -82,33 +85,40 @@ public class PostGisConnection extends ConnectionBase {
 
     }
 
-    public Flux<ObjectNode> connect(GeoPipResponseFormat format, String table, String column, String where,
+    public Flux<ObjectNode> getFlux(GeoPipResponseFormat format, String table, String column, String where,
             ObjectMapper mapper) {
 
         String frmt = "ST_AsGeoJSON";
 
-        var str = "SELECT %s(%s) AS res FROM %s %s";
-        var sql = String.format(str, frmt, column, table, where);
+        String str = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid FROM %s %s";
+        var    sql = String.format(str, frmt, column, column, table, where);
 
-        return Mono.from(connectionFactory.create()).flatMapMany(connection -> {
-            return Flux.from(connection.createStatement(sql).execute())
-                    .flatMap(result -> result.map((row, rowMetadata) -> row.get("res", String.class))).doOnNext(s -> {
-
-                        var json = convertResponse(s, format);
-                        System.out.println("json: " + json.toString());
-                    })
-
-                    .map(s -> {
-                        try {
-
-                            var json = JsonNodeFactory.instance.objectNode();
-                            ;
-                            return (ObjectNode) json;
-                        } catch (Exception e) {
-                            throw new PolicyEvaluationException(e.getMessage());
-                        }
-                    }).repeatWhen((Repeat.times(5 - 1).fixedBackoff(Duration.ofMillis(1000))));
-        });
+        return Mono.from(connectionFactory.create())
+        		.flatMapMany(connection -> Flux .from(connection.createStatement(sql).execute())
+        				.flatMap(result -> result.map((row, rowMetadata) -> {
+			                    String resValue = row.get("res", String.class);
+			                    Integer srid  = row.get("srid", Integer.class);
+			                    JsonNode geoNode = convertResponse(resValue, format);
+			                    ObjectNode resultNode = mapper.createObjectNode();
+			                    resultNode.set("geo", geoNode);
+			                    resultNode.put("srid", srid);
+			                    return resultNode;
+        					})
+        				)
+        		)
+        		.collect(ArrayList::new, List::add)
+        		.map(results -> {
+                    ObjectNode combinedNode = mapper.createObjectNode();
+                    ArrayNode arrayNode = mapper.createArrayNode();
+                    for (var node : results) {
+                        arrayNode.add((JsonNode)node);
+                    }
+                    combinedNode.set("results", arrayNode);
+                    return combinedNode;
+                })
+        		.doOnNext(node -> {
+                    System.out.println("Result from DB: " + node.toString());
+                }).repeatWhen((Repeat.times(5 - 1).fixedBackoff(Duration.ofMillis(1000))));
 
     }
 
@@ -198,4 +208,5 @@ public class PostGisConnection extends ConnectionBase {
         }
 
     }
+
 }

@@ -66,12 +66,12 @@ public class TraccarSocketManager extends ConnectionBase {
         return new TraccarSocketManager(user, password, server, protocol, deviceId, mapper);
     }
 
-    public static Flux<Val> connectToTraccar(JsonNode settings, ObjectMapper mapper) {
+    public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
 
         try {
             var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings),
                     getProtocol(settings), getDeviceId(settings), mapper);
-            return socketManager.connect(getResponseFormat(settings, mapper), mapper).map(Val::of).onErrorResume(e -> {
+            return socketManager.getFlux(getResponseFormat(settings, mapper), mapper).map(Val::of).onErrorResume(e -> {
                 return Flux.just(Val.error(e));
             }).doFinally(s -> socketManager.disconnect());
 
@@ -81,7 +81,7 @@ public class TraccarSocketManager extends ConnectionBase {
 
     }
 
-    public Flux<ObjectNode> connect(GeoPipResponseFormat format, ObjectMapper mapper) throws Exception {
+    public Flux<ObjectNode> getFlux(GeoPipResponseFormat format, ObjectMapper mapper) throws Exception {
 
         var client = new ReactiveWebClient(mapper);
 

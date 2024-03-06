@@ -46,7 +46,7 @@ public class GeoPolicyInformationPoint {
     public Flux<Val> connectToTraccar(Val leftHandValue, Val variables) {
 
         try {
-            return TraccarSocketManager.connectToTraccar(variables.get(), mapper);// .map(Val::of)
+            return TraccarSocketManager.connect(variables.get(), mapper);// .map(Val::of)
             // .onErrorResume(e -> Flux.just(Val.error(e)));
         } catch (Exception e) {
 

@@ -74,13 +74,20 @@ public class Program {
             	"responseFormat":"GEOJSON"
             }
             """;
-//        var node = Val.ofJson(pg).get();
-//        
-//        var postgis = PostGisConnection.connectToPostGis(node, mapper);
-//        postgis.subscribe(result -> {
-//          
-//          System.out.println(result);
-//      });
+        var node = Val.ofJson(pg).get();
+        
+        var postgis = PostGisConnection.connect(node, mapper);
+        postgis.subscribe(
+	      		 content ->{ 
+    			 
+    			 System.out.println("postgis content: " + content.get().toString());
+    			 
+    		 },
+  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
+  	      () -> System.out.println("Completed!!!")
+  	      );
+        
+        
         
 //        var postgis = new PostgresqlConnectionFactory(
 //        		PostgresqlConnectionConfiguration .builder()
@@ -111,23 +118,23 @@ public class Program {
                 "password":"Aig1979.",
             	"server":"127.0.0.1:8082",
             	"protocol":"http",
-            	"responseFormat":"WKT",
+            	"responseFormat":"GEOJSON",
             	"deviceId":1
             }
             """;
-        var node1 = Val.ofJson(st).get();
-        var trc = TraccarSocketManager.connectToTraccar( node1, mapper);
-		var dis = trc.subscribe(
-	      		 content ->{ 
-     			 var a = content.get().toString();
-     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-     			 System.out.println("res: " + b.getDeviceId());
-     			 System.out.println("traccar content: " + a);
-     			 
-     		 },
-   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-   	      () -> System.out.println("Completed!!!")
-   	      );
+//        var node1 = Val.ofJson(st).get();
+//        var trc = TraccarSocketManager.connect( node1, mapper);
+//		var dis = trc.subscribe(
+//	      		 content ->{ 
+//     			 var a = content.get().toString();
+//     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+//     			 System.out.println("res: " + b.getDeviceId());
+//     			 System.out.println("traccar content: " + a);
+//     			 
+//     		 },
+//   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+//   	      () -> System.out.println("Completed!!!")
+//   	      );
 
 		
 		

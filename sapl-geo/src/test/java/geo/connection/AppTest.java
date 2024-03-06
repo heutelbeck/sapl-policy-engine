@@ -80,8 +80,7 @@ public class AppTest {
                 }
                 """;
         var val = Val.ofJson(String.format(st, address));
-        var res = TraccarSocketManager.connectToTraccar(val.get(), new ObjectMapper()).blockFirst().get()
-                .toPrettyString();
+        var res = TraccarSocketManager.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 

@@ -63,7 +63,6 @@ public class JsonConverter {
         return (new GeoJsonReader(factory)).read(geoJson);
     }
 
-    
     public static Geometry geoJsonToGeometry(String geoJson) throws ParseException {
 
         return (new GeoJsonReader()).read(geoJson);

@@ -59,7 +59,7 @@ public class KmlConverter {
 
         return (new KMLReader(factory)).read(kml.getText());
     }
-    
+
     public static Geometry kmlToGeometry(Val kml) throws ParseException {
 
         return (new KMLReader()).read(kml.getText());

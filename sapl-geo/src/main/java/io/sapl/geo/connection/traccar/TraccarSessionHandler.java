@@ -135,17 +135,16 @@ public class TraccarSessionHandler {
             fences = MAPPER.readTree(in.toString());
 
             for (JsonNode geoFence : fences) {
-            	
-            	Geometry geo =  WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()),
-						new GeometryFactory(new PrecisionModel(), 4326));
-            	switch (format) {
+                var      factory = new GeometryFactory(new PrecisionModel(), 4326);
+                Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
+                switch (format) {
 
                 case GEOJSON:
                     fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
                     break;
 
                 case WKT:
-                    fenceRes.add( mapFence(geoFence,GeometryConverter.geometryToWKT(geo).get()));
+                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
                     break;
 
                 case GML:
@@ -153,7 +152,7 @@ public class TraccarSessionHandler {
                     break;
 
                 case KML:
-                    fenceRes.add(mapFence(geoFence,GeometryConverter.geometryToKML(geo).get()));
+                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
 
                 default:
 
