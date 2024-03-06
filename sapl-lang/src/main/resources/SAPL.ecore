@@ -324,8 +324,6 @@
   <eClassifiers xsi:type="ecore:EDataType" name="Val" instanceClassName="io.sapl.api.interpreter.Val"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationSubscription" instanceClassName="io.sapl.api.pdp.AuthorizationSubscription"
       serializable="false"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="FunctionContext" instanceClassName="io.sapl.interpreter.functions.FunctionContext"
-      serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationDecision" instanceClassName="io.sapl.api.pdp.AuthorizationDecision"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Decision" instanceClassName="io.sapl.api.pdp.Decision"/>
