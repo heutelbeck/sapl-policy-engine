@@ -17,41 +17,34 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static io.sapl.interpreter.combinators.DenyOverrides.DENY_OVERRIDES;
-import static io.sapl.interpreter.combinators.DenyUnlessPermit.DENY_UNLESS_PERMIT;
-import static io.sapl.interpreter.combinators.FirstApplicable.FIRST_APPLICABLE;
-import static io.sapl.interpreter.combinators.OnlyOneApplicable.ONLY_ONE_APPLICABLE;
-import static io.sapl.interpreter.combinators.PermitOverrides.PERMIT_OVERRIDES;
-import static io.sapl.interpreter.combinators.PermitUnlessDeny.PERMIT_UNLESS_DENY;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class CombiningAlgorithmFactory {
 
-    public PolicySetCombiningAlgorithm policySetCombiningAlgorithm(String algorithmName) {
-        return switch (algorithmName) {
+    public static final String FIRST_APPLICABLE_NOT_FOR_DOCUMENTS_ERROR = "FIRST_APPLICABLE not available for combining documents.";
+
+    public PolicySetCombiningAlgorithm policySetCombiningAlgorithm(CombiningAlgorithm algorithm) {
+        return switch (algorithm) {
         case DENY_OVERRIDES -> DenyOverrides::denyOverrides;
         case PERMIT_OVERRIDES -> PermitOverrides::permitOverrides;
         case FIRST_APPLICABLE -> FirstApplicable::firstApplicable;
         case ONLY_ONE_APPLICABLE -> OnlyOneApplicable::onlyOneApplicable;
         case DENY_UNLESS_PERMIT -> DenyUnlessPermit::denyUnlessPermit;
         case PERMIT_UNLESS_DENY -> PermitUnlessDeny::permitUnlessDeny;
-        default -> throw new PolicyEvaluationException(
-                String.format("Illegal PolicySetCombiningAlgorithm '%s'.", algorithmName));
         };
     }
 
-    public DocumentsCombiningAlgorithm documentsCombiningAlgorithm(String algorithmName) {
-        return switch (algorithmName) {
+    public DocumentsCombiningAlgorithm documentsCombiningAlgorithm(CombiningAlgorithm algorithm) {
+        return switch (algorithm) {
         case DENY_OVERRIDES -> DenyOverrides::denyOverrides;
         case PERMIT_OVERRIDES -> PermitOverrides::permitOverrides;
         case ONLY_ONE_APPLICABLE -> OnlyOneApplicable::onlyOneApplicable;
         case DENY_UNLESS_PERMIT -> DenyUnlessPermit::denyUnlessPermit;
         case PERMIT_UNLESS_DENY -> PermitUnlessDeny::permitUnlessDeny;
-        default -> throw new PolicyEvaluationException(
-                String.format("Illegal DocumentsCombiningAlgorithm '%s'.", algorithmName));
+        case FIRST_APPLICABLE -> throw new PolicyEvaluationException(FIRST_APPLICABLE_NOT_FOR_DOCUMENTS_ERROR);
         };
     }
 

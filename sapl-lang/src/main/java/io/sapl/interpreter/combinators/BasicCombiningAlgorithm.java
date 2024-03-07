@@ -25,6 +25,7 @@ import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
@@ -36,10 +37,10 @@ import reactor.core.publisher.Flux;
 public class BasicCombiningAlgorithm {
 
     public static Flux<CombinedDecision> eagerlyCombineMatchingDocuments(Collection<MatchingDocument> matchingDocuments,
-            Function<DocumentEvaluationResult[], CombinedDecision> combinator, String algorithmName,
+            Function<DocumentEvaluationResult[], CombinedDecision> combinator, CombiningAlgorithm algorithm,
             AuthorizationDecision defaultDecisionIfEmpty) {
         if (matchingDocuments.isEmpty())
-            return Flux.just(CombinedDecision.of(defaultDecisionIfEmpty, algorithmName));
+            return Flux.just(CombinedDecision.of(defaultDecisionIfEmpty, algorithm));
         var policyDecisions = eagerMatchingDocumentsDecisionFluxes(matchingDocuments);
         return Flux.combineLatest(policyDecisions, decisionObjects -> combinator
                 .apply(Arrays.copyOf(decisionObjects, decisionObjects.length, DocumentEvaluationResult[].class)));
@@ -47,10 +48,10 @@ public class BasicCombiningAlgorithm {
 
     public static Flux<CombinedDecision> eagerlyCombinePolicyElements(
             Collection<? extends PolicyElement> policyElements,
-            Function<DocumentEvaluationResult[], CombinedDecision> combinator, String algorithmName,
+            Function<DocumentEvaluationResult[], CombinedDecision> combinator, CombiningAlgorithm algorithm,
             AuthorizationDecision defaultDecisionIfEmpty) {
         if (policyElements.isEmpty())
-            return Flux.just(CombinedDecision.of(defaultDecisionIfEmpty, algorithmName));
+            return Flux.just(CombinedDecision.of(defaultDecisionIfEmpty, algorithm));
         var policyDecisions = eagerPolicyElementDecisionFluxes(policyElements);
         return Flux.combineLatest(policyDecisions, decisionObjects -> combinator
                 .apply(Arrays.copyOf(decisionObjects, decisionObjects.length, DocumentEvaluationResult[].class)));

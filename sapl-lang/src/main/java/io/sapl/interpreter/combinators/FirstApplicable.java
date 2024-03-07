@@ -22,6 +22,7 @@ import java.util.function.Function;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.PolicySet;
@@ -58,11 +59,10 @@ import reactor.core.publisher.Flux;
  */
 @UtilityClass
 public class FirstApplicable {
-    public static final String FIRST_APPLICABLE = "first-applicable";
 
     public Flux<CombinedDecision> firstApplicable(PolicySet policySet) {
         return combine(0, policySet.getPolicies())
-                .apply(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, FIRST_APPLICABLE));
+                .apply(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, CombiningAlgorithm.FIRST_APPLICABLE));
     }
 
     private Function<CombinedDecision, Flux<CombinedDecision>> combine(int policyId, List<Policy> policies) {

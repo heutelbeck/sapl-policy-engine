@@ -27,6 +27,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
@@ -48,16 +49,15 @@ import reactor.core.publisher.Flux;
  */
 @UtilityClass
 public class PermitUnlessDeny {
-    public static final String PERMIT_UNLESS_DENY = "permit-unless-deny";
 
     public Flux<CombinedDecision> permitUnlessDeny(PolicySet policySet) {
         return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policySet.getPolicies(),
-                PermitUnlessDeny::combinator, PERMIT_UNLESS_DENY, AuthorizationDecision.PERMIT);
+                PermitUnlessDeny::combinator, CombiningAlgorithm.PERMIT_UNLESS_DENY, AuthorizationDecision.PERMIT);
     }
 
     public Flux<CombinedDecision> permitUnlessDeny(List<MatchingDocument> documents) {
         return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, PermitUnlessDeny::combinator,
-                PERMIT_UNLESS_DENY, AuthorizationDecision.PERMIT);
+                CombiningAlgorithm.PERMIT_UNLESS_DENY, AuthorizationDecision.PERMIT);
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
@@ -87,7 +87,7 @@ public class PermitUnlessDeny {
 
         var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
                 collector.getAdvice(entitlement));
-        return CombinedDecision.of(finalDecision, PERMIT_UNLESS_DENY, decisions);
+        return CombinedDecision.of(finalDecision, CombiningAlgorithm.PERMIT_UNLESS_DENY, decisions);
     }
 
 }

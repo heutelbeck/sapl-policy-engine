@@ -29,6 +29,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
@@ -60,16 +61,15 @@ import reactor.core.publisher.Flux;
  */
 @UtilityClass
 public class PermitOverrides {
-    public static final String PERMIT_OVERRIDES = "permit-overrides";
 
     public Flux<CombinedDecision> permitOverrides(PolicySet policySet) {
         return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policySet.getPolicies(),
-                PermitOverrides::combinator, PERMIT_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
+                PermitOverrides::combinator, CombiningAlgorithm.PERMIT_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
     }
 
     public Flux<CombinedDecision> permitOverrides(List<MatchingDocument> documents) {
         return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, PermitOverrides::combinator,
-                PERMIT_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
+                CombiningAlgorithm.PERMIT_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
@@ -105,7 +105,7 @@ public class PermitOverrides {
         }
         var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
                 collector.getAdvice(entitlement));
-        return CombinedDecision.of(finalDecision, PERMIT_OVERRIDES, decisions);
+        return CombinedDecision.of(finalDecision, CombiningAlgorithm.PERMIT_OVERRIDES, decisions);
     }
 
 }

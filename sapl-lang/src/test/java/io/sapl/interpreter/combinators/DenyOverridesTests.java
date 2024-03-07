@@ -65,8 +65,10 @@ class DenyOverridesTests {
 
     @Test
     void noDecisionsIsNotApplicable() {
-        StepVerifier.create(DenyOverrides.denyOverrides(List.of())).expectNextMatches(combinedDecision -> combinedDecision
-                .getAuthorizationDecision().getDecision() == Decision.NOT_APPLICABLE).verifyComplete();
+        StepVerifier.create(DenyOverrides.denyOverrides(List.of()))
+                .expectNextMatches(combinedDecision -> combinedDecision.getAuthorizationDecision()
+                        .getDecision() == Decision.NOT_APPLICABLE)
+                .verifyComplete();
     }
 
     @Test

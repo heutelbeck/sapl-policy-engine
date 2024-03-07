@@ -22,6 +22,7 @@ import java.util.List;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
@@ -52,16 +53,15 @@ import reactor.core.publisher.Flux;
  */
 @UtilityClass
 public class OnlyOneApplicable {
-    public static final String ONLY_ONE_APPLICABLE = "only-one-applicable";
 
     public Flux<CombinedDecision> onlyOneApplicable(PolicySet policySet) {
         return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policySet.getPolicies(),
-                OnlyOneApplicable::combinator, ONLY_ONE_APPLICABLE, AuthorizationDecision.NOT_APPLICABLE);
+                OnlyOneApplicable::combinator, CombiningAlgorithm.ONLY_ONE_APPLICABLE, AuthorizationDecision.NOT_APPLICABLE);
     }
 
     public Flux<CombinedDecision> onlyOneApplicable(List<MatchingDocument> documents) {
         return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, OnlyOneApplicable::combinator,
-                ONLY_ONE_APPLICABLE, AuthorizationDecision.NOT_APPLICABLE);
+                CombiningAlgorithm.ONLY_ONE_APPLICABLE, AuthorizationDecision.NOT_APPLICABLE);
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] evaluationResults) {
@@ -83,7 +83,7 @@ public class OnlyOneApplicable {
             authzDecision = AuthorizationDecision.INDETERMINATE;
         }
 
-        return CombinedDecision.of(authzDecision, ONLY_ONE_APPLICABLE, decisions);
+        return CombinedDecision.of(authzDecision, CombiningAlgorithm.ONLY_ONE_APPLICABLE, decisions);
     }
 
 }

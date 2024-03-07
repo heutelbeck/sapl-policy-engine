@@ -69,8 +69,10 @@ class OnlyOneApplicableTests {
 
     @Test
     void noDecisionsIsNotApplicable() {
-        StepVerifier.create(OnlyOneApplicable.onlyOneApplicable(List.of())).expectNextMatches(combinedDecision -> combinedDecision
-                .getAuthorizationDecision().getDecision() == Decision.NOT_APPLICABLE).verifyComplete();
+        StepVerifier.create(OnlyOneApplicable.onlyOneApplicable(List.of()))
+                .expectNextMatches(combinedDecision -> combinedDecision.getAuthorizationDecision()
+                        .getDecision() == Decision.NOT_APPLICABLE)
+                .verifyComplete();
     }
 
     @Test

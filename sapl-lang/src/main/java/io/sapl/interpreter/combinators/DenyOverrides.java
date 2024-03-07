@@ -29,6 +29,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
@@ -58,16 +59,15 @@ import reactor.core.publisher.Flux;
  */
 @UtilityClass
 public class DenyOverrides {
-    public static final String DENY_OVERRIDES = "deny-overrides";
 
     public Flux<CombinedDecision> denyOverrides(PolicySet policySet) {
         return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policySet.getPolicies(), DenyOverrides::combinator,
-                DENY_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
+                CombiningAlgorithm.DENY_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
     }
 
     public Flux<CombinedDecision> denyOverrides(List<MatchingDocument> documents) {
         return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, DenyOverrides::combinator,
-                DENY_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
+                CombiningAlgorithm.DENY_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
@@ -106,7 +106,7 @@ public class DenyOverrides {
 
         var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
                 collector.getAdvice(entitlement));
-        return CombinedDecision.of(finalDecision, DENY_OVERRIDES, decisions);
+        return CombinedDecision.of(finalDecision, CombiningAlgorithm.DENY_OVERRIDES, decisions);
 
     }
 
