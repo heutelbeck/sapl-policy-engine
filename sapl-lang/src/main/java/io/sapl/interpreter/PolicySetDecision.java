@@ -55,12 +55,14 @@ public class PolicySetDecision implements DocumentEvaluationResult {
         return new PolicySetDecision(null, document, Optional.empty(), Optional.ofNullable(errorMessage));
     }
 
-    public static PolicySetDecision ofTargetError(String document, Val targetValue, CombiningAlgorithm combiningAlgorithm) {
+    public static PolicySetDecision ofTargetError(String document, Val targetValue,
+            CombiningAlgorithm combiningAlgorithm) {
         return new PolicySetDecision(CombinedDecision.of(AuthorizationDecision.INDETERMINATE, combiningAlgorithm),
                 document, Optional.ofNullable(targetValue), Optional.empty());
     }
 
-    public static PolicySetDecision notApplicable(String document, Val targetValue,  CombiningAlgorithm combiningAlgorithm) {
+    public static PolicySetDecision notApplicable(String document, Val targetValue,
+            CombiningAlgorithm combiningAlgorithm) {
         return new PolicySetDecision(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, combiningAlgorithm),
                 document, Optional.ofNullable(targetValue), Optional.empty());
     }

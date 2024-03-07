@@ -56,7 +56,8 @@ public class OnlyOneApplicable {
 
     public Flux<CombinedDecision> onlyOneApplicable(PolicySet policySet) {
         return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policySet.getPolicies(),
-                OnlyOneApplicable::combinator, CombiningAlgorithm.ONLY_ONE_APPLICABLE, AuthorizationDecision.NOT_APPLICABLE);
+                OnlyOneApplicable::combinator, CombiningAlgorithm.ONLY_ONE_APPLICABLE,
+                AuthorizationDecision.NOT_APPLICABLE);
     }
 
     public Flux<CombinedDecision> onlyOneApplicable(List<MatchingDocument> documents) {
