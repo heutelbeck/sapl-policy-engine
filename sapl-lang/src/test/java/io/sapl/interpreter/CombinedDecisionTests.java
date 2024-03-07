@@ -27,30 +27,34 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 
 class CombinedDecisionTests {
 
     @Test
     void error() {
-        var decision = CombinedDecision.error("algorithm", "error message");
+        var decision = CombinedDecision.error(CombiningAlgorithm.DENY_OVERRIDES, "error message");
         assertThat(decision.getAuthorizationDecision().getDecision()).isEqualTo(Decision.INDETERMINATE);
-        assertThat(decision.getTrace().get(Trace.COMBINING_ALGORITHM).textValue()).isEqualTo("algorithm");
+        assertThat(decision.getTrace().get(Trace.COMBINING_ALGORITHM).textValue())
+                .isEqualTo(CombiningAlgorithm.DENY_OVERRIDES.toString());
         assertThat(decision.getTrace().get(Trace.ERROR_MESSAGE).textValue()).isEqualTo("error message");
     }
 
     @Test
     void ofOneDecision() {
-        var decision = CombinedDecision.of(AuthorizationDecision.PERMIT, "test");
+        var decision = CombinedDecision.of(AuthorizationDecision.PERMIT, CombiningAlgorithm.DENY_OVERRIDES);
         assertThat(decision.getAuthorizationDecision().getDecision()).isEqualTo(Decision.PERMIT);
-        assertThat(decision.getTrace().get(Trace.COMBINING_ALGORITHM).textValue()).isEqualTo("test");
+        assertThat(decision.getTrace().get(Trace.COMBINING_ALGORITHM).textValue())
+                .isEqualTo(CombiningAlgorithm.DENY_OVERRIDES.toString());
     }
 
     @Test
     void actualCombination() {
-        var decision = CombinedDecision.of(AuthorizationDecision.DENY, "test",
+        var decision = CombinedDecision.of(AuthorizationDecision.DENY, CombiningAlgorithm.DENY_OVERRIDES,
                 List.of(mock(DocumentEvaluationResult.class)));
         assertThat(decision.getAuthorizationDecision().getDecision()).isEqualTo(Decision.DENY);
-        assertThat(decision.getTrace().get(Trace.COMBINING_ALGORITHM).textValue()).isEqualTo("test");
+        assertThat(decision.getTrace().get(Trace.COMBINING_ALGORITHM).textValue())
+                .isEqualTo(CombiningAlgorithm.DENY_OVERRIDES.toString());
         assertThat(decision.getTrace().get(Trace.EVALUATED_POLICIES).isArray()).isTrue();
     }
 

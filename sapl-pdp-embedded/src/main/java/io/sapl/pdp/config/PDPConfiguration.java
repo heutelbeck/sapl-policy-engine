@@ -24,13 +24,13 @@ import java.util.function.UnaryOperator;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.TracedDecision;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.Document;
 
 public record PDPConfiguration(String configurationId, AttributeContext attributeContext,
         FunctionContext functionContext, Map<String, Val> variables,
-        PolicyDocumentCombiningAlgorithm documentsCombinator, UnaryOperator<TracedDecision> decisionInterceptorChain,
+        CombiningAlgorithm documentsCombinator, UnaryOperator<TracedDecision> decisionInterceptorChain,
         UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain, Collection<Document> documents) {
 }

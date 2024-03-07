@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 
 class PolicySetDecisionTests {
 
@@ -37,7 +38,7 @@ class PolicySetDecisionTests {
     @Test
     void ofCombined() {
         var decision = PolicySetDecision
-                .of(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, "algorithm name"), "documentName")
+                .of(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, CombiningAlgorithm.DENY_OVERRIDES), "documentName")
                 .withTargetResult(Val.TRUE);
         assertThat(decision.getTrace().get(Trace.DOCUMENT_TYPE).textValue()).isEqualTo("policy set");
         assertThat(decision.getTrace().get(Trace.POLICY_SET_NAME).textValue()).isEqualTo("documentName");
@@ -46,7 +47,7 @@ class PolicySetDecisionTests {
 
     @Test
     void ofTargetError() {
-        var decision = PolicySetDecision.ofTargetError("documentName", Val.error("error message"), "test");
+        var decision = PolicySetDecision.ofTargetError("documentName", Val.error("error message"), CombiningAlgorithm.DENY_OVERRIDES);
         assertThat(decision.getTrace().get(Trace.TARGET).get(Trace.VALUE).textValue())
                 .isEqualTo("|ERROR| error message");
         assertThat(decision.getTrace().get(Trace.POLICY_SET_NAME).textValue()).isEqualTo("documentName");
