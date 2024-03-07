@@ -69,9 +69,10 @@ public class Program {
             	"server":"localhost",
             	"port": 5432,
             	"dataBase":"nyc",
-            	"table":"geographies",
-            	"column":"geog",
-            	"responseFormat":"GEOJSON"
+            	"table":"nyc_streets",
+            	"column":"geom",
+            	"responseFormat":"GEOJSON",
+            	"defaultCRS": 4326
             }
             """;
         var node = Val.ofJson(pg).get();

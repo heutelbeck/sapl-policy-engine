@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.PrecisionModel;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,7 +53,8 @@ public class PostGisConnection extends ConnectionBase {
     private static final String TABLE    = "table";
     private static final String COLUMN   = "column";
     private static final String WHERE    = "where";
-
+    private static final String DEFAULTCRS    = "defaultCRS";
+    
     private ConnectionFactory connectionFactory;
     private ObjectMapper      mapper;
 
@@ -75,7 +78,7 @@ public class PostGisConnection extends ConnectionBase {
             var connection = getNew(getUser(settings), getPassword(settings), getServer(settings), getPort(settings),
                     getDataBase(settings), mapper);
             return connection.getFlux(getResponseFormat(settings, mapper), getTable(settings), getColumn(settings),
-                    getWhere(settings), mapper).map(Val::of).onErrorResume(e -> {
+                    getWhere(settings), getDefaultCRS(settings), mapper).map(Val::of).onErrorResume(e -> {
                         return Flux.just(Val.error(e));
                     });
 
@@ -86,7 +89,7 @@ public class PostGisConnection extends ConnectionBase {
     }
 
     public Flux<ObjectNode> getFlux(GeoPipResponseFormat format, String table, String column, String where,
-            ObjectMapper mapper) {
+            int defaultCrs, ObjectMapper mapper) {
 
         String frmt = "ST_AsGeoJSON";
 
@@ -98,10 +101,15 @@ public class PostGisConnection extends ConnectionBase {
         				.flatMap(result -> result.map((row, rowMetadata) -> {
 			                    String resValue = row.get("res", String.class);
 			                    Integer srid  = row.get("srid", Integer.class);
-			                    JsonNode geoNode = convertResponse(resValue, format);
+			                    JsonNode geoNode;
+			                    if(srid != 0) {
+			                    	 geoNode = convertResponse(resValue, format, srid);
+			                    }else {
+			                    	 geoNode = convertResponse(resValue, format, defaultCrs);
+			                    }
 			                    ObjectNode resultNode = mapper.createObjectNode();
-			                    resultNode.set("geo", geoNode);
 			                    resultNode.put("srid", srid);
+			                    resultNode.set("geo", geoNode);
 			                    return resultNode;
         					})
         				)
@@ -122,31 +130,31 @@ public class PostGisConnection extends ConnectionBase {
 
     }
 
-    private JsonNode convertResponse(String in, GeoPipResponseFormat format) {
+    private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid) {
 
         Geometry geo;
         JsonNode res = mapper.createObjectNode();
-
+        
         try {
             switch (format) {
             case GEOJSON:
-
-                geo = JsonConverter.geoJsonToGeometry(in);
+            	
+                geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
                 res = GeometryConverter.geometryToGeoJsonNode(geo).get();
                 break;
 
             case WKT:
-                geo = JsonConverter.geoJsonToGeometry(in);
+                geo = JsonConverter.geoJsonToGeometry(in,new GeometryFactory(new PrecisionModel(), srid));
                 res = GeometryConverter.geometryToWKT(geo).get();
                 break;
 
             case GML:
-                geo = JsonConverter.geoJsonToGeometry(in);
+                geo = JsonConverter.geoJsonToGeometry(in,new GeometryFactory(new PrecisionModel(), srid));
                 res = GeometryConverter.geometryToGML(geo).get();
                 break;
 
             case KML:
-                geo = JsonConverter.geoJsonToGeometry(in);
+                geo = JsonConverter.geoJsonToGeometry(in,new GeometryFactory(new PrecisionModel(), srid));
                 res = GeometryConverter.geometryToKML(geo).get();
                 break;
 
@@ -208,5 +216,12 @@ public class PostGisConnection extends ConnectionBase {
         }
 
     }
+    private static int getDefaultCRS(JsonNode requestSettings) {
+        if (requestSettings.has(DEFAULTCRS)) {
+            return  requestSettings.findValue(DEFAULTCRS).asInt();
+        } else {
+            return 4326;
+        }
 
+    }
 }
