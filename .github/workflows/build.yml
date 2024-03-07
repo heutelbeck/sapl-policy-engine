@@ -174,7 +174,7 @@ jobs:
       run: rm -rf ~/.m2/repository/io/sapl
 
   deploy:
-    # if: ${{ github.ref == 'refs/heads/master' }} 
+    if: ${{ github.ref == 'refs/heads/master' }} 
     needs: [build]
     name: Publish Project Assets
     runs-on: ubuntu-latest
@@ -277,7 +277,7 @@ jobs:
         IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{.RepoDigests}}' | sed -e 's/^.*@//' -e 's/]$//')
         echo "Digest of container" + $IMAGE_DIGEST
         echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
-          
+
     - name: Push Eclipse Plugin to Website
       uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
       env:
