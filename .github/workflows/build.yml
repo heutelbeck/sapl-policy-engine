@@ -55,7 +55,7 @@ jobs:
       # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 17. All other platforms, just do quick unit tests.
       RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
       # PRs from Dependabot are treated the same as those from forks since secrets are not accessible
-      # (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
+      # for both (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
       IS_FORK: ${{ github.event.pull_request.head.repo.fork || (github.actor == 'dependabot[bot]') }}
       
     steps:
@@ -113,7 +113,11 @@ jobs:
     - name: Run Unit Tests Only
       if: env.RUN_ANALYSIS == 'false'
       run: mvn -B package -fae javadoc:jar
-      
+
+      # Runs JaCoCo and Spotbugs analysis which are needed for the subsequent
+      # SonarCloud analysis. The SonarCloud analysis is run separately because a
+      # distinction has to be made between workflows triggered by pull requests from a
+      # fork and workflows triggered by different events.
     - name: Run Unit Tests, Analysis, and Integration Tests
       if: env.RUN_ANALYSIS == 'true'
       run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs
@@ -139,11 +143,16 @@ jobs:
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
         -Dsonar.qualitygate.wait=true
 
-    - name: Save PR Number # needed for subsequent SonarCloud workflow for PRs from fork
+      # The next two steps are needed because workflows triggered by pull requests from
+      # forks cannot access repository secrets. A SonarCloud analysis cannot be run
+      # without a secret SonarCloud token. The information and files needed for a
+      # SonarCloud analysis are thus uploaded as an artifact and used in a subsequent
+      # workflow triggered by the conclusion of the current workflow.
+    - name: Save PR Number
       if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
       run: echo "${{ github.event.number }}" > pr_data.txt
 
-    - name: Upload Artifact # needed for subsequent SonarCloud workflow for PRs from fork
+    - name: Upload Artifact
       if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
       uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
       with:
