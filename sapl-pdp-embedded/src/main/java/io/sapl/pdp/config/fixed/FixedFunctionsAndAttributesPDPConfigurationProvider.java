@@ -35,6 +35,7 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.prp.Document;
 import reactor.core.publisher.Flux;
 
 public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPConfigurationProvider {
@@ -68,9 +69,9 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
     }
 
     private PDPConfiguration createConfiguration(Optional<CombiningAlgorithm> combinator,
-            Optional<Map<String, Val>> variables) {
-        return new PDPConfiguration(attributeCtx, functionCtx, variables.orElse(null), combinator.orElse(null),
-                decisionInterceptorChain(), subscriptionInterceptorChain());
+            Optional<Map<String, Val>> variables, Collection<Document> documents) {
+        return new PDPConfiguration("defaultConfiguration", attributeCtx, functionCtx, variables.orElse(null), combinator.orElse(null),
+                decisionInterceptorChain(), subscriptionInterceptorChain(), documents);
     }
 
     private UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain() {
