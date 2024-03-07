@@ -17,29 +17,27 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static io.sapl.interpreter.combinators.algorithms.DenyOverrides.DENY_OVERRIDES;
-import static io.sapl.interpreter.combinators.algorithms.FirstApplicable.FIRST_APPLICABLE;
+import static io.sapl.interpreter.combinators.DenyOverrides.DENY_OVERRIDES;
+import static io.sapl.interpreter.combinators.DenyUnlessPermit.DENY_UNLESS_PERMIT;
+import static io.sapl.interpreter.combinators.FirstApplicable.FIRST_APPLICABLE;
+import static io.sapl.interpreter.combinators.OnlyOneApplicable.ONLY_ONE_APPLICABLE;
+import static io.sapl.interpreter.combinators.PermitOverrides.PERMIT_OVERRIDES;
+import static io.sapl.interpreter.combinators.PermitUnlessDeny.PERMIT_UNLESS_DENY;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.interpreter.combinators.algorithms.DenyOverrides;
-import io.sapl.interpreter.combinators.algorithms.FirstApplicable;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class CombiningAlgorithmFactory {
-    private static final String PERMIT_OVERRIDES    = "permit-overrides";
-    private static final String ONLY_ONE_APPLICABLE = "only-one-applicable";
-    private static final String DENY_UNLESS_PERMIT  = "deny-unless-permit";
-    private static final String PERMIT_UNLESS_DENY  = "permit-unless-deny";
 
     public PolicySetCombiningAlgorithm policySetCombiningAlgorithm(String algorithmName) {
         return switch (algorithmName) {
         case DENY_OVERRIDES -> DenyOverrides::denyOverrides;
-        case PERMIT_OVERRIDES -> null;
+        case PERMIT_OVERRIDES -> PermitOverrides::permitOverrides;
         case FIRST_APPLICABLE -> FirstApplicable::firstApplicable;
-        case ONLY_ONE_APPLICABLE -> null;
-        case DENY_UNLESS_PERMIT -> null;
-        case PERMIT_UNLESS_DENY -> null;
+        case ONLY_ONE_APPLICABLE -> OnlyOneApplicable::onlyOneApplicable;
+        case DENY_UNLESS_PERMIT -> DenyUnlessPermit::denyUnlessPermit;
+        case PERMIT_UNLESS_DENY -> PermitUnlessDeny::permitUnlessDeny;
         default -> throw new PolicyEvaluationException(
                 String.format("Illegal PolicySetCombiningAlgorithm '%s'.", algorithmName));
         };
@@ -48,10 +46,10 @@ public class CombiningAlgorithmFactory {
     public DocumentsCombiningAlgorithm documentsCombiningAlgorithm(String algorithmName) {
         return switch (algorithmName) {
         case DENY_OVERRIDES -> DenyOverrides::denyOverrides;
-        case PERMIT_OVERRIDES -> null;
-        case ONLY_ONE_APPLICABLE -> null;
-        case DENY_UNLESS_PERMIT -> null;
-        case PERMIT_UNLESS_DENY -> null;
+        case PERMIT_OVERRIDES -> PermitOverrides::permitOverrides;
+        case ONLY_ONE_APPLICABLE -> OnlyOneApplicable::onlyOneApplicable;
+        case DENY_UNLESS_PERMIT -> DenyUnlessPermit::denyUnlessPermit;
+        case PERMIT_UNLESS_DENY -> PermitUnlessDeny::permitUnlessDeny;
         default -> throw new PolicyEvaluationException(
                 String.format("Illegal DocumentsCombiningAlgorithm '%s'.", algorithmName));
         };

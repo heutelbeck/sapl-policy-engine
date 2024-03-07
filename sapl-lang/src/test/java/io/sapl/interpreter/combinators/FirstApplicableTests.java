@@ -22,7 +22,6 @@ import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateDecisio
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateObligations;
 import static io.sapl.interpreter.combinators.CombinatorTestUtil.validateResource;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -32,8 +31,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.interpreter.combinators.algorithms.FirstApplicable;
-import reactor.test.StepVerifier;
 
 class FirstApplicableTests {
 
@@ -42,13 +39,6 @@ class FirstApplicableTests {
             null, null, null, null);
     private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
             null, null, JSON.booleanNode(true), null);
-
-    @Test
-    void noDecisionsIsNotApplicable() {
-        var algorithm = new FirstApplicable();
-        StepVerifier.create(algorithm.combinePolicies(List.of())).expectNextMatches(combinedDecision -> combinedDecision
-                .getAuthorizationDecision().getDecision() == Decision.NOT_APPLICABLE).verifyComplete();
-    }
 
     @Test
     void permit() {

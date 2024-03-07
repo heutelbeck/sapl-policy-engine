@@ -17,6 +17,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
+import static io.sapl.interpreter.combinators.CombiningAlgorithmFactory.policySetCombiningAlgorithm;
+
 import java.util.HashSet;
 import java.util.Map;
 
@@ -27,7 +29,6 @@ import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.PolicySetDecision;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 
@@ -87,7 +88,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
     private Flux<CombinedDecision> evaluateValueDefinitionsAndPolicies(int valueDefinitionId) {
         if (valueDefinitions == null || valueDefinitionId == valueDefinitions.size())
-            return evaluateAndCombinePoliciesOfSet();
+            return policySetCombiningAlgorithm(getAlgorithm()).combinePoliciesInSet(this);
 
         var valueDefinition           = valueDefinitions.get(valueDefinitionId);
         var evaluatedValueDefinitions = valueDefinition.getEval().evaluate();
@@ -95,10 +96,6 @@ public class PolicySetImplCustom extends PolicySetImpl {
                 .contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(),
                         value.withTrace(PolicySet.class, true, Map.of(Trace.POLICY_SET, Val.of(saplName),
                                 Trace.VARIABLE_NAME, Val.of(valueDefinition.getName()), Trace.VALUE, value)))));
-    }
-
-    private Flux<CombinedDecision> evaluateAndCombinePoliciesOfSet() {
-        return CombiningAlgorithmFactory.policySetCombiningAlgorithm(getAlgorithm()).combinePoliciesInSet(this);
     }
 
 }

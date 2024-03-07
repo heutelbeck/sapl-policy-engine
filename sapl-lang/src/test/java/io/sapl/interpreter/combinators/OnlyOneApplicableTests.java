@@ -44,7 +44,6 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.combinators.old.OnlyOneApplicableCombiningAlgorithmImplCustom;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
@@ -61,8 +60,6 @@ class OnlyOneApplicableTests {
     private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
             null, null, JSON.booleanNode(true), null);
 
-    private final OnlyOneApplicableCombiningAlgorithmImplCustom combinator = new OnlyOneApplicableCombiningAlgorithmImplCustom();
-
     @Test
     void combineDocumentsOneDeny() {
         var given    = mockPolicyRetrievalResult(false, denyPolicy(""));
@@ -72,8 +69,7 @@ class OnlyOneApplicableTests {
 
     @Test
     void noDecisionsIsNotApplicable() {
-        var algorithm = new OnlyOneApplicableCombiningAlgorithmImplCustom();
-        StepVerifier.create(algorithm.combinePolicies(List.of())).expectNextMatches(combinedDecision -> combinedDecision
+        StepVerifier.create(OnlyOneApplicable.onlyOneApplicable(List.of())).expectNextMatches(combinedDecision -> combinedDecision
                 .getAuthorizationDecision().getDecision() == Decision.NOT_APPLICABLE).verifyComplete();
     }
 
@@ -148,7 +144,7 @@ class OnlyOneApplicableTests {
 
     private void verifyDocumentsCombinator(PolicyRetrievalResult given, AuthorizationDecision expected) {
         StepVerifier
-                .create(combinator.combinePolicies(given.getPolicyElements())
+                .create(OnlyOneApplicable.onlyOneApplicable(given.getMatchingDocuments())
                         .map(CombinedDecision::getAuthorizationDecision)
                         .contextWrite(
                                 ctx -> AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext()))

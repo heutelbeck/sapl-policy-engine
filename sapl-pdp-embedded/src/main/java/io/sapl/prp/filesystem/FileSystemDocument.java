@@ -24,25 +24,24 @@ import java.nio.file.Path;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.prp.Document;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 @Data
 @Slf4j
-class Document {
+class FileSystemDocument {
 
     Path path;
 
-    String rawDocument;
-
-    SAPL parsedDocument;
-
-    String documentName;
+    Document document;
 
     boolean published;
 
-    public Document(Path path, SAPLInterpreter interpreter) {
+    public FileSystemDocument(Path path, SAPLInterpreter interpreter) {
         this.path = path;
+        String rawDocument    = null;
+        SAPL   parsedDocument = null;
         try {
             rawDocument = Files.readString(path);
         } catch (IOException e) {
@@ -52,28 +51,33 @@ class Document {
         try {
             if (rawDocument != null) {
                 parsedDocument = interpreter.parse(rawDocument);
-                documentName   = parsedDocument.getPolicyElement().getSaplName();
             }
         } catch (PolicyEvaluationException e) {
             log.warn("Error in document '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
                     e.getMessage());
         }
+        document = new Document(path.toString(), rawDocument, parsedDocument);
     }
 
-    public Document(Document document) {
-        this.path           = document.path;
-        this.published      = document.published;
-        this.rawDocument    = document.rawDocument;
-        this.parsedDocument = document.parsedDocument;
-        this.documentName   = document.documentName;
+    public FileSystemDocument(FileSystemDocument document) {
+        this.path      = document.path;
+        this.published = document.published;
+        this.document  = document.document;
     }
 
     public String getAbsolutePath() {
         return path.toAbsolutePath().toString();
     }
 
+    public String getDocumentName() {
+        if (document.sapl() == null)
+            return null;
+
+        return document.sapl().getPolicyElement().getSaplName();
+    }
+
     public boolean isInvalid() {
-        return parsedDocument == null;
+        return document.sapl() == null;
     }
 
 }

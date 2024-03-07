@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter.combinators.algorithms;
+package io.sapl.interpreter.combinators;
 
 import static io.sapl.api.pdp.Decision.DENY;
 import static io.sapl.api.pdp.Decision.INDETERMINATE;
@@ -32,21 +32,21 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
-import io.sapl.interpreter.combinators.BasicCombiningAlgorithm;
-import io.sapl.interpreter.combinators.ObligationAdviceCollector;
 import io.sapl.prp.MatchingDocument;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 /**
- * This algorithm is used if a DENY decision should prevail a PERMIT without
+ * This algorithm is used if a PERMIT decision should prevail a DENY without
  * setting a default decision.
  * <p>
  * It works as follows:
  * <p>
- * - If any policy document evaluates to DENY, the decision is a DENY.
+ * 1. If any policy document evaluates to PERMIT and there is no transformation
+ * uncertainty (multiple policies evaluate to PERMIT and at least one of them
+ * has a transformation statement), the decision is PERMIT.
  * <p>
- * - Otherwise:
+ * 2. Otherwise:
  * <p>
  * a) If there is any INDETERMINATE or there is a transformation uncertainty
  * (multiple policies evaluate to PERMIT and at least one of them has a
@@ -54,22 +54,22 @@ import reactor.core.publisher.Flux;
  * <p>
  * b) Otherwise:
  * <p>
- * i) If there is any PERMIT the decision is PERMIT.
+ * i) If there is any DENY the decision is a DENY.
  * <p>
  * ii) Otherwise the decision is NOT_APPLICABLE.
  */
 @UtilityClass
-public class DenyOverrides {
-    public static final String DENY_OVERRIDES = "deny-overrides";
+public class PermitOverrides {
+    public static final String PERMIT_OVERRIDES = "permit-overrides";
 
-    public Flux<CombinedDecision> denyOverrides(PolicySet policySet) {
-        return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policySet.getPolicies(), DenyOverrides::combinator,
-                DENY_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
+    public Flux<CombinedDecision> permitOverrides(PolicySet policySet) {
+        return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policySet.getPolicies(),
+                PermitOverrides::combinator, PERMIT_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
     }
 
-    public Flux<CombinedDecision> denyOverrides(List<MatchingDocument> documents) {
-        return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, DenyOverrides::combinator,
-                DENY_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
+    public Flux<CombinedDecision> permitOverrides(List<MatchingDocument> documents) {
+        return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, PermitOverrides::combinator,
+                PERMIT_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
@@ -79,37 +79,33 @@ public class DenyOverrides {
         var decisions   = new LinkedList<DocumentEvaluationResult>();
         for (var policyDecision : policyDecisions) {
             decisions.add(policyDecision);
-            var authorizationDecision = policyDecision.getAuthorizationDecision();
-            if (authorizationDecision.getDecision() == DENY) {
-                entitlement = DENY;
-            }
-            if (authorizationDecision.getDecision() == INDETERMINATE && entitlement != DENY) {
-                entitlement = INDETERMINATE;
-            }
-            if (authorizationDecision.getDecision() == PERMIT && entitlement == NOT_APPLICABLE) {
+            var authzDecision = policyDecision.getAuthorizationDecision();
+            if (authzDecision.getDecision() == PERMIT) {
                 entitlement = PERMIT;
             }
-            collector.add(authorizationDecision);
-            if (authorizationDecision.getResource().isPresent()) {
+            if (authzDecision.getDecision() == INDETERMINATE && entitlement != PERMIT) {
+                entitlement = INDETERMINATE;
+            }
+
+            if (authzDecision.getDecision() == DENY && entitlement == NOT_APPLICABLE) {
+                entitlement = DENY;
+            }
+            collector.add(authzDecision);
+            if (authzDecision.getResource().isPresent()) {
                 if (resource.isPresent()) {
-                    /*
-                     * This is a transformation uncertainty. another policy already defined a
-                     * transformation this the overall result is basically INDETERMINATE. However,
-                     * existing DENY overrides with this algorithm.
-                     */
-                    if (entitlement != DENY) {
-                        entitlement = INDETERMINATE;
-                    }
+                    // this is a transformation uncertainty.
+                    // another policy already defined a transformation
+                    // this the overall result is basically INDETERMINATE.
+                    // However, existing DENY overrides with this algorithm.
+                    entitlement = INDETERMINATE;
                 } else {
-                    resource = authorizationDecision.getResource();
+                    resource = authzDecision.getResource();
                 }
             }
         }
-
         var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
                 collector.getAdvice(entitlement));
-        return CombinedDecision.of(finalDecision, DENY_OVERRIDES, decisions);
-
+        return CombinedDecision.of(finalDecision, PERMIT_OVERRIDES, decisions);
     }
 
 }

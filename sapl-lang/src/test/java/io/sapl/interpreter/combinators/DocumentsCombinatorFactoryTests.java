@@ -17,52 +17,72 @@
  */
 package io.sapl.interpreter.combinators;
 
-import static io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES;
-import static io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT;
-import static io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm.ONLY_ONE_APPLICABLE;
-import static io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES;
-import static io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static io.sapl.interpreter.combinators.DenyOverrides.DENY_OVERRIDES;
+import static io.sapl.interpreter.combinators.DenyUnlessPermit.DENY_UNLESS_PERMIT;
+import static io.sapl.interpreter.combinators.FirstApplicable.FIRST_APPLICABLE;
+import static io.sapl.interpreter.combinators.OnlyOneApplicable.ONLY_ONE_APPLICABLE;
+import static io.sapl.interpreter.combinators.PermitOverrides.PERMIT_OVERRIDES;
+import static io.sapl.interpreter.combinators.PermitUnlessDeny.PERMIT_UNLESS_DENY;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.interpreter.combinators.algorithms.DenyOverrides;
-import io.sapl.interpreter.combinators.old.DenyUnlessPermitCombiningAlgorithmImplCustom;
-import io.sapl.interpreter.combinators.old.OnlyOneApplicableCombiningAlgorithmImplCustom;
-import io.sapl.interpreter.combinators.old.PermitOverridesCombiningAlgorithmImplCustom;
-import io.sapl.interpreter.combinators.old.PermitUnlessDenyCombiningAlgorithmImplCustom;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 
 class DocumentsCombinatorFactoryTests {
 
     @Test
     void permitUnlessDeny() {
-        assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_UNLESS_DENY),
-                instanceOf(PermitUnlessDenyCombiningAlgorithmImplCustom.class));
+        assertThat(CombiningAlgorithmFactory.documentsCombiningAlgorithm(PERMIT_UNLESS_DENY))
+                .isInstanceOf(DocumentsCombiningAlgorithm.class);
+        assertThat(CombiningAlgorithmFactory.policySetCombiningAlgorithm(PERMIT_UNLESS_DENY))
+                .isInstanceOf(PolicySetCombiningAlgorithm.class);
     }
 
     @Test
     void permitOverrides() {
-        assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(PERMIT_OVERRIDES),
-                instanceOf(PermitOverridesCombiningAlgorithmImplCustom.class));
+        assertThat(CombiningAlgorithmFactory.documentsCombiningAlgorithm(PERMIT_OVERRIDES))
+                .isInstanceOf(DocumentsCombiningAlgorithm.class);
+        assertThat(CombiningAlgorithmFactory.policySetCombiningAlgorithm(PERMIT_OVERRIDES))
+                .isInstanceOf(PolicySetCombiningAlgorithm.class);
     }
 
     @Test
     void denyOverrides() {
-        assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_OVERRIDES),
-                instanceOf(DenyOverrides.class));
+        assertThat(CombiningAlgorithmFactory.documentsCombiningAlgorithm(DENY_OVERRIDES))
+                .isInstanceOf(DocumentsCombiningAlgorithm.class);
+        assertThat(CombiningAlgorithmFactory.policySetCombiningAlgorithm(DENY_OVERRIDES))
+                .isInstanceOf(PolicySetCombiningAlgorithm.class);
     }
 
     @Test
     void oneApplicable() {
-        assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(ONLY_ONE_APPLICABLE),
-                instanceOf(OnlyOneApplicableCombiningAlgorithmImplCustom.class));
+        assertThat(CombiningAlgorithmFactory.documentsCombiningAlgorithm(ONLY_ONE_APPLICABLE))
+                .isInstanceOf(DocumentsCombiningAlgorithm.class);
+        assertThat(CombiningAlgorithmFactory.policySetCombiningAlgorithm(ONLY_ONE_APPLICABLE))
+                .isInstanceOf(PolicySetCombiningAlgorithm.class);
     }
 
     @Test
     void denyUnlessPermit() {
-        assertThat(CombiningAlgorithmFactory.getCombiningAlgorithm(DENY_UNLESS_PERMIT),
-                instanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class));
+        assertThat(CombiningAlgorithmFactory.documentsCombiningAlgorithm(DENY_UNLESS_PERMIT))
+                .isInstanceOf(DocumentsCombiningAlgorithm.class);
+        assertThat(CombiningAlgorithmFactory.policySetCombiningAlgorithm(DENY_UNLESS_PERMIT))
+                .isInstanceOf(PolicySetCombiningAlgorithm.class);
     }
 
+    @Test
+    void firstApplicable() {
+        assertThat(CombiningAlgorithmFactory.policySetCombiningAlgorithm(FIRST_APPLICABLE))
+                .isInstanceOf(PolicySetCombiningAlgorithm.class);
+    }
+
+    @Test
+    void unknown() {
+        assertThatThrownBy(() -> CombiningAlgorithmFactory.documentsCombiningAlgorithm(FIRST_APPLICABLE))
+                .isInstanceOf(PolicyEvaluationException.class);
+        assertThatThrownBy(() -> CombiningAlgorithmFactory.policySetCombiningAlgorithm("unknown"))
+                .isInstanceOf(PolicyEvaluationException.class);
+    }
 }

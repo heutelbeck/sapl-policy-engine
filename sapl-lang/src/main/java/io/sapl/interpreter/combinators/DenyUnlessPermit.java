@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter.combinators.old;
+package io.sapl.interpreter.combinators;
 
 import static io.sapl.api.pdp.Decision.DENY;
 import static io.sapl.api.pdp.Decision.PERMIT;
@@ -27,11 +27,11 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.PolicyElement;
+import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
-import io.sapl.interpreter.combinators.BasicCombiningAlgorithm;
-import io.sapl.interpreter.combinators.ObligationAdviceCollector;
+import io.sapl.prp.MatchingDocument;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 /**
@@ -46,17 +46,18 @@ import reactor.core.publisher.Flux;
  * <p>
  * - Otherwise the decision is a DENY.
  */
-public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPermitCombiningAlgorithmImpl {
+@UtilityClass
+public class DenyUnlessPermit {
+    public static final String DENY_UNLESS_PERMIT = "deny-unless-permit";
 
-    @Override
-    public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-        return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
-                AuthorizationDecision.DENY);
+    public Flux<CombinedDecision> denyUnlessPermit(PolicySet policySet) {
+        return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policySet.getPolicies(),
+                DenyUnlessPermit::combinator, DENY_UNLESS_PERMIT, AuthorizationDecision.DENY);
     }
 
-    @Override
-    public String getName() {
-        return "DENY_UNLESS_PERMIT";
+    public Flux<CombinedDecision> denyUnlessPermit(List<MatchingDocument> documents) {
+        return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, DenyUnlessPermit::combinator,
+                DENY_UNLESS_PERMIT, AuthorizationDecision.DENY);
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
@@ -86,7 +87,7 @@ public class DenyUnlessPermitCombiningAlgorithmImplCustom extends DenyUnlessPerm
 
         var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
                 collector.getAdvice(entitlement));
-        return CombinedDecision.of(finalDecision, getName(), decisions);
+        return CombinedDecision.of(finalDecision, DENY_UNLESS_PERMIT, decisions);
     }
 
 }

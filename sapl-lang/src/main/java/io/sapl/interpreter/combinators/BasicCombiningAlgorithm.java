@@ -45,16 +45,6 @@ public class BasicCombiningAlgorithm {
                 .apply(Arrays.copyOf(decisionObjects, decisionObjects.length, DocumentEvaluationResult[].class)));
     }
 
-    private static List<Flux<DocumentEvaluationResult>> eagerMatchingDocumentsDecisionFluxes(
-            Collection<MatchingDocument> matchingDocuments) {
-        var documentDecisions = new ArrayList<Flux<DocumentEvaluationResult>>(matchingDocuments.size());
-        for (var matchingDocument : matchingDocuments) {
-            documentDecisions.add(matchingDocument.document().sapl().getPolicyElement().evaluate()
-                    .map(result -> result.withTargetResult(matchingDocument.targetExpressionResult())));
-        }
-        return documentDecisions;
-    }
-
     public static Flux<CombinedDecision> eagerlyCombinePolicyElements(
             Collection<? extends PolicyElement> policyElements,
             Function<DocumentEvaluationResult[], CombinedDecision> combinator, String algorithmName,
@@ -64,6 +54,16 @@ public class BasicCombiningAlgorithm {
         var policyDecisions = eagerPolicyElementDecisionFluxes(policyElements);
         return Flux.combineLatest(policyDecisions, decisionObjects -> combinator
                 .apply(Arrays.copyOf(decisionObjects, decisionObjects.length, DocumentEvaluationResult[].class)));
+    }
+
+    private static List<Flux<DocumentEvaluationResult>> eagerMatchingDocumentsDecisionFluxes(
+            Collection<MatchingDocument> matchingDocuments) {
+        var documentDecisions = new ArrayList<Flux<DocumentEvaluationResult>>(matchingDocuments.size());
+        for (var matchingDocument : matchingDocuments) {
+            documentDecisions.add(matchingDocument.document().sapl().getPolicyElement().evaluate()
+                    .map(result -> result.withTargetResult(matchingDocument.targetExpressionResult())));
+        }
+        return documentDecisions;
     }
 
     private static List<Flux<DocumentEvaluationResult>> eagerPolicyElementDecisionFluxes(

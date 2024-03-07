@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter.combinators.algorithms;
+package io.sapl.interpreter.combinators;
 
 import java.util.List;
 import java.util.function.Function;

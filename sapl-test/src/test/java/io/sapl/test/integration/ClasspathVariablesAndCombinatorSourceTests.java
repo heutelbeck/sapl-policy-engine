@@ -30,7 +30,7 @@ import org.mockito.Mockito;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.interpreter.combinators.old.DenyUnlessPermitCombiningAlgorithmImplCustom;
+import io.sapl.interpreter.combinators.DenyUnlessPermit;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import reactor.core.publisher.SignalType;
 
@@ -40,7 +40,7 @@ class ClasspathVariablesAndCombinatorSourceTests {
     void doTest() {
         var configProvider = new ClasspathVariablesAndCombinatorSource("policiesIT", new ObjectMapper(), null, null);
         assertThat(configProvider.getCombiningAlgorithm().blockFirst().get())
-                .isInstanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class);
+                .isInstanceOf(DenyUnlessPermit.class);
         assertThat(configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst().get().keySet())
                 .isEmpty();
         configProvider.destroy();

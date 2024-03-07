@@ -70,7 +70,7 @@ class ResourcesPRPTests {
     }
 
     private PrpUpdateEvent event(Type type) {
-        return new PrpUpdateEvent(new Update(type, null, null));
+        return new PrpUpdateEvent(new Update(type, null));
     }
 
     @Test

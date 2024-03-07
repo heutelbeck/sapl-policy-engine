@@ -36,14 +36,17 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.spotify.hamcrest.pojo.IsPojo;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -471,18 +474,26 @@ class ImmutableFileIndexTests {
         return mockFile;
     }
 
-    private IsPojo<Update> isUpdateWithName(PrpUpdateEvent.Type type, String name) {
-        // @formatter:off
-		return pojo(Update.class)
-			.withProperty("type", is(type))
-			.withProperty("document",
-				pojo(SAPL.class)
-					.withProperty("policyElement",
-						pojo(PolicyElement.class)
-							.withProperty("saplName", is(name))
-			    )
-		);
-		// @formatter:on
+    private Matcher<Update> isUpdateWithName(final PrpUpdateEvent.Type type, final String name) {
+        return new BaseMatcher<Update>() {
+            @Override
+            public boolean matches(final Object oUpdate) {
+                if (oUpdate instanceof Update update) {
+                    try {
+                        return update.getType().equals(type) && Objects.equals(name, update.getDocument().sapl().getPolicyElement().getSaplName());
+                    } catch (Exception e) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+
+            @Override
+            public void describeTo(final Description description) {
+                description.appendText("update shuold have name ").appendValue(name);
+            }
+        };
     }
 
     private IsPojo<Update> isUpdateType(PrpUpdateEvent.Type type) {
