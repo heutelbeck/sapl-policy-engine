@@ -183,7 +183,7 @@ public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
     private void failIfBothSaplAndSpringAnnotationsArePresent(MethodInvocation mi) {
         var noSpringAttributesPresent = !source.hasSpringAnnotations(mi);
         Assert.state(noSpringAttributesPresent, () -> "Method " + mi.getMethod()
-                + " is annotated by both at least one SAPL annotation (@Enforce..., @PreEnforce, @PostEnforce) and at least one Spring method security annotation (@PreAuthorize, @PostAuthorize, @PostFilter). Please only make use of one type of annotation exclusively.");
+                + " is annotated by both at least one SAPL annotation (@Enforce..., @PreEnforce, @PostEnforce) and at least one Spring method security annotation (@PreAuthorize, @PostAuthorize, @PreFilter, @PostFilter). Please only make use of one type of annotation exclusively.");
     }
 
     private void failIfEnforceIsCombinedWithPreEnforceOrPostEnforce(
