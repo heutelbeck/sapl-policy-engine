@@ -227,3 +227,11 @@ spring.rsocket.server:
       key-store-password: changeme
       key-password: changeme
       key-alias: netty
+
+# Caching
+infinispan:
+  embedded:
+    enabled: false
+bucket4j:
+  enabled: false
+  cache-to-use: none

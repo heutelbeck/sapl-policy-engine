@@ -146,11 +146,15 @@ If the SAPL server runs in a [Docker container](#running-directly-as-a-docker-co
 
 To configure `Bucket4j` in your application, you'll need to adjust some properties in your configuration file. 
 
-Firstly, set `bucket4j.enabled=true` to activate Bucket4j's auto-configuration feature. Specify the cache name using `bucket4j.filters.cache-name` to retrieve the Bucket associated with an API key from the cache.
+Firstly, set `bucket4j.enabled=true` to activate Bucket4j's auto-configuration feature.
 
-Next, use `bucket4j.filters.url` to define the path expression where the rate limit should be applied. The property `bucket4j.filters.strategy=first` ensures that the rate limit stops at the first matching configuration encountered.
+Secondly, set `infinispan.embedded.enabled=true` to use the embedded cache by infinispan.
 
-To retrieve the key, utilize Spring Expression Language (SpEL) with `bucket4j.filters.rate-limits.cache-key`. Then, determine whether to execute the rate limit using SpEL with `bucket4j.filters.rate-limits.execute-condition`.
+Specify the cache name using `bucket4j.filters.cache-name` that is specified in `src/main/resources/infinispan.xml`.
+
+Use `bucket4j.filters.url` to define the path expression where the rate limit should be applied. The property `bucket4j.filters.strategy=first` ensures that the rate limit stops at the first matching configuration encountered.
+
+To retrieve the key, use Spring Expression Language (SpEL) with `bucket4j.filters.rate-limits.cache-key`. Then, determine whether to execute the rate limit using SpEL with `bucket4j.filters.rate-limits.execute-condition`.
 
 Lastly, define the rate limit parameters using `bucket4j.filters.rate-limits.bandwidths` to set up the Bucket4j rate limit. Adjust these settings according to your application's requirements.
 

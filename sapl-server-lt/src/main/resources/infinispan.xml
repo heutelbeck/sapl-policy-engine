@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<infinispan>
-    <cache-container>
-        <jmx domain="infinispan.embedded.example"/>
-        <local-cache name="basque-names" statistics="true"/>
+<infinispan
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="urn:infinispan:config:14.0 https://infinispan.org/schemas/infinispan-config-14.0.xsd"
+        xmlns="urn:infinispan:config:14.0">
+    <cache-container name="default">
+        <local-cache name="buckets" simple-cache="true"/>
     </cache-container>
 </infinispan>

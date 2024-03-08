@@ -5,10 +5,9 @@ spring:
 infinispan:
   embedded:
     config-xml: infinispan.xml
+    enabled: false
 bucket4j:
   enabled: false
-  filter-config-caching-enabled: true
-  filter-config-cache-name: filterConfigCache
   filters:
     - id: filter1
       cache-name: buckets
