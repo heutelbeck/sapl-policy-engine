@@ -150,7 +150,7 @@ Firstly, set `bucket4j.enabled=true` to activate Bucket4j's auto-configuration f
 
 Secondly, set `infinispan.embedded.enabled=true` to use the embedded cache by infinispan.
 
-Specify the cache name using `bucket4j.filters.cache-name` that is specified in `src/main/resources/infinispan.xml`.
+Then set `bucket4j.cache-to-use=infinispan`.
 
 Use `bucket4j.filters.url` to define the path expression where the rate limit should be applied. The property `bucket4j.filters.strategy=first` ensures that the rate limit stops at the first matching configuration encountered.
 

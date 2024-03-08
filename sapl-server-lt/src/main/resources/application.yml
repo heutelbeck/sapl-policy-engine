@@ -20,6 +20,7 @@ bucket4j:
             - capacity: 10000
               time: 1
               unit: seconds
+  cache-to-use: none # supported values: none, infinispan
 
 spring.rsocket.server:
   port: 7000
@@ -91,4 +92,3 @@ io.sapl:
 logging.level:
   "[io.sapl]": INFO   
   "[org.springframework]": INFO
-  "[com.giffing.bucket4j]": DEBUG

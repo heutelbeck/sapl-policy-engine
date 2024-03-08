@@ -4,6 +4,6 @@
         xsi:schemaLocation="urn:infinispan:config:14.0 https://infinispan.org/schemas/infinispan-config-14.0.xsd"
         xmlns="urn:infinispan:config:14.0">
     <cache-container name="default">
-        <local-cache name="buckets" simple-cache="true"/>
+        <local-cache name="buckets" />
     </cache-container>
 </infinispan>
