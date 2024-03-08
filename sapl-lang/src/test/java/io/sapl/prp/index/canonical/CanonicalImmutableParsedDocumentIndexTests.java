@@ -26,14 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -43,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -59,7 +55,6 @@ import com.google.common.collect.Maps;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
@@ -77,21 +72,15 @@ import io.sapl.prp.index.canonical.ordering.NoPredicateOrderStrategy;
 @Timeout(5)
 class CanonicalImmutableParsedDocumentIndexTests {
 
+    private static final SAPLInterpreter INTERPERETER = new DefaultSAPLInterpreter();
+
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
     private Map<String, Boolean> bindings;
-
-    private static SAPLInterpreter interpreter;
-
-    private static JsonNodeFactory json;
 
     private CanonicalImmutableParsedDocumentIndex emptyIndex;
 
     private Map<String, Val> variables;
-
-    @BeforeAll
-    static void beforeClass() {
-        interpreter = new DefaultSAPLInterpreter();
-        json        = JsonNodeFactory.instance;
-    }
 
     @BeforeEach
     void setUp() {
@@ -148,22 +137,20 @@ class CanonicalImmutableParsedDocumentIndexTests {
     }
 
     private Update update(Type type, String name) {
-        var mockSapl = mock(SAPL.class, RETURNS_DEEP_STUBS);
-        when(mockSapl.getPolicyElement().getSaplName()).thenReturn(name);
-        return new Update(type, new Document("id", "source", mockSapl));
+        return new Update(type, INTERPERETER.parseDocument("policy \"" + name + "\" permit"));
     }
 
     @Test
     void test_return_empty_result_when_error_occurs() {
         InputStream resourceAsStream = getClass().getClassLoader()
                 .getResourceAsStream("it/error/policy_with_error.sapl");
-        SAPL        withError        = interpreter.parse(resourceAsStream);
+        Document    withError        = INTERPERETER.parseDocument(resourceAsStream);
 
         List<Update> updates = new ArrayList<>(3);
 
-        updates.add(new Update(Type.PUBLISH, new Document("id", withError.toString(), withError)));
+        updates.add(new Update(Type.PUBLISH, withError));
 
-        PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+        PrpUpdateEvent                        prpUpdateEvent = new PrpUpdateEvent(updates);
         UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         // when
@@ -183,6 +170,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
     // Test must be repeated a couple of times to test implementation of
     // "findOrphanedCandidates"
+    // is this still a valid comment ?
     @Test
     void test_orphaned() {
         // given
@@ -190,22 +178,14 @@ class CanonicalImmutableParsedDocumentIndexTests {
                 new AnnotationAttributeContext(), new AnnotationFunctionContext());
         List<Update> updates = new ArrayList<>(3);
 
-        String def1  = "policy \"p_0\" permit !resource.x1";
-        SAPL   sapl1 = interpreter.parse(def1);
-        var    doc1  = new Document("id1", def1, sapl1);
+        var doc1 = INTERPERETER.parseDocument("policy \"p_0\" permit !resource.x1");
         updates.add(new Update(Type.PUBLISH, doc1));
-
-        String def2  = "policy \"p_1\" permit !(resource.x0 | resource.x1)";
-        SAPL   sapl2 = interpreter.parse(def2);
-        var    doc2  = new Document("id1", def2, sapl2);
+        var doc2 = INTERPERETER.parseDocument("policy \"p_1\" permit !(resource.x0 | resource.x1)");
         updates.add(new Update(Type.PUBLISH, doc2));
-
-        String def3  = "policy \"p_2\" permit (resource.x1 | resource.x2)";
-        SAPL   sapl3 = interpreter.parse(def3);
-        var    doc3  = new Document("id1", def3, sapl3);
+        var doc3 = INTERPERETER.parseDocument("policy \"p_2\" permit (resource.x1 | resource.x2)");
         updates.add(new Update(Type.PUBLISH, doc3));
 
-        PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+        PrpUpdateEvent                        prpUpdateEvent = new PrpUpdateEvent(updates);
         UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         bindings.put("x0", Boolean.FALSE);
@@ -242,15 +222,11 @@ class CanonicalImmutableParsedDocumentIndexTests {
     @Test
     void testPutSimple() {
         // given
-        List<Update> updates = new ArrayList<>(3);
-
-        String definition = "policy \"p_0\" permit true";
-        SAPL   sapl       = interpreter.parse(definition);
-        var    document   = new Document("id1", definition, sapl);
+        var updates  = new ArrayList<Update>(3);
+        var document = INTERPERETER.parseDocument("policy \"p_0\" permit true");
         updates.add(new Update(Type.PUBLISH, document));
-
-        PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
-        UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
+        var prpUpdateEvent = new PrpUpdateEvent(updates);
+        var updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
@@ -271,16 +247,11 @@ class CanonicalImmutableParsedDocumentIndexTests {
     @Test
     void testPut() {
         // given
-        List<Update> updates = new ArrayList<>(3);
-
-        String definition = "policy \"p_0\" permit !(resource.x0 | resource.x1)";
-        SAPL   sapl       = interpreter.parse(definition);
-        var    document   = new Document("id1", definition, sapl);
+        var updates  = new ArrayList<Update>(3);
+        var document = INTERPERETER.parseDocument("policy \"p_0\" permit !(resource.x0 | resource.x1)");
         updates.add(new Update(Type.PUBLISH, document));
-
-        PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
-        UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
-
+        var prpUpdateEvent = new PrpUpdateEvent(updates);
+        var updatedIndex   = emptyIndex.apply(prpUpdateEvent);
         bindings.put("x0", Boolean.FALSE);
         bindings.put("x1", Boolean.FALSE);
 
@@ -306,11 +277,10 @@ class CanonicalImmutableParsedDocumentIndexTests {
         List<Update> updates = new ArrayList<>(3);
 
         String definition = "policy \"p_0\" permit resource.x0 & resource.x1";
-        SAPL   sapl       = interpreter.parse(definition);
-        var    document   = new Document("id1", definition, sapl);
+        var    document   = INTERPERETER.parseDocument(definition);
         updates.add(new Update(Type.PUBLISH, document));
 
-        PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+        PrpUpdateEvent                        prpUpdateEvent = new PrpUpdateEvent(updates);
         UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         bindings.put("x0", Boolean.TRUE);
@@ -343,11 +313,10 @@ class CanonicalImmutableParsedDocumentIndexTests {
         List<Update> updates = new ArrayList<>();
 
         String definition = "policy \"p_0\" permit";
-        SAPL   sapl       = interpreter.parse(definition);
-        var    document   = new Document("id1", definition, sapl);
+        var    document   = INTERPERETER.parseDocument(definition);
         updates.add(new Update(Type.PUBLISH, document));
 
-        PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+        PrpUpdateEvent                        prpUpdateEvent = new PrpUpdateEvent(updates);
         UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         // when
@@ -372,11 +341,10 @@ class CanonicalImmutableParsedDocumentIndexTests {
         List<Update> updates = new ArrayList<>();
 
         String definition = "policy \"p_0\" permit !resource.x0";
-        SAPL   sapl       = interpreter.parse(definition);
-        var    document   = new Document("id1", definition, sapl);
+        var    document   = INTERPERETER.parseDocument(definition);
         updates.add(new Update(Type.PUBLISH, document));
 
-        PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
+        PrpUpdateEvent                        prpUpdateEvent = new PrpUpdateEvent(updates);
         UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         bindings.put("x0", Boolean.FALSE);
@@ -399,12 +367,9 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
     @Test
     void exception_while_retaining_Target() {
-        SAPL mockDocument = mock(SAPL.class, RETURNS_DEEP_STUBS);
-        when(mockDocument.getPolicyElement().getSaplName()).thenReturn("SAPL");
-        when(mockDocument.getPolicyElement().getTargetExpression()).thenThrow(new PolicyEvaluationException());
-
-        Map<String, Document> saplMap = new HashMap<>();
-        saplMap.put("p1", new Document("id1", "source", mockDocument));
+        var document = INTERPERETER.parseDocument("id1", "policy \"p1\" permit");
+        var saplMap  = new HashMap<String, Document>();
+        saplMap.put("p1", document);
 
         try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito.mockConstruction(
                 CanonicalIndexDataCreationStrategy.class,
@@ -417,12 +382,9 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
     @Test
     void null_while_retaining_Target() {
-        SAPL mockDocument = mock(SAPL.class, RETURNS_DEEP_STUBS);
-        when(mockDocument.getPolicyElement().getSaplName()).thenReturn("SAPL");
-        when(mockDocument.getPolicyElement().getTargetExpression()).thenReturn(null);
-
-        Map<String, Document> saplMap = new HashMap<>();
-        saplMap.put("p1", new Document("id1", "source", mockDocument));
+        var document = INTERPERETER.parseDocument("id1", "policy \"p1\" permit");
+        var saplMap  = new HashMap<String, Document>();
+        saplMap.put("p1", document);
 
         try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito.mockConstruction(
                 CanonicalIndexDataCreationStrategy.class,
@@ -435,23 +397,19 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
     @Test
     void throw_exception_on_name_collision() {
-        var mockDocument = mock(SAPL.class, RETURNS_DEEP_STUBS);
-        when(mockDocument.getPolicyElement().getSaplName()).thenReturn("SAPL");
-        when(mockDocument.getPolicyElement().getTargetExpression()).thenReturn(null);
+        var firstDocument = INTERPERETER.parseDocument("policy \"p1\" permit");
+        var saplMap       = new HashMap<String, Document>();
+        saplMap.put("p1", firstDocument);
 
-        var updateMock = mock(Update.class, RETURNS_DEEP_STUBS);
-        when(updateMock.getType()).thenReturn(Type.PUBLISH);
-        when(updateMock.getDocument().sapl().getPolicyElement().getSaplName()).thenReturn("p1");
+        var secondDocument = INTERPERETER.parseDocument("policy \"p1\" permit");
+        var update         = new Update(Type.PUBLISH, secondDocument);
 
-        Map<String, Document> saplMap = new HashMap<>();
-        saplMap.put("p1", new Document("id1", "source", mockDocument));
-
-        assertThrows(RuntimeException.class, () -> emptyIndex.applyUpdate(saplMap, updateMock));
+        assertThrows(RuntimeException.class, () -> emptyIndex.applyUpdate(saplMap, update));
     }
 
     private AuthorizationSubscription createRequestObject() {
 
-        ObjectNode resource = json.objectNode();
+        ObjectNode resource = JSON.objectNode();
         for (Map.Entry<String, Boolean> entry : bindings.entrySet()) {
             Boolean value = entry.getValue();
             if (value != null) {

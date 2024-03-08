@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.Document;
 import lombok.Data;
@@ -40,23 +38,16 @@ class FileSystemDocument {
 
     public FileSystemDocument(Path path, SAPLInterpreter interpreter) {
         this.path = path;
-        String rawDocument    = null;
-        SAPL   parsedDocument = null;
         try {
-            rawDocument = Files.readString(path);
+            document = interpreter.parseDocument(Files.newInputStream(path));
         } catch (IOException e) {
             log.warn("Error reading file '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
                     e.getMessage());
         }
-        try {
-            if (rawDocument != null) {
-                parsedDocument = interpreter.parse(rawDocument);
-            }
-        } catch (PolicyEvaluationException e) {
+        if (document.isInvalid()) {
             log.warn("Error in document '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
-                    e.getMessage());
+                    document.errorMessage());
         }
-        document = new Document(path.toString(), rawDocument, parsedDocument);
     }
 
     public FileSystemDocument(FileSystemDocument document) {

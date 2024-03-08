@@ -17,8 +17,18 @@
  */
 package io.sapl.prp;
 
+import org.eclipse.emf.common.util.Diagnostic;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+
 import io.sapl.grammar.sapl.SAPL;
 
-public record Document(String id, String source, SAPL sapl) {
+public record Document(String id, String name, SAPL sapl, Diagnostic diagnostic, String errorMessage) {
 
+    public boolean isInvalid() {
+        return diagnostic == null || diagnostic.getSeverity() != Diagnostic.OK;
+    }
+
+    public String source() {
+        return NodeModelUtils.findActualNodeFor(sapl).getText();
+    }
 }

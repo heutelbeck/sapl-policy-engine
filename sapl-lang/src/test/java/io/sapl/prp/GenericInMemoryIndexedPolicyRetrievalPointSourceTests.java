@@ -30,16 +30,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 class GenericInMemoryIndexedPolicyRetrievalPointSourceTests {
+    private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-    PrpUpdateEventSource sourceMock;
-
+    PrpUpdateEventSource                  sourceMock;
     UpdateEventDrivenPolicyRetrievalPoint indexMock;
 
     @BeforeEach
@@ -75,17 +74,8 @@ class GenericInMemoryIndexedPolicyRetrievalPointSourceTests {
     @Test
     void testConstructAndRetrieveWithResult() {
         // WHEN
-        var policyElementMock = mock(PolicyElement.class);
-        when(policyElementMock.getSaplName()).thenReturn("SAPL");
-        // when(policyElementMock.getClass()).thenCallRealMethod();
-
-        var documentMock = mock(SAPL.class);
-        when(documentMock.getPolicyElement()).thenReturn(policyElementMock);
-
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(new Document("id", "source", documentMock),
-                Val.TRUE);
-        // doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
-
+        var doc                   = INTERPRETER.parseDocument("policy \"x\" permit");
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(doc, Val.TRUE);
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 
         // DO
@@ -106,14 +96,8 @@ class GenericInMemoryIndexedPolicyRetrievalPointSourceTests {
     @Test
     void testConstructAndRetrieveWithNonSAPLResult() {
         // WHEN
-        var policyElementMock = mock(PolicyElement.class);
-        when(policyElementMock.getSaplName()).thenReturn("SAPL");
-
-        var documentMock = mock(SAPL.class);
-
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(new Document("id", "source", documentMock),
-                Val.TRUE);
-
+        var doc                   = INTERPRETER.parseDocument("policy \"x\" permit");
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(doc, Val.TRUE);
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 
         // DO

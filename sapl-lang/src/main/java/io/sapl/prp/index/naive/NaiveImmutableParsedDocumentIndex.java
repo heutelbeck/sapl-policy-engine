@@ -114,4 +114,9 @@ public class NaiveImmutableParsedDocumentIndex implements UpdateEventDrivenPolic
     public Collection<Document> allDocuments() {
         return documentsById.values();
     }
+
+    @Override
+    public boolean isConsistent() {
+        return consistent;
+    }
 }

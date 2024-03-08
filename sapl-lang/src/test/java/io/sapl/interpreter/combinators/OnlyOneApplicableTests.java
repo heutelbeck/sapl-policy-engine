@@ -47,7 +47,6 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.prp.Document;
 import io.sapl.prp.PolicyRetrievalResult;
 import reactor.test.StepVerifier;
 
@@ -138,8 +137,8 @@ class OnlyOneApplicableTests {
         if (errorsInTarget)
             result = result.withError();
         for (var policy : policies) {
-            var sapl = INTERPRETER.parse(policy);
-            result = result.withMatch(new Document(sapl.getPolicyElement().getSaplName(), policy, sapl), Val.TRUE);
+            var document = INTERPRETER.parseDocument(policy);
+            result = result.withMatch(document, Val.TRUE);
         }
         return result;
     }

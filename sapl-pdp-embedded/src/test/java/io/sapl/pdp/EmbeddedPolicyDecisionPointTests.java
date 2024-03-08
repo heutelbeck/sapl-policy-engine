@@ -236,7 +236,7 @@ class EmbeddedPolicyDecisionPointTests {
         var configProvider = mock(PDPConfigurationProvider.class);
         var mockAlgorithm  = mock(CombiningAlgorithm.class);
         when(mockAlgorithm.getName()).thenReturn("test alg");
-        var brokenConfig = new PDPConfiguration(null, null, null, mockAlgorithm, null, null);
+        var brokenConfig = new PDPConfiguration(null, null, null, mockAlgorithm, null);
         when(configProvider.pdpConfiguration()).thenReturn(Flux.just(brokenConfig));
         var subscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
                 JSON.textNode("something"), JSON.nullNode());

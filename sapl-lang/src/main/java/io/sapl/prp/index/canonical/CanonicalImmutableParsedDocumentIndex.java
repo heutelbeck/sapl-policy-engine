@@ -143,4 +143,9 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
         return documents.values();
     }
 
+    @Override
+    public boolean isConsistent() {
+        return consistent;
+    }
+
 }
