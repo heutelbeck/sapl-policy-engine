@@ -79,8 +79,12 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
     private Flux<PDPDecision> retrieveAndCombineDocuments(PDPConfiguration pdpConfiguration,
             AuthorizationSubscription authorizationSubscription) {
-        return pdpConfiguration.policyRetrievalPoint().retrievePolicies()
-                .flatMapMany(combineDocuments(pdpConfiguration, authorizationSubscription));
+        if (pdpConfiguration.policyRetrievalPoint().isConsistent()) {
+            return pdpConfiguration.policyRetrievalPoint().retrievePolicies()
+                    .flatMapMany(combineDocuments(pdpConfiguration, authorizationSubscription));
+        }
+        return Flux.just(PDPDecision.of(authorizationSubscription, CombinedDecision.error(
+                pdpConfiguration.documentsCombinator(), "Policy Retrieval Point in inconsistent state."), List.of()));
     }
 
     private Function<PolicyRetrievalResult, Flux<PDPDecision>> combineDocuments(PDPConfiguration pdpConfiguration,

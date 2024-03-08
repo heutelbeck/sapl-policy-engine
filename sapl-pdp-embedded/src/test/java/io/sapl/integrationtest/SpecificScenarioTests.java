@@ -38,7 +38,6 @@ import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
@@ -50,6 +49,7 @@ import io.sapl.prp.Document;
 import io.sapl.prp.MatchingDocument;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -119,11 +119,10 @@ class SpecificScenarioTests {
                     age >= resource.ageRating
                 """;
 
-        var subBobBook3 = MAPPER.readValue(SUB_BOB_BOOK3, AuthorizationSubscription.class);
-        var subBobBook4 = MAPPER.readValue(SUB_BOB_BOOK4, AuthorizationSubscription.class);
-
-        var pdpConfigurationProvider = new SimplePDPConfigurationProvider();
+        var subBobBook3              = MAPPER.readValue(SUB_BOB_BOOK3, AuthorizationSubscription.class);
+        var subBobBook4              = MAPPER.readValue(SUB_BOB_BOOK4, AuthorizationSubscription.class);
         var policyRetrievalPoint     = new SimplePolicyRetrievalPoint(List.of(policySet));
+        var pdpConfigurationProvider = new SimplePDPConfigurationProvider(policyRetrievalPoint);
         var pdp                      = new EmbeddedPolicyDecisionPoint(pdpConfigurationProvider);
 
         var decisionBook3 = pdp.decide(subBobBook3).blockFirst();
@@ -132,7 +131,10 @@ class SpecificScenarioTests {
         assertThat(decisionBook4.getObligations()).isNotEmpty();
     }
 
+    @RequiredArgsConstructor
     private static class SimplePDPConfigurationProvider implements PDPConfigurationProvider {
+
+        private final PolicyRetrievalPoint prp;
 
         @Override
         @SneakyThrows
@@ -145,12 +147,11 @@ class SpecificScenarioTests {
             functionContext.loadLibrary(TemporalFunctionLibrary.class);
             functionContext.loadLibrary(StandardFunctionLibrary.class);
             var variables                    = Map.<String, Val>of();
-            var algorithm                    = CombiningAlgorithmFactory
-                    .documentsCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES);
             var jsonReportingInterceptor     = new ReportingDecisionInterceptor(MAPPER, false, true, true, true);
             var subscriptionInterceptorChain = UnaryOperator.<AuthorizationSubscription>identity();
             var config                       = new PDPConfiguration("testConfig", attributeContext, functionContext,
-                    variables, algorithm, jsonReportingInterceptor, subscriptionInterceptorChain);
+                    variables, CombiningAlgorithm.DENY_OVERRIDES, jsonReportingInterceptor,
+                    subscriptionInterceptorChain, prp);
             return Flux.just(config);
 
         }
@@ -174,9 +175,8 @@ class SpecificScenarioTests {
         }
 
         public void load(String document) {
-            var doc = INTERPRETER.parse(document);
-            parsedDocuments
-                    .add(new Document(doc.getPolicyElement().getSaplName(), doc.getPolicyElement().getSaplName(), doc));
+            var doc = INTERPRETER.parseDocument(document);
+            parsedDocuments.add(doc);
         }
 
         @Override
@@ -194,8 +194,13 @@ class SpecificScenarioTests {
         }
 
         @Override
-        public List<Document> allDocuments() {            
+        public List<Document> allDocuments() {
             return parsedDocuments;
+        }
+
+        @Override
+        public boolean isConsistent() {
+            return true;
         }
 
     }

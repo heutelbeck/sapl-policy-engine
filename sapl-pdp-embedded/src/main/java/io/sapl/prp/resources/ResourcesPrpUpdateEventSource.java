@@ -25,9 +25,7 @@ import java.util.List;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
 import io.github.classgraph.ScanResult;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.Document;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
@@ -53,18 +51,18 @@ public class ResourcesPrpUpdateEventSource implements PrpUpdateEventSource {
             }
             saplDocuments.forEachByteArrayThrowingIOException((Resource res, byte[] rawDocument) -> {
                 log.debug("Loading SAPL document: {}", res.getPath());
-                var document = new String(rawDocument, StandardCharsets.UTF_8);
-                var update   = new Update(Type.PUBLISH,
-                        new Document(res.getPath(), document, interpreter.parse(document)));
-                updates.add(update);
+                var document = interpreter.parseDocument(new String(rawDocument, StandardCharsets.UTF_8));
+                if (document.isInvalid()) {
+                    log.error("Error in SAPL document: {}", document.errorMessage());
+                    log.error("The application will continue to boot up. "
+                            + "However, the PDP will act as if there was an error during each "
+                            + "authorization subscription/request.");
+                    updates.clear();
+                    updates.add(new Update(Type.INCONSISTENT, null));
+                } else {
+                    updates.add(new Update(Type.PUBLISH, document));
+                }
             });
-        } catch (PolicyEvaluationException e) {
-            log.error("Error in SAPL document: {}", e.getMessage());
-            log.error("The application will continue to boot up. "
-                    + "However, the PDP will act as if there was an error during each "
-                    + "authorization subscription/request.");
-            updates.clear();
-            updates.add(new Update(Type.INCONSISTENT, null));
         } catch (IOException e) {
             log.error("Failed to load SAPL policies/policy sets from the resources. "
                     + "The application will continue to boot up. "

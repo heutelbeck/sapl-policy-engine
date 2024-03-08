@@ -50,28 +50,30 @@ import reactor.test.StepVerifier;
 class ReportingDecisionInterceptorTests {
 
     private static class TestingPolicyRetrievalPoint implements PolicyRetrievalPoint {
-        public static final String   PERMIT_ALL_DOCUMENT = "policy \"permitAll\" permit";
-        public static final String   ERROR_DOCUMENT      = "policy \"errAll\" permit where 1/0;";
-        public static final String   ATTRIBUTE_DOCUMENT  = "policy \"attribute\" permit where \"left\".<test.test> == \"Attribute Result\";";
-        public static final String   SET_ONE             = "set \"set one\" first-applicable policy \"p1 in set one\" permit";
-        public final SAPLInterpreter interpreter         = new DefaultSAPLInterpreter();
+        private static final String          PERMIT_ALL_DOCUMENT = "policy \"permitAll\" permit";
+        private static final String          ERROR_DOCUMENT      = "policy \"errAll\" permit where 1/0;";
+        private static final String          ATTRIBUTE_DOCUMENT  = "policy \"attribute\" permit where \"left\".<test.test> == \"Attribute Result\";";
+        private static final String          SET_ONE             = "set \"set one\" first-applicable policy \"p1 in set one\" permit";
+        private static final SAPLInterpreter INTERPERTER         = new DefaultSAPLInterpreter();
 
         @Override
         public Mono<PolicyRetrievalResult> retrievePolicies() {
-            var permitAll = interpreter.parse(PERMIT_ALL_DOCUMENT);
-            var error     = interpreter.parse(ERROR_DOCUMENT);
-            var attribute = interpreter.parse(ATTRIBUTE_DOCUMENT);
-            var one       = interpreter.parse(SET_ONE);
-            return Mono.just(new PolicyRetrievalResult()
-                    .withMatch(new Document("permitAll", PERMIT_ALL_DOCUMENT, permitAll), Val.TRUE)
-                    .withMatch(new Document("errAll", ERROR_DOCUMENT, error), Val.TRUE)
-                    .withMatch(new Document("attribute", ATTRIBUTE_DOCUMENT, attribute), Val.TRUE)
-                    .withMatch(new Document("set one", SET_ONE, one), Val.TRUE));
+            var permitAll = INTERPERTER.parseDocument(PERMIT_ALL_DOCUMENT);
+            var error     = INTERPERTER.parseDocument(ERROR_DOCUMENT);
+            var attribute = INTERPERTER.parseDocument(ATTRIBUTE_DOCUMENT);
+            var one       = INTERPERTER.parseDocument(SET_ONE);
+            return Mono.just(new PolicyRetrievalResult().withMatch(permitAll, Val.TRUE).withMatch(error, Val.TRUE)
+                    .withMatch(attribute, Val.TRUE).withMatch(one, Val.TRUE));
         }
 
         @Override
-        public Collection<Document> allDocuments() {           
+        public Collection<Document> allDocuments() {
             return List.of();
+        }
+
+        @Override
+        public boolean isConsistent() {
+            return true;
         }
 
     }

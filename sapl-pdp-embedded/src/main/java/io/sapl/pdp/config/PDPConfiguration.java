@@ -27,10 +27,16 @@ import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.PolicyRetrievalPoint;
+import lombok.NonNull;
 
-public record PDPConfiguration(String configurationId, AttributeContext attributeContext,
-        FunctionContext functionContext, Map<String, Val> variables, CombiningAlgorithm documentsCombinator,
-        UnaryOperator<TracedDecision> decisionInterceptorChain,
-        UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain,
-        PolicyRetrievalPoint policyRetrievalPoint) {
+public record PDPConfiguration(@NonNull String configurationId, @NonNull AttributeContext attributeContext,
+        @NonNull FunctionContext functionContext, @NonNull Map<String, Val> variables,
+        @NonNull CombiningAlgorithm documentsCombinator,
+        @NonNull UnaryOperator<TracedDecision> decisionInterceptorChain,
+        @NonNull UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain,
+        @NonNull PolicyRetrievalPoint policyRetrievalPoint) {
+
+    public boolean isValid() {
+        return policyRetrievalPoint.isConsistent();
+    }
 }
