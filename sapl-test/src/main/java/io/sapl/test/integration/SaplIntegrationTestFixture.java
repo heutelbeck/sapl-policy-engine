@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
@@ -46,8 +47,8 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private PolicyDocumentCombiningAlgorithm pdpAlgorithm = null;
-    private Map<String, Val>                 pdpVariables = null;
+    private CombiningAlgorithm pdpAlgorithm = null;
+    private Map<String, Val>   pdpVariables = null;
 
     private final Supplier<PolicyRetrievalPoint>         prpSupplier;
     private final Supplier<VariablesAndCombinatorSource> variablesAndCombinatorSourceSupplier;
@@ -82,7 +83,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
      * @param alg the {@link PolicyDocumentCombiningAlgorithm} to be used
      * @return the test fixture
      */
-    public SaplIntegrationTestFixture withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm alg) {
+    public SaplIntegrationTestFixture withPDPPolicyCombiningAlgorithm(CombiningAlgorithm alg) {
         this.pdpAlgorithm = alg;
         return this;
     }

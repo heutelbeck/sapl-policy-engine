@@ -17,6 +17,7 @@
  */
 package io.sapl.prp.index.naive;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,7 +25,7 @@ import io.sapl.prp.Document;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -37,7 +38,7 @@ import reactor.util.function.Tuples;
  */
 @Slf4j
 @ToString
-public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
+public class NaiveImmutableParsedDocumentIndex implements UpdateEventDrivenPolicyRetrievalPoint {
 
     private final Map<String, Document> documentsById;
 
@@ -83,7 +84,7 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
     }
 
     @Override
-    public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
+    public UpdateEventDrivenPolicyRetrievalPoint apply(PrpUpdateEvent event) {
         // Do a shallow copy. String is immutable, and SAPL is assumed to be too.
         var newDocuments        = new HashMap<>(documentsById);
         var newConsistencyState = consistent;
@@ -109,4 +110,8 @@ public class NaiveImmutableParsedDocumentIndex implements ImmutableParsedDocumen
         }
     }
 
+    @Override
+    public Collection<Document> allDocuments() {
+        return documentsById.values();
+    }
 }

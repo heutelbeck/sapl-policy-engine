@@ -71,8 +71,7 @@ class EmbeddedPolicyDecisionPointTests {
     void decide_withInvalidConfig_shouldReturnIntermediate() {
         var configMock   = mock(PDPConfiguration.class);
         var providerMock = mock(PDPConfigurationProvider.class);
-        var prpMock      = mock(PolicyRetrievalPoint.class);
-        var embeddedPdp  = new EmbeddedPolicyDecisionPoint(providerMock, prpMock);
+        var embeddedPdp  = new EmbeddedPolicyDecisionPoint(providerMock);
 
         when(providerMock.pdpConfiguration()).thenReturn(Flux.just(configMock));
         when(configMock.isValid()).thenReturn(Boolean.FALSE);

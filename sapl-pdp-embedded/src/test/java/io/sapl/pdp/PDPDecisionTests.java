@@ -34,6 +34,7 @@ import io.sapl.api.pdp.TracedDecision;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.prp.Document;
 import io.sapl.prp.MatchingDocument;
 
 class PDPDecisionTests {
@@ -48,7 +49,7 @@ class PDPDecisionTests {
         assertThat(sut.getCombinedDecision()).isSameAs(combined);
 
         var document = mock(SAPL.class);
-        var match    = new MatchingDocument("x", document, Val.TRUE);
+        var match    = new MatchingDocument(new Document("x", "x", document), Val.TRUE);
         var sut2     = PDPDecision.of(subscription, combined, List.of(match));
         assertThat(sut2.getAuthorizationSubscription()).isSameAs(subscription);
         assertThat(sut2.getCombinedDecision()).isSameAs(combined);
@@ -72,7 +73,7 @@ class PDPDecisionTests {
         var subscription = mock(AuthorizationSubscription.class);
         var combined     = mock(CombinedDecision.class);
         var document     = new DefaultSAPLInterpreter().parse("policy \"x\" permit");
-        var match        = new MatchingDocument("x", document, Val.TRUE);
+        var match        = new MatchingDocument(new Document("x", "x", document), Val.TRUE);
         when(combined.getAuthorizationDecision()).thenReturn(AuthorizationDecision.PERMIT);
         TracedDecision sut             = PDPDecision.of(subscription, combined, List.of(match));
         var            unmodifiedTrace = sut.getTrace();

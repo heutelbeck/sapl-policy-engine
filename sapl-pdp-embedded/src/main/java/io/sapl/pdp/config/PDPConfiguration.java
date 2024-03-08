@@ -17,7 +17,6 @@
  */
 package io.sapl.pdp.config;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
@@ -27,10 +26,11 @@ import io.sapl.api.pdp.TracedDecision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.prp.Document;
+import io.sapl.prp.PolicyRetrievalPoint;
 
 public record PDPConfiguration(String configurationId, AttributeContext attributeContext,
-        FunctionContext functionContext, Map<String, Val> variables,
-        CombiningAlgorithm documentsCombinator, UnaryOperator<TracedDecision> decisionInterceptorChain,
-        UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain, Collection<Document> documents) {
+        FunctionContext functionContext, Map<String, Val> variables, CombiningAlgorithm documentsCombinator,
+        UnaryOperator<TracedDecision> decisionInterceptorChain,
+        UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain,
+        PolicyRetrievalPoint policyRetrievalPoint) {
 }

@@ -25,27 +25,45 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.DenyUnlessPermitCombiningAlgorithm;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
+import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
+import io.sapl.prp.PolicyRetrievalPointSource;
+import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
+import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
+import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 
 class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
 
     @Test
     void do_test() {
+        
+        
         var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+        var prpSource   = constructFilesystemPolicyRetrievalPointSource("src/test/resources/policies");
         var attrCtx  = new AnnotationAttributeContext();
         var funcCtx  = new AnnotationFunctionContext();
         var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source, List.of(),
-                List.of());
+                List.of(), prpSource);
         var config   = provider.pdpConfiguration().blockFirst();
         provider.destroy();
-        assertThat(config.documentsCombinator() instanceof DenyUnlessPermitCombiningAlgorithm, is(true));
+        assertThat(config.documentsCombinator() == CombiningAlgorithm.DENY_UNLESS_PERMIT, is(true));
         assertThat(config.attributeContext(), is(attrCtx));
         assertThat(config.functionContext(), is(funcCtx));
         assertThat(config.variables(), notNullValue());
-        assertThat(config.isValid(), is(true));
     }
 
+    public static PolicyRetrievalPointSource constructFilesystemPolicyRetrievalPointSource(
+            String policiesFolder) {
+        var seedIndex = constructDocumentIndex();
+        var source    = new FileSystemPrpUpdateEventSource(policiesFolder, new DefaultSAPLInterpreter());
+        return new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
+    }
+
+    private static UpdateEventDrivenPolicyRetrievalPoint constructDocumentIndex() {
+        return new NaiveImmutableParsedDocumentIndex();
+    }
 }

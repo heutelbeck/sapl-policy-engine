@@ -18,6 +18,7 @@
 package io.sapl.prp.index.canonical;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,12 +34,12 @@ import io.sapl.prp.PolicyRetrievalException;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.canonical.ordering.DefaultPredicateOrderStrategy;
 import io.sapl.prp.index.canonical.ordering.PredicateOrderStrategy;
 import reactor.core.publisher.Mono;
 
-public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
+public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenPolicyRetrievalPoint {
 
     private final CanonicalIndexDataContainer indexDataContainer;
 
@@ -95,7 +96,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
     }
 
     @Override
-    public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
+    public UpdateEventDrivenPolicyRetrievalPoint apply(PrpUpdateEvent event) {
         var newDocuments        = new HashMap<>(documents);
         var newConsistencyState = consistent;
         for (var update : event.getUpdates()) {
@@ -135,6 +136,11 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
         }
 
         return targetFormula;
+    }
+
+    @Override
+    public Collection<Document> allDocuments() {
+        return documents.values();
     }
 
 }

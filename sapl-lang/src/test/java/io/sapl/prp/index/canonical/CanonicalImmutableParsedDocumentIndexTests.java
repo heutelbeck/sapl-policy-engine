@@ -71,7 +71,7 @@ import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.canonical.ordering.NoPredicateOrderStrategy;
 
 @Timeout(5)
@@ -164,7 +164,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         updates.add(new Update(Type.PUBLISH, new Document("id", withError.toString(), withError)));
 
         PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
-        ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
+        UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
@@ -206,7 +206,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         updates.add(new Update(Type.PUBLISH, doc3));
 
         PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
-        ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
+        UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         bindings.put("x0", Boolean.FALSE);
         bindings.put("x1", Boolean.FALSE);
@@ -250,7 +250,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         updates.add(new Update(Type.PUBLISH, document));
 
         PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
-        ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
+        UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
@@ -279,7 +279,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         updates.add(new Update(Type.PUBLISH, document));
 
         PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
-        ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
+        UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         bindings.put("x0", Boolean.FALSE);
         bindings.put("x1", Boolean.FALSE);
@@ -311,7 +311,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         updates.add(new Update(Type.PUBLISH, document));
 
         PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
-        ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
+        UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         bindings.put("x0", Boolean.TRUE);
         bindings.put("x1", Boolean.TRUE);
@@ -348,7 +348,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         updates.add(new Update(Type.PUBLISH, document));
 
         PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
-        ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
+        UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
@@ -377,7 +377,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         updates.add(new Update(Type.PUBLISH, document));
 
         PrpUpdateEvent               prpUpdateEvent = new PrpUpdateEvent(updates);
-        ImmutableParsedDocumentIndex updatedIndex   = emptyIndex.apply(prpUpdateEvent);
+        UpdateEventDrivenPolicyRetrievalPoint updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         bindings.put("x0", Boolean.FALSE);
 

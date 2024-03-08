@@ -480,7 +480,8 @@ class ImmutableFileIndexTests {
             public boolean matches(final Object oUpdate) {
                 if (oUpdate instanceof Update update) {
                     try {
-                        return update.getType().equals(type) && Objects.equals(name, update.getDocument().sapl().getPolicyElement().getSaplName());
+                        return update.getType().equals(type)
+                                && Objects.equals(name, update.getDocument().sapl().getPolicyElement().getSaplName());
                     } catch (Exception e) {
                         return false;
                     }

@@ -36,10 +36,9 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
@@ -47,6 +46,7 @@ import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import io.sapl.pip.TimePolicyInformationPoint;
+import io.sapl.prp.Document;
 import io.sapl.prp.MatchingDocument;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -123,9 +123,8 @@ class SpecificScenarioTests {
         var subBobBook4 = MAPPER.readValue(SUB_BOB_BOOK4, AuthorizationSubscription.class);
 
         var pdpConfigurationProvider = new SimplePDPConfigurationProvider();
-        var policyRetrievalPoint     = new SimplePolicyRetrievalPoint();
-        policyRetrievalPoint.load(policySet);
-        var pdp = new EmbeddedPolicyDecisionPoint(pdpConfigurationProvider, policyRetrievalPoint);
+        var policyRetrievalPoint     = new SimplePolicyRetrievalPoint(List.of(policySet));
+        var pdp                      = new EmbeddedPolicyDecisionPoint(pdpConfigurationProvider);
 
         var decisionBook3 = pdp.decide(subBobBook3).blockFirst();
         assertThat(decisionBook3.getObligations()).isEmpty();
@@ -147,11 +146,11 @@ class SpecificScenarioTests {
             functionContext.loadLibrary(StandardFunctionLibrary.class);
             var variables                    = Map.<String, Val>of();
             var algorithm                    = CombiningAlgorithmFactory
-                    .getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES);
+                    .documentsCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES);
             var jsonReportingInterceptor     = new ReportingDecisionInterceptor(MAPPER, false, true, true, true);
             var subscriptionInterceptorChain = UnaryOperator.<AuthorizationSubscription>identity();
-            var config                       = new PDPConfiguration(attributeContext, functionContext, variables,
-                    algorithm, jsonReportingInterceptor, subscriptionInterceptorChain);
+            var config                       = new PDPConfiguration("testConfig", attributeContext, functionContext,
+                    variables, algorithm, jsonReportingInterceptor, subscriptionInterceptorChain);
             return Flux.just(config);
 
         }
@@ -166,20 +165,37 @@ class SpecificScenarioTests {
 
         private final static DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-        private final List<SAPL> parsedDocuments = new ArrayList<>();
+        private final List<Document> parsedDocuments = new ArrayList<>();
+
+        public SimplePolicyRetrievalPoint(List<String> documentsSource) {
+            for (var doc : documentsSource) {
+                load(doc);
+            }
+        }
 
         public void load(String document) {
-            parsedDocuments.add(INTERPRETER.parse(document));
+            var doc = INTERPRETER.parse(document);
+            parsedDocuments
+                    .add(new Document(doc.getPolicyElement().getSaplName(), doc.getPolicyElement().getSaplName(), doc));
         }
 
         @Override
-        public Flux<PolicyRetrievalResult> retrievePolicies() {
+        public Mono<PolicyRetrievalResult> retrievePolicies() {
+            // @formatter:off
             return Flux.fromIterable(parsedDocuments)
-                    .flatMap(sapl -> Mono.just(sapl)
-                            .filterWhen(s -> s.matches().map(match -> match.isBoolean() && match.getBoolean())))
-                    .map(m -> new MatchingDocument(m.getPolicyElement().getSaplName(), m, Val.TRUE)).collectList()
-                    .map(matches -> new PolicyRetrievalResult(matches, false, true))
-                    .onErrorResume(err -> Mono.just(new PolicyRetrievalResult(List.of(), true, false))).flux();
+                       .flatMap(document -> Mono.just(document)
+                                                .filterWhen(doc -> doc.sapl().matches()
+                                                                      .map(match -> match.isBoolean() && match.getBoolean()))
+                                                                      .map(doc -> new MatchingDocument(doc, Val.TRUE)))
+                       .collectList()
+                       .map(matches -> new PolicyRetrievalResult(matches, false, true))
+                       .onErrorResume(err -> Mono.just(new PolicyRetrievalResult(List.of(), true, false)));
+            // @formatter:on
+        }
+
+        @Override
+        public List<Document> allDocuments() {            
+            return parsedDocuments;
         }
 
     }

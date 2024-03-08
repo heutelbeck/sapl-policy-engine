@@ -17,14 +17,11 @@
  */
 package io.sapl.prp.index;
 
-import io.sapl.prp.PolicyRetrievalResult;
+import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PrpUpdateEvent;
-import reactor.core.publisher.Mono;
 
-public interface ImmutableParsedDocumentIndex {
+public interface UpdateEventDrivenPolicyRetrievalPoint extends PolicyRetrievalPoint {
 
-    Mono<PolicyRetrievalResult> retrievePolicies();
-
-    ImmutableParsedDocumentIndex apply(PrpUpdateEvent event);
+    UpdateEventDrivenPolicyRetrievalPoint apply(PrpUpdateEvent event);
 
 }

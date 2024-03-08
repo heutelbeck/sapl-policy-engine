@@ -27,7 +27,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
+import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PrpUpdateEventSource;
 import reactor.core.publisher.Flux;
@@ -48,7 +48,7 @@ class PRPAutoConfigurationTests {
         contextRunner.withPropertyValues("io.sapl.pdp.embedded.index=NAIVE").run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(PolicyRetrievalPoint.class);
-            assertThat(context).hasSingleBean(GenericInMemoryIndexedPolicyRetrievalPoint.class);
+            assertThat(context).hasSingleBean(GenericInMemoryIndexedPolicyRetrievalPointSource.class);
         });
     }
 
@@ -57,7 +57,7 @@ class PRPAutoConfigurationTests {
         contextRunner.withPropertyValues("io.sapl.pdp.embedded.index=CANONICAL").run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(PolicyRetrievalPoint.class);
-            assertThat(context).hasSingleBean(GenericInMemoryIndexedPolicyRetrievalPoint.class);
+            assertThat(context).hasSingleBean(GenericInMemoryIndexedPolicyRetrievalPointSource.class);
         });
     }
 
@@ -66,7 +66,7 @@ class PRPAutoConfigurationTests {
         contextRunner.withBean(PolicyRetrievalPoint.class, () -> mock(PolicyRetrievalPoint.class)).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(PolicyRetrievalPoint.class);
-            assertThat(context).doesNotHaveBean(GenericInMemoryIndexedPolicyRetrievalPoint.class);
+            assertThat(context).doesNotHaveBean(GenericInMemoryIndexedPolicyRetrievalPointSource.class);
         });
     }
 

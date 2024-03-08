@@ -35,10 +35,11 @@ import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
+import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
+import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import reactor.util.context.Context;
 
@@ -47,7 +48,7 @@ class IntegrationTests {
 
     private SAPLInterpreter interpreter;
 
-    private ImmutableParsedDocumentIndex seedIndex;
+    private UpdateEventDrivenPolicyRetrievalPoint seedIndex;
 
     private static final AuthorizationSubscription EMPTY_SUBSCRIPTION = AuthorizationSubscription.of(null, null, null);
 
@@ -61,7 +62,7 @@ class IntegrationTests {
     @Test
     void return_empty_result_when_no_documents_are_published() {
         var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", interpreter);
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+        PolicyRetrievalPointSource prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
 
         PolicyRetrievalResult result = prp.retrievePolicies()
                 .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
@@ -75,7 +76,7 @@ class IntegrationTests {
     @Test
     void return_invalid_prp_state_for_invalid_document() {
         var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/invalid", interpreter);
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+        PolicyRetrievalPointSource prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
 
         PolicyRetrievalResult result = prp.retrievePolicies()
                 .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
@@ -90,7 +91,7 @@ class IntegrationTests {
     @Test
     void return_error_flag_when_evaluation_throws_exception() {
         var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/error", interpreter);
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+        PolicyRetrievalPointSource prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
 
         PolicyRetrievalResult result = prp.retrievePolicies()
                 .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
@@ -104,7 +105,7 @@ class IntegrationTests {
     @Test
     void return_matching_document_for_valid_subscription() {
         var source            = new FileSystemPrpUpdateEventSource("src/test/resources/it/policies", interpreter);
-        var prp               = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+        PolicyRetrievalPointSource prp               = new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
         var authzSubscription = AuthorizationSubscription.of(null, "read", null);
 
         PolicyRetrievalResult result = prp.retrievePolicies()
@@ -133,7 +134,7 @@ class IntegrationTests {
     @Test
     void return_empty_result_for_non_matching_subscription() {
         var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/policies", interpreter);
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+        PolicyRetrievalPointSource prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
 
         PolicyRetrievalResult result = prp.retrievePolicies()
                 .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();

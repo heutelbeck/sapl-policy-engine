@@ -17,6 +17,8 @@
  */
 package io.sapl.prp;
 
+import java.util.Collection;
+
 import reactor.core.publisher.Mono;
 
 /**
@@ -37,4 +39,8 @@ public interface PolicyRetrievalPoint {
      */
     Mono<PolicyRetrievalResult> retrievePolicies();
 
+    /**
+     * @return all loaded documents
+     */
+    Collection<Document> allDocuments();
 }

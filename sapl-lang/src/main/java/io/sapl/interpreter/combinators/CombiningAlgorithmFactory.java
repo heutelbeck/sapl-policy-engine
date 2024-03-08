@@ -26,7 +26,7 @@ public class CombiningAlgorithmFactory {
 
     public static final String FIRST_APPLICABLE_NOT_FOR_DOCUMENTS_ERROR = "FIRST_APPLICABLE not available for combining documents.";
 
-    public PolicySetCombiningAlgorithm policySetCombiningAlgorithm(CombiningAlgorithm algorithm) {
+    public static PolicySetCombiningAlgorithm policySetCombiningAlgorithm(CombiningAlgorithm algorithm) {
         return switch (algorithm) {
         case DENY_OVERRIDES -> DenyOverrides::denyOverrides;
         case PERMIT_OVERRIDES -> PermitOverrides::permitOverrides;
@@ -37,7 +37,7 @@ public class CombiningAlgorithmFactory {
         };
     }
 
-    public DocumentsCombiningAlgorithm documentsCombiningAlgorithm(CombiningAlgorithm algorithm) {
+    public static DocumentsCombiningAlgorithm documentsCombiningAlgorithm(CombiningAlgorithm algorithm) {
         return switch (algorithm) {
         case DENY_OVERRIDES -> DenyOverrides::denyOverrides;
         case PERMIT_OVERRIDES -> PermitOverrides::permitOverrides;

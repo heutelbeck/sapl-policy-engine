@@ -17,6 +17,8 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import static org.mockito.Mockito.mock;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,10 +33,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
+import io.sapl.prp.PolicyRetrievalPoint;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
 
@@ -62,9 +64,9 @@ class SAPLIdeSpringTestConfiguration {
                 "geographical_location_schema", "subject_schema", "vehicle_schema", "schema_with_additional_keywords"),
                 variables);
 
-        var staticPlaygroundConfiguration = new PDPConfiguration(attributeContext, functionContext, variables,
-                CombiningAlgorithmFactory.getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES),
-                UnaryOperator.identity(), UnaryOperator.identity());
+        var staticPlaygroundConfiguration = new PDPConfiguration("testConfig", attributeContext, functionContext,
+                variables, CombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(),
+                List.of(), mock(PolicyRetrievalPoint.class));
         return () -> Flux.just(staticPlaygroundConfiguration);
     }
 
