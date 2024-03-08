@@ -50,8 +50,10 @@ import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import io.sapl.prp.PolicyRetrievalPoint;
+import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.prp.PolicyRetrievalResult;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class EmbeddedPolicyDecisionPointTests {
@@ -69,12 +71,14 @@ class EmbeddedPolicyDecisionPointTests {
 
     @Test
     void decide_withInvalidConfig_shouldReturnIntermediate() {
-        var configMock   = mock(PDPConfiguration.class);
+        var prp            = mock(PolicyRetrievalPoint.class);
+        var brokenConfig   = new PDPConfiguration("", mock(), mock(), Map.of(), CombiningAlgorithm.DENY_OVERRIDES,
+                x -> x, x -> x, prp);
         var providerMock = mock(PDPConfigurationProvider.class);
         var embeddedPdp  = new EmbeddedPolicyDecisionPoint(providerMock);
 
-        when(providerMock.pdpConfiguration()).thenReturn(Flux.just(configMock));
-        when(configMock.isValid()).thenReturn(Boolean.FALSE);
+        when(providerMock.pdpConfiguration()).thenReturn(Flux.just(brokenConfig));
+        when(prp.isConsistent()).thenReturn(Boolean.FALSE);
 
         var empty = new AuthorizationSubscription(JSON.nullNode(), JSON.nullNode(), JSON.nullNode(), JSON.nullNode());
 
@@ -85,7 +89,6 @@ class EmbeddedPolicyDecisionPointTests {
         embeddedPdp.destroy();
 
         verify(providerMock, times(1)).destroy();
-        verify(prpMock, times(1)).destroy();
     }
 
     @Test
@@ -111,16 +114,18 @@ class EmbeddedPolicyDecisionPointTests {
     void decide_withInvalidPrpState_shouldReturnIntermediate() {
         var prpMock   = mock(PolicyRetrievalPoint.class);
         var prpResult = mock(PolicyRetrievalResult.class);
+        var prpSource = mock(PolicyRetrievalPointSource.class);
 
         var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
         var attrCtx  = new AnnotationAttributeContext();
         var funcCtx  = new AnnotationFunctionContext();
         var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source, List.of(),
-                List.of());
+                List.of(), prpSource);
 
-        var embeddedPdp = new EmbeddedPolicyDecisionPoint(provider, prpMock);
+        var embeddedPdp = new EmbeddedPolicyDecisionPoint(provider);
 
-        when(prpMock.retrievePolicies()).thenReturn(Flux.just(prpResult));
+        when(prpSource.policyRetrievalPoint()).thenReturn(Flux.just(prpMock));
+        when(prpMock.retrievePolicies()).thenReturn(Mono.just(prpResult));
         when(prpResult.isPrpValidState()).thenReturn(Boolean.FALSE);
 
         var simpleAuthzSubscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
@@ -220,11 +225,12 @@ class EmbeddedPolicyDecisionPointTests {
     void when_invalidPDPConfiguration_then_returnError1() {
         var prp            = mock(PolicyRetrievalPoint.class);
         var configProvider = mock(PDPConfigurationProvider.class);
-        var brokenConfig   = new PDPConfiguration(null, null, null, null, null, null);
+        var brokenConfig   = new PDPConfiguration("", mock(), mock(), Map.of(), CombiningAlgorithm.DENY_OVERRIDES,
+                x -> x, x -> x, prp);
         when(configProvider.pdpConfiguration()).thenReturn(Flux.just(brokenConfig));
         var subscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
                 JSON.textNode("something"), JSON.nullNode());
-        var sut          = new EmbeddedPolicyDecisionPoint(configProvider, prp);
+        var sut          = new EmbeddedPolicyDecisionPoint(configProvider);
         StepVerifier.create(sut.decide(subscription))
                 .expectNextMatches(combinedDecision -> combinedDecision.getDecision() == Decision.INDETERMINATE)
                 .verifyComplete();
@@ -236,11 +242,12 @@ class EmbeddedPolicyDecisionPointTests {
         var configProvider = mock(PDPConfigurationProvider.class);
         var mockAlgorithm  = mock(CombiningAlgorithm.class);
         when(mockAlgorithm.getName()).thenReturn("test alg");
-        var brokenConfig = new PDPConfiguration(null, null, null, mockAlgorithm, null);
+        var brokenConfig = new PDPConfiguration("", mock(), mock(), Map.of(), CombiningAlgorithm.DENY_OVERRIDES, x -> x,
+                x -> x, prp);
         when(configProvider.pdpConfiguration()).thenReturn(Flux.just(brokenConfig));
         var subscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
                 JSON.textNode("something"), JSON.nullNode());
-        var sut          = new EmbeddedPolicyDecisionPoint(configProvider, prp);
+        var sut          = new EmbeddedPolicyDecisionPoint(configProvider);
         StepVerifier.create(sut.decide(subscription))
                 .expectNextMatches(combinedDecision -> combinedDecision.getDecision() == Decision.INDETERMINATE)
                 .verifyComplete();
@@ -254,18 +261,18 @@ class EmbeddedPolicyDecisionPointTests {
         when(mockAlgorithm.getName()).thenReturn("test alg");
         var attributeContext = mock(AttributeContext.class);
         var functionContext  = mock(FunctionContext.class);
-        var validConfig      = new PDPConfiguration(attributeContext, functionContext, Map.of(), mockAlgorithm,
-                UnaryOperator.identity(), UnaryOperator.identity());
+        var validConfig      = new PDPConfiguration("", attributeContext, functionContext, Map.of(), mockAlgorithm,
+                UnaryOperator.identity(), UnaryOperator.identity(), prp);
         when(configProvider.pdpConfiguration()).thenReturn(Flux.just(validConfig));
 
         var retrievalResult = mock(PolicyRetrievalResult.class);
         when(retrievalResult.isPrpValidState()).thenReturn(Boolean.TRUE);
         when(retrievalResult.isErrorsInTarget()).thenReturn(Boolean.TRUE);
-        when(prp.retrievePolicies()).thenReturn(Flux.just(retrievalResult));
+        when(prp.retrievePolicies()).thenReturn(Mono.just(retrievalResult));
 
         var subscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
                 JSON.textNode("something"), JSON.nullNode());
-        var sut          = new EmbeddedPolicyDecisionPoint(configProvider, prp);
+        var sut          = new EmbeddedPolicyDecisionPoint(configProvider);
         StepVerifier.create(sut.decide(subscription))
                 .expectNextMatches(combinedDecision -> combinedDecision.getDecision() == Decision.INDETERMINATE)
                 .verifyComplete();
