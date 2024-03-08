@@ -39,8 +39,7 @@ class ClasspathVariablesAndCombinatorSourceTests {
     @Test
     void doTest() {
         var configProvider = new ClasspathVariablesAndCombinatorSource("policiesIT", new ObjectMapper(), null, null);
-        assertThat(configProvider.getCombiningAlgorithm().blockFirst().get())
-                .isInstanceOf(DenyUnlessPermit.class);
+        assertThat(configProvider.getCombiningAlgorithm().blockFirst().get()).isInstanceOf(DenyUnlessPermit.class);
         assertThat(configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst().get().keySet())
                 .isEmpty();
         configProvider.destroy();

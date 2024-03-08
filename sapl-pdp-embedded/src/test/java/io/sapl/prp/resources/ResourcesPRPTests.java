@@ -80,7 +80,8 @@ class ResourcesPRPTests {
         var prp         = new GenericInMemoryIndexedPolicyRetrievalPointSource(new NaiveImmutableParsedDocumentIndex(),
                 source);
         var authzSub    = AuthorizationSubscription.of("Willi", "write", "icecream");
-        var sut         = prp.policyRetrievalPoint().blockFirst().retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub));
+        var sut         = prp.policyRetrievalPoint().blockFirst().retrievePolicies()
+                .contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub));
         StepVerifier.create(sut).expectNextMatches(PolicyRetrievalResult.class::isInstance).verifyComplete();
         prp.dispose();
     }

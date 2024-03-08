@@ -46,7 +46,7 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
     private final FunctionContext functionCtx;
 
     private final VariablesAndCombinatorSource               variablesAndCombinatorSource;
-    private PolicyRetrievalPointSource prpSource;
+    private PolicyRetrievalPointSource                       prpSource;
     private final List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors;
 
     private final List<TracedDecisionInterceptor> decisionInterceptors;
@@ -54,8 +54,7 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
     public FixedFunctionsAndAttributesPDPConfigurationProvider(AttributeContext attributeCtx,
             FunctionContext functionCtx, VariablesAndCombinatorSource variablesAndCombinatorSource,
             Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
-            Collection<TracedDecisionInterceptor> decisionInterceptors,
-            PolicyRetrievalPointSource prpSource) {
+            Collection<TracedDecisionInterceptor> decisionInterceptors, PolicyRetrievalPointSource prpSource) {
         this.attributeCtx                 = attributeCtx;
         this.functionCtx                  = functionCtx;
         this.variablesAndCombinatorSource = variablesAndCombinatorSource;

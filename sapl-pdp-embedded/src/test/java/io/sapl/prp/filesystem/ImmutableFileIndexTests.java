@@ -55,7 +55,9 @@ import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.util.filemonitoring.FileChangedEvent;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 class ImmutableFileIndexTests {
 
     private static final SAPLInterpreter INTERPRETER   = new DefaultSAPLInterpreter();
@@ -235,7 +237,8 @@ class ImmutableFileIndexTests {
             sut = sut.afterFileEvent(event2);
 
             var actualUpdates = sut.getUpdateEvent();
-
+            log.error("#>{}", actualUpdates.getUpdates().length);
+            log.error("->{}{}", (Update[]) actualUpdates.getUpdates(), "");
             // validate
             // @formatter:off
 			assertThat(actualUpdates.getUpdates(),
@@ -492,7 +495,7 @@ class ImmutableFileIndexTests {
 
             @Override
             public void describeTo(final Description description) {
-                description.appendText("update shuold have name ").appendValue(name);
+                description.appendText("update should have name ").appendValue(name);
             }
         };
     }

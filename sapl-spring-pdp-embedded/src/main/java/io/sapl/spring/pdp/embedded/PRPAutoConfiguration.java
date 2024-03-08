@@ -28,7 +28,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
-import io.sapl.prp.PolicyRetrievalPoint;
+import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.prp.PrpUpdateEventSource;
 import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
@@ -51,7 +51,7 @@ public class PRPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PolicyRetrievalPoint policyRetrievalPoint() throws PolicyEvaluationException {
+    PolicyRetrievalPointSource policyRetrievalPoint() throws PolicyEvaluationException {
         log.info("Using index type: {}", pdpProperties.getIndex());
         UpdateEventDrivenPolicyRetrievalPoint seedIndex;
         if (pdpProperties.getIndex() == IndexType.NAIVE) {

@@ -43,7 +43,7 @@ public interface PolicyRetrievalPoint {
      * @return all loaded documents
      */
     Collection<Document> allDocuments();
-    
+
     /**
      * @return true, iff no errors in documents, names and ids unique
      */

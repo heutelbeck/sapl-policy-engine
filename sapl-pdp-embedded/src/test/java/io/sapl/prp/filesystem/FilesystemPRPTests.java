@@ -81,7 +81,8 @@ class FilesystemPRPTests {
                 source);
         var authzSub    = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
-        var sut = prp.policyRetrievalPoint().blockFirst().retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub));
+        var sut = prp.policyRetrievalPoint().blockFirst().retrievePolicies()
+                .contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub));
         StepVerifier.create(sut).expectNextMatches(PolicyRetrievalResult.class::isInstance).verifyComplete();
         prp.dispose();
     }

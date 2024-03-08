@@ -89,7 +89,8 @@ class TestSuiteInterpreter {
         if (integrationTestSuite.isCombiningAlgorithmDefined()) {
             final var pdpPolicyCombiningAlgorithm = combiningAlgorithmInterpreter
                     .interpretPdpCombiningAlgorithm(integrationTestSuite.getCombiningAlgorithm());
-            integrationTestFixture.withPDPPolicyCombiningAlgorithm(CombiningAlgorithmFactory.documentsCombiningAlgorithm(pdpPolicyCombiningAlgorithm));
+            integrationTestFixture.withPDPPolicyCombiningAlgorithm(
+                    CombiningAlgorithmFactory.documentsCombiningAlgorithm(pdpPolicyCombiningAlgorithm));
         }
 
         return integrationTestFixture;

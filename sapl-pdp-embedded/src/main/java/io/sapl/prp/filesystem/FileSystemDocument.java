@@ -40,13 +40,13 @@ class FileSystemDocument {
         this.path = path;
         try {
             document = interpreter.parseDocument(Files.newInputStream(path));
+            if (document == null || document.isInvalid()) {
+                log.warn("Error in document '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
+                        document);
+            }
         } catch (IOException e) {
             log.warn("Error reading file '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
                     e.getMessage());
-        }
-        if (document.isInvalid()) {
-            log.warn("Error in document '{}': {}. Will lead to inconsistent index.", path.toAbsolutePath(),
-                    document.errorMessage());
         }
     }
 
@@ -61,14 +61,14 @@ class FileSystemDocument {
     }
 
     public String getDocumentName() {
-        if (document.sapl() == null)
+        if (document == null)
             return null;
 
-        return document.sapl().getPolicyElement().getSaplName();
+        return document.name();
     }
 
     public boolean isInvalid() {
-        return document.sapl() == null;
+        return document == null || document.isInvalid();
     }
 
 }

@@ -40,15 +40,14 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
 
     @Test
     void do_test() {
-        
-        
-        var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
-        var prpSource   = constructFilesystemPolicyRetrievalPointSource("src/test/resources/policies");
-        var attrCtx  = new AnnotationAttributeContext();
-        var funcCtx  = new AnnotationFunctionContext();
-        var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source, List.of(),
+
+        var source    = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+        var prpSource = constructFilesystemPolicyRetrievalPointSource("src/test/resources/policies");
+        var attrCtx   = new AnnotationAttributeContext();
+        var funcCtx   = new AnnotationFunctionContext();
+        var provider  = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source, List.of(),
                 List.of(), prpSource);
-        var config   = provider.pdpConfiguration().blockFirst();
+        var config    = provider.pdpConfiguration().blockFirst();
         provider.destroy();
         assertThat(config.documentsCombinator() == CombiningAlgorithm.DENY_UNLESS_PERMIT, is(true));
         assertThat(config.attributeContext(), is(attrCtx));
@@ -56,8 +55,7 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
         assertThat(config.variables(), notNullValue());
     }
 
-    public static PolicyRetrievalPointSource constructFilesystemPolicyRetrievalPointSource(
-            String policiesFolder) {
+    public static PolicyRetrievalPointSource constructFilesystemPolicyRetrievalPointSource(String policiesFolder) {
         var seedIndex = constructDocumentIndex();
         var source    = new FileSystemPrpUpdateEventSource(policiesFolder, new DefaultSAPLInterpreter());
         return new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);

@@ -71,9 +71,9 @@ class EmbeddedPolicyDecisionPointTests {
 
     @Test
     void decide_withInvalidConfig_shouldReturnIntermediate() {
-        var prp            = mock(PolicyRetrievalPoint.class);
-        var brokenConfig   = new PDPConfiguration("", mock(), mock(), Map.of(), CombiningAlgorithm.DENY_OVERRIDES,
-                x -> x, x -> x, prp);
+        var prp          = mock(PolicyRetrievalPoint.class);
+        var brokenConfig = new PDPConfiguration("", mock(), mock(), Map.of(), CombiningAlgorithm.DENY_OVERRIDES, x -> x,
+                x -> x, prp);
         var providerMock = mock(PDPConfigurationProvider.class);
         var embeddedPdp  = new EmbeddedPolicyDecisionPoint(providerMock);
 
