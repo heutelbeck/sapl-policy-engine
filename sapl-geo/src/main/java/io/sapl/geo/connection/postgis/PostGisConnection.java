@@ -110,19 +110,10 @@ public class PostGisConnection extends ConnectionBase {
         	
         	sql = sql.concat("FETCH FIRST 1 ROW ONLY");
         	return poll(getResults(connection, sql, format, defaultCrs).next(), repeatTimes, pollingInterval);
-//        			.doOnNext(node -> System.out.println("Result from DB: " + node.toString())).onErrorResume(Mono::error)
-//        	        .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
-//        	        .doOnCancel(() -> connectionReference.get().close())
-//        	        .doOnTerminate(() -> connectionReference.get().close());
         }else {
 
-        	return poll(collectAndMapResults(getResults(connection, sql, format, defaultCrs)), repeatTimes, pollingInterval);
-//        			.doOnNext(node -> System.out.println("Result from DB: " + node.toString())).onErrorResume(Mono::error)
-//        	        .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
-//        	        .doOnCancel(() -> connectionReference.get().close())
-//        	        .doOnTerminate(() -> connectionReference.get().close());	
+        	return poll(collectAndMapResults(getResults(connection, sql, format, defaultCrs)), repeatTimes, pollingInterval);	
         }
-    	
 
     }
     
