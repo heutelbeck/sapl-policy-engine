@@ -73,7 +73,7 @@ public class DenyOverrides {
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
         var entitlement = NOT_APPLICABLE;
         var collector   = new ObligationAdviceCollector();
-        var resource    = Optional.<JsonNode>empty();
+        var combinedDecisionsResource    = Optional.<JsonNode>empty();
         var decisions   = new LinkedList<DocumentEvaluationResult>();
         for (var policyDecision : policyDecisions) {
             decisions.add(policyDecision);
@@ -90,7 +90,7 @@ public class DenyOverrides {
             collector.add(authorizationDecision);
             var currentDecisionsResource = authorizationDecision.getResource();
             if (currentDecisionsResource.isPresent()) {
-                if (resource.isPresent()) {
+                if (combinedDecisionsResource.isPresent()) {
                     /*
                      * This is a transformation uncertainty. another policy already defined a
                      * transformation this the overall result is basically INDETERMINATE. However,
@@ -100,12 +100,12 @@ public class DenyOverrides {
                         entitlement = INDETERMINATE;
                     }
                 } else {
-                    resource = currentDecisionsResource;
+                    combinedDecisionsResource = currentDecisionsResource;
                 }
             }
         }
 
-        var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
+        var finalDecision = new AuthorizationDecision(entitlement, combinedDecisionsResource, collector.getObligations(entitlement),
                 collector.getAdvice(entitlement));
         return CombinedDecision.of(finalDecision, CombiningAlgorithm.DENY_OVERRIDES, decisions);
 
