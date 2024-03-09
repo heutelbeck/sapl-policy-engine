@@ -17,7 +17,7 @@
  */
 package io.sapl.util.filemonitoring;
 
-import java.io.File;
+import java.nio.file.Path;
 
-public record FileDeletedEvent(File file) implements FileEvent {
+public record FileDeletedEvent(Path file) implements FileEvent {
 }

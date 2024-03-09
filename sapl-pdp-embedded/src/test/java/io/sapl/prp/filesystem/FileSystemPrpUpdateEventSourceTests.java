@@ -18,12 +18,11 @@
 package io.sapl.prp.filesystem;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
+import java.nio.file.Paths;
 import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
@@ -45,10 +44,8 @@ class FileSystemPrpUpdateEventSourceTests {
     void testProcessFileEvent() {
         var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", new DefaultSAPLInterpreter());
 
-        var file1 = mock(File.class);
-        when(file1.getAbsolutePath()).thenReturn("/file1.sapl");
-        var file2 = mock(File.class);
-        when(file2.getAbsolutePath()).thenReturn("/file2.sapl");
+        var file1 = Paths.get("/file1.sapl");
+        var file2 = Paths.get("/file2.sapl");
 
         try (MockedConstruction<ImmutableFileIndex> mocked = Mockito.mockConstruction(ImmutableFileIndex.class,
                 (mock, context) -> {
@@ -57,8 +54,8 @@ class FileSystemPrpUpdateEventSourceTests {
                 })) {
 
             try (MockedStatic<FileMonitorUtil> mock = mockStatic(FileMonitorUtil.class)) {
-                mock.when(() -> FileMonitorUtil.monitorDirectory(any(), any()))
-                        .thenReturn(Flux.just(new FileCreatedEvent(file1), new FileDeletedEvent(file2)));
+                var eventFlux = Flux.just(new FileCreatedEvent(file1), new FileDeletedEvent(file2));
+                mock.when(() -> FileMonitorUtil.monitorDirectory(any(), any())).thenReturn(eventFlux);
 
                 var updates = source.getUpdates();
                 StepVerifier.create(updates).expectNextCount(2L).thenCancel().verify();

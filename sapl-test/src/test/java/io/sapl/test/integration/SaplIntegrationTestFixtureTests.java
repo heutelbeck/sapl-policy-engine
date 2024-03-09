@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 
@@ -50,7 +50,7 @@ class SaplIntegrationTestFixtureTests {
     @Test
     void test_withPDPPolicyCombiningAlgorithm() {
         var fixture = new SaplIntegrationTestFixture("policiesIT");
-        fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY).constructTestCase()
+        fixture.withPDPPolicyCombiningAlgorithm(CombiningAlgorithm.PERMIT_UNLESS_DENY).constructTestCase()
                 .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
     }
 
@@ -117,18 +117,16 @@ class SaplIntegrationTestFixtureTests {
         void test_nullPDPConfigPath_usesGivenCombiningAlgorithm() {
             var fixture = new SaplIntegrationTestFixture(null,
                     List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
-            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES)
-                    .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
-                    .verify();
+            fixture.withPDPPolicyCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES).constructTestCase()
+                    .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
         }
 
         @Test
         void test_invalidPDPConfigPath_usesGivenCombiningAlgorithm() {
             var fixture = new SaplIntegrationTestFixture("it/empty",
                     List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
-            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES)
-                    .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
-                    .verify();
+            fixture.withPDPPolicyCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES).constructTestCase()
+                    .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
         }
 
         @Test
@@ -136,8 +134,7 @@ class SaplIntegrationTestFixtureTests {
             var       fixture   = new SaplIntegrationTestFixture("it/empty",
                     List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
             final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(1)));
-            fixture.withPDPVariables(variables)
-                    .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)
+            fixture.withPDPVariables(variables).withPDPPolicyCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
                     .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
                     .verify();
         }
@@ -154,7 +151,7 @@ class SaplIntegrationTestFixtureTests {
         void test_validConfigPath_givenCombiningAlgorithmOverridesConfig() {
             var fixture = new SaplIntegrationTestFixture("policiesIT",
                     List.of("policiesIT/policy_A", "policiesIT/policy_B.sapl"));
-            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES).constructTestCase()
+            fixture.withPDPPolicyCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).constructTestCase()
                     .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
         }
 
@@ -172,8 +169,7 @@ class SaplIntegrationTestFixtureTests {
             var       fixture   = new SaplIntegrationTestFixture("policiesIT",
                     List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
             final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(1)));
-            fixture.withPDPVariables(variables)
-                    .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)
+            fixture.withPDPVariables(variables).withPDPPolicyCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES)
                     .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
                     .verify();
         }
@@ -266,16 +262,15 @@ class SaplIntegrationTestFixtureTests {
         @Test
         void test_usesGivenCombiningAlgorithm() {
             var fixture = new SaplIntegrationTestFixture(List.of(policy_A, policy_B), pdpConfig);
-            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES).constructTestCase()
+            fixture.withPDPPolicyCombiningAlgorithm(CombiningAlgorithm.DENY_OVERRIDES).constructTestCase()
                     .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
         }
 
         @Test
         void test_usesGivenCombiningAlgorithmAndConfigVariables() {
             var fixture = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
-            fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES)
-                    .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
-                    .verify();
+            fixture.withPDPPolicyCombiningAlgorithm(CombiningAlgorithm.PERMIT_OVERRIDES).constructTestCase()
+                    .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
         }
 
         @Test
@@ -290,8 +285,7 @@ class SaplIntegrationTestFixtureTests {
         void test_givenVariablesAndCombiningAlgorithmOverridesConfig() {
             var       fixture   = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
             final var variables = Map.of("test", Val.of(2));
-            fixture.withPDPVariables(variables)
-                    .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT)
+            fixture.withPDPVariables(variables).withPDPPolicyCombiningAlgorithm(CombiningAlgorithm.DENY_UNLESS_PERMIT)
                     .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
                     .verify();
         }

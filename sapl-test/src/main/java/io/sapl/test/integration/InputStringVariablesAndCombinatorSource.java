@@ -27,8 +27,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.NonNull;
@@ -41,14 +39,13 @@ public class InputStringVariablesAndCombinatorSource implements VariablesAndComb
     private final PolicyDecisionPointConfiguration config;
 
     public InputStringVariablesAndCombinatorSource(@NonNull String input, @NonNull ObjectMapper mapper,
-            PolicyDocumentCombiningAlgorithm testInternalConfiguredCombiningAlg,
-            Map<String, Val> testInternalConfiguredVariables) {
+            CombiningAlgorithm testInternalConfiguredCombiningAlg, Map<String, Val> testInternalConfiguredVariables) {
         log.info("Loading the PDP configuration from input string");
         try {
             var jsonNode = mapper.readValue(input, JsonNode.class);
             this.config = new PolicyDecisionPointConfiguration();
             if (jsonNode.has("algorithm")) {
-                this.config.setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
+                this.config.setAlgorithm(CombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
             }
             var variables = new HashMap<String, Val>();
             if (jsonNode.has("variables")) {
@@ -70,7 +67,7 @@ public class InputStringVariablesAndCombinatorSource implements VariablesAndComb
 
     @Override
     public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
-        return Flux.just(config.getAlgorithm()).map(CombiningAlgorithmFactory::getCombiningAlgorithm).map(Optional::of);
+        return Flux.just(config.getAlgorithm()).map(Optional::of);
     }
 
     @Override

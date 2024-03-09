@@ -55,7 +55,7 @@ class ImmutableFileIndex {
 
     final Map<String, List<FileSystemDocument>> namesToDocuments;
 
-    public ImmutableFileIndex(String watchDir, SAPLInterpreter interpreter) {
+    public ImmutableFileIndex(Path watchDir, SAPLInterpreter interpreter) {
         log.info("Initializing file index for {}", watchDir);
 
         this.interpreter      = interpreter;
@@ -119,8 +119,8 @@ class ImmutableFileIndex {
     }
 
     public ImmutableFileIndex afterFileEvent(FileEvent event) {
-        var fileName = event.file().getName();
-        var path     = event.file().toPath().toAbsolutePath();
+        var fileName = event.file().getFileName();
+        var path     = event.file().toAbsolutePath();
         var newIndex = new ImmutableFileIndex(this);
         if (event instanceof FileDeletedEvent) {
             log.info("Unloading deleted SAPL document: {}", fileName);

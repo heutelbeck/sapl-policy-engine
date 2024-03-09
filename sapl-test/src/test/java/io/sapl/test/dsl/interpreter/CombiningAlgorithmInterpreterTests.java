@@ -29,7 +29,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.CombiningAlgorithmEnum;
 
@@ -50,23 +50,17 @@ class CombiningAlgorithmInterpreterTests {
     }
 
     private static Stream<Arguments> combiningAlgorithmEnumToPolicyDocumentCombiningAlgorithm() {
-        return Stream.of(
-                Arguments.of(CombiningAlgorithmEnum.DENY_OVERRIDES, PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES),
-                Arguments.of(CombiningAlgorithmEnum.PERMIT_OVERRIDES,
-                        PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES),
-                Arguments.of(CombiningAlgorithmEnum.ONLY_ONE_APPLICABLE,
-                        PolicyDocumentCombiningAlgorithm.ONLY_ONE_APPLICABLE),
-                Arguments.of(CombiningAlgorithmEnum.DENY_UNLESS_PERMIT,
-                        PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT),
-                Arguments.of(CombiningAlgorithmEnum.PERMIT_UNLESS_DENY,
-                        PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY));
+        return Stream.of(Arguments.of(CombiningAlgorithmEnum.DENY_OVERRIDES, CombiningAlgorithm.DENY_OVERRIDES),
+                Arguments.of(CombiningAlgorithmEnum.PERMIT_OVERRIDES, CombiningAlgorithm.PERMIT_OVERRIDES),
+                Arguments.of(CombiningAlgorithmEnum.ONLY_ONE_APPLICABLE, CombiningAlgorithm.ONLY_ONE_APPLICABLE),
+                Arguments.of(CombiningAlgorithmEnum.DENY_UNLESS_PERMIT, CombiningAlgorithm.DENY_UNLESS_PERMIT),
+                Arguments.of(CombiningAlgorithmEnum.PERMIT_UNLESS_DENY, CombiningAlgorithm.PERMIT_UNLESS_DENY));
     }
 
     @ParameterizedTest
     @MethodSource("combiningAlgorithmEnumToPolicyDocumentCombiningAlgorithm")
     void interpretPdpCombiningAlgorithm_handlesGivenCombiningAlgorithm_returnsPolicyDocumentCombiningAlgorithm(
-            final CombiningAlgorithmEnum combiningAlgorithm,
-            final PolicyDocumentCombiningAlgorithm expectedCombiningAlgorithm) {
+            final CombiningAlgorithmEnum combiningAlgorithm, final CombiningAlgorithm expectedCombiningAlgorithm) {
         final var result = combiningAlgorithmInterpreter.interpretPdpCombiningAlgorithm(combiningAlgorithm);
 
         assertEquals(expectedCombiningAlgorithm, result);

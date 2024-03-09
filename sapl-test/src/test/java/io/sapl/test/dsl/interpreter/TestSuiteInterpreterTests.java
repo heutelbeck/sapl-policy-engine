@@ -47,7 +47,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.TestHelper;
 import io.sapl.test.dsl.ParserUtil;
@@ -357,19 +357,19 @@ class TestSuiteInterpreterTests {
                     .when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder"))
                     .thenReturn(saplIntegrationTestFixtureMock);
 
-            final var pdpCombiningAlgorithmMock = mock(PolicyDocumentCombiningAlgorithm.class);
             when(combiningAlgorithmInterpreterMock
                     .interpretPdpCombiningAlgorithm(CombiningAlgorithmEnum.ONLY_ONE_APPLICABLE))
-                    .thenReturn(pdpCombiningAlgorithmMock);
+                    .thenReturn(CombiningAlgorithm.ONLY_ONE_APPLICABLE);
 
-            when(saplIntegrationTestFixtureMock.withPDPPolicyCombiningAlgorithm(pdpCombiningAlgorithmMock))
+            when(saplIntegrationTestFixtureMock.withPDPPolicyCombiningAlgorithm(CombiningAlgorithm.ONLY_ONE_APPLICABLE))
                     .thenReturn(saplIntegrationTestFixtureMock);
 
             final var result = testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite);
 
             assertEquals(saplIntegrationTestFixtureMock, result);
 
-            verify(saplIntegrationTestFixtureMock, times(1)).withPDPPolicyCombiningAlgorithm(pdpCombiningAlgorithmMock);
+            verify(saplIntegrationTestFixtureMock, times(1))
+                    .withPDPPolicyCombiningAlgorithm(CombiningAlgorithm.ONLY_ONE_APPLICABLE);
 
             verifyNoMoreInteractions(saplIntegrationTestFixtureMock);
         }

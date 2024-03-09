@@ -38,24 +38,24 @@ public class FileMonitorUtil {
     private static final long   POLL_INTERVAL_IN_MS = 500;
     private static final String SAPL_FILE_EXTENSION = "sapl";
 
-    public static String resolveHomeFolderIfPresent(String policyPath) {
+    public static Path resolveHomeFolderIfPresent(String policyPath) {
         policyPath = policyPath.replace("/", File.separator);
 
         if (policyPath.startsWith("~" + File.separator))
-            return getUserHomeProperty() + policyPath.substring(1);
+            return Paths.get(getUserHomeProperty() + policyPath.substring(1));
 
-        return policyPath;
+        return Paths.get(policyPath);
     }
 
     static String getUserHomeProperty() {
         return System.getProperty("user.home");
     }
 
-    public static Flux<FileEvent> monitorDirectory(final String watchDir, final FileFilter fileFilter) {
+    public static Flux<FileEvent> monitorDirectory(final Path watchDir, final FileFilter fileFilter) {
         return Flux.push(emitter -> {
             var adaptor  = new FileEventAdaptor(emitter);
             var monitor  = new FileAlterationMonitor(POLL_INTERVAL_IN_MS);
-            var observer = new FileAlterationObserver(watchDir, fileFilter);
+            var observer = new FileAlterationObserver(watchDir.toFile(), fileFilter);
             monitor.addObserver(observer);
             observer.addListener(adaptor);
             emitter.onDispose(() -> {

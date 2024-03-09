@@ -66,7 +66,7 @@ class SAPLIdeSpringTestConfiguration {
 
         var staticPlaygroundConfiguration = new PDPConfiguration("testConfig", attributeContext, functionContext,
                 variables, CombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(),
-                List.of(), mock(PolicyRetrievalPoint.class));
+                mock(PolicyRetrievalPoint.class));
         return () -> Flux.just(staticPlaygroundConfiguration);
     }
 

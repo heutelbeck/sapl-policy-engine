@@ -24,7 +24,6 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
@@ -89,8 +88,7 @@ class TestSuiteInterpreter {
         if (integrationTestSuite.isCombiningAlgorithmDefined()) {
             final var pdpPolicyCombiningAlgorithm = combiningAlgorithmInterpreter
                     .interpretPdpCombiningAlgorithm(integrationTestSuite.getCombiningAlgorithm());
-            integrationTestFixture.withPDPPolicyCombiningAlgorithm(
-                    CombiningAlgorithmFactory.documentsCombiningAlgorithm(pdpPolicyCombiningAlgorithm));
+            integrationTestFixture.withPDPPolicyCombiningAlgorithm(pdpPolicyCombiningAlgorithm);
         }
 
         return integrationTestFixture;
