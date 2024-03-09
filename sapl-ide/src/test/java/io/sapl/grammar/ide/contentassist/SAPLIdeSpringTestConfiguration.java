@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalPoint;
@@ -65,8 +65,8 @@ class SAPLIdeSpringTestConfiguration {
                 variables);
 
         var staticPlaygroundConfiguration = new PDPConfiguration("testConfig", attributeContext, functionContext,
-                variables, CombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(),
-                mock(PolicyRetrievalPoint.class));
+                variables, PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(),
+                UnaryOperator.identity(), mock(PolicyRetrievalPoint.class));
         return () -> Flux.just(staticPlaygroundConfiguration);
     }
 

@@ -30,13 +30,13 @@ import io.sapl.prp.PolicyRetrievalPoint;
 import lombok.NonNull;
 
 public record PDPConfiguration(@NonNull String configurationId, @NonNull AttributeContext attributeContext,
-        @NonNull FunctionContext functionContext,Map<String, Val> variables,
+        @NonNull FunctionContext functionContext, Map<String, Val> variables,
         PolicyDocumentCombiningAlgorithm documentsCombinator,
         @NonNull UnaryOperator<TracedDecision> decisionInterceptorChain,
         @NonNull UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain,
         @NonNull PolicyRetrievalPoint policyRetrievalPoint) {
 
     public boolean isValid() {
-        return variables !=null && documentsCombinator != null && policyRetrievalPoint.isConsistent();
+        return variables != null && documentsCombinator != null && policyRetrievalPoint.isConsistent();
     }
 }
