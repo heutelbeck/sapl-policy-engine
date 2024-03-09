@@ -17,8 +17,8 @@
  */
 package io.sapl.util.filemonitoring;
 
-import java.io.File;
+import java.nio.file.Path;
 
 public interface FileEvent {
-    File file();
+    Path file();
 }

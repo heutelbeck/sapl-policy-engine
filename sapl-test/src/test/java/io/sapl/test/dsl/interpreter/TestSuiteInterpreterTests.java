@@ -357,19 +357,20 @@ class TestSuiteInterpreterTests {
                     .when(() -> SaplIntegrationTestFixtureFactory.create("fooFolder"))
                     .thenReturn(saplIntegrationTestFixtureMock);
 
-            final var pdpCombiningAlgorithmMock = mock(PolicyDocumentCombiningAlgorithm.class);
             when(combiningAlgorithmInterpreterMock
                     .interpretPdpCombiningAlgorithm(CombiningAlgorithmEnum.ONLY_ONE_APPLICABLE))
-                    .thenReturn(pdpCombiningAlgorithmMock);
+                    .thenReturn(PolicyDocumentCombiningAlgorithm.ONLY_ONE_APPLICABLE);
 
-            when(saplIntegrationTestFixtureMock.withPDPPolicyCombiningAlgorithm(pdpCombiningAlgorithmMock))
+            when(saplIntegrationTestFixtureMock
+                    .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.ONLY_ONE_APPLICABLE))
                     .thenReturn(saplIntegrationTestFixtureMock);
 
             final var result = testSuiteInterpreter.getFixtureFromTestSuite(integrationTestSuite);
 
             assertEquals(saplIntegrationTestFixtureMock, result);
 
-            verify(saplIntegrationTestFixtureMock, times(1)).withPDPPolicyCombiningAlgorithm(pdpCombiningAlgorithmMock);
+            verify(saplIntegrationTestFixtureMock, times(1))
+                    .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.ONLY_ONE_APPLICABLE);
 
             verifyNoMoreInteractions(saplIntegrationTestFixtureMock);
         }

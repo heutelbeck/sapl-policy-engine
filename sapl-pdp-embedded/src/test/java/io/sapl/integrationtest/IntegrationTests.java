@@ -35,10 +35,9 @@ import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
-import io.sapl.prp.PolicyRetrievalResult;
+import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import reactor.util.context.Context;
 
@@ -47,7 +46,7 @@ class IntegrationTests {
 
     private SAPLInterpreter interpreter;
 
-    private ImmutableParsedDocumentIndex seedIndex;
+    private UpdateEventDrivenPolicyRetrievalPoint seedIndex;
 
     private static final AuthorizationSubscription EMPTY_SUBSCRIPTION = AuthorizationSubscription.of(null, null, null);
 
@@ -60,11 +59,11 @@ class IntegrationTests {
 
     @Test
     void return_empty_result_when_no_documents_are_published() {
-        var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", interpreter);
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
-
-        PolicyRetrievalResult result = prp.retrievePolicies()
-                .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
+        var source    = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", interpreter);
+        var prpSource = new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
+        var result    = prpSource.policyRetrievalPoint().flatMap(
+                prp -> prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)))
+                .blockFirst();
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments(), empty());
@@ -74,11 +73,11 @@ class IntegrationTests {
 
     @Test
     void return_invalid_prp_state_for_invalid_document() {
-        var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/invalid", interpreter);
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
-
-        PolicyRetrievalResult result = prp.retrievePolicies()
-                .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
+        var source    = new FileSystemPrpUpdateEventSource("src/test/resources/it/invalid", interpreter);
+        var prpSource = new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
+        var result    = prpSource.policyRetrievalPoint().flatMap(
+                prp -> prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)))
+                .blockFirst();
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments(), empty());
@@ -89,11 +88,11 @@ class IntegrationTests {
 
     @Test
     void return_error_flag_when_evaluation_throws_exception() {
-        var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/error", interpreter);
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
-
-        PolicyRetrievalResult result = prp.retrievePolicies()
-                .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
+        var source    = new FileSystemPrpUpdateEventSource("src/test/resources/it/error", interpreter);
+        var prpSource = new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
+        var result    = prpSource.policyRetrievalPoint().flatMap(
+                prp -> prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)))
+                .blockFirst();
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments(), empty());
@@ -104,21 +103,21 @@ class IntegrationTests {
     @Test
     void return_matching_document_for_valid_subscription() {
         var source            = new FileSystemPrpUpdateEventSource("src/test/resources/it/policies", interpreter);
-        var prp               = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
         var authzSubscription = AuthorizationSubscription.of(null, "read", null);
-
-        PolicyRetrievalResult result = prp.retrievePolicies()
-                .contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSubscription)).blockFirst();
+        var prpSource         = new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
+        var result            = prpSource.policyRetrievalPoint().flatMap(
+                prp -> prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSubscription)))
+                .blockFirst();
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments().size(), is(1));
         assertThat(result.isErrorsInTarget(), is(false));
-
-        assertThat(result.getMatchingDocuments().get(0).document().getPolicyElement().getSaplName(), is("policy read"));
+        assertThat(result.getMatchingDocuments().get(0).document().name(), is("policy read"));
 
         var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
-        result = prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSubscription2))
+        result = prpSource.policyRetrievalPoint().flatMap(
+                prp -> prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSubscription2)))
                 .blockFirst();
 
         assertThat(result, notNullValue());
@@ -126,17 +125,16 @@ class IntegrationTests {
         assertThat(result.isErrorsInTarget(), is(false));
         assertThat(result.isPrpValidState(), is(true));
 
-        assertThat(result.getMatchingDocuments().get(0).document().getPolicyElement().getSaplName(),
-                is("policy eat icecream"));
+        assertThat(result.getMatchingDocuments().get(0).document().name(), is("policy eat icecream"));
     }
 
     @Test
     void return_empty_result_for_non_matching_subscription() {
-        var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/policies", interpreter);
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
-
-        PolicyRetrievalResult result = prp.retrievePolicies()
-                .contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)).blockFirst();
+        var source    = new FileSystemPrpUpdateEventSource("src/test/resources/it/policies", interpreter);
+        var prpSource = new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
+        var result    = prpSource.policyRetrievalPoint().flatMap(
+                prp -> prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, EMPTY_SUBSCRIPTION)))
+                .blockFirst();
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments(), empty());

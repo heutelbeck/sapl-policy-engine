@@ -29,12 +29,14 @@ import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalPoint;
+import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.test.mocking.attribute.MockingAttributeContext;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.steps.AttributeMockReturnValues;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.StepsDefaultImpl;
 import io.sapl.test.steps.WhenStep;
+import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 public class StepBuilder {
@@ -85,10 +87,22 @@ public class StepBuilder {
 
         @Override
         protected void createStepVerifier(AuthorizationSubscription authzSub) {
+            var prpSource             = new PolicyRetrievalPointSource() {
 
+                                          @Override
+                                          public void dispose() {
+                                              // NOOP
+                                          }
+
+                                          @Override
+                                          public Flux<PolicyRetrievalPoint> policyRetrievalPoint() {
+                                              return Flux.just(prp);
+                                          }
+                                      };
             var configurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(
-                    this.mockingAttributeContext, this.mockingFunctionContext, this.pdpConfig, List.of(), List.of());
-            var pdp                   = new EmbeddedPolicyDecisionPoint(configurationProvider, this.prp);
+                    this.mockingAttributeContext, this.mockingFunctionContext, this.pdpConfig, List.of(), List.of(),
+                    prpSource);
+            var pdp                   = new EmbeddedPolicyDecisionPoint(configurationProvider);
 
             if (this.withVirtualTime) {
                 this.steps = StepVerifier.withVirtualTime(() -> pdp.decide(authzSub));

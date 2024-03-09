@@ -18,6 +18,7 @@
 package io.sapl.prp.index.canonical;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,24 +26,24 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.prp.Document;
 import io.sapl.prp.PolicyRetrievalException;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.canonical.ordering.DefaultPredicateOrderStrategy;
 import io.sapl.prp.index.canonical.ordering.PredicateOrderStrategy;
 import reactor.core.publisher.Mono;
 
-public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDocumentIndex {
+public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenPolicyRetrievalPoint {
 
     private final CanonicalIndexDataContainer indexDataContainer;
 
-    private final Map<String, SAPL> documents;
+    private final Map<String, Document> documents;
 
     private final PredicateOrderStrategy predicateOrderStrategy;
 
@@ -61,7 +62,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
         this(Collections.emptyMap(), new DefaultPredicateOrderStrategy(), true, attributeCtx, functionCtx);
     }
 
-    private CanonicalImmutableParsedDocumentIndex(Map<String, SAPL> updatedDocuments,
+    private CanonicalImmutableParsedDocumentIndex(Map<String, Document> updatedDocuments,
             PredicateOrderStrategy predicateOrderStrategy, boolean consistent, AttributeContext attributeCtx,
             FunctionContext functionCtx) {
         this.documents              = updatedDocuments;
@@ -77,7 +78,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
                 targets);
     }
 
-    CanonicalImmutableParsedDocumentIndex recreateIndex(Map<String, SAPL> updatedDocuments, boolean consistent) {
+    CanonicalImmutableParsedDocumentIndex recreateIndex(Map<String, Document> updatedDocuments, boolean consistent) {
         return new CanonicalImmutableParsedDocumentIndex(updatedDocuments, predicateOrderStrategy, consistent,
                 attributeCtx, functionCtx);
     }
@@ -95,7 +96,7 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
     }
 
     @Override
-    public ImmutableParsedDocumentIndex apply(PrpUpdateEvent event) {
+    public UpdateEventDrivenPolicyRetrievalPoint apply(PrpUpdateEvent event) {
         var newDocuments        = new HashMap<>(documents);
         var newConsistencyState = consistent;
         for (var update : event.getUpdates()) {
@@ -111,8 +112,8 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
     }
 
     // only PUBLISH or WITHDRAW
-    void applyUpdate(Map<String, SAPL> newDocuments, PrpUpdateEvent.Update update) {
-        var name = update.getDocument().getPolicyElement().getSaplName();
+    void applyUpdate(Map<String, Document> newDocuments, PrpUpdateEvent.Update update) {
+        var name = update.getDocument().sapl().getPolicyElement().getSaplName();
         if (update.getType() == Type.WITHDRAW) {
             newDocuments.remove(name);
         } else {
@@ -124,17 +125,27 @@ public class CanonicalImmutableParsedDocumentIndex implements ImmutableParsedDoc
         }
     }
 
-    private DisjunctiveFormula retainTarget(SAPL sapl) {
-        var                targetExpression = sapl.getImplicitTargetExpression();
+    private DisjunctiveFormula retainTarget(Document document) {
+        var                targetExpression = document.sapl().getImplicitTargetExpression();
         DisjunctiveFormula targetFormula;
         if (targetExpression == null) {
             targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
         } else {
-            var imports = ImportsUtil.fetchImports(sapl, attributeCtx, functionCtx);
+            var imports = ImportsUtil.fetchImports(document.sapl(), attributeCtx, functionCtx);
             targetFormula = TreeWalker.walk(targetExpression, imports);
         }
 
         return targetFormula;
+    }
+
+    @Override
+    public Collection<Document> allDocuments() {
+        return documents.values();
+    }
+
+    @Override
+    public boolean isConsistent() {
+        return consistent;
     }
 
 }

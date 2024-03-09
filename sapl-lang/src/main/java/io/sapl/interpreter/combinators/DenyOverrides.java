@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.sapl.impl;
+package io.sapl.interpreter.combinators;
 
 import static io.sapl.api.pdp.Decision.DENY;
 import static io.sapl.api.pdp.Decision.INDETERMINATE;
@@ -29,11 +29,12 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.impl.util.CombiningAlgorithmUtil;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
-import io.sapl.interpreter.combinators.ObligationAdviceCollector;
+import io.sapl.prp.MatchingDocument;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 /**
@@ -56,24 +57,24 @@ import reactor.core.publisher.Flux;
  * <p>
  * ii) Otherwise the decision is NOT_APPLICABLE.
  */
-public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesCombiningAlgorithmImpl {
+@UtilityClass
+public class DenyOverrides {
 
-    @Override
-    public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
-                AuthorizationDecision.NOT_APPLICABLE);
+    public Flux<CombinedDecision> denyOverrides(PolicySet policySet) {
+        return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policySet.getPolicies(), DenyOverrides::combinator,
+                CombiningAlgorithm.DENY_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
     }
 
-    @Override
-    public String getName() {
-        return "DENY_OVERRIDES";
+    public Flux<CombinedDecision> denyOverrides(List<MatchingDocument> documents) {
+        return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, DenyOverrides::combinator,
+                CombiningAlgorithm.DENY_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
-        var entitlement = NOT_APPLICABLE;
-        var collector   = new ObligationAdviceCollector();
-        var resource    = Optional.<JsonNode>empty();
-        var decisions   = new LinkedList<DocumentEvaluationResult>();
+        var entitlement               = NOT_APPLICABLE;
+        var collector                 = new ObligationAdviceCollector();
+        var combinedDecisionsResource = Optional.<JsonNode>empty();
+        var decisions                 = new LinkedList<DocumentEvaluationResult>();
         for (var policyDecision : policyDecisions) {
             decisions.add(policyDecision);
             var authorizationDecision = policyDecision.getAuthorizationDecision();
@@ -87,25 +88,22 @@ public class DenyOverridesCombiningAlgorithmImplCustom extends DenyOverridesComb
                 entitlement = PERMIT;
             }
             collector.add(authorizationDecision);
-            if (authorizationDecision.getResource().isPresent()) {
-                if (resource.isPresent()) {
-                    /*
-                     * This is a transformation uncertainty. another policy already defined a
-                     * transformation this the overall result is basically INDETERMINATE. However,
-                     * existing DENY overrides with this algorithm.
-                     */
-                    if (entitlement != DENY) {
-                        entitlement = INDETERMINATE;
-                    }
-                } else {
-                    resource = authorizationDecision.getResource();
-                }
+            var currentDecisionsResource = authorizationDecision.getResource();
+            if (currentDecisionsResource.isPresent() && combinedDecisionsResource.isPresent() && entitlement != DENY) {
+                /*
+                 * This is a transformation uncertainty. another policy already defined a
+                 * transformation this the overall result is basically INDETERMINATE. However,
+                 * existing DENY overrides with this algorithm.
+                 */
+                entitlement = INDETERMINATE;
+            } else if (currentDecisionsResource.isPresent() && combinedDecisionsResource.isEmpty()) {
+                combinedDecisionsResource = currentDecisionsResource;
             }
         }
 
-        var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
-                collector.getAdvice(entitlement));
-        return CombinedDecision.of(finalDecision, getName(), decisions);
+        var finalDecision = new AuthorizationDecision(entitlement, combinedDecisionsResource,
+                collector.getObligations(entitlement), collector.getAdvice(entitlement));
+        return CombinedDecision.of(finalDecision, CombiningAlgorithm.DENY_OVERRIDES, decisions);
 
     }
 

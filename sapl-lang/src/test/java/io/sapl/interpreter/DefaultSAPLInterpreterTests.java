@@ -145,22 +145,18 @@ class DefaultSAPLInterpreterTests {
     }
 
     @Test
-    void analyzePolicySet() {
-        var policyDefinition = "set \"test\" deny-overrides policy \"xx\" permit";
-        var expected         = new DocumentAnalysisResult(true, "test", DocumentType.POLICY_SET, "");
-        assertThat(INTERPRETER.analyze(policyDefinition), is(expected));
-    }
-
-    @Test
     void analyzePolicy() {
         var policyDefinition = "policy \"test\" permit";
-        var expected         = new DocumentAnalysisResult(true, "test", DocumentType.POLICY, "");
-        assertThat(INTERPRETER.analyze(policyDefinition), is(expected));
+        var document         = INTERPRETER.parseDocument(policyDefinition);
+        assertThat(document.isInvalid(), is(false));
+        assertThat(document.name(), is("test"));
+        assertThat(document.errorMessage(), is("OK"));
+        assertThat(document.source(), is(policyDefinition));
     }
 
     @Test
     void analyzeException() {
-        assertThat(INTERPRETER.analyze("xyz").isValid(), is(false));
+        assertThat(INTERPRETER.parseDocument("xyz").isInvalid(), is(true));
     }
 
     private static final String[] TEST_CASES = { "policy \"test\" permit ,{ \"key\" : \"value\" } =~ 6432 ", // syntaxError

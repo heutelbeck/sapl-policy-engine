@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.sapl.impl;
+package io.sapl.interpreter.combinators;
 
 import static io.sapl.api.pdp.Decision.DENY;
 import static io.sapl.api.pdp.Decision.INDETERMINATE;
@@ -29,11 +29,12 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.impl.util.CombiningAlgorithmUtil;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
-import io.sapl.interpreter.combinators.ObligationAdviceCollector;
+import io.sapl.prp.MatchingDocument;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 /**
@@ -58,17 +59,17 @@ import reactor.core.publisher.Flux;
  * <p>
  * ii) Otherwise the decision is NOT_APPLICABLE.
  */
-public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverridesCombiningAlgorithmImpl {
+@UtilityClass
+public class PermitOverrides {
 
-    @Override
-    public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
-                AuthorizationDecision.NOT_APPLICABLE);
+    public Flux<CombinedDecision> permitOverrides(PolicySet policySet) {
+        return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policySet.getPolicies(),
+                PermitOverrides::combinator, CombiningAlgorithm.PERMIT_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
     }
 
-    @Override
-    public String getName() {
-        return "PERMIT_OVERRIDES";
+    public Flux<CombinedDecision> permitOverrides(List<MatchingDocument> documents) {
+        return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, PermitOverrides::combinator,
+                CombiningAlgorithm.PERMIT_OVERRIDES, AuthorizationDecision.NOT_APPLICABLE);
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
@@ -104,7 +105,7 @@ public class PermitOverridesCombiningAlgorithmImplCustom extends PermitOverrides
         }
         var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
                 collector.getAdvice(entitlement));
-        return CombinedDecision.of(finalDecision, getName(), decisions);
+        return CombinedDecision.of(finalDecision, CombiningAlgorithm.PERMIT_OVERRIDES, decisions);
     }
 
 }

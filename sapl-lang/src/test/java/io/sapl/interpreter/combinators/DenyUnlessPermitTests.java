@@ -38,7 +38,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImplCustom;
 import reactor.test.StepVerifier;
 
 class DenyUnlessPermitTests {
@@ -124,8 +123,7 @@ class DenyUnlessPermitTests {
 
     @Test
     void noDecisionsIsDeny() {
-        var algorithm = new DenyUnlessPermitCombiningAlgorithmImplCustom();
-        StepVerifier.create(algorithm.combinePolicies(List.of()))
+        StepVerifier.create(DenyUnlessPermit.denyUnlessPermit(List.of()))
                 .expectNextMatches(
                         combinedDecision -> combinedDecision.getAuthorizationDecision().getDecision() == Decision.DENY)
                 .verifyComplete();

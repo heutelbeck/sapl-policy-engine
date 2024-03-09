@@ -15,9 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.util.filemonitoring;
+package io.sapl.prp.index;
 
-import java.nio.file.Path;
+import io.sapl.prp.PolicyRetrievalPoint;
+import io.sapl.prp.PrpUpdateEvent;
 
-public record FileDeletedEvent(Path file) implements FileEvent {
+public interface UpdateEventDrivenPolicyRetrievalPoint extends PolicyRetrievalPoint {
+
+    UpdateEventDrivenPolicyRetrievalPoint apply(PrpUpdateEvent event);
+
 }
