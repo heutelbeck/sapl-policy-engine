@@ -25,7 +25,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.test.utils.ClasspathHelper;
@@ -43,7 +43,8 @@ public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombin
 
     @SneakyThrows
     public ClasspathVariablesAndCombinatorSource(@NonNull String configPath, @NonNull ObjectMapper mapper,
-            CombiningAlgorithm testInternalConfiguredCombiningAlg, Map<String, Val> testInternalConfiguredVariables) {
+            PolicyDocumentCombiningAlgorithm testInternalConfiguredCombiningAlg,
+            Map<String, Val> testInternalConfiguredVariables) {
         log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 
         var configDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), configPath);
@@ -75,7 +76,7 @@ public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombin
     }
 
     @Override
-    public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
+    public Flux<Optional<PolicyDocumentCombiningAlgorithm>> getCombiningAlgorithm() {
         return Flux.just(config.getAlgorithm()).map(Optional::of);
     }
 
