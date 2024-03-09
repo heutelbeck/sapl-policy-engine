@@ -49,7 +49,8 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
                 List.of(), prpSource);
         var config    = provider.pdpConfiguration().blockFirst();
         provider.destroy();
-        assertThat(config.documentsCombinator() == PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT, is(Boolean.TRUE));
+        assertThat(config.documentsCombinator() == PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT,
+                is(Boolean.TRUE));
         assertThat(config.attributeContext(), is(attrCtx));
         assertThat(config.functionContext(), is(funcCtx));
         assertThat(config.variables(), notNullValue());

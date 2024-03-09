@@ -26,6 +26,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -91,7 +93,7 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
             throw new SaplTestException("Encountered invalid policy name");
         }
 
-        Map<String, Document> documentsByName = new HashMap<>(saplDocumentNames.size());
+        Map<String, Document> documentsByName = Maps.newHashMapWithExpectedSize(saplDocumentNames.size());
         for (var saplDocumentName : saplDocumentNames) {
             var document = DocumentHelper.readSaplDocument(saplDocumentName, interpreter);
             if (document.isInvalid()) {

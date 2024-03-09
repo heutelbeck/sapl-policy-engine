@@ -88,7 +88,8 @@ public class DenyOverrides {
                 entitlement = PERMIT;
             }
             collector.add(authorizationDecision);
-            if (authorizationDecision.getResource().isPresent()) {
+            var currentDecisionsResource = authorizationDecision.getResource();
+            if (currentDecisionsResource.isPresent()) {
                 if (resource.isPresent()) {
                     /*
                      * This is a transformation uncertainty. another policy already defined a
@@ -99,7 +100,7 @@ public class DenyOverrides {
                         entitlement = INDETERMINATE;
                     }
                 } else {
-                    resource = authorizationDecision.getResource();
+                    resource = currentDecisionsResource;
                 }
             }
         }
