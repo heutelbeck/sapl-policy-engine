@@ -19,7 +19,6 @@ package io.sapl.prp;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
@@ -35,7 +34,6 @@ class PolicyRetrievalResultTests {
     @Test
     void whenNoArgsConstructorUsedThenHasExpectedState() {
         var sut = new PolicyRetrievalResult();
-        assertThat(sut.getPolicyElements(), is(empty()));
         assertThat(sut.getMatchingDocuments(), is(empty()));
         assertThat(sut.isPrpValidState(), is(true));
         assertThat(sut.isErrorsInTarget(), is(false));
@@ -44,11 +42,10 @@ class PolicyRetrievalResultTests {
     @Test
     void whenAllArgsConstructorUsedThenHasProvidedState() {
         var docs = new ArrayList<MatchingDocument>();
-        var doc  = INTERPRETER.parse("policy \"x\" permit");
-        docs.add(new MatchingDocument("x", doc, Val.TRUE));
+        var doc  = INTERPRETER.parseDocument("policy \"x\" permit");
+        docs.add(new MatchingDocument(doc, Val.TRUE));
         var sut = new PolicyRetrievalResult(docs, true, false);
-        assertThat(sut.getPolicyElements().get(0), is(equalTo(doc.getPolicyElement())));
-        assertThat(sut.getMatchingDocuments().get(0).document().getPolicyElement(), is(doc.getPolicyElement()));
+        assertThat(sut.getMatchingDocuments().get(0).document(), is(doc));
         assertThat(sut.isPrpValidState(), is(false));
         assertThat(sut.isErrorsInTarget(), is(true));
     }
@@ -56,10 +53,9 @@ class PolicyRetrievalResultTests {
     @Test
     void whenNoArgsConstructorUsedThenWithMatchAddsDocument() {
         var sut = new PolicyRetrievalResult();
-        var doc = INTERPRETER.parse("policy \"x\" permit");
-        sut = sut.withMatch("x", doc, Val.TRUE);
-        assertThat(sut.getPolicyElements().get(0), is(equalTo(doc.getPolicyElement())));
-        assertThat(sut.getMatchingDocuments().get(0).document().getPolicyElement(), is(doc.getPolicyElement()));
+        var doc = INTERPRETER.parseDocument("policy \"x\" permit");
+        sut = sut.withMatch(doc, Val.TRUE);
+        assertThat(sut.getMatchingDocuments().get(0).document(), is(doc));
     }
 
     @Test

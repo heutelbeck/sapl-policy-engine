@@ -19,474 +19,285 @@ package io.sapl.prp.filesystem;
 
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.arrayWithSize;
-import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
 import com.spotify.hamcrest.pojo.IsPojo;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.PrpUpdateEvent;
+import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.PrpUpdateEvent.Update;
 import io.sapl.util.filemonitoring.FileChangedEvent;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
+import lombok.SneakyThrows;
 
 class ImmutableFileIndexTests {
 
+    private static final String          POLICIES_PATH = "policies";
     private static final SAPLInterpreter INTERPRETER   = new DefaultSAPLInterpreter();
     private static final String          POLICY_1      = "policy \"policy1\" permit";
-    private static final String          POLICY_1_NAME = "policy1";
-    private static final SAPL            SAPL_1        = INTERPRETER.parse(POLICY_1);
     private static final String          POLICY_2      = "policy \"policy2\" permit";
-    private static final String          POLICY_2_NAME = "policy2";
-    private static final SAPL            SAPL_2        = INTERPRETER.parse(POLICY_2);
-    private static final String          PATH          = "/";
 
-    @Test
-    void when_initializingWithDirectoryThatCannotBeOpened_then_updatesContainOnlyInconsistent() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenThrow(new IOException());
-            var sut           = new ImmutableFileIndex(PATH, INTERPRETER);
-            var actualUpdates = sut.getUpdateEvent();
-            assertThat(actualUpdates.getUpdates(), is(arrayWithSize(1)));
-            assertThat(actualUpdates.getUpdates(), arrayContainingInAnyOrder(
-                    pojo(Update.class).withProperty("type", is(PrpUpdateEvent.Type.INCONSISTENT))));
-        }
+    private static Stream<Arguments> provideFileSystem() {
+        return Stream.of(Arguments.of(Jimfs.newFileSystem(Configuration.unix())),
+                Arguments.of(Jimfs.newFileSystem(Configuration.windows())),
+                Arguments.of(Jimfs.newFileSystem(Configuration.osX())));
     }
 
-    @Test
-    void when_initializingWithDirectoryThatContainsUnreadableFile_then_updatesContainOnlyInconsistent() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            var mockPath = mock(Path.class);
-            when(mockPath.toAbsolutePath()).thenReturn(mockPath);
-            when(mockPath.toString()).thenReturn("mockedPath");
-            var mockPaths           = List.of(mockPath);
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
-            mockedFiles.when(() -> Files.readString(any())).thenThrow(new IOException());
-            var sut           = new ImmutableFileIndex(PATH, INTERPRETER);
-            var actualUpdates = sut.getUpdateEvent();
-            assertThat(actualUpdates.getUpdates(), is(arrayWithSize(1)));
-            assertThat(actualUpdates.getUpdates(),
-                    arrayContainingInAnyOrder(isUpdateType(PrpUpdateEvent.Type.INCONSISTENT)));
-        }
+    @ParameterizedTest
+    @MethodSource("provideFileSystem")
+    void whe_startingWithEmptyDirectory_thenNoUpdates(FileSystem fileSystem) throws Exception {
+        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        Files.createDirectory(policiesFolder);
+        var index = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        assertThat(index.getUpdateEvent().getUpdates(), is(arrayWithSize(0)));
     }
 
-    @Test
-    void when_initializingWithEmptyDirectory_and_update_then_updatePublish() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            // Setup initial Index
-            var mockPaths           = List.of();
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
-
-            // 1st event load valid policy
-            var mockInterpreter = mock(SAPLInterpreter.class);
-            var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
-            var event           = mock(FileCreatedEvent.class);
-            when(event.file()).thenReturn(mockFile);
-
-            // act
-            var sut = new ImmutableFileIndex(PATH, mockInterpreter);
-            sut = sut.afterFileEvent(event);
-            var actualUpdates = sut.getUpdateEvent();
-
-            // validate
-            // @formatter:off
-			assertThat(actualUpdates.getUpdates(),
-					arrayContainingInAnyOrder(
-							isUpdateWithName(PrpUpdateEvent.Type.PUBLISH, POLICY_1_NAME)
-					));
-			// @formatter:on
-        }
+    @ParameterizedTest
+    @MethodSource("provideFileSystem")
+    void whe_startingNonExistingDirectory_thenNoUpdates(FileSystem fileSystem) throws Exception {
+        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        var sut            = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        var actualUpdates  = sut.getUpdateEvent().getUpdates();
+        assertThat(actualUpdates, is(arrayWithSize(1)));
+        assertThat(actualUpdates,
+                arrayContainingInAnyOrder(pojo(Update.class).withProperty("type", is(Type.INCONSISTENT))));
     }
 
-    @Test
-    void when_initializingWithEmptyDirectory_and_updateAddAndRemove_then_updateWithdraw() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            // Setup initial Index
-            var mockPaths           = List.of();
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
-
-            // 1st event load valid policy
-            var mockInterpreter = mock(SAPLInterpreter.class);
-            var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
-
-            var sut = new ImmutableFileIndex(PATH, mockInterpreter);
-
-            var event1 = mock(FileCreatedEvent.class);
-            when(event1.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event1);
-
-            // remove document again
-
-            var event2 = mock(FileDeletedEvent.class);
-            when(event2.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event2);
-
-            var actualUpdates = sut.getUpdateEvent();
-
-            // validate
-            // @formatter:off
-			assertThat(actualUpdates.getUpdates(),
-					arrayContainingInAnyOrder(
-							isUpdateWithName(PrpUpdateEvent.Type.WITHDRAW, POLICY_1_NAME)
-					));
-			// @formatter:on
-        }
+    @ParameterizedTest
+    @MethodSource("provideFileSystem")
+    void when_initializingWithDirectoryThatContainsUnreadableFile_then_updatesContainOnlyInconsistent(
+            FileSystem fileSystem) throws Exception {
+        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        Files.createDirectory(policiesFolder);
+        writeFile(fileSystem, "badpolicy.sapl", "p oli cy bad");
+        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        assertThat(actualUpdates, is(arrayWithSize(1)));
+        assertThat(actualUpdates,
+                arrayContainingInAnyOrder(pojo(Update.class).withProperty("type", is(Type.INCONSISTENT))));
     }
 
-    @Test
-    void when_initializingWithEmptyDirectory_and_updateAddAndChange_then_update() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            // Setup initial Index
-            var mockPaths           = List.of();
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
+    @ParameterizedTest
+    @MethodSource("provideFileSystem")
+    void when_initializingWithTwoFilesInDirectory_and_update_then_updatePublish(FileSystem fileSystem)
+            throws Exception {
+        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        Files.createDirectory(policiesFolder);
+        writeFile(fileSystem, "policy1.sapl", POLICY_1);
+        writeFile(fileSystem, "policy2.sapl", POLICY_2);
+        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        assertThat(actualUpdates, is(arrayWithSize(2)));
+        assertThat(actualUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"),
+                isUpdateWithName(Type.PUBLISH, "policy2")));
 
-            // 1st event load valid policy
-            var mockInterpreter = mock(SAPLInterpreter.class);
-            var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
-
-            var sut = new ImmutableFileIndex(PATH, mockInterpreter);
-
-            var event1 = mock(FileCreatedEvent.class);
-            when(event1.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event1);
-
-            // change document again
-
-            var event2 = mock(FileChangedEvent.class);
-            when(event2.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event2);
-
-            var actualUpdates = sut.getUpdateEvent();
-
-            // validate
-            // @formatter:off
-			assertThat(actualUpdates.getUpdates(),
-					arrayContaining(
-							isUpdateWithName(PrpUpdateEvent.Type.WITHDRAW, POLICY_1_NAME),
-							isUpdateWithName(PrpUpdateEvent.Type.PUBLISH, POLICY_1_NAME)
-					));
-			// @formatter:on
-        }
+        var event      = new FileChangedEvent(writeFile(fileSystem, "policy2.sapl", "policy \"p2 update\" permit"));
+        var updatedSut = sut.afterFileEvent(event);
+        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        assertThat(newUpdates, is(arrayWithSize(2)));
+        assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.WITHDRAW, "policy2"),
+                isUpdateWithName(Type.PUBLISH, "p2 update")));
     }
 
-    @Test
-    void when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollision_then_Inconsistent() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            // Setup initial Index
-            var mockPaths           = List.of();
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
+    @ParameterizedTest
+    @MethodSource("provideFileSystem")
+    void when_initializingWithTwoFilesInDirectory_and_addOne_then_Publish(FileSystem fileSystem) throws Exception {
+        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        Files.createDirectory(policiesFolder);
+        writeFile(fileSystem, "policy1.sapl", POLICY_1);
+        writeFile(fileSystem, "policy2.sapl", POLICY_2);
+        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        assertThat(actualUpdates, is(arrayWithSize(2)));
+        assertThat(actualUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"),
+                isUpdateWithName(Type.PUBLISH, "policy2")));
 
-            // 1st event load valid policy
-            var mockInterpreter = mock(SAPLInterpreter.class);
-            var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
-
-            var sut = new ImmutableFileIndex(PATH, mockInterpreter);
-
-            var event1 = mock(FileCreatedEvent.class);
-            when(event1.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event1);
-
-            // create policy with name collision
-            var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
-            var event2    = mock(FileCreatedEvent.class);
-            when(event2.file()).thenReturn(mockFile2);
-            sut = sut.afterFileEvent(event2);
-
-            var actualUpdates = sut.getUpdateEvent();
-
-            // validate
-            // @formatter:off
-			assertThat(actualUpdates.getUpdates(),
-					arrayContaining(
-							isUpdateType(PrpUpdateEvent.Type.INCONSISTENT)
-					));
-			// @formatter:on
-        }
+        var event      = new FileCreatedEvent(writeFile(fileSystem, "policy3.sapl", "policy \"p3\" permit"));
+        var updatedSut = sut.afterFileEvent(event);
+        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        assertThat(newUpdates, is(arrayWithSize(1)));
+        assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "p3")));
     }
 
-    @Test
-    void when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAddAnotherUnrelatedPolicy_then_PublishNewOne() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            // Setup initial Index
-            var mockPaths           = List.of();
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
+    @ParameterizedTest
+    @MethodSource("provideFileSystem")
+    void when_initializingWithTwoFilesInDirectory_and_addOneWithCollision_then_Inconsistenz(FileSystem fileSystem)
+            throws Exception {
+        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        Files.createDirectory(policiesFolder);
+        writeFile(fileSystem, "policy1.sapl", POLICY_1);
+        writeFile(fileSystem, "policy2.sapl", POLICY_2);
+        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        assertThat(actualUpdates, is(arrayWithSize(2)));
+        assertThat(actualUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"),
+                isUpdateWithName(Type.PUBLISH, "policy2")));
 
-            // 1st event load valid policy
-            var mockInterpreter = mock(SAPLInterpreter.class);
-            var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
-
-            var sut = new ImmutableFileIndex(PATH, mockInterpreter);
-
-            var event1 = mock(FileCreatedEvent.class);
-            when(event1.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event1);
-
-            // create policy with name collision
-            var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
-            var event2    = mock(FileCreatedEvent.class);
-            when(event2.file()).thenReturn(mockFile2);
-            sut = sut.afterFileEvent(event2);
-
-            // add unrelated policy
-            var mockFile3 = mockPolicyFile(POLICY_2, SAPL_2, POLICY_2_NAME, mockedFiles, mockInterpreter);
-            var event3    = mock(FileCreatedEvent.class);
-            when(event3.file()).thenReturn(mockFile3);
-            sut = sut.afterFileEvent(event3);
-
-            var actualUpdates = sut.getUpdateEvent();
-
-            // validate
-            // @formatter:off
-			assertThat(actualUpdates.getUpdates(),
-					arrayContaining(
-							isUpdateWithName(PrpUpdateEvent.Type.PUBLISH, POLICY_2_NAME)
-					));
-			// @formatter:on
-        }
+        var event      = new FileCreatedEvent(writeFile(fileSystem, "policy3.sapl", "policy \"policy1\" permit"));
+        var updatedSut = sut.afterFileEvent(event);
+        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        assertThat(newUpdates, is(arrayWithSize(1)));
+        assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateType(Type.INCONSISTENT)));
     }
 
-    @Test
-    void when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAndRemoveInitial_then_Consistent() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            // Setup initial Index
-            var mockPaths           = List.of();
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
+    @ParameterizedTest
+    @MethodSource("provideFileSystem")
+    void when_initializingWithNameCollision_and_deleteSecond_then_updateConsistent(FileSystem fileSystem)
+            throws Exception {
+        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        Files.createDirectory(policiesFolder);
+        writeFile(fileSystem, "policy1.sapl", POLICY_1);
+        writeFile(fileSystem, "policy2.sapl", POLICY_1);
+        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        assertThat(actualUpdates, is(arrayWithSize(2)));
+        assertThat(actualUpdates,
+                arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"), isUpdateType(Type.INCONSISTENT)));
 
-            // 1st event load valid policy
-            var mockInterpreter = mock(SAPLInterpreter.class);
-            var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
-
-            var sut = new ImmutableFileIndex(PATH, mockInterpreter);
-
-            var event1 = mock(FileCreatedEvent.class);
-            when(event1.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event1);
-
-            // create policy with name collision
-            var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
-            var event2    = mock(FileCreatedEvent.class);
-            when(event2.file()).thenReturn(mockFile2);
-            sut = sut.afterFileEvent(event2);
-
-            // remove initially added document
-            var event3 = mock(FileDeletedEvent.class);
-            when(event3.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event3);
-
-            var actualUpdates = sut.getUpdateEvent();
-
-            // validate
-            // @formatter:off
-			assertThat(actualUpdates.getUpdates(),
-					arrayContaining(
-							isUpdateWithName(PrpUpdateEvent.Type.WITHDRAW, POLICY_1_NAME),
-							isUpdateWithName(PrpUpdateEvent.Type.PUBLISH, POLICY_1_NAME),
-							isUpdateType(PrpUpdateEvent.Type.CONSISTENT)
-					));
-			// @formatter:on
-        }
+        var event      = new FileDeletedEvent(deleteFile(fileSystem, "policy2.sapl"));
+        var updatedSut = sut.afterFileEvent(event);
+        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        assertThat(newUpdates, is(arrayWithSize(1)));
+        assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateType(Type.CONSISTENT)));
     }
 
-    @Test
-    void when_initializingWithEmptyDirectory_and_updateAddAndAddNameCollisionAndRemoveNewColliding_then_Consistent() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            // Setup initial Index
-            var mockPaths           = List.of();
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
+    @ParameterizedTest
+    @MethodSource("provideFileSystem")
+    void when_initializingWithNameCollision_and_deleteFirst_then_updateConsistent(FileSystem fileSystem)
+            throws Exception {
+        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        Files.createDirectory(policiesFolder);
+        writeFile(fileSystem, "policy1.sapl", POLICY_1);
+        writeFile(fileSystem, "policy2.sapl", POLICY_1);
+        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        assertThat(actualUpdates, is(arrayWithSize(2)));
+        assertThat(actualUpdates,
+                arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"), isUpdateType(Type.INCONSISTENT)));
 
-            // 1st event load valid policy
-            var mockInterpreter = mock(SAPLInterpreter.class);
-            var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
-
-            var sut = new ImmutableFileIndex(PATH, mockInterpreter);
-
-            var event1 = mock(FileCreatedEvent.class);
-            when(event1.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event1);
-
-            // create policy with name collision
-            var mockFile2 = mockPolicyFile(POLICY_1, SAPL_1, "alternatePath", mockedFiles, mockInterpreter);
-            var event2    = mock(FileCreatedEvent.class);
-            when(event2.file()).thenReturn(mockFile2);
-            sut = sut.afterFileEvent(event2);
-
-            // remove initially added document
-            var event3 = mock(FileDeletedEvent.class);
-            when(event3.file()).thenReturn(mockFile2);
-            sut = sut.afterFileEvent(event3);
-
-            var actualUpdates = sut.getUpdateEvent();
-
-            // validate
-            // @formatter:off
-			assertThat(actualUpdates.getUpdates(),
-					arrayContaining(
-							isUpdateType(PrpUpdateEvent.Type.CONSISTENT)
-					));
-			// @formatter:on
-        }
+        var event      = new FileDeletedEvent(deleteFile(fileSystem, "policy1.sapl"));
+        var updatedSut = sut.afterFileEvent(event);
+        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        assertThat(newUpdates, is(arrayWithSize(3)));
+        assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"),
+                isUpdateWithName(Type.WITHDRAW, "policy1"), isUpdateType(Type.CONSISTENT)));
     }
 
-    @Test
-    void when_initializingWithEmptyDirectory_and_addInvalidAndRemoveInvalid_then_FirstInconsistentThenConsistent() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            // Setup initial Index
-            var mockPaths           = List.of();
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
+    @ParameterizedTest
+    @MethodSource("provideFileSystem")
+    void when_initializingWithTwoDocs_and_deleteSomethingIrrelevant_then_updateConsistent(FileSystem fileSystem)
+            throws Exception {
+        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        Files.createDirectory(policiesFolder);
+        writeFile(fileSystem, "policy1.sapl", POLICY_1);
+        writeFile(fileSystem, "policy2.sapl", POLICY_2);
+        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        assertThat(actualUpdates, is(arrayWithSize(2)));
+        assertThat(actualUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"),
+                isUpdateWithName(Type.PUBLISH, "policy2")));
 
-            // 1st event load invalid policy
-            var mockInterpreter = mock(SAPLInterpreter.class);
-            var mockFile        = mockInvalidPolicyFile(POLICY_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
-
-            var sut = new ImmutableFileIndex(PATH, mockInterpreter);
-
-            var event1 = mock(FileCreatedEvent.class);
-            when(event1.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event1);
-
-            // @formatter:off
-			assertThat(sut.getUpdateEvent().getUpdates(),
-					arrayContaining(
-							isUpdateType(PrpUpdateEvent.Type.INCONSISTENT)
-					));
-			// @formatter:on
-
-            // remove initially added document
-            var event3 = mock(FileDeletedEvent.class);
-            when(event3.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event3);
-
-            var actualUpdates = sut.getUpdateEvent();
-
-            // validate
-            // @formatter:off
-			assertThat(actualUpdates.getUpdates(),
-					arrayContaining(
-							isUpdateType(PrpUpdateEvent.Type.CONSISTENT)
-					));
-			// @formatter:on
-        }
+        var event      = new FileDeletedEvent(fileSystem.getPath("not_there.sapl"));
+        var updatedSut = sut.afterFileEvent(event);
+        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        assertThat(newUpdates, is(arrayWithSize(0)));
     }
 
-    @Test
-    void when_initializingWithEmptyDirectory_and_tryUnloadingNonExisting_then_nothing() {
-        try (MockedStatic<Files> mockedFiles = mockStatic(Files.class)) {
-            // Setup initial Index
-            var mockPaths           = List.of();
-            var mockDirectoryStream = mock(DirectoryStream.class);
-            when(mockDirectoryStream.iterator()).thenReturn(mockPaths.iterator());
-            mockedFiles.when(() -> Files.newDirectoryStream(any(Path.class), any(String.class)))
-                    .thenReturn(mockDirectoryStream);
+    @ParameterizedTest
+    @MethodSource("provideFileSystem")
+    void when_initializingWithBadDocument_and_deleteIt_then_updateConsistent(FileSystem fileSystem) throws Exception {
+        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        Files.createDirectory(policiesFolder);
+        writeFile(fileSystem, "policy1.sapl", POLICY_1);
+        writeFile(fileSystem, "policy2.sapl", "broken");
+        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        assertThat(actualUpdates, is(arrayWithSize(2)));
+        assertThat(actualUpdates,
+                arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"), isUpdateType(Type.INCONSISTENT)));
 
-            // 1st event load valid policy
-            var mockInterpreter = mock(SAPLInterpreter.class);
-            var mockFile        = mockPolicyFile(POLICY_1, SAPL_1, POLICY_1_NAME, mockedFiles, mockInterpreter);
-
-            var sut = new ImmutableFileIndex(PATH, mockInterpreter);
-
-            // remove non existent document from index
-            var event3 = mock(FileDeletedEvent.class);
-            when(event3.file()).thenReturn(mockFile);
-            sut = sut.afterFileEvent(event3);
-
-            var actualUpdates = sut.getUpdateEvent();
-
-            // validate
-            assertThat(actualUpdates.getUpdates(), emptyArray());
-        }
+        var event      = new FileDeletedEvent(deleteFile(fileSystem, "policy2.sapl"));
+        var updatedSut = sut.afterFileEvent(event);
+        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        assertThat(newUpdates, is(arrayWithSize(1)));
+        assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateType(Type.CONSISTENT)));
     }
 
-    private File mockPolicyFile(String document, SAPL sapl, String path, MockedStatic<Files> mockedFiles,
-            SAPLInterpreter mockInterpreter) {
-        var mockPath = mock(Path.class);
-        when(mockPath.toAbsolutePath()).thenReturn(mockPath);
-        when(mockPath.toString()).thenReturn(path);
-        var mockFile = mock(File.class);
-        when(mockFile.toPath()).thenReturn(mockPath);
-        mockedFiles.when(() -> Files.readString(eq(mockPath))).thenReturn(document);
-        when(mockInterpreter.parse(document)).thenReturn(sapl);
-        return mockFile;
+    @ParameterizedTest
+    @MethodSource("provideFileSystem")
+    void when_initializingWithNameCollision_and_updateOne_then_updateConsistent(FileSystem fileSystem)
+            throws Exception {
+        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        Files.createDirectory(policiesFolder);
+        writeFile(fileSystem, "policy1.sapl", POLICY_1);
+        writeFile(fileSystem, "policy2.sapl", POLICY_1);
+        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        assertThat(actualUpdates, is(arrayWithSize(2)));
+        assertThat(actualUpdates,
+                arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"), isUpdateType(Type.INCONSISTENT)));
+        var event      = new FileDeletedEvent(writeFile(fileSystem, "policy2.sapl", POLICY_2));
+        var updatedSut = sut.afterFileEvent(event);
+        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        assertThat(newUpdates, is(arrayWithSize(1)));
+        assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateType(Type.CONSISTENT)));
     }
 
-    private File mockInvalidPolicyFile(String document, String path, MockedStatic<Files> mockedFiles,
-            SAPLInterpreter mockInterpreter) {
-        var mockPath = mock(Path.class);
-        when(mockPath.toAbsolutePath()).thenReturn(mockPath);
-        when(mockPath.toString()).thenReturn(path);
-        var mockFile = mock(File.class);
-        when(mockFile.toPath()).thenReturn(mockPath);
-        mockedFiles.when(() -> Files.readString(eq(mockPath))).thenReturn(document);
-        when(mockInterpreter.parse(document)).thenThrow(new PolicyEvaluationException());
-        return mockFile;
+    private Matcher<Update> isUpdateWithName(final Type type, final String name) {
+        return new BaseMatcher<Update>() {
+            @Override
+            public boolean matches(final Object oUpdate) {
+                if (oUpdate instanceof Update update) {
+                    try {
+                        return update.getType().equals(type)
+                                && Objects.equals(name, update.getDocument().sapl().getPolicyElement().getSaplName());
+                    } catch (Exception e) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+
+            @Override
+            public void describeTo(final Description description) {
+                description.appendText("update should have name ").appendValue(name);
+            }
+        };
     }
 
-    private IsPojo<Update> isUpdateWithName(PrpUpdateEvent.Type type, String name) {
-        // @formatter:off
-		return pojo(Update.class)
-			.withProperty("type", is(type))
-			.withProperty("document",
-				pojo(SAPL.class)
-					.withProperty("policyElement",
-						pojo(PolicyElement.class)
-							.withProperty("saplName", is(name))
-			    )
-		);
-		// @formatter:on
-    }
-
-    private IsPojo<Update> isUpdateType(PrpUpdateEvent.Type type) {
+    private IsPojo<Update> isUpdateType(Type type) {
         return pojo(Update.class).withProperty("type", is(type));
     }
 
+    @SneakyThrows
+    private Path writeFile(FileSystem fileSystem, String fileName, String newContent) {
+        return Files.write(fileSystem.getPath(POLICIES_PATH, fileName), newContent.getBytes());
+    }
+
+    @SneakyThrows
+    private Path deleteFile(FileSystem fileSystem, String fileName) {
+        var path = fileSystem.getPath(POLICIES_PATH, fileName);
+        Files.delete(path);
+        return path;
+    }
 }

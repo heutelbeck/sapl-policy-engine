@@ -15,19 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter;
+package io.sapl.interpreter.combinators;
 
-import lombok.Value;
+import io.sapl.grammar.sapl.PolicySet;
+import io.sapl.interpreter.CombinedDecision;
+import reactor.core.publisher.Flux;
 
-@Value
-public class DocumentAnalysisResult {
-
-    boolean valid;
-
-    String name;
-
-    DocumentType type;
-
-    String parserError;
-
+@FunctionalInterface
+public interface PolicySetCombiningAlgorithm {
+    Flux<CombinedDecision> combinePoliciesInSet(PolicySet policySet);
 }

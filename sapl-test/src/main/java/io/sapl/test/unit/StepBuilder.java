@@ -29,6 +29,7 @@ import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.prp.Document;
 import io.sapl.test.mocking.attribute.MockingAttributeContext;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.steps.AttributeMockReturnValues;
@@ -51,7 +52,7 @@ class StepBuilder {
      * @param document containing the {@link SAPL} policy to evaluate
      * @return {@link GivenStep} to start constructing the test case.
      */
-    static GivenStep newBuilderAtGivenStep(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx,
+    static GivenStep newBuilderAtGivenStep(Document document, AttributeContext attrCtx, FunctionContext funcCtx,
             Map<String, Val> variables) {
         return new Steps(document, attrCtx, funcCtx, variables);
     }
@@ -62,7 +63,7 @@ class StepBuilder {
      * @param document containing the {@link SAPL} policy to evaluate
      * @return {@link WhenStep} to start constructing the test case.
      */
-    static WhenStep newBuilderAtWhenStep(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx,
+    static WhenStep newBuilderAtWhenStep(Document document, AttributeContext attrCtx, FunctionContext funcCtx,
             Map<String, Val> variables) {
         return new Steps(document, attrCtx, funcCtx, variables);
     }
@@ -77,9 +78,9 @@ class StepBuilder {
      */
     private static class Steps extends StepsDefaultImpl {
 
-        final SAPL document;
+        final Document document;
 
-        Steps(SAPL document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, Val> variables) {
+        Steps(Document document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, Val> variables) {
             this.document                = document;
             this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
             this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
@@ -89,15 +90,15 @@ class StepBuilder {
 
         @Override
         protected void createStepVerifier(AuthorizationSubscription authzSub) {
-            Val matchResult = this.document.matches().contextWrite(setUpContext(authzSub)).block();
+            Val matchResult = this.document.sapl().matches().contextWrite(setUpContext(authzSub)).block();
             if (matchResult != null && matchResult.isBoolean() && matchResult.getBoolean()) {
                 if (this.withVirtualTime) {
-                    this.steps = StepVerifier.withVirtualTime(
-                            () -> this.document.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
-                                    .contextWrite(setUpContext(authzSub)));
+                    this.steps = StepVerifier.withVirtualTime(() -> this.document.sapl().evaluate()
+                            .map(DocumentEvaluationResult::getAuthorizationDecision)
+                            .contextWrite(setUpContext(authzSub)));
                 } else {
-                    this.steps = StepVerifier
-                            .create(this.document.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
+                    this.steps = StepVerifier.create(
+                            this.document.sapl().evaluate().map(DocumentEvaluationResult::getAuthorizationDecision)
                                     .contextWrite(setUpContext(authzSub)));
                 }
 

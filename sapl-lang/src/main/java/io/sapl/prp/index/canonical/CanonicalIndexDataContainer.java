@@ -24,7 +24,7 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.Document;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -34,7 +34,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class CanonicalIndexDataContainer {
 
-    private final Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments;
+    private final Map<DisjunctiveFormula, Set<Document>> formulaToDocuments;
 
     private final Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas;
 
@@ -54,7 +54,7 @@ public class CanonicalIndexDataContainer {
     @Getter
     private final int numberOfConjunctions;
 
-    public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
+    public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<Document>> formulaToDocuments,
             Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas, Collection<Predicate> predicateOrder,
             List<Set<DisjunctiveFormula>> relatedFormulas, Map<DisjunctiveFormula, Bitmask> relatedCandidates,
             Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction, int[] numberOfLiteralsInConjunction,
@@ -65,7 +65,7 @@ public class CanonicalIndexDataContainer {
                 numberOfFormulasWithConjunction, numberOfLiteralsInConjunction.length);
     }
 
-    public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
+    public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<Document>> formulaToDocuments,
             Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas, ImmutableList<Predicate> predicateOrder,
             List<Set<DisjunctiveFormula>> relatedFormulas, Map<DisjunctiveFormula, Bitmask> relatedCandidates,
             Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction, int[] numberOfLiteralsInConjunction,
@@ -97,7 +97,7 @@ public class CanonicalIndexDataContainer {
         return relatedFormulas.get(conjunctionIndex);
     }
 
-    Set<SAPL> getPoliciesIncludingFormula(DisjunctiveFormula formula) {
+    Set<Document> getPoliciesIncludingFormula(DisjunctiveFormula formula) {
         return formulaToDocuments.get(formula);
     }
 

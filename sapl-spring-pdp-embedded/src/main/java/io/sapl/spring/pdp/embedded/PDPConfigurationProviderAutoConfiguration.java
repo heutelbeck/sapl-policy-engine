@@ -32,6 +32,7 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
+import io.sapl.prp.PolicyRetrievalPointSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,6 +46,7 @@ public class PDPConfigurationProviderAutoConfiguration {
     private final VariablesAndCombinatorSource               combinatorProvider;
     private final List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors;
     private final List<TracedDecisionInterceptor>            decisionInterceptors;
+    private final PolicyRetrievalPointSource                 policyRetrievalPointSource;
 
     @Bean
     @ConditionalOnMissingBean
@@ -55,7 +57,7 @@ public class PDPConfigurationProviderAutoConfiguration {
                 attributeCtx.getClass().getSimpleName(), functionCtx.getClass().getSimpleName(), combinatorProvider,
                 subscriptionInterceptors.size(), decisionInterceptors.size());
         return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider,
-                subscriptionInterceptors, decisionInterceptors);
+                subscriptionInterceptors, decisionInterceptors, policyRetrievalPointSource);
     }
 
 }

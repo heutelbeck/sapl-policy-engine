@@ -19,8 +19,8 @@ package io.sapl.test.unit;
 
 import java.util.function.Supplier;
 
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.prp.Document;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixtureTemplate;
 import io.sapl.test.coverage.api.CoverageAPIFactory;
@@ -36,7 +36,7 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
             Probably you forgot to call ".setSaplDocumentName("")\"""";
 
-    private final Supplier<SAPL> documentRetriever;
+    private final Supplier<Document> documentRetriever;
 
     /**
      * Fixture for constructing a unit test case

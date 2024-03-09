@@ -15,16 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.prp.index;
+package io.sapl.interpreter.combinators;
 
-import io.sapl.prp.PolicyRetrievalResult;
-import io.sapl.prp.PrpUpdateEvent;
-import reactor.core.publisher.Mono;
+import java.util.List;
 
-public interface ImmutableParsedDocumentIndex {
+import io.sapl.interpreter.CombinedDecision;
+import io.sapl.prp.MatchingDocument;
+import reactor.core.publisher.Flux;
 
-    Mono<PolicyRetrievalResult> retrievePolicies();
-
-    ImmutableParsedDocumentIndex apply(PrpUpdateEvent event);
-
+@FunctionalInterface
+public interface DocumentsCombiningAlgorithm {
+    Flux<CombinedDecision> combinePreMatchedDocuments(List<MatchingDocument> documents);
 }

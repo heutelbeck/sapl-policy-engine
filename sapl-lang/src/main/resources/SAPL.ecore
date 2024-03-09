@@ -1,23 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-
-    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
-
-    SPDX-License-Identifier: Apache-2.0
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
--->
 <ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="sapl" nsURI="https://sapl.io/sapl/SAPL" nsPrefix="sapl">
   <eClassifiers xsi:type="ecore:EClass" name="SAPL" eSuperTypes="#//Matchable #//EvaluableDocument">
@@ -47,11 +28,10 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="schemaExpression" eType="#//Expression"
         containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="subscriptionElement" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="enforced" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="enforced" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="PolicySet" eSuperTypes="#//PolicyElement">
-    <eStructuralFeatures xsi:type="ecore:EReference" name="algorithm" eType="#//CombiningAlgorithm"
-        containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="algorithm" eType="#//CombiningAlgorithm"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="valueDefinitions" upperBound="-1"
         eType="#//ValueDefinition" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="policies" upperBound="-1"
@@ -340,49 +320,23 @@
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNode" instanceClassName="com.fasterxml.jackson.databind.JsonNode"/>
   <eClassifiers xsi:type="ecore:EDataType" name="JsonNodeFlux" instanceTypeName="reactor.core.publisher.Flux&lt;com.fasterxml.jackson.databind.JsonNode>"
       serializable="false"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationDecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.AuthorizationDecision>"
-      serializable="false"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="DecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.pdp.Decision>"
-      serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="PolicyEvaluationException" instanceClassName="io.sapl.api.interpreter.PolicyEvaluationException"/>
   <eClassifiers xsi:type="ecore:EDataType" name="StringMap" instanceTypeName="java.util.Map&lt;java.lang.String, java.lang.String>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="ValFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.api.interpreter.Val>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="BooleanMono" instanceTypeName="reactor.core.publisher.Mono&lt;java.lang.Boolean>"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Val" instanceClassName="io.sapl.api.interpreter.Val"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationSubscription" instanceClassName="io.sapl.api.pdp.AuthorizationSubscription"
-      serializable="false"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="FunctionContext" instanceClassName="io.sapl.interpreter.functions.FunctionContext"
-      serializable="false"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="AuthorizationDecision" instanceClassName="io.sapl.api.pdp.AuthorizationDecision"
-      serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="Decision" instanceClassName="io.sapl.api.pdp.Decision"/>
   <eClassifiers xsi:type="ecore:EDataType" name="ValMono" instanceTypeName="reactor.core.publisher.Mono&lt;io.sapl.api.interpreter.Val>"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="PolicyElementList" instanceTypeName="java.util.List&lt;io.sapl.grammar.sapl.PolicyElement>"/>
-  <eClassifiers xsi:type="ecore:EClass" name="CombiningAlgorithm" abstract="true">
-    <eOperations name="combinePolicies" lowerBound="1" eType="#//CombinedDecisionFlux">
-      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel">
-        <details key="documentation" value="Method which evaluates multiple policies within a policy set against an authorization subscription object, combines the results and creates and returns a corresponding authorization decision object. The method is supposed to be used to determine an authorization decision for the SAPL documents known to the PDP. Imports are obtained from the SAPL document.&#xA;@param policies policies of the set currently matching the ongoing authorization subscription.&#xA;@return a {@link Flux} of {@link io.sapl.api.pdp.AuthorizationDecision} objects containing the combined decision, the combined obligation and advice and a transformed resource if applicable. A new authorization decision object is only pushed if it is different from the previous one."/>
-      </eAnnotations>
-      <eParameters name="policies" eType="#//PolicyElementList"/>
-    </eOperations>
-    <eOperations name="getName" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString">
-      <eAnnotations source="http://www.eclipse.org/emf/2002/GenModel"/>
-    </eOperations>
-  </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="DenyOverridesCombiningAlgorithm" eSuperTypes="#//CombiningAlgorithm"/>
-  <eClassifiers xsi:type="ecore:EClass" name="PermitOverridesCombiningAlgorithm" eSuperTypes="#//CombiningAlgorithm"/>
-  <eClassifiers xsi:type="ecore:EClass" name="FirstApplicableCombiningAlgorithm" eSuperTypes="#//CombiningAlgorithm"/>
-  <eClassifiers xsi:type="ecore:EClass" name="OnlyOneApplicableCombiningAlgorithm"
-      eSuperTypes="#//CombiningAlgorithm"/>
-  <eClassifiers xsi:type="ecore:EClass" name="DenyUnlessPermitCombiningAlgorithm"
-      eSuperTypes="#//CombiningAlgorithm"/>
-  <eClassifiers xsi:type="ecore:EClass" name="PermitUnlessDenyCombiningAlgorithm"
-      eSuperTypes="#//CombiningAlgorithm"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="PolicyRetrievalResult" instanceClassName="io.sapl.prp.PolicyRetrievalResult"/>
   <eClassifiers xsi:type="ecore:EDataType" name="DocumentEvaluationResultFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.DocumentEvaluationResult>"
-      serializable="false"/>
-  <eClassifiers xsi:type="ecore:EDataType" name="CombinedDecisionFlux" instanceTypeName="reactor.core.publisher.Flux&lt;io.sapl.interpreter.CombinedDecision>"
       serializable="false"/>
   <eClassifiers xsi:type="ecore:EDataType" name="DocumentEvaluationResult" instanceClassName="io.sapl.interpreter.DocumentEvaluationResult"
       serializable="false"/>
+  <eClassifiers xsi:type="ecore:EEnum" name="CombiningAlgorithm">
+  	<eLiterals name = "DENY_OVERRIDES"/>
+  	<eLiterals name = "PERMIT_OVERRIDES"/>
+  	<eLiterals name = "FIRST_APPLICABLE"/>
+  	<eLiterals name = "ONLY_ONE_APPLICABLE"/>
+  	<eLiterals name = "DENY_UNLESS_PERMIT"/>
+  	<eLiterals name = "PERMIT_UNLESS_DENY"/>
+  </eClassifiers>
 </ecore:EPackage>

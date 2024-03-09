@@ -27,10 +27,10 @@ import org.springframework.context.annotation.Role;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
-import io.sapl.prp.PolicyRetrievalPoint;
+import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
+import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.prp.PrpUpdateEventSource;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.canonical.CanonicalImmutableParsedDocumentIndex;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.IndexType;
@@ -51,9 +51,9 @@ public class PRPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PolicyRetrievalPoint policyRetrievalPoint() throws PolicyEvaluationException {
+    PolicyRetrievalPointSource policyRetrievalPoint() throws PolicyEvaluationException {
         log.info("Using index type: {}", pdpProperties.getIndex());
-        ImmutableParsedDocumentIndex seedIndex;
+        UpdateEventDrivenPolicyRetrievalPoint seedIndex;
         if (pdpProperties.getIndex() == IndexType.NAIVE) {
             seedIndex = new NaiveImmutableParsedDocumentIndex();
         } else {
@@ -64,7 +64,7 @@ public class PRPAutoConfiguration {
             // subscription scoped EvaluationContext handed over for lookup.
             seedIndex = new CanonicalImmutableParsedDocumentIndex(attributeContext, functionContext);
         }
-        return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, eventSource);
+        return new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, eventSource);
     }
 
 }

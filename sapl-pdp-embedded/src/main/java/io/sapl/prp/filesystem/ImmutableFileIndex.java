@@ -51,11 +51,11 @@ class ImmutableFileIndex {
     @Getter
     private PrpUpdateEvent updateEvent;
 
-    final Map<String, Document> documentsByPath;
+    final Map<String, FileSystemDocument> documentsByPath;
 
-    final Map<String, List<Document>> namesToDocuments;
+    final Map<String, List<FileSystemDocument>> namesToDocuments;
 
-    public ImmutableFileIndex(String watchDir, SAPLInterpreter interpreter) {
+    public ImmutableFileIndex(Path watchDir, SAPLInterpreter interpreter) {
         log.info("Initializing file index for {}", watchDir);
 
         this.interpreter      = interpreter;
@@ -69,14 +69,14 @@ class ImmutableFileIndex {
             });
         } catch (IOException e) {
             log.error("Unable to open the directory containing policies: {}", watchDir);
-            updates.add(new Update(Type.INCONSISTENT, null, null));
+            updates.add(new Update(Type.INCONSISTENT, null));
             updateEvent = new PrpUpdateEvent(updates);
             return;
         }
 
         if (isInconsistent()) {
             log.warn("The initial set of documents is inconsistent!");
-            updates.add(new Update(Type.INCONSISTENT, null, null));
+            updates.add(new Update(Type.INCONSISTENT, null));
         }
 
         updateEvent = new PrpUpdateEvent(updates);
@@ -89,19 +89,19 @@ class ImmutableFileIndex {
         this.numberOfInvalidDocuments = oldIndex.numberOfInvalidDocuments;
         this.numberOfNameCollisions   = oldIndex.numberOfNameCollisions;
         for (var entry : oldIndex.documentsByPath.entrySet()) {
-            var documentCopy = new Document(entry.getValue());
+            var documentCopy = new FileSystemDocument(entry.getValue());
             this.documentsByPath.put(entry.getKey(), documentCopy);
             addDocumentToNameIndex(documentCopy);
         }
     }
 
-    private void addDocumentToNameIndex(Document document) {
+    private void addDocumentToNameIndex(FileSystemDocument document) {
         var documentName      = document.getDocumentName();
         var documentsWithName = namesToDocuments.computeIfAbsent(documentName, k -> new LinkedList<>());
         documentsWithName.add(document);
     }
 
-    Document removeDocumentFromMap(String pathOfDocumentToBeRemoved) {
+    FileSystemDocument removeDocumentFromMap(String pathOfDocumentToBeRemoved) {
         return documentsByPath.remove(pathOfDocumentToBeRemoved);
     }
 
@@ -109,18 +109,18 @@ class ImmutableFileIndex {
         return documentsByPath.containsKey(pathOfDocument);
     }
 
-    List<Document> getDocumentByName(String documentName) {
+    List<FileSystemDocument> getDocumentByName(String documentName) {
         return namesToDocuments.get(documentName);
     }
 
-    void addWithdrawUpdate(Document oldDocument) {
+    void addWithdrawUpdate(FileSystemDocument oldDocument) {
         log.info("The document was previously published. It will withdrawn from the index.");
-        updates.add(new Update(Type.WITHDRAW, oldDocument.getParsedDocument(), oldDocument.getRawDocument()));
+        updates.add(new Update(Type.WITHDRAW, oldDocument.getDocument()));
     }
 
     public ImmutableFileIndex afterFileEvent(FileEvent event) {
-        var fileName = event.file().getName();
-        var path     = event.file().toPath().toAbsolutePath();
+        var fileName = event.file().getFileName();
+        var path     = event.file().toAbsolutePath();
         var newIndex = new ImmutableFileIndex(this);
         if (event instanceof FileDeletedEvent) {
             log.info("Unloading deleted SAPL document: {}", fileName);
@@ -135,11 +135,11 @@ class ImmutableFileIndex {
 
         if (newIndex.becameConsistentComparedTo(this)) {
             log.info("The set of documents was previously INCONSISTENT and is now CONSISTENT again.");
-            newIndex.updates.add(new Update(Type.CONSISTENT, null, null));
+            newIndex.updates.add(new Update(Type.CONSISTENT, null));
         }
         if (newIndex.becameInconsistentComparedTo(this)) {
             log.warn("The set of documents was previously CONSISTENT and is now INCONSISTENT.");
-            newIndex.updates.add(new Update(Type.INCONSISTENT, null, null));
+            newIndex.updates.add(new Update(Type.INCONSISTENT, null));
         }
 
         newIndex.updateEvent = new PrpUpdateEvent(newIndex.updates);
@@ -164,13 +164,13 @@ class ImmutableFileIndex {
     }
 
     final void load(Path filePath) {
-        var newDocument = new Document(filePath, interpreter);
+        var newDocument = new FileSystemDocument(filePath, interpreter);
         documentsByPath.put(newDocument.getAbsolutePath(), newDocument);
         if (newDocument.isInvalid()) {
             numberOfInvalidDocuments++;
             return;
         }
-        List<Document> documentsWithName;
+        List<FileSystemDocument> documentsWithName;
         if (namesToDocuments.containsKey(newDocument.getDocumentName())) {
             documentsWithName = namesToDocuments.get(newDocument.getDocumentName());
         } else {
@@ -181,7 +181,7 @@ class ImmutableFileIndex {
         if (documentsWithName.size() == 1) {
             log.debug("The document has been parsed successfully. It will be published to the index.");
             newDocument.setPublished(true);
-            updates.add(new Update(Type.PUBLISH, newDocument.getParsedDocument(), newDocument.getRawDocument()));
+            updates.add(new Update(Type.PUBLISH, newDocument.getDocument()));
         } else {
             log.warn(
                     "The document has been parsed successfully but it resulted in a name collision: '{}'. The document will not be published.",
@@ -227,8 +227,7 @@ class ImmutableFileIndex {
                         "The removal of the document resolved a name collision. As a result, the document in file '{}' named '{}' will be published.",
                         onlyRemainingDocumentWithName.getPath().getFileName(),
                         onlyRemainingDocumentWithName.getDocumentName());
-                updates.add(new Update(Type.PUBLISH, onlyRemainingDocumentWithName.getParsedDocument(),
-                        onlyRemainingDocumentWithName.getRawDocument()));
+                updates.add(new Update(Type.PUBLISH, onlyRemainingDocumentWithName.getDocument()));
                 onlyRemainingDocumentWithName.setPublished(true);
             }
         }

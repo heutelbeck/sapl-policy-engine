@@ -32,7 +32,7 @@ Import:
 		     | libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID	) ;
 
 Schema:
-    subscriptionElement=ReservedID (enforced='enforced')? 'schema' schemaExpression=Expression;
+    subscriptionElement=ReservedID (enforced?='enforced')? 'schema' schemaExpression=Expression;
 
 PolicyElement:
 	PolicySet | Policy;
@@ -43,13 +43,13 @@ PolicySet:
 	(valueDefinitions+=ValueDefinition ';')*
 	policies+=Policy+ ;
 
-CombiningAlgorithm:
-	  {DenyOverridesCombiningAlgorithm}     'deny-overrides' 
-	| {PermitOverridesCombiningAlgorithm}   'permit-overrides' 
-	| {FirstApplicableCombiningAlgorithm}   'first-applicable' 
-	| {OnlyOneApplicableCombiningAlgorithm} 'only-one-applicable'
-	| {DenyUnlessPermitCombiningAlgorithm}  'deny-unless-permit' 
-	| {PermitUnlessDenyCombiningAlgorithm}  'permit-unless-deny' ;
+enum CombiningAlgorithm:
+	  DENY_OVERRIDES      ='deny-overrides' 
+	| PERMIT_OVERRIDES    ='permit-overrides' 
+	| FIRST_APPLICABLE    ='first-applicable' 
+	| ONLY_ONE_APPLICABLE ='only-one-applicable'
+	| DENY_UNLESS_PERMIT  ='deny-unless-permit' 
+	| PERMIT_UNLESS_DENY  ='permit-unless-deny' ;
 
 Policy:
 	{Policy} 'policy' saplName=STRING

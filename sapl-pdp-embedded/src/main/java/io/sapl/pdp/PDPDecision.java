@@ -108,8 +108,9 @@ public class PDPDecision implements TracedDecision {
 
     private JsonNode matchTrace(MatchingDocument matchingDocument) {
         var trace = Val.JSON.objectNode();
-        trace.set(Trace.DOCUMENT_IDENTIFIER, Val.JSON.textNode(matchingDocument.id()));
-        trace.set(Trace.DOCUMENT_NAME, Val.JSON.textNode(matchingDocument.id()));
+        trace.set(Trace.DOCUMENT_IDENTIFIER, Val.JSON.textNode(matchingDocument.document().id()));
+        trace.set(Trace.DOCUMENT_NAME,
+                Val.JSON.textNode(matchingDocument.document().sapl().getPolicyElement().getSaplName()));
         trace.set(Trace.TARGET, matchingDocument.targetExpressionResult().getTrace());
         return trace;
     }
