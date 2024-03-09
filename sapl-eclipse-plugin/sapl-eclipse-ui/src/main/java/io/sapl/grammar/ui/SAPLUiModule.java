@@ -97,7 +97,8 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
         };
 
         var pdpConfiguration = new PDPConfiguration("editorConfig", attributeContext, functionContext, Map.of(),
-                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(), dummyPrp);
+                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(),
+                dummyPrp);
         return () -> Flux.just(pdpConfiguration);
     }
 }

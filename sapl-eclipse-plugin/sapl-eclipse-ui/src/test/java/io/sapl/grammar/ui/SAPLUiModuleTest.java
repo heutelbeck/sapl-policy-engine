@@ -23,7 +23,6 @@ import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.pdp.config.PDPConfiguration;
 import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
 import org.junit.jupiter.api.Test;
@@ -34,6 +33,7 @@ import java.util.function.UnaryOperator;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 
 class SAPLUiModuleTest {
 
@@ -58,7 +58,7 @@ class SAPLUiModuleTest {
         assertThat(pdpConfiguration.functionContext().getAvailableLibraries(), contains(FilterFunctionLibrary.NAME,
                 StandardFunctionLibrary.NAME, TemporalFunctionLibrary.NAME, SchemaValidationLibrary.NAME));
         assertThat(pdpConfiguration.variables(), is(Map.of()));
-        assertThat(pdpConfiguration.documentsCombinator(), is(CombiningAlgorithm.DENY_OVERRIDES));
+        assertThat(pdpConfiguration.documentsCombinator(), is(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES));
         assertThat(pdpConfiguration.decisionInterceptorChain(), is(UnaryOperator.identity()));
         assertThat(pdpConfiguration.subscriptionInterceptorChain(), is(UnaryOperator.identity()));
     }
