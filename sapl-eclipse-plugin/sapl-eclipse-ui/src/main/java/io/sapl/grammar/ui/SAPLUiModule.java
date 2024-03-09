@@ -35,7 +35,7 @@ import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -97,7 +97,7 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
         };
 
         var pdpConfiguration = new PDPConfiguration("editorConfig", attributeContext, functionContext, Map.of(),
-                CombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(), dummyPrp);
+                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(), dummyPrp);
         return () -> Flux.just(pdpConfiguration);
     }
 }
