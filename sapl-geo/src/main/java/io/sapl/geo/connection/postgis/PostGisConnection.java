@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.reactivestreams.Publisher;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,7 +43,7 @@ import io.sapl.geo.connection.shared.ConnectionBase;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.geofunctions.GeometryConverter;
 import io.sapl.geofunctions.JsonConverter;
-
+import reactor.core.CorePublisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.retry.Repeat;
@@ -96,8 +97,7 @@ public class PostGisConnection extends ConnectionBase {
         }
 
     }
-
-
+    
     public Flux<JsonNode> getFlux(GeoPipResponseFormat format, String table, String column, String where,
             boolean singleResult, int defaultCrs, long repeatTimes, long pollingInterval){
     	var connection = createConnection();
@@ -109,21 +109,29 @@ public class PostGisConnection extends ConnectionBase {
         if(singleResult) {
         	
         	sql = sql.concat("FETCH FIRST 1 ROW ONLY");
-        	return getResults(connection, sql, format, defaultCrs)
-        			.doOnNext(node -> System.out.println("Result from DB: " + node.toString())).onErrorResume(Mono::error)
-        	        .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
-        	        .doOnCancel(() -> connectionReference.get().close())
-        	        .doOnTerminate(() -> connectionReference.get().close());
+        	return poll(getResults(connection, sql, format, defaultCrs).next(), repeatTimes, pollingInterval);
+//        			.doOnNext(node -> System.out.println("Result from DB: " + node.toString())).onErrorResume(Mono::error)
+//        	        .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
+//        	        .doOnCancel(() -> connectionReference.get().close())
+//        	        .doOnTerminate(() -> connectionReference.get().close());
         }else {
 
-        	return collectAndMapResults(getResults(connection, sql, format, defaultCrs))
-        			.doOnNext(node -> System.out.println("Result from DB: " + node.toString())).onErrorResume(Mono::error)
-        	        .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
-        	        .doOnCancel(() -> connectionReference.get().close())
-        	        .doOnTerminate(() -> connectionReference.get().close());	
+        	return poll(collectAndMapResults(getResults(connection, sql, format, defaultCrs)), repeatTimes, pollingInterval);
+//        			.doOnNext(node -> System.out.println("Result from DB: " + node.toString())).onErrorResume(Mono::error)
+//        	        .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
+//        	        .doOnCancel(() -> connectionReference.get().close())
+//        	        .doOnTerminate(() -> connectionReference.get().close());	
         }
     	
 
+    }
+    
+    
+    private Flux<JsonNode> poll(Mono<JsonNode> mono, long repeatTimes, long pollingInterval){
+    	return mono.doOnNext(node -> System.out.println("Result from DB: " + node.toString())).onErrorResume(Mono::error)
+    	        .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
+    	        .doOnCancel(() -> connectionReference.get().close())
+    	        .doOnTerminate(() -> connectionReference.get().close());
     }
     
     private Mono<? extends Connection> createConnection() {
