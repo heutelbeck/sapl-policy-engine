@@ -18,17 +18,17 @@
 
 package io.sapl.test.dsl.interpreter;
 
-import java.util.List;
-
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.Attribute;
 import io.sapl.test.grammar.sapltest.AttributeWithParameters;
 import io.sapl.test.grammar.sapltest.Function;
 import io.sapl.test.grammar.sapltest.FunctionInvokedOnce;
 import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.MockDefinition;
 import io.sapl.test.grammar.sapltest.VirtualTime;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.WhenStep;
+import java.util.Collection;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -37,32 +37,35 @@ class DefaultWhenStepConstructor {
     private final FunctionInterpreter  functionInterpreter;
     private final AttributeInterpreter attributeInterpreter;
 
-    WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep initialTestCase) {
+    WhenStep constructWhenStep(final Collection<GivenStep> givenSteps, final GivenOrWhenStep initialTestCase) {
         if (givenSteps != null) {
 
             if (givenSteps.stream().filter(VirtualTime.class::isInstance).count() > 1) {
-                throw new SaplTestException("TestCase contains more than one virtual-time declaration");
+                throw new SaplTestException("Scenario contains more than one virtual-time declaration");
             }
 
-            applyGivenSteps(givenSteps, initialTestCase);
+            final var mockDefinitions = givenSteps.stream().filter(MockDefinition.class::isInstance)
+                    .map(MockDefinition.class::cast).toList();
+
+            applyGivenSteps(mockDefinitions, initialTestCase);
         }
 
         return initialTestCase;
     }
 
-    private void applyGivenSteps(final List<GivenStep> givenSteps, GivenOrWhenStep initialTestCase) {
-        for (GivenStep givenStep : givenSteps) {
-            if (givenStep instanceof Function function) {
+    private void applyGivenSteps(final Collection<MockDefinition> mockDefinitions, GivenOrWhenStep initialTestCase) {
+        for (MockDefinition mockDefinition : mockDefinitions) {
+            if (mockDefinition instanceof Function function) {
                 initialTestCase = functionInterpreter.interpretFunction(initialTestCase, function);
-            } else if (givenStep instanceof FunctionInvokedOnce functionInvokedOnce) {
+            } else if (mockDefinition instanceof FunctionInvokedOnce functionInvokedOnce) {
                 initialTestCase = functionInterpreter.interpretFunctionInvokedOnce(initialTestCase,
                         functionInvokedOnce);
-            } else if (givenStep instanceof Attribute attribute) {
+            } else if (mockDefinition instanceof Attribute attribute) {
                 initialTestCase = attributeInterpreter.interpretAttribute(initialTestCase, attribute);
-            } else if (givenStep instanceof AttributeWithParameters attributeWithParameters) {
+            } else if (mockDefinition instanceof AttributeWithParameters attributeWithParameters) {
                 initialTestCase = attributeInterpreter.interpretAttributeWithParameters(initialTestCase,
                         attributeWithParameters);
-            } else if (givenStep instanceof VirtualTime) {
+            } else if (mockDefinition instanceof VirtualTime) {
                 initialTestCase = initialTestCase.withVirtualTime();
             } else {
                 throw new SaplTestException("Unknown type of GivenStep");

@@ -27,9 +27,23 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.SaplTestFixture;
+import io.sapl.test.grammar.sapltest.CustomFunctionLibrary;
+import io.sapl.test.grammar.sapltest.Document;
+import io.sapl.test.grammar.sapltest.FixtureRegistration;
+import io.sapl.test.grammar.sapltest.FunctionLibrary;
+import io.sapl.test.grammar.sapltest.Given;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
+import io.sapl.test.grammar.sapltest.PdpVariables;
+import io.sapl.test.grammar.sapltest.Pip;
+import io.sapl.test.grammar.sapltest.SaplFunctionLibrary;
+import io.sapl.test.integration.SaplIntegrationTestFixture;
 import java.util.Collections;
 import java.util.List;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,58 +52,116 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sapltest.CustomFunctionLibrary;
-import io.sapl.test.grammar.sapltest.FixtureRegistration;
-import io.sapl.test.grammar.sapltest.FunctionLibrary;
-import io.sapl.test.grammar.sapltest.Pip;
-import io.sapl.test.grammar.sapltest.SaplFunctionLibrary;
-import io.sapl.test.grammar.sapltest.TestSuite;
-
 @ExtendWith(MockitoExtension.class)
 class DefaultTestFixtureConstructorTests {
     @Mock
-    protected TestSuiteInterpreter          testSuiteInterpreterMock;
+    protected DocumentInterpreter           documentInterpreterMock;
     @Mock
-    protected SaplTestFixture               testFixtureMock;
+    PdpConfigurationHandler                 pdpConfigurationHandlerMock;
     @Mock
-    protected TestSuite                     testSuiteMock;
+    protected FunctionLibraryInterpreter    functionLibraryInterpreterMock;
+    @Mock
+    protected ReflectionHelper              reflectionHelperMock;
     @InjectMocks
     protected DefaultTestFixtureConstructor defaultTestFixtureConstructor;
 
     @Mock
-    protected FunctionLibraryInterpreter functionLibraryInterpreterMock;
+    protected SaplTestFixture testFixtureMock;
     @Mock
-    protected ReflectionHelper           reflectionHelperMock;
+    protected Given           requirementGivenMock;
+    @Mock
+    protected Given           scenarioGivenMock;
 
     @Test
-    void constructTestFixture_testSuiteInterpreterReturnsNull_throwsSaplTestException() {
-        when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(null);
+    void constructTestFixture_withNullGiven_throwsSaplTestException() {
+        final var exception = assertThrows(SaplTestException.class,
+                () -> defaultTestFixtureConstructor.constructTestFixture(null, null));
 
-        final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(null, testSuiteMock));
+        assertEquals("Given is null", exception.getMessage());
+    }
+
+    @Test
+    void constructTestFixture_documentInterpreterReturnsNull_throwsSaplTestException() {
+        final var documentMock = mock(Document.class);
+
+        when(scenarioGivenMock.getDocument()).thenReturn(documentMock);
+
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(null);
+
+        final var exception = assertThrows(SaplTestException.class,
+                () -> defaultTestFixtureConstructor.constructTestFixture(scenarioGivenMock, null));
 
         assertEquals("TestFixture is null", exception.getMessage());
     }
 
     @Test
-    void constructTestFixture_handlesNullFixtureRegistrations_returnsFixture() {
-        when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+    void constructTestFixture_usesRequirementGivenWhenScenarioGivenIsNull_returnsFixture() {
+        final var documentMock = mock(Document.class);
 
-        final var result = defaultTestFixtureConstructor.constructTestFixture(null, testSuiteMock);
+        when(requirementGivenMock.getDocument()).thenReturn(documentMock);
+
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
+
+        final var result = defaultTestFixtureConstructor.constructTestFixture(requirementGivenMock, null);
 
         assertEquals(testFixtureMock, result);
 
+        verifyNoInteractions(pdpConfigurationHandlerMock);
+        verifyNoInteractions(testFixtureMock);
+    }
+
+    @Test
+    void constructTestFixture_handlesNullFixtureRegistrations_returnsFixture() {
+        final var documentMock = mock(Document.class);
+
+        when(scenarioGivenMock.getDocument()).thenReturn(documentMock);
+
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
+
+        final var result = defaultTestFixtureConstructor.constructTestFixture(scenarioGivenMock, null);
+
+        assertEquals(testFixtureMock, result);
+
+        verifyNoInteractions(pdpConfigurationHandlerMock);
         verifyNoInteractions(testFixtureMock);
     }
 
     @Test
     void constructTestFixture_handlesEmptyFixtureRegistrations_returnsFixture() {
-        when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+        final var documentMock = mock(Document.class);
 
-        final var result = defaultTestFixtureConstructor.constructTestFixture(Collections.emptyList(), testSuiteMock);
+        when(scenarioGivenMock.getDocument()).thenReturn(documentMock);
+
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
+
+        final var result = defaultTestFixtureConstructor.constructTestFixture(scenarioGivenMock,
+                Collections.emptyList());
+
+        assertEquals(testFixtureMock, result);
+
+        verifyNoInteractions(pdpConfigurationHandlerMock);
+        verifyNoInteractions(testFixtureMock);
+    }
+
+    @Test
+    void constructTestFixture_callsPdpConfigurationInterpreterWhenIntegrationTestFixtureIsReturned_returnsFixture() {
+        final var integrationTestFixture = mock(SaplIntegrationTestFixture.class);
+
+        final var documentMock              = mock(Document.class);
+        final var pdpVariablesMock          = mock(PdpVariables.class);
+        final var pdpCombiningAlgorithmMock = mock(PdpCombiningAlgorithm.class);
+
+        when(scenarioGivenMock.getDocument()).thenReturn(documentMock);
+        when(scenarioGivenMock.getPdpVariables()).thenReturn(pdpVariablesMock);
+        when(scenarioGivenMock.getPdpCombiningAlgorithm()).thenReturn(pdpCombiningAlgorithmMock);
+
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(integrationTestFixture);
+
+        when(pdpConfigurationHandlerMock.applyPdpConfigurationToFixture(integrationTestFixture, pdpVariablesMock,
+                pdpCombiningAlgorithmMock)).thenReturn(testFixtureMock);
+
+        final var result = defaultTestFixtureConstructor.constructTestFixture(scenarioGivenMock,
+                Collections.emptyList());
 
         assertEquals(testFixtureMock, result);
 
@@ -101,45 +173,64 @@ class DefaultTestFixtureConstructorTests {
     class FixtureRegistrationHandlingTests {
         @Test
         void constructTestFixture_handlesUnknownFixtureRegistration_throwsSaplTestException() {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+            final var documentMock = mock(Document.class);
+
+            when(scenarioGivenMock.getDocument()).thenReturn(documentMock);
+
+            when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
             final var unknownFixtureRegistrationMock = mock(FixtureRegistration.class);
 
-            final var fixtureRegistration = List.of(unknownFixtureRegistrationMock);
+            final var fixtureRegistrations = List.<GivenStep>of(unknownFixtureRegistrationMock);
 
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistration, testSuiteMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> defaultTestFixtureConstructor.constructTestFixture(scenarioGivenMock, fixtureRegistrations));
 
             assertEquals("Unknown type of FixtureRegistration", exception.getMessage());
         }
 
         @Test
-        void constructTestFixture_whenRegisterFunctionLibraryThrowsForSaplFunctionLibrary_throwsInitializationException() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+        void constructTestFixture_whenRegisterFunctionLibraryThrowsForSaplFunctionLibrary_throwsInitializationException()
+                throws InitializationException {
+            final var documentMock = mock(Document.class);
+
+            when(scenarioGivenMock.getDocument()).thenReturn(documentMock);
+
+            when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
             final var saplFunctionLibraryMock = mock(SaplFunctionLibrary.class);
             when(saplFunctionLibraryMock.getLibrary()).thenReturn(FunctionLibrary.TEMPORAL);
 
-            doReturn(TemporalFunctionLibrary.class).when(functionLibraryInterpreterMock).getFunctionLibrary(FunctionLibrary.TEMPORAL);
+            doReturn(TemporalFunctionLibrary.class).when(functionLibraryInterpreterMock)
+                    .getFunctionLibrary(FunctionLibrary.TEMPORAL);
 
-            when(testFixtureMock.registerFunctionLibrary(TemporalFunctionLibrary.class)).thenThrow(new InitializationException("failed to register library"));
+            when(testFixtureMock.registerFunctionLibrary(TemporalFunctionLibrary.class))
+                    .thenThrow(new InitializationException("failed to register library"));
 
-            final var fixtureRegistrations = List.<FixtureRegistration>of(saplFunctionLibraryMock);
+            final var fixtureRegistrations = List.<GivenStep>of(saplFunctionLibraryMock);
 
-            final var exception = assertThrows(InitializationException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
+            final var exception = assertThrows(InitializationException.class,
+                    () -> defaultTestFixtureConstructor.constructTestFixture(scenarioGivenMock, fixtureRegistrations));
 
             assertEquals("failed to register library", exception.getMessage());
         }
 
         @Test
         void constructTestFixture_handlesSaplFunctionLibrary_returnsFixture() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+            final var documentMock = mock(Document.class);
+
+            when(scenarioGivenMock.getDocument()).thenReturn(documentMock);
+
+            when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
             final var saplFunctionLibraryMock = mock(SaplFunctionLibrary.class);
             when(saplFunctionLibraryMock.getLibrary()).thenReturn(FunctionLibrary.TEMPORAL);
 
-            doReturn(TemporalFunctionLibrary.class).when(functionLibraryInterpreterMock).getFunctionLibrary(FunctionLibrary.TEMPORAL);
+            doReturn(TemporalFunctionLibrary.class).when(functionLibraryInterpreterMock)
+                    .getFunctionLibrary(FunctionLibrary.TEMPORAL);
 
-            final var result = defaultTestFixtureConstructor.constructTestFixture(List.of(saplFunctionLibraryMock), testSuiteMock);
+            final var result = defaultTestFixtureConstructor.constructTestFixture(scenarioGivenMock,
+                    List.of(saplFunctionLibraryMock));
 
             assertEquals(testFixtureMock, result);
 
@@ -147,8 +238,13 @@ class DefaultTestFixtureConstructorTests {
         }
 
         @Test
-        void constructTestFixture_whenRegisterFunctionLibraryThrowsForCustomFunctionLibrary_throwsInitializationException() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+        void constructTestFixture_whenRegisterFunctionLibraryThrowsForCustomFunctionLibrary_throwsInitializationException()
+                throws InitializationException {
+            final var documentMock = mock(Document.class);
+
+            when(scenarioGivenMock.getDocument()).thenReturn(documentMock);
+
+            when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
             final var customFunctionLibrary = mock(CustomFunctionLibrary.class);
             when(customFunctionLibrary.getFqn()).thenReturn("io.my.classpath.ClassName");
@@ -156,18 +252,24 @@ class DefaultTestFixtureConstructorTests {
             final var libraryMock = mock(java.lang.Object.class);
             when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenReturn(libraryMock);
 
-            when(testFixtureMock.registerFunctionLibrary(libraryMock)).thenThrow(new InitializationException("failed to register library"));
+            when(testFixtureMock.registerFunctionLibrary(libraryMock))
+                    .thenThrow(new InitializationException("failed to register library"));
 
-            final var fixtureRegistrations = List.<FixtureRegistration>of(customFunctionLibrary);
+            final var fixtureRegistrations = List.<GivenStep>of(customFunctionLibrary);
 
-            final var exception = assertThrows(InitializationException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
+            final var exception = assertThrows(InitializationException.class,
+                    () -> defaultTestFixtureConstructor.constructTestFixture(scenarioGivenMock, fixtureRegistrations));
 
             assertEquals("failed to register library", exception.getMessage());
         }
 
         @Test
         void constructTestFixture_handlesCustomFunctionLibrary_returnsFixture() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+            final var documentMock = mock(Document.class);
+
+            when(scenarioGivenMock.getDocument()).thenReturn(documentMock);
+
+            when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
             final var customFunctionLibrary = mock(CustomFunctionLibrary.class);
             when(customFunctionLibrary.getFqn()).thenReturn("io.my.classpath.ClassName");
@@ -175,7 +277,8 @@ class DefaultTestFixtureConstructorTests {
             final var libraryMock = mock(java.lang.Object.class);
             when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenReturn(libraryMock);
 
-            final var result = defaultTestFixtureConstructor.constructTestFixture(List.of(customFunctionLibrary), testSuiteMock);
+            final var result = defaultTestFixtureConstructor.constructTestFixture(scenarioGivenMock,
+                    List.of(customFunctionLibrary));
 
             assertEquals(testFixtureMock, result);
 
@@ -184,7 +287,11 @@ class DefaultTestFixtureConstructorTests {
 
         @Test
         void constructTestFixture_whenRegisterPIPThrows_throwsInitializationException() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+            final var documentMock = mock(Document.class);
+
+            when(scenarioGivenMock.getDocument()).thenReturn(documentMock);
+
+            when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
             final var pip = mock(Pip.class);
             when(pip.getFqn()).thenReturn("io.my.classpath.ClassName");
@@ -194,16 +301,21 @@ class DefaultTestFixtureConstructorTests {
 
             when(testFixtureMock.registerPIP(pipMock)).thenThrow(new InitializationException("failed to register PIP"));
 
-            final var fixtureRegistrations = List.<FixtureRegistration>of(pip);
+            final var fixtureRegistrations = List.<GivenStep>of(pip);
 
-            final var exception = assertThrows(InitializationException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
+            final var exception = assertThrows(InitializationException.class,
+                    () -> defaultTestFixtureConstructor.constructTestFixture(scenarioGivenMock, fixtureRegistrations));
 
             assertEquals("failed to register PIP", exception.getMessage());
         }
 
         @Test
         void constructTestFixture_handlesPIP_returnsFixture() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+            final var documentMock = mock(Document.class);
+
+            when(scenarioGivenMock.getDocument()).thenReturn(documentMock);
+
+            when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
             final var pip = mock(Pip.class);
             when(pip.getFqn()).thenReturn("io.my.classpath.ClassName");
@@ -211,7 +323,7 @@ class DefaultTestFixtureConstructorTests {
             final var pipMock = mock(java.lang.Object.class);
             when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenReturn(pipMock);
 
-            final var result = defaultTestFixtureConstructor.constructTestFixture(List.of(pip), testSuiteMock);
+            final var result = defaultTestFixtureConstructor.constructTestFixture(scenarioGivenMock, List.of(pip));
 
             assertEquals(testFixtureMock, result);
 

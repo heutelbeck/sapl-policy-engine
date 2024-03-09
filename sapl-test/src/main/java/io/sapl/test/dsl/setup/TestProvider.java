@@ -22,12 +22,7 @@ import java.util.List;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
-import io.sapl.test.grammar.sapltest.IntegrationTestSuite;
-import io.sapl.test.grammar.sapltest.PoliciesByIdentifier;
-import io.sapl.test.grammar.sapltest.PoliciesByInputString;
 import io.sapl.test.grammar.sapltest.SAPLTest;
-import io.sapl.test.grammar.sapltest.TestSuite;
-import io.sapl.test.grammar.sapltest.UnitTestSuite;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
@@ -45,39 +40,20 @@ public final class TestProvider {
             throw new SaplTestException("provided SAPLTest is null");
         }
 
-        final var testSuites = saplTest.getTestSuites();
+        final var requirements = saplTest.getRequirements();
 
-        if (testSuites == null || testSuites.isEmpty()) {
-            throw new SaplTestException("provided SAPLTest does not contain a TestSuite");
+        if (requirements == null || requirements.isEmpty()) {
+            throw new SaplTestException("provided SAPLTest does not contain a Requirement");
         }
 
-        return testSuites.stream().map(testSuite -> {
-            final var testCases = testSuite.getTestCases();
-            if (testCases == null || testCases.isEmpty()) {
-                throw new SaplTestException("provided TestSuite does not contain a Test");
+        return requirements.stream().map(requirement -> {
+            final var scenarios = requirement.getScenarios();
+            if (scenarios == null || scenarios.isEmpty()) {
+                throw new SaplTestException("provided Requirement does not contain a Scenario");
             }
 
-            final var name = getDynamicContainerName(testSuite);
-
-            return TestContainer.from(name,
-                    testCases.stream().map(testCase -> TestCase.from(stepConstructor, testSuite, testCase)).toList());
+            return TestContainer.from(requirement.getName(),
+                    scenarios.stream().map(scenario -> TestCase.from(stepConstructor, requirement, scenario)).toList());
         }).toList();
-    }
-
-    private String getDynamicContainerName(final TestSuite testSuite) {
-        if (testSuite instanceof UnitTestSuite unitTestSuite) {
-            return unitTestSuite.getPolicyName();
-        } else if (testSuite instanceof IntegrationTestSuite integrationTestSuite) {
-            final var policyResolverConfig = integrationTestSuite.getConfiguration();
-            if (policyResolverConfig instanceof PoliciesByIdentifier policiesByIdentifier) {
-                return policiesByIdentifier.getIdentifier();
-            } else if (policyResolverConfig instanceof PoliciesByInputString policiesByInputString) {
-                return String.join(",", policiesByInputString.getPolicies());
-            }
-
-            throw new SaplTestException("Unknown type of PolicyResolverConfig");
-        }
-
-        throw new SaplTestException("Unknown type of TestSuite");
     }
 }

@@ -18,68 +18,88 @@
 
 package io.sapl.test.dsl.setup;
 
-import org.assertj.core.api.Assertions;
-
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
-import io.sapl.test.grammar.sapltest.Object;
+import io.sapl.test.grammar.sapltest.Given;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.MockDefinition;
+import io.sapl.test.grammar.sapltest.Requirement;
+import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.grammar.sapltest.TestException;
-import io.sapl.test.grammar.sapltest.TestSuite;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.assertj.core.api.Assertions;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TestCase implements TestNode, Runnable {
 
     @Getter
-    private final String                                 identifier;
-    private final StepConstructor                        stepConstructor;
-    private final TestSuite                              testSuite;
-    private final io.sapl.test.grammar.sapltest.TestCase dslTestCase;
+    private final String          identifier;
+    private final StepConstructor stepConstructor;
+    private final Given           given;
+    private final List<GivenStep> givenSteps;
+    private final Scenario        scenario;
 
-    public static TestCase from(final StepConstructor stepConstructor, final TestSuite testSuite,
-            io.sapl.test.grammar.sapltest.TestCase testCase) {
-        if (stepConstructor == null || testSuite == null || testCase == null) {
+    public static TestCase from(final StepConstructor stepConstructor, final Requirement requirement,
+            Scenario scenario) {
+        if (stepConstructor == null || requirement == null || scenario == null) {
             throw new SaplTestException("StepConstructor or testSuite or testCase is null");
         }
 
-        final var name = testCase.getName();
+        final var name = scenario.getScenarioName();
 
         if (name == null) {
             throw new SaplTestException("Name of the test case is null");
         }
 
-        return new TestCase(name, stepConstructor, testSuite, testCase);
+        final var requirementBackground = requirement.getGiven();
+        final var scenarioGivenBlock    = scenario.getGiven();
+
+        if (requirementBackground == null && scenarioGivenBlock == null) {
+            throw new SaplTestException("Neither Requirement nor Scenario defines a GivenBlock");
+        }
+
+        var givenBlock = scenarioGivenBlock == null ? requirementBackground : scenarioGivenBlock;
+
+        final var givenSteps = new ArrayList<GivenStep>();
+        addGivenStepsFromGiven(givenSteps, requirementBackground);
+        addGivenStepsFromGiven(givenSteps, scenarioGivenBlock);
+
+        return new TestCase(name, stepConstructor, givenBlock, givenSteps, scenario);
     }
 
     @Override
     public void run() {
-        final var environment = dslTestCase.getEnvironment();
+        final var environment = given.getEnvironment();
 
-        if (environment != null && !(environment instanceof io.sapl.test.grammar.sapltest.Object)) {
-            throw new SaplTestException("Environment needs to be an object");
-        }
+        final var saplTestFixture = stepConstructor.constructTestFixture(given, givenSteps);
 
-        final var fixtureRegistrations = dslTestCase.getRegistrations();
-        final var givenSteps           = dslTestCase.getGivenSteps();
+        final var needsMocks      = givenSteps.stream().anyMatch(MockDefinition.class::isInstance);
+        final var initialTestCase = stepConstructor.constructTestCase(saplTestFixture, environment, needsMocks);
 
-        final var needsMocks  = givenSteps != null && !givenSteps.isEmpty();
-        final var testFixture = stepConstructor.constructTestFixture(fixtureRegistrations, testSuite);
-
-        final var initialTestCase = stepConstructor.constructTestCase(testFixture, (Object) environment, needsMocks);
-
-        if (dslTestCase.getExpectation() instanceof TestException) {
+        if (scenario.getExpectation() instanceof TestException) {
             Assertions.assertThatExceptionOfType(SaplTestException.class)
                     .isThrownBy(() -> stepConstructor.constructWhenStep(givenSteps, initialTestCase));
         } else {
 
             final var whenStep   = stepConstructor.constructWhenStep(givenSteps, initialTestCase);
-            final var expectStep = stepConstructor.constructExpectStep(dslTestCase, whenStep);
-            final var verifyStep = stepConstructor.constructVerifyStep(dslTestCase, expectStep);
+            final var expectStep = stepConstructor.constructExpectStep(scenario, whenStep);
+            final var verifyStep = stepConstructor.constructVerifyStep(scenario, expectStep);
 
             verifyStep.verify();
+        }
+    }
+
+    private static void addGivenStepsFromGiven(final List<GivenStep> givenSteps, final Given given) {
+        if (given != null) {
+            final var steps = given.getGivenSteps();
+            if (steps != null) {
+                givenSteps.addAll(steps);
+            }
         }
     }
 }

@@ -20,6 +20,9 @@
  */
 package io.sapl.test.grammar.validation;
 
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.Scenario;
+import io.sapl.test.grammar.sapltest.VirtualTime;
 import java.time.format.DateTimeParseException;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -30,8 +33,6 @@ import io.sapl.test.grammar.sapltest.Duration;
 import io.sapl.test.grammar.sapltest.Multiple;
 import io.sapl.test.grammar.sapltest.StringMatchesRegex;
 import io.sapl.test.grammar.sapltest.StringWithLength;
-import io.sapl.test.grammar.sapltest.TestCase;
-import io.sapl.test.grammar.sapltest.VirtualTime;
 
 /**
  * This class contains custom validation rules.
@@ -84,12 +85,12 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
     /**
      * TestCase may contain virtual-time only once
      *
-     * @param testCase a TestCase instance
+     * @param scenario a Scenario instance
      */
     @Check
-    public void testCaseMayContainVirtualTimeOnlyOnce(final TestCase testCase) {
-        if (testCase.getGivenSteps().stream().filter(VirtualTime.class::isInstance).count() > 1) {
-            error(MSG_TESTCASE_WITH_MORE_THAN_ONE_VIRTUAL_TIME, testCase, null);
+    public void testCaseMayContainVirtualTimeOnlyOnce(final Scenario scenario) {
+        if (scenario.getGiven().getGivenSteps().stream().filter(VirtualTime.class::isInstance).count() > 1) {
+            error(MSG_TESTCASE_WITH_MORE_THAN_ONE_VIRTUAL_TIME, scenario, null);
         }
     }
 

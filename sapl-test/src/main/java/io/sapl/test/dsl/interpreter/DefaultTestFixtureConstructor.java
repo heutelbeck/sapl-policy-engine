@@ -18,34 +18,47 @@
 
 package io.sapl.test.dsl.interpreter;
 
-import java.util.List;
-
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sapltest.CustomFunctionLibrary;
 import io.sapl.test.grammar.sapltest.FixtureRegistration;
+import io.sapl.test.grammar.sapltest.Given;
+import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.Pip;
 import io.sapl.test.grammar.sapltest.SaplFunctionLibrary;
-import io.sapl.test.grammar.sapltest.TestSuite;
+import io.sapl.test.integration.SaplIntegrationTestFixture;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
 @RequiredArgsConstructor
 class DefaultTestFixtureConstructor {
 
-    private final TestSuiteInterpreter       testSuiteInterpreter;
+    private final DocumentInterpreter        documentInterpreter;
+    private final PdpConfigurationHandler    pdpConfigurationHandler;
     private final FunctionLibraryInterpreter functionLibraryInterpreter;
     private final ReflectionHelper           reflectionHelper;
 
-    SaplTestFixture constructTestFixture(final List<FixtureRegistration> fixtureRegistrations,
-            final TestSuite testSuite) {
-        var saplTestFixture = testSuiteInterpreter.getFixtureFromTestSuite(testSuite);
+    SaplTestFixture constructTestFixture(final Given given, final List<GivenStep> givenSteps) {
+        if (given == null) {
+            throw new SaplTestException("Given is null");
+        }
+
+        var saplTestFixture = documentInterpreter.getFixtureFromDocument(given.getDocument());
 
         if (saplTestFixture == null) {
             throw new SaplTestException("TestFixture is null");
         }
 
-        if (fixtureRegistrations != null) {
+        if (saplTestFixture instanceof SaplIntegrationTestFixture integrationTestFixture) {
+            saplTestFixture = pdpConfigurationHandler.applyPdpConfigurationToFixture(integrationTestFixture,
+                    given.getPdpVariables(), given.getPdpCombiningAlgorithm());
+        }
+
+        if (givenSteps != null) {
+            final var fixtureRegistrations = givenSteps.stream().filter(FixtureRegistration.class::isInstance)
+                    .map(FixtureRegistration.class::cast).toList();
+
             handleFixtureRegistrations(saplTestFixture, fixtureRegistrations);
         }
 

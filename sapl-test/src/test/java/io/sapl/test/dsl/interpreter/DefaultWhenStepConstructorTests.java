@@ -27,6 +27,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.grammar.sapltest.FixtureRegistration;
+import io.sapl.test.grammar.sapltest.Given;
+import io.sapl.test.grammar.sapltest.MockDefinition;
+import io.sapl.test.grammar.sapltest.Pip;
 import java.util.Collections;
 import java.util.List;
 
@@ -80,6 +84,18 @@ class DefaultWhenStepConstructorTests {
     }
 
     @Test
+    void constructWhenStep_filtersNonMockDefinitions_returnsGivenUnitTestFixture() {
+        final var pipMock                 = mock(Pip.class);
+        final var fixtureRegistrationMock = mock(FixtureRegistration.class);
+
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(pipMock, fixtureRegistrationMock),
+                saplUnitTestFixtureMock);
+
+        assertEquals(saplUnitTestFixtureMock, result);
+        verifyNoInteractions(saplUnitTestFixtureMock);
+    }
+
+    @Test
     void constructWhenStep_handlesMoreThanOneVirtualTimeDeclaration_throwsSaplTestException() {
         final var virtualTimeMock = mock(VirtualTime.class);
 
@@ -88,14 +104,14 @@ class DefaultWhenStepConstructorTests {
         final var exception = assertThrows(SaplTestException.class,
                 () -> defaultWhenStepConstructor.constructWhenStep(givenSteps, saplUnitTestFixtureMock));
 
-        assertEquals("TestCase contains more than one virtual-time declaration", exception.getMessage());
+        assertEquals("Scenario contains more than one virtual-time declaration", exception.getMessage());
     }
 
     @Test
     void constructWhenStep_handlesUnknownTypeOfGivenStep_throwsSaplTestException() {
-        final var unknownGivenStepMock = mock(GivenStep.class);
+        final var unknownMockDefinition = mock(MockDefinition.class);
 
-        final var givenSteps = List.of(unknownGivenStepMock);
+        final var givenSteps = List.<GivenStep>of(unknownMockDefinition);
 
         final var exception = assertThrows(SaplTestException.class,
                 () -> defaultWhenStepConstructor.constructWhenStep(givenSteps, saplUnitTestFixtureMock));

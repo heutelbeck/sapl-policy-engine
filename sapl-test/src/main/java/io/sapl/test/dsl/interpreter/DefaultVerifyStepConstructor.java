@@ -20,9 +20,9 @@ package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.RepeatedExpect;
+import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.grammar.sapltest.SingleExpect;
 import io.sapl.test.grammar.sapltest.SingleExpectWithMatcher;
-import io.sapl.test.grammar.sapltest.TestCase;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.VerifyStep;
 import lombok.RequiredArgsConstructor;
@@ -32,12 +32,12 @@ class DefaultVerifyStepConstructor {
 
     private final ExpectationInterpreter expectationInterpreter;
 
-    VerifyStep constructVerifyStep(final TestCase testCase, final ExpectStep expectStep) {
-        if (testCase == null || expectStep == null) {
-            throw new SaplTestException("TestCase or expectStep is null");
+    VerifyStep constructVerifyStep(final Scenario scenario, final ExpectStep expectStep) {
+        if (scenario == null || expectStep == null) {
+            throw new SaplTestException("Scenario or expectStep is null");
         }
 
-        final var expectation = testCase.getExpectation();
+        final var expectation = scenario.getExpectation();
 
         if (expectation instanceof SingleExpect singleExpect) {
             return expectationInterpreter.interpretSingleExpect(expectStep, singleExpect);
