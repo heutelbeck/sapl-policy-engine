@@ -93,7 +93,7 @@ class GenericCoverageReporterTests {
         assertEquals(3, docs.get(0).getLine(3).getLineNumber());
         assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(3).getCoveredValue());
         assertEquals(4, docs.get(0).getLine(4).getLineNumber());
-        assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(4).getCoveredValue());
+        assertEquals(LineCoveredValue.IRRELEVANT, docs.get(0).getLine(4).getCoveredValue());
         assertEquals(5, docs.get(0).getLine(5).getLineNumber());
         assertEquals(LineCoveredValue.IRRELEVANT, docs.get(0).getLine(5).getCoveredValue());
         assertEquals(6, docs.get(0).getLine(6).getLineNumber());
@@ -129,7 +129,7 @@ class GenericCoverageReporterTests {
         assertEquals(1, docs.get(0).getLine(1).getLineNumber());
         assertEquals(LineCoveredValue.NEVER, docs.get(0).getLine(1).getCoveredValue());
         assertEquals(2, docs.get(0).getLine(2).getLineNumber());
-        assertEquals(LineCoveredValue.NEVER, docs.get(0).getLine(2).getCoveredValue());
+        assertEquals(LineCoveredValue.IRRELEVANT, docs.get(0).getLine(2).getCoveredValue());
         assertEquals(3, docs.get(0).getLine(3).getLineNumber());
         assertEquals(LineCoveredValue.NEVER, docs.get(0).getLine(3).getCoveredValue());
         assertEquals(4, docs.get(0).getLine(4).getLineNumber());
@@ -154,7 +154,7 @@ class GenericCoverageReporterTests {
         assertEquals(1, docs.get(0).getLine(1).getLineNumber());
         assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(1).getCoveredValue());
         assertEquals(2, docs.get(0).getLine(2).getLineNumber());
-        assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(2).getCoveredValue());
+        assertEquals(LineCoveredValue.IRRELEVANT, docs.get(0).getLine(2).getCoveredValue());
         assertEquals(3, docs.get(0).getLine(3).getLineNumber());
         assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(3).getCoveredValue());
         assertEquals(4, docs.get(0).getLine(4).getLineNumber());
@@ -198,7 +198,7 @@ class GenericCoverageReporterTests {
         assertEquals(1, docs.get(0).getLine(1).getLineNumber());
         assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(1).getCoveredValue());
         assertEquals(2, docs.get(0).getLine(2).getLineNumber());
-        assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(2).getCoveredValue());
+        assertEquals(LineCoveredValue.IRRELEVANT, docs.get(0).getLine(2).getCoveredValue());
         assertEquals(3, docs.get(0).getLine(3).getLineNumber());
         assertEquals(LineCoveredValue.FULLY, docs.get(0).getLine(3).getCoveredValue());
         assertEquals(4, docs.get(0).getLine(4).getLineNumber());
