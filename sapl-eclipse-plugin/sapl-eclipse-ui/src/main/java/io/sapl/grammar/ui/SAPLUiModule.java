@@ -21,6 +21,8 @@
 package io.sapl.grammar.ui;
 
 import java.time.Clock;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
@@ -41,9 +43,11 @@ import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pip.TimePolicyInformationPoint;
+import io.sapl.prp.Document;
 import io.sapl.prp.PolicyRetrievalPoint;
-import io.sapl.prp.PolicyRetrievalPointSource;
+import io.sapl.prp.PolicyRetrievalResult;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.
@@ -73,21 +77,27 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
         functionContext.loadLibrary(TemporalFunctionLibrary.class);
         functionContext.loadLibrary(SchemaValidationLibrary.class);
 
-        var dummyPrpSource = new PolicyRetrievalPointSource() {
+        var dummyPrp = new PolicyRetrievalPoint() {
 
             @Override
-            public void dispose() {
-                // NOOP
+            public Mono<PolicyRetrievalResult> retrievePolicies() {
+                return Mono.empty();
             }
 
             @Override
-            public Flux<PolicyRetrievalPoint> policyRetrievalPoint() {
-                return Flux.empty();
+            public Collection<Document> allDocuments() {
+                return List.of();
             }
+
+            @Override
+            public boolean isConsistent() {
+                return true;
+            }
+
         };
 
         var pdpConfiguration = new PDPConfiguration("editorConfig", attributeContext, functionContext, Map.of(),
-                CombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(), dummyPrpSource);
+                CombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(), dummyPrp);
         return () -> Flux.just(pdpConfiguration);
     }
 }

@@ -24,10 +24,10 @@ import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PDPConfiguration;
 import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
 import org.junit.jupiter.api.Test;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -58,8 +58,7 @@ class SAPLUiModuleTest {
         assertThat(pdpConfiguration.functionContext().getAvailableLibraries(), contains(FilterFunctionLibrary.NAME,
                 StandardFunctionLibrary.NAME, TemporalFunctionLibrary.NAME, SchemaValidationLibrary.NAME));
         assertThat(pdpConfiguration.variables(), is(Map.of()));
-        assertThat(pdpConfiguration.documentsCombinator(),
-                is(CombiningAlgorithmFactory.getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)));
+        assertThat(pdpConfiguration.documentsCombinator(), is(CombiningAlgorithm.DENY_OVERRIDES));
         assertThat(pdpConfiguration.decisionInterceptorChain(), is(UnaryOperator.identity()));
         assertThat(pdpConfiguration.subscriptionInterceptorChain(), is(UnaryOperator.identity()));
     }
