@@ -17,7 +17,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.ArrayList;
+import static io.sapl.interpreter.combinators.CombiningAlgorithmFactory.policySetCombiningAlgorithm;
+
 import java.util.HashSet;
 import java.util.Map;
 
@@ -67,13 +68,13 @@ public class PolicySetImplCustom extends PolicySetImpl {
     @Override
     public DocumentEvaluationResult targetResult(Val targetValue) {
         if (targetValue.isError())
-            return PolicySetDecision.ofTargetError(getSaplName(), targetValue, this.algorithm.getName());
-        return PolicySetDecision.notApplicable(getSaplName(), targetValue, this.algorithm.getName());
+            return PolicySetDecision.ofTargetError(getSaplName(), targetValue, getAlgorithm());
+        return PolicySetDecision.notApplicable(getSaplName(), targetValue, getAlgorithm());
     }
 
     @Override
     public DocumentEvaluationResult importError(String errorMessage) {
-        return PolicySetDecision.ofImportError(getSaplName(), errorMessage, this.algorithm.getName());
+        return PolicySetDecision.ofImportError(getSaplName(), errorMessage, getAlgorithm());
     }
 
     private boolean policyNamesAreUnique() {
@@ -87,7 +88,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
     private Flux<CombinedDecision> evaluateValueDefinitionsAndPolicies(int valueDefinitionId) {
         if (valueDefinitions == null || valueDefinitionId == valueDefinitions.size())
-            return evaluateAndCombinePoliciesOfSet();
+            return policySetCombiningAlgorithm(getAlgorithm()).combinePoliciesInSet(this);
 
         var valueDefinition           = valueDefinitions.get(valueDefinitionId);
         var evaluatedValueDefinitions = valueDefinition.getEval().evaluate();
@@ -95,10 +96,6 @@ public class PolicySetImplCustom extends PolicySetImpl {
                 .contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(),
                         value.withTrace(PolicySet.class, true, Map.of(Trace.POLICY_SET, Val.of(saplName),
                                 Trace.VARIABLE_NAME, Val.of(valueDefinition.getName()), Trace.VALUE, value)))));
-    }
-
-    private Flux<CombinedDecision> evaluateAndCombinePoliciesOfSet() {
-        return getAlgorithm().combinePolicies(new ArrayList<>(policies));
     }
 
 }

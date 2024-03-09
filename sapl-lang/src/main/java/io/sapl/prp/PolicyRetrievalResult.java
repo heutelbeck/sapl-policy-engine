@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.SAPL;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -47,13 +45,9 @@ public class PolicyRetrievalResult {
         return new ArrayList<>(matchingDocuments);
     }
 
-    public List<PolicyElement> getPolicyElements() {
-        return matchingDocuments.stream().map(match -> match.document().getPolicyElement()).toList();
-    }
-
-    public PolicyRetrievalResult withMatch(String id, SAPL match, Val targetExpressionResult) {
+    public PolicyRetrievalResult withMatch(Document document, Val targetExpressionResult) {
         var matches = new ArrayList<>(matchingDocuments);
-        matches.add(new MatchingDocument(id, match, targetExpressionResult));
+        matches.add(new MatchingDocument(document, targetExpressionResult));
         return new PolicyRetrievalResult(matches, errorsInTarget, prpValidState);
     }
 

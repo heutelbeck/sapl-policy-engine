@@ -18,8 +18,7 @@
 package io.sapl.prp;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.SAPL;
 
-public record MatchingDocument(String id, SAPL document, Val targetExpressionResult) {
+public record MatchingDocument(Document document, Val targetExpressionResult) {
 
 }

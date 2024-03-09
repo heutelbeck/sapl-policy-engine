@@ -32,7 +32,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.impl.DenyOverridesCombiningAlgorithmImplCustom;
 import reactor.test.StepVerifier;
 
 class DenyOverridesTests {
@@ -66,9 +65,10 @@ class DenyOverridesTests {
 
     @Test
     void noDecisionsIsNotApplicable() {
-        var algorithm = new DenyOverridesCombiningAlgorithmImplCustom();
-        StepVerifier.create(algorithm.combinePolicies(List.of())).expectNextMatches(combinedDecision -> combinedDecision
-                .getAuthorizationDecision().getDecision() == Decision.NOT_APPLICABLE).verifyComplete();
+        StepVerifier.create(DenyOverrides.denyOverrides(List.of()))
+                .expectNextMatches(combinedDecision -> combinedDecision.getAuthorizationDecision()
+                        .getDecision() == Decision.NOT_APPLICABLE)
+                .verifyComplete();
     }
 
     @Test

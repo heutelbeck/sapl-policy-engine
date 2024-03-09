@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.Document;
 import io.sapl.prp.index.canonical.ordering.DefaultPredicateOrderStrategy;
 import io.sapl.prp.index.canonical.ordering.PredicateOrderStrategy;
 import lombok.RequiredArgsConstructor;
@@ -45,11 +45,11 @@ public class CanonicalIndexDataCreationStrategy {
         this(new DefaultPredicateOrderStrategy());
     }
 
-    public CanonicalIndexDataContainer constructNew(final Map<String, SAPL> documents,
+    public CanonicalIndexDataContainer constructNew(final Map<String, Document> documents,
             final Map<String, DisjunctiveFormula> targets) {
-        Map<String, SAPL> documentMap = new HashMap<>(documents);
+        Map<String, Document> documentMap = new HashMap<>(documents);
 
-        Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments = new HashMap<>(targets.size(), 1.0F);
+        Map<DisjunctiveFormula, Set<Document>> formulaToDocuments = new HashMap<>(targets.size(), 1.0F);
         addNewFormulasToDocumentMapping(targets, documentMap, formulaToDocuments);
 
         Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas = new HashMap<>();
@@ -59,7 +59,7 @@ public class CanonicalIndexDataCreationStrategy {
     }
 
     private CanonicalIndexDataContainer constructContainerWithOrder(
-            Map<DisjunctiveFormula, Set<SAPL>> formulaToDocuments,
+            Map<DisjunctiveFormula, Set<Document>> formulaToDocuments,
             Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas) {
 
         Collection<PredicateInfo> predicateInfos = collectPredicateInfos(formulaToDocuments.keySet());
@@ -101,11 +101,11 @@ public class CanonicalIndexDataCreationStrategy {
     }
 
     private void addNewFormulasToDocumentMapping(final Map<String, DisjunctiveFormula> targets,
-            final Map<String, SAPL> documents, Map<DisjunctiveFormula, Set<SAPL>> formulaToDocumentMap) {
+            final Map<String, Document> documents, Map<DisjunctiveFormula, Set<Document>> formulaToDocumentMap) {
 
         for (Entry<String, DisjunctiveFormula> entry : targets.entrySet()) {
             DisjunctiveFormula formula = entry.getValue();
-            Set<SAPL>          set     = formulaToDocumentMap.computeIfAbsent(formula, k -> new HashSet<>());
+            Set<Document>      set     = formulaToDocumentMap.computeIfAbsent(formula, k -> new HashSet<>());
             set.add(documents.get(entry.getKey()));
         }
     }

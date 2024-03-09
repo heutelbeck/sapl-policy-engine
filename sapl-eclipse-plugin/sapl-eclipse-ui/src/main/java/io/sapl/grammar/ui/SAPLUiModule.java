@@ -20,28 +20,34 @@
  */
 package io.sapl.grammar.ui;
 
+import java.time.Clock;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.function.UnaryOperator;
+
+import org.eclipse.ui.plugin.AbstractUIPlugin;
+import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
+import org.eclipse.xtext.ui.editor.contentassist.IContentProposalProvider;
+import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
+
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pip.TimePolicyInformationPoint;
-import org.eclipse.ui.plugin.AbstractUIPlugin;
-import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
-import org.eclipse.xtext.ui.editor.contentassist.IContentProposalProvider;
-import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
+import io.sapl.prp.Document;
+import io.sapl.prp.PolicyRetrievalPoint;
+import io.sapl.prp.PolicyRetrievalResult;
 import reactor.core.publisher.Flux;
-
-import java.time.Clock;
-import java.util.Map;
-import java.util.function.UnaryOperator;
+import reactor.core.publisher.Mono;
 
 /**
  * Use this class to register components to be used within the Eclipse IDE.
@@ -71,9 +77,28 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
         functionContext.loadLibrary(TemporalFunctionLibrary.class);
         functionContext.loadLibrary(SchemaValidationLibrary.class);
 
-        var pdpConfiguration = new PDPConfiguration(attributeContext, functionContext, Map.of(),
-                CombiningAlgorithmFactory.getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES),
-                UnaryOperator.identity(), UnaryOperator.identity());
+        var dummyPrp = new PolicyRetrievalPoint() {
+
+            @Override
+            public Mono<PolicyRetrievalResult> retrievePolicies() {
+                return Mono.empty();
+            }
+
+            @Override
+            public Collection<Document> allDocuments() {
+                return List.of();
+            }
+
+            @Override
+            public boolean isConsistent() {
+                return true;
+            }
+
+        };
+
+        var pdpConfiguration = new PDPConfiguration("editorConfig", attributeContext, functionContext, Map.of(),
+                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(),
+                dummyPrp);
         return () -> Flux.just(pdpConfiguration);
     }
 }

@@ -351,28 +351,28 @@ class SaplIntegrationTestFixtureTests {
             void test_nullPDPConfigValueDocumentStrings1() {
                 var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), null);
                 assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
-                        .withMessage("Passed value for PDP config is null or empty.");
+                        .withMessageContaining("Encountered policy name duplication");
             }
 
             @Test
             void test_nullPDPConfigDocumentStrings2() {
                 var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), null);
                 assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
-                        .withMessage("Passed value for PDP config is null or empty.");
+                        .withMessageContaining("Encountered policy name duplication");
             }
 
             @Test
             void test_emptyPDPConfigValueDocumentStrings1() {
                 var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), "");
                 assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
-                        .withMessage("Passed value for PDP config is null or empty.");
+                        .withMessageContaining("Encountered policy name duplication");
             }
 
             @Test
             void test_emptyPDPConfigDocumentStrings2() {
                 var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), "");
                 assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
-                        .withMessage("Passed value for PDP config is null or empty.");
+                        .withMessageContaining("Encountered policy name duplication");
             }
         }
     }

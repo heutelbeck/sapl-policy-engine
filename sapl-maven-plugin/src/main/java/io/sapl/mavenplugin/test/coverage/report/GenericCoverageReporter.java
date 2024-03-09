@@ -87,10 +87,6 @@ public class GenericCoverageReporter {
         INode nodeSet = NodeModelUtils.getNode(set);
         addLinesToSet(linesOfPolicySet, nodeSet.getStartLine(), nodeSet.getStartLine());
 
-        // mark the algorithm
-        INode nodeAlg = NodeModelUtils.getNode(set.getAlgorithm());
-        addLinesToSet(linesOfPolicySet, nodeAlg.getStartLine(), nodeAlg.getEndLine());
-
         // mark all value definitions
         for (var valueDefinition : set.getValueDefinitions()) {
             INode nodeValDef = NodeModelUtils.getNode(valueDefinition);

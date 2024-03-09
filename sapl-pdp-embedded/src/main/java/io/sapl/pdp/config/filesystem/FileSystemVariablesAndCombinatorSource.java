@@ -33,8 +33,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
@@ -51,7 +49,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final String watchDir;
+    private final Path watchDir;
 
     private final Flux<Optional<PolicyDecisionPointConfiguration>> configFlux;
 
@@ -67,7 +65,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
     }
 
     private Optional<PolicyDecisionPointConfiguration> loadConfig() {
-        Path configurationFile = Paths.get(watchDir, CONFIG_FILE_GLOB_PATTERN);
+        Path configurationFile = Paths.get(watchDir.toString(), CONFIG_FILE_GLOB_PATTERN);
         log.info("Loading PDP configuration from: {}", configurationFile.toAbsolutePath());
         if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
             // If file does not exist, return default configuration
@@ -100,12 +98,8 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
     }
 
     @Override
-    public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
-        return Flux.from(configFlux)
-                .switchMap(config -> config
-                        .map(policyDecisionPointConfiguration -> Flux.just(Optional.of(CombiningAlgorithmFactory
-                                .getCombiningAlgorithm(policyDecisionPointConfiguration.getAlgorithm()))))
-                        .orElseGet(() -> Flux.just(Optional.empty())));
+    public Flux<Optional<PolicyDocumentCombiningAlgorithm>> getCombiningAlgorithm() {
+        return configFlux.map(config -> config.map(PolicyDecisionPointConfiguration::getAlgorithm));
     }
 
     @Override
