@@ -26,8 +26,8 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 
 class ResourcesVariablesAndCombinatorSourceTests {
 
@@ -46,7 +46,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
         var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
-        assertThat(algo.get() == CombiningAlgorithm.PERMIT_UNLESS_DENY, is(true));
+        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY, is(true));
         assertThat(variables.get().size(), is(2));
     }
 
@@ -57,7 +57,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
         var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
-        assertThat(algo.get() == CombiningAlgorithm.DENY_OVERRIDES, is(true));
+        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, is(true));
         assertThat(variables.get().size(), is(0));
     }
 

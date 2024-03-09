@@ -29,8 +29,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import lombok.NonNull;
@@ -71,7 +71,8 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
                 var jsonNode     = mapper.readValue(jsonDocument, JsonNode.class);
                 this.config = new PolicyDecisionPointConfiguration();
                 if (jsonNode.has("algorithm")) {
-                    this.config.setAlgorithm(CombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
+                    this.config
+                            .setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
                 }
                 var variables = new HashMap<String, Val>();
                 if (jsonNode.has("variables")) {
@@ -87,7 +88,7 @@ public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombin
     }
 
     @Override
-    public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
+    public Flux<Optional<PolicyDocumentCombiningAlgorithm>> getCombiningAlgorithm() {
         return Flux.just(config.getAlgorithm()).map(Optional::of);
     }
 

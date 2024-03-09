@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
@@ -82,7 +82,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
                 return Optional.empty();
 
             if (jsonNode.has("algorithm")) {
-                config.setAlgorithm(CombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
+                config.setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
             }
             var variables = new HashMap<String, Val>();
             if (jsonNode.has("variables")) {
@@ -98,7 +98,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
     }
 
     @Override
-    public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
+    public Flux<Optional<PolicyDocumentCombiningAlgorithm>> getCombiningAlgorithm() {
         return configFlux.map(config -> config.map(PolicyDecisionPointConfiguration::getAlgorithm));
     }
 

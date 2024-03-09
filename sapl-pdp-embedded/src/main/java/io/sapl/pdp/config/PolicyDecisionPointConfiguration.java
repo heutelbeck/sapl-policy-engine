@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -35,7 +35,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PolicyDecisionPointConfiguration {
 
-    private CombiningAlgorithm algorithm = CombiningAlgorithm.DENY_OVERRIDES;
+    private PolicyDocumentCombiningAlgorithm algorithm = PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES;
 
     private Map<String, Val> variables = new HashMap<>();
 

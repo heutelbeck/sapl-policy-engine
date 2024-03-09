@@ -26,7 +26,7 @@ import static org.mockito.Mockito.times;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.util.filemonitoring.FileCreatedEvent;
 import io.sapl.util.filemonitoring.FileDeletedEvent;
 import io.sapl.util.filemonitoring.FileMonitorUtil;
@@ -41,7 +41,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
         var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
-        assertThat(algo.get() == CombiningAlgorithm.PERMIT_UNLESS_DENY, is(true));
+        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY, is(true));
         assertThat(variables.get().size(), is(2));
     }
 
@@ -52,7 +52,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
         var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
-        assertThat(algo.get() == CombiningAlgorithm.DENY_OVERRIDES, is(true));
+        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, is(true));
         assertThat(variables.get().size(), is(0));
     }
 
@@ -80,7 +80,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
             configProvider.destroy();
 
             mock.verify(() -> FileMonitorUtil.monitorDirectory(any(), any()), times(1));
-            assertThat(algo.get() == CombiningAlgorithm.DENY_OVERRIDES, is(true));
+            assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, is(true));
         }
     }
 
