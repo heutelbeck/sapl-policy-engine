@@ -18,27 +18,16 @@
 package testProject;
 
 
-import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
-import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.postgis.PostGisConnection;
-import io.sapl.geo.connection.traccar.TraccarRestManager;
-import io.sapl.geo.connection.traccar.TraccarSocketManager;
-import io.sapl.geo.pip.GeoPipResponse;
-import io.sapl.geo.pip.GeoPipResponseFormat;
-import io.sapl.pip.http.ReactiveWebClient;
-import reactor.core.publisher.Mono;
-import reactor.retry.Repeat;
-import reactor.core.publisher.Flux;
-import reactor.util.retry.Retry;
-import java.time.Duration;
 
-import org.springframework.http.HttpMethod;
+import io.sapl.pip.http.ReactiveWebClient;
+
 import org.springframework.http.MediaType;
 
 
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 

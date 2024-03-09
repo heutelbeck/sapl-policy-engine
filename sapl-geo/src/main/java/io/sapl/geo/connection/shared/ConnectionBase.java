@@ -61,9 +61,13 @@ public abstract class ConnectionBase {
     }
 
     protected static GeoPipResponseFormat getResponseFormat(JsonNode requestSettings, ObjectMapper mapper)
-            throws Exception {
+            throws PolicyEvaluationException {
         if (requestSettings.has(RESPONSEFORMAT)) {
-            return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT), GeoPipResponseFormat.class);
+            try {
+            	return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT), GeoPipResponseFormat.class);
+            }catch(Exception e) {
+            	throw new PolicyEvaluationException(e);
+            }
         } else {
 
             return GeoPipResponseFormat.GEOJSON;

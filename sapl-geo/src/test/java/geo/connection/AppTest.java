@@ -20,7 +20,6 @@ package geo.connection;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.springframework.http.MediaType;
 
 import static org.junit.Assert.assertEquals;
 
@@ -28,7 +27,6 @@ import java.nio.file.Paths;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -37,11 +35,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.connection.traccar.TraccarRestManager;
-import io.sapl.geo.connection.traccar.TraccarSessionManager;
+
 import io.sapl.geo.connection.traccar.TraccarSocketManager;
-import io.sapl.geo.pip.GeoPipResponse;
-import io.sapl.geo.pip.GeoPipResponseFormat;
+
 
 @TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers

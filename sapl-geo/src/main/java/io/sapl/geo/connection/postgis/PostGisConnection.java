@@ -20,7 +20,6 @@ package io.sapl.geo.connection.postgis;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.locationtech.jts.geom.Geometry;
@@ -46,7 +45,6 @@ import io.sapl.geofunctions.JsonConverter;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.retry.Repeat;
 
 public class PostGisConnection extends ConnectionBase {
@@ -89,10 +87,8 @@ public class PostGisConnection extends ConnectionBase {
                     .getFlux(getResponseFormat(settings, mapper), getTable(settings), getColumn(settings),
                             getWhere(settings), getDefaultCRS(settings),
                             longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
-                            longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), mapper)
-                    .map(Val::of).onErrorResume(e -> {
-                        return Flux.just(Val.error(e));
-                    });
+                            longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS))
+                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e)));
 
         } catch (Exception e) {
             return Flux.just(Val.error(e));
@@ -101,14 +97,14 @@ public class PostGisConnection extends ConnectionBase {
     }
 
     public Flux<ObjectNode> getFlux(GeoPipResponseFormat format, String table, String column, String where,
-            int defaultCrs, long repeatTimes, long pollingInterval, ObjectMapper mapper) {
+            int defaultCrs, long repeatTimes, long pollingInterval) {
 
         String frmt = "ST_AsGeoJSON";
 
         String str                 = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid FROM %s %s";
         var    sql                 = String.format(str, frmt, column, column, table, where);
         var    connectionReference = new AtomicReference<Connection>();
-        return Mono.from(connectionFactory.create()).doOnNext(conn -> connectionReference.set(conn))
+        return Mono.from(connectionFactory.create()).doOnNext(connectionReference::set)
                 .flatMapMany(connection -> Flux.from(connection.createStatement(sql).execute())
 
                         .flatMap(result -> result.map((row, rowMetadata) -> {
@@ -133,15 +129,11 @@ public class PostGisConnection extends ConnectionBase {
                     }
                     combinedNode.set("results", arrayNode);
                     return combinedNode;
-                }).doOnNext(node -> {
-                    System.out.println("Result from DB: " + node.toString());
-                }).onErrorResume(Mono::error)
+                }).doOnNext(node -> System.out.println("Result from DB: " + node.toString()))
+                .onErrorResume(Mono::error)
                 .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
-                .doOnCancel(() -> {
-                    connectionReference.get().close();
-                }).doOnTerminate(() -> {
-                    connectionReference.get().close();
-                });
+                .doOnCancel(() -> connectionReference.get().close())
+                .doOnTerminate(() -> connectionReference.get().close());
 
     }
 

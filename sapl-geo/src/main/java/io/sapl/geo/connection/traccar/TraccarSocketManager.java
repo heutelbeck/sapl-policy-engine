@@ -33,7 +33,7 @@ import reactor.core.publisher.Flux;
 
 public class TraccarSocketManager extends ConnectionBase {
 
-    private static final String DEVICEID = "deviceId";
+    private static final String DEVICEID_CONST = "deviceId";
     private static final String PROTOCOL = "protocol";
 //    private Disposable           subscription;
 //    private WebSocketSession     session;
@@ -71,9 +71,10 @@ public class TraccarSocketManager extends ConnectionBase {
         try {
             var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings),
                     getProtocol(settings), getDeviceId(settings), mapper);
-            return socketManager.getFlux(getResponseFormat(settings, mapper), mapper).map(Val::of).onErrorResume(e -> {
-                return Flux.just(Val.error(e));
-            }).doFinally(s -> socketManager.disconnect());
+            return socketManager.getFlux(getResponseFormat(settings, mapper), mapper)
+            		.map(Val::of)
+            		.onErrorResume(e ->  Flux.just(Val.error(e)))
+            		.doFinally(s -> socketManager.disconnect());
 
         } catch (Exception e) {
             return Flux.just(Val.error(e));
@@ -81,7 +82,7 @@ public class TraccarSocketManager extends ConnectionBase {
 
     }
 
-    public Flux<ObjectNode> getFlux(GeoPipResponseFormat format, ObjectMapper mapper) throws Exception {
+    public Flux<ObjectNode> getFlux(GeoPipResponseFormat format, ObjectMapper mapper) throws PolicyEvaluationException {
 
         var client = new ReactiveWebClient(mapper);
 
@@ -94,10 +95,14 @@ public class TraccarSocketManager extends ConnectionBase {
                     }
                 }
                 """;
-
-        var request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, getSessionCookie()));
-
-        var flux = client.consumeWebSocket(request).map(v -> v.get())
+        Val request;
+        try {
+        	 request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, getSessionCookie()));
+        }catch(Exception e) {
+        	throw new PolicyEvaluationException(e);
+        }
+        
+        var flux = client.consumeWebSocket(request).map(Val::get)
                 .flatMap(msg -> handler.mapPosition(msg, deviceId, format))
                 .flatMap(res -> handler.getGeofences(res, deviceId, format))
                 .map(res -> mapper.convertValue(res, ObjectNode.class));
@@ -106,13 +111,13 @@ public class TraccarSocketManager extends ConnectionBase {
         return flux;
     }
 
-    public void disconnect() {
+    public void disconnect() throws PolicyEvaluationException{
         System.out.println("Trying to close Traccar-Session.");
         try {
             if (this.sessionManager.closeTraccarSession()) {
                 System.out.println("Traccar-Client disconnected.");
             } else {
-                throw new Exception();
+                throw new PolicyEvaluationException();
             }
         } catch (Exception e) {
             throw new PolicyEvaluationException("Traccar-Session could not be closed");
@@ -130,8 +135,8 @@ public class TraccarSocketManager extends ConnectionBase {
     }
 
     private static int getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(DEVICEID)) {
-            return requestSettings.findValue(DEVICEID).asInt();
+        if (requestSettings.has(DEVICEID_CONST)) {
+            return requestSettings.findValue(DEVICEID_CONST).asInt();
         } else {
 
             throw new PolicyEvaluationException("No Device ID found");

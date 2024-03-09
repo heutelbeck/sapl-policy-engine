@@ -153,7 +153,7 @@ public class TraccarSessionHandler {
 
                 case KML:
                     fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
-
+                    break;
                 default:
 
                     break;

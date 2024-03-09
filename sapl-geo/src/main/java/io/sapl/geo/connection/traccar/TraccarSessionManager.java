@@ -21,6 +21,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -54,7 +55,7 @@ public class TraccarSessionManager {
         return session;
     }
 
-    public TraccarSessionManager(String user, String password, String server, ObjectMapper mapper) throws Exception {
+    public TraccarSessionManager(String user, String password, String server, ObjectMapper mapper) throws PolicyEvaluationException {
         this.user     = user;
         this.password = password;
         this.mapper   = mapper;
@@ -62,33 +63,45 @@ public class TraccarSessionManager {
 
     }
 
-    private void establishSession(String serverName) throws Exception {
+    private void establishSession(String serverName) throws PolicyEvaluationException {
 
-        // uri = new URI("http://" + serverName + "/api/session");
-        uri = new URI(String.format("http://%s/api/session", serverName));
-        Map<String, String> bodyProperties = new HashMap<String, String>() {
-            private static final long serialVersionUID = 1L;
-            {
-                put("email", user);
-                put("password", password);
-            }
-        };
-
-        String form = bodyProperties.entrySet().stream()
-                .map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
-                .collect(Collectors.joining("&"));
-
-        HttpRequest req = null;
-
-        req = HttpRequest.newBuilder().uri(uri).headers("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(form)).build();
-
-        var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-
-        var res = client.send(req, BodyHandlers.ofString());
-
+    	HttpResponse<String> res;
+       
+        try {
+        	uri = new URI(String.format("http://%s/api/session", serverName));
+        
+        
+	        Map<String, String> bodyProperties = new HashMap<String, String>() {
+	        	private static final long serialVersionUID = 1L;
+	            {
+	                put("email", user);
+	                put("password", password);
+	            }
+	        };
+	
+	        String form = bodyProperties.entrySet().stream()
+	                .map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
+	                .collect(Collectors.joining("&"));
+	
+	        HttpRequest req = null;
+	
+	        req = HttpRequest.newBuilder().uri(uri).headers("Content-Type", "application/x-www-form-urlencoded")
+	                .POST(HttpRequest.BodyPublishers.ofString(form)).build();
+	
+	        var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+	
+	        res = client.send(req, BodyHandlers.ofString());
+	        
+        }catch (InterruptedException e) {
+        	Thread.currentThread().interrupt();
+        	throw new PolicyEvaluationException(e);
+        }catch(Exception e) {
+        	throw new PolicyEvaluationException(e);
+        }
+        
         if (res.statusCode() == 200) {
-            sessionCookie = res.headers().firstValue("set-cookie").get();
+            
+        	res.headers().firstValue("set-cookie").ifPresent(v -> sessionCookie = v);
             session       = createTraccarSession(res.body());
         } else {
             throw new PolicyEvaluationException(
@@ -98,19 +111,30 @@ public class TraccarSessionManager {
         // 617662
     }
 
-    private TraccarSession createTraccarSession(String json) throws Exception {
+    private TraccarSession createTraccarSession(String json) throws PolicyEvaluationException {
 
-        return mapper.convertValue(mapper.readTree(json), TraccarSession.class);
-
+    	try {
+    		return mapper.convertValue(mapper.readTree(json), TraccarSession.class);
+    	}catch(Exception e) {
+    		throw new PolicyEvaluationException(e);
+    	}
     }
 
-    public Boolean closeTraccarSession() throws Exception {
+    public Boolean closeTraccarSession() throws PolicyEvaluationException {
 
         HttpRequest req = null;
         req = HttpRequest.newBuilder().uri(uri).header("cookie", sessionCookie).DELETE().build();
 
+        HttpResponse<String> res;
         var client = HttpClient.newHttpClient();
-        var res    = client.send(req, BodyHandlers.ofString());
+        try {
+        	res    = client.send(req, BodyHandlers.ofString());
+        }catch (InterruptedException e) {
+        	Thread.currentThread().interrupt();
+        	throw new PolicyEvaluationException(e);
+        }catch(Exception e) {
+        	throw new PolicyEvaluationException(e);
+        }
         if (res.statusCode() == 204) {
             logger.info("Traccar Session for DeviceId " + "" + "closed.");
             return true;
