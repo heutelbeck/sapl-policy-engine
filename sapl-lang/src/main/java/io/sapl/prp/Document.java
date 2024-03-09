@@ -20,7 +20,9 @@ package io.sapl.prp;
 import org.eclipse.emf.common.util.Diagnostic;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
+import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.SAPL;
+import io.sapl.interpreter.DocumentType;
 
 public record Document(String id, String name, SAPL sapl, Diagnostic diagnostic, String errorMessage) {
 
@@ -30,5 +32,15 @@ public record Document(String id, String name, SAPL sapl, Diagnostic diagnostic,
 
     public String source() {
         return NodeModelUtils.findActualNodeFor(sapl).getText();
+    }
+
+    public DocumentType type() {
+        if (isInvalid()) {
+            return DocumentType.INVALID;
+        } else if (sapl.getPolicyElement() instanceof Policy) {
+            return DocumentType.POLICY;
+        } else {
+            return DocumentType.POLICY_SET;
+        }
     }
 }
