@@ -66,6 +66,9 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
             for (Path filePath : stream) {
                 log.info("loading policy: {}", filePath.toAbsolutePath());
                 var document = interpreter.parseDocument(Files.newInputStream(filePath));
+                if (document.isInvalid()) {
+                    throw new PolicyEvaluationException("Detected error in document: " + document.errorMessage());
+                }
                 var previous = documentsByName.put(document.name(), document);
                 if (previous != null || document.isInvalid()) {
                     this.consistent = false;
@@ -91,6 +94,10 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
         Map<String, Document> documentsByName = new HashMap<>();
         for (var saplDocumentName : saplDocumentNames) {
             var document = DocumentHelper.readSaplDocument(saplDocumentName, interpreter);
+            if (document.isInvalid()) {
+                throw new PolicyEvaluationException(
+                        "'" + saplDocumentName + "' is invalid. Error: " + document.errorMessage());
+            }
             var previous = documentsByName.put(document.name(), document);
             if (previous != null || document.isInvalid()) {
                 this.consistent = false;

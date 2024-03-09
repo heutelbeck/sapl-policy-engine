@@ -17,6 +17,7 @@
  */
 package io.sapl.test.integration;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -284,9 +285,8 @@ class ClasspathPolicyRetrievalPointTests {
             final var exception = assertThrows(PolicyEvaluationException.class,
                     () -> new ClasspathPolicyRetrievalPoint(saplDocumentNames, interpreter));
 
-            assertEquals(
-                    "Parsing errors: [XtextSyntaxDiagnostic: null:2 Incomplete policy, expected an entitlement, e.g. deny or permit]",
-                    exception.getMessage());
+            assertThat(exception.getMessage()).contains(
+                    "Parsing errors: [XtextSyntaxDiagnostic: null:2 Incomplete policy, expected an entitlement, e.g. deny or permit]");
         }
 
         @Test

@@ -39,8 +39,8 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.prp.Document;
 
 @ExtendWith(MockitoExtension.class)
 class DocumentHelperTests {
@@ -77,8 +77,8 @@ class DocumentHelperTests {
                 .thenReturn(pathMock);
         filesMockedStatic.when(() -> Files.readString(pathMock)).thenReturn("fancySaplString");
 
-        final var saplMock = mock(SAPL.class);
-        when(saplInterpreterMock.parse("fancySaplString")).thenReturn(saplMock);
+        final var saplMock = mock(Document.class);
+        when(saplInterpreterMock.parseDocument("fancySaplString")).thenReturn(saplMock);
 
         final var result = DocumentHelper.readSaplDocument("file", saplInterpreterMock);
 
@@ -92,8 +92,8 @@ class DocumentHelperTests {
                 .thenReturn(pathMock);
         filesMockedStatic.when(() -> Files.readString(pathMock)).thenReturn("fancySaplString");
 
-        final var saplMock = mock(SAPL.class);
-        when(saplInterpreterMock.parse("fancySaplString")).thenReturn(saplMock);
+        final var saplMock = mock(Document.class);
+        when(saplInterpreterMock.parseDocument("fancySaplString")).thenReturn(saplMock);
 
         final var result = DocumentHelper.readSaplDocument("file.sapl", saplInterpreterMock);
 
@@ -143,8 +143,8 @@ class DocumentHelperTests {
 
     @Test
     void readSaplDocumentFromInputString_parsesValidInput_returnsSAPL() {
-        final var saplMock = mock(SAPL.class);
-        when(saplInterpreterMock.parse("foo")).thenReturn(saplMock);
+        final var saplMock = mock(Document.class);
+        when(saplInterpreterMock.parseDocument("foo")).thenReturn(saplMock);
 
         final var result = DocumentHelper.readSaplDocumentFromInputString("foo", saplInterpreterMock);
 
