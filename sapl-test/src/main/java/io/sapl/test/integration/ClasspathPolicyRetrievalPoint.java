@@ -91,7 +91,7 @@ public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
             throw new SaplTestException("Encountered invalid policy name");
         }
 
-        Map<String, Document> documentsByName = new HashMap<>();
+        Map<String, Document> documentsByName = new HashMap<>(saplDocumentNames.size());
         for (var saplDocumentName : saplDocumentNames) {
             var document = DocumentHelper.readSaplDocument(saplDocumentName, interpreter);
             if (document.isInvalid()) {

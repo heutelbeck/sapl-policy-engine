@@ -168,13 +168,13 @@ class SpecificScenarioTests {
 
         private final List<Document> parsedDocuments = new ArrayList<>();
 
-        public SimplePolicyRetrievalPoint(List<String> documentsSource) {
+        public SimplePolicyRetrievalPoint(Iterable<String> documentsSource) {
             for (var doc : documentsSource) {
                 load(doc);
             }
         }
 
-        public void load(String document) {
+        public final void load(String document) {
             var doc = INTERPRETER.parseDocument(document);
             parsedDocuments.add(doc);
         }

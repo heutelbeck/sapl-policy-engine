@@ -41,7 +41,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
         var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
-        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY, is(true));
+        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY, is(Boolean.TRUE));
         assertThat(variables.get().size(), is(2));
     }
 
@@ -52,7 +52,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
         var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
-        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, is(true));
+        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, is(Boolean.TRUE));
         assertThat(variables.get().size(), is(0));
     }
 
@@ -80,7 +80,7 @@ class FileSystemVariablesAndCombinatorSourceTest {
             configProvider.destroy();
 
             mock.verify(() -> FileMonitorUtil.monitorDirectory(any(), any()), times(1));
-            assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, is(true));
+            assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, is(Boolean.TRUE));
         }
     }
 

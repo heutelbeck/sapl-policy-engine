@@ -46,7 +46,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
         var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
-        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY, is(true));
+        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY, is(Boolean.TRUE));
         assertThat(variables.get().size(), is(2));
     }
 
@@ -57,7 +57,7 @@ class ResourcesVariablesAndCombinatorSourceTests {
         var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
-        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, is(true));
+        assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, is(Boolean.TRUE));
         assertThat(variables.get().size(), is(0));
     }
 

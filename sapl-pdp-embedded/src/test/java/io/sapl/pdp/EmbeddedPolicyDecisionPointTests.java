@@ -74,7 +74,8 @@ class EmbeddedPolicyDecisionPointTests {
     void decide_withInvalidConfig_shouldReturnIntermediate() {
         var prp          = mock(PolicyRetrievalPoint.class);
         var brokenConfig = new PDPConfiguration("", mock(), mock(), Map.of(),
-                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, x -> x, x -> x, prp);
+                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(),
+                prp);
         var providerMock = mock(PDPConfigurationProvider.class);
         var embeddedPdp  = new EmbeddedPolicyDecisionPoint(providerMock);
 
@@ -227,7 +228,8 @@ class EmbeddedPolicyDecisionPointTests {
         var prp            = mock(PolicyRetrievalPoint.class);
         var configProvider = mock(PDPConfigurationProvider.class);
         var brokenConfig   = new PDPConfiguration("", mock(), mock(), Map.of(),
-                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, x -> x, x -> x, prp);
+                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(),
+                prp);
         when(configProvider.pdpConfiguration()).thenReturn(Flux.just(brokenConfig));
         var subscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
                 JSON.textNode("something"), JSON.nullNode());
@@ -244,7 +246,8 @@ class EmbeddedPolicyDecisionPointTests {
         var mockAlgorithm  = mock(CombiningAlgorithm.class);
         when(mockAlgorithm.getName()).thenReturn("test alg");
         var brokenConfig = new PDPConfiguration("", mock(), mock(), Map.of(),
-                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, x -> x, x -> x, prp);
+                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(),
+                prp);
         when(configProvider.pdpConfiguration()).thenReturn(Flux.just(brokenConfig));
         var subscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
                 JSON.textNode("something"), JSON.nullNode());
