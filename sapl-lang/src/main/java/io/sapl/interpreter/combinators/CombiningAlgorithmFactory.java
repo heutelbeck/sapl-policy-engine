@@ -17,7 +17,6 @@
  */
 package io.sapl.interpreter.combinators;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import lombok.experimental.UtilityClass;
 
@@ -37,14 +36,13 @@ public class CombiningAlgorithmFactory {
         };
     }
 
-    public static DocumentsCombiningAlgorithm documentsCombiningAlgorithm(CombiningAlgorithm algorithm) {
+    public static DocumentsCombiningAlgorithm documentsCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {
         return switch (algorithm) {
         case DENY_OVERRIDES -> DenyOverrides::denyOverrides;
         case PERMIT_OVERRIDES -> PermitOverrides::permitOverrides;
         case ONLY_ONE_APPLICABLE -> OnlyOneApplicable::onlyOneApplicable;
         case DENY_UNLESS_PERMIT -> DenyUnlessPermit::denyUnlessPermit;
         case PERMIT_UNLESS_DENY -> PermitUnlessDeny::permitUnlessDeny;
-        case FIRST_APPLICABLE -> throw new PolicyEvaluationException(FIRST_APPLICABLE_NOT_FOR_DOCUMENTS_ERROR);
         };
     }
 

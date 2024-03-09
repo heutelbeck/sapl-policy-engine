@@ -36,8 +36,8 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
@@ -150,7 +150,7 @@ class SpecificScenarioTests {
             var jsonReportingInterceptor     = new ReportingDecisionInterceptor(MAPPER, false, true, true, true);
             var subscriptionInterceptorChain = UnaryOperator.<AuthorizationSubscription>identity();
             var config                       = new PDPConfiguration("testConfig", attributeContext, functionContext,
-                    variables, CombiningAlgorithm.DENY_OVERRIDES, jsonReportingInterceptor,
+                    variables, PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, jsonReportingInterceptor,
                     subscriptionInterceptorChain, prp);
             return Flux.just(config);
 

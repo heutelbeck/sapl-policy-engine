@@ -40,6 +40,7 @@ import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
@@ -72,7 +73,7 @@ class EmbeddedPolicyDecisionPointTests {
     @Test
     void decide_withInvalidConfig_shouldReturnIntermediate() {
         var prp          = mock(PolicyRetrievalPoint.class);
-        var brokenConfig = new PDPConfiguration("", mock(), mock(), Map.of(), CombiningAlgorithm.DENY_OVERRIDES, x -> x,
+        var brokenConfig = new PDPConfiguration("", mock(), mock(), Map.of(), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, x -> x,
                 x -> x, prp);
         var providerMock = mock(PDPConfigurationProvider.class);
         var embeddedPdp  = new EmbeddedPolicyDecisionPoint(providerMock);
@@ -225,7 +226,7 @@ class EmbeddedPolicyDecisionPointTests {
     void when_invalidPDPConfiguration_then_returnError1() {
         var prp            = mock(PolicyRetrievalPoint.class);
         var configProvider = mock(PDPConfigurationProvider.class);
-        var brokenConfig   = new PDPConfiguration("", mock(), mock(), Map.of(), CombiningAlgorithm.DENY_OVERRIDES,
+        var brokenConfig   = new PDPConfiguration("", mock(), mock(), Map.of(), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES,
                 x -> x, x -> x, prp);
         when(configProvider.pdpConfiguration()).thenReturn(Flux.just(brokenConfig));
         var subscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
@@ -242,7 +243,7 @@ class EmbeddedPolicyDecisionPointTests {
         var configProvider = mock(PDPConfigurationProvider.class);
         var mockAlgorithm  = mock(CombiningAlgorithm.class);
         when(mockAlgorithm.getName()).thenReturn("test alg");
-        var brokenConfig = new PDPConfiguration("", mock(), mock(), Map.of(), CombiningAlgorithm.DENY_OVERRIDES, x -> x,
+        var brokenConfig = new PDPConfiguration("", mock(), mock(), Map.of(), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, x -> x,
                 x -> x, prp);
         when(configProvider.pdpConfiguration()).thenReturn(Flux.just(brokenConfig));
         var subscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
@@ -257,8 +258,7 @@ class EmbeddedPolicyDecisionPointTests {
     void when_errorsInTarget_then_returnError() {
         var prp            = mock(PolicyRetrievalPoint.class);
         var configProvider = mock(PDPConfigurationProvider.class);
-        var mockAlgorithm  = mock(CombiningAlgorithm.class);
-        when(mockAlgorithm.getName()).thenReturn("test alg");
+        var mockAlgorithm  = PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES;
         var attributeContext = mock(AttributeContext.class);
         var functionContext  = mock(FunctionContext.class);
         var validConfig      = new PDPConfiguration("", attributeContext, functionContext, Map.of(), mockAlgorithm,

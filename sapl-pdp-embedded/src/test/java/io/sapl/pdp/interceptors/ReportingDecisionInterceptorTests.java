@@ -30,9 +30,9 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
@@ -96,8 +96,8 @@ class ReportingDecisionInterceptorTests {
             var dInterceptor = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true, true);
             return Flux.just(new PDPConfiguration("testConfiguration",
                     new AnnotationAttributeContext(List::of, () -> List.of(ReportingTestPIP.class)),
-                    new AnnotationFunctionContext(), Map.of(), CombiningAlgorithm.DENY_OVERRIDES, dInterceptor, x -> x,
-                    new TestingPolicyRetrievalPoint()));
+                    new AnnotationFunctionContext(), Map.of(), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES,
+                    dInterceptor, x -> x, new TestingPolicyRetrievalPoint()));
         }
     }
 

@@ -25,8 +25,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
@@ -49,7 +49,7 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
                 List.of(), prpSource);
         var config    = provider.pdpConfiguration().blockFirst();
         provider.destroy();
-        assertThat(config.documentsCombinator() == CombiningAlgorithm.DENY_UNLESS_PERMIT, is(true));
+        assertThat(config.documentsCombinator() == PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT, is(true));
         assertThat(config.attributeContext(), is(attrCtx));
         assertThat(config.functionContext(), is(funcCtx));
         assertThat(config.variables(), notNullValue());

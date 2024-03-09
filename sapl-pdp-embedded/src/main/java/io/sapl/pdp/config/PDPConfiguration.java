@@ -23,20 +23,20 @@ import java.util.function.UnaryOperator;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.TracedDecision;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.PolicyRetrievalPoint;
 import lombok.NonNull;
 
 public record PDPConfiguration(@NonNull String configurationId, @NonNull AttributeContext attributeContext,
-        @NonNull FunctionContext functionContext, @NonNull Map<String, Val> variables,
-        @NonNull CombiningAlgorithm documentsCombinator,
+        @NonNull FunctionContext functionContext,Map<String, Val> variables,
+        PolicyDocumentCombiningAlgorithm documentsCombinator,
         @NonNull UnaryOperator<TracedDecision> decisionInterceptorChain,
         @NonNull UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain,
         @NonNull PolicyRetrievalPoint policyRetrievalPoint) {
 
     public boolean isValid() {
-        return policyRetrievalPoint.isConsistent();
+        return variables !=null && documentsCombinator != null && policyRetrievalPoint.isConsistent();
     }
 }

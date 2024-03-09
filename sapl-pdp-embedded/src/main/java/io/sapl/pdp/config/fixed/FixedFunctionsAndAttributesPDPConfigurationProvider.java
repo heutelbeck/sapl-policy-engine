@@ -29,7 +29,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.AuthorizationSubscriptionInterceptor;
 import io.sapl.api.pdp.TracedDecision;
 import io.sapl.api.pdp.TracedDecisionInterceptor;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
@@ -73,7 +73,7 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 
     @SuppressWarnings("unchecked")
     private PDPConfiguration createConfiguration(Object[] values) {
-        var combiningAlgorithm = ((Optional<CombiningAlgorithm>) values[0]).orElse(null);
+        var combiningAlgorithm = ((Optional<PolicyDocumentCombiningAlgorithm>) values[0]).orElse(null);
         var variables          = ((Optional<Map<String, Val>>) values[1]).orElse(null);
         var prp                = (PolicyRetrievalPoint) values[2];
         return new PDPConfiguration("defaultConfiguration", attributeCtx, functionCtx, variables, combiningAlgorithm,
