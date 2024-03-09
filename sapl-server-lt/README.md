@@ -583,6 +583,8 @@ kubectl create namespace sapl-server-lt
 
 Add the resource for configuring a persistent volume for the SAPL Server LT to the namespace.
 
+The default `hostPath` for the persistent volume is `/sapl`. In addition, the persistent volume with the file `sapl-server-lt-baremetal.yml` is mounted under `/pdp/data` by default. Saving the [required server configurations](#configuration) as `application.yml` under `/sapl` in the persistent volume is necessary for a proper server start.
+
 ```
 kubectl apply -f https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-pv.yml -n sapl-server-lt
 ```
@@ -627,7 +629,7 @@ kubectl apply -f sapl-server-lt-baremetal.yml -n sapl-server-lt
 Create a secret using `htpasswd` and enter the password when prompted. To create htpasswd secrets on Windows, you may need to use additional software like XAMPP to run the `htpasswd` command.
 
 ```
-htpasswd -c auth Username
+htpasswd -c auth <username>
 ```
 
 Then create the secret `basic-auth` and fill it with the data from the `auth` file created via htpasswd
