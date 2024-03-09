@@ -18,11 +18,12 @@
 
 package io.sapl.test.dsl.setup;
 
-import java.util.List;
-
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
+import io.sapl.test.grammar.sapltest.Requirement;
 import io.sapl.test.grammar.sapltest.SAPLTest;
+import io.sapl.test.grammar.sapltest.Scenario;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
@@ -46,10 +47,18 @@ public final class TestProvider {
             throw new SaplTestException("provided SAPLTest does not contain a Requirement");
         }
 
+        if (requirements.stream().map(Requirement::getName).distinct().count() != requirements.size()) {
+            throw new SaplTestException("Requirement name needs to be unique");
+        }
+
         return requirements.stream().map(requirement -> {
             final var scenarios = requirement.getScenarios();
             if (scenarios == null || scenarios.isEmpty()) {
                 throw new SaplTestException("provided Requirement does not contain a Scenario");
+            }
+
+            if (scenarios.stream().map(Scenario::getName).distinct().count() != scenarios.size()) {
+                throw new SaplTestException("Scenario name needs to be unique within one Requirement");
             }
 
             return TestContainer.from(requirement.getName(),

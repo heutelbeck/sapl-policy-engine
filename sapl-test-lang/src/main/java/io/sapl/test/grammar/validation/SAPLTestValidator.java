@@ -20,7 +20,9 @@
  */
 package io.sapl.test.grammar.validation;
 
-import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.Given;
+import io.sapl.test.grammar.sapltest.Requirement;
+import io.sapl.test.grammar.sapltest.SAPLTest;
 import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.grammar.sapltest.VirtualTime;
 import java.time.format.DateTimeParseException;
@@ -43,10 +45,12 @@ import io.sapl.test.grammar.sapltest.StringWithLength;
 public class SAPLTestValidator extends AbstractSAPLTestValidator {
     protected static final String MSG_INVALID_JAVA_DURATION = "Duration is not a valid Java Duration";
 
-    protected static final String MSG_INVALID_MULTIPLE_AMOUNT                  = "Amount needs to be a natural number larger than 1";
-    protected static final String MSG_TESTCASE_WITH_MORE_THAN_ONE_VIRTUAL_TIME = "TestCase contains more than one virtual-time declaration";
-    protected static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX  = "The given regex has an invalid format";
-    protected static final String MSG_INVALID_STRING_WITH_LENGTH               = "String length needs to be an natural number larger than 0";
+    protected static final String MSG_INVALID_MULTIPLE_AMOUNT                 = "Amount needs to be a natural number larger than 1";
+    protected static final String MSG_GIVEN_WITH_MORE_THAN_ONE_VIRTUAL_TIME   = "TestCase contains more than one virtual-time declaration";
+    protected static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX = "The given regex has an invalid format";
+    protected static final String MSG_INVALID_STRING_WITH_LENGTH              = "String length needs to be an natural number larger than 0";
+    protected static final String MSG_DUPLICATE_REQUIREMENT_NAME              = "Requirement name has to be unique";
+    protected static final String MSG_DUPLICATE_SCENARIO_NAME                 = "Scenario name has to be unique within a Requirement";
 
     /**
      * Duration string needs to represent a valid Java Duration
@@ -83,14 +87,14 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
     }
 
     /**
-     * TestCase may contain virtual-time only once
+     * Given may contain virtual-time only once
      *
-     * @param scenario a Scenario instance
+     * @param given a Given instance
      */
     @Check
-    public void testCaseMayContainVirtualTimeOnlyOnce(final Scenario scenario) {
-        if (scenario.getGiven().getGivenSteps().stream().filter(VirtualTime.class::isInstance).count() > 1) {
-            error(MSG_TESTCASE_WITH_MORE_THAN_ONE_VIRTUAL_TIME, scenario, null);
+    public void givenMayContainVirtualTimeOnlyOnce(final Given given) {
+        if (given.getGivenSteps().stream().filter(VirtualTime.class::isInstance).count() > 1) {
+            error(MSG_GIVEN_WITH_MORE_THAN_ONE_VIRTUAL_TIME, given, null);
         }
     }
 
@@ -128,4 +132,31 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
         }
     }
 
+    /**
+     * Requirement name needs to be unique
+     *
+     * @param saplTest a SAPLTest instance
+     */
+    @Check
+    public void requirementNameNeedsToBeUnique(final SAPLTest saplTest) {
+        final var requirements = saplTest.getRequirements();
+
+        if (requirements.stream().map(Requirement::getName).distinct().count() != requirements.size()) {
+            error(MSG_DUPLICATE_REQUIREMENT_NAME, saplTest, null);
+        }
+    }
+
+    /**
+     * Scenario name needs to be unique within a Requirement instance
+     *
+     * @param requirement a Requirement instance
+     */
+    @Check
+    public void scenarioNameNeedsToBeUnique(final Requirement requirement) {
+        final var scenarios = requirement.getScenarios();
+
+        if (scenarios.stream().map(Scenario::getName).distinct().count() != scenarios.size()) {
+            error(MSG_DUPLICATE_SCENARIO_NAME, requirement, null);
+        }
+    }
 }

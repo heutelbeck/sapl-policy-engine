@@ -27,13 +27,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
 import io.sapl.test.grammar.sapltest.Requirement;
+import io.sapl.test.grammar.sapltest.SAPLTest;
 import io.sapl.test.grammar.sapltest.Scenario;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import java.util.concurrent.Callable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,11 +47,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.sapl.test.SaplTestException;
-import io.sapl.test.TestHelper;
-import io.sapl.test.dsl.interfaces.StepConstructor;
-import io.sapl.test.grammar.sapltest.SAPLTest;
 
 @ExtendWith(MockitoExtension.class)
 class TestProviderTests {
@@ -102,6 +100,21 @@ class TestProviderTests {
         }
 
         @Test
+        void buildTests_calledWithSAPLTestWithRequirementsWithDuplicateName_throwsSaplTestException() {
+            final var requirement1Mock = mock(Requirement.class);
+            final var requirement2Mock = mock(Requirement.class);
+
+            when(requirement1Mock.getName()).thenReturn("nonUniqueName");
+            when(requirement2Mock.getName()).thenReturn("nonUniqueName");
+
+            TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirement1Mock, requirement2Mock));
+
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+
+            assertEquals("Requirement name needs to be unique", exception.getMessage());
+        }
+
+        @Test
         void buildTests_calledWithSAPLTestWithNullScenarios_throwsSaplTestException() {
             TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirementMock));
 
@@ -120,6 +133,22 @@ class TestProviderTests {
             final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
 
             assertEquals("provided Requirement does not contain a Scenario", exception.getMessage());
+        }
+
+        @Test
+        void buildTests_calledWithSAPLTestWithScenariosWithDuplicateName_throwsSaplTestException() {
+            final var scenario1Mock = mock(Scenario.class);
+            final var scenario2Mock = mock(Scenario.class);
+
+            when(scenario1Mock.getName()).thenReturn("nonUniqueName");
+            when(scenario2Mock.getName()).thenReturn("nonUniqueName");
+
+            TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirementMock));
+            TestHelper.mockEListResult(requirementMock::getScenarios, List.of(scenario1Mock, scenario2Mock));
+
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+
+            assertEquals("Scenario name needs to be unique within one Requirement", exception.getMessage());
         }
     }
 
@@ -154,8 +183,16 @@ class TestProviderTests {
             final var scenario1Mock = mock(Scenario.class);
             final var scenario2Mock = mock(Scenario.class);
 
+            when(scenario1Mock.getName()).thenReturn("scenario1");
+            when(scenario2Mock.getName()).thenReturn("scenario2");
+
             final var scenario3Mock = mock(Scenario.class);
             final var scenario4Mock = mock(Scenario.class);
+
+            // duplicate names are intended here to test the name duplication in 2 different
+            // requirements is allowed
+            when(scenario3Mock.getName()).thenReturn("scenario1");
+            when(scenario4Mock.getName()).thenReturn("scenario2");
 
             TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirement1Mock, requirement2Mock));
             TestHelper.mockEListResult(requirement1Mock::getScenarios, List.of(scenario1Mock, scenario2Mock));

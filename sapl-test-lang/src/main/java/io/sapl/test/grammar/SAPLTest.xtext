@@ -212,4 +212,4 @@ Requirement:
     '}';
 
 Scenario:
-    'scenario' scenarioName=STRING (given=Given)? whenStep=WhenStep 'then' 'expect' expectation=Expectation';';
+    'scenario' name=STRING (given=Given)? whenStep=WhenStep 'then' 'expect' expectation=Expectation';';

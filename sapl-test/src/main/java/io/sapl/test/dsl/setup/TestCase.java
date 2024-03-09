@@ -50,7 +50,7 @@ public final class TestCase implements TestNode, Runnable {
             throw new SaplTestException("StepConstructor or testSuite or testCase is null");
         }
 
-        final var name = scenario.getScenarioName();
+        final var name = scenario.getName();
 
         if (name == null) {
             throw new SaplTestException("Name of the test case is null");
