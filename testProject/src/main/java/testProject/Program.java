@@ -20,7 +20,8 @@ package testProject;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.postgis.PostGisConnection;
-
+import io.sapl.geo.connection.traccar.TraccarSocketManager;
+import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.pip.http.ReactiveWebClient;
 
 import org.springframework.http.MediaType;
@@ -66,17 +67,17 @@ public class Program {
             """;
         var node = Val.ofJson(pg).get();
         
-        var postgis = PostGisConnection.connect(node, mapper);
-        var dis = postgis.subscribe(
-	      		 content ->{ 
-    			 
-    			 System.out.println("postgis content: " + content.get().toString());
-    			 
-    		 },
-  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
-  	      () -> System.out.println("Completed!!!")
-  	      );
-        
+//        var postgis = PostGisConnection.connect(node, mapper);
+//        var dis = postgis.subscribe(
+//	      		 content ->{ 
+//    			 
+//    			 System.out.println("postgis content: " + content.get().toString());
+//    			 
+//    		 },
+//  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
+//  	      () -> System.out.println("Completed!!!")
+//  	      );
+//        
         
         
 //        var postgis = new PostgresqlConnectionFactory(
@@ -112,19 +113,19 @@ public class Program {
             	"deviceId":1
             }
             """;
-//        var node1 = Val.ofJson(st).get();
-//        var trc = TraccarSocketManager.connect( node1, mapper);
-//		var dis = trc.subscribe(
-//	      		 content ->{ 
-//     			 var a = content.get().toString();
-//     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-//     			 System.out.println("res: " + b.getDeviceId());
-//     			 System.out.println("traccar content: " + a);
-//     			 
-//     		 },
-//   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-//   	      () -> System.out.println("Completed!!!")
-//   	      );
+        var node1 = Val.ofJson(st).get();
+        var trc = TraccarSocketManager.connect( node1, mapper);
+		var dis = trc.subscribe(
+	      		 content ->{ 
+     			 var a = content.get().toString();
+     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+     			 System.out.println("res: " + b.getDeviceId());
+     			 System.out.println("traccar content: " + a);
+     			 
+     		 },
+   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+   	      () -> System.out.println("Completed!!!")
+   	      );
 
 		
 		

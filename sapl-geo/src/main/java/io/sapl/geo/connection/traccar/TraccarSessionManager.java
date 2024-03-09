@@ -55,7 +55,8 @@ public class TraccarSessionManager {
         return session;
     }
 
-    public TraccarSessionManager(String user, String password, String server, ObjectMapper mapper) throws PolicyEvaluationException {
+    public TraccarSessionManager(String user, String password, String server, ObjectMapper mapper)
+            throws PolicyEvaluationException {
         this.user     = user;
         this.password = password;
         this.mapper   = mapper;
@@ -65,44 +66,43 @@ public class TraccarSessionManager {
 
     private void establishSession(String serverName) throws PolicyEvaluationException {
 
-    	HttpResponse<String> res;
-       
+        HttpResponse<String> res;
+
         try {
-        	uri = new URI(String.format("http://%s/api/session", serverName));
-        
-        
-	        Map<String, String> bodyProperties = new HashMap<String, String>() {
-	        	private static final long serialVersionUID = 1L;
-	            {
-	                put("email", user);
-	                put("password", password);
-	            }
-	        };
-	
-	        String form = bodyProperties.entrySet().stream()
-	                .map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
-	                .collect(Collectors.joining("&"));
-	
-	        HttpRequest req = null;
-	
-	        req = HttpRequest.newBuilder().uri(uri).headers("Content-Type", "application/x-www-form-urlencoded")
-	                .POST(HttpRequest.BodyPublishers.ofString(form)).build();
-	
-	        var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-	
-	        res = client.send(req, BodyHandlers.ofString());
-	        
-        }catch (InterruptedException e) {
-        	Thread.currentThread().interrupt();
-        	throw new PolicyEvaluationException(e);
-        }catch(Exception e) {
-        	throw new PolicyEvaluationException(e);
+            uri = new URI(String.format("http://%s/api/session", serverName));
+
+            Map<String, String> bodyProperties = new HashMap<String, String>() {
+                private static final long serialVersionUID = 1L;
+
+            };
+
+            bodyProperties.put("email", user);
+            bodyProperties.put("password", password);
+
+            String form = bodyProperties.entrySet().stream()
+                    .map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
+                    .collect(Collectors.joining("&"));
+
+            HttpRequest req = null;
+
+            req = HttpRequest.newBuilder().uri(uri).headers("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(form)).build();
+
+            var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+
+            res = client.send(req, BodyHandlers.ofString());
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new PolicyEvaluationException(e);
+        } catch (Exception e) {
+            throw new PolicyEvaluationException(e);
         }
-        
+
         if (res.statusCode() == 200) {
-            
-        	res.headers().firstValue("set-cookie").ifPresent(v -> sessionCookie = v);
-            session       = createTraccarSession(res.body());
+
+            res.headers().firstValue("set-cookie").ifPresent(v -> sessionCookie = v);
+            session = createTraccarSession(res.body());
         } else {
             throw new PolicyEvaluationException(
                     "Session could not be established. Server respondet with " + res.statusCode());
@@ -113,11 +113,11 @@ public class TraccarSessionManager {
 
     private TraccarSession createTraccarSession(String json) throws PolicyEvaluationException {
 
-    	try {
-    		return mapper.convertValue(mapper.readTree(json), TraccarSession.class);
-    	}catch(Exception e) {
-    		throw new PolicyEvaluationException(e);
-    	}
+        try {
+            return mapper.convertValue(mapper.readTree(json), TraccarSession.class);
+        } catch (Exception e) {
+            throw new PolicyEvaluationException(e);
+        }
     }
 
     public Boolean closeTraccarSession() throws PolicyEvaluationException {
@@ -126,14 +126,14 @@ public class TraccarSessionManager {
         req = HttpRequest.newBuilder().uri(uri).header("cookie", sessionCookie).DELETE().build();
 
         HttpResponse<String> res;
-        var client = HttpClient.newHttpClient();
+        var                  client = HttpClient.newHttpClient();
         try {
-        	res    = client.send(req, BodyHandlers.ofString());
-        }catch (InterruptedException e) {
-        	Thread.currentThread().interrupt();
-        	throw new PolicyEvaluationException(e);
-        }catch(Exception e) {
-        	throw new PolicyEvaluationException(e);
+            res = client.send(req, BodyHandlers.ofString());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new PolicyEvaluationException(e);
+        } catch (Exception e) {
+            throw new PolicyEvaluationException(e);
         }
         if (res.statusCode() == 204) {
             logger.info("Traccar Session for DeviceId " + "" + "closed.");

@@ -30,6 +30,9 @@ public abstract class ConnectionBase {
     protected static final String SERVER         = "server";
     protected static final String RESPONSEFORMAT = "responseFormat";
 
+    protected ConnectionBase() {
+    }
+
     protected static String getUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(USER)) {
             return requestSettings.findValue(USER).asText();
@@ -64,9 +67,9 @@ public abstract class ConnectionBase {
             throws PolicyEvaluationException {
         if (requestSettings.has(RESPONSEFORMAT)) {
             try {
-            	return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT), GeoPipResponseFormat.class);
-            }catch(Exception e) {
-            	throw new PolicyEvaluationException(e);
+                return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT), GeoPipResponseFormat.class);
+            } catch (Exception e) {
+                throw new PolicyEvaluationException(e);
             }
         } else {
 

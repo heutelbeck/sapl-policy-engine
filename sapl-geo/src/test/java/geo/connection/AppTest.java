@@ -38,7 +38,6 @@ import io.sapl.api.interpreter.Val;
 
 import io.sapl.geo.connection.traccar.TraccarSocketManager;
 
-
 @TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
 public class AppTest {
@@ -49,7 +48,7 @@ public class AppTest {
 
     @Container
 
-    public static GenericContainer traccarServer = new GenericContainer<>(
+    public static GenericContainer<?> traccarServer = new GenericContainer<>(
             DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082)
             .withFileSystemBind(resourceDirectory + "/opt/traccar/logs", "/opt/traccar/logs", BindMode.READ_WRITE)
             .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)

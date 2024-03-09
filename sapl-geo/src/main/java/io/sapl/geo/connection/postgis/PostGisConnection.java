@@ -129,8 +129,7 @@ public class PostGisConnection extends ConnectionBase {
                     }
                     combinedNode.set("results", arrayNode);
                     return combinedNode;
-                }).doOnNext(node -> System.out.println("Result from DB: " + node.toString()))
-                .onErrorResume(Mono::error)
+                }).doOnNext(node -> System.out.println("Result from DB: " + node.toString())).onErrorResume(Mono::error)
                 .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
                 .doOnCancel(() -> connectionReference.get().close())
                 .doOnTerminate(() -> connectionReference.get().close());

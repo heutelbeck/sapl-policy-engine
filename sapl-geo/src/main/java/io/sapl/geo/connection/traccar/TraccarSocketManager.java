@@ -34,7 +34,7 @@ import reactor.core.publisher.Flux;
 public class TraccarSocketManager extends ConnectionBase {
 
     private static final String DEVICEID_CONST = "deviceId";
-    private static final String PROTOCOL = "protocol";
+    private static final String PROTOCOL       = "protocol";
 //    private Disposable           subscription;
 //    private WebSocketSession     session;
 
@@ -50,7 +50,7 @@ public class TraccarSocketManager extends ConnectionBase {
     private TraccarSessionHandler handler;
 
     private TraccarSocketManager(String user, String password, String serverName, String protocol, int deviceId,
-            ObjectMapper mapper) throws Exception {
+            ObjectMapper mapper) throws PolicyEvaluationException {
 
         url = "ws://" + serverName + "/api/socket";
 
@@ -61,7 +61,7 @@ public class TraccarSocketManager extends ConnectionBase {
     }
 
     public static TraccarSocketManager getNew(String user, String password, String server, String protocol,
-            int deviceId, ObjectMapper mapper) throws Exception {
+            int deviceId, ObjectMapper mapper) throws PolicyEvaluationException {
 
         return new TraccarSocketManager(user, password, server, protocol, deviceId, mapper);
     }
@@ -71,10 +71,8 @@ public class TraccarSocketManager extends ConnectionBase {
         try {
             var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings),
                     getProtocol(settings), getDeviceId(settings), mapper);
-            return socketManager.getFlux(getResponseFormat(settings, mapper), mapper)
-            		.map(Val::of)
-            		.onErrorResume(e ->  Flux.just(Val.error(e)))
-            		.doFinally(s -> socketManager.disconnect());
+            return socketManager.getFlux(getResponseFormat(settings, mapper), mapper).map(Val::of)
+                    .onErrorResume(e -> Flux.just(Val.error(e))).doFinally(s -> socketManager.disconnect());
 
         } catch (Exception e) {
             return Flux.just(Val.error(e));
@@ -97,11 +95,11 @@ public class TraccarSocketManager extends ConnectionBase {
                 """;
         Val request;
         try {
-        	 request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, getSessionCookie()));
-        }catch(Exception e) {
-        	throw new PolicyEvaluationException(e);
+            request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, getSessionCookie()));
+        } catch (Exception e) {
+            throw new PolicyEvaluationException(e);
         }
-        
+
         var flux = client.consumeWebSocket(request).map(Val::get)
                 .flatMap(msg -> handler.mapPosition(msg, deviceId, format))
                 .flatMap(res -> handler.getGeofences(res, deviceId, format))
@@ -111,7 +109,7 @@ public class TraccarSocketManager extends ConnectionBase {
         return flux;
     }
 
-    public void disconnect() throws PolicyEvaluationException{
+    public void disconnect() throws PolicyEvaluationException {
         System.out.println("Trying to close Traccar-Session.");
         try {
             if (this.sessionManager.closeTraccarSession()) {
