@@ -69,7 +69,7 @@ public class Program {
             	"server":"localhost",
             	"port": 5432,
             	"dataBase":"nyc",
-            	"table":"nyc_streets",
+            	"table":"geometries",
             	"column":"geom",
             	"responseFormat":"GEOJSON",
             	"defaultCRS": 4326
@@ -78,7 +78,7 @@ public class Program {
         var node = Val.ofJson(pg).get();
         
         var postgis = PostGisConnection.connect(node, mapper);
-        postgis.subscribe(
+        var dis = postgis.subscribe(
 	      		 content ->{ 
     			 
     			 System.out.println("postgis content: " + content.get().toString());
@@ -202,13 +202,13 @@ public class Program {
 
 			
 		try {
-			Thread.sleep(30000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		//dis.dispose();
+		dis.dispose();
 		
 		try {
 			Thread.sleep(30000);
