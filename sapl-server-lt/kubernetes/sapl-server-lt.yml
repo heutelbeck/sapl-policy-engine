@@ -31,6 +31,10 @@ spec:
       targetPort: 8443
       # The port exposes the service on the specified port internally within the cluster.
       port: 8443
+    - protocol: TCP
+      name: rsocket
+      targetPort: 7000
+      port: 7000
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -55,6 +59,8 @@ spec:
           ports:
             - containerPort: 8443
               name: https
+            - containerPort: 7000
+              name: rsocket
 ---
 kind: Ingress
 apiVersion: networking.k8s.io/v1
@@ -85,4 +91,11 @@ spec:
                 name: sapl-server-lt
                 port:
                   number: 8443
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sapl-server-lt
+                port:
+                  number: 7000
   ingressClassName: nginx
