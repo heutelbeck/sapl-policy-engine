@@ -34,9 +34,10 @@ public record PDPConfiguration(@NonNull String configurationId, @NonNull Attribu
         PolicyDocumentCombiningAlgorithm documentsCombinator,
         @NonNull UnaryOperator<TracedDecision> decisionInterceptorChain,
         @NonNull UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain,
-        @NonNull PolicyRetrievalPoint policyRetrievalPoint) {
+        PolicyRetrievalPoint policyRetrievalPoint) {
 
     public boolean isValid() {
-        return variables != null && documentsCombinator != null && policyRetrievalPoint.isConsistent();
+        return policyRetrievalPoint != null && variables != null && documentsCombinator != null
+                && policyRetrievalPoint.isConsistent();
     }
 }
