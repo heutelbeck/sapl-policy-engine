@@ -114,7 +114,7 @@ public class Program {
         
         var fi = """
                 {
-                "path":"D:\\\\Bachelorarbeit\\\\Fileimport\\\\geojsonSingle.json",
+                "path":"D:\\\\Bachelorarbeit\\\\Fileimport\\\\geojsonMultiple.json",
                 "responseFormat":"GEOJSON",
                 "crs":4326
             	

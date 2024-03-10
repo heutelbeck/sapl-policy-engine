@@ -18,23 +18,22 @@
 package io.sapl.geo.connection.fileimport;
 
 import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTReader;
-import org.locationtech.jts.io.kml.KMLReader;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.xml.sax.SAXException;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Duration;
+
+import javax.xml.parsers.ParserConfigurationException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
@@ -46,6 +45,8 @@ import io.sapl.geofunctions.JsonConverter;
 import io.sapl.geofunctions.KmlConverter;
 import io.sapl.geofunctions.WktConverter;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.retry.Repeat;
 
 public class FileLoader extends ConnectionBase {
 
@@ -64,9 +65,10 @@ public class FileLoader extends ConnectionBase {
     public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
 
         try {
-        	var sett = mapper.readTree(settings.asText());
+        	//var sett = mapper.readTree(settings.asText());
             var loader = getNew(getPath(settings));
-            return loader.getFlux(getResponseFormat(settings, mapper), getCrs(settings), mapper).map(Val::of)
+            return loader.getFlux(getResponseFormat(settings, mapper), getCrs(settings),longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
+                    longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS),  mapper).map(Val::of)
                     .onErrorResume(e -> Flux.just(Val.error(e)));
 
         } catch (Exception e) {
@@ -75,107 +77,73 @@ public class FileLoader extends ConnectionBase {
         }
     }
 
-    public Flux<JsonNode> getFlux(GeoPipResponseFormat format, int crs, ObjectMapper mapper) {
+    public Flux<JsonNode> getFlux(GeoPipResponseFormat format, int crs, long repeatTimes, long pollingInterval, ObjectMapper mapper) {
         try {
-            return Flux.just(importGeoData(format, crs, mapper));
-        } catch (IOException | ParseException e) {
+            return poll(Mono.just(importGeoData(format, crs, mapper)), repeatTimes, pollingInterval);
+        } catch (Exception e) {
             return Flux.error(e);
         }
     }
 
     private JsonNode importGeoData(GeoPipResponseFormat format, int crs, ObjectMapper mapper)
-            throws IOException, ParseException {
+            throws PolicyEvaluationException {
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), crs);
-        JsonNode        posRes          = mapper.createObjectNode();
         try {
-        	int count;
-        	Geometry geometries;
-            switch (format) {
-            case KML:
-            	
-            	geometries = KmlConverter.kmlToGeometry(readFile(reader), geometryFactory);
-            	
-            	if((count = geometries.getNumGeometries()) > 1) {
-            		ArrayNode arrayNode = mapper.createArrayNode();
-            		var list = getGeometries(geometries, count, mapper);
-            		for (Geometry geo : list) {
-            			arrayNode.add(GeometryConverter.geometryToKML(geo).get());
-            		}
-            		posRes = arrayNode;
-            	}else {
-            		posRes = GeometryConverter.geometryToKML(geometries).get();
-            	}
-            	
-                break;
-            case GML:
-            	
-            	geometries = GmlConverter.gmlToGeometry(readFile(reader), geometryFactory);
-            	
-            	if((count = geometries.getNumGeometries()) > 1) {
-            		ArrayNode arrayNode = mapper.createArrayNode();
-            		var list = getGeometries(geometries, count, mapper);
-            		for (Geometry geo : list) {
-            			arrayNode.add(GeometryConverter.geometryToGML(geo).get());
-            		}
-            		posRes = arrayNode;
-            	}else {
-            		posRes = GeometryConverter.geometryToGML(geometries).get();
-            	}
-            	
-                break;
-            case GEOJSON:
-            	geometries = JsonConverter.geoJsonToGeometry(readFile(reader), geometryFactory);
+            Geometry geometries = convertToGeometry(format, geometryFactory);
 
-            	if((count = geometries.getNumGeometries()) > 1) {
-            		ArrayNode arrayNode = mapper.createArrayNode();
-            		var list = getGeometries(geometries, count, mapper);
-            		for (Geometry geo : list) {
-            			arrayNode.add(GeometryConverter.geometryToGeoJsonNode(geo).get());
-            		}
-            		posRes = arrayNode;
-            	}else {
-            		posRes = GeometryConverter.geometryToGeoJsonNode(geometries).get();
-            	}
-
-                break;
-            case WKT:
-            	
-            	geometries = WktConverter.wktToGeometry(readFile(reader), geometryFactory);
-            	
-            	if((count = geometries.getNumGeometries()) > 1) {
-            		ArrayNode arrayNode = mapper.createArrayNode();
-            		var list = getGeometries(geometries, count, mapper);
-            		for (Geometry geo : list) {
-            			arrayNode.add(GeometryConverter.geometryToWKT(geo).get());
-            		}
-            		posRes = arrayNode;
-            	}else {
-            		posRes = GeometryConverter.geometryToWKT(geometries).get();
-            	}
-            	
-                break;
+            int count = geometries.getNumGeometries();
+            if (count > 1) {
+                return createArrayNodeForMultipleGeometries(geometries, format,  mapper);
+            } else {
+                return convertGeometryToOutput(geometries, format);
             }
-
-            return posRes;
-
         } catch (Exception e) {
             throw new PolicyEvaluationException(e);
         }
-
     }
 
-    private List<Geometry> getGeometries(Geometry collection, int count, ObjectMapper mapper) {
-    	
-    	List<Geometry> geometries = new ArrayList<>();
-    	
-    	
-    	for (int i = 0; i< count; i++) {
-    		geometries.add(collection.getGeometryN(i));
-    	}
-    	return geometries;
-
+    private Geometry convertToGeometry(GeoPipResponseFormat format, GeometryFactory geometryFactory) 
+    		 throws ParseException, IOException, SAXException, ParserConfigurationException
+             {
+        switch (format) {
+            case KML:
+                return KmlConverter.kmlToGeometry(readFile(reader), geometryFactory);
+            case GML:
+                return GmlConverter.gmlToGeometry(readFile(reader), geometryFactory);
+            case GEOJSON:
+                return JsonConverter.geoJsonToGeometry(readFile(reader), geometryFactory);
+            case WKT:
+                return WktConverter.wktToGeometry(readFile(reader), geometryFactory);
+            default:
+                throw new PolicyEvaluationException("Unsupported format: " + format);
+        }
     }
-    
+
+    private JsonNode createArrayNodeForMultipleGeometries(Geometry geometries, GeoPipResponseFormat format, ObjectMapper mapper) {
+        ArrayNode arrayNode = mapper.createArrayNode();
+        for (int i = 0; i < geometries.getNumGeometries(); i++) {
+            Geometry geometry = geometries.getGeometryN(i);
+            arrayNode.add(convertGeometryToOutput(geometry, format));
+        }
+        return arrayNode;
+    }
+
+    private JsonNode convertGeometryToOutput(Geometry geometry, GeoPipResponseFormat format) {
+        switch (format) {
+            case KML:
+                return GeometryConverter.geometryToKML(geometry).get();
+            case GML:
+                return GeometryConverter.geometryToGML(geometry).get();
+            case GEOJSON:
+                return GeometryConverter.geometryToGeoJsonNode(geometry).get();
+            case WKT:
+                return GeometryConverter.geometryToWKT(geometry).get();
+            default:
+                throw new PolicyEvaluationException("Unsupported format: " + format);
+        }
+    }
+
+   
     private String readFile(BufferedReader reader) throws IOException {
         StringBuilder stringBuilder = new StringBuilder();
         String        line;
@@ -185,6 +153,11 @@ public class FileLoader extends ConnectionBase {
         return stringBuilder.toString();
     }
 
+    private Flux<JsonNode> poll(Mono<JsonNode> mono, long repeatTimes, long pollingInterval) {
+        return mono.onErrorResume(Mono::error)
+                .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))));
+    }
+    
     private static String getPath(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(PATH)) {
             return requestSettings.findValue(PATH).asText();

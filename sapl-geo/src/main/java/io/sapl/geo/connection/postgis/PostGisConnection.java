@@ -57,12 +57,7 @@ public class PostGisConnection extends ConnectionBase {
     private static final String WHERE            = "where";
     private static final String DEFAULTCRS       = "defaultCRS";
     private static final String SINGLE_RESULT    = "singleResult";
-    private static final String POLLING_INTERVAL = "pollingIntervalMs";
-    private static final String REPEAT_TIMES     = "repetitions";
-
-    private static final long DEFAULT_POLLING_INTERVALL_MS = 1000L;
-    private static final long DEFAULT_REPETITIONS          = Long.MAX_VALUE;
-
+    
     private ConnectionFactory           connectionFactory;
     private ObjectMapper                mapper;
     private AtomicReference<Connection> connectionReference;
@@ -266,9 +261,8 @@ public class PostGisConnection extends ConnectionBase {
         if (requestSettings.has(COLUMNS)) {
             var columns = requestSettings.findValue(COLUMNS);
             if (columns.isArray()) {
-                var b = (ArrayNode) columns;
-                var c = mapper.convertValue((ArrayNode) columns, String[].class);
-                return c;
+                
+                return mapper.convertValue((ArrayNode) columns, String[].class);
             }
 
             return new String[] { columns.asText() };
@@ -304,20 +298,6 @@ public class PostGisConnection extends ConnectionBase {
             return false;
         }
 
-    }
-
-    private static long longOrDefault(JsonNode requestSettings, String fieldName, long defaultValue) {
-
-        if (requestSettings.has(fieldName)) {
-            var value = requestSettings.findValue(fieldName);
-
-            if (!value.isNumber())
-                throw new PolicyEvaluationException(fieldName + " must be an integer, but was: " + value.getNodeType());
-
-            return value.asLong();
-        }
-
-        return defaultValue;
     }
 
 }
