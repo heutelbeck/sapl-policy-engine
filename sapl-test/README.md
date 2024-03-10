@@ -76,7 +76,7 @@ The Step-Builder-Pattern is used for defining the concrete test case. It consist
 * Expect-Step: Define expectations for generated AuthorizationDecision
 * Verify-Step: Verify the generated AuthorizationDecision
 
-![TestCase Structure](https://sapl.io/docs/3.0.0-SNAPSHOT/images/StepBuilderPatternForSaplTest_English.svg)
+![TestCase Structure](https://sapl.io/docs/latest/assets/sapl_reference_images/StepBuilderPatternForSaplTest_English.svg)
 
 Starting with constructTestCaseWithMocks() or constructTestCase() called on the fixture, the test case definition
 process is started at the Given-Step or the When-Step.
