@@ -55,14 +55,24 @@ public class KmlConverter {
         }
     }
 
-    public static Geometry kmlToGeometry(Val kml, GeometryFactory factory) throws ParseException {
-
-        return (new KMLReader(factory)).read(kml.getText());
-    }
-
     public static Geometry kmlToGeometry(Val kml) throws ParseException {
 
-        return (new KMLReader()).read(kml.getText());
+        return kmlToGeometry(kml.getText());// return (new KMLReader()).read(kml.getText());
+    }
+
+    public static Geometry kmlToGeometry(Val kml, GeometryFactory factory) throws ParseException {
+
+        return kmlToGeometry(kml.getText(), factory);// return (new KMLReader(factory)).read(kml.getText());
+    }
+
+    public static Geometry kmlToGeometry(String kml, GeometryFactory factory) throws ParseException {
+
+        return (new KMLReader(factory)).read(kml);
+    }
+
+    public static Geometry kmlToGeometry(String kml) throws ParseException {
+
+        return (new KMLReader()).read(kml);
     }
 
 }

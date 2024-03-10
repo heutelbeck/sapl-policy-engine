@@ -20,6 +20,7 @@ package io.sapl.geofunctions;
 import java.io.IOException;
 import javax.xml.parsers.ParserConfigurationException;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.gml2.GMLReader;
 import org.xml.sax.SAXException;
 
@@ -64,7 +65,23 @@ public class GmlConverter {
 
     public static Geometry gmlToGeometry(Val gml) throws SAXException, IOException, ParserConfigurationException {
 
-        return (new GMLReader()).read(gml.getText(), null);
+        return gmlToGeometry(gml.getText());// return (new GMLReader()).read(gml.getText(), null);
     }
 
+    public static Geometry gmlToGeometry(Val gml, GeometryFactory factory)
+            throws SAXException, IOException, ParserConfigurationException {
+
+        return gmlToGeometry(gml.getText(), factory);// return (new GMLReader()).read(gml.getText(), factory);
+    }
+
+    public static Geometry gmlToGeometry(String gml) throws SAXException, IOException, ParserConfigurationException {
+
+        return (new GMLReader()).read(gml, null);
+    }
+
+    public static Geometry gmlToGeometry(String gml, GeometryFactory factory)
+            throws SAXException, IOException, ParserConfigurationException {
+
+        return (new GMLReader()).read(gml, factory);
+    }
 }

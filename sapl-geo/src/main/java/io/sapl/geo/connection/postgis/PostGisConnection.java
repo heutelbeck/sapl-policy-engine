@@ -83,19 +83,17 @@ public class PostGisConnection extends ConnectionBase {
 
     public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
 
-
-
         try {
             var connection = getNew(getUser(settings), getPassword(settings), getServer(settings), getPort(settings),
                     getDataBase(settings), mapper);
-            var columns = getColumns(settings, mapper);
-            return connection.getFlux(getResponseFormat(settings, mapper),
-                    buildSql(getGeoColumn(settings), columns, getTable(settings), getWhere(settings)),
-                    columns,
-                    getSingleResult(settings),
-                    getDefaultCRS(settings), longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
-                    longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS)).map(Val::of)
-                    .onErrorResume(e -> Flux.just(Val.error(e)));
+            var columns    = getColumns(settings, mapper);
+            return connection
+                    .getFlux(getResponseFormat(settings, mapper),
+                            buildSql(getGeoColumn(settings), columns, getTable(settings), getWhere(settings)), columns,
+                            getSingleResult(settings), getDefaultCRS(settings),
+                            longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
+                            longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS))
+                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e)));
 
         } catch (Exception e) {
             return Flux.just(Val.error(e));
@@ -103,8 +101,8 @@ public class PostGisConnection extends ConnectionBase {
 
     }
 
-    public Flux<JsonNode> getFlux(GeoPipResponseFormat format, String sql, String[] columns, boolean singleResult, int defaultCrs,
-            long repeatTimes, long pollingInterval) {
+    public Flux<JsonNode> getFlux(GeoPipResponseFormat format, String sql, String[] columns, boolean singleResult,
+            int defaultCrs, long repeatTimes, long pollingInterval) {
         var connection = createConnection();
 
         if (singleResult) {
@@ -124,8 +122,8 @@ public class PostGisConnection extends ConnectionBase {
         return Mono.from(connectionFactory.create()).doOnNext(connectionReference::set);
     }
 
-    private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, String[] columns, GeoPipResponseFormat format,
-            int defaultCrs) {
+    private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, String[] columns,
+            GeoPipResponseFormat format, int defaultCrs) {
 
         return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute())
                 .flatMap(result -> result.map((row, rowMetadata) -> mapResult(row, columns, format, defaultCrs))));
@@ -148,10 +146,10 @@ public class PostGisConnection extends ConnectionBase {
         resultNode.put("srid", srid);
         resultNode.set("geo", geoNode);
         for (String c : columns) {
- 
-        	resultNode.put(c, row.get(c, String.class));
+
+            resultNode.put(c, row.get(c, String.class));
         }
-        return  resultNode;
+        return resultNode;
     }
 
     private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid) {
@@ -215,12 +213,12 @@ public class PostGisConnection extends ConnectionBase {
         String frmt = "ST_AsGeoJSON";
 
         StringBuilder builder = new StringBuilder();
-        for (String c: columns) {
-        	builder.append(String.format(", %s AS %s", c, c));
+        for (String c : columns) {
+            builder.append(String.format(", %s AS %s", c, c));
         }
-        String clms = builder.toString(); 
-        String str = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid%s FROM %s %s";
-        
+        String clms = builder.toString();
+        String str  = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid%s FROM %s %s";
+
         return String.format(str, frmt, geoColumn, geoColumn, clms, table, where);
     }
 
@@ -269,11 +267,11 @@ public class PostGisConnection extends ConnectionBase {
             var columns = requestSettings.findValue(COLUMNS);
             if (columns.isArray()) {
                 var b = (ArrayNode) columns;
-                var c = mapper.convertValue((ArrayNode)columns, String[].class);
-               return c;
+                var c = mapper.convertValue((ArrayNode) columns, String[].class);
+                return c;
             }
 
-            return new String[] {columns.asText()};
+            return new String[] { columns.asText() };
         } else {
             return new String[] {};
 

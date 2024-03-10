@@ -19,6 +19,7 @@ package testProject;
 
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.connection.fileimport.FileLoader;
 import io.sapl.geo.connection.postgis.PostGisConnection;
 import io.sapl.geo.connection.traccar.TraccarSocketManager;
 import io.sapl.geo.pip.GeoPipResponse;
@@ -72,17 +73,18 @@ public class Program {
             """;
         var node = Val.ofJson(pg).get();
         
-        var postgis = PostGisConnection.connect(node, mapper);
-        var dis = postgis.subscribe(
-	      		 content ->{ 
-    			 
-    			 System.out.println("postgis content: " + content.get().toString());
-    			 System.out.println("--");
-    			 
-    		 },
-  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
-  	      () -> System.out.println("Completed!!!")
-  	      );
+        
+//        var postgis = PostGisConnection.connect(node, mapper);
+//        var dis = postgis.subscribe(
+//	      		 content ->{ 
+//    			 
+//    			 System.out.println("postgis content: " + content.get().toString());
+//    			 System.out.println("--");
+//    			 
+//    		 },
+//  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
+//  	      () -> System.out.println("Completed!!!")
+//  	      );
         
         
         
@@ -108,6 +110,30 @@ public class Program {
 //            
 //            System.out.println(result);
 //        });
+        
+        
+        var fi = """
+                {
+                "path":"D:\\\\Bachelorarbeit\\\\Fileimport\\\\geojson.json",
+                "responseFormat":"GEOJSON",
+                "crs":4326
+            	
+            }
+            """;
+
+        var nodefi = Val.ofJson(fi).getJsonNode();
+       var fileimport = FileLoader.connect(nodefi, mapper);
+       
+       fileimport.subscribe(
+	      		 content ->{ 
+   			 var b = content.get().toString();
+   			 System.out.println("fileImport content: " + b);
+   			 
+   		 },
+ 	      error -> System.out.println(String.format("Error receiving file: {%s}", error)),
+ 	      () -> System.out.println("Completed!!!")
+ 	      );
+
         
 //        var st = """
 //                {

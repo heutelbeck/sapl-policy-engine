@@ -55,14 +55,24 @@ public class WktConverter {
         }
     }
 
-    public static Geometry wktToGeometry(Val wkt, GeometryFactory factory) throws ParseException {
-
-        return (new WKTReader(factory)).read(wkt.getText());
-    }
-
     public static Geometry wktToGeometry(Val wkt) throws ParseException {
 
-        return (new WKTReader()).read(wkt.getText());
+        return wktToGeometry(wkt.getText());// (new WKTReader()).read(wkt.getText());
+    }
+
+    public static Geometry wktToGeometry(Val wkt, GeometryFactory factory) throws ParseException {
+
+        return wktToGeometry(wkt.getText(), factory);// return (new WKTReader(factory)).read(wkt.getText());
+    }
+
+    public static Geometry wktToGeometry(String wkt, GeometryFactory factory) throws ParseException {
+
+        return (new WKTReader(factory)).read(wkt);
+    }
+
+    public static Geometry wktToGeometry(String wkt) throws ParseException {
+
+        return (new WKTReader()).read(wkt);
     }
 
 }

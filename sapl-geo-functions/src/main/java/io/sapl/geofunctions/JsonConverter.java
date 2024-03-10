@@ -58,6 +58,11 @@ public class JsonConverter {
         return geoJsonToGeometry(geoJson.getText());
     }
 
+    public static Geometry geoJsonToGeometry(Val geoJson, GeometryFactory factory) throws ParseException {
+
+        return geoJsonToGeometry(geoJson.getText(), factory);
+    }
+
     public static Geometry geoJsonToGeometry(String geoJson, GeometryFactory factory) throws ParseException {
 
         return (new GeoJsonReader(factory)).read(geoJson);
