@@ -65,7 +65,7 @@ public class Program {
             	"defaultCRS": 4326,
             	"pollingIntervalMs":1000,
             	"repetitions":5,
-            	"singleResult": true
+            	"singleResult": false
             }
             """;
         var node = Val.ofJson(pg).get();
