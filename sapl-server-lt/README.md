@@ -504,10 +504,10 @@ docker run -d --name sapl-server-lt -p 8443:8443 --expose=7000 -v c:\sapl\polici
 
 If your server does not want to start, you will most likely have to specify a keystore. To do this, it is recommended that you first create a new Docker volume and store the keystore there. In the following example, we have created a Docker volume 'sapl-server-lt', which is mounted on `/pdp/data` within the container. Alternatively, you can store the keystore in a path on your host system and then mount it under the path `/pdp/data` of your Docker container. 
 
-The default value of the parameter `SPRING_CONFIG_ADDITIONAL_LOCATION` in the Docker image is set to `/pdp/data`. This parameter specifies the location where an additional `application.yml` file should be searched for. The `application.yml` under `/pdp/data` also contains the configuration for your keystore:
+The default value of the parameter `SPRING_CONFIG_ADDITIONAL_LOCATION` in the Docker image is set to `/pdp/data`. This parameter specifies the location where an additional `application.yml` file should be searched for. This parameter also makes it necessary to mount a volume under /pdp/data, as otherwise the SAPL server LT will not start in the container. The `application.yml` under `/pdp/data` also contains the configuration for your keystore:
 
 ```
-docker run -d --name sapl-server-lt -p 8443:8443 --expose=7000 -v sapl-server-lt:/pdp/data -e SPRING_CONFIG_ADDITIONAL_LOCATION=file:/pdp/data/ ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT
+docker run -d --name sapl-server-lt -p 8443:8443 --expose=7000 -v sapl-server-lt:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT
 ```
 
 Afterward you can check if the service is online under: <http://localhost:8080/actuator/health>.
