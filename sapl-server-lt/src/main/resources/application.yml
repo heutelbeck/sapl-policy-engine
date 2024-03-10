@@ -5,7 +5,6 @@ spring:
 infinispan:
   embedded:
     config-xml: infinispan.xml
-    enabled: false
 bucket4j:
   enabled: false
   filters:
@@ -20,7 +19,6 @@ bucket4j:
             - capacity: 10000
               time: 1
               unit: seconds
-  cache-to-use: none # supported values: none, infinispan
 
 spring.rsocket.server:
   port: 7000
