@@ -141,6 +141,24 @@ In the [preconfigured example](https://github.com/heutelbeck/sapl-policy-engine/
 
 If the SAPL server runs in a [Docker container](#running-directly-as-a-docker-container), the path `/pdp/data` is monitored.
 
+
+### Configure Bucket4j
+
+To configure `Bucket4j` in your application, you'll need to adjust some properties in your configuration file. 
+
+Firstly, set `bucket4j.enabled=true` to activate Bucket4j's auto-configuration feature.
+
+Secondly, set `infinispan.embedded.enabled=true` to use the embedded cache by infinispan.
+
+Then set `bucket4j.cache-to-use=infinispan`.
+
+Use `bucket4j.filters.url` to define the path expression where the rate limit should be applied. The property `bucket4j.filters.strategy=first` ensures that the rate limit stops at the first matching configuration encountered.
+
+To retrieve the key, use Spring Expression Language (SpEL) with `bucket4j.filters.rate-limits.cache-key`. Then, determine whether to execute the rate limit using SpEL with `bucket4j.filters.rate-limits.execute-condition`.
+
+Lastly, define the rate limit parameters using `bucket4j.filters.rate-limits.bandwidths` to set up the Bucket4j rate limit. Adjust these settings according to your application's requirements.
+
+
 ### Managing SAPL Policies
 
 #### Policy Storage Location
