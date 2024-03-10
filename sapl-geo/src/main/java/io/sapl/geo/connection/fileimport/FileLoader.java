@@ -18,14 +18,20 @@
 package io.sapl.geo.connection.fileimport;
 
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.kml.KMLReader;
+
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,6 +43,7 @@ import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.geofunctions.GeometryConverter;
 import io.sapl.geofunctions.GmlConverter;
 import io.sapl.geofunctions.JsonConverter;
+import io.sapl.geofunctions.KmlConverter;
 import io.sapl.geofunctions.WktConverter;
 import reactor.core.publisher.Flux;
 
@@ -81,23 +88,71 @@ public class FileLoader extends ConnectionBase {
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), crs);
         JsonNode        posRes          = mapper.createObjectNode();
         try {
+        	int count;
+        	Geometry geometries;
             switch (format) {
             case KML:
-                posRes = GeometryConverter
-                        .geometryToGeoJsonNode(GmlConverter.gmlToGeometry(readFile(reader), geometryFactory)).get();
+            	
+            	geometries = KmlConverter.kmlToGeometry(readFile(reader), geometryFactory);
+            	
+            	if((count = geometries.getNumGeometries()) > 1) {
+            		ArrayNode arrayNode = mapper.createArrayNode();
+            		var list = getGeometries(geometries, count, mapper);
+            		for (Geometry geo : list) {
+            			arrayNode.add(GeometryConverter.geometryToKML(geo).get());
+            		}
+            		posRes = arrayNode;
+            	}else {
+            		posRes = GeometryConverter.geometryToKML(geometries).get();
+            	}
+            	
                 break;
             case GML:
-                posRes = GeometryConverter.geometryToGML(GmlConverter.gmlToGeometry(readFile(reader), geometryFactory))
-                        .get();
+            	
+            	geometries = GmlConverter.gmlToGeometry(readFile(reader), geometryFactory);
+            	
+            	if((count = geometries.getNumGeometries()) > 1) {
+            		ArrayNode arrayNode = mapper.createArrayNode();
+            		var list = getGeometries(geometries, count, mapper);
+            		for (Geometry geo : list) {
+            			arrayNode.add(GeometryConverter.geometryToGML(geo).get());
+            		}
+            		posRes = arrayNode;
+            	}else {
+            		posRes = GeometryConverter.geometryToGML(geometries).get();
+            	}
+            	
                 break;
             case GEOJSON:
-                posRes = GeometryConverter
-                        .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(readFile(reader), geometryFactory))
-                        .get();
+            	geometries = JsonConverter.geoJsonToGeometry(readFile(reader), geometryFactory);
+
+            	if((count = geometries.getNumGeometries()) > 1) {
+            		ArrayNode arrayNode = mapper.createArrayNode();
+            		var list = getGeometries(geometries, count, mapper);
+            		for (Geometry geo : list) {
+            			arrayNode.add(GeometryConverter.geometryToGeoJsonNode(geo).get());
+            		}
+            		posRes = arrayNode;
+            	}else {
+            		posRes = GeometryConverter.geometryToGeoJsonNode(geometries).get();
+            	}
+
                 break;
             case WKT:
-                posRes = GeometryConverter.geometryToWKT(WktConverter.wktToGeometry(readFile(reader), geometryFactory))
-                        .get();
+            	
+            	geometries = WktConverter.wktToGeometry(readFile(reader), geometryFactory);
+            	
+            	if((count = geometries.getNumGeometries()) > 1) {
+            		ArrayNode arrayNode = mapper.createArrayNode();
+            		var list = getGeometries(geometries, count, mapper);
+            		for (Geometry geo : list) {
+            			arrayNode.add(GeometryConverter.geometryToWKT(geo).get());
+            		}
+            		posRes = arrayNode;
+            	}else {
+            		posRes = GeometryConverter.geometryToWKT(geometries).get();
+            	}
+            	
                 break;
             }
 
@@ -109,6 +164,18 @@ public class FileLoader extends ConnectionBase {
 
     }
 
+    private List<Geometry> getGeometries(Geometry collection, int count, ObjectMapper mapper) {
+    	
+    	List<Geometry> geometries = new ArrayList<>();
+    	
+    	
+    	for (int i = 0; i< count; i++) {
+    		geometries.add(collection.getGeometryN(i));
+    	}
+    	return geometries;
+
+    }
+    
     private String readFile(BufferedReader reader) throws IOException {
         StringBuilder stringBuilder = new StringBuilder();
         String        line;
