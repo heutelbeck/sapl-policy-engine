@@ -36,7 +36,6 @@ import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.Row;
-import io.r2dbc.spi.RowMetadata;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.shared.ConnectionBase;
@@ -53,7 +52,8 @@ public class PostGisConnection extends ConnectionBase {
     private static final String PORT             = "port";
     private static final String DATABASE         = "dataBase";
     private static final String TABLE            = "table";
-    private static final String COLUMN           = "column";
+    private static final String GEOCOLUMN        = "geoColumn";
+    private static final String COLUMNS          = "columns";
     private static final String WHERE            = "where";
     private static final String DEFAULTCRS       = "defaultCRS";
     private static final String SINGLE_RESULT    = "singleResult";
@@ -67,7 +67,6 @@ public class PostGisConnection extends ConnectionBase {
     private ObjectMapper                mapper;
     private AtomicReference<Connection> connectionReference;
 
-    
     private PostGisConnection(String user, String password, String serverName, int port, String dataBase,
             ObjectMapper mapper) {
         this.mapper       = mapper;
@@ -76,7 +75,6 @@ public class PostGisConnection extends ConnectionBase {
 
     }
 
-    
     public static PostGisConnection getNew(String user, String password, String server, int port, String dataBase,
             ObjectMapper mapper) {
 
@@ -85,19 +83,18 @@ public class PostGisConnection extends ConnectionBase {
 
     public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
 
+
+
         try {
             var connection = getNew(getUser(settings), getPassword(settings), getServer(settings), getPort(settings),
                     getDataBase(settings), mapper);
-
+            var columns = getColumns(settings, mapper);
             return connection.getFlux(getResponseFormat(settings, mapper),
-	                    buildSql(getColumn(settings), 
-	                    getTable(settings), 
-	                    getWhere(settings)), 
-	                    getSingleResult(settings),
-	                    getDefaultCRS(settings), 
-	                    longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
-	                    longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS))
-            		.map(Val::of)
+                    buildSql(getGeoColumn(settings), columns, getTable(settings), getWhere(settings)),
+                    columns,
+                    getSingleResult(settings),
+                    getDefaultCRS(settings), longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
+                    longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS)).map(Val::of)
                     .onErrorResume(e -> Flux.just(Val.error(e)));
 
         } catch (Exception e) {
@@ -106,37 +103,36 @@ public class PostGisConnection extends ConnectionBase {
 
     }
 
-    public Flux<JsonNode> getFlux(GeoPipResponseFormat format, String sql, boolean singleResult, int defaultCrs,
+    public Flux<JsonNode> getFlux(GeoPipResponseFormat format, String sql, String[] columns, boolean singleResult, int defaultCrs,
             long repeatTimes, long pollingInterval) {
         var connection = createConnection();
 
         if (singleResult) {
 
             sql = sql.concat("FETCH FIRST 1 ROW ONLY");
-            return poll(getResults(connection, sql, format, defaultCrs).next(), repeatTimes, pollingInterval);
+            return poll(getResults(connection, sql, columns, format, defaultCrs).next(), repeatTimes, pollingInterval);
         } else {
 
-            return poll(collectAndMapResults(getResults(connection, sql, format, defaultCrs)), repeatTimes,
+            return poll(collectAndMapResults(getResults(connection, sql, columns, format, defaultCrs)), repeatTimes,
                     pollingInterval);
         }
 
     }
 
-    
     private Mono<? extends Connection> createConnection() {
         connectionReference = new AtomicReference<>();
         return Mono.from(connectionFactory.create()).doOnNext(connectionReference::set);
     }
-     
-    private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, GeoPipResponseFormat format,
+
+    private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, String[] columns, GeoPipResponseFormat format,
             int defaultCrs) {
 
         return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute())
-                .flatMap(result -> result.map((row, rowMetadata) -> mapResult(row, format, defaultCrs))));
+                .flatMap(result -> result.map((row, rowMetadata) -> mapResult(row, columns, format, defaultCrs))));
 
     }
 
-    private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs) {
+    private JsonNode mapResult(Row row, String[] columns, GeoPipResponseFormat format, int defaultCrs) {
         ObjectNode resultNode = mapper.createObjectNode();
         JsonNode   geoNode;
 
@@ -151,10 +147,13 @@ public class PostGisConnection extends ConnectionBase {
 
         resultNode.put("srid", srid);
         resultNode.set("geo", geoNode);
-
-        return (JsonNode) resultNode;
+        for (String c : columns) {
+ 
+        	resultNode.put(c, row.get(c, String.class));
+        }
+        return  resultNode;
     }
-    
+
     private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid) {
 
         Geometry geo;
@@ -204,7 +203,7 @@ public class PostGisConnection extends ConnectionBase {
         });
 
     }
-    
+
     private Flux<JsonNode> poll(Mono<JsonNode> mono, long repeatTimes, long pollingInterval) {
         return mono.onErrorResume(Mono::error)
                 .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
@@ -212,20 +211,25 @@ public class PostGisConnection extends ConnectionBase {
                 .doOnTerminate(() -> connectionReference.get().close());
     }
 
-    
-    private static String buildSql(String column, String table, String where) {
+    private static String buildSql(String geoColumn, String[] columns, String table, String where) {
         String frmt = "ST_AsGeoJSON";
 
-        String str = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid FROM %s %s";
-        return String.format(str, frmt, column, column, table, where);
+        StringBuilder builder = new StringBuilder();
+        for (String c: columns) {
+        	builder.append(String.format(", %s AS %s", c, c));
+        }
+        String clms = builder.toString(); 
+        String str = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid%s FROM %s %s";
+        
+        return String.format(str, frmt, geoColumn, geoColumn, clms, table, where);
     }
-    
+
     private static int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(PORT)) {
             return requestSettings.findValue(PORT).asInt();
         } else {
 
-            throw new PolicyEvaluationException("No port found");
+            return 5432;
         }
 
     }
@@ -250,11 +254,28 @@ public class PostGisConnection extends ConnectionBase {
 
     }
 
-    private static String getColumn(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(COLUMN)) {
-            return requestSettings.findValue(COLUMN).asText();
+    private static String getGeoColumn(JsonNode requestSettings) throws PolicyEvaluationException {
+        if (requestSettings.has(GEOCOLUMN)) {
+            return requestSettings.findValue(GEOCOLUMN).asText();
         } else {
-            throw new PolicyEvaluationException("No column-name found");
+            throw new PolicyEvaluationException("No geoColumn-name found");
+
+        }
+
+    }
+
+    private static String[] getColumns(JsonNode requestSettings, ObjectMapper mapper) throws PolicyEvaluationException {
+        if (requestSettings.has(COLUMNS)) {
+            var columns = requestSettings.findValue(COLUMNS);
+            if (columns.isArray()) {
+                var b = (ArrayNode) columns;
+                var c = mapper.convertValue((ArrayNode)columns, String[].class);
+               return c;
+            }
+
+            return new String[] {columns.asText()};
+        } else {
+            return new String[] {};
 
         }
 

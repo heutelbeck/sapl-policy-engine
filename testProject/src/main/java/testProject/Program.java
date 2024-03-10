@@ -60,12 +60,14 @@ public class Program {
             	"port": 5432,
             	"dataBase":"nyc",
             	"table":"geometries",
-            	"column":"geom",
+            	"geoColumn":"geom",
             	"responseFormat":"GEOJSON",
-            	"defaultCRS": 4326,
+            	"defaultCRS": 3857,
             	"pollingIntervalMs":1000,
             	"repetitions":5,
-            	"singleResult": false
+            	"singleResult": false,
+            	
+            	"columns": ["name", "text"]
             }
             """;
         var node = Val.ofJson(pg).get();
