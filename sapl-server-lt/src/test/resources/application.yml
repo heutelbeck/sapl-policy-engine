@@ -248,3 +248,4 @@ bucket4j:
             - capacity: 10000
               time: 1
               unit: seconds
+  cache-to-use: none # supported values: none, infinispan
