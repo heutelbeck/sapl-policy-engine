@@ -35,7 +35,8 @@ import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
-
+import io.r2dbc.spi.Row;
+import io.r2dbc.spi.RowMetadata;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.shared.ConnectionBase;
@@ -66,6 +67,7 @@ public class PostGisConnection extends ConnectionBase {
     private ObjectMapper                mapper;
     private AtomicReference<Connection> connectionReference;
 
+    
     private PostGisConnection(String user, String password, String serverName, int port, String dataBase,
             ObjectMapper mapper) {
         this.mapper       = mapper;
@@ -74,6 +76,7 @@ public class PostGisConnection extends ConnectionBase {
 
     }
 
+    
     public static PostGisConnection getNew(String user, String password, String server, int port, String dataBase,
             ObjectMapper mapper) {
 
@@ -87,9 +90,14 @@ public class PostGisConnection extends ConnectionBase {
                     getDataBase(settings), mapper);
 
             return connection.getFlux(getResponseFormat(settings, mapper),
-                    buildSql(getColumn(settings), getTable(settings), getWhere(settings)), getSingleResult(settings),
-                    getDefaultCRS(settings), longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
-                    longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS)).map(Val::of)
+	                    buildSql(getColumn(settings), 
+	                    getTable(settings), 
+	                    getWhere(settings)), 
+	                    getSingleResult(settings),
+	                    getDefaultCRS(settings), 
+	                    longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
+	                    longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS))
+            		.map(Val::of)
                     .onErrorResume(e -> Flux.just(Val.error(e)));
 
         } catch (Exception e) {
@@ -98,21 +106,10 @@ public class PostGisConnection extends ConnectionBase {
 
     }
 
-    private static String buildSql(String column, String table, String where) {
-        String frmt = "ST_AsGeoJSON";
-
-        String str = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid FROM %s %s";
-        return String.format(str, frmt, column, column, table, where);
-    }
-
     public Flux<JsonNode> getFlux(GeoPipResponseFormat format, String sql, boolean singleResult, int defaultCrs,
             long repeatTimes, long pollingInterval) {
         var connection = createConnection();
 
-//    	String frmt = "ST_AsGeoJSON";
-//
-//        String str                 = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid FROM %s %s";
-//        var    sql                 = String.format(str, frmt, column, column, table, where);
         if (singleResult) {
 
             sql = sql.concat("FETCH FIRST 1 ROW ONLY");
@@ -125,52 +122,39 @@ public class PostGisConnection extends ConnectionBase {
 
     }
 
-    private Flux<JsonNode> poll(Mono<JsonNode> mono, long repeatTimes, long pollingInterval) {
-        return mono.onErrorResume(Mono::error)
-                .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
-                .doOnCancel(() -> connectionReference.get().close())
-                .doOnTerminate(() -> connectionReference.get().close());
-    }
-
+    
     private Mono<? extends Connection> createConnection() {
         connectionReference = new AtomicReference<>();
         return Mono.from(connectionFactory.create()).doOnNext(connectionReference::set);
     }
-
-    public Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, GeoPipResponseFormat format,
+     
+    private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, GeoPipResponseFormat format,
             int defaultCrs) {
 
         return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute())
-
-                .flatMap(result -> result.map((row, rowMetadata) -> {
-                    String resValue = row.get("res", String.class);
-                    Integer srid = row.get("srid", Integer.class);
-                    JsonNode geoNode;
-                    if (srid != 0) {
-                        geoNode = convertResponse(resValue, format, srid);
-                    } else {
-                        geoNode = convertResponse(resValue, format, defaultCrs);
-                    }
-                    ObjectNode resultNode = mapper.createObjectNode();
-                    resultNode.put("srid", srid);
-                    resultNode.set("geo", geoNode);
-                    return (JsonNode) resultNode;
-                })));
+                .flatMap(result -> result.map((row, rowMetadata) -> mapResult(row, format, defaultCrs))));
 
     }
 
-    private Mono<JsonNode> collectAndMapResults(Flux<JsonNode> resultFlux) {
+    private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs) {
+        ObjectNode resultNode = mapper.createObjectNode();
+        JsonNode   geoNode;
 
-        return resultFlux.collect(ArrayList::new, List::add).map(results -> {
-            ArrayNode arrayNode = mapper.createArrayNode();
-            for (var node : results) {
-                arrayNode.add((JsonNode) node);
-            }
-            return (JsonNode) arrayNode;
-        });
+        String  resValue = row.get("res", String.class);
+        Integer srid     = row.get("srid", Integer.class);
 
+        if (srid != 0) {
+            geoNode = convertResponse(resValue, format, srid);
+        } else {
+            geoNode = convertResponse(resValue, format, defaultCrs);
+        }
+
+        resultNode.put("srid", srid);
+        resultNode.set("geo", geoNode);
+
+        return (JsonNode) resultNode;
     }
-
+    
     private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid) {
 
         Geometry geo;
@@ -209,6 +193,33 @@ public class PostGisConnection extends ConnectionBase {
         return res;
     }
 
+    private Mono<JsonNode> collectAndMapResults(Flux<JsonNode> resultFlux) {
+
+        return resultFlux.collect(ArrayList::new, List::add).map(results -> {
+            ArrayNode arrayNode = mapper.createArrayNode();
+            for (var node : results) {
+                arrayNode.add((JsonNode) node);
+            }
+            return (JsonNode) arrayNode;
+        });
+
+    }
+    
+    private Flux<JsonNode> poll(Mono<JsonNode> mono, long repeatTimes, long pollingInterval) {
+        return mono.onErrorResume(Mono::error)
+                .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
+                .doOnCancel(() -> connectionReference.get().close())
+                .doOnTerminate(() -> connectionReference.get().close());
+    }
+
+    
+    private static String buildSql(String column, String table, String where) {
+        String frmt = "ST_AsGeoJSON";
+
+        String str = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid FROM %s %s";
+        return String.format(str, frmt, column, column, table, where);
+    }
+    
     private static int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(PORT)) {
             return requestSettings.findValue(PORT).asInt();
