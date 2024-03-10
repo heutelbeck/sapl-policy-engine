@@ -180,6 +180,8 @@
 						<env>
 							<BPE_SPRING_PROFILES_ACTIVE>docker</BPE_SPRING_PROFILES_ACTIVE>
 							<BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>file:/pdp/data/</BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>
+							<BPE_LOADER_PATH>file:/pdp/data/lib/</BPE_LOADER_PATH>
+							<BPE_JAVA_SECURITY_EGD>file:/dev/./urandom/</BPE_JAVA_SECURITY_EGD>
 						</env>
 					</image>
 				</configuration>

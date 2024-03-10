@@ -26,11 +26,15 @@ spec:
     app: sapl-server-lt
   ports:
     - protocol: TCP
-      name: http
+      name: https
       # The targetPort defines is the port on the POD that requests get sent to
-      targetPort: 8080
+      targetPort: 8443
       # The port exposes the service on the specified port internally within the cluster.
-      port: 8080
+      port: 8443
+    - protocol: TCP
+      name: rsocket
+      targetPort: 7000
+      port: 7000
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -50,11 +54,13 @@ spec:
     spec:
       containers:
         - name: sapl-server-lt
-          image: ghcr.io/heutelbeck/sapl-server-lt:2.1.0-snapshot
+          image: ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT
           imagePullPolicy: Always
           ports:
-            - containerPort: 8080
-              name: http
+            - containerPort: 8443
+              name: https
+            - containerPort: 7000
+              name: rsocket
 ---
 kind: Ingress
 apiVersion: networking.k8s.io/v1
@@ -69,7 +75,6 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-body-size: 1g
     nginx.ingress.kubernetes.io/proxy-read-timeout: '2147483647'
     nginx.ingress.kubernetes.io/proxy-send-timeout: '2147483647'
-    kubernetes.io/ingress.class: nginx
 spec:
   tls:
     - hosts:
@@ -85,4 +90,12 @@ spec:
               service:
                 name: sapl-server-lt
                 port:
-                  number: 8080
+                  number: 8443
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sapl-server-lt
+                port:
+                  number: 7000
+  ingressClassName: nginx
