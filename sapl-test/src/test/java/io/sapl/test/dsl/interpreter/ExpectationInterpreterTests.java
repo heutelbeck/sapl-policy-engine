@@ -781,7 +781,7 @@ class ExpectationInterpreterTests {
             void interpretRepeatedExpect_interpretsAttributeAdjustment_returnsAdjustedVerifyStep() {
                 // expect required since chain has to end with expect block
                 final var repeatedExpect = buildRepeatedExpect(
-                        "then - let attribute \"foo\" return \"bar\" expect - permit once");
+                        "then - attribute \"foo\" emits \"bar\" expect - permit once");
 
                 final var expectedVal = Val.of("bar");
 

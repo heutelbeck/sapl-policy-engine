@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 grammar io.sapl.test.^grammar.SAPLTest with org.eclipse.xtext.common.Terminals
+hidden(ML_COMMENT, SL_COMMENT, WS)
 
 generate sapltest "http://www.sapl.io/test/grammar/SAPLTest"
 
@@ -138,10 +139,10 @@ AuthorizationSubscription:
 	'subject' subject=Value 'attempts' 'action' action=Value 'on' 'resource' resource=Value ('with' 'environment' environment=Object)?;
 
 MockDefinition:
-	{Function} 'function' name=STRING ('parameters' 'matching' parameterMatchers=ParameterMatchers)? 'returns' returnValue=Value ('called' timesCalled=NumericAmount)? |
-	{FunctionInvokedOnce} 'function' name=STRING 'returns' 'stream' returnValue+=Value (',' returnValue+=Value)* |
+	{Function} 'function' name=STRING ('of' parameterMatchers=FunctionParameterMatchers)? 'maps' 'to' returnValue=Value ('is' 'called' timesCalled=NumericAmount)? |
+	{FunctionInvokedOnce} 'function' name=STRING 'maps' 'to' 'stream' returnValue+=Value (',' returnValue+=Value)* |
 	{Attribute} 'attribute' name=STRING ('returns' returnValue+=Value (',' returnValue+=Value)* ('with' 'timing' timing=Duration)?)? |
-	{AttributeWithParameters} 'attribute' name=STRING 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameterMatchers=ParameterMatchers)? 'returns' returnValue=Value |
+	{AttributeWithParameters} 'attribute' name=STRING 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameterMatchers=AttributeParameterMatchers)? 'returns' returnValue=Value |
 	{VirtualTime} 'virtual-time';
 
 Environment:
@@ -150,7 +151,10 @@ Environment:
 GivenStep:
     MockDefinition | FixtureRegistration;
 
-ParameterMatchers:
+FunctionParameterMatchers:
+    '(' matchers+=ValMatcher (',' matchers+=ValMatcher)* ')';
+
+AttributeParameterMatchers:
     matchers+=ValMatcher (',' matchers+=ValMatcher)*;
 
 NumericAmount:
@@ -181,7 +185,7 @@ ExpectStep:
 	{NoEvent} 'no-event' 'for' duration=Duration;
 
 AdjustStep:
-    {AttributeAdjustment} 'let' attribute=STRING 'return' returnValue=Value |
+    {AttributeAdjustment} 'attribute' attribute=STRING 'emits' returnValue=Value |
 	{Await} 'wait' duration=Duration;
 
 AuthorizationDecision:

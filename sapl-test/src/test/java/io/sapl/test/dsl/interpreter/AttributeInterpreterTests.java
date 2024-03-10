@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.grammar.sapltest.AttributeParameterMatchers;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +50,6 @@ import io.sapl.test.grammar.sapltest.AnyVal;
 import io.sapl.test.grammar.sapltest.Attribute;
 import io.sapl.test.grammar.sapltest.AttributeWithParameters;
 import io.sapl.test.grammar.sapltest.IsJsonNull;
-import io.sapl.test.grammar.sapltest.ParameterMatchers;
 import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.sapltest.ValMatcher;
 import io.sapl.test.grammar.sapltest.ValWithMatcher;
@@ -198,7 +198,7 @@ class AttributeInterpreterTests {
             final var returnValMock = mock(Val.class);
             when(valueInterpreterMock.getValFromValue(returnValueMock)).thenReturn(returnValMock);
 
-            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            final var parameterMatchersMock = mock(AttributeParameterMatchers.class);
             when(attributeWithParametersMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
             when(parameterMatchersMock.getMatchers()).thenReturn(null);
@@ -229,7 +229,7 @@ class AttributeInterpreterTests {
             final var returnValMock = mock(Val.class);
             when(valueInterpreterMock.getValFromValue(returnValueMock)).thenReturn(returnValMock);
 
-            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            final var parameterMatchersMock = mock(AttributeParameterMatchers.class);
             when(attributeWithParametersMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
             TestHelper.mockEListResult(parameterMatchersMock::getMatchers, Collections.emptyList());
