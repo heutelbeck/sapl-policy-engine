@@ -51,7 +51,8 @@ class SAPLTestValidatorTest {
                  requirement "requirement" {
                     scenario "scenario"
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect - wait "P2S";
+                    then
+                        - wait "P2S";
                 }""";
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertError(result, SapltestPackage.eINSTANCE.getDuration(), null,
@@ -64,7 +65,10 @@ class SAPLTestValidatorTest {
                  requirement "requirement" {
                     scenario "scenario"
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect - wait "PT2S";
+                    then
+                        - wait "PT2S"
+                    expect
+                        - permit;
                 }""";
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertNoErrors(result);
@@ -78,7 +82,8 @@ class SAPLTestValidatorTest {
                  requirement "requirement" {
                     scenario "scenario"
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect - permit %s times;
+                    expect
+                        - permit %s times;
                 }""".formatted(number);
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertError(result, SapltestPackage.eINSTANCE.getMultiple(), null,
@@ -93,7 +98,8 @@ class SAPLTestValidatorTest {
                  requirement "requirement" {
                     scenario "scenario"
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect - permit %d times;
+                    expect
+                        - permit %d times;
                 }""".formatted(number);
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertNoErrors(result);
@@ -110,7 +116,7 @@ class SAPLTestValidatorTest {
 
                     scenario "scenario"
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect permit;
+                    expect permit;
                 }""";
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertError(result, SapltestPackage.eINSTANCE.getGiven(), null,
@@ -127,7 +133,7 @@ class SAPLTestValidatorTest {
                     	- virtual-time
                     	- virtual-time
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect permit;
+                    expect permit;
                 }""";
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertError(result, SapltestPackage.eINSTANCE.getGiven(), null,
@@ -144,7 +150,7 @@ class SAPLTestValidatorTest {
 
                     scenario "scenario"
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect permit;
+                    expect permit;
                 }""";
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertNoErrors(result);
@@ -159,7 +165,7 @@ class SAPLTestValidatorTest {
                      given
                     	- virtual-time
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect permit;
+                    expect permit;
                 }""";
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertNoErrors(result);
@@ -172,7 +178,7 @@ class SAPLTestValidatorTest {
                  requirement "requirement" {
                     scenario "scenario"
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect decision with resource matching text with regex "%s";
+                    expect decision with resource matching text with regex "%s";
                 }""".formatted(regex);
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertError(result, SapltestPackage.eINSTANCE.getStringMatchesRegex(), null,
@@ -186,7 +192,7 @@ class SAPLTestValidatorTest {
                  requirement "requirement" {
                     scenario "scenario"
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect decision with resource matching text with regex "%s";
+                    expect decision with resource matching text with regex "%s";
                 }""".formatted(regex);
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertNoErrors(result);
@@ -200,7 +206,7 @@ class SAPLTestValidatorTest {
                  requirement "requirement" {
                     scenario "scenario"
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect decision with resource matching text with length %s;
+                    expect decision with resource matching text with length %s;
                 }""".formatted(number);
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertError(result, SapltestPackage.eINSTANCE.getStringWithLength(), null,
@@ -215,7 +221,7 @@ class SAPLTestValidatorTest {
                  requirement "requirement" {
                     scenario "scenario"
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect decision with resource matching text with length %s;
+                    expect decision with resource matching text with length %s;
                 }""".formatted(number);
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertNoErrors(result);
@@ -229,7 +235,7 @@ class SAPLTestValidatorTest {
                     given
                     	- virtual-time
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect permit;
+                    expect permit;
                 }
 
                 requirement "requirement2" {
@@ -237,7 +243,7 @@ class SAPLTestValidatorTest {
                     given
                     	- virtual-time
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect permit;
+                    expect permit;
                 }
                 """;
         final var result         = this.parseHelper.parse(testDefinition);
@@ -252,7 +258,7 @@ class SAPLTestValidatorTest {
                     given
                     	- virtual-time
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect permit;
+                    expect permit;
                 }
 
                 requirement "requirement" {
@@ -260,7 +266,7 @@ class SAPLTestValidatorTest {
                     given
                     	- virtual-time
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect permit;
+                    expect permit;
                 }
                 """;
         final var result         = this.parseHelper.parse(testDefinition);
@@ -276,13 +282,13 @@ class SAPLTestValidatorTest {
                     given
                     	- virtual-time
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect permit;
+                    expect permit;
 
                     scenario "scenario2"
                     given
                     	- virtual-time
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect permit;
+                    expect permit;
                 }
                 """;
         final var result         = this.parseHelper.parse(testDefinition);
@@ -303,11 +309,92 @@ class SAPLTestValidatorTest {
                     given
                     	- virtual-time
                     when subject "willi" attempts action "read" on resource "something"
-                    then expect permit;
+                    expect permit;
                 }
                 """;
         final var result         = this.parseHelper.parse(testDefinition);
         this.validator.assertError(result, SapltestPackage.eINSTANCE.getRequirement(), null,
                 SAPLTestValidator.MSG_DUPLICATE_SCENARIO_NAME);
+    }
+
+    @Test
+    void repeatedExpectNeedsToAlternateBlocksAndEndWithExpectBlock_hasNoError() throws Exception {
+        final var testDefinition = """
+                 requirement "requirement" {
+                    scenario "scenario"
+                    given
+                    	- virtual-time
+                    when subject "willi" attempts action "read" on resource "something"
+                    expect
+                        - permit
+                    then
+                        - wait "PT1S"
+                    expect
+                        - deny;
+                }
+                """;
+        final var result         = this.parseHelper.parse(testDefinition);
+        this.validator.assertNoErrors(result);
+    }
+
+    @Test
+    void repeatedExpectNeedsToAlternateBlocksAndEndWithExpectBlock_multipleAlternatingBlocks_hasNoError()
+            throws Exception {
+        final var testDefinition = """
+                 requirement "requirement" {
+                    scenario "scenario"
+                    given
+                    	- virtual-time
+                    when subject "willi" attempts action "read" on resource "something"
+                    expect
+                        - permit
+                    then
+                        - wait "PT1S"
+                    expect
+                        - deny
+                    then
+                        - wait "PT1S"
+                    expect
+                        - deny;
+                }
+                """;
+        final var result         = this.parseHelper.parse(testDefinition);
+        this.validator.assertNoErrors(result);
+    }
+
+    @Test
+    void repeatedExpectNeedsToAlternateBlocksAndEndWithExpectBlock_nonAlternatingBlocks_hasError() throws Exception {
+        final var testDefinition = """
+                 requirement "requirement" {
+                    scenario "scenario"
+                    given
+                    	- virtual-time
+                    when subject "willi" attempts action "read" on resource "something"
+                    expect
+                        - permit
+                    expect
+                        - deny;
+                }
+                """;
+        final var result         = this.parseHelper.parse(testDefinition);
+        this.validator.assertError(result, SapltestPackage.eINSTANCE.getRepeatedExpect(), null,
+                SAPLTestValidator.MSG_NON_ALTERNATING_EXPECT_OR_ADJUSTMENT_BLOCKS);
+    }
+
+    @Test
+    void repeatedExpectNeedsToAlternateBlocksAndEndWithExpectBlock_endingWithAdjustBlock_hasError() throws Exception {
+        final var testDefinition = """
+                 requirement "requirement" {
+                    scenario "scenario"
+                    given
+                    	- virtual-time
+                    when subject "willi" attempts action "read" on resource "something"
+                    then
+                        - wait "PT1S";
+                }
+                """;
+        final var result         = this.parseHelper.parse(testDefinition);
+        this.validator.assertError(result, SapltestPackage.eINSTANCE.getRepeatedExpect(), null,
+                SAPLTestValidator.MSG_INVALID_REPEATED_EXPECT);
     }
 }

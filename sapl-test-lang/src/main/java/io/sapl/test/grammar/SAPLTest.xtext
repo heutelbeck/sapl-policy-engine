@@ -160,21 +160,27 @@ NumericAmount:
 Duration: duration=STRING;
 
 Expectation:
-	{SingleExpect} decision=AuthorizationDecision |
-	{SingleExpectWithMatcher} 'decision' matchers+=AuthorizationDecisionMatcher (',' matchers+=AuthorizationDecisionMatcher)* |
-	{TestException} 'exception' |
-	{RepeatedExpect} ('-' expectSteps+=ExpectOrAdjustmentStep)+;
+	{SingleExpect} 'expect' decision=AuthorizationDecision |
+	{SingleExpectWithMatcher} 'expect' 'decision' matchers+=AuthorizationDecisionMatcher (',' matchers+=AuthorizationDecisionMatcher)* |
+	{TestException} 'expect' 'exception' |
+	{RepeatedExpect} expectOrAdjustBlocks+=ExpectOrAdjustBlock+;
 
-ExpectOrAdjustmentStep:
-    ExpectStep | AdjustmentStep;
+ExpectBlock:
+    'expect' ('-' expectSteps+=ExpectStep)+;
 
-ExpectStep returns ExpectOrAdjustmentStep:
+AdjustBlock:
+    'then' ('-' adjustSteps+=AdjustStep)+;
+
+ExpectOrAdjustBlock:
+    ExpectBlock | AdjustBlock;
+
+ExpectStep:
 	{Next} expectedDecision=AuthorizationDecisionType amount=NumericAmount |
 	{NextWithDecision} expectedDecision=AuthorizationDecision |
 	{NextWithMatcher} 'decision' matcher+=AuthorizationDecisionMatcher (',' matcher+=AuthorizationDecisionMatcher)* |
 	{NoEvent} 'no-event' 'for' duration=Duration;
 
-AdjustmentStep returns ExpectOrAdjustmentStep:
+AdjustStep:
     {AttributeAdjustment} 'let' attribute=STRING 'return' returnValue=Value |
 	{Await} 'wait' duration=Duration;
 
@@ -212,4 +218,4 @@ Requirement:
     '}';
 
 Scenario:
-    'scenario' name=STRING (given=Given)? whenStep=WhenStep 'then' 'expect' expectation=Expectation';';
+    'scenario' name=STRING (given=Given)? whenStep=WhenStep expectation=Expectation';';

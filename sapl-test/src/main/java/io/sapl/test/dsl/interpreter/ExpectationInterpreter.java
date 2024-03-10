@@ -20,6 +20,9 @@ package io.sapl.test.dsl.interpreter;
 
 import static org.hamcrest.Matchers.allOf;
 
+import io.sapl.test.grammar.sapltest.AdjustBlock;
+import io.sapl.test.grammar.sapltest.ExpectBlock;
+import io.sapl.test.grammar.sapltest.ExpectOrAdjustBlock;
 import java.util.Collection;
 
 import org.hamcrest.Matcher;
@@ -97,35 +100,93 @@ class ExpectationInterpreter {
             throw new SaplTestException("ExpectOrVerifyStep or repeatedExpect is null");
         }
 
-        final var expectOrAdjustmentSteps = repeatedExpect.getExpectSteps();
+        final var expectOrAdjustBlocks = repeatedExpect.getExpectOrAdjustBlocks();
 
-        if (expectOrAdjustmentSteps == null || expectOrAdjustmentSteps.isEmpty()) {
-            throw new SaplTestException("No ExpectOrAdjustmentStep found");
+        if (expectOrAdjustBlocks == null || expectOrAdjustBlocks.isEmpty()) {
+            throw new SaplTestException("No ExpectOrAdjustStep found");
         }
 
-        for (var expectOrAdjustmentStep : expectOrAdjustmentSteps) {
-            if (expectOrAdjustmentStep instanceof Next nextExpect) {
-                expectStep = constructNext(expectStep, nextExpect);
-            } else if (expectOrAdjustmentStep instanceof NextWithDecision nextWithDecision) {
-                final var authorizationDecision = nextWithDecision.getExpectedDecision();
+        checkForExpectOrAdjustmentBlockChainValidity(expectOrAdjustBlocks);
 
+        for (var expectOrAdjustmentBlock : expectOrAdjustBlocks) {
+            if (expectOrAdjustmentBlock instanceof ExpectBlock expectBlock) {
+                expectStep = handleExpectBlock(expectBlock, expectStep);
+            } else if (expectOrAdjustmentBlock instanceof AdjustBlock adjustBlock) {
+                expectStep = handleAdjustBlock(adjustBlock, expectStep);
+            } else {
+                throw new SaplTestException("Unknown type of ExpectOrAdjustBlock");
+            }
+        }
+
+        return (VerifyStep) expectStep;
+    }
+
+    private ExpectStep handleExpectBlock(final ExpectBlock expectBlock, ExpectStep expectStep) {
+        final var expectSteps = expectBlock.getExpectSteps();
+
+        if (expectSteps == null || expectSteps.isEmpty()) {
+            throw new SaplTestException("ExpectBlock has no Steps");
+        }
+
+        for (var step : expectSteps) {
+            if (step instanceof Next nextExpect) {
+                expectStep = constructNext(expectStep, nextExpect);
+
+            } else if (step instanceof NextWithDecision nextWithDecision) {
+                final var authorizationDecision = nextWithDecision.getExpectedDecision();
                 expectStep = constructNextWithDecision(expectStep, authorizationDecision);
-            } else if (expectOrAdjustmentStep instanceof NextWithMatcher nextWithMatcher) {
+
+            } else if (step instanceof NextWithMatcher nextWithMatcher) {
                 expectStep = constructNextWithMatcher(expectStep, nextWithMatcher);
-            } else if (expectOrAdjustmentStep instanceof AttributeAdjustment attributeAdjustment) {
-                final var returnValue = valueInterpreter.getValFromValue(attributeAdjustment.getReturnValue());
-                expectStep = expectStep.thenAttribute(attributeAdjustment.getAttribute(), returnValue);
-            } else if (expectOrAdjustmentStep instanceof Await await) {
-                final var duration = durationInterpreter.getJavaDurationFromDuration(await.getDuration());
-                expectStep = expectStep.thenAwait(duration);
-            } else if (expectOrAdjustmentStep instanceof NoEvent noEvent) {
+
+            } else if (step instanceof NoEvent noEvent) {
                 final var duration = durationInterpreter.getJavaDurationFromDuration(noEvent.getDuration());
                 expectStep = expectStep.expectNoEvent(duration);
             } else {
-                throw new SaplTestException("Unknown type of ExpectOrAdjustmentStep");
+                throw new SaplTestException("Unknown type of ExpectStep");
             }
         }
-        return (VerifyStep) expectStep;
+        return expectStep;
+    }
+
+    private ExpectStep handleAdjustBlock(final AdjustBlock adjustBlock, ExpectStep expectStep) {
+        final var adjustSteps = adjustBlock.getAdjustSteps();
+
+        if (adjustSteps == null || adjustSteps.isEmpty()) {
+            throw new SaplTestException("AdjustBlock has no Steps");
+        }
+
+        for (var step : adjustSteps) {
+            if (step instanceof AttributeAdjustment attributeAdjustment) {
+                final var returnValue = valueInterpreter.getValFromValue(attributeAdjustment.getReturnValue());
+                expectStep = expectStep.thenAttribute(attributeAdjustment.getAttribute(), returnValue);
+            } else if (step instanceof Await await) {
+                final var duration = durationInterpreter.getJavaDurationFromDuration(await.getDuration());
+                expectStep = expectStep.thenAwait(duration);
+            } else {
+                throw new SaplTestException("Unknown type of AdjustStep");
+            }
+        }
+        return expectStep;
+    }
+
+    private void checkForExpectOrAdjustmentBlockChainValidity(
+            final Collection<ExpectOrAdjustBlock> expectOrAdjustBlocks) {
+        final var lastBlock = expectOrAdjustBlocks.stream().reduce(null, (acc, next) -> {
+            if (next == null) {
+                throw new SaplTestException("ExpectOrAdjustBlock is null");
+            }
+
+            if (next.getClass().isInstance(acc)) {
+                throw new SaplTestException("Expect and Adjust Blocks need to alternate");
+            }
+
+            return next;
+        });
+
+        if (lastBlock instanceof AdjustBlock) {
+            throw new SaplTestException("Last block needs to be an ExpectBlock");
+        }
     }
 
     private AuthorizationDecision getAuthorizationDecisionFromDSLAuthorizationDecision(
