@@ -68,8 +68,7 @@ StringOrStringMatcher:
 ValMatcher:
     {AnyVal} 'any' |
     {ValWithValue} value=Value |
-    {ValWithMatcher} 'matching' matcher=JsonNodeMatcher |
-    {ValWithError} 'with' 'error' (error=StringOrStringMatcher)?;
+    {ValWithMatcher} 'matching' matcher=JsonNodeMatcher;
 
 DefaultObjectMatcher:
     {ObjectWithExactMatch} 'equals' equalTo=Value |
@@ -138,11 +137,17 @@ WhenStep:
 AuthorizationSubscription:
 	'subject' subject=Value 'attempts' 'action' action=Value 'on' 'resource' resource=Value ('with' 'environment' environment=Object)?;
 
+ErrorValue returns Value:
+    {ErrorValue} 'error' ('(' message=STRING ')')?;
+
+ValueOrErrorValue returns Value:
+    Value | ErrorValue;
+
 MockDefinition:
-	{Function} 'function' name=STRING ('of' parameterMatchers=FunctionParameterMatchers)? 'maps' 'to' returnValue=Value ('is' 'called' timesCalled=NumericAmount)? |
-	{FunctionInvokedOnce} 'function' name=STRING 'maps' 'to' 'stream' returnValue+=Value (',' returnValue+=Value)* |
-	{Attribute} 'attribute' name=STRING 'emits' returnValue+=Value (',' returnValue+=Value)* ('with' 'timing' timing=Duration)? |
-	{AttributeWithParameters} 'attribute' name=STRING 'of' '<' parentMatcher=ValMatcher '>' (parameterMatchers=AttributeParameterMatchers)? 'emits' returnValue=Value |
+	{Function} 'function' name=STRING ('of' parameterMatchers=FunctionParameterMatchers)? 'maps' 'to' returnValue=ValueOrErrorValue ('is' 'called' timesCalled=NumericAmount)? |
+	{FunctionInvokedOnce} 'function' name=STRING 'maps' 'to' 'stream' returnValue+=ValueOrErrorValue (',' returnValue+=ValueOrErrorValue)* |
+	{Attribute} 'attribute' name=STRING 'emits' returnValue+=ValueOrErrorValue (',' returnValue+=ValueOrErrorValue)* ('with' 'timing' timing=Duration)? |
+	{AttributeWithParameters} 'attribute' name=STRING 'of' '<' parentMatcher=ValMatcher '>' (parameterMatchers=AttributeParameterMatchers)? 'emits' returnValue=ValueOrErrorValue |
 	{VirtualTime} 'virtual-time';
 
 Environment:

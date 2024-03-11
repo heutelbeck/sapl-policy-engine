@@ -82,8 +82,7 @@ public final class DefaultStepConstructor implements StepConstructor {
         final var stringMatcherInterpreter   = new StringMatcherInterpreter();
         final var jsonNodeMatcherInterpreter = new JsonNodeMatcherInterpreter(stringMatcherInterpreter);
 
-        final var matcherInterpreter = new ValMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter,
-                stringMatcherInterpreter);
+        final var matcherInterpreter = new ValMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter);
 
         final var durationInterpreter                     = new DurationInterpreter();
         final var attributeInterpreter                    = new AttributeInterpreter(valInterpreter, matcherInterpreter,
