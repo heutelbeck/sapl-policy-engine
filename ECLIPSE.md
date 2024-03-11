@@ -22,8 +22,8 @@ The Lombok Plug-in cannot be downloaded via the Eclipse Marketplace. Please down
 
 ### M2E - PDE Integration
 
-SAPL generates an Eclipse Plug-in. this requires the tycho tooling for building and packaging. Eclipse itself cannot deal with this out of the box.
-Install the "M2E - PDE Integration" from the update site [Eclipse IDE integration for Maven](https://download.eclipse.org/technology/m2e/releases/latest). Use the "Help -> Install New Software..." menu in Eclipse. The update site shuold already be present.
+SAPL generates an Eclipse Plug-in. This requires the tycho tooling for building and packaging. Eclipse itself cannot deal with this out of the box.
+Install the "M2E - PDE Integration" from the update site [Eclipse IDE integration for Maven](https://download.eclipse.org/technology/m2e/releases/latest). Use the "Help -> Install New Software..." menu in Eclipse. The update site should already be present.
 
 ### Xtext Eclipse Plug-In
 
