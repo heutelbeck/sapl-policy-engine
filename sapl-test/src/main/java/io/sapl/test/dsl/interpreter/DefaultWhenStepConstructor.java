@@ -19,16 +19,22 @@
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sapltest.AdjustBlock;
 import io.sapl.test.grammar.sapltest.Attribute;
+import io.sapl.test.grammar.sapltest.AttributeAdjustment;
 import io.sapl.test.grammar.sapltest.AttributeWithParameters;
+import io.sapl.test.grammar.sapltest.Expectation;
 import io.sapl.test.grammar.sapltest.Function;
 import io.sapl.test.grammar.sapltest.FunctionInvokedOnce;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.MockDefinition;
+import io.sapl.test.grammar.sapltest.RepeatedExpect;
 import io.sapl.test.grammar.sapltest.VirtualTime;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.WhenStep;
 import java.util.Collection;
+import java.util.Objects;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -37,7 +43,8 @@ class DefaultWhenStepConstructor {
     private final FunctionInterpreter  functionInterpreter;
     private final AttributeInterpreter attributeInterpreter;
 
-    WhenStep constructWhenStep(final Collection<GivenStep> givenSteps, final GivenOrWhenStep initialTestCase) {
+    WhenStep constructWhenStep(final Collection<GivenStep> givenSteps, final GivenOrWhenStep initialTestCase,
+            final Expectation expectation) {
         if (givenSteps != null) {
 
             if (givenSteps.stream().filter(VirtualTime.class::isInstance).count() > 1) {
@@ -49,6 +56,8 @@ class DefaultWhenStepConstructor {
 
             applyGivenSteps(mockDefinitions, initialTestCase);
         }
+
+        applyRequiredAttributeMockingFromExpectation(initialTestCase, expectation);
 
         return initialTestCase;
     }
@@ -71,5 +80,33 @@ class DefaultWhenStepConstructor {
                 throw new SaplTestException("Unknown type of GivenStep");
             }
         }
+    }
+
+    private void applyRequiredAttributeMockingFromExpectation(GivenOrWhenStep initialTestCase,
+            final Expectation expectation) {
+        if (!(expectation instanceof RepeatedExpect repeatedExpect)) {
+            return;
+        }
+
+        final var blocks = repeatedExpect.getExpectOrAdjustBlocks();
+
+        if (blocks == null) {
+            return;
+        }
+
+        blocks.stream().flatMap(expectOrAdjustBlock -> {
+            if (expectOrAdjustBlock instanceof AdjustBlock adjustBlock) {
+                final var adjustSteps = adjustBlock.getAdjustSteps();
+
+                if (adjustSteps == null || adjustSteps.isEmpty()) {
+                    return Stream.empty();
+                }
+
+                return adjustSteps.stream();
+            }
+            return Stream.empty();
+        }).map(adjustStep -> adjustStep instanceof AttributeAdjustment attributeAdjustment
+                ? attributeAdjustment.getAttribute()
+                : null).filter(Objects::nonNull).distinct().forEach(initialTestCase::givenAttribute);
     }
 }

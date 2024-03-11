@@ -96,7 +96,7 @@ class TestCaseTests {
         return saplTestFixtureMock;
     }
 
-    private void mockTestCaseWithTestException(Scenario scenarioWithException) {
+    private TestException mockTestCaseWithTestException(Scenario scenarioWithException) {
         final var testExceptionMock = mock(TestException.class);
         when(scenarioWithException.getExpectation()).thenReturn(testExceptionMock);
 
@@ -110,6 +110,7 @@ class TestCaseTests {
                     }
                     return null;
                 });
+        return testExceptionMock;
     }
 
     private VerifyStep mockTestBuildingChain(final List<GivenStep> givenSteps, final SaplTestFixture testFixture,
@@ -122,7 +123,8 @@ class TestCaseTests {
                 .thenReturn(initialTestCaseMock);
 
         final var whenStepMock = mock(WhenStep.class);
-        when(stepConstructorMock.constructWhenStep(givenSteps, initialTestCaseMock)).thenReturn(whenStepMock);
+        when(stepConstructorMock.constructWhenStep(givenSteps, initialTestCaseMock, expectationMock))
+                .thenReturn(whenStepMock);
 
         final var expectStepMock = mock(ExpectStep.class);
         when(stepConstructorMock.constructExpectStep(scenarioMock, whenStepMock)).thenReturn(expectStepMock);
@@ -290,6 +292,9 @@ class TestCaseTests {
         mockGiven(null, scenarioGivenMock);
         final var environmentMock = mockEnvironment(scenarioGivenMock);
 
+        final var expectationMock = mock(Expectation.class);
+        when(scenarioMock.getExpectation()).thenReturn(expectationMock);
+
         final var givenSteps = TestHelper.mockEListResult(scenarioGivenMock::getGivenSteps, Collections.emptyList());
 
         final var testFixtureMock = mockTestFixture(scenarioGivenMock, givenSteps);
@@ -298,10 +303,10 @@ class TestCaseTests {
         when(stepConstructorMock.constructTestCase(testFixtureMock, environmentMock, false))
                 .thenReturn(givenOrWhenStepMock);
 
-        mockTestCaseWithTestException(scenarioMock);
+        final var expectation = mockTestCaseWithTestException(scenarioMock);
 
         assertDynamicTestAndGetRunnable().run();
 
-        verify(stepConstructorMock, times(1)).constructWhenStep(givenSteps, givenOrWhenStepMock);
+        verify(stepConstructorMock, times(1)).constructWhenStep(givenSteps, givenOrWhenStepMock, expectation);
     }
 }

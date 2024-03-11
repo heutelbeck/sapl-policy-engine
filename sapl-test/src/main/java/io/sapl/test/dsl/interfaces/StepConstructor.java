@@ -20,6 +20,7 @@ package io.sapl.test.dsl.interfaces;
 
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sapltest.Environment;
+import io.sapl.test.grammar.sapltest.Expectation;
 import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.Scenario;
@@ -77,14 +78,14 @@ public interface StepConstructor {
      *                        {@link StepConstructor#constructTestCase(SaplTestFixture, Environment, boolean)}.
      * @return The created WhenStep instance.
      */
-    WhenStep constructWhenStep(List<GivenStep> givenSteps, GivenOrWhenStep initialTestCase);
+    WhenStep constructWhenStep(List<GivenStep> givenSteps, GivenOrWhenStep initialTestCase, Expectation expectation);
 
     /**
      * Defines logic to construct a {@link ExpectStep} from a WhenStep.
      *
      * @param scenario The Scenario to derive information from.
      * @param whenStep The WhenStep created in
-     *                 {@link StepConstructor#constructWhenStep(List, GivenOrWhenStep)}.
+     *                 {@link StepConstructor#constructWhenStep(List, GivenOrWhenStep, Expectation)}.
      * @return The created ExpectStep.
      */
     ExpectStep constructExpectStep(Scenario scenario, WhenStep whenStep);

@@ -27,13 +27,24 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.TestHelper;
+import io.sapl.test.grammar.sapltest.AdjustBlock;
+import io.sapl.test.grammar.sapltest.AdjustStep;
+import io.sapl.test.grammar.sapltest.AttributeAdjustment;
+import io.sapl.test.grammar.sapltest.Await;
+import io.sapl.test.grammar.sapltest.ExpectBlock;
+import io.sapl.test.grammar.sapltest.Expectation;
 import io.sapl.test.grammar.sapltest.FixtureRegistration;
-import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.MockDefinition;
 import io.sapl.test.grammar.sapltest.Pip;
+import io.sapl.test.grammar.sapltest.RepeatedExpect;
+import io.sapl.test.grammar.sapltest.SingleExpect;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -58,7 +69,9 @@ class DefaultWhenStepConstructorTests {
     @Mock
     protected AttributeInterpreter       attributeInterpreterMock;
     @Mock
-    protected GivenOrWhenStep            saplUnitTestFixtureMock;
+    protected GivenOrWhenStep            initialTestCaseMock;
+    @Mock
+    protected Expectation                expectationMock;
     @InjectMocks
     protected DefaultWhenStepConstructor defaultWhenStepConstructor;
 
@@ -67,32 +80,32 @@ class DefaultWhenStepConstructorTests {
     }
 
     @Test
-    void constructWhenStep_handlesNullGivenSteps_returnsGivenUnitTestFixture() {
-        final var result = defaultWhenStepConstructor.constructWhenStep(null, saplUnitTestFixtureMock);
+    void constructWhenStep_handlesNullGivenSteps_returnsInitialTestCase() {
+        final var result = defaultWhenStepConstructor.constructWhenStep(null, initialTestCaseMock, expectationMock);
 
-        assertEquals(saplUnitTestFixtureMock, result);
-        verifyNoInteractions(saplUnitTestFixtureMock);
+        assertEquals(initialTestCaseMock, result);
+        verifyNoInteractions(initialTestCaseMock);
     }
 
     @Test
-    void constructWhenStep_handlesEmptyGivenSteps_returnsGivenUnitTestFixture() {
-        final var result = defaultWhenStepConstructor.constructWhenStep(Collections.emptyList(),
-                saplUnitTestFixtureMock);
+    void constructWhenStep_handlesEmptyGivenSteps_returnsInitialTestCase() {
+        final var result = defaultWhenStepConstructor.constructWhenStep(Collections.emptyList(), initialTestCaseMock,
+                expectationMock);
 
-        assertEquals(saplUnitTestFixtureMock, result);
-        verifyNoInteractions(saplUnitTestFixtureMock);
+        assertEquals(initialTestCaseMock, result);
+        verifyNoInteractions(initialTestCaseMock);
     }
 
     @Test
-    void constructWhenStep_filtersNonMockDefinitions_returnsGivenUnitTestFixture() {
+    void constructWhenStep_filtersNonMockDefinitions_returnsInitialTestCase() {
         final var pipMock                 = mock(Pip.class);
         final var fixtureRegistrationMock = mock(FixtureRegistration.class);
 
         final var result = defaultWhenStepConstructor.constructWhenStep(List.of(pipMock, fixtureRegistrationMock),
-                saplUnitTestFixtureMock);
+                initialTestCaseMock, expectationMock);
 
-        assertEquals(saplUnitTestFixtureMock, result);
-        verifyNoInteractions(saplUnitTestFixtureMock);
+        assertEquals(initialTestCaseMock, result);
+        verifyNoInteractions(initialTestCaseMock);
     }
 
     @Test
@@ -102,7 +115,7 @@ class DefaultWhenStepConstructorTests {
         final var givenSteps = List.<GivenStep>of(virtualTimeMock, virtualTimeMock);
 
         final var exception = assertThrows(SaplTestException.class,
-                () -> defaultWhenStepConstructor.constructWhenStep(givenSteps, saplUnitTestFixtureMock));
+                () -> defaultWhenStepConstructor.constructWhenStep(givenSteps, initialTestCaseMock, expectationMock));
 
         assertEquals("Scenario contains more than one virtual-time declaration", exception.getMessage());
     }
@@ -114,93 +127,228 @@ class DefaultWhenStepConstructorTests {
         final var givenSteps = List.<GivenStep>of(unknownMockDefinition);
 
         final var exception = assertThrows(SaplTestException.class,
-                () -> defaultWhenStepConstructor.constructWhenStep(givenSteps, saplUnitTestFixtureMock));
+                () -> defaultWhenStepConstructor.constructWhenStep(givenSteps, initialTestCaseMock, expectationMock));
 
         assertEquals("Unknown type of GivenStep", exception.getMessage());
     }
 
     @Test
-    void constructWhenStep_handlesFunctionGivenStep_returnsAdjustedUnitTestFixture() {
+    void constructWhenStep_handlesFunctionGivenStep_returnsAdjustedTestCase() {
         final var function = buildGivenStep("function \"foo\" maps to \"bar\"", Function.class);
 
-        when(functionInterpreterMock.interpretFunction(saplUnitTestFixtureMock, function))
-                .thenReturn(saplUnitTestFixtureMock);
+        when(functionInterpreterMock.interpretFunction(initialTestCaseMock, function)).thenReturn(initialTestCaseMock);
 
-        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(function), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(function), initialTestCaseMock,
+                expectationMock);
 
-        assertEquals(saplUnitTestFixtureMock, result);
+        assertEquals(initialTestCaseMock, result);
     }
 
     @Test
-    void constructWhenStep_handlesFunctionInvokedOnceGivenStep_returnsAdjustedUnitTestFixture() {
+    void constructWhenStep_handlesFunctionInvokedOnceGivenStep_returnsAdjustedTestCase() {
         final var functionInvokedOnce = buildGivenStep("function \"foo\" maps to stream \"bar\"",
                 FunctionInvokedOnce.class);
 
-        when(functionInterpreterMock.interpretFunctionInvokedOnce(saplUnitTestFixtureMock, functionInvokedOnce))
-                .thenReturn(saplUnitTestFixtureMock);
+        when(functionInterpreterMock.interpretFunctionInvokedOnce(initialTestCaseMock, functionInvokedOnce))
+                .thenReturn(initialTestCaseMock);
 
         final var result = defaultWhenStepConstructor.constructWhenStep(List.of(functionInvokedOnce),
-                saplUnitTestFixtureMock);
+                initialTestCaseMock, expectationMock);
 
-        assertEquals(saplUnitTestFixtureMock, result);
+        assertEquals(initialTestCaseMock, result);
     }
 
     @Test
-    void constructWhenStep_handlesAttributeGivenStep_returnsAdjustedUnitTestFixture() {
-        final var attribute = buildGivenStep("attribute \"foo\"", Attribute.class);
+    void constructWhenStep_handlesAttributeGivenStep_returnsAdjustedTestCase() {
+        final var attribute = buildGivenStep("attribute \"foo\" emits \"bar\"", Attribute.class);
 
-        when(attributeInterpreterMock.interpretAttribute(saplUnitTestFixtureMock, attribute))
-                .thenReturn(saplUnitTestFixtureMock);
+        when(attributeInterpreterMock.interpretAttribute(initialTestCaseMock, attribute))
+                .thenReturn(initialTestCaseMock);
 
-        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(attribute), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(attribute), initialTestCaseMock,
+                expectationMock);
 
-        assertEquals(saplUnitTestFixtureMock, result);
+        assertEquals(initialTestCaseMock, result);
     }
 
     @Test
-    void constructWhenStep_handlesAttributeWithParametersGivenStep_returnsAdjustedUnitTestFixture() {
-        final var attributeWithParameters = buildGivenStep("attribute \"foo\" with parent value any returns \"bar\"",
+    void constructWhenStep_handlesAttributeWithParametersGivenStep_returnsAdjustedTestCase() {
+        final var attributeWithParameters = buildGivenStep("attribute \"foo\" of <any> emits \"bar\"",
                 AttributeWithParameters.class);
 
-        when(attributeInterpreterMock.interpretAttributeWithParameters(saplUnitTestFixtureMock,
-                attributeWithParameters)).thenReturn(saplUnitTestFixtureMock);
+        when(attributeInterpreterMock.interpretAttributeWithParameters(initialTestCaseMock, attributeWithParameters))
+                .thenReturn(initialTestCaseMock);
 
         final var result = defaultWhenStepConstructor.constructWhenStep(List.of(attributeWithParameters),
-                saplUnitTestFixtureMock);
+                initialTestCaseMock, expectationMock);
 
-        assertEquals(saplUnitTestFixtureMock, result);
+        assertEquals(initialTestCaseMock, result);
     }
 
     @Test
-    void constructWhenStep_handlesVirtualTimeGivenStep_returnsAdjustedUnitTestFixture() {
+    void constructWhenStep_handlesVirtualTimeGivenStep_returnsAdjustedTestCase() {
         final var virtualTime = buildGivenStep("virtual-time", VirtualTime.class);
 
-        when(saplUnitTestFixtureMock.withVirtualTime()).thenReturn(saplUnitTestFixtureMock);
+        when(initialTestCaseMock.withVirtualTime()).thenReturn(initialTestCaseMock);
 
-        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(virtualTime), saplUnitTestFixtureMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(virtualTime), initialTestCaseMock,
+                expectationMock);
 
-        assertEquals(saplUnitTestFixtureMock, result);
+        assertEquals(initialTestCaseMock, result);
     }
 
     @Test
-    void constructWhenStep_handlesMultipleGivenSteps_returnsAdjustedUnitTestFixture() {
+    void constructWhenStep_handlesMultipleGivenSteps_returnsAdjustedTestCase() {
         final var function    = buildGivenStep("function \"foo\" maps to \"bar\"", Function.class);
-        final var attribute   = buildGivenStep("attribute \"foo\"", Attribute.class);
+        final var attribute   = buildGivenStep("attribute \"foo\" emits \"bar\"", Attribute.class);
         final var virtualTime = buildGivenStep("virtual-time", VirtualTime.class);
 
-        when(functionInterpreterMock.interpretFunction(saplUnitTestFixtureMock, function))
-                .thenReturn(saplUnitTestFixtureMock);
-        when(attributeInterpreterMock.interpretAttribute(saplUnitTestFixtureMock, attribute))
-                .thenReturn(saplUnitTestFixtureMock);
-        when(saplUnitTestFixtureMock.withVirtualTime()).thenReturn(saplUnitTestFixtureMock);
+        when(functionInterpreterMock.interpretFunction(initialTestCaseMock, function)).thenReturn(initialTestCaseMock);
+        when(attributeInterpreterMock.interpretAttribute(initialTestCaseMock, attribute))
+                .thenReturn(initialTestCaseMock);
+        when(initialTestCaseMock.withVirtualTime()).thenReturn(initialTestCaseMock);
 
         final var result = defaultWhenStepConstructor.constructWhenStep(List.of(virtualTime, function, attribute),
-                saplUnitTestFixtureMock);
+                initialTestCaseMock, expectationMock);
 
-        assertEquals(saplUnitTestFixtureMock, result);
-        verify(functionInterpreterMock, times(1)).interpretFunction(saplUnitTestFixtureMock, function);
-        verify(attributeInterpreterMock, times(1)).interpretAttribute(saplUnitTestFixtureMock, attribute);
-        verify(saplUnitTestFixtureMock, times(1)).withVirtualTime();
-        verifyNoMoreInteractions(saplUnitTestFixtureMock, functionInterpreterMock, attributeInterpreterMock);
+        assertEquals(initialTestCaseMock, result);
+        verify(functionInterpreterMock, times(1)).interpretFunction(initialTestCaseMock, function);
+        verify(attributeInterpreterMock, times(1)).interpretAttribute(initialTestCaseMock, attribute);
+        verify(initialTestCaseMock, times(1)).withVirtualTime();
+        verifyNoMoreInteractions(initialTestCaseMock, functionInterpreterMock, attributeInterpreterMock);
+    }
+
+    @Nested
+    @DisplayName("Apply required attribute mocking")
+    class ApplyRequiredAttributeMockingTests {
+        @Test
+        void constructWhenStep_doesNothingWhenGivenStepsIsNullAndExpectationIsNull() {
+            final var result = defaultWhenStepConstructor.constructWhenStep(null, initialTestCaseMock, null);
+
+            assertEquals(initialTestCaseMock, result);
+            verifyNoInteractions(initialTestCaseMock);
+        }
+
+        @Test
+        void constructWhenStep_doesNothingWhenGivenStepsIsNullAndExpectationIsNotRepeatedExpect() {
+            final var expectationMock = mock(SingleExpect.class);
+            final var result          = defaultWhenStepConstructor.constructWhenStep(null, initialTestCaseMock,
+                    expectationMock);
+
+            assertEquals(initialTestCaseMock, result);
+            verifyNoInteractions(initialTestCaseMock);
+        }
+
+        @Test
+        void constructWhenStep_doesNothingWhenGivenStepsIsNullAndExpectationIsUnknownExpectation() {
+            final var expectationMock = mock(Expectation.class);
+            final var result          = defaultWhenStepConstructor.constructWhenStep(null, initialTestCaseMock,
+                    expectationMock);
+
+            assertEquals(initialTestCaseMock, result);
+            verifyNoInteractions(initialTestCaseMock);
+        }
+
+        @Test
+        void constructWhenStep_doesNothingWhenGivenStepsIsNullAndExpectationHasNullBlocks() {
+            final var expectationMock = mock(RepeatedExpect.class);
+
+            when(expectationMock.getExpectOrAdjustBlocks()).thenReturn(null);
+
+            final var result = defaultWhenStepConstructor.constructWhenStep(null, initialTestCaseMock, expectationMock);
+
+            assertEquals(initialTestCaseMock, result);
+            verifyNoInteractions(initialTestCaseMock);
+        }
+
+        @Test
+        void constructWhenStep_doesNothingWhenGivenStepsIsNullAndExpectationHasOnlyNullAndExpectBlocks() {
+            final var expectationMock = mock(RepeatedExpect.class);
+
+            final var expectBlock1Mock = mock(ExpectBlock.class);
+            final var expectBlock2Mock = mock(ExpectBlock.class);
+
+            TestHelper.mockEListResult(expectationMock::getExpectOrAdjustBlocks,
+                    Arrays.asList(expectBlock1Mock, null, expectBlock2Mock));
+
+            final var result = defaultWhenStepConstructor.constructWhenStep(null, initialTestCaseMock, expectationMock);
+
+            assertEquals(initialTestCaseMock, result);
+            verifyNoInteractions(initialTestCaseMock);
+        }
+
+        @Test
+        void constructWhenStep_doesNothingWhenGivenStepsIsNullAndExpectationHasOnlyNullAndInvalidAdjustBlocks() {
+            final var expectationMock = mock(RepeatedExpect.class);
+
+            final var adjustBlock1Mock = mock(AdjustBlock.class);
+            final var adjustBlock2Mock = mock(AdjustBlock.class);
+
+            TestHelper.mockEListResult(expectationMock::getExpectOrAdjustBlocks,
+                    Arrays.asList(adjustBlock1Mock, null, adjustBlock2Mock));
+
+            when(adjustBlock1Mock.getAdjustSteps()).thenReturn(null);
+            TestHelper.mockEListResult(adjustBlock2Mock::getAdjustSteps, Collections.emptyList());
+
+            final var result = defaultWhenStepConstructor.constructWhenStep(null, initialTestCaseMock, expectationMock);
+
+            assertEquals(initialTestCaseMock, result);
+            verifyNoInteractions(initialTestCaseMock);
+        }
+
+        @Test
+        void constructWhenStep_doesNothingWhenGivenStepsIsNullAndExpectationHasOnlyNullAndAdjustBlocksWithNonRelevantAdjustSteps() {
+            final var expectationMock = mock(RepeatedExpect.class);
+
+            final var adjustBlock1Mock = mock(AdjustBlock.class);
+            final var adjustBlock2Mock = mock(AdjustBlock.class);
+
+            TestHelper.mockEListResult(expectationMock::getExpectOrAdjustBlocks,
+                    Arrays.asList(adjustBlock1Mock, null, adjustBlock2Mock));
+
+            when(adjustBlock1Mock.getAdjustSteps()).thenReturn(null);
+
+            final var unknownAdjustStep = mock(AdjustStep.class);
+            final var awaitMock         = mock(Await.class);
+
+            TestHelper.mockEListResult(adjustBlock2Mock::getAdjustSteps, List.of(unknownAdjustStep, awaitMock));
+
+            final var result = defaultWhenStepConstructor.constructWhenStep(null, initialTestCaseMock, expectationMock);
+
+            assertEquals(initialTestCaseMock, result);
+            verifyNoInteractions(initialTestCaseMock);
+        }
+
+        @Test
+        void constructWhenStep_doesNothingWhenGivenStepsIsNullAndExpectationHasNullAndAdjustBlocksWithMixedAdjustStepsAndDuplicates() {
+            final var expectationMock = mock(RepeatedExpect.class);
+
+            final var adjustBlock1Mock = mock(AdjustBlock.class);
+            final var adjustBlock2Mock = mock(AdjustBlock.class);
+            final var adjustBlock3Mock = mock(AdjustBlock.class);
+
+            TestHelper.mockEListResult(expectationMock::getExpectOrAdjustBlocks,
+                    Arrays.asList(adjustBlock1Mock, adjustBlock2Mock, null, adjustBlock3Mock));
+
+            when(adjustBlock1Mock.getAdjustSteps()).thenReturn(null);
+
+            final var unknownAdjustStepMock    = mock(AdjustStep.class);
+            final var awaitMock                = mock(Await.class);
+            final var attributeAdjustment1Mock = mock(AttributeAdjustment.class);
+            final var attributeAdjustment2Mock = mock(AttributeAdjustment.class);
+
+            when(attributeAdjustment1Mock.getAttribute()).thenReturn("foo");
+            when(attributeAdjustment2Mock.getAttribute()).thenReturn("foo");
+
+            TestHelper.mockEListResult(adjustBlock2Mock::getAdjustSteps,
+                    List.of(unknownAdjustStepMock, awaitMock, attributeAdjustment1Mock));
+            TestHelper.mockEListResult(adjustBlock3Mock::getAdjustSteps,
+                    Arrays.asList(null, attributeAdjustment2Mock, unknownAdjustStepMock));
+
+            final var result = defaultWhenStepConstructor.constructWhenStep(null, initialTestCaseMock, expectationMock);
+
+            assertEquals(initialTestCaseMock, result);
+            verify(initialTestCaseMock, times(1)).givenAttribute("foo");
+        }
     }
 }

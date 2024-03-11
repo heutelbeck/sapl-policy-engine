@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sapltest.Environment;
+import io.sapl.test.grammar.sapltest.Expectation;
 import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.Scenario;
@@ -101,13 +102,14 @@ class DefaultStepConstructorTests {
     void constructWhenStep_callsWhenStepConstructor_returnsWhenStep() {
         final var givenSteps          = Collections.<GivenStep>emptyList();
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
+        final var ExpectationMock     = mock(Expectation.class);
 
         final var whenStepMock = mock(WhenStep.class);
 
-        when(defaultWhenStepConstructorMock.constructWhenStep(givenSteps, givenOrWhenStepMock))
+        when(defaultWhenStepConstructorMock.constructWhenStep(givenSteps, givenOrWhenStepMock, ExpectationMock))
                 .thenReturn(whenStepMock);
 
-        final var result = defaultStepConstructor.constructWhenStep(givenSteps, givenOrWhenStepMock);
+        final var result = defaultStepConstructor.constructWhenStep(givenSteps, givenOrWhenStepMock, ExpectationMock);
 
         assertEquals(whenStepMock, result);
     }

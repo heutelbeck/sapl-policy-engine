@@ -80,13 +80,15 @@ public final class TestCase implements TestNode, Runnable {
 
         final var needsMocks      = givenSteps.stream().anyMatch(MockDefinition.class::isInstance);
         final var initialTestCase = stepConstructor.constructTestCase(saplTestFixture, environment, needsMocks);
+        final var expectation     = scenario.getExpectation();
 
         if (scenario.getExpectation() instanceof TestException) {
             Assertions.assertThatExceptionOfType(SaplTestException.class)
-                    .isThrownBy(() -> stepConstructor.constructWhenStep(givenSteps, initialTestCase));
+                    .isThrownBy(() -> stepConstructor.constructWhenStep(givenSteps, initialTestCase, expectation));
         } else {
 
-            final var whenStep   = stepConstructor.constructWhenStep(givenSteps, initialTestCase);
+            final var whenStep = stepConstructor.constructWhenStep(givenSteps, initialTestCase, expectation);
+
             final var expectStep = stepConstructor.constructExpectStep(scenario, whenStep);
             final var verifyStep = stepConstructor.constructVerifyStep(scenario, expectStep);
 

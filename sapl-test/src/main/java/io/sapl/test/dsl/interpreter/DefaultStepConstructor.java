@@ -20,6 +20,7 @@ package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sapltest.Environment;
+import io.sapl.test.grammar.sapltest.Expectation;
 import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.Scenario;
@@ -58,8 +59,9 @@ public final class DefaultStepConstructor implements StepConstructor {
     }
 
     @Override
-    public WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep initialTestCase) {
-        return defaultWhenStepConstructor.constructWhenStep(givenSteps, initialTestCase);
+    public WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep initialTestCase,
+            final Expectation expectation) {
+        return defaultWhenStepConstructor.constructWhenStep(givenSteps, initialTestCase, expectation);
     }
 
     @Override

@@ -141,8 +141,8 @@ AuthorizationSubscription:
 MockDefinition:
 	{Function} 'function' name=STRING ('of' parameterMatchers=FunctionParameterMatchers)? 'maps' 'to' returnValue=Value ('is' 'called' timesCalled=NumericAmount)? |
 	{FunctionInvokedOnce} 'function' name=STRING 'maps' 'to' 'stream' returnValue+=Value (',' returnValue+=Value)* |
-	{Attribute} 'attribute' name=STRING ('returns' returnValue+=Value (',' returnValue+=Value)* ('with' 'timing' timing=Duration)?)? |
-	{AttributeWithParameters} 'attribute' name=STRING 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameterMatchers=AttributeParameterMatchers)? 'returns' returnValue=Value |
+	{Attribute} 'attribute' name=STRING 'emits' returnValue+=Value (',' returnValue+=Value)* ('with' 'timing' timing=Duration)? |
+	{AttributeWithParameters} 'attribute' name=STRING 'of' '<' parentMatcher=ValMatcher '>' (parameterMatchers=AttributeParameterMatchers)? 'emits' returnValue=Value |
 	{VirtualTime} 'virtual-time';
 
 Environment:
@@ -155,7 +155,7 @@ FunctionParameterMatchers:
     '(' matchers+=ValMatcher (',' matchers+=ValMatcher)* ')';
 
 AttributeParameterMatchers:
-    matchers+=ValMatcher (',' matchers+=ValMatcher)*;
+    '(' matchers+=ValMatcher (',' matchers+=ValMatcher)* ')';
 
 NumericAmount:
     {Once} 'once' |
