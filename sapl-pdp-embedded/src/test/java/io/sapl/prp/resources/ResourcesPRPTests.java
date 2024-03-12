@@ -31,7 +31,7 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
+import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -59,7 +59,7 @@ class ResourcesPRPTests {
         when(mockIndex.apply(any())).thenReturn(mockIndex);
 
         // DO
-        new GenericInMemoryIndexedPolicyRetrievalPoint(mockIndex, mockSource);
+        new GenericInMemoryIndexedPolicyRetrievalPointSource(mockIndex, mockSource);
 
         // THEN
         verify(mockSource, times(1)).getUpdates();
@@ -70,17 +70,18 @@ class ResourcesPRPTests {
     }
 
     private PrpUpdateEvent event(Type type) {
-        return new PrpUpdateEvent(new Update(type, null, null));
+        return new PrpUpdateEvent(new Update(type, null));
     }
 
     @Test
     void doTest() {
         var interpreter = new DefaultSAPLInterpreter();
         var source      = new ResourcesPrpUpdateEventSource("/policies", interpreter);
-        var prp         = new GenericInMemoryIndexedPolicyRetrievalPoint(new NaiveImmutableParsedDocumentIndex(),
+        var prp         = new GenericInMemoryIndexedPolicyRetrievalPointSource(new NaiveImmutableParsedDocumentIndex(),
                 source);
         var authzSub    = AuthorizationSubscription.of("Willi", "write", "icecream");
-        var sut         = prp.retrievePolicies().contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub)).next();
+        var sut         = prp.policyRetrievalPoint().blockFirst().retrievePolicies()
+                .contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub));
         StepVerifier.create(sut).expectNextMatches(PolicyRetrievalResult.class::isInstance).verifyComplete();
         prp.dispose();
     }

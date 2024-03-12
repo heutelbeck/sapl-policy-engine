@@ -88,8 +88,8 @@ class SAPLSyntaxErrorMessageProviderTests {
     void completeSet_ReturnsIncompleteDocument() throws Exception {
         String testPolicy = "set \"setname\" deny-unless-permit";
         SAPL   policy     = this.parseHelper.parse(testPolicy);
-        this.validator.assertError(policy, SaplPackage.eINSTANCE.getDenyUnlessPermitCombiningAlgorithm(),
-                Diagnostic.SYNTAX_DIAGNOSTIC, SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
+        this.validator.assertError(policy, SaplPackage.eINSTANCE.getPolicySet(), Diagnostic.SYNTAX_DIAGNOSTIC,
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
     }
 
     @Test

@@ -27,7 +27,6 @@ import org.springframework.context.annotation.Role;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.config.PDPConfigurationProvider;
-import io.sapl.prp.PolicyRetrievalPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,17 +36,15 @@ import lombok.extern.slf4j.Slf4j;
 @AutoConfigureAfter({ FunctionLibrariesAutoConfiguration.class, PolicyInformationPointsAutoConfiguration.class })
 public class PDPAutoConfiguration {
 
-    private final PolicyRetrievalPoint policyRetrievalPoint;
-
     private final PDPConfigurationProvider configurationProvider;
 
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PolicyDecisionPoint policyDecisionPoint() {
-        log.info("Deploying embedded Policy Decision Point. ConfigProvider: {} PRP: {}",
-                configurationProvider.getClass().getSimpleName(), policyRetrievalPoint.getClass().getSimpleName());
-        return new EmbeddedPolicyDecisionPoint(configurationProvider, policyRetrievalPoint);
+        log.info("Deploying embedded Policy Decision Point. ConfigProvider: {} ",
+                configurationProvider.getClass().getSimpleName());
+        return new EmbeddedPolicyDecisionPoint(configurationProvider);
     }
 
 }

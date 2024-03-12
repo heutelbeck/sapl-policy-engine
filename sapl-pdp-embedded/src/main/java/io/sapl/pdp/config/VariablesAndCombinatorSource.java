@@ -21,12 +21,12 @@ import java.util.Map;
 import java.util.Optional;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import reactor.core.publisher.Flux;
 
 public interface VariablesAndCombinatorSource {
 
-    Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm();
+    Flux<Optional<PolicyDocumentCombiningAlgorithm>> getCombiningAlgorithm();
 
     Flux<Optional<Map<String, Val>>> getVariables();
 

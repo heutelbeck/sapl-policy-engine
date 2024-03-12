@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.sapl.impl.util;
+package io.sapl.interpreter.combinators;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,24 +29,46 @@ import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
+import io.sapl.prp.MatchingDocument;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 @UtilityClass
-public class CombiningAlgorithmUtil {
+public class BasicCombiningAlgorithm {
 
-    public static Flux<CombinedDecision> eagerlyCombinePolicyElements(Collection<PolicyElement> policyElements,
-            Function<DocumentEvaluationResult[], CombinedDecision> combinator, String algorithmName,
+    public static Flux<CombinedDecision> eagerlyCombineMatchingDocuments(Collection<MatchingDocument> matchingDocuments,
+            Function<DocumentEvaluationResult[], CombinedDecision> combinator, CombiningAlgorithm algorithm,
+            AuthorizationDecision defaultDecisionIfEmpty) {
+        if (matchingDocuments.isEmpty())
+            return Flux.just(CombinedDecision.of(defaultDecisionIfEmpty, algorithm));
+        var policyDecisions = eagerMatchingDocumentsDecisionFluxes(matchingDocuments);
+        return Flux.combineLatest(policyDecisions, decisionObjects -> combinator
+                .apply(Arrays.copyOf(decisionObjects, decisionObjects.length, DocumentEvaluationResult[].class)));
+    }
+
+    public static Flux<CombinedDecision> eagerlyCombinePolicyElements(
+            Collection<? extends PolicyElement> policyElements,
+            Function<DocumentEvaluationResult[], CombinedDecision> combinator, CombiningAlgorithm algorithm,
             AuthorizationDecision defaultDecisionIfEmpty) {
         if (policyElements.isEmpty())
-            return Flux.just(CombinedDecision.of(defaultDecisionIfEmpty, algorithmName));
+            return Flux.just(CombinedDecision.of(defaultDecisionIfEmpty, algorithm));
         var policyDecisions = eagerPolicyElementDecisionFluxes(policyElements);
         return Flux.combineLatest(policyDecisions, decisionObjects -> combinator
                 .apply(Arrays.copyOf(decisionObjects, decisionObjects.length, DocumentEvaluationResult[].class)));
     }
 
+    private static List<Flux<DocumentEvaluationResult>> eagerMatchingDocumentsDecisionFluxes(
+            Collection<MatchingDocument> matchingDocuments) {
+        var documentDecisions = new ArrayList<Flux<DocumentEvaluationResult>>(matchingDocuments.size());
+        for (var matchingDocument : matchingDocuments) {
+            documentDecisions.add(matchingDocument.document().sapl().getPolicyElement().evaluate()
+                    .map(result -> result.withTargetResult(matchingDocument.targetExpressionResult())));
+        }
+        return documentDecisions;
+    }
+
     private static List<Flux<DocumentEvaluationResult>> eagerPolicyElementDecisionFluxes(
-            Collection<PolicyElement> policyElements) {
+            Collection<? extends PolicyElement> policyElements) {
         var policyDecisions = new ArrayList<Flux<DocumentEvaluationResult>>(policyElements.size());
         for (var policyElement : policyElements) {
             policyDecisions.add(evaluatePolicyElementTargetAndPolicyIfApplicable(policyElement));
@@ -56,7 +78,7 @@ public class CombiningAlgorithmUtil {
 
     private static Flux<DocumentEvaluationResult> evaluatePolicyElementTargetAndPolicyIfApplicable(
             PolicyElement policyElement) {
-        var matches = policyElement.matches().map(CombiningAlgorithmUtil::requireTargetExpressionEvaluatesToBoolean);
+        var matches = policyElement.matches().map(BasicCombiningAlgorithm::requireTargetExpressionEvaluatesToBoolean);
         return matches.flatMapMany(evaluatePolicyIfApplicable(policyElement));
     }
 
@@ -77,7 +99,7 @@ public class CombiningAlgorithmUtil {
         return Val
                 .error("Type mismatch. Target expression must evaluate to Boolean. Was: %s",
                         targetExpressionResult.getValType())
-                .withTrace(CombiningAlgorithm.class, false, targetExpressionResult);
+                .withTrace(BasicCombiningAlgorithm.class, false, targetExpressionResult);
     }
 
 }

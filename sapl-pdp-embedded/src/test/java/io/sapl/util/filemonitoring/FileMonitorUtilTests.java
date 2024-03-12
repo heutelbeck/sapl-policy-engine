@@ -25,6 +25,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.io.File;
+import java.nio.file.Paths;
 
 import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.junit.jupiter.api.Test;
@@ -45,7 +46,7 @@ class FileMonitorUtilTests {
 
         var path = FileMonitorUtil.resolveHomeFolderIfPresent("~" + File.separator);
 
-        assertThat(path, containsString(homePath));
+        assertThat(path.toAbsolutePath().toString(), containsString(homePath));
     }
 
     @Test
@@ -53,13 +54,13 @@ class FileMonitorUtilTests {
         var folder = File.separator + "opt" + File.separator;
         var path   = FileMonitorUtil.resolveHomeFolderIfPresent(folder);
 
-        assertThat(path, is(folder));
+        assertThat(path.toString(), is(File.separator + "opt"));
     }
 
     @Test
     void return_no_event_for_non_existent_directory() {
-        Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("src/test/resources/not_existing_dir",
-                __ -> true);
+        Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory(Paths.get("src/test/resources/not_existing_dir"),
+                f -> true);
 
         StepVerifier.create(monitorFlux).expectNextCount(0L).thenCancel().verify();
         monitorFlux.take(1L).subscribe();
@@ -67,7 +68,8 @@ class FileMonitorUtilTests {
 
     @Test
     void return_no_event_when_nothing_changes() {
-        Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("src/test/resources/policies", __ -> true);
+        Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory(Paths.get("src/test/resources/policies"),
+                f -> true);
         StepVerifier.create(monitorFlux).expectNextCount(0L).thenCancel().verify();
     }
 
@@ -76,7 +78,7 @@ class FileMonitorUtilTests {
         try (MockedConstruction<FileAlterationMonitor> mocked = Mockito.mockConstruction(FileAlterationMonitor.class,
                 (mock, context) -> doThrow(new Exception()).when(mock).start())) {
 
-            Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory("~/", __ -> true);
+            Flux<FileEvent> monitorFlux = FileMonitorUtil.monitorDirectory(Paths.get("~/"), f -> true);
             monitorFlux.take(1L).subscribe();
             assertThat(mocked.constructed().size(), is(1));
             verify(mocked.constructed().get(0), times(1)).start();

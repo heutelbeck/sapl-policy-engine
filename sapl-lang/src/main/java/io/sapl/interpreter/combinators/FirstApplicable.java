@@ -15,16 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.sapl.impl;
+package io.sapl.interpreter.combinators;
 
 import java.util.List;
 import java.util.function.Function;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicyElement;
+import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 /**
@@ -53,19 +57,15 @@ import reactor.core.publisher.Flux;
  * the decision of the policy set is NOT_APPLICABLE.
  *
  */
-public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicableCombiningAlgorithmImpl {
+@UtilityClass
+public class FirstApplicable {
 
-    @Override
-    public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-        return combine(0, policies).apply(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, getName()));
+    public Flux<CombinedDecision> firstApplicable(PolicySet policySet) {
+        return combine(0, policySet.getPolicies())
+                .apply(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, CombiningAlgorithm.FIRST_APPLICABLE));
     }
 
-    @Override
-    public String getName() {
-        return "FIRST_APPLICABLE";
-    }
-
-    private Function<CombinedDecision, Flux<CombinedDecision>> combine(int policyId, List<PolicyElement> policies) {
+    private Function<CombinedDecision, Flux<CombinedDecision>> combine(int policyId, List<Policy> policies) {
         if (policyId == policies.size())
             return Flux::just;
 
@@ -85,7 +85,6 @@ public class FirstApplicableCombiningAlgorithmImplCustom extends FirstApplicable
             if (!match.isBoolean() || !match.getBoolean()) {
                 return Flux.just(policyElement.targetResult(match));
             }
-
             return policyElement.evaluate().map(result -> result.withTargetResult(match));
         });
     }

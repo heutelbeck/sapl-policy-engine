@@ -26,8 +26,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
@@ -69,8 +67,8 @@ public class InputStringVariablesAndCombinatorSource implements VariablesAndComb
     }
 
     @Override
-    public Flux<Optional<CombiningAlgorithm>> getCombiningAlgorithm() {
-        return Flux.just(config.getAlgorithm()).map(CombiningAlgorithmFactory::getCombiningAlgorithm).map(Optional::of);
+    public Flux<Optional<PolicyDocumentCombiningAlgorithm>> getCombiningAlgorithm() {
+        return Flux.just(config.getAlgorithm()).map(Optional::of);
     }
 
     @Override

@@ -15,17 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.sapl.impl;
+package io.sapl.interpreter.combinators;
 
 import java.util.LinkedList;
 import java.util.List;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.impl.util.CombiningAlgorithmUtil;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
+import io.sapl.prp.MatchingDocument;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 /**
@@ -49,17 +51,18 @@ import reactor.core.publisher.Flux;
  * decision is the result of evaluating this policy document.
  *
  */
-public class OnlyOneApplicableCombiningAlgorithmImplCustom extends OnlyOneApplicableCombiningAlgorithmImpl {
+@UtilityClass
+public class OnlyOneApplicable {
 
-    @Override
-    public Flux<CombinedDecision> combinePolicies(List<PolicyElement> policies) {
-        return CombiningAlgorithmUtil.eagerlyCombinePolicyElements(policies, this::combinator, getName(),
+    public Flux<CombinedDecision> onlyOneApplicable(PolicySet policySet) {
+        return BasicCombiningAlgorithm.eagerlyCombinePolicyElements(policySet.getPolicies(),
+                OnlyOneApplicable::combinator, CombiningAlgorithm.ONLY_ONE_APPLICABLE,
                 AuthorizationDecision.NOT_APPLICABLE);
     }
 
-    @Override
-    public String getName() {
-        return "ONLY_ONE_APPLICABLE";
+    public Flux<CombinedDecision> onlyOneApplicable(List<MatchingDocument> documents) {
+        return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, OnlyOneApplicable::combinator,
+                CombiningAlgorithm.ONLY_ONE_APPLICABLE, AuthorizationDecision.NOT_APPLICABLE);
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] evaluationResults) {
@@ -81,7 +84,7 @@ public class OnlyOneApplicableCombiningAlgorithmImplCustom extends OnlyOneApplic
             authzDecision = AuthorizationDecision.INDETERMINATE;
         }
 
-        return CombinedDecision.of(authzDecision, getName(), decisions);
+        return CombinedDecision.of(authzDecision, CombiningAlgorithm.ONLY_ONE_APPLICABLE, decisions);
     }
 
 }

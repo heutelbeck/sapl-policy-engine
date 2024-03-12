@@ -17,7 +17,9 @@
  */
 package io.sapl.prp;
 
-import reactor.core.publisher.Flux;
+import java.util.Collection;
+
+import reactor.core.publisher.Mono;
 
 /**
  * A policy retrieval point is responsible for selecting all the policies
@@ -26,22 +28,24 @@ import reactor.core.publisher.Flux;
 public interface PolicyRetrievalPoint {
 
     /**
-     * Returns a {@link Flux} of policy retrieval results containing all the
+     * Returns a {@link Mono} of policy retrieval results containing all the
      * policies or policy sets having a target expression that matches the given
      * authorization subscription. The given function context and variables
      * constitute the environment the target expressions are evaluated in.
      *
-     * @return a {@link Flux} providing the policy retrieval results containing all
+     * @return a {@link Mono} providing the policy retrieval results containing all
      *         the matching policies or policy sets. New results are only added to
      *         the stream if they are different from the preceding result.
      */
-    Flux<PolicyRetrievalResult> retrievePolicies();
+    Mono<PolicyRetrievalResult> retrievePolicies();
 
     /**
-     * Release all claimed resources
+     * @return all loaded documents
      */
-    default void destroy() {
-        // NOOP
-    }
+    Collection<Document> allDocuments();
 
+    /**
+     * @return true, iff no errors in documents, names and ids unique
+     */
+    boolean isConsistent();
 }

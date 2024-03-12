@@ -132,7 +132,7 @@ public class SAPLImplCustom extends SAPLImpl {
     private static Map<String, List<Expression>> collectEnforcedSchemaExpressionsByKeyword(EList<Schema> schemas) {
         Map<String, List<Expression>> schemasByKeyword = new HashMap<>();
         for (var schema : schemas) {
-            if ("enforced".equals(schema.getEnforced())) {
+            if (schema.isEnforced()) {
                 var expression = schemaPredicateExpression(schema);
                 schemasByKeyword.computeIfAbsent(schema.getSubscriptionElement(), k -> new ArrayList<>(1))
                         .add(expression);

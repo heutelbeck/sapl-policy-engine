@@ -30,17 +30,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-class GenericInMemoryIndexedPolicyRetrievalPointTests {
+class GenericInMemoryIndexedPolicyRetrievalPointSourceTests {
+    private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-    PrpUpdateEventSource sourceMock;
-
-    ImmutableParsedDocumentIndex indexMock;
+    PrpUpdateEventSource                  sourceMock;
+    UpdateEventDrivenPolicyRetrievalPoint indexMock;
 
     @BeforeEach
     void beforeEach() {
@@ -48,9 +47,8 @@ class GenericInMemoryIndexedPolicyRetrievalPointTests {
         var eventMock = mock(PrpUpdateEvent.class);
         when(sourceMock.getUpdates()).thenReturn(Flux.just(eventMock));
 
-        indexMock = mock(ImmutableParsedDocumentIndex.class);
+        indexMock = mock(UpdateEventDrivenPolicyRetrievalPoint.class);
         when(indexMock.apply(any())).thenReturn(indexMock);
-
     }
 
     @Test
@@ -60,8 +58,8 @@ class GenericInMemoryIndexedPolicyRetrievalPointTests {
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(resultMock));
 
         // DO
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-        var result = prp.retrievePolicies().blockFirst();
+        var prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(indexMock, sourceMock);
+        var result = prp.policyRetrievalPoint().flatMap(PolicyRetrievalPoint::retrievePolicies).blockFirst();
         prp.dispose();
 
         // THEN
@@ -76,21 +74,13 @@ class GenericInMemoryIndexedPolicyRetrievalPointTests {
     @Test
     void testConstructAndRetrieveWithResult() {
         // WHEN
-        var policyElementMock = mock(PolicyElement.class);
-        when(policyElementMock.getSaplName()).thenReturn("SAPL");
-        // when(policyElementMock.getClass()).thenCallRealMethod();
-
-        var documentMock = mock(SAPL.class);
-        when(documentMock.getPolicyElement()).thenReturn(policyElementMock);
-
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch("id", documentMock, Val.TRUE);
-        // doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
-
+        var doc                   = INTERPRETER.parseDocument("policy \"x\" permit");
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(doc, Val.TRUE);
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 
         // DO
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-        var result = prp.retrievePolicies().blockFirst();
+        var prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(indexMock, sourceMock);
+        var result = prp.policyRetrievalPoint().flatMap(PolicyRetrievalPoint::retrievePolicies).blockFirst();
         prp.dispose();
 
         // THEN
@@ -106,20 +96,13 @@ class GenericInMemoryIndexedPolicyRetrievalPointTests {
     @Test
     void testConstructAndRetrieveWithNonSAPLResult() {
         // WHEN
-        var policyElementMock = mock(PolicyElement.class);
-        when(policyElementMock.getSaplName()).thenReturn("SAPL");
-        // when(policyElementMock.getClass()).thenCallRealMethod();
-
-        var documentMock = mock(SAPL.class);
-
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch("id", documentMock, Val.TRUE);
-        // doReturn(Collections.singletonList(documentMock)).when(resultMock.getMatchingDocuments());
-
+        var doc                   = INTERPRETER.parseDocument("policy \"x\" permit");
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(doc, Val.TRUE);
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 
         // DO
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPoint(indexMock, sourceMock);
-        var result = prp.retrievePolicies().blockFirst();
+        var prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(indexMock, sourceMock);
+        var result = prp.policyRetrievalPoint().flatMap(PolicyRetrievalPoint::retrievePolicies).blockFirst();
         prp.dispose();
 
         // THEN
@@ -129,7 +112,6 @@ class GenericInMemoryIndexedPolicyRetrievalPointTests {
 
         verify(indexMock, times(1)).retrievePolicies();
         assertThat(result, is(policyRetrievalResult));
-
     }
 
 }

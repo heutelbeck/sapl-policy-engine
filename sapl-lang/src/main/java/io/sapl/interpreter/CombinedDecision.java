@@ -29,6 +29,8 @@ import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -55,18 +57,36 @@ public class CombinedDecision implements Traced {
         this.errorMessage = errorMessage;
     }
 
-    public static CombinedDecision error(String combiningAlgorithm, String errorMessage) {
-        return new CombinedDecision(AuthorizationDecision.INDETERMINATE, combiningAlgorithm, List.of(),
+    public static CombinedDecision error(CombiningAlgorithm combiningAlgorithm, String errorMessage) {
+        return new CombinedDecision(AuthorizationDecision.INDETERMINATE, combiningAlgorithm.toString(), List.of(),
                 Optional.ofNullable(errorMessage));
     }
 
-    public static CombinedDecision of(AuthorizationDecision authorizationDecision, String combiningAlgorithm) {
-        return new CombinedDecision(authorizationDecision, combiningAlgorithm, List.of(), Optional.empty());
+    public static CombinedDecision of(AuthorizationDecision authorizationDecision,
+            CombiningAlgorithm combiningAlgorithm) {
+        return new CombinedDecision(authorizationDecision, combiningAlgorithm.toString(), List.of(), Optional.empty());
     }
 
-    public static CombinedDecision of(AuthorizationDecision authorizationDecision, String combiningAlgorithm,
+    public static CombinedDecision of(AuthorizationDecision authorizationDecision,
+            CombiningAlgorithm combiningAlgorithm, List<DocumentEvaluationResult> documentEvaluationResults) {
+        return new CombinedDecision(authorizationDecision, combiningAlgorithm.toString(), documentEvaluationResults,
+                Optional.empty());
+    }
+
+    public static CombinedDecision error(PolicyDocumentCombiningAlgorithm combiningAlgorithm, String errorMessage) {
+        return new CombinedDecision(AuthorizationDecision.INDETERMINATE, combiningAlgorithm.toString(), List.of(),
+                Optional.ofNullable(errorMessage));
+    }
+
+    public static CombinedDecision of(AuthorizationDecision authorizationDecision,
+            PolicyDocumentCombiningAlgorithm combiningAlgorithm) {
+        return new CombinedDecision(authorizationDecision, combiningAlgorithm.toString(), List.of(), Optional.empty());
+    }
+
+    public static CombinedDecision of(AuthorizationDecision authorizationDecision,
+            PolicyDocumentCombiningAlgorithm combiningAlgorithm,
             List<DocumentEvaluationResult> documentEvaluationResults) {
-        return new CombinedDecision(authorizationDecision, combiningAlgorithm, documentEvaluationResults,
+        return new CombinedDecision(authorizationDecision, combiningAlgorithm.toString(), documentEvaluationResults,
                 Optional.empty());
     }
 

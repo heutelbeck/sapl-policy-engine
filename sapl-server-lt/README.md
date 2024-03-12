@@ -141,6 +141,24 @@ In the [preconfigured example](https://github.com/heutelbeck/sapl-policy-engine/
 
 If the SAPL server runs in a [Docker container](#running-directly-as-a-docker-container), the path `/pdp/data` is monitored.
 
+
+### Configure Bucket4j
+
+To configure `Bucket4j` in your application, you'll need to adjust some properties in your configuration file. 
+
+Firstly, set `bucket4j.enabled=true` to activate Bucket4j's auto-configuration feature.
+
+Secondly, set `infinispan.embedded.enabled=true` to use the embedded cache by infinispan.
+
+Then set `bucket4j.cache-to-use=infinispan`.
+
+Use `bucket4j.filters.url` to define the path expression where the rate limit should be applied. The property `bucket4j.filters.strategy=first` ensures that the rate limit stops at the first matching configuration encountered.
+
+To retrieve the key, use Spring Expression Language (SpEL) with `bucket4j.filters.rate-limits.cache-key`. Then, determine whether to execute the rate limit using SpEL with `bucket4j.filters.rate-limits.execute-condition`.
+
+Lastly, define the rate limit parameters using `bucket4j.filters.rate-limits.bandwidths` to set up the Bucket4j rate limit. Adjust these settings according to your application's requirements.
+
+
 ### Managing SAPL Policies
 
 #### Policy Storage Location
@@ -504,10 +522,10 @@ docker run -d --name sapl-server-lt -p 8443:8443 --expose=7000 -v c:\sapl\polici
 
 If your server does not want to start, you will most likely have to specify a keystore. To do this, it is recommended that you first create a new Docker volume and store the keystore there. In the following example, we have created a Docker volume 'sapl-server-lt', which is mounted on `/pdp/data` within the container. Alternatively, you can store the keystore in a path on your host system and then mount it under the path `/pdp/data` of your Docker container. 
 
-The default value of the parameter `SPRING_CONFIG_ADDITIONAL_LOCATION` in the Docker image is set to `/pdp/data`. This parameter specifies the location where an additional `application.yml` file should be searched for. The `application.yml` under `/pdp/data` also contains the configuration for your keystore:
+The default value of the parameter `SPRING_CONFIG_ADDITIONAL_LOCATION` in the Docker image is set to `/pdp/data`. This parameter specifies the location where an additional `application.yml` file should be searched for. This parameter also makes it necessary to mount a volume under /pdp/data, as otherwise the SAPL server LT will not start in the container. The `application.yml` under `/pdp/data` also contains the configuration for your keystore:
 
 ```
-docker run -d --name sapl-server-lt -p 8443:8443 --expose=7000 -v sapl-server-lt:/pdp/data -e SPRING_CONFIG_ADDITIONAL_LOCATION=file:/pdp/data/ ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT
+docker run -d --name sapl-server-lt -p 8443:8443 --expose=7000 -v sapl-server-lt:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT
 ```
 
 Afterward you can check if the service is online under: <http://localhost:8080/actuator/health>.
@@ -583,6 +601,8 @@ kubectl create namespace sapl-server-lt
 
 Add the resource for configuring a persistent volume for the SAPL Server LT to the namespace.
 
+The default `hostPath` for the persistent volume is `/sapl`. In addition, the persistent volume with the file `sapl-server-lt-baremetal.yml` is mounted under `/pdp/data` by default. Saving the [required server configurations](#configuration) as `application.yml` under `/sapl` in the persistent volume is necessary for a proper server start.
+
 ```
 kubectl apply -f https://raw.githubusercontent.com/heutelbeck/sapl-policy-engine/master/sapl-server-lt/kubernetes/sapl-server-lt-pv.yml -n sapl-server-lt
 ```
@@ -627,7 +647,7 @@ kubectl apply -f sapl-server-lt-baremetal.yml -n sapl-server-lt
 Create a secret using `htpasswd` and enter the password when prompted. To create htpasswd secrets on Windows, you may need to use additional software like XAMPP to run the `htpasswd` command.
 
 ```
-htpasswd -c auth Username
+htpasswd -c auth <username>
 ```
 
 Then create the secret `basic-auth` and fill it with the data from the `auth` file created via htpasswd

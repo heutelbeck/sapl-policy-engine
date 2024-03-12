@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.Document;
 import io.sapl.prp.MatchingDocument;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.NonNull;
@@ -59,13 +59,12 @@ public class CanonicalIndexAlgorithm {
                 ).flatMap(Function.identity()); // mono of mono is flattened
 
         return matchingCtxMono.map(matchingCtx -> {
-            var matching = matchingCtx.getMatchingCandidatesMask();
-            var formulas = fetchFormulas(matching, dataContainer);
-            var policies = fetchPolicies(formulas, dataContainer);
-            var results  = new ArrayList<MatchingDocument>();
-            for (var policy : policies) {
-                results.add(new MatchingDocument(policy.getPolicyElement().getSaplName(), policy,
-                        Val.TRUE.withTrace(CanonicalIndexAlgorithm.class)));
+            var matching  = matchingCtx.getMatchingCandidatesMask();
+            var formulas  = fetchFormulas(matching, dataContainer);
+            var documents = fetchDocuments(formulas, dataContainer);
+            var results   = new ArrayList<MatchingDocument>();
+            for (var document : documents) {
+                results.add(new MatchingDocument(document, Val.TRUE.withTrace(CanonicalIndexAlgorithm.class)));
             }
             return new PolicyRetrievalResult(results, matchingCtx.isErrorsInTargets(), true);
         }).onErrorReturn(new PolicyRetrievalResult(Collections.emptyList(), true, true));
@@ -173,7 +172,7 @@ public class CanonicalIndexAlgorithm {
         return result;
     }
 
-    private List<SAPL> fetchPolicies(final Set<DisjunctiveFormula> formulas,
+    private List<Document> fetchDocuments(final Set<DisjunctiveFormula> formulas,
             CanonicalIndexDataContainer dataContainer) {
         return formulas.parallelStream().map(dataContainer::getPoliciesIncludingFormula)
                 .flatMap(Collection::parallelStream).distinct().toList();

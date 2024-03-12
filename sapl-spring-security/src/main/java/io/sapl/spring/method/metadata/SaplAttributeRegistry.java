@@ -33,7 +33,9 @@ import org.springframework.expression.Expression;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PostFilter;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.prepost.PreFilter;
 import org.springframework.util.ClassUtils;
 
 import lombok.NonNull;
@@ -76,7 +78,9 @@ public class SaplAttributeRegistry {
         var target      = mi.getThis();
         var targetClass = (target != null) ? target.getClass() : null;
         return hasAnnotation(method, targetClass, PreAuthorize.class)
-                || hasAnnotation(method, targetClass, PostAuthorize.class);
+                || hasAnnotation(method, targetClass, PostAuthorize.class)
+                || hasAnnotation(method, targetClass, PreFilter.class)
+                || hasAnnotation(method, targetClass, PostFilter.class);
     }
 
     private <T extends Annotation> boolean hasAnnotation(Method method, Class<?> targetClass, Class<T> annotationType) {
