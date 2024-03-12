@@ -37,7 +37,6 @@ import org.springframework.context.annotation.ComponentScan;
 public class SAPLLanguageServer {
 
     public static void main(String[] args) {
-        SpringApplication.run(SAPLLanguageServer.class, args);
         SpringApplication app = new SpringApplication(SAPLLanguageServer.class);
         // deactivate the spring boot banner so as not to interfere with the stdio
         // communication between lsp client and
