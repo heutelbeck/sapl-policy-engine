@@ -137,6 +137,7 @@
 		<module>sapl-spring-data-mongo-reactive</module>
 		<module>sapl-spring-data-common</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-ui</module>
+		<module>sapl-eclipse-plugin/sapl-test-eclipse-ui</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-target</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-thirdparty</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-feature</module>

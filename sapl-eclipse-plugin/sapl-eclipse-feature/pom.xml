@@ -41,5 +41,10 @@
 			<artifactId>sapl-eclipse-ui</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-test-eclipse-ui</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 	</dependencies>
 </project>
