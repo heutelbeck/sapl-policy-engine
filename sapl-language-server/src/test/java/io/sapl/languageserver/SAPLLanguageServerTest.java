@@ -17,25 +17,34 @@
  */
 package io.sapl.languageserver;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.WebApplicationType;
-
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
+
+//class SAPLLanguageServerTest {
+//
+//    @Test
+//    void test() {
+//        SpringApplication springApplication = SAPLLanguageServer.configureSpringApplication();
+//        assertThat(springApplication.getWebApplicationType(), is(WebApplicationType.NONE));
+//    }
+//
+//    @Test
+//    void testCommandLineRunner() {
+//        var saplLanguageServer = new SAPLLanguageServer();
+//        assertDoesNotThrow(saplLanguageServer::commandLineRunner);
+//    }
+//}
+
+@SpringBootTest
 class SAPLLanguageServerTest {
 
     @Test
-    void test() {
-        SpringApplication springApplication = SAPLLanguageServer.configureSpringApplication();
-        assertThat(springApplication.getWebApplicationType(), is(WebApplicationType.NONE));
+    void contextLoads(ApplicationContext context) {
+        assertThat(context).isNotNull();
     }
 
-    @Test
-    void testCommandLineRunner() {
-        var saplLanguageServer = new SAPLLanguageServer();
-        assertDoesNotThrow(saplLanguageServer::commandLineRunner);
-    }
 }

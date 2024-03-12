@@ -17,15 +17,12 @@
  */
 package io.sapl.languageserver;
 
-import org.eclipse.xtext.ide.server.ServerLauncher;
-import org.eclipse.xtext.ide.server.ServerModule;
-import org.springframework.boot.Banner;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
  * Spring boot CLI application which starts a language server for sapl policy
@@ -38,26 +35,17 @@ import org.springframework.context.annotation.ComponentScan;
 public class SAPLLanguageServer {
 
     public static void main(String[] args) {
-        configureSpringApplication().run(args);
-    }
-
-    protected static SpringApplication configureSpringApplication() {
-        SpringApplication app = new SpringApplication(SAPLLanguageServer.class);
-
-        // deactivate the spring boot banner so as not to interfere with the stdio
-        // communication between lsp client and
-        // server
-        app.setBannerMode(Banner.Mode.OFF);
-
-        // deactivate integrated webserver because it is not required for the language
-        // server
-        app.setWebApplicationType(WebApplicationType.NONE);
-
-        return app;
+        SpringApplication.run(SAPLLanguageServer.class, args);
     }
 
     @Bean
-    public CommandLineRunner commandLineRunner() {
-        return args -> ServerLauncher.launch(SAPLLanguageServer.class.getName(), args, new ServerModule());
+    TaskExecutor taskExecutor() {
+        ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
+        taskExecutor.setCorePoolSize(1);
+        taskExecutor.setMaxPoolSize(1);
+        taskExecutor.setAwaitTerminationSeconds(1);
+        taskExecutor.setWaitForTasksToCompleteOnShutdown(false);
+        taskExecutor.initialize();
+        return taskExecutor;
     }
 }
