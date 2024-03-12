@@ -192,6 +192,9 @@ jobs:
           **/plugin.xml
         retention-days: 1
 
+      # This action currently contains a bug. If a commit triggers more than one workflow
+      # run all test reports are published on the first workflow run.
+      # See: https://github.com/ScaCap/action-surefire-report/issues/75
     - name: Publish Test Report
       if: ${{ (success() || failure()) && (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
       uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
