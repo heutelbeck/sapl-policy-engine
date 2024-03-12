@@ -17,29 +17,16 @@
  */
 package io.sapl.languageserver;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.ActiveProfiles;
 
-//class SAPLLanguageServerTest {
-//
-//    @Test
-//    void test() {
-//        SpringApplication springApplication = SAPLLanguageServer.configureSpringApplication();
-//        assertThat(springApplication.getWebApplicationType(), is(WebApplicationType.NONE));
-//    }
-//
-//    @Test
-//    void testCommandLineRunner() {
-//        var saplLanguageServer = new SAPLLanguageServer();
-//        assertDoesNotThrow(saplLanguageServer::commandLineRunner);
-//    }
-//}
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-@SpringBootTest
+@ActiveProfiles("test")
+@SpringBootTest(useMainMethod = SpringBootTest.UseMainMethod.ALWAYS)
 class SAPLLanguageServerTest {
 
     @Test
@@ -47,4 +34,9 @@ class SAPLLanguageServerTest {
         assertThat(context).isNotNull();
     }
 
+    @Test
+    void testCommandLineRunner() {
+        var saplLanguageServer = new SAPLLanguageServer();
+        assertDoesNotThrow(saplLanguageServer::commandLineRunner);
+    }
 }
