@@ -144,8 +144,8 @@ To avoid issues on SonarCloud, you can use [SonarLint][sonarlint] and the
 [SpotBugs plugin][spotbugs-plugins] in your IDE to keep your code clean. Sb-contrib 
 can be added to the SpotBugs plugin and you can use our [exclude filter file]
 [spotbugs-exclude-filter] in your SpotBugs plugin configuration to exclude certain 
-source files and rules from your local SpotBugs analysis. Please note that not all 
-issues on SonarCloud can be avoided by using SonarLint due to technical limitations of 
+source files and rules from your local SpotBugs analysis. \
+Please note that not all issues on SonarCloud can be avoided by using SonarLint due to technical limitations of 
 SonarLint.
 
 #### Code coverage
