@@ -14,6 +14,13 @@
 # limitations under the License.
 #
 
+# This workflow allows for analyzing pull requests from forks with SonarCloud. Since
+# SonarCloud analysis requires a SonarCloud token in the form of a repository secret
+# and workflows triggered by pull requests from a fork do not have access to these
+# secrets, this workaround is needed. Information and files needed for a SonarCloud
+# analysis are downloaded as an artifact from a previous build workflow.
+# This workflow is always triggered by the conclusion of the build workflow but is skipped
+# if the previous workflow was not triggered by a fork or failed.
 name: SonarCloud Analysis for PRs from Fork
 on:
   workflow_run:
@@ -51,9 +58,22 @@ jobs:
         java-version: 17
         cache: 'maven'
 
+      # The artifact downloaded above contains a file pr_data.text with the number of
+      # the pull request that triggered the previous build workflow.
     - name: Get PR Number
       run: echo "PR=$(cat pr_data.txt)" >> $GITHUB_ENV
 
+      # For the SonarCloud analysis to contain rules and issues from SpotBugs, the
+      # SpotBugs report path needs to be added as a parameter. Coverage information
+      # from JaCoCo is included automatically as long as the report is found at its
+      # usual place in target/site/jacoco/jacoco.xml.
+      # In order for SonarCloud to restrict its analysis to the pull request that
+      # triggered the previous build workflow and for the sonarcloud bot to post the
+      # results to the pull request on GitHub, the parameter "sonar.pullrequest.key"
+      # with the number of the pull request is needed.
+      # To post the analysis result as a check to the pull request on GitHub and to the
+      # correct commit, the parameter "sonar.scm.revision" with the sha of the most
+      # recent commit of the pull request needs to be added.
     - name: Analyze with SonarCloud
       env:
         SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
