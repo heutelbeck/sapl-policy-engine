@@ -58,6 +58,6 @@ public class SAPLLanguageServer {
 
     @Bean
     public CommandLineRunner commandLineRunner() {
-        return (args) -> ServerLauncher.launch(SAPLLanguageServer.class.getName(), args, new ServerModule());
+        return args -> ServerLauncher.launch(SAPLLanguageServer.class.getName(), args, new ServerModule());
     }
 }
