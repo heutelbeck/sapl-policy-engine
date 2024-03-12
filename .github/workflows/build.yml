@@ -117,7 +117,7 @@ jobs:
       # Runs JaCoCo and Spotbugs analysis which are needed for the subsequent
       # SonarCloud analysis. The SonarCloud analysis is run separately because a
       # distinction has to be made between workflows triggered by pull requests from a
-      # fork and workflows triggered by different events.
+      # fork and workflows triggered by other events.
     - name: Run Unit Tests, Analysis, and Integration Tests
       if: env.RUN_ANALYSIS == 'true'
       run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs
@@ -130,6 +130,12 @@ jobs:
         key: ${{ runner.os }}-sonar
         restore-keys: ${{ runner.os }}-sonar
 
+      # For the SonarCloud analysis to contain rules and issues from SpotBugs, the
+      # SpotBugs report path needs to be added as a parameter. Coverage information
+      # from JaCoCo is included automatically as long as the report is found at its
+      # usual place in target/site/jacoco/jacoco.xml.
+      # The analysis will fail if the quality gate defined on SonarCloud fails
+      # (sonar.qualitygate.wait=true).
     - name: Run SonarCloud Analysis
       if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
       env:
@@ -143,35 +149,47 @@ jobs:
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
         -Dsonar.qualitygate.wait=true
 
-      # The next two steps are needed because workflows triggered by pull requests from
-      # forks cannot access repository secrets. A SonarCloud analysis cannot be run
-      # without a secret SonarCloud token. The information and files needed for a
-      # SonarCloud analysis are thus uploaded as an artifact and used in a subsequent
-      # workflow triggered by the conclusion of the current workflow.
+      # The two following steps "Save PR Number" and "Upload Artifact" are needed for a
+      # SonarCloud analysis for pull requests from forks. Workflows triggered by pull
+      # requests from forks cannot access repository secrets. And a SonarCloud analysis
+      # cannot be run without a secret SonarCloud token. The information and files
+      # needed for a SonarCloud analysis are thus uploaded as an artifact and used in a
+      # subsequent SonarCloud analysis workflow triggered by the conclusion of the
+      # current workflow.
     - name: Save PR Number
       if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
       run: echo "${{ github.event.number }}" > pr_data.txt
 
+      # See comment on previous step "Save PR Number".
+      # An artifact is uploaded for a subsequent SonarCloud analysis. For its standard
+      # analysis of Maven projects, SonarCloud needs the pom.xml, the java classes, the
+      # compiled classes as well as the scm information (.git).
+      # To include coverage information and spotbugs issues in the analysis, the
+      # respective reports are needed.
+      # To limit its analysis to the pull request that triggered this workflow, the pull
+      # request's number is needed.
+      # To run the analysis on the module sapl-eclipse-plugin, information from the
+      # remaining files below is needed.
     - name: Upload Artifact
       if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
       uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
       with:
         name: pr_build
         path: |
+          pom.xml
+          **/pom.xml
           **/src
-          **/target/spotbugsXml.xml
           **/target/classes
           **/target/test-classes
+          .git
           **/target/site/jacoco/jacoco.xml
-          **/pom.xml
+          **/target/spotbugsXml.xml
+          pr_data.txt
           **/META-INF
           **/*.target
           **/category.xml
           **/feature.xml
           **/plugin.xml
-          pom.xml
-          pr_data.txt
-          .git
         retention-days: 1
 
     - name: Publish Test Report
