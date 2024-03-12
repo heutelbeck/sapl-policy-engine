@@ -17,26 +17,17 @@
  */
 package io.sapl.languageserver;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.ActiveProfiles;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
-@ActiveProfiles("test")
 @SpringBootTest(useMainMethod = SpringBootTest.UseMainMethod.ALWAYS)
 class SAPLLanguageServerTest {
 
     @Test
     void contextLoads(ApplicationContext context) {
         assertThat(context).isNotNull();
-    }
-
-    @Test
-    void testCommandLineRunner() {
-        var saplLanguageServer = new SAPLLanguageServer();
-        assertDoesNotThrow(saplLanguageServer::commandLineRunner);
     }
 }
