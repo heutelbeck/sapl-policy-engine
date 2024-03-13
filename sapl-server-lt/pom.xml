@@ -33,7 +33,12 @@
 	<packaging>jar</packaging>
 
 	<name>SAPL Server LT</name>
-
+	<licenses>
+		<license>
+			<name>Apache 2.0</name>
+			<url>https://www.apache.org/licenses/LICENSE-2.0</url>
+		</license>
+	</licenses>
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
