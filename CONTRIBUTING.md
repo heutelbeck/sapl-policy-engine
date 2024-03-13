@@ -133,7 +133,7 @@ for static analysis of your code.
 
 Once you created a pull request, test pipelines will run that include static code analysis.
 Results will be posted to your pull request and can be found on [our project site on
-SonarCloud] [sonarcloud-project].
+SonarCloud][sonarcloud-project].
 
 We strive to keep our code clean, so pull requests can only be merged if they do not
 introduce any new bugs or security vulnerabilities. Please resolve all issues detected by
@@ -142,8 +142,7 @@ be fixed, please add a comment to your pull request accordingly.
 
 To avoid issues on SonarCloud, you can use [SonarLint][sonarlint] and the
 [SpotBugs plugin][spotbugs-plugins] in your IDE to keep your code clean. Sb-contrib 
-can be added to the SpotBugs plugin and you can use our [exclude filter file]
-[spotbugs-exclude-filter] in your SpotBugs plugin configuration to exclude certain 
+can be added to the SpotBugs plugin and you can use our [exclude filter file][spotbugs-exclude-filter] in your SpotBugs plugin configuration to exclude certain 
 source files and rules from your local SpotBugs analysis. \
 Please note that not all issues on SonarCloud can be avoided by using SonarLint due to technical limitations of 
 SonarLint.
