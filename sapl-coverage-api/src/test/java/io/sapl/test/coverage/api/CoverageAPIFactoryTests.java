@@ -49,7 +49,7 @@ class CoverageAPIFactoryTests {
             return count.getPlain();
         }
         try (var stream = Files.newDirectoryStream(path, "*.txt")) {
-            stream.forEach(__ -> count.incrementAndGet());
+            stream.forEach(s -> count.incrementAndGet());
         }
         return count.getPlain();
     }

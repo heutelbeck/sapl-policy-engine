@@ -328,7 +328,7 @@ class ReactiveSaplMethodInterceptorTests {
                 testInstance::monoInteger, null, null);
         Mono<?> expected     = Mono.just(4);
         when(postEnforcePolicyEnforcementPoint.postEnforceOneDecisionOnResourceAccessPoint(any(), any(), any()))
-                .thenAnswer(__ -> expected);
+                .thenAnswer(x -> expected);
         var actual = defaultSut.invoke(invocation);
         assertThat(actual, is(expected));
         StepVerifier.create((Mono<Integer>) actual).expectNext(4).verifyComplete();
