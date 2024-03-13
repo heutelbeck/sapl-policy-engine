@@ -136,6 +136,7 @@
 		<module>sapl-spring-data-r2dbc</module>
 		<module>sapl-spring-data-mongo-reactive</module>
 		<module>sapl-spring-data-common</module>
+		<module>sapl-language-server</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-ui</module>
 		<module>sapl-eclipse-plugin/sapl-test-eclipse-ui</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-target</module>
@@ -236,6 +237,11 @@
 				<version>${rsocket.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>com.networknt</groupId>
+				<artifactId>json-schema-validator</artifactId>
+				<version>1.3.1</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
