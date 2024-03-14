@@ -302,6 +302,7 @@
 					<version>${xtext.version}</version>
 					<executions>
 						<execution>
+							<?m2e execute onConfiguration,onIncremental?>
 							<goals>
 								<goal>compile</goal>
 								<goal>xtend-install-debug-info</goal>
