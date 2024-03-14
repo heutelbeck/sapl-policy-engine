@@ -34,9 +34,8 @@ import io.sapl.test.grammar.sapltest.AttributeAdjustment;
 import io.sapl.test.grammar.sapltest.Await;
 import io.sapl.test.grammar.sapltest.ExpectBlock;
 import io.sapl.test.grammar.sapltest.Expectation;
-import io.sapl.test.grammar.sapltest.FixtureRegistration;
+import io.sapl.test.grammar.sapltest.Import;
 import io.sapl.test.grammar.sapltest.MockDefinition;
-import io.sapl.test.grammar.sapltest.Pip;
 import io.sapl.test.grammar.sapltest.RepeatedExpect;
 import io.sapl.test.grammar.sapltest.SingleExpect;
 import java.util.Arrays;
@@ -98,10 +97,9 @@ class DefaultWhenStepConstructorTests {
 
     @Test
     void constructWhenStep_filtersNonMockDefinitions_returnsInitialTestCase() {
-        final var pipMock                 = mock(Pip.class);
-        final var fixtureRegistrationMock = mock(FixtureRegistration.class);
+        final var importMock = mock(Import.class);
 
-        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(pipMock, fixtureRegistrationMock),
+        final var result = defaultWhenStepConstructor.constructWhenStep(List.of(importMock, importMock),
                 initialTestCaseMock, expectationMock);
 
         assertEquals(initialTestCaseMock, result);

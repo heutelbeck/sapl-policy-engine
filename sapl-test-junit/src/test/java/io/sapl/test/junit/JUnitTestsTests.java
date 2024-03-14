@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -134,7 +135,7 @@ class JUnitTestsTests {
         final var saplTestMock = Mockito.mock(SAPLTest.class);
         Mockito.when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
-        Mockito.when(testProviderMock.buildTests(saplTestMock)).thenReturn(null);
+        Mockito.when(testProviderMock.buildTests(saplTestMock, Collections.emptyMap())).thenReturn(null);
 
         final var testContainerMock = mockTestContainerCreation("filename", null);
 
@@ -163,7 +164,7 @@ class JUnitTestsTests {
 
         final var baseAdapterTestContainer = Mockito.mock(TestContainer.class);
         final var testContainers           = List.of(baseAdapterTestContainer);
-        Mockito.when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
+        Mockito.when(testProviderMock.buildTests(saplTestMock, Collections.emptyMap())).thenReturn(testContainers);
 
         final var testContainerMock = mockTestContainerCreation("filename", testContainers);
 
@@ -188,7 +189,7 @@ class JUnitTestsTests {
         final var baseAdapterTestContainerMock = Mockito.mock(TestContainer.class);
         final var testContainers               = List.of(baseAdapterTestContainerMock);
 
-        Mockito.when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
+        Mockito.when(testProviderMock.buildTests(saplTestMock, Collections.emptyMap())).thenReturn(testContainers);
 
         final var testContainerMock = mockTestContainerCreation(filename, testContainers);
 

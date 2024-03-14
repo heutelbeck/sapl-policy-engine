@@ -23,6 +23,7 @@ import io.sapl.test.grammar.sapltest.Environment;
 import io.sapl.test.grammar.sapltest.Expectation;
 import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.grammar.sapltest.Scenario;
 import java.util.List;
 
@@ -35,6 +36,7 @@ import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
 import io.sapl.test.steps.WhenStep;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
@@ -48,8 +50,9 @@ public final class DefaultStepConstructor implements StepConstructor {
     private final DefaultVerifyStepConstructor  defaultVerifyStepConstructor;
 
     @Override
-    public SaplTestFixture constructTestFixture(final Given given, final List<GivenStep> givenSteps) {
-        return defaultTestFixtureConstructor.constructTestFixture(given, givenSteps);
+    public SaplTestFixture constructTestFixture(final Given given, final List<GivenStep> givenSteps,
+            final Map<ImportType, Map<String, Object>> fixtureRegistrations) {
+        return defaultTestFixtureConstructor.constructTestFixture(given, givenSteps, fixtureRegistrations);
     }
 
     @Override
@@ -123,10 +126,6 @@ public final class DefaultStepConstructor implements StepConstructor {
         final var pdpConfigurationHandler = new PdpConfigurationHandler(valueInterpreter,
                 combiningAlgorithmInterpreter);
 
-        final var functionLibraryInterpreter = new FunctionLibraryInterpreter();
-        final var reflectionHelper           = new ReflectionHelper();
-
-        return new DefaultTestFixtureConstructor(documentInterpreter, pdpConfigurationHandler,
-                functionLibraryInterpreter, reflectionHelper);
+        return new DefaultTestFixtureConstructor(documentInterpreter, pdpConfigurationHandler);
     }
 }

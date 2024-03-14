@@ -17,10 +17,12 @@
  */
 package io.sapl.test.junit;
 
+import io.sapl.test.grammar.sapltest.ImportType;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicContainer;
 import org.junit.jupiter.api.DynamicNode;
@@ -65,5 +67,10 @@ public class JUnitTests extends BaseTestAdapter<DynamicContainer> {
     protected DynamicContainer convertTestContainerToTargetRepresentation(final TestContainer testContainer) {
         return DynamicContainer.dynamicContainer(testContainer.getIdentifier(),
                 getDynamicContainersFromTestNode(testContainer.getTestNodes()));
+    }
+
+    @Override
+    protected Map<ImportType, Map<String, Object>> getFixtureRegistrations() {
+        return Collections.emptyMap();
     }
 }

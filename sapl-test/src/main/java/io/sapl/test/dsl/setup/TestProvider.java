@@ -20,10 +20,12 @@ package io.sapl.test.dsl.setup;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
+import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.grammar.sapltest.Requirement;
 import io.sapl.test.grammar.sapltest.SAPLTest;
 import io.sapl.test.grammar.sapltest.Scenario;
 import java.util.List;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
@@ -36,7 +38,8 @@ public final class TestProvider {
         return new TestProvider(stepConstructor);
     }
 
-    public List<TestContainer> buildTests(final SAPLTest saplTest) {
+    public List<TestContainer> buildTests(final SAPLTest saplTest,
+            final Map<ImportType, Map<String, Object>> fixtureRegistrations) {
         if (saplTest == null) {
             throw new SaplTestException("provided SAPLTest is null");
         }
@@ -62,7 +65,9 @@ public final class TestProvider {
             }
 
             return TestContainer.from(requirement.getName(),
-                    scenarios.stream().map(scenario -> TestCase.from(stepConstructor, requirement, scenario)).toList());
+                    scenarios.stream().map(
+                            scenario -> TestCase.from(stepConstructor, requirement, scenario, fixtureRegistrations))
+                            .toList());
         }).toList();
     }
 }

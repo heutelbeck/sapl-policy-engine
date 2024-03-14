@@ -27,6 +27,7 @@ import io.sapl.test.grammar.sapltest.Environment;
 import io.sapl.test.grammar.sapltest.Expectation;
 import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.ExpectStep;
@@ -34,6 +35,8 @@ import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
 import io.sapl.test.steps.WhenStep;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -62,10 +65,12 @@ class DefaultStepConstructorTests {
 
         final var saplTestFixtureMock = mock(SaplTestFixture.class);
 
-        when(defaultTestFixtureConstructorMock.constructTestFixture(givenMock, givenSteps))
+        final var registrations = new HashMap<ImportType, Map<String, Object>>();
+
+        when(defaultTestFixtureConstructorMock.constructTestFixture(givenMock, givenSteps, registrations))
                 .thenReturn(saplTestFixtureMock);
 
-        final var result = defaultStepConstructor.constructTestFixture(givenMock, givenSteps);
+        final var result = defaultStepConstructor.constructTestFixture(givenMock, givenSteps, registrations);
 
         assertEquals(saplTestFixtureMock, result);
     }

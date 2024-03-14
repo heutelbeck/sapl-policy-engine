@@ -34,6 +34,8 @@ public interface SaplTestFixture {
 
     SaplTestFixture registerPIP(Object pip) throws InitializationException;
 
+    SaplTestFixture registerPIP(Class<?> pipClass) throws InitializationException;
+
     SaplTestFixture registerFunctionLibrary(Object function) throws InitializationException;
 
     SaplTestFixture registerFunctionLibrary(Class<?> staticLibrary) throws InitializationException;

@@ -40,6 +40,12 @@ public abstract class SaplTestFixtureTemplate implements SaplTestFixture {
     }
 
     @Override
+    public SaplTestFixture registerPIP(Class<?> pipClass) throws InitializationException {
+        this.attributeCtx.loadPolicyInformationPoint(pipClass);
+        return this;
+    }
+
+    @Override
     public SaplTestFixture registerFunctionLibrary(Object library) throws InitializationException {
         this.functionCtx.loadLibrary(library);
         return this;

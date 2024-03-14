@@ -20,16 +20,25 @@ package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.grammar.sapltest.ImportType;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -73,7 +82,8 @@ class BaseTestAdapterTests {
         testContainerMockedStatic.close();
     }
 
-    private void buildInstanceOfBaseTestAdapterWithDefaultConstructor() {
+    private void buildInstanceOfBaseTestAdapterWithDefaultConstructor(
+            final Map<ImportType, Map<String, Object>> fixtureRegistrations) {
         testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(null, null)).thenReturn(testProviderMock);
         saplTestInterpreterFactoryMockedStatic.when(SaplTestInterpreterFactory::create)
                 .thenReturn(saplTestInterpreterMock);
@@ -83,7 +93,15 @@ class BaseTestAdapterTests {
             protected TestContainer convertTestContainerToTargetRepresentation(TestContainer testContainer) {
                 return testContainer;
             }
+
+            @Override
+            protected Map<ImportType, Map<String, Object>> getFixtureRegistrations() {
+                return fixtureRegistrations;
+            }
+
         };
+
+        testProviderFactoryMockedStatic.verify(() -> TestProviderFactory.create(null, null), times(1));
     }
 
     private void buildInstanceOfBaseTestAdapterWithStepConstructorAndInterpreter() {
@@ -96,6 +114,11 @@ class BaseTestAdapterTests {
             @Override
             protected TestContainer convertTestContainerToTargetRepresentation(final TestContainer testContainer) {
                 return testContainer;
+            }
+
+            @Override
+            protected Map<ImportType, Map<String, Object>> getFixtureRegistrations() {
+                return null;
             }
         };
     }
@@ -116,6 +139,11 @@ class BaseTestAdapterTests {
             protected TestContainer convertTestContainerToTargetRepresentation(final TestContainer testContainer) {
                 return testContainer;
             }
+
+            @Override
+            protected Map<ImportType, Map<String, Object>> getFixtureRegistrations() {
+                return null;
+            }
         };
     }
 
@@ -130,7 +158,7 @@ class BaseTestAdapterTests {
 
     @Test
     void createTest_withNullFilename_throwsSaplTestException() {
-        buildInstanceOfBaseTestAdapterWithDefaultConstructor();
+        buildInstanceOfBaseTestAdapterWithDefaultConstructor(null);
 
         final var exception = assertThrows(SaplTestException.class, () -> baseTestAdapter.createTest(null));
 
@@ -139,7 +167,7 @@ class BaseTestAdapterTests {
 
     @Test
     void createTest_withFilenameAndDocumentHelperThrows_throwsSaplTestException() {
-        buildInstanceOfBaseTestAdapterWithDefaultConstructor();
+        buildInstanceOfBaseTestAdapterWithDefaultConstructor(null);
 
         documentHelperMockedStatic.when(() -> DocumentHelper.findFileOnClasspath("foo"))
                 .thenThrow(new SaplTestException("no file here"));
@@ -150,7 +178,7 @@ class BaseTestAdapterTests {
 
     @Test
     void createTest_withFilenameAndDocumentHelperReturnsNull_throwsSaplTestException() {
-        buildInstanceOfBaseTestAdapterWithDefaultConstructor();
+        buildInstanceOfBaseTestAdapterWithDefaultConstructor(null);
 
         documentHelperMockedStatic.when(() -> DocumentHelper.findFileOnClasspath("foo")).thenReturn(null);
         final var exception = assertThrows(SaplTestException.class, () -> baseTestAdapter.createTest("foo"));
@@ -165,7 +193,7 @@ class BaseTestAdapterTests {
     @ParameterizedTest
     @MethodSource("invalidInputCombinationsArgumentSource")
     void createTest_withInvalidInputCombinations_throwsSaplTestException(final String identifier, final String input) {
-        buildInstanceOfBaseTestAdapterWithDefaultConstructor();
+        buildInstanceOfBaseTestAdapterWithDefaultConstructor(null);
 
         final var exception = assertThrows(SaplTestException.class,
                 () -> baseTestAdapter.createTest(identifier, input));
@@ -175,7 +203,7 @@ class BaseTestAdapterTests {
 
     @Test
     void createTest_withFilenameBuildsTestContainer_returnsMappedTestContainer() {
-        buildInstanceOfBaseTestAdapterWithDefaultConstructor();
+        buildInstanceOfBaseTestAdapterWithDefaultConstructor(null);
 
         documentHelperMockedStatic.when(() -> DocumentHelper.findFileOnClasspath("foo")).thenReturn("input");
 
@@ -183,7 +211,7 @@ class BaseTestAdapterTests {
         when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
         final var testContainers = Collections.<TestContainer>emptyList();
-        when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
+        when(testProviderMock.buildTests(eq(saplTestMock), any())).thenReturn(testContainers);
 
         final var testContainerMock = mockTestContainerCreation("foo", testContainers);
 
@@ -194,13 +222,13 @@ class BaseTestAdapterTests {
 
     @Test
     void createTest_withIdentifierAndInputBuildsTestContainer_returnsMappedTestContainer() {
-        buildInstanceOfBaseTestAdapterWithDefaultConstructor();
+        buildInstanceOfBaseTestAdapterWithDefaultConstructor(null);
 
         final var saplTestMock = mock(SAPLTest.class);
         when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
         final var testContainers = Collections.<TestContainer>emptyList();
-        when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
+        when(testProviderMock.buildTests(eq(saplTestMock), any())).thenReturn(testContainers);
 
         final var testContainerMock = mockTestContainerCreation("foo", testContainers);
 
@@ -219,7 +247,7 @@ class BaseTestAdapterTests {
         when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
         final var testContainers = Collections.<TestContainer>emptyList();
-        when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
+        when(testProviderMock.buildTests(eq(saplTestMock), any())).thenReturn(testContainers);
 
         final var testContainerMock = mockTestContainerCreation("foo", testContainers);
 
@@ -236,7 +264,7 @@ class BaseTestAdapterTests {
         when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
         final var testContainers = Collections.<TestContainer>emptyList();
-        when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
+        when(testProviderMock.buildTests(eq(saplTestMock), any())).thenReturn(testContainers);
 
         final var testContainerMock = mockTestContainerCreation("foo", testContainers);
 
@@ -253,12 +281,163 @@ class BaseTestAdapterTests {
         when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
         final var testContainers = Collections.<TestContainer>emptyList();
-        when(testProviderMock.buildTests(saplTestMock)).thenReturn(testContainers);
+        when(testProviderMock.buildTests(eq(saplTestMock), any())).thenReturn(testContainers);
 
         final var testContainerMock = mockTestContainerCreation("foo", testContainers);
 
         final var result = baseTestAdapter.createTest("foo", "input");
 
         assertEquals(testContainerMock, result);
+    }
+
+    @Nested
+    @DisplayName("FixtureRegistration handling")
+    class FixtureRegistrationHandlingTests {
+        @Test
+        void createTest_withIdentifierAndInputPassesFixtureRegistrationsToTestProvider_returnsMappedTestContainer() {
+            final var saplTestMock = mock(SAPLTest.class);
+            when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
+
+            final Map<ImportType, Map<String, Object>> fixtureRegistrations = new EnumMap<>(ImportType.class);
+            buildInstanceOfBaseTestAdapterWithDefaultConstructor(fixtureRegistrations);
+
+            final var testContainers = Collections.<TestContainer>emptyList();
+
+            final var testContainerMock = mockTestContainerCreation("foo", testContainers);
+
+            when(testProviderMock.buildTests(saplTestMock, fixtureRegistrations)).thenReturn(testContainers);
+
+            final var result = baseTestAdapter.createTest("foo", "input");
+
+            assertEquals(testContainerMock, result);
+
+            verify(testProviderMock, times(1)).buildTests(saplTestMock, fixtureRegistrations);
+        }
+
+        @Test
+        void createTest_withFilenameAndInputPassesFixtureRegistrationsToTestProvider_returnsMappedTestContainer() {
+            documentHelperMockedStatic.when(() -> DocumentHelper.findFileOnClasspath("foo")).thenReturn("input");
+
+            final var saplTestMock = mock(SAPLTest.class);
+            when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
+
+            buildInstanceOfBaseTestAdapterWithDefaultConstructor(null);
+
+            final var testContainers    = Collections.<TestContainer>emptyList();
+            final var testContainerMock = mockTestContainerCreation("foo", testContainers);
+
+            when(testProviderMock.buildTests(saplTestMock, null)).thenReturn(testContainers);
+
+            final var result = baseTestAdapter.createTest("foo");
+
+            assertEquals(testContainerMock, result);
+
+            verify(testProviderMock, times(1)).buildTests(saplTestMock, null);
+        }
+
+        private static Stream<Arguments> invalidNameToObjectCombinations() {
+            return Stream.of(Arguments.of(ImportType.PIP, null, "dummy"), Arguments.of(ImportType.PIP, "name", null),
+                    Arguments.of(ImportType.PIP, null, null), Arguments.of(ImportType.STATIC_PIP, null, "dummy"),
+                    Arguments.of(ImportType.STATIC_PIP, "name", null), Arguments.of(ImportType.STATIC_PIP, null, null),
+                    Arguments.of(ImportType.FUNCTION_LIBRARY, null, "dummy"),
+                    Arguments.of(ImportType.FUNCTION_LIBRARY, "name", null),
+                    Arguments.of(ImportType.FUNCTION_LIBRARY, null, null),
+                    Arguments.of(ImportType.STATIC_FUNCTION_LIBRARY, null, "dummy"),
+                    Arguments.of(ImportType.STATIC_FUNCTION_LIBRARY, "name", null),
+                    Arguments.of(ImportType.STATIC_FUNCTION_LIBRARY, null, null));
+        }
+
+        @ParameterizedTest
+        @MethodSource("invalidNameToObjectCombinations")
+        void createTest_nullNameOrRegistration_throwsSaplTestException(final ImportType fixtureRegistrationType,
+                final String name, final Object registration) {
+            final var saplTestMock = mock(SAPLTest.class);
+            when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
+
+            final var fixtureRegistrations = Collections.singletonMap(fixtureRegistrationType,
+                    Collections.singletonMap(name, registration));
+            buildInstanceOfBaseTestAdapterWithDefaultConstructor(fixtureRegistrations);
+
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> baseTestAdapter.createTest("foo", "input"));
+
+            assertEquals("Map contains null key or value", exception.getMessage());
+        }
+
+        private static Stream<Arguments> fixtureRegistrationTypeToRegistrationMap() {
+            return Stream.of(Arguments.of(ImportType.PIP, null), Arguments.of(ImportType.PIP, Collections.emptyMap()),
+                    Arguments.of(ImportType.STATIC_PIP, null),
+                    Arguments.of(ImportType.STATIC_PIP, Collections.emptyMap()),
+                    Arguments.of(ImportType.FUNCTION_LIBRARY, null),
+                    Arguments.of(ImportType.FUNCTION_LIBRARY, Collections.emptyMap()),
+                    Arguments.of(ImportType.STATIC_FUNCTION_LIBRARY, null),
+                    Arguments.of(ImportType.STATIC_FUNCTION_LIBRARY, Collections.emptyMap()));
+        }
+
+        @ParameterizedTest
+        @MethodSource("fixtureRegistrationTypeToRegistrationMap")
+        void createTest_forTypeWithNullOrEmptyRegistrations_returnsFixture(final ImportType fixtureRegistrationType,
+                final Map<String, Object> registrationMap) {
+            final var saplTestMock = mock(SAPLTest.class);
+            when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
+
+            final var fixtureRegistrations = Collections.singletonMap(fixtureRegistrationType, registrationMap);
+            buildInstanceOfBaseTestAdapterWithDefaultConstructor(fixtureRegistrations);
+
+            final var testContainers    = Collections.<TestContainer>emptyList();
+            final var testContainerMock = mockTestContainerCreation("foo", testContainers);
+
+            when(testProviderMock.buildTests(saplTestMock, fixtureRegistrations)).thenReturn(testContainers);
+
+            final var result = baseTestAdapter.createTest("foo", "input");
+
+            assertEquals(testContainerMock, result);
+        }
+
+        private static Stream<Arguments> fixtureRegistrationTypeToRegistrationAndExpectedAnnotationName() {
+            return Stream.of(Arguments.of(ImportType.PIP, "PIP", "PolicyInformationPoint"),
+                    Arguments.of(ImportType.STATIC_PIP, String.class, "PolicyInformationPoint"),
+                    Arguments.of(ImportType.FUNCTION_LIBRARY, "FunctionLibrary", "FunctionLibrary"),
+                    Arguments.of(ImportType.STATIC_FUNCTION_LIBRARY, String.class, "FunctionLibrary"));
+        }
+
+        @ParameterizedTest
+        @MethodSource("fixtureRegistrationTypeToRegistrationAndExpectedAnnotationName")
+        void createTest_forRegistrationWithMissingAnnotation_throwsSaplTestExeption(
+                final ImportType fixtureRegistrationType, final Object registration, final String annotationName) {
+            final var saplTestMock = mock(SAPLTest.class);
+            when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
+
+            final var fixtureRegistrations = Map.of(fixtureRegistrationType, Map.of("foo", registration));
+            buildInstanceOfBaseTestAdapterWithDefaultConstructor(fixtureRegistrations);
+
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> baseTestAdapter.createTest("foo", "input"));
+
+            assertEquals("Passed object is missing the %s annotation".formatted(annotationName),
+                    exception.getMessage());
+        }
+
+        private static Stream<Arguments> staticFixtureRegistrationTypeToNonClassRegistration() {
+            return Stream.of(Arguments.of(ImportType.STATIC_PIP, "nonStatic"),
+                    Arguments.of(ImportType.STATIC_FUNCTION_LIBRARY, "nonStatic"));
+        }
+
+        @ParameterizedTest
+        @MethodSource("staticFixtureRegistrationTypeToNonClassRegistration")
+        void createTest_handlesStaticRegistrationWithNonClassType_throwsSaplTestExeption(
+                final ImportType fixtureRegistrationType, final Object registration) {
+            final var saplTestMock = mock(SAPLTest.class);
+            when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
+
+            final var fixtureRegistrations = Map.of(fixtureRegistrationType, Map.of("foo", registration));
+            buildInstanceOfBaseTestAdapterWithDefaultConstructor(fixtureRegistrations);
+
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> baseTestAdapter.createTest("foo", "input"));
+
+            assertEquals("Static registrations require a class type", exception.getMessage());
+        }
+
     }
 }

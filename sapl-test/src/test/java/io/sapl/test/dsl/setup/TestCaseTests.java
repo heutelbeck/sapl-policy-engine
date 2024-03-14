@@ -92,7 +92,7 @@ class TestCaseTests {
 
     private SaplTestFixture mockTestFixture(final Given given, final List<GivenStep> givenSteps) {
         final var saplTestFixtureMock = mock(SaplTestFixture.class);
-        when(stepConstructorMock.constructTestFixture(given, givenSteps)).thenReturn(saplTestFixtureMock);
+        when(stepConstructorMock.constructTestFixture(given, givenSteps, null)).thenReturn(saplTestFixtureMock);
         return saplTestFixtureMock;
     }
 
@@ -138,7 +138,7 @@ class TestCaseTests {
     private Runnable assertDynamicTestAndGetRunnable() {
         when(scenarioMock.getName()).thenReturn("test1");
 
-        final var result = io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, requirementMock, scenarioMock);
+        final var result = io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, requirementMock, scenarioMock, null);
 
         assertEquals("test1", result.getIdentifier());
 
@@ -148,7 +148,7 @@ class TestCaseTests {
     @Test
     void from_withStepConstructorBeingNull_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
-                () -> TestCase.from(null, requirementMock, scenarioMock));
+                () -> TestCase.from(null, requirementMock, scenarioMock, null));
 
         assertEquals("StepConstructor or testSuite or testCase is null", exception.getMessage());
     }
@@ -156,7 +156,7 @@ class TestCaseTests {
     @Test
     void from_withRequirementBeingNull_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
-                () -> TestCase.from(stepConstructorMock, null, scenarioMock));
+                () -> TestCase.from(stepConstructorMock, null, scenarioMock, null));
 
         assertEquals("StepConstructor or testSuite or testCase is null", exception.getMessage());
     }
@@ -164,14 +164,14 @@ class TestCaseTests {
     @Test
     void from_withScenarioBeingNull_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
-                () -> TestCase.from(stepConstructorMock, requirementMock, null));
+                () -> TestCase.from(stepConstructorMock, requirementMock, null, null));
 
         assertEquals("StepConstructor or testSuite or testCase is null", exception.getMessage());
     }
 
     @Test
     void from_withStepConstructorAndRequirementAndScenarioBeingNull_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class, () -> TestCase.from(null, null, null));
+        final var exception = assertThrows(SaplTestException.class, () -> TestCase.from(null, null, null, null));
 
         assertEquals("StepConstructor or testSuite or testCase is null", exception.getMessage());
     }
@@ -180,7 +180,7 @@ class TestCaseTests {
     void from_withNullScenarioName_throwsSaplTestException() {
         when(scenarioMock.getName()).thenReturn(null);
 
-        final var exception = assertThrows(SaplTestException.class, () -> TestCase.from(stepConstructorMock, requirementMock, scenarioMock));
+        final var exception = assertThrows(SaplTestException.class, () -> TestCase.from(stepConstructorMock, requirementMock, scenarioMock, null));
 
         assertEquals("Name of the test case is null", exception.getMessage());
     }
@@ -191,7 +191,7 @@ class TestCaseTests {
         when(scenarioMock.getName()).thenReturn("scenario");
 
         final var exception = assertThrows(SaplTestException.class,
-                () -> TestCase.from(stepConstructorMock, requirementMock, scenarioMock));
+                () -> TestCase.from(stepConstructorMock, requirementMock, scenarioMock, null));
 
         assertEquals("Neither Requirement nor Scenario defines a GivenBlock", exception.getMessage());
     }

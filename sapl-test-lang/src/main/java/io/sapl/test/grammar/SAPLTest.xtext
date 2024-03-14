@@ -41,11 +41,11 @@ enum CombiningAlgorithmEnum:
 enum AuthorizationDecisionMatcherType:
     OBLIGATION='obligation' | ADVICE='advice';
 
-enum FunctionLibrary:
-	FILTER='FilterFunctionLibrary' | LOGGING='LoggingFunctionLibrary' | STANDARD='StandardFunctionLibrary' | TEMPORAL='TemporalFunctionLibrary';
-
 enum AuthorizationDecisionType:
 	PERMIT='permit' | DENY='deny' | INDETERMINATE='indeterminate' | NOT_APPLICABLE='notApplicable';
+
+enum ImportType:
+	PIP='pip' | STATIC_PIP='static-pip' | FUNCTION_LIBRARY='function-library' | STATIC_FUNCTION_LIBRARY='static-function-library';
 
 // Matchers
 JsonArrayMatcher: '[' matchers+=JsonNodeMatcher (',' matchers+=JsonNodeMatcher)* ']';
@@ -135,7 +135,7 @@ WhenStep:
      'when' authorizationSubscription=AuthorizationSubscription;
 
 AuthorizationSubscription:
-	'subject' subject=Value 'attempts' 'action' action=Value 'on' 'resource' resource=Value ('with' 'environment' environment=Object)?;
+	'subject'? subject=Value 'attempts' 'action'? action=Value 'on' 'resource'? resource=Value ('in'? environment=Object)?;
 
 ErrorValue returns Value:
     {ErrorValue} 'error' ('(' message=STRING ')')?;
@@ -154,7 +154,7 @@ Environment:
     'environment' environment=Object;
 
 GivenStep:
-    MockDefinition | FixtureRegistration;
+    MockDefinition | Import;
 
 FunctionParameterMatchers:
     '(' matchers+=ValMatcher (',' matchers+=ValMatcher)* ')';
@@ -207,10 +207,8 @@ Document:
     {DocumentSetWithSingleIdentifier} 'set' identifier=STRING |
     {DocumentSet} 'policies' identifiers+=STRING (',' identifiers+=STRING)+ ('with' 'pdp' 'configuration' pdpConfigurationIdentifier=STRING)?;
 
-FixtureRegistration:
-    {Pip} 'PIP' fqn=STRING |
-    {CustomFunctionLibrary} 'custom' 'library' fqn=STRING |
-    {SaplFunctionLibrary} 'library' library=FunctionLibrary;
+Import:
+    type=ImportType identifier=STRING;
 
 Given:
     'given'

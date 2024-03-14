@@ -76,7 +76,7 @@ class TestProviderTests {
 
         @Test
         void buildTests_calledWithNullSAPLTest_throwsSaplTestException() {
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(null));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(null, null));
 
             assertEquals("provided SAPLTest is null", exception.getMessage());
         }
@@ -85,7 +85,7 @@ class TestProviderTests {
         void buildTests_calledWithSAPLTestWithNullRequirements_throwsSaplTestException() {
             when(saplTestMock.getRequirements()).thenReturn(null);
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock, null));
 
             assertEquals("provided SAPLTest does not contain a Requirement", exception.getMessage());
         }
@@ -94,7 +94,8 @@ class TestProviderTests {
         void buildTests_calledWithSAPLTestWithEmptyRequirements_throwsSaplTestException() {
             TestHelper.mockEListResult(saplTestMock::getRequirements, Collections.emptyList());
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
 
             assertEquals("provided SAPLTest does not contain a Requirement", exception.getMessage());
         }
@@ -109,7 +110,8 @@ class TestProviderTests {
 
             TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirement1Mock, requirement2Mock));
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
 
             assertEquals("Requirement name needs to be unique", exception.getMessage());
         }
@@ -120,7 +122,8 @@ class TestProviderTests {
 
             when(requirementMock.getScenarios()).thenReturn(null);
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
 
             assertEquals("provided Requirement does not contain a Scenario", exception.getMessage());
         }
@@ -130,7 +133,8 @@ class TestProviderTests {
             TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirementMock));
             TestHelper.mockEListResult(requirementMock::getScenarios, Collections.emptyList());
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
 
             assertEquals("provided Requirement does not contain a Scenario", exception.getMessage());
         }
@@ -146,7 +150,8 @@ class TestProviderTests {
             TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirementMock));
             TestHelper.mockEListResult(requirementMock::getScenarios, List.of(scenario1Mock, scenario2Mock));
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
 
             assertEquals("Scenario name needs to be unique within one Requirement", exception.getMessage());
         }
@@ -170,7 +175,7 @@ class TestProviderTests {
 
         private TestCase mockTestCaseCreation(final Requirement requirement, final Scenario scenario) {
             final var testCaseMock = mock(TestCase.class);
-            testMockedStatic.when(() -> TestCase.from(stepConstructorMock, requirement, scenario))
+            testMockedStatic.when(() -> TestCase.from(stepConstructorMock, requirement, scenario, null))
                     .thenReturn(testCaseMock);
             return testCaseMock;
         }
@@ -213,7 +218,7 @@ class TestProviderTests {
             final var scenario3TestCase = mockTestCaseCreation(requirement2Mock, scenario3Mock);
             final var scenario4TestCase = mockTestCaseCreation(requirement2Mock, scenario4Mock);
 
-            final var result = testProvider.buildTests(saplTestMock);
+            final var result = testProvider.buildTests(saplTestMock, null);
 
             assertEquals(requirement1TestContainer, result.get(0));
             assertEquals(requirement2TestContainer, result.get(1));

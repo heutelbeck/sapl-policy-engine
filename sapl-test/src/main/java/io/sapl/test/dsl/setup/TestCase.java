@@ -23,12 +23,14 @@ import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
 import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.grammar.sapltest.MockDefinition;
 import io.sapl.test.grammar.sapltest.Requirement;
 import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.grammar.sapltest.TestException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -38,14 +40,15 @@ import org.assertj.core.api.Assertions;
 public final class TestCase implements TestNode, Runnable {
 
     @Getter
-    private final String          identifier;
-    private final StepConstructor stepConstructor;
-    private final Given           given;
-    private final List<GivenStep> givenSteps;
-    private final Scenario        scenario;
+    private final String                               identifier;
+    private final StepConstructor                      stepConstructor;
+    private final Given                                given;
+    private final List<GivenStep>                      givenSteps;
+    private final Scenario                             scenario;
+    private final Map<ImportType, Map<String, Object>> fixtureRegistrations;
 
-    public static TestCase from(final StepConstructor stepConstructor, final Requirement requirement,
-            Scenario scenario) {
+    public static TestCase from(final StepConstructor stepConstructor, final Requirement requirement, Scenario scenario,
+            Map<ImportType, Map<String, Object>> fixtureRegistrations) {
         if (stepConstructor == null || requirement == null || scenario == null) {
             throw new SaplTestException("StepConstructor or testSuite or testCase is null");
         }
@@ -69,14 +72,14 @@ public final class TestCase implements TestNode, Runnable {
         addGivenStepsFromGiven(givenSteps, requirementBackground);
         addGivenStepsFromGiven(givenSteps, scenarioGivenBlock);
 
-        return new TestCase(name, stepConstructor, givenBlock, givenSteps, scenario);
+        return new TestCase(name, stepConstructor, givenBlock, givenSteps, scenario, fixtureRegistrations);
     }
 
     @Override
     public void run() {
         final var environment = given.getEnvironment();
 
-        final var saplTestFixture = stepConstructor.constructTestFixture(given, givenSteps);
+        final var saplTestFixture = stepConstructor.constructTestFixture(given, givenSteps, fixtureRegistrations);
 
         final var needsMocks      = givenSteps.stream().anyMatch(MockDefinition.class::isInstance);
         final var initialTestCase = stepConstructor.constructTestCase(saplTestFixture, environment, needsMocks);

@@ -18,12 +18,20 @@
 
 package io.sapl.test.dsl.setup;
 
+import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
+import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.utils.DocumentHelper;
+import java.lang.annotation.Annotation;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.Map;
 
 /**
  * The primary entry point to run tests using the
@@ -89,10 +97,72 @@ public abstract class BaseTestAdapter<T> {
             final String testDefinition) {
         final var saplTest = saplTestInterpreter.loadAsResource(testDefinition);
 
-        final var testContainer = TestContainer.from(identifier, testProvider.buildTests(saplTest));
+        final var fixtureRegistrations = getFixtureRegistrations();
+
+        checkFixtureRegistrationsValidity(fixtureRegistrations);
+
+        final var testContainer = TestContainer.from(identifier,
+                testProvider.buildTests(saplTest, fixtureRegistrations));
 
         return convertTestContainerToTargetRepresentation(testContainer);
     }
 
     protected abstract T convertTestContainerToTargetRepresentation(final TestContainer testContainer);
+
+    protected abstract Map<ImportType, Map<String, Object>> getFixtureRegistrations();
+
+    private void checkFixtureRegistrationsValidity(final Map<ImportType, Map<String, Object>> fixtureRegistrations) {
+        if (fixtureRegistrations == null || fixtureRegistrations.isEmpty()) {
+            return;
+        }
+
+        final Map<ImportType, Collection<Object>> typeObjectMap = new EnumMap<>(ImportType.class);
+        for (var type : ImportType.values()) {
+            final var registrations = fixtureRegistrations.get(type);
+            checkForNullKey(registrations);
+
+            final var objects = registrations == null ? Collections.emptyList() : registrations.values();
+            typeObjectMap.put(type, objects);
+        }
+
+        typeObjectMap.get(ImportType.PIP)
+                .forEach(registration -> checkForAnnotation(registration, PolicyInformationPoint.class));
+        typeObjectMap.get(ImportType.STATIC_PIP)
+                .forEach(registration -> checkForClass(registration, PolicyInformationPoint.class));
+        typeObjectMap.get(ImportType.FUNCTION_LIBRARY)
+                .forEach(registration -> checkForAnnotation(registration, FunctionLibrary.class));
+        typeObjectMap.get(ImportType.STATIC_FUNCTION_LIBRARY)
+                .forEach(registration -> checkForClass(registration, FunctionLibrary.class));
+    }
+
+    private void checkForNullKey(final Map<String, Object> map) {
+        if (map != null && map.entrySet().stream().anyMatch(
+                stringObjectEntry -> stringObjectEntry.getKey() == null || stringObjectEntry.getValue() == null)) {
+            throw new SaplTestException("Map contains null key or value");
+        }
+    }
+
+    private void checkForAnnotation(final Object registration, final Class<? extends Annotation> annotationClass) {
+        final var annotationName = annotationClass.getSimpleName();
+
+        final var annotation = registration.getClass().getAnnotation(annotationClass);
+
+        if (annotation == null) {
+            throw new SaplTestException("Passed object is missing the %s annotation".formatted(annotationName));
+        }
+    }
+
+    private void checkForClass(final Object registration, final Class<? extends Annotation> annotationClass) {
+        if (!(registration instanceof Class<?> clazz)) {
+            throw new SaplTestException("Static registrations require a class type");
+        }
+
+        final var annotationName = annotationClass.getSimpleName();
+
+        final var annotation = clazz.getAnnotation(annotationClass);
+
+        if (annotation == null) {
+            throw new SaplTestException("Passed object is missing the %s annotation".formatted(annotationName));
+        }
+    }
 }
