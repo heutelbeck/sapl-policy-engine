@@ -317,7 +317,9 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 
     static class MockSecurityContext implements SecurityContext {
 
-        private Authentication authentication;
+		private static final long serialVersionUID = 3366231214772422256L;
+
+		private Authentication authentication;
 
         MockSecurityContext(Authentication authentication) {
             this.authentication = authentication;

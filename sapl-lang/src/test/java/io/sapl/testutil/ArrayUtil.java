@@ -78,7 +78,10 @@ public class ArrayUtil {
     }
 
     private static class NumericAwareComparator implements Comparator<JsonNode>, Serializable {
-        @Override
+
+		private static final long serialVersionUID = -340324650567650268L;
+
+		@Override
         public int compare(JsonNode o1, JsonNode o2) {
             if (o1.equals(o2)) {
                 return 0;

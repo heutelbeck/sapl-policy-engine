@@ -417,7 +417,8 @@
 					<artifactId>maven-deploy-plugin</artifactId>
 					<version>3.1.1</version>
 				</plugin>
-				<!-- This plugin adds checksums during the verify lifecycle phase which is required
+				<!-- This plugin adds checksums during the verify lifecycle
+				phase which is required
 				for some modules so
 				that tycho is able to verify the checksums -->
 				<plugin>
@@ -432,37 +433,6 @@
 							<phase>package</phase>
 						</execution>
 					</executions>
-				</plugin>
-				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
-				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.eclipse.tycho
-										</groupId>
-										<artifactId>
-											tycho-bnd-plugin
-										</artifactId>
-										<versionRange>
-											[4.0.6,)
-										</versionRange>
-										<goals>
-											<goal>process</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore></ignore>
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
 				</plugin>
 			</plugins>
 		</pluginManagement>

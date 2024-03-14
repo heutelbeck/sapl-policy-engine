@@ -175,7 +175,9 @@ class MethodInvocationSerializerTests {
 
     public static class TestClass extends AbstractTestClass implements Serializable {
 
-        public void publicVoid() {
+		private static final long serialVersionUID = -3329467329209257226L;
+
+		public void publicVoid() {
         }
 
         static void staticVoid() {

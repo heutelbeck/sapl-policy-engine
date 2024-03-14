@@ -24,5 +24,5 @@ import lombok.experimental.StandardException;
  */
 @StandardException
 public class SaplTestException extends RuntimeException {
-
+	private static final long serialVersionUID = -2228262694158801833L;
 }

@@ -22,7 +22,9 @@ package io.sapl.interpreter;
  */
 public class InitializationException extends Exception {
 
-    /**
+	private static final long serialVersionUID = -8106759560820743825L;
+
+	/**
      * Create a new FunctionException
      *
      * @param message a message

@@ -22,7 +22,9 @@ package io.sapl.api.interpreter;
  */
 public class PolicyEvaluationException extends RuntimeException {
 
-    /**
+	private static final long serialVersionUID = -8354037098139583912L;
+
+	/**
      * Create a new PolicyEvaluationException
      */
     public PolicyEvaluationException() {
