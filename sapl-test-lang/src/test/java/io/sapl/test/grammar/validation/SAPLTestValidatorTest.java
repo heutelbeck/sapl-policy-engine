@@ -74,6 +74,38 @@ class SAPLTestValidatorTest {
         this.validator.assertNoErrors(result);
     }
 
+    @Test
+    void durationNeedsToBeAValidJavaDuration_handlesNegativeDuration_hasError() throws Exception {
+        final var testDefinition = """
+                 requirement "requirement" {
+                    scenario "scenario"
+                    when subject "willi" attempts action "read" on resource "something"
+                    then
+                        - wait "PT-1S"
+                    expect
+                        - permit;
+                }""";
+        final var result         = this.parseHelper.parse(testDefinition);
+        this.validator.assertError(result, SapltestPackage.eINSTANCE.getDuration(), null,
+                SAPLTestValidator.MSG_JAVA_DURATION_ZERO_OR_NEGATIVE);
+    }
+
+    @Test
+    void durationNeedsToBeAValidJavaDuration_handlesZeroDuration_hasError() throws Exception {
+        final var testDefinition = """
+                 requirement "requirement" {
+                    scenario "scenario"
+                    when subject "willi" attempts action "read" on resource "something"
+                    then
+                        - wait "PT0S"
+                    expect
+                        - permit;
+                }""";
+        final var result         = this.parseHelper.parse(testDefinition);
+        this.validator.assertError(result, SapltestPackage.eINSTANCE.getDuration(), null,
+                SAPLTestValidator.MSG_JAVA_DURATION_ZERO_OR_NEGATIVE);
+    }
+
     @ParameterizedTest
     @ValueSource(doubles = { -2, -1, 0, 1, Integer.MIN_VALUE, Double.MIN_VALUE, Double.MAX_VALUE, -0.33, -0.5, 0.5 })
     void multipleAmountNeedsToBeNaturalNumberLargerThanOne_handlesInvalidAmount_hasError(final double number)

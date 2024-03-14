@@ -47,8 +47,8 @@ import io.sapl.test.grammar.sapltest.StringWithLength;
  * https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 public class SAPLTestValidator extends AbstractSAPLTestValidator {
-    protected static final String MSG_INVALID_JAVA_DURATION = "Duration is not a valid Java Duration";
-
+    protected static final String MSG_INVALID_JAVA_DURATION                       = "Duration is not a valid Java Duration";
+    protected static final String MSG_JAVA_DURATION_ZERO_OR_NEGATIVE              = "Duration needs to be larger than 0";
     protected static final String MSG_INVALID_MULTIPLE_AMOUNT                     = "Amount needs to be a natural number larger than 1";
     protected static final String MSG_GIVEN_WITH_MORE_THAN_ONE_VIRTUAL_TIME       = "TestCase contains more than one virtual-time declaration";
     protected static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX     = "The given regex has an invalid format";
@@ -66,7 +66,12 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
     @Check
     public void durationNeedsToBeAValidJavaDuration(final Duration duration) {
         try {
-            java.time.Duration.parse(duration.getDuration());
+            final var parsedDuration = java.time.Duration.parse(duration.getDuration());
+
+            if (parsedDuration.isZero() || parsedDuration.isNegative()) {
+                error(MSG_JAVA_DURATION_ZERO_OR_NEGATIVE, duration, null);
+            }
+
         } catch (DateTimeParseException e) {
             error(MSG_INVALID_JAVA_DURATION, duration, null);
         }
