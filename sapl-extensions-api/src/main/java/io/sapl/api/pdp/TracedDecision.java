@@ -17,13 +17,15 @@
  */
 package io.sapl.api.pdp;
 
+import java.io.Serializable;
+
 import io.sapl.api.interpreter.Traced;
 
 /**
  * A decision which is potentially changed by interceptors. Interceptors should
  * add an explanation into the trace.
  */
-public interface TracedDecision extends Traced {
+public interface TracedDecision extends Traced, Serializable {
     /**
      * @return the decision.
      */
