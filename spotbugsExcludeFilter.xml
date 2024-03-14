@@ -91,6 +91,7 @@
 			<Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
 			<Bug pattern="EI_EXPOSE_REP2" />
 			<Bug pattern="OBL_UNSATISFIED_OBLIGATION" />
+			<Bug pattern="NAB_NEEDLESS_BOOLEAN_CONSTANT_CONVERSION" />
 		</Or>
 	</Match>
 </FindBugsFilter>
