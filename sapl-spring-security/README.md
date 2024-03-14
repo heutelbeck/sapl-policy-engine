@@ -541,7 +541,7 @@ In SAPL, decisions can include additional requirements for the PEP to enforce be
 - *Advice*, i.e., an optional condition that the PEP should fulfil. If it fails to do so, access is still granted if the original  decision was `permit`.
 - *Transformation* is a special case of an obligation that expresses that the PEP must replace the accessed resource with the resource object supplied in the authorization decision.
 
-```json
+```python
 policy "filter content in collection"
 permit action == "list books"
 obligation
