@@ -37,9 +37,9 @@
 			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtext.xtext.generator</artifactId>
 			<version>${xtext.version}</version>
-			<optional>true</optional>			
+			<optional>true</optional>
 		</dependency>
-		
+
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -64,7 +64,6 @@
 				<artifactId>build-helper-maven-plugin</artifactId>
 				<executions>
 					<execution>
-						<?m2e execute onConfiguration,onIncremental?>
 						<id>add-source</id>
 						<phase>initialize</phase>
 						<goals>

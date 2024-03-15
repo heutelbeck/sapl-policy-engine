@@ -57,7 +57,7 @@ public class JWTKeyProvider {
      */
     @StandardException
     public static class CachingException extends Exception {
-
+		private static final long serialVersionUID = 2862097120464678488L;
     }
 
     private final Map<String, RSAPublicKey> keyCache;

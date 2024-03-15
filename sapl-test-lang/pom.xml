@@ -89,6 +89,7 @@
 				<version>3.0.0</version>
 				<executions>
 					<execution>
+						<?m2e ignore?>
 						<id>mwe2Launcher</id>
 						<phase>generate-sources</phase>
 						<goals>
@@ -213,8 +214,10 @@
 					</execution>
 				</executions>
 				<configuration>
-					<!-- Lombok is not needed as a runtime dependency but is automatically detected as one due when
-                    SneakyThrows is in use because it leaves traces in the class files. This can be removed when the
+					<!-- Lombok is not needed as a runtime dependency but is
+					automatically detected as one due when
+                    SneakyThrows is in use because it leaves traces in the class files. This can be
+					removed when the
                     project uses a version of lombok which contains a fix for
                      https://github.com/projectlombok/lombok/issues/3601 -->
 					<bnd>
@@ -237,39 +240,5 @@
 				<artifactId>checksum-maven-plugin</artifactId>
 			</plugin>
 		</plugins>
-		<pluginManagement>
-			<plugins>
-				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.codehaus.mojo
-										</groupId>
-										<artifactId>
-											exec-maven-plugin
-										</artifactId>
-										<versionRange>
-											[1.2.1,)
-										</versionRange>
-										<goals>
-											<goal>java</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore></ignore>
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
-				</plugin>
-			</plugins>
-		</pluginManagement>
 	</build>
 </project>

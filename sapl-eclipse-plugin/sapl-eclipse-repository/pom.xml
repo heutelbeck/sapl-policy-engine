@@ -30,11 +30,11 @@
 	<artifactId>sapl-eclipse-repository</artifactId>
 	<packaging>eclipse-repository</packaging>
 	<name>SAPL Eclipse update site</name>
-	
+
 	<properties>
 		<maven.deploy.skip>true</maven.deploy.skip>
 	</properties>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>
@@ -47,36 +47,6 @@
 		<pluginManagement>
 			<plugins>
 				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
-					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.apache.maven.plugins
-										</groupId>
-										<artifactId>
-											maven-clean-plugin
-										</artifactId>
-										<versionRange>
-											[2.5,)
-										</versionRange>
-										<goals>
-											<goal>clean</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore />
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
-					</configuration>
-				</plugin>
-				<plugin>
 					<groupId>org.eclipse.tycho</groupId>
 					<artifactId>tycho-p2-repository-plugin</artifactId>
 					<configuration>
@@ -85,6 +55,15 @@
 						<addPomRepositoryReferences>true</addPomRepositoryReferences>
 						<addIUTargetRepositoryReferences>true</addIUTargetRepositoryReferences>
 					</configuration>
+				</plugin>
+				<plugin>
+					<artifactId>maven-clean-plugin</artifactId>
+					<executions>
+						<execution>
+							<?m2e ignore?>
+							<id>default-clean-1</id>
+						</execution>
+					</executions>
 				</plugin>
 			</plugins>
 		</pluginManagement>

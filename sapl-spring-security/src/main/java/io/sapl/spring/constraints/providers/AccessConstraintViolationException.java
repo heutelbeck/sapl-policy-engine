@@ -21,4 +21,5 @@ import lombok.experimental.StandardException;
 
 @StandardException
 public class AccessConstraintViolationException extends RuntimeException {
+	private static final long serialVersionUID = 9032386243935864029L;
 }

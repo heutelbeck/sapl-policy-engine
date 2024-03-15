@@ -74,7 +74,18 @@
 					<configuration>
 						<legacyMode>true</legacyMode>
 					</configuration>
-				</plugin>		
+				</plugin>
+				<plugin>
+					<groupId>org.eclipse.tycho</groupId>
+					<artifactId>tycho-bnd-plugin</artifactId>
+					<executions>
+						<execution>
+							<?m2e ignore?>
+							<id>default-process</id>
+						</execution>
+					</executions>
+				</plugin>
+
 			</plugins>
 		</pluginManagement>
 		<plugins>

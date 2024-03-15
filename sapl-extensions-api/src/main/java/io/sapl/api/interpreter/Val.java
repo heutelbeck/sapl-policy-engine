@@ -1209,7 +1209,10 @@ public class Val implements Traced {
     }
 
     private static class NumericAwareComparator implements Comparator<JsonNode>, Serializable {
-        @Override
+
+		private static final long serialVersionUID = 1444623807424351401L;
+
+		@Override
         public int compare(JsonNode o1, JsonNode o2) {
             if (o1.equals(o2)) {
                 return 0;
