@@ -211,7 +211,7 @@ Import:
     type=ImportType identifier=STRING;
 
 Given:
-    'given'
+    {Given} 'given'
     ('-' document=Document)?
     ('-' pdpVariables=PdpVariables)?
     ('-' pdpCombiningAlgorithm=PdpCombiningAlgorithm)?

@@ -20,11 +20,9 @@ package io.sapl.test.junit;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -34,7 +32,6 @@ import static org.mockito.Mockito.when;
 
 import java.net.URI;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -121,6 +118,20 @@ class JUnitTestsTests {
         return testContainerMock;
     }
 
+    private URI mockPathAndUri(final String identifier) {
+        // Required since Spotbugs complains about unused return value from method call
+        // with no side effects here
+        final Callable<Path> expectedCall = () -> Path.of("src/test/resources", identifier);
+
+        final var pathMock = mock(Path.class);
+        pathMockedStatic.when(expectedCall::call).thenReturn(pathMock);
+
+        final var uriMock = mock(URI.class);
+        when(pathMock.toUri()).thenReturn(uriMock);
+
+        return uriMock;
+    }
+
     @Test
     void getTests_withNullTestDiscoveryResult_returnsEmptyList() {
         testDiscoveryHelperMockedStatic.when(TestDiscoveryHelper::discoverTests).thenReturn(null);
@@ -155,10 +166,7 @@ class JUnitTestsTests {
         Mockito.when(testContainerMock.getTestNodes()).thenReturn(null);
         Mockito.when(testContainerMock.getIdentifier()).thenReturn("container");
 
-        final var pathMock = mock(Path.class);
-        pathMockedStatic.when(() -> Path.of("src/test/resources", "container")).thenReturn(pathMock);
-        final var uriMock = mock(URI.class);
-        when(pathMock.toUri()).thenReturn(uriMock);
+        final var uriMock = mockPathAndUri("container");
 
         final var dynamicContainerMock = mock(DynamicContainer.class);
         dynamicContainerMockedStatic.when(() -> DynamicContainer.dynamicContainer(eq("container"), eq(uriMock), any()))
@@ -196,10 +204,7 @@ class JUnitTestsTests {
 
         when(testContainerMock.getIdentifier()).thenReturn("container");
 
-        final var pathMock = mock(Path.class);
-        pathMockedStatic.when(() -> Path.of("src/test/resources", "container")).thenReturn(pathMock);
-        final var uriMock = mock(URI.class);
-        when(pathMock.toUri()).thenReturn(uriMock);
+        final var uriMock = mockPathAndUri("container");
 
         dynamicContainerMockedStatic.when(() -> DynamicContainer.dynamicContainer(eq("container"), eq(uriMock), any()))
                 .thenAnswer(invocationOnMock -> {
@@ -285,12 +290,8 @@ class JUnitTestsTests {
         final var testCase3ArgumentCaptor       = mockDynamicTestAndCaptureArgument("testCase3",
                 testCase3DynamicTestMock);
 
-        final var pathMock = mock(Path.class);
-        pathMockedStatic.when(() -> Path.of("src/test/resources", "container1")).thenReturn(pathMock);
-        pathMockedStatic.when(() -> Path.of("src/test/resources", "container2")).thenReturn(pathMock);
-        pathMockedStatic.when(() -> Path.of("src/test/resources", "nestedContainer")).thenReturn(pathMock);
-        final var uriMock = mock(URI.class);
-        when(pathMock.toUri()).thenReturn(uriMock);
+        final var uri1Mock = mockPathAndUri("container1");
+        final var uri2Mock = mockPathAndUri("container2");
 
         final var dynamicContainerWithNestedTestCasesMock = mock(DynamicContainer.class);
         dynamicContainerMockedStatic.when(() -> DynamicContainer.dynamicContainer(eq("nestedContainer"),
@@ -303,7 +304,8 @@ class JUnitTestsTests {
                 });
 
         final var mappedDynamicContainer1Mock = mock(DynamicContainer.class);
-        dynamicContainerMockedStatic.when(() -> DynamicContainer.dynamicContainer(eq("container1"), eq(uriMock), any()))
+        dynamicContainerMockedStatic
+                .when(() -> DynamicContainer.dynamicContainer(eq("container1"), eq(uri1Mock), any()))
                 .thenAnswer(invocationOnMock -> {
                     final Stream<DynamicNode> nodes = invocationOnMock.getArgument(2);
 
@@ -313,7 +315,8 @@ class JUnitTestsTests {
                 });
 
         final var mappedDynamicContainer2Mock = Mockito.mock(DynamicContainer.class);
-        dynamicContainerMockedStatic.when(() -> DynamicContainer.dynamicContainer(eq("container2"), eq(uriMock), any()))
+        dynamicContainerMockedStatic
+                .when(() -> DynamicContainer.dynamicContainer(eq("container2"), eq(uri2Mock), any()))
                 .thenAnswer(invocationOnMock -> {
                     final Stream<DynamicNode> nodes = invocationOnMock.getArgument(2);
 

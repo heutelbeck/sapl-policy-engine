@@ -18,10 +18,7 @@
 package io.sapl.test.junit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -35,8 +32,6 @@ import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-
-import io.sapl.test.utils.ClasspathHelper;
 
 class TestDiscoveryHelperTests {
     protected final MockedStatic<FileUtils> fileUtilsMockedStatic = mockStatic(FileUtils.class);

@@ -29,6 +29,7 @@ import io.sapl.test.grammar.sapltest.Requirement;
 import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.grammar.sapltest.TestException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import lombok.AccessLevel;
@@ -99,7 +100,7 @@ public final class TestCase implements TestNode, Runnable {
         }
     }
 
-    private static void addGivenStepsFromGiven(final List<GivenStep> givenSteps, final Given given) {
+    private static void addGivenStepsFromGiven(final Collection<GivenStep> givenSteps, final Given given) {
         if (given != null) {
             final var steps = given.getGivenSteps();
             if (steps != null) {

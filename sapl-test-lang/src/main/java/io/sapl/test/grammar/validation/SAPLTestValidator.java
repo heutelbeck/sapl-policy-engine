@@ -21,7 +21,6 @@
 package io.sapl.test.grammar.validation;
 
 import io.sapl.test.grammar.sapltest.AdjustBlock;
-import io.sapl.test.grammar.sapltest.ExpectBlock;
 import io.sapl.test.grammar.sapltest.ExpectOrAdjustBlock;
 import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.RepeatedExpect;
