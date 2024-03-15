@@ -28,6 +28,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.test.grammar.sapltest.ImportType;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -90,7 +92,8 @@ class BaseTestAdapterTests {
 
         baseTestAdapter = new BaseTestAdapter<>() {
             @Override
-            protected TestContainer convertTestContainerToTargetRepresentation(TestContainer testContainer) {
+            protected TestContainer convertTestContainerToTargetRepresentation(TestContainer testContainer,
+                    final boolean shouldSetTestSourceUri) {
                 return testContainer;
             }
 
@@ -112,7 +115,8 @@ class BaseTestAdapterTests {
 
         baseTestAdapter = new BaseTestAdapter<>(stepConstructorMock, saplTestInterpreterMock) {
             @Override
-            protected TestContainer convertTestContainerToTargetRepresentation(final TestContainer testContainer) {
+            protected TestContainer convertTestContainerToTargetRepresentation(final TestContainer testContainer,
+                    final boolean shouldSetTestSourceUri) {
                 return testContainer;
             }
 
@@ -136,7 +140,8 @@ class BaseTestAdapterTests {
 
         baseTestAdapter = new BaseTestAdapter<>(unitTestPolicyResolverMock, integrationTestPolicyResolver) {
             @Override
-            protected TestContainer convertTestContainerToTargetRepresentation(final TestContainer testContainer) {
+            protected TestContainer convertTestContainerToTargetRepresentation(final TestContainer testContainer,
+                    final boolean shouldSetTestSourceUri) {
                 return testContainer;
             }
 
@@ -364,7 +369,7 @@ class BaseTestAdapterTests {
             assertEquals("Map contains null key or value", exception.getMessage());
         }
 
-        private static Stream<Arguments> fixtureRegistrationTypeToRegistrationMap() {
+        private static Stream<Arguments> importTypeToRegistrationMap() {
             return Stream.of(Arguments.of(ImportType.PIP, null), Arguments.of(ImportType.PIP, Collections.emptyMap()),
                     Arguments.of(ImportType.STATIC_PIP, null),
                     Arguments.of(ImportType.STATIC_PIP, Collections.emptyMap()),
@@ -375,9 +380,9 @@ class BaseTestAdapterTests {
         }
 
         @ParameterizedTest
-        @MethodSource("fixtureRegistrationTypeToRegistrationMap")
-        void createTest_forTypeWithNullOrEmptyRegistrations_returnsFixture(final ImportType fixtureRegistrationType,
-                final Map<String, Object> registrationMap) {
+        @MethodSource("importTypeToRegistrationMap")
+        void createTest_forTypeWithNullOrEmptyRegistrations_returnsMappedTestContainer(
+                final ImportType fixtureRegistrationType, final Map<String, Object> registrationMap) {
             final var saplTestMock = mock(SAPLTest.class);
             when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
 
@@ -394,7 +399,7 @@ class BaseTestAdapterTests {
             assertEquals(testContainerMock, result);
         }
 
-        private static Stream<Arguments> fixtureRegistrationTypeToRegistrationAndExpectedAnnotationName() {
+        private static Stream<Arguments> importTypeToRegistrationAndExpectedAnnotationName() {
             return Stream.of(Arguments.of(ImportType.PIP, "PIP", "PolicyInformationPoint"),
                     Arguments.of(ImportType.STATIC_PIP, String.class, "PolicyInformationPoint"),
                     Arguments.of(ImportType.FUNCTION_LIBRARY, "FunctionLibrary", "FunctionLibrary"),
@@ -402,7 +407,7 @@ class BaseTestAdapterTests {
         }
 
         @ParameterizedTest
-        @MethodSource("fixtureRegistrationTypeToRegistrationAndExpectedAnnotationName")
+        @MethodSource("importTypeToRegistrationAndExpectedAnnotationName")
         void createTest_forRegistrationWithMissingAnnotation_throwsSaplTestExeption(
                 final ImportType fixtureRegistrationType, final Object registration, final String annotationName) {
             final var saplTestMock = mock(SAPLTest.class);
@@ -418,13 +423,13 @@ class BaseTestAdapterTests {
                     exception.getMessage());
         }
 
-        private static Stream<Arguments> staticFixtureRegistrationTypeToNonClassRegistration() {
+        private static Stream<Arguments> staticImportTypeToNonClassRegistration() {
             return Stream.of(Arguments.of(ImportType.STATIC_PIP, "nonStatic"),
                     Arguments.of(ImportType.STATIC_FUNCTION_LIBRARY, "nonStatic"));
         }
 
         @ParameterizedTest
-        @MethodSource("staticFixtureRegistrationTypeToNonClassRegistration")
+        @MethodSource("staticImportTypeToNonClassRegistration")
         void createTest_handlesStaticRegistrationWithNonClassType_throwsSaplTestExeption(
                 final ImportType fixtureRegistrationType, final Object registration) {
             final var saplTestMock = mock(SAPLTest.class);
@@ -439,5 +444,29 @@ class BaseTestAdapterTests {
             assertEquals("Static registrations require a class type", exception.getMessage());
         }
 
+        private static Stream<Arguments> importTypeToValidRegistration() {
+            return Stream.of(Arguments.of(ImportType.PIP, mock(HttpPolicyInformationPoint.class)),
+                    Arguments.of(ImportType.STATIC_PIP, HttpPolicyInformationPoint.class),
+                    Arguments.of(ImportType.FUNCTION_LIBRARY, mock(FilterFunctionLibrary.class)),
+                    Arguments.of(ImportType.STATIC_FUNCTION_LIBRARY, FilterFunctionLibrary.class));
+        }
+
+        @ParameterizedTest
+        @MethodSource("importTypeToValidRegistration")
+        void createTest_handlesValidRegistrations_returnsMappedTestContainer(final ImportType importType,
+                final Object registration) {
+            final var saplTestMock = mock(SAPLTest.class);
+            when(saplTestInterpreterMock.loadAsResource("input")).thenReturn(saplTestMock);
+
+            final var fixtureRegistrations = Map.of(importType, Map.of("foo", registration));
+            buildInstanceOfBaseTestAdapterWithDefaultConstructor(fixtureRegistrations);
+
+            final var testContainers    = Collections.<TestContainer>emptyList();
+            final var testContainerMock = mockTestContainerCreation("foo", testContainers);
+
+            final var result = baseTestAdapter.createTest("foo", "input");
+
+            assertEquals(testContainerMock, result);
+        }
     }
 }

@@ -17,6 +17,7 @@
  */
 package io.sapl.test.junit;
 
+import java.io.File;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -26,13 +27,14 @@ import io.sapl.test.utils.ClasspathHelper;
 
 class TestDiscoveryHelper {
 
+    private static final String[] SAPL_TEST_FILE_EXTENSIONS = Arrays.array("sapltest");
+    public static final String    RESOURCES_ROOT            = "src/test/resources";
+
     private TestDiscoveryHelper() {
     }
 
-    private static final String[] SAPL_TEST_FILE_EXTENSIONS = Arrays.array("sapltest");
-
     public static List<String> discoverTests() {
-        var dir = ClasspathHelper.findPathOnClasspath(TestDiscoveryHelper.class.getClassLoader(), "").toFile();
+        var dir = FileUtils.getFile(RESOURCES_ROOT);
 
         return FileUtils.listFiles(dir, SAPL_TEST_FILE_EXTENSIONS, true).stream()
                 .map(file -> dir.toPath().relativize(file.toPath()).toString()).toList();

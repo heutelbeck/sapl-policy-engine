@@ -28,10 +28,8 @@ import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.utils.DocumentHelper;
 import java.lang.annotation.Annotation;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * The primary entry point to run tests using the
@@ -40,7 +38,7 @@ import java.util.Map;
  * module io.sapl.test.junit for an example usage.
  *
  * @param <T> The target type of your adapter, which is used in
- *            {@link BaseTestAdapter#convertTestContainerToTargetRepresentation(TestContainer)}
+ *            {@link BaseTestAdapter#convertTestContainerToTargetRepresentation(TestContainer, boolean)}
  *            to convert from the high level abstraction {@link TestContainer}
  *            to your target representation.
  */
@@ -82,7 +80,7 @@ public abstract class BaseTestAdapter<T> {
             throw new SaplTestException("file does not exist");
         }
 
-        return createTestContainerAndConvertToTargetRepresentation(filename, input);
+        return createTestContainerAndConvertToTargetRepresentation(filename, input, true);
     }
 
     protected T createTest(final String identifier, final String testDefinition) {
@@ -90,11 +88,11 @@ public abstract class BaseTestAdapter<T> {
             throw new SaplTestException("identifier or input is null");
         }
 
-        return createTestContainerAndConvertToTargetRepresentation(identifier, testDefinition);
+        return createTestContainerAndConvertToTargetRepresentation(identifier, testDefinition, false);
     }
 
-    private T createTestContainerAndConvertToTargetRepresentation(final String identifier,
-            final String testDefinition) {
+    private T createTestContainerAndConvertToTargetRepresentation(final String identifier, final String testDefinition,
+            final boolean shouldSetTestSourceUri) {
         final var saplTest = saplTestInterpreter.loadAsResource(testDefinition);
 
         final var fixtureRegistrations = getFixtureRegistrations();
@@ -104,10 +102,11 @@ public abstract class BaseTestAdapter<T> {
         final var testContainer = TestContainer.from(identifier,
                 testProvider.buildTests(saplTest, fixtureRegistrations));
 
-        return convertTestContainerToTargetRepresentation(testContainer);
+        return convertTestContainerToTargetRepresentation(testContainer, shouldSetTestSourceUri);
     }
 
-    protected abstract T convertTestContainerToTargetRepresentation(final TestContainer testContainer);
+    protected abstract T convertTestContainerToTargetRepresentation(final TestContainer testContainer,
+            final boolean shouldSetTestSourceUri);
 
     protected abstract Map<ImportType, Map<String, Object>> getFixtureRegistrations();
 
@@ -115,28 +114,28 @@ public abstract class BaseTestAdapter<T> {
         if (fixtureRegistrations == null || fixtureRegistrations.isEmpty()) {
             return;
         }
-
-        final Map<ImportType, Collection<Object>> typeObjectMap = new EnumMap<>(ImportType.class);
         for (var type : ImportType.values()) {
             final var registrations = fixtureRegistrations.get(type);
-            checkForNullKey(registrations);
 
-            final var objects = registrations == null ? Collections.emptyList() : registrations.values();
-            typeObjectMap.put(type, objects);
+            if (registrations != null) {
+                checkForNullKeyOrValue(registrations);
+
+                final Consumer<Object> executeCheck = switch (type) {
+                case PIP -> (Object registration) -> checkForAnnotation(registration, PolicyInformationPoint.class);
+                case STATIC_PIP -> (Object registration) -> checkForClass(registration, PolicyInformationPoint.class);
+                case FUNCTION_LIBRARY ->
+                    (Object registration) -> checkForAnnotation(registration, FunctionLibrary.class);
+                case STATIC_FUNCTION_LIBRARY ->
+                    (Object registration) -> checkForClass(registration, FunctionLibrary.class);
+                };
+
+                registrations.values().forEach(executeCheck);
+            }
         }
-
-        typeObjectMap.get(ImportType.PIP)
-                .forEach(registration -> checkForAnnotation(registration, PolicyInformationPoint.class));
-        typeObjectMap.get(ImportType.STATIC_PIP)
-                .forEach(registration -> checkForClass(registration, PolicyInformationPoint.class));
-        typeObjectMap.get(ImportType.FUNCTION_LIBRARY)
-                .forEach(registration -> checkForAnnotation(registration, FunctionLibrary.class));
-        typeObjectMap.get(ImportType.STATIC_FUNCTION_LIBRARY)
-                .forEach(registration -> checkForClass(registration, FunctionLibrary.class));
     }
 
-    private void checkForNullKey(final Map<String, Object> map) {
-        if (map != null && map.entrySet().stream().anyMatch(
+    private void checkForNullKeyOrValue(final Map<String, Object> map) {
+        if (map.entrySet().stream().anyMatch(
                 stringObjectEntry -> stringObjectEntry.getKey() == null || stringObjectEntry.getValue() == null)) {
             throw new SaplTestException("Map contains null key or value");
         }

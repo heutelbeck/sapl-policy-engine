@@ -39,34 +39,18 @@ import org.mockito.MockedStatic;
 import io.sapl.test.utils.ClasspathHelper;
 
 class TestDiscoveryHelperTests {
-
-    protected final MockedStatic<ClasspathHelper> classpathHelperMockedStatic = mockStatic(ClasspathHelper.class);
-    protected final MockedStatic<FileUtils>       fileUtilsMockedStatic       = mockStatic(FileUtils.class);
+    protected final MockedStatic<FileUtils> fileUtilsMockedStatic = mockStatic(FileUtils.class);
 
     @AfterEach
     void tearDown() {
-        classpathHelperMockedStatic.close();
         fileUtilsMockedStatic.close();
     }
 
     @Test
-    void discoverTests_ClasspathHelperThrows_ThrowsException() {
-        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq("")))
-                .thenThrow(new RuntimeException("no path here"));
-
-        final var exception = assertThrows(RuntimeException.class, TestDiscoveryHelper::discoverTests);
-
-        assertEquals("no path here", exception.getMessage());
-    }
-
-    @Test
     void discoverTests_handlesEmptyListOfFiles_returnsEmptyList() {
-        final var pathMock = mock(Path.class);
-
-        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq(""))).thenReturn(pathMock);
-
         final var directoryMock = mock(File.class);
-        when(pathMock.toFile()).thenReturn(directoryMock);
+
+        fileUtilsMockedStatic.when(() -> FileUtils.getFile("src/test/resources")).thenReturn(directoryMock);
 
         fileUtilsMockedStatic.when(() -> FileUtils.listFiles(directoryMock, new String[] { "sapltest" }, true))
                 .thenReturn(Collections.emptyList());
@@ -78,12 +62,8 @@ class TestDiscoveryHelperTests {
 
     @Test
     void discoverTests_usesCorrectFileExtension_returnsPaths() {
-        final var pathMock = mock(Path.class);
-
-        classpathHelperMockedStatic.when(() -> ClasspathHelper.findPathOnClasspath(any(), eq(""))).thenReturn(pathMock);
-
         final var directoryMock = mock(File.class);
-        when(pathMock.toFile()).thenReturn(directoryMock);
+        fileUtilsMockedStatic.when(() -> FileUtils.getFile("src/test/resources")).thenReturn(directoryMock);
 
         final var file1Mock = mock(File.class);
         final var file2Mock = mock(File.class);
