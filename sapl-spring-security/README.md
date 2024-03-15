@@ -576,19 +576,18 @@ For each of these hooks, the constraint handlers can influence the execution dif
 
 The `ConstraintEnforcementService` manages all executable constraint handlers and furnishes constraint handler bundles (such as `BlockingConstraintHandlerBundle` and `ReactiveConstraintHandlerBundle`) to the PEP whenever the PDP issues a new decision. These bundles consolidate all constraint handlers pertinent to a particular decision.
 
-A custom  `ConstraintHandler` can be integrated by implementing the `ConstraintHandler` interface. The spring policy enforcement points automatically discover and register spring components/beans implementing the interface.
+A custom constraint handler can be integrated by implementing the respective constraint handler interface. The spring policy enforcement points automatically discover and register spring components/beans implementing the interface.
 
 Suitable interfaces are provided for each specific use case.
 
-- ConsumerConstraintHandlerProvider
-- FilterPredicateConstraintHandlerProvider
-- RunnableConstraintHandlerProvider
-- MethodInvocationConstraintHandlerProvider
-- ErrorMappingConstraintHandlerProvider
-- MethodInvocationConstraintHandlerProvider
-- SubscriptionHandlerProvider
+- The `FilterPredicateConstraintHandlerProvider` enables the modifcation of Predicates based on the prevailing constraints. The default constraint handler providers offer a reference implemention.
+- The `RunnableConstraintHandlerProvider` enables the implementation of an action upon the execution of a Runnable. Among other potential applications, this feature is particularly useful for tasks such as logging access to specific resources.
+- The `ErrorHandlerProvider` provides a hook into Throwables that may be thrown at runtime, allowing for logging or modifcation of attributes of the Throwable.
+- The `MethodInvocationConstraintHandlerProvider` allows the integration of supplementary behavior into method invocations. This includes the modifcation, addition, and removal of method arguments based on the prevailing constraints.
+- The `ConsumerConstraintHandlerProvider` enables the implementation of an action upon the consumption of a Consumer of a given type.
+- The `SubscriptionHandlerProvider` operates similar to the `ConsumerConstraintHandlerProvider` but specifically where the consumed type is a Subscription. It provides a hook into the subscription to a reactive stream.
+- The `RequestHandlerProvider` enables the implementation of an action based on the decision of a PDP, specifically on the AuthorizationDecision.
 
-Two default handlers are implemented by default.
-
+Two handlers are implemented by default.
 - ContentFilteringProvider, enables selective filtering of specific properties within an object
 - ContentFilterPredicateProvider, enables selective filtering of specific conditions within a Predicate
