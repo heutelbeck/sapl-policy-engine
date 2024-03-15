@@ -585,7 +585,8 @@ Suitable interfaces are provided for each specific use case.
 - The `ErrorHandlerProvider` provides a hook into Throwables that may be thrown at runtime, allowing for logging or modifcation of attributes of the Throwable.
 - The `MethodInvocationConstraintHandlerProvider` allows the integration of supplementary behavior into method invocations. This includes the modifcation, addition, and removal of method arguments based on the prevailing constraints.
 - The `ConsumerConstraintHandlerProvider` enables the implementation of an action upon the consumption of a Consumer of a given type.
-- The `SubscriptionHandlerProvider` operates similar to the ConsumerConstraintHandlerProvider but specifically where the consumed type is a Subscription. It provides a hook into the subscription to a reactive stream.
+- The `SubscriptionHandlerProvider` operates similar to the `ConsumerConstraintHandlerProvider` but specifically where the consumed type is a Subscription. It provides a hook into the subscription to a reactive stream.
+- The `RequestHandlerProvider` enables the implementation of an action based on the decision of a PDP, specifically on the AuthorizationDecision.
 
 Two handlers are implemented by default.
 - ContentFilteringProvider, enables selective filtering of specific properties within an object
