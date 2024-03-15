@@ -26,7 +26,6 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.config.PDPConfiguration;
 import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
 import org.junit.jupiter.api.Test;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
 
 import java.util.Map;
 import java.util.function.UnaryOperator;

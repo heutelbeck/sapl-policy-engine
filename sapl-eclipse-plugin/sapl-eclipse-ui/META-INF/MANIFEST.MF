@@ -20,7 +20,10 @@ Require-Bundle: sapl-lang,
  org.eclipse.compare,
  org.eclipse.xtext.builder
 Import-Package: org.apache.log4j
-Export-Package: io.sapl.grammar.ui.quickfix,
- io.sapl.grammar.ui.contentassist,
+Export-Package: io.sapl.grammar.ui.contentassist,
+ io.sapl.grammar.ui.labeling,
+ io.sapl.grammar.ui.outline,
+ io.sapl.grammar.ui.quickfix,
+ io.sapl.grammar.ui,
  sapl_eclipse_ui.internal
 Bundle-Activator: sapl_eclipse_ui.internal.Sapl_eclipse_uiActivator

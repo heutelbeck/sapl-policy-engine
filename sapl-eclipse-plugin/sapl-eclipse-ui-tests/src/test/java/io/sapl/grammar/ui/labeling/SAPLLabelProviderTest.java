@@ -17,16 +17,14 @@
  */
 package io.sapl.grammar.ui.labeling;
 
-import org.eclipse.emf.edit.ui.provider.AdapterFactoryLabelProvider;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.mock;
 
 class SAPLLabelProviderTest {
 
     @Test
     void testInstantiation() {
-        assertDoesNotThrow(() -> new SAPLLabelProvider(mock(AdapterFactoryLabelProvider.class)));
+        assertDoesNotThrow(() -> new SAPLLabelProvider(null));
     }
 }

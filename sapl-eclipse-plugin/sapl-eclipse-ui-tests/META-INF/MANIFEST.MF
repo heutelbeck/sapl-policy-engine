@@ -1,0 +1,25 @@
+Manifest-Version: 1.0
+Automatic-Module-Name: sapl-eclipse-ui-tests
+Bundle-ManifestVersion: 2
+Bundle-Name: sapl-ui-tests
+Bundle-Vendor: My Company
+Bundle-Version: 3.0.0.qualifier
+Bundle-SymbolicName: sapl-eclipse-ui-tests; singleton:=true
+Bundle-ActivationPolicy: lazy
+Require-Bundle: sapl-eclipse-ui,
+ sapl-lang,
+ sapl-ide,
+ sapl-pdp-embedded,
+ sapl-extensions-api,
+ io.projectreactor.reactor-core,
+ org.eclipse.xtext.testing,
+ org.eclipse.xtext.ui.testing,
+ org.eclipse.xtext.xbase.testing,
+ org.eclipse.xtext.xbase.ui.testing,
+ org.eclipse.core.runtime,
+ org.eclipse.ui.workbench;resolution:=optional,
+ org.hamcrest
+Import-Package: org.junit.jupiter.api;version="[5.1.0,6.0.0)",
+ org.junit.jupiter.api.extension;version="[5.1.0,6.0.0)",
+ org.junit.jupiter.api.function;version="[5.1.0,6.0.0)"
+Export-Package: io.sapl.grammar.ui;x-internal=true

@@ -31,7 +31,7 @@ public class SAPLUiContentProposalProvider extends SAPLContentProposalProvider {
     }
 
     @Override
-    protected PDPConfigurationProvider getPDPConfigurationProvider() {
+    public PDPConfigurationProvider getPDPConfigurationProvider() {
         return pdpConfigurationProvider;
     }
 

@@ -138,6 +138,7 @@
 		<module>sapl-spring-data-common</module>
 		<module>sapl-language-server</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-ui</module>
+		<module>sapl-eclipse-plugin/sapl-eclipse-ui-tests</module>
 		<module>sapl-eclipse-plugin/sapl-test-eclipse-ui</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-target</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-thirdparty</module>
@@ -433,6 +434,11 @@
 							<phase>package</phase>
 						</execution>
 					</executions>
+				</plugin>
+				<plugin>
+					<groupId>org.eclipse.tycho</groupId>
+					<artifactId>tycho-surefire-plugin</artifactId>
+					<version>${tycho.version}</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>
