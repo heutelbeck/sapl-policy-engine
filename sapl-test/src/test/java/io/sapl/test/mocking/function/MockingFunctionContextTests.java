@@ -133,8 +133,8 @@ class MockingFunctionContextTests {
 
     @Test
     void test_ReturnUnmockedEvaluation() {
-        when(unmockedCtx.evaluate(any(), any(), any(), any())).thenReturn(Val.of("abc"));
-        assertThat(this.ctx.evaluate("foo.bar", null, null, null)).isEqualTo(Val.of("abc"));
+        when(unmockedCtx.evaluate(any(), any(), any(), any(), any())).thenReturn(Val.of("abc"));
+        assertThat(this.ctx.evaluate(null, "foo.bar", null, null, null)).isEqualTo(Val.of("abc"));
     }
 
     @Test

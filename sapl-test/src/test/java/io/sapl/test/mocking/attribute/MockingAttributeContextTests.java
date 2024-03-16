@@ -70,7 +70,7 @@ class MockingAttributeContextTests {
     @Test
     void test_dynamicMock() {
         attrCtx.markAttributeMock("foo.bar");
-        StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", null, null, variables))
+        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", null, null, variables))
                 .then(() -> attrCtx.mockEmit("foo.bar", Val.of(1))).expectNext(Val.of(1)).thenCancel().verify();
     }
 
@@ -90,14 +90,14 @@ class MockingAttributeContextTests {
     @Test
     void test_dynamicMock_ForEnvironmentAttribute() {
         attrCtx.markAttributeMock("foo.bar");
-        StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", null, variables))
+        StepVerifier.create(attrCtx.evaluateEnvironmentAttribute(null, "foo.bar", null, variables))
                 .then(() -> attrCtx.mockEmit("foo.bar", Val.of(1))).expectNext(Val.of(1)).thenCancel().verify();
     }
 
     @Test
     void test_timingMock() {
         attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-        StepVerifier.withVirtualTime(() -> attrCtx.evaluateAttribute("foo.bar", null, null, variables))
+        StepVerifier.withVirtualTime(() -> attrCtx.evaluateAttribute(null, "foo.bar", null, null, variables))
                 .thenAwait(Duration.ofSeconds(10)).expectNext(Val.of(1)).thenAwait(Duration.ofSeconds(10))
                 .expectNext(Val.of(2)).verifyComplete();
     }
@@ -115,7 +115,7 @@ class MockingAttributeContextTests {
     @Test
     void test_timingMock_ForEnvironmentAttribute() {
         attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-        StepVerifier.withVirtualTime(() -> attrCtx.evaluateEnvironmentAttribute("foo.bar", null, variables))
+        StepVerifier.withVirtualTime(() -> attrCtx.evaluateEnvironmentAttribute(null, "foo.bar", null, variables))
                 .thenAwait(Duration.ofSeconds(10)).expectNext(Val.of(1)).thenAwait(Duration.ofSeconds(10))
                 .expectNext(Val.of(2)).verifyComplete();
     }
@@ -123,18 +123,18 @@ class MockingAttributeContextTests {
     @Test
     void test_loadAttributeMockForParentValue() {
         attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
-        StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), null, variables)).expectNext(Val.of(2))
-                .verifyComplete();
+        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), null, variables))
+                .expectNext(Val.of(2)).verifyComplete();
     }
 
     @Test
     void test_loadAttributeMockForParentValue_duplicateRegistration() {
         attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
         attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(2)), Val.of(3));
-        StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), null, variables)).expectNext(Val.of(2))
-                .verifyComplete();
-        StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(2), null, variables)).expectNext(Val.of(3))
-                .verifyComplete();
+        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), null, variables))
+                .expectNext(Val.of(2)).verifyComplete();
+        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(2), null, variables))
+                .expectNext(Val.of(3)).verifyComplete();
     }
 
     @Test
@@ -149,8 +149,8 @@ class MockingAttributeContextTests {
     @Test
     void test_ForParentValue_ForEnvironmentAttribute() {
         attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(is(Val.UNDEFINED)), Val.of(2));
-        StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", null, variables)).expectNext(Val.of(2))
-                .verifyComplete();
+        StepVerifier.create(attrCtx.evaluateEnvironmentAttribute(null, "foo.bar", null, variables))
+                .expectNext(Val.of(2)).verifyComplete();
     }
 
     @Test
@@ -163,8 +163,8 @@ class MockingAttributeContextTests {
         var arguments = Mockito.mock(Arguments.class);
         Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
 
-        StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), arguments, variables)).expectNext(Val.of(2))
-                .verifyComplete();
+        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), arguments, variables))
+                .expectNext(Val.of(2)).verifyComplete();
     }
 
     @Test
@@ -179,8 +179,8 @@ class MockingAttributeContextTests {
         var arguments = Mockito.mock(Arguments.class);
         Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
 
-        StepVerifier.create(attrCtx.evaluateAttribute("foo.bar", Val.of(1), arguments, variables)).expectNext(Val.of(0))
-                .verifyComplete();
+        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), arguments, variables))
+                .expectNext(Val.of(0)).verifyComplete();
     }
 
     @Test
@@ -204,8 +204,8 @@ class MockingAttributeContextTests {
         var arguments = Mockito.mock(Arguments.class);
         Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
 
-        StepVerifier.create(attrCtx.evaluateEnvironmentAttribute("foo.bar", arguments, variables)).expectNext(Val.of(2))
-                .verifyComplete();
+        StepVerifier.create(attrCtx.evaluateEnvironmentAttribute(null, "foo.bar", arguments, variables))
+                .expectNext(Val.of(2)).verifyComplete();
     }
 
     @Test
@@ -247,8 +247,8 @@ class MockingAttributeContextTests {
 
     @Test
     void test_ReturnUnmockedEvaluation() {
-        when(unmockedCtx.evaluateAttribute(any(), any(), any(), any())).thenReturn(Val.fluxOf("abc"));
-        StepVerifier.create(this.attrCtx.evaluateAttribute("foo.bar", null, null, null)).expectNext(Val.of("abc"))
+        when(unmockedCtx.evaluateAttribute(any(), any(), any(), any(), any())).thenReturn(Val.fluxOf("abc"));
+        StepVerifier.create(this.attrCtx.evaluateAttribute(null, "foo.bar", null, null, null)).expectNext(Val.of("abc"))
                 .expectComplete().verify();
     }
 

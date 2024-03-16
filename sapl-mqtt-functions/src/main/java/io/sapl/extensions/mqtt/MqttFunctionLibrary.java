@@ -24,6 +24,7 @@ import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Text;
@@ -84,7 +85,7 @@ public class MqttFunctionLibrary {
 
     private Val isMatchingSingleTopic(MqttTopicFilter mqttTopicFilter, Val topic) {
         if (MqttTopicFilter.of(topic.getText()).containsWildcards()) {
-            return Val.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+            throw new PolicyEvaluationException(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
         } else {
             var mqttTopic = MqttTopic.of(topic.getText());
             return Val.of(mqttTopicFilter.matches(mqttTopic));
@@ -95,7 +96,7 @@ public class MqttFunctionLibrary {
         var isMatching = true;
         for (JsonNode topic : topicsArray) {
             if (MqttTopicFilter.of(topic.asText()).containsWildcards()) {
-                return Val.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+                throw new PolicyEvaluationException(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
             }
             var mqttTopic = MqttTopic.of(topic.asText());
             if (!mqttTopicFilter.matches(mqttTopic)) {
@@ -109,7 +110,7 @@ public class MqttFunctionLibrary {
         var isMatching = false;
         for (JsonNode topic : topicsArray) {
             if (MqttTopicFilter.of(topic.asText()).containsWildcards()) {
-                return Val.error(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
+                throw new PolicyEvaluationException(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
             }
             var mqttTopic = MqttTopic.of(topic.asText());
             if (mqttTopicFilter.matches(mqttTopic)) {

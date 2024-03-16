@@ -81,7 +81,7 @@ public class DefaultResponseUtility {
         if (DEFAULT_RESPONSE_TYPE.equals(defaultResponseType)) {
             return Val.UNDEFINED;
         } else {
-            return Val.error("The sapl mqtt pip has not received any mqtt message yet.");
+            return Val.error(null, "The sapl mqtt pip has not received any mqtt message yet.");
         }
     }
 

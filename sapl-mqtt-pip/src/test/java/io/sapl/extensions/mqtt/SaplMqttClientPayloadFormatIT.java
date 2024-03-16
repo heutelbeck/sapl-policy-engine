@@ -112,8 +112,8 @@ class SaplMqttClientPayloadFormatIT {
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
                 .then(() -> mqttClient.publish(mqttMessage))
-                .expectNextMatches((value) -> Objects.equals(value.getValType(), Val.error().getValType())).thenCancel()
-                .verify();
+                .expectNextMatches((value) -> Objects.equals(value.getValType(), Val.error(null, null).getValType()))
+                .thenCancel().verify();
     }
 
     @Test
