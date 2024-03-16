@@ -197,7 +197,7 @@ class SchemaValidationLibraryTests {
 
     @Test
     void when_subjectIsError_then_errorPropagates() throws JsonProcessingException {
-        var result = isCompliant(Val.error("test"), Val.ofJson(VALID_SCHEMA));
+        var result = isCompliant(Val.error(null, "test"), Val.ofJson(VALID_SCHEMA));
         assertThat(result, is(valError("test")));
     }
 

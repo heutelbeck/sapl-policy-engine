@@ -39,7 +39,7 @@ public class OrImplCustom extends OrImpl {
     public Flux<Val> evaluate() {
         if (TargetExpressionUtil.isInTargetExpression(this)) {
             // lazy evaluation is not allowed in target expressions.
-            return Flux.just(Val.error(LAZY_OPERATOR_IN_TARGET_ERROR).withTrace(Or.class));
+            return Flux.just(Val.error(this, LAZY_OPERATOR_IN_TARGET_ERROR).withTrace(Or.class));
         }
         var left = getLeft().evaluate().map(Val::requireBoolean);
         return left.switchMap(leftResult -> {

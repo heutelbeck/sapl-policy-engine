@@ -20,6 +20,8 @@ package io.sapl.grammar.sapl.impl.util;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
+import org.eclipse.emf.ecore.EObject;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.context.AuthorizationContext;
@@ -28,14 +30,14 @@ import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class SelectorUtil {
-    public static Supplier<Flux<Val>> toArrayElementSelector(BiPredicate<Integer, Val> selector) {
+    public static Supplier<Flux<Val>> toArrayElementSelector(BiPredicate<Integer, Val> selector, EObject location) {
         return () -> Flux.deferContextual(ctx -> {
             var relativeNode = AuthorizationContext.getRelativeNode(ctx);
             var index        = AuthorizationContext.getIndex(ctx);
             try {
                 return Flux.just(Val.of(selector.test(index, relativeNode)));
             } catch (PolicyEvaluationException e) {
-                return Flux.just(Val.error(e.getMessage()));
+                return Flux.just(Val.error(location, e.getMessage()));
             }
         });
     }

@@ -19,14 +19,16 @@ package io.sapl.interpreter.pip;
 
 import java.util.Objects;
 
+import org.eclipse.emf.ecore.EObject;
+
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ErrorUtil {
 
-    public static Val causeOrMessage(Throwable t) {
+    public static Val causeOrMessage(EObject location, Throwable t) {
         var cause = t.getCause();
-        return Val.error(Objects.requireNonNullElse(cause, t).getMessage());
+        return Val.error(location, Objects.requireNonNullElse(cause, t).getMessage());
     }
 }

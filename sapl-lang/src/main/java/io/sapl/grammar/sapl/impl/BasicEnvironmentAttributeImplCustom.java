@@ -41,10 +41,10 @@ public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttribu
                     AuthorizationContext.getImports(ctxView));
 
             if (TargetExpressionUtil.isInTargetExpression(this))
-                return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(AttributeFinderStep.class,
-                        false, Map.of(Trace.ATTRIBUTE, Val.of(attributeName))));
+                return Flux.just(Val.error(this, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR)
+                        .withTrace(AttributeFinderStep.class, false, Map.of(Trace.ATTRIBUTE, Val.of(attributeName))));
 
-            return AuthorizationContext.getAttributeContext(ctxView).evaluateEnvironmentAttribute(attributeName,
+            return AuthorizationContext.getAttributeContext(ctxView).evaluateEnvironmentAttribute(this, attributeName,
                     getArguments(), AuthorizationContext.getVariables(ctxView)).distinctUntilChanged();
         });
     }

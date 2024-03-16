@@ -52,7 +52,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
             return parentValue;
         }
         if (parentValue.isUndefined()) {
-            return Val.error(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE_ERROR);
+            return Val.error(this, CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE_ERROR);
         }
         if (!parentValue.isArray() && !parentValue.isObject()) {
             return Val.ofEmptyArray();

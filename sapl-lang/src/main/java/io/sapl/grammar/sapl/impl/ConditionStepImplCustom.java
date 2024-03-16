@@ -54,7 +54,7 @@ public class ConditionStepImplCustom extends ConditionStepImpl {
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
         return StepAlgorithmUtil.apply(parentValue, expression::evaluate, Trace.CONDITION_EXPRESSION,
-                ConditionStep.class);
+                ConditionStep.class, this);
     }
 
     @Override

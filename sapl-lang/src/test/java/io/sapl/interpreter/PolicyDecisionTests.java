@@ -29,7 +29,7 @@ class PolicyDecisionTests {
 
     @Test
     void fromWhereResult() {
-        var decision = PolicyDecision.fromWhereResult("doc", Decision.INDETERMINATE, Val.error("error message"));
+        var decision = PolicyDecision.fromWhereResult("doc", Decision.INDETERMINATE, Val.error(null, "error message"));
         assertThat(decision.getEntitlement()).isEqualTo(Decision.INDETERMINATE);
         assertThat(decision.getTrace().get(Trace.ENTITLEMENT).textValue()).isEqualTo("INDETERMINATE");
         assertThat(decision.getTrace().get(Trace.WHERE).get(Trace.VALUE).textValue())

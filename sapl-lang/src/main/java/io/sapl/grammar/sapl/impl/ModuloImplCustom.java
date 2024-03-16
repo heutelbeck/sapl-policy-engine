@@ -41,7 +41,7 @@ public class ModuloImplCustom extends ModuloImpl {
 
     private Val divide(Val dividend, Val divisor) {
         if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
-            return Val.error(DIVISION_BY_ZERO_ERROR).withTrace(Modulo.class, false,
+            return Val.error(this, DIVISION_BY_ZERO_ERROR).withTrace(Modulo.class, false,
                     Map.of(Trace.DIVIDEND, dividend, Trace.DIVISOR, divisor));
         return Val.of(dividend.decimalValue().remainder(divisor.decimalValue())).withTrace(Modulo.class, false,
                 Map.of(Trace.DIVIDEND, dividend, Trace.DIVISOR, divisor));

@@ -119,7 +119,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
                     // this was the final step. apply filter
                     fieldFluxes.add(FilterAlgorithmUtil
                             .applyFilterFunction(value, statement.getArguments(), statement.getFsteps(),
-                                    statement.isEach())
+                                    statement.isEach(), statement)
                             .map(val -> Tuples.of(field.getKey(), val))
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, unfilteredValue)));
                 } else {

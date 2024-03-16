@@ -213,9 +213,9 @@ public class ReactiveWebClient {
 
     private Mono<Val> mapError(Throwable e) {
         if (e instanceof WebClientResponseException clientException) {
-            return Mono.just(Val.error(clientException.getRootCause()));
+            return Mono.just(Val.error(null, clientException.getRootCause()));
         }
-        return Mono.just(Val.error(e));
+        return Mono.just(Val.error(null, e));
     }
 
     private Mono<Void> sendAndListen(WebSocketSession session, JsonNode body, Many<Val> receiveBuffer) {
@@ -234,7 +234,7 @@ public class ReactiveWebClient {
             try {
                 receiveBuffer.tryEmitNext(Val.ofJson(payload));
             } catch (JsonProcessingException e) {
-                receiveBuffer.tryEmitNext(Val.error(e.getMessage()));
+                receiveBuffer.tryEmitNext(Val.error(null, e.getMessage()));
             }
         }).then();
     }

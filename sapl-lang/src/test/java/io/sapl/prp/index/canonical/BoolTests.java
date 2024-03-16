@@ -100,7 +100,7 @@ class BoolTests {
     void evaluating_bool_with_error_expression_should_return_error() {
 
         var expressionMock = mock(Expression.class);
-        when(expressionMock.evaluate()).thenReturn(Flux.just(Val.error("error")));
+        when(expressionMock.evaluate()).thenReturn(Flux.just(Val.error(null, "error")));
 
         var bool   = new Bool(expressionMock, Collections.emptyMap());
         var result = bool.evaluateExpression().block();

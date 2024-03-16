@@ -40,7 +40,7 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
                     Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
         }
         if (unfilteredValue.isUndefined()) {
-            return Flux.just(Val.error(FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR)
+            return Flux.just(Val.error(this, FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR)
                     .withTrace(FilterExtended.class, true, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
         }
         if (statements == null) {
@@ -67,7 +67,7 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
         if (statement.getTarget().getSteps().isEmpty()) {
             // the expression has no steps. apply filter to unfiltered node directly
             return FilterAlgorithmUtil.applyFilterFunction(unfilteredValue, statement.getArguments(),
-                    statement.getFsteps(), statement.isEach());
+                    statement.getFsteps(), statement.isEach(), statement);
         } else {
             // descent with steps
             return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, 0, statement);

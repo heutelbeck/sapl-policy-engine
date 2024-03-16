@@ -21,5 +21,5 @@ import lombok.experimental.StandardException;
 
 @StandardException
 public class PolicyRetrievalException extends RuntimeException {
-	private static final long serialVersionUID = 4957700642364402691L;
+    private static final long serialVersionUID = 4957700642364402691L;
 }

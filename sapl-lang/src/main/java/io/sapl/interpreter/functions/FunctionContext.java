@@ -21,6 +21,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
@@ -28,7 +30,7 @@ import io.sapl.interpreter.pip.LibraryFunctionProvider;
 
 public interface FunctionContext extends LibraryFunctionProvider {
 
-    Val evaluate(String function, Val... parameters);
+    Val evaluate(EObject location, String function, Val... parameters);
 
     Collection<LibraryDocumentation> getDocumentation();
 

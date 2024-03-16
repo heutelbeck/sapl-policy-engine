@@ -58,12 +58,12 @@ public class IndexStepImplCustom extends IndexStepImpl {
             return parentValue;
         }
         if (!parentValue.isArray()) {
-            return Val.error(TYPE_MISMATCH_S_ERROR, parentValue);
+            return Val.error(this, TYPE_MISMATCH_S_ERROR, parentValue);
         }
         var array = parentValue.getArrayNode();
         var idx   = normalizeIndex(index, array);
         if (idx < 0 || idx >= array.size()) {
-            return Val.error(INDEX_OUT_OF_BOUNDS_D_D_ERROR, array.size(), idx);
+            return Val.error(this, INDEX_OUT_OF_BOUNDS_D_D_ERROR, array.size(), idx);
         }
         return Val.of(array.get(idx));
     }
@@ -102,7 +102,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
                     // this was the final step. apply filter
                     elementFluxes.add(FilterAlgorithmUtil
                             .applyFilterFunction(element, statement.getArguments(), statement.getFsteps(),
-                                    statement.isEach())
+                                    statement.isEach(), statement)
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue)));
                 } else {
                     // there are more steps. descent with them

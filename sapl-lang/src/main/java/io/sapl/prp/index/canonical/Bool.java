@@ -64,9 +64,8 @@ public class Bool {
     public Mono<Val> evaluateExpression() {
         Flux<Val> resultFlux = isConstantExpression ? Flux.just(Val.of(constant))
                 : expression.evaluate().contextWrite(ctx -> AuthorizationContext.setImports(ctx, imports));
-        return resultFlux
-                .map(result -> result.isError() || result.isBoolean() ? result : Val.error("expression not boolean"))
-                .next();
+        return resultFlux.map(result -> result.isError() || result.isBoolean() ? result
+                : Val.error(null, "Canonical Index Lookup: expression not boolean")).next();
     }
 
     public boolean isImmutable() {

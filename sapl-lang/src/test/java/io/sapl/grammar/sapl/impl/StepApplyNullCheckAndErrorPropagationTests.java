@@ -63,7 +63,7 @@ class StepApplyNullCheckAndErrorPropagationTests {
     @ParameterizedTest
     @MethodSource("data")
     void stepsPropagateErrors(Step step) throws IOException {
-        var error = Val.error("TEST");
+        var error = Val.error(null, "TEST");
         if (step instanceof ConditionStep) {
             // Special case. this expression checks for expression first and that is just Ok
             ((ConditionStep) step).setExpression(ParserUtil.expression("true"));
