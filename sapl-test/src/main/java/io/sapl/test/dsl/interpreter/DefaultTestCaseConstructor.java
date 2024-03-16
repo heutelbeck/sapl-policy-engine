@@ -20,6 +20,7 @@ package io.sapl.test.dsl.interpreter;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestFixture;
+import io.sapl.test.grammar.sapltest.Environment;
 import io.sapl.test.steps.GivenOrWhenStep;
 import lombok.RequiredArgsConstructor;
 
@@ -28,11 +29,12 @@ class DefaultTestCaseConstructor {
 
     private final ValueInterpreter valueInterpreter;
 
-    GivenOrWhenStep constructTestCase(final SaplTestFixture saplTestFixture,
-            final io.sapl.test.grammar.sapltest.Object environment, final boolean needsMocks) {
+    GivenOrWhenStep constructTestCase(final SaplTestFixture saplTestFixture, final Environment environment,
+            final boolean needsMocks) {
 
-        if (environment != null) {
-            final var environmentVariables = valueInterpreter.destructureObject(environment);
+        if (environment != null
+                && environment.getEnvironment() instanceof io.sapl.test.grammar.sapltest.Object object) {
+            final var environmentVariables = valueInterpreter.destructureObject(object);
 
             if (environmentVariables != null) {
                 environmentVariables.forEach((key, json) -> saplTestFixture.registerVariable(key, Val.of(json)));

@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 
@@ -77,11 +78,41 @@ class DurationInterpreterTests {
     }
 
     @Test
-    void getJavaDurationFromDuration_handlesDuration_returnsAbsoluteDuration() {
+    void getJavaDurationFromDuration_handlesZeroDuration_throwsSaplTestException() {
         final var duration = buildDuration("\"-PT5S\"");
 
         final var javaDurationMock = mock(Duration.class);
-        durationMockedStatic.when(() -> Duration.parse("-PT5S").abs()).thenReturn(javaDurationMock);
+        durationMockedStatic.when(() -> Duration.parse("-PT5S")).thenReturn(javaDurationMock);
+
+        when(javaDurationMock.isZero()).thenReturn(true);
+
+        final var exception = assertThrows(SaplTestException.class,
+                () -> durationInterpreter.getJavaDurationFromDuration(duration));
+
+        assertEquals("The passed Duration needs to be larger than 0", exception.getMessage());
+    }
+
+    @Test
+    void getJavaDurationFromDuration_handlesNegativeDuration_throwsSaplTestException() {
+        final var duration = buildDuration("\"-PT5S\"");
+
+        final var javaDurationMock = mock(Duration.class);
+        durationMockedStatic.when(() -> Duration.parse("-PT5S")).thenReturn(javaDurationMock);
+
+        when(javaDurationMock.isNegative()).thenReturn(true);
+
+        final var exception = assertThrows(SaplTestException.class,
+                () -> durationInterpreter.getJavaDurationFromDuration(duration));
+
+        assertEquals("The passed Duration needs to be larger than 0", exception.getMessage());
+    }
+
+    @Test
+    void getJavaDurationFromDuration_handlesDuration_returnsDuration() {
+        final var duration = buildDuration("\"-PT5S\"");
+
+        final var javaDurationMock = mock(Duration.class);
+        durationMockedStatic.when(() -> Duration.parse("-PT5S")).thenReturn(javaDurationMock);
 
         final var result = durationInterpreter.getJavaDurationFromDuration(duration);
 

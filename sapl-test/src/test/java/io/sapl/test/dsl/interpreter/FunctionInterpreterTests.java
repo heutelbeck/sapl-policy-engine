@@ -27,6 +27,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.grammar.sapltest.FunctionParameterMatchers;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -55,7 +56,6 @@ import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.Multiple;
 import io.sapl.test.grammar.sapltest.NumberLiteral;
 import io.sapl.test.grammar.sapltest.Once;
-import io.sapl.test.grammar.sapltest.ParameterMatchers;
 import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.sapltest.ValWithValue;
 import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
@@ -103,7 +103,7 @@ class FunctionInterpreterTests {
 
         @Test
         void interpretFunction_handlesNullGivenOrWhenStep_throwsSaplTestException() {
-            final var function = buildFunction("function \"foo\" returns \"bar\"");
+            final var function = buildFunction("function \"foo\" maps to \"bar\"");
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunction(null, function));
@@ -129,7 +129,7 @@ class FunctionInterpreterTests {
 
         @Test
         void interpretFunction_withoutTimesCalledVerificationAndNullParameterMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final var function = buildFunction("function \"fooFunction\" returns \"bar\"");
+            final var function = buildFunction("function \"fooFunction\" maps to \"bar\"");
 
             final var expectedVal = Val.of("bar");
 
@@ -146,7 +146,7 @@ class FunctionInterpreterTests {
         void interpretFunction_withoutTimesCalledVerificationAndNullParameterMatchers_throwsSaplTestException() {
             final var functionMock = mock(Function.class);
 
-            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            final var parameterMatchersMock = mock(FunctionParameterMatchers.class);
             when(functionMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
             when(parameterMatchersMock.getMatchers()).thenReturn(null);
@@ -161,7 +161,7 @@ class FunctionInterpreterTests {
         void interpretFunction_withoutTimesCalledVerificationAndEmptyParameterMatchers_throwsSaplTestException() {
             final var functionMock = mock(Function.class);
 
-            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            final var parameterMatchersMock = mock(FunctionParameterMatchers.class);
             when(functionMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
             TestHelper.mockEListResult(parameterMatchersMock::getMatchers, Collections.emptyList());
@@ -174,7 +174,7 @@ class FunctionInterpreterTests {
 
         @Test
         void interpretFunction_withoutTimesCalledVerificationAndParameterMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final var function = buildFunction("function \"fooFunction\" parameters matching any returns \"bar\"");
+            final var function = buildFunction("function \"fooFunction\" of (any) maps to \"bar\"");
 
             when(matcherInterpreterMock.getHamcrestValMatcher(any(AnyVal.class))).thenReturn(valMatcherMock);
 
@@ -196,7 +196,7 @@ class FunctionInterpreterTests {
 
         @Test
         void interpretFunction_withTimesCalledVerificationBeingOnceAndNullParameterMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final var function = buildFunction("function \"fooFunction\" returns \"bar\" called once");
+            final var function = buildFunction("function \"fooFunction\" maps to \"bar\" is called once");
 
             final var expectedVal = Val.of("bar");
 
@@ -228,7 +228,7 @@ class FunctionInterpreterTests {
                 return 1;
             });
 
-            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            final var parameterMatchersMock = mock(FunctionParameterMatchers.class);
             when(functionMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
             when(parameterMatchersMock.getMatchers()).thenReturn(null);
@@ -249,7 +249,7 @@ class FunctionInterpreterTests {
 
             when(functionMock.getTimesCalled()).thenReturn(onceMock);
 
-            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            final var parameterMatchersMock = mock(FunctionParameterMatchers.class);
             when(functionMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
             TestHelper.mockEListResult(parameterMatchersMock::getMatchers, Collections.emptyList());
@@ -266,7 +266,7 @@ class FunctionInterpreterTests {
         @Test
         void interpretFunction_withTimesCalledVerificationBeingMultipleAndParameterMatchers_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final var function = buildFunction(
-                    "function \"fooFunction\" parameters matching \"parameter\" returns \"bar\" called 3 times");
+                    "function \"fooFunction\" of (\"parameter\") maps to \"bar\" is called 3 times");
 
             final var expectedVal = Val.of("bar");
 
@@ -309,7 +309,7 @@ class FunctionInterpreterTests {
     class InterpretFunctionInvokedOnceTests {
         @Test
         void interpretFunctionInvokedOnce_handlesNullGivenOrWhenStep_throwsSaplTestException() {
-            final var functionInvokedOnce = buildFunctionInvokedOnce("function \"fooFunction\" returns stream \"bar\"");
+            final var functionInvokedOnce = buildFunctionInvokedOnce("function \"fooFunction\" maps to stream \"bar\"");
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> functionInterpreter.interpretFunctionInvokedOnce(null, functionInvokedOnce));
@@ -358,7 +358,7 @@ class FunctionInterpreterTests {
 
         @Test
         void interpretFunctionInvokedOnce_handlesSingleReturnValue_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
-            final var functionInvokedOnce = buildFunctionInvokedOnce("function \"fooFunction\" returns stream \"bar\"");
+            final var functionInvokedOnce = buildFunctionInvokedOnce("function \"fooFunction\" maps to stream \"bar\"");
 
             final var expectedVal = Val.of("bar");
 
@@ -375,7 +375,7 @@ class FunctionInterpreterTests {
         @Test
         void interpretFunctionInvokedOnce_handlesMultipleReturnValues_returnsGivenOrWhenStepWithExpectedFunctionMocking() {
             final var functionInvokedOnce = buildFunctionInvokedOnce(
-                    "function \"fooFunction\" returns stream \"bar\", 1");
+                    "function \"fooFunction\" maps to stream \"bar\", 1");
 
             final var expectedVal1 = Val.of("bar");
             final var expectedVal2 = Val.of(5);

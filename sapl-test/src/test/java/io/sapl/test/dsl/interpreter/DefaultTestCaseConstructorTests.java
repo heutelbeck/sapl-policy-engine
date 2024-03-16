@@ -20,11 +20,13 @@ package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.grammar.sapltest.Environment;
 import java.util.Collections;
 import java.util.Map;
 
@@ -56,9 +58,8 @@ class DefaultTestCaseConstructorTests {
     @Mock
     protected GivenOrWhenStep givenOrWhenStepMock;
 
-    protected io.sapl.test.grammar.sapltest.Object buildObject(final String input) {
-        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getObjectRule,
-                io.sapl.test.grammar.sapltest.Object.class);
+    protected Environment buildEnvironment(final String input) {
+        return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getEnvironmentRule, Environment.class);
     }
 
     @Test
@@ -84,8 +85,22 @@ class DefaultTestCaseConstructorTests {
     }
 
     @Test
+    void constructTestCase_handlesEnvironmentWithWrongType_returnsGivenOrWhenStep() {
+        final var environmentMock = mock(Environment.class);
+        when(environmentMock.getEnvironment()).thenReturn(ParserUtil.buildStringLiteral("\"ABC\""));
+
+        when(saplTestFixtureMock.constructTestCase()).thenReturn(givenOrWhenStepMock);
+
+        final var result = defaultTestCaseConstructor.constructTestCase(saplTestFixtureMock, environmentMock, false);
+
+        assertEquals(givenOrWhenStepMock, result);
+
+        verifyNoMoreInteractions(saplTestFixtureMock);
+    }
+
+    @Test
     void constructTestCase_handlesEmptyEnvironmentVariables_returnsGivenOrWhenStep() {
-        final var environment = buildObject("{}");
+        final var environment = buildEnvironment("environment {}");
 
         when(valueInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
             final io.sapl.test.grammar.sapltest.Object object = invocationOnMock.getArgument(0);
@@ -105,7 +120,7 @@ class DefaultTestCaseConstructorTests {
 
     @Test
     void constructTestCase_handlesNullEnvironmentVariables_returnsGivenOrWhenStep() {
-        final var environment = buildObject("{}");
+        final var environment = buildEnvironment("environment {}");
 
         when(valueInterpreterMock.destructureObject(any())).thenReturn(null);
 
@@ -120,7 +135,7 @@ class DefaultTestCaseConstructorTests {
 
     @Test
     void constructTestCase_handlesSingleEnvironmentVariable_returnsGivenOrWhenStep() {
-        final var environment = buildObject("{ \"key\": \"value\" }");
+        final var environment = buildEnvironment("environment { \"key\": \"value\" }");
 
         final var expectedJsonNode = Val.of("value").get();
         when(valueInterpreterMock.destructureObject(any())).thenAnswer(invocationOnMock -> {
@@ -148,7 +163,8 @@ class DefaultTestCaseConstructorTests {
 
     @Test
     void constructTestCase_handlesNestedEnvironmentVariables_returnsGivenOrWhenStep() {
-        final var environment = buildObject("{ \"key\": \"value\", \"foo\": { \"key2\": \"value2\" } }");
+        final var environment = buildEnvironment(
+                "environment { \"key\": \"value\", \"foo\": { \"key2\": \"value2\" } }");
 
         final var expectedJsonNode  = Val.of("value").get();
         final var expectedJsonNode2 = Val.of("value2").get();

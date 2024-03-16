@@ -28,10 +28,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.hamcrest.Matchers;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.*;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import io.sapl.test.steps.ExpectOrVerifyStep;
+import io.sapl.test.steps.VerifyStep;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -43,32 +53,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.hamcrest.Matchers;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.TestHelper;
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.AnyDecision;
-import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcherType;
-import io.sapl.test.grammar.sapltest.AuthorizationDecisionType;
-import io.sapl.test.grammar.sapltest.ExpectOrAdjustmentStep;
-import io.sapl.test.grammar.sapltest.Expectation;
-import io.sapl.test.grammar.sapltest.HasObligationOrAdvice;
-import io.sapl.test.grammar.sapltest.IsDecision;
-import io.sapl.test.grammar.sapltest.Multiple;
-import io.sapl.test.grammar.sapltest.Next;
-import io.sapl.test.grammar.sapltest.NextWithDecision;
-import io.sapl.test.grammar.sapltest.NextWithMatcher;
-import io.sapl.test.grammar.sapltest.NumericAmount;
-import io.sapl.test.grammar.sapltest.RepeatedExpect;
-import io.sapl.test.grammar.sapltest.SingleExpect;
-import io.sapl.test.grammar.sapltest.SingleExpectWithMatcher;
-import io.sapl.test.grammar.sapltest.StringLiteral;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
-import io.sapl.test.steps.ExpectOrVerifyStep;
-import io.sapl.test.steps.VerifyStep;
 
 @ExtendWith(MockitoExtension.class)
 class ExpectationInterpreterTests {
@@ -119,7 +103,7 @@ class ExpectationInterpreterTests {
     class SingleExpectTests {
         @Test
         void interpretSingleExpect_handlesNullExpectStep_throwsSaplTestException() {
-            final var singleExpect = buildSingleExpect("permit");
+            final var singleExpect = buildSingleExpect("expect permit");
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> expectationInterpreter.interpretSingleExpect(null, singleExpect));
@@ -158,7 +142,7 @@ class ExpectationInterpreterTests {
         @Test
         void interpretSingleExpect_callsAuthorizationDecisionInterpreter_returnsVerifyStep() {
             final var singleExpect = buildSingleExpect(
-                    "permit with obligations \"obligation\" with resource \"resource\" with advice \"advice1\", \"advice2\"");
+                    "expect permit with obligations \"obligation\" with resource \"resource\" with advice \"advice1\", \"advice2\"");
 
             final var authorizationDecisionMock = mock(AuthorizationDecision.class);
 
@@ -191,7 +175,7 @@ class ExpectationInterpreterTests {
 
         @Test
         void interpretSingleExpectWithMatcher_handlesNullExpectStep_throwsSaplTestException() {
-            final var singleExpectWithMatcher = buildSingleExpectWithMatcher("decision matching any");
+            final var singleExpectWithMatcher = buildSingleExpectWithMatcher("expect decision matching any");
 
             final var exception = assertThrows(SaplTestException.class,
                     () -> expectationInterpreter.interpretSingleExpectWithMatcher(null, singleExpectWithMatcher));
@@ -241,7 +225,7 @@ class ExpectationInterpreterTests {
 
         @Test
         void interpretSingleExpectWithMatcher_callsAuthorizationDecisionMatcherInterpreter_returnsVerifyStep() {
-            final var singleExpectWithMatcher = buildSingleExpectWithMatcher("decision any");
+            final var singleExpectWithMatcher = buildSingleExpectWithMatcher("expect decision any");
 
             when(authorizationDecisionMatcherInterpreterMock
                     .getHamcrestAuthorizationDecisionMatcher(any(AnyDecision.class)))
@@ -258,7 +242,8 @@ class ExpectationInterpreterTests {
 
         @Test
         void interpretSingleExpectWithMatcher_correctlyMapsMultipleMixedMatchers_returnsVerifyStep() {
-            final var singleExpectWithMatcher = buildSingleExpectWithMatcher("decision with obligation, is deny");
+            final var singleExpectWithMatcher = buildSingleExpectWithMatcher(
+                    "expect decision with obligation, is deny");
 
             final var hasObligationOrAdviceMappedMock = mock(Matcher.class);
             final var isDecisionMappedMock            = mock(Matcher.class);
@@ -305,7 +290,7 @@ class ExpectationInterpreterTests {
         class ErrorCasesTests {
             @Test
             void interpretRepeatedExpect_handlesNullExpectStep_throwsSaplTestException() {
-                final var repeatedExpect = buildRepeatedExpect("- expect permit once");
+                final var repeatedExpect = buildRepeatedExpect("expect - permit once");
 
                 final var exception = assertThrows(SaplTestException.class,
                         () -> expectationInterpreter.interpretRepeatedExpect(null, repeatedExpect));
@@ -330,40 +315,195 @@ class ExpectationInterpreterTests {
             }
 
             @Test
-            void interpretRepeatedExpect_handlesExpectStepsBeingNull_throwsSaplTestException() {
+            void interpretRepeatedExpect_handlesNullExpectOrAdjustBlocks_throwsSaplTestException() {
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
-                when(repeatedExpectMock.getExpectSteps()).thenReturn(null);
+                when(repeatedExpectMock.getExpectOrAdjustBlocks()).thenReturn(null);
 
                 final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
                         .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
 
-                assertEquals("No ExpectOrAdjustmentStep found", exception.getMessage());
+                assertEquals("No ExpectOrAdjustStep found", exception.getMessage());
             }
 
             @Test
-            void interpretRepeatedExpect_handlesExpectStepsBeingEmpty_returnsInitialVerifyStep() {
+            void interpretRepeatedExpect_handlesExpectOrAdjustBlocksBeingEmpty_throwsSaplTestException() {
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
 
-                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps, Collections.emptyList());
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks, Collections.emptyList());
 
                 final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
                         .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
 
-                assertEquals("No ExpectOrAdjustmentStep found", exception.getMessage());
+                assertEquals("No ExpectOrAdjustStep found", exception.getMessage());
             }
 
             @Test
-            void interpretRepeatedExpect_handlesUnknownExpectStep_throwsSaplTestException() {
-                final var unknownExpectOrAdjustmentStepMock = mock(ExpectOrAdjustmentStep.class);
-                final var repeatedExpectMock                = mock(RepeatedExpect.class);
+            void interpretRepeatedExpect_handlesNullInExpectOrAdjustBlocks_throwsSaplTestException() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                final var expectBlockMock    = mock(ExpectBlock.class);
 
-                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps,
-                        List.of(unknownExpectOrAdjustmentStepMock));
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks,
+                        Arrays.asList(expectBlockMock, null));
 
                 final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
                         .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
 
-                assertEquals("Unknown type of ExpectOrAdjustmentStep", exception.getMessage());
+                assertEquals("ExpectOrAdjustBlock is null", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesAdjacentExpectBlocks_throwsSaplTestException() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                final var expectBlock1Mock   = mock(ExpectBlock.class);
+                final var expectBlock2Mock   = mock(ExpectBlock.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks,
+                        List.of(expectBlock1Mock, expectBlock2Mock));
+
+                final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
+                        .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
+
+                assertEquals("Expect and Adjust Blocks need to alternate", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesAdjacentAdjustBlocks_throwsSaplTestException() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                final var adjustBlock1Mock   = mock(AdjustBlock.class);
+                final var adjustBlock2Mock   = mock(AdjustBlock.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks,
+                        List.of(adjustBlock1Mock, adjustBlock2Mock));
+
+                final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
+                        .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
+
+                assertEquals("Expect and Adjust Blocks need to alternate", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesEndingWithAdjustBlock_throwsSaplTestException() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                final var expectBlockMock    = mock(ExpectBlock.class);
+                final var adjustBlockMock    = mock(AdjustBlock.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks,
+                        List.of(expectBlockMock, adjustBlockMock));
+
+                final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
+                        .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
+
+                assertEquals("Last block needs to be an ExpectBlock", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesExpectBlockWithNullSteps_throwsSaplTestException() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                final var expectBlockMock    = mock(ExpectBlock.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks, List.of(expectBlockMock));
+
+                when(expectBlockMock.getExpectSteps()).thenReturn(null);
+
+                final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
+                        .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
+
+                assertEquals("ExpectBlock has no Steps", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesExpectBlockWithEmptySteps_throwsSaplTestException() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                final var expectBlockMock    = mock(ExpectBlock.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks, List.of(expectBlockMock));
+
+                TestHelper.mockEListResult(expectBlockMock::getExpectSteps, Collections.emptyList());
+
+                final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
+                        .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
+
+                assertEquals("ExpectBlock has no Steps", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesExpectBlockWithUnknownStep_throwsSaplTestException() {
+                final var repeatedExpectMock    = mock(RepeatedExpect.class);
+                final var expectBlockMock       = mock(ExpectBlock.class);
+                final var unknownExpectStepMock = mock(ExpectStep.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks, List.of(expectBlockMock));
+
+                TestHelper.mockEListResult(expectBlockMock::getExpectSteps, List.of(unknownExpectStepMock));
+
+                final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
+                        .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
+
+                assertEquals("Unknown type of ExpectStep", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesAdjustBlockWithNullSteps_throwsSaplTestException() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                final var adjustBlockMock    = mock(AdjustBlock.class);
+                final var expectBlockMock    = mock(ExpectBlock.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks,
+                        List.of(adjustBlockMock, expectBlockMock));
+
+                when(adjustBlockMock.getAdjustSteps()).thenReturn(null);
+
+                final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
+                        .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
+
+                assertEquals("AdjustBlock has no Steps", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesAdjustBlockWithEmptySteps_throwsSaplTestException() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                final var adjustBlockMock    = mock(AdjustBlock.class);
+                final var expectBlockMock    = mock(ExpectBlock.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks,
+                        List.of(adjustBlockMock, expectBlockMock));
+                TestHelper.mockEListResult(adjustBlockMock::getAdjustSteps, Collections.emptyList());
+
+                final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
+                        .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
+
+                assertEquals("AdjustBlock has no Steps", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesAdjustBlockWithUnknownStep_throwsSaplTestException() {
+                final var repeatedExpectMock = mock(RepeatedExpect.class);
+                final var adjustBlockMock    = mock(AdjustBlock.class);
+                final var expectBlockMock    = mock(ExpectBlock.class);
+                final var unknownAdjustStep  = mock(AdjustStep.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks,
+                        List.of(adjustBlockMock, expectBlockMock));
+                TestHelper.mockEListResult(adjustBlockMock::getAdjustSteps, List.of(unknownAdjustStep));
+
+                final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
+                        .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
+
+                assertEquals("Unknown type of AdjustStep", exception.getMessage());
+            }
+
+            @Test
+            void interpretRepeatedExpect_handlesUnknownExpectOrAdjustBlock_throwsSaplTestException() {
+                final var unknownExpectOrAdjustBlockMock = mock(ExpectOrAdjustBlock.class);
+                final var repeatedExpectMock             = mock(RepeatedExpect.class);
+
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks,
+                        List.of(unknownExpectOrAdjustBlockMock));
+
+                final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
+                        .interpretRepeatedExpect(expectOrVerifyStepMock, repeatedExpectMock));
+
+                assertEquals("Unknown type of ExpectOrAdjustBlock", exception.getMessage());
             }
         }
 
@@ -375,8 +515,10 @@ class ExpectationInterpreterTests {
             void interpretRepeatedExpect_constructsNextPermitWithUnknownAmount_throwsSaplTestException() {
                 final var nextMock           = mock(Next.class);
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
+                final var expectBlockMock    = mock(ExpectBlock.class);
 
-                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps, List.of(nextMock));
+                TestHelper.mockEListResult(expectBlockMock::getExpectSteps, List.of(nextMock));
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks, List.of(expectBlockMock));
 
                 final var numericAmountMock = mock(NumericAmount.class);
                 when(nextMock.getAmount()).thenReturn(numericAmountMock);
@@ -389,7 +531,7 @@ class ExpectationInterpreterTests {
 
             @Test
             void interpretRepeatedExpect_constructsNextDenyWithNumericAmountBeingMultiple_returnsVerifyStepWithNextDeny() {
-                final var repeatedExpect = buildRepeatedExpect("- deny 3 times");
+                final var repeatedExpect = buildRepeatedExpect("expect - deny 3 times");
 
                 when(multipleInterpreterMock.getAmountFromMultiple(any())).thenAnswer(invocationOnMock -> {
                     final Multiple multiple = invocationOnMock.getArgument(0);
@@ -408,7 +550,7 @@ class ExpectationInterpreterTests {
 
             @Test
             void interpretRepeatedExpect_constructsNextIndeterminateWithNumericAmountBeingOnce_returnsVerifyStepWithNextIndeterminateOnce() {
-                final var repeatedExpect = buildRepeatedExpect("- indeterminate once");
+                final var repeatedExpect = buildRepeatedExpect("expect - indeterminate once");
 
                 when(expectOrVerifyStepMock.expectNextIndeterminate(1)).thenReturn(expectOrVerifyStepMock);
 
@@ -420,7 +562,7 @@ class ExpectationInterpreterTests {
 
             @Test
             void interpretRepeatedExpect_constructsNextNotApplicableWithNumericAmountBeingOnce_returnsVerifyStepWithNextPermitOnce() {
-                final var repeatedExpect = buildRepeatedExpect("- permit once");
+                final var repeatedExpect = buildRepeatedExpect("expect - permit once");
 
                 when(expectOrVerifyStepMock.expectNextPermit(1)).thenReturn(expectOrVerifyStepMock);
 
@@ -432,7 +574,7 @@ class ExpectationInterpreterTests {
 
             @Test
             void interpretRepeatedExpect_constructsNextNotApplicableWithNumericAmountBeingMultiple_returnsVerifyStepWithNextNotApplicable() {
-                final var repeatedExpect = buildRepeatedExpect("- notApplicable 5 times");
+                final var repeatedExpect = buildRepeatedExpect("expect - notApplicable 5 times");
 
                 when(multipleInterpreterMock.getAmountFromMultiple(any())).thenAnswer(invocationOnMock -> {
                     final Multiple multiple = invocationOnMock.getArgument(0);
@@ -458,8 +600,10 @@ class ExpectationInterpreterTests {
                 final var nextWithDecisionMock = mock(NextWithDecision.class);
 
                 final var repeatedExpectMock = mock(RepeatedExpect.class);
+                final var expectBlockMock    = mock(ExpectBlock.class);
 
-                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps, List.of(nextWithDecisionMock));
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks, List.of(expectBlockMock));
+                TestHelper.mockEListResult(expectBlockMock::getExpectSteps, List.of(nextWithDecisionMock));
 
                 when(nextWithDecisionMock.getExpectedDecision()).thenReturn(null);
 
@@ -472,7 +616,7 @@ class ExpectationInterpreterTests {
             @Test
             void interpretRepeatedExpect_handlesNextWithAuthorizationDecision_returnsVerifyStepWithNextAuthorizationDecision() {
                 final var repeatedExpect = buildRepeatedExpect(
-                        "- permit with obligations \"obligation\" with resource \"resource\" with advice \"advice\"");
+                        "expect - permit with obligations \"obligation\" with resource \"resource\" with advice \"advice\"");
 
                 final var authorizationDecisionMock = mock(AuthorizationDecision.class);
 
@@ -513,10 +657,11 @@ class ExpectationInterpreterTests {
             @Test
             void interpretRepeatedExpect_handlesNullMatchers_throwsSaplTestException() {
                 final var nextWithMatcherMock = mock(NextWithMatcher.class);
+                final var repeatedExpectMock  = mock(RepeatedExpect.class);
+                final var expectBlockMock     = mock(ExpectBlock.class);
 
-                final var repeatedExpectMock = mock(RepeatedExpect.class);
-
-                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps, List.of(nextWithMatcherMock));
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks, List.of(expectBlockMock));
+                TestHelper.mockEListResult(expectBlockMock::getExpectSteps, List.of(nextWithMatcherMock));
 
                 when(nextWithMatcherMock.getMatcher()).thenReturn(null);
 
@@ -530,8 +675,10 @@ class ExpectationInterpreterTests {
             void interpretRepeatedExpect_handlesEmptyMatchers_throwsSaplTestException() {
                 final var nextWithMatcherMock = mock(NextWithMatcher.class);
                 final var repeatedExpectMock  = mock(RepeatedExpect.class);
+                final var expectBlockMock     = mock(ExpectBlock.class);
 
-                TestHelper.mockEListResult(repeatedExpectMock::getExpectSteps, List.of(nextWithMatcherMock));
+                TestHelper.mockEListResult(repeatedExpectMock::getExpectOrAdjustBlocks, List.of(expectBlockMock));
+                TestHelper.mockEListResult(expectBlockMock::getExpectSteps, List.of(nextWithMatcherMock));
                 TestHelper.mockEListResult(nextWithMatcherMock::getMatcher, Collections.emptyList());
 
                 final var exception = assertThrows(SaplTestException.class, () -> expectationInterpreter
@@ -542,7 +689,7 @@ class ExpectationInterpreterTests {
 
             @Test
             void interpretRepeatedExpect_correctlyMapsSingleMatcher_returnsAdjustedVerifyStep() {
-                final var repeatedExpect = buildRepeatedExpect("- decision is permit");
+                final var repeatedExpect = buildRepeatedExpect("expect - decision is permit");
 
                 when(authorizationDecisionMatcherInterpreterMock
                         .getHamcrestAuthorizationDecisionMatcher(any(IsDecision.class)))
@@ -564,7 +711,7 @@ class ExpectationInterpreterTests {
 
             @Test
             void interpretRepeatedExpect_correctlyMapsMultipleMixedMatchers_returnsAdjustedVerifyStep() {
-                final var repeatedExpect = buildRepeatedExpect("- decision with obligation, is deny");
+                final var repeatedExpect = buildRepeatedExpect("expect - decision with obligation, is deny");
 
                 final var hasObligationOrAdviceMappedMock = mock(Matcher.class);
                 final var isDecisionMappedMock            = mock(Matcher.class);
@@ -609,7 +756,7 @@ class ExpectationInterpreterTests {
         class NoEventTests {
             @Test
             void interpretRepeatedExpect_interpretsAwait_returnsAdjustedVerifyStep() {
-                final var repeatedExpect = buildRepeatedExpect("- no-event for \"PT3S\"");
+                final var repeatedExpect = buildRepeatedExpect("expect - no-event for \"PT3S\"");
 
                 when(durationInterpreterMock.getJavaDurationFromDuration(any())).thenAnswer(invocationOnMock -> {
                     final io.sapl.test.grammar.sapltest.Duration duration = invocationOnMock.getArgument(0);
@@ -632,7 +779,9 @@ class ExpectationInterpreterTests {
         class AttributeAdjustmentTests {
             @Test
             void interpretRepeatedExpect_interpretsAttributeAdjustment_returnsAdjustedVerifyStep() {
-                final var repeatedExpect = buildRepeatedExpect("- let attribute \"foo\" return \"bar\"");
+                // expect required since chain has to end with expect block
+                final var repeatedExpect = buildRepeatedExpect(
+                        "then - attribute \"foo\" emits \"bar\" expect - permit once");
 
                 final var expectedVal = Val.of("bar");
 
@@ -640,6 +789,8 @@ class ExpectationInterpreterTests {
                         .thenReturn(expectedVal);
 
                 when(expectOrVerifyStepMock.thenAttribute("foo", expectedVal)).thenReturn(expectOrVerifyStepMock);
+                // required since chain has to end with expect block
+                when(expectOrVerifyStepMock.expectNextPermit(1)).thenReturn(expectOrVerifyStepMock);
 
                 final var result = expectationInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock,
                         repeatedExpect);
@@ -653,7 +804,8 @@ class ExpectationInterpreterTests {
         class AwaitTests {
             @Test
             void interpretRepeatedExpect_interpretsAwait_returnsAdjustedVerifyStep() {
-                final var repeatedExpect = buildRepeatedExpect("- wait for \"PT5S\"");
+                // expect required since chain has to end with expect block
+                final var repeatedExpect = buildRepeatedExpect("then - wait for \"PT5S\" expect - permit once");
 
                 when(durationInterpreterMock.getJavaDurationFromDuration(any())).thenAnswer(invocationOnMock -> {
                     final io.sapl.test.grammar.sapltest.Duration duration = invocationOnMock.getArgument(0);
@@ -663,6 +815,8 @@ class ExpectationInterpreterTests {
                 });
 
                 when(expectOrVerifyStepMock.thenAwait(Duration.ofSeconds(5))).thenReturn(expectOrVerifyStepMock);
+                // required since chain has to end with expect block
+                when(expectOrVerifyStepMock.expectNextPermit(1)).thenReturn(expectOrVerifyStepMock);
 
                 final var result = expectationInterpreter.interpretRepeatedExpect(expectOrVerifyStepMock,
                         repeatedExpect);

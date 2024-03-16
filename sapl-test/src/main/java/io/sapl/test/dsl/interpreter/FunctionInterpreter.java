@@ -98,7 +98,7 @@ class FunctionInterpreter {
     }
 
     private FunctionParameters interpretFunctionParameters(
-            final io.sapl.test.grammar.sapltest.ParameterMatchers parameterMatchers) {
+            final io.sapl.test.grammar.sapltest.FunctionParameterMatchers parameterMatchers) {
         if (parameterMatchers == null) {
             return null;
         }

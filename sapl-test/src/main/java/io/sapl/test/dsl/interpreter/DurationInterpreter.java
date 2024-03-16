@@ -29,7 +29,13 @@ class DurationInterpreter {
             throw new SaplTestException("The passed Duration is null");
         }
         try {
-            return java.time.Duration.parse(duration.getDuration()).abs();
+            final var parsedDuration = java.time.Duration.parse(duration.getDuration());
+
+            if (parsedDuration.isZero() || parsedDuration.isNegative()) {
+                throw new SaplTestException("The passed Duration needs to be larger than 0");
+            }
+            return parsedDuration;
+
         } catch (DateTimeException | ArithmeticException e) {
             throw new SaplTestException("The provided Duration has an invalid format", e);
         }

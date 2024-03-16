@@ -20,6 +20,14 @@
  */
 package io.sapl.test.grammar.validation;
 
+import io.sapl.test.grammar.sapltest.AdjustBlock;
+import io.sapl.test.grammar.sapltest.ExpectOrAdjustBlock;
+import io.sapl.test.grammar.sapltest.Given;
+import io.sapl.test.grammar.sapltest.RepeatedExpect;
+import io.sapl.test.grammar.sapltest.Requirement;
+import io.sapl.test.grammar.sapltest.SAPLTest;
+import io.sapl.test.grammar.sapltest.Scenario;
+import io.sapl.test.grammar.sapltest.VirtualTime;
 import java.time.format.DateTimeParseException;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -30,8 +38,6 @@ import io.sapl.test.grammar.sapltest.Duration;
 import io.sapl.test.grammar.sapltest.Multiple;
 import io.sapl.test.grammar.sapltest.StringMatchesRegex;
 import io.sapl.test.grammar.sapltest.StringWithLength;
-import io.sapl.test.grammar.sapltest.TestCase;
-import io.sapl.test.grammar.sapltest.VirtualTime;
 
 /**
  * This class contains custom validation rules.
@@ -40,12 +46,16 @@ import io.sapl.test.grammar.sapltest.VirtualTime;
  * https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  */
 public class SAPLTestValidator extends AbstractSAPLTestValidator {
-    protected static final String MSG_INVALID_JAVA_DURATION = "Duration is not a valid Java Duration";
-
-    protected static final String MSG_INVALID_MULTIPLE_AMOUNT                  = "Amount needs to be a natural number larger than 1";
-    protected static final String MSG_TESTCASE_WITH_MORE_THAN_ONE_VIRTUAL_TIME = "TestCase contains more than one virtual-time declaration";
-    protected static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX  = "The given regex has an invalid format";
-    protected static final String MSG_INVALID_STRING_WITH_LENGTH               = "String length needs to be an natural number larger than 0";
+    protected static final String MSG_INVALID_JAVA_DURATION                       = "Duration is not a valid Java Duration";
+    protected static final String MSG_JAVA_DURATION_ZERO_OR_NEGATIVE              = "Duration needs to be larger than 0";
+    protected static final String MSG_INVALID_MULTIPLE_AMOUNT                     = "Amount needs to be a natural number larger than 1";
+    protected static final String MSG_GIVEN_WITH_MORE_THAN_ONE_VIRTUAL_TIME       = "TestCase contains more than one virtual-time declaration";
+    protected static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX     = "The given regex has an invalid format";
+    protected static final String MSG_INVALID_STRING_WITH_LENGTH                  = "String length needs to be an natural number larger than 0";
+    protected static final String MSG_DUPLICATE_REQUIREMENT_NAME                  = "Requirement name has to be unique";
+    protected static final String MSG_DUPLICATE_SCENARIO_NAME                     = "Scenario name has to be unique within a Requirement";
+    protected static final String MSG_NON_ALTERNATING_EXPECT_OR_ADJUSTMENT_BLOCKS = "then and expect need to alternate";
+    protected static final String MSG_INVALID_REPEATED_EXPECT                     = "needs to end with expect";
 
     /**
      * Duration string needs to represent a valid Java Duration
@@ -55,7 +65,12 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
     @Check
     public void durationNeedsToBeAValidJavaDuration(final Duration duration) {
         try {
-            java.time.Duration.parse(duration.getDuration());
+            final var parsedDuration = java.time.Duration.parse(duration.getDuration());
+
+            if (parsedDuration.isZero() || parsedDuration.isNegative()) {
+                error(MSG_JAVA_DURATION_ZERO_OR_NEGATIVE, duration, null);
+            }
+
         } catch (DateTimeParseException e) {
             error(MSG_INVALID_JAVA_DURATION, duration, null);
         }
@@ -82,14 +97,14 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
     }
 
     /**
-     * TestCase may contain virtual-time only once
+     * Given may contain virtual-time only once
      *
-     * @param testCase a TestCase instance
+     * @param given a Given instance
      */
     @Check
-    public void testCaseMayContainVirtualTimeOnlyOnce(final TestCase testCase) {
-        if (testCase.getGivenSteps().stream().filter(VirtualTime.class::isInstance).count() > 1) {
-            error(MSG_TESTCASE_WITH_MORE_THAN_ONE_VIRTUAL_TIME, testCase, null);
+    public void givenMayContainVirtualTimeOnlyOnce(final Given given) {
+        if (given.getGivenSteps().stream().filter(VirtualTime.class::isInstance).count() > 1) {
+            error(MSG_GIVEN_WITH_MORE_THAN_ONE_VIRTUAL_TIME, given, null);
         }
     }
 
@@ -127,4 +142,56 @@ public class SAPLTestValidator extends AbstractSAPLTestValidator {
         }
     }
 
+    /**
+     * Requirement name needs to be unique
+     *
+     * @param saplTest a SAPLTest instance
+     */
+    @Check
+    public void requirementNameNeedsToBeUnique(final SAPLTest saplTest) {
+        final var requirements = saplTest.getRequirements();
+
+        if (requirements.stream().map(Requirement::getName).distinct().count() != requirements.size()) {
+            error(MSG_DUPLICATE_REQUIREMENT_NAME, saplTest, null);
+        }
+    }
+
+    /**
+     * Scenario name needs to be unique within a Requirement instance
+     *
+     * @param requirement a Requirement instance
+     */
+    @Check
+    public void scenarioNameNeedsToBeUnique(final Requirement requirement) {
+        final var scenarios = requirement.getScenarios();
+
+        if (scenarios.stream().map(Scenario::getName).distinct().count() != scenarios.size()) {
+            error(MSG_DUPLICATE_SCENARIO_NAME, requirement, null);
+        }
+    }
+
+    /**
+     * RepeatedExpect needs to have alternating Expect and Adjust Blocks and finish
+     * with a ExpectBlock
+     *
+     * @param repeatedExpect a RepeatedExpect instance
+     */
+    @Check
+    public void repeatedExpectNeedsToAlternateBlocksAndEndWithExpectBlock(final RepeatedExpect repeatedExpect) {
+        final var expectOrAdjustBlocks = repeatedExpect.getExpectOrAdjustBlocks();
+
+        ExpectOrAdjustBlock previous = null;
+
+        for (var block : expectOrAdjustBlocks) {
+            if (block.getClass().isInstance(previous)) {
+                error(MSG_NON_ALTERNATING_EXPECT_OR_ADJUSTMENT_BLOCKS, repeatedExpect, null);
+                return;
+            }
+            previous = block;
+        }
+
+        if (previous instanceof AdjustBlock) {
+            error(MSG_INVALID_REPEATED_EXPECT, repeatedExpect, null);
+        }
+    }
 }
