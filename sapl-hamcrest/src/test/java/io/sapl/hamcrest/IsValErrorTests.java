@@ -37,7 +37,7 @@ class IsValErrorTests {
     @Test
     void testType() {
         var sut = valError();
-        assertThat(Val.error(), is(sut));
+        assertThat(Val.error(null, null), is(sut));
     }
 
     @Test
@@ -49,19 +49,19 @@ class IsValErrorTests {
     @Test
     void testMessageTrue() {
         var sut = valError(MESSAGE);
-        assertThat(Val.error(MESSAGE), is(sut));
+        assertThat(Val.error(null, MESSAGE), is(sut));
     }
 
     @Test
     void testMessageFalse() {
         var sut = valError(MESSAGE);
-        assertThat(Val.error("X"), not(is(sut)));
+        assertThat(Val.error(null, "X"), not(is(sut)));
     }
 
     @Test
     void testMatcher() {
         var sut = valError(equalToIgnoringCase(MESSAGE_MIXED_CASE));
-        assertThat(Val.error(MESSAGE), is(sut));
+        assertThat(Val.error(null, MESSAGE), is(sut));
     }
 
     @Test

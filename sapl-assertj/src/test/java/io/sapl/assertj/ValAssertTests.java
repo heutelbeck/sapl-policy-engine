@@ -31,7 +31,7 @@ class ValAssertTests {
 
     @Test
     void isErrorPositive() {
-        var sut = assertThatVal(Val.error());
+        var sut = assertThatVal(Val.error(null, null));
         assertDoesNotThrow(() -> sut.isError());
     }
 
@@ -44,13 +44,13 @@ class ValAssertTests {
 
     @Test
     void isErrorWithMessagePositive() {
-        var sut = assertThatVal(Val.error("message"));
+        var sut = assertThatVal(Val.error(null, "message"));
         assertDoesNotThrow(() -> sut.isError("message"));
     }
 
     @Test
     void isErrorWithMessageNegativeWrongMessage() {
-        var sut = assertThatVal(Val.error("message"));
+        var sut = assertThatVal(Val.error(null, "message"));
         assertThatThrownBy(() -> sut.isError("another message")).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to be <ERROR[another message]>");
     }
@@ -70,7 +70,7 @@ class ValAssertTests {
 
     @Test
     void noErrorNegative() {
-        var sut = assertThatVal(Val.error());
+        var sut = assertThatVal(Val.error(null, null));
         assertThatThrownBy(() -> sut.noError()).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to not be an error but was");
     }
@@ -116,7 +116,7 @@ class ValAssertTests {
 
     @Test
     void hasValueNegativeError() {
-        var sut = assertThatVal(Val.error("error"));
+        var sut = assertThatVal(Val.error(null, "error"));
         assertThatThrownBy(() -> sut.hasValue()).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Excpected Val to be defined");
     }

@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -87,7 +89,7 @@ class TestFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Val evaluate(String function, Val... parameters) {
+    public Val evaluate(EObject location, String function, Val... parameters) {
         throw new UnsupportedOperationException();
     }
 
