@@ -20,7 +20,6 @@ package io.sapl.pdp.interceptors;
 import java.io.IOException;
 
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +37,8 @@ class ErrorAnalysisTests {
 
     private static final String ANSI_ERROR_ON  = "\u001B[31m\u001B[7m";
     private static final String ANSI_ERROR_OFF = "\u001B[0m";
+    private static final String HTML_ERROR_ON  = "<span style=\"color: red\">";
+    private static final String HTML_ERROR_OFF = "</span>";
 
     @Test
     void runIt() throws IOException {
@@ -53,31 +54,14 @@ class ErrorAnalysisTests {
         dumpErrors(result, false, OutputFormat.ANSI_TEXT);
         dumpErrors(result, true, OutputFormat.PLAIN_TEXT);
         dumpErrors(result, false, OutputFormat.PLAIN_TEXT);
+        dumpErrors(result, true, OutputFormat.HTML);
+        dumpErrors(result, false, OutputFormat.HTML);
     }
 
     private void dumpErrors(Traced traced, boolean enumerateLines, OutputFormat format) {
         for (var error : traced.getErrorsFromTrace()) {
             multiLog(errorReport(error, enumerateLines, format));
         }
-    }
-
-    void dumpNodeInfo(EObject o) {
-        INode nodeSet = NodeModelUtils.getNode(o);
-        log.error("text                : '{}'", nodeSet.getText());
-        log.error("toString            : {}", nodeSet.toString());
-        log.error("startLine           : {}", nodeSet.getStartLine());
-        log.error("endLine             : {}", nodeSet.getEndLine());
-        log.error("endOffset           : {}", nodeSet.getEndOffset());
-        log.error("grammarElement      : {}", nodeSet.getGrammarElement());
-        log.error("length              : {}", nodeSet.getLength());
-        log.error("offset              : {}", nodeSet.getOffset());
-        log.error("root node           : {}", nodeSet.getRootNode());
-        log.error("syntax error message: {}", nodeSet.getSyntaxErrorMessage());
-        log.error("totalendline        : {}", nodeSet.getTotalEndLine());
-        log.error("TotalEndOffset      : {}", nodeSet.getTotalEndOffset());
-        log.error("TotalLength         : {}", nodeSet.getTotalLength());
-        log.error("TotalOffset         : {}", nodeSet.getTotalOffset());
-        log.error("TotalStartLine      : {}", nodeSet.getTotalStartLine());
     }
 
     enum OutputFormat {
@@ -97,7 +81,17 @@ class ErrorAnalysisTests {
         } else {
             report += "Error: " + error.getMessage();
         }
+        if (format == OutputFormat.HTML) {
+            report = wrapHtmlReport(report);
+        }
         return report;
+    }
+
+    private String wrapHtmlReport(String report) {
+        var wrapped = "<div style=\"display: block; font-family: monospace; white-space: pre; padding: 0 1em; background-color: #eee;\">\n";
+        wrapped += report;
+        wrapped += "</div>\n";
+        return wrapped;
     }
 
     private record MarkedSource(String source, int row, int column, String documentName) {
@@ -137,30 +131,36 @@ class ErrorAnalysisTests {
                 markedSource += formattedLine + "\n";
             }
             if (format == OutputFormat.PLAIN_TEXT) {
-                var codeMarkingLine = "";
-                if ((currentLineStartOffset <= start && currentLineEndOffset > start)
-                        || (currentLineStartOffset < end && currentLineEndOffset >= end)) {
-                    if (enumerateLines) {
-                        codeMarkingLine += asciiMarkingLinePrefix;
-                    }
-                    for (var i = 0; i < line.length(); i++) {
-                        var currentOffset = currentLineStartOffset + i;
-                        if (currentOffset == start || currentOffset == end - 1) {
-                            codeMarkingLine += "^";
-                        } else if (currentOffset >= start && currentOffset < end) {
-                            codeMarkingLine += "-";
-                        } else {
-                            codeMarkingLine += " ";
-                        }
-                    }
-                    codeMarkingLine += "\n";
-                }
-                markedSource += codeMarkingLine;
+                markedSource += createCodeMarkingLine(line, enumerateLines, start, end, currentLineStartOffset,
+                        currentLineEndOffset, asciiMarkingLinePrefix);
             }
             lineNumber++;
             currentLineStartOffset = currentLineEndOffset + 1;
         }
         return new MarkedSource(markedSource, row, column, documentName);
+    }
+
+    private String createCodeMarkingLine(String line, boolean enumerateLines, int start, int end,
+            int currentLineStartOffset, int currentLineEndOffset, String asciiMarkingLinePrefix) {
+        var codeMarkingLine = "";
+        if ((currentLineStartOffset <= start && currentLineEndOffset > start)
+                || (currentLineStartOffset < end && currentLineEndOffset >= end)) {
+            if (enumerateLines) {
+                codeMarkingLine += asciiMarkingLinePrefix;
+            }
+            for (var i = 0; i < line.length(); i++) {
+                var currentOffset = currentLineStartOffset + i;
+                if (currentOffset == start || currentOffset == end - 1) {
+                    codeMarkingLine += "^";
+                } else if (currentOffset >= start && currentOffset < end) {
+                    codeMarkingLine += "-";
+                } else {
+                    codeMarkingLine += " ";
+                }
+            }
+            codeMarkingLine += "\n";
+        }
+        return codeMarkingLine;
     }
 
     private int maxEnumerationWidth(int i) {
@@ -176,30 +176,37 @@ class ErrorAnalysisTests {
         if (format == OutputFormat.PLAIN_TEXT) {
             return line;
         }
-        if (format == OutputFormat.ANSI_TEXT) {
-            return formatAnsiLine(line, start, end, currentLineStartOffset, currentLineEndOffset);
-        }
-        return line;
+        return styleLine(format, line, start, end, currentLineStartOffset, currentLineEndOffset);
     }
 
-    private String formatAnsiLine(String line, int start, int end, int currentLineStartOffset,
+    private String styleLine(OutputFormat format, String line, int start, int end, int currentLineStartOffset,
             int currentLineEndOffset) {
-        var newLine       = "";
-        var currentOffset = currentLineStartOffset;
+        var newLine              = "";
+        var currentOffset        = currentLineStartOffset;
+        var ansi                 = format == OutputFormat.ANSI_TEXT;
+        var on                   = ansi ? ANSI_ERROR_ON : HTML_ERROR_ON;
+        var off                  = ansi ? ANSI_ERROR_OFF : HTML_ERROR_OFF;
+        var highlightingTurnedOn = false;
         if (start < currentLineStartOffset && end >= currentLineStartOffset) {
-            newLine += ANSI_ERROR_ON;
+            newLine              += on;
+            highlightingTurnedOn  = true;
         }
         for (var character : line.split("(?!^)")) {
             if (currentOffset == start) {
-                newLine += ANSI_ERROR_ON;
+                newLine              += on;
+                highlightingTurnedOn  = true;
             }
             newLine += character;
             if (currentOffset == end - 1) {
-                newLine += ANSI_ERROR_OFF;
+                newLine              += off;
+                highlightingTurnedOn  = false;
             }
             currentOffset++;
         }
-        return newLine + ANSI_ERROR_OFF;
+        if (highlightingTurnedOn) {
+            newLine += off;
+        }
+        return newLine;
     }
 
     void multiLog(String s) {
