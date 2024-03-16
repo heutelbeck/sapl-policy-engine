@@ -18,6 +18,7 @@
 package io.sapl.pdp;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -126,5 +127,10 @@ public class PDPDecision implements TracedDecision {
             modificationTrace.add(modJson);
         }
         return modificationTrace;
+    }
+
+    @Override
+    public Collection<Val> getErrorsFromTrace() {
+        return combinedDecision.getErrorsFromTrace();
     }
 }

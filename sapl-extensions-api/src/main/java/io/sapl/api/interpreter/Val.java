@@ -20,6 +20,8 @@ package io.sapl.api.interpreter;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -98,7 +100,7 @@ public class Val implements Traced {
 
     @Getter
     private final boolean secret;
-    private final Trace   trace;
+    final Trace           trace;
     @Getter
     private final Object  errorSourceReference;
 
@@ -1163,6 +1165,22 @@ public class Val implements Traced {
             traceJson.set(Trace.TRACE_KEY, trace.getTrace());
         }
         return traceJson;
+    }
+
+    @Override
+    public Collection<Val> getErrorsFromTrace() {
+        var errors = new ArrayList<Val>();
+        collectErrors(errors);
+        return errors;
+    }
+
+    void collectErrors(ArrayList<Val> errors) {
+        if (isError()) {
+            errors.add(this);
+        }
+        if (trace != null) {
+            trace.collectErrors(errors);
+        }
     }
 
     private static class NumericAwareComparator implements Comparator<JsonNode>, Serializable {

@@ -23,5 +23,5 @@ import lombok.experimental.StandardException;
 
 @StandardException
 public class ApiKeyAuthenticationException extends AuthenticationException {
-	private static final long serialVersionUID = 4690188836974772190L;
+    private static final long serialVersionUID = 4690188836974772190L;
 }

@@ -28,9 +28,9 @@ import org.springframework.security.core.GrantedAuthority;
  */
 public class ApiKeyAuthenticationToken implements Authentication {
 
-	private static final long serialVersionUID = -2054882429348699109L;
+    private static final long serialVersionUID = -2054882429348699109L;
 
-	private final String apiKey;
+    private final String apiKey;
     private final String principal;
     private boolean      authenticated = false;
 

@@ -17,6 +17,8 @@
  */
 package io.sapl.interpreter;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -119,6 +121,15 @@ public class CombinedDecision implements Traced {
         var arrayNode = Val.JSON.arrayNode();
         results.forEach(r -> arrayNode.add(r.getTrace()));
         return arrayNode;
+    }
+
+    @Override
+    public Collection<Val> getErrorsFromTrace() {
+        var errors = new ArrayList<Val>();
+        for (var result : documentEvaluationResults) {
+            errors.addAll(result.getErrorsFromTrace());
+        }
+        return errors;
     }
 
 }

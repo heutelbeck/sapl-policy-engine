@@ -17,6 +17,8 @@
  */
 package io.sapl.interpreter;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -96,6 +98,14 @@ public class PolicySetDecision implements DocumentEvaluationResult {
         errorMessage.ifPresent(error -> trace.set(Trace.ERROR_MESSAGE, Val.JSON.textNode(errorMessage.get())));
         targetResult.ifPresent(target -> trace.set(Trace.TARGET, target.getTrace()));
         return trace;
+    }
+
+    @Override
+    public Collection<Val> getErrorsFromTrace() {
+        var errors = new ArrayList<Val>();
+        targetResult.ifPresent(target -> errors.addAll(target.getErrorsFromTrace()));
+        errors.addAll(combinedDecision.getErrorsFromTrace());
+        return errors;
     }
 
 }

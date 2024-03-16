@@ -119,9 +119,9 @@ class KeyTestUtility {
 
     private static class InvalidRSAPublicKey implements RSAPublicKey {
 
-		private static final long serialVersionUID = 8969585653668288855L;
+        private static final long serialVersionUID = 8969585653668288855L;
 
-		@Override
+        @Override
         public String getAlgorithm() {
             return "NotRSA";
         }

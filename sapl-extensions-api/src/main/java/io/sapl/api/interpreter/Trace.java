@@ -17,6 +17,7 @@
  */
 package io.sapl.api.interpreter;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -178,5 +179,14 @@ public class Trace {
      */
     public List<ExpressionArgument> getArguments() {
         return Collections.unmodifiableList(arguments);
+    }
+
+    public void collectErrors(ArrayList<Val> errors) {
+        for (var argument : arguments) {
+            var value = argument.value();
+            if (value != null) {
+                value.collectErrors(errors);
+            }
+        }
     }
 }
