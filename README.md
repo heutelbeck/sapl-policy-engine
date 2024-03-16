@@ -74,10 +74,21 @@ Want to see integration examples? View our dedicated [demos](#want-to-integrate-
 
 Feeling experimental? Use our [snapshots](#snapshots) for the newest development state!
 
+## IDE-Support
+
 <!-- Eclipse -->
-## SAPL Eclipse Plug-in
+### SAPL Eclipse Plug-in
 
 Get code editing support in Eclipse by installing the SAPL Plug-in: [![Drag to your running Eclipse* workspace. *Requires Eclipse Marketplace Client](https://marketplace.eclipse.org/modules/custom/eclipsefdn/eclipsefdn_marketplace/images/btn-install.svg)](/marketplace-client-intro?mpc_install=5795798"Drag to your running Eclipse* workspace. *Requires Eclipse Marketplace Client")
+
+### IntelliJ IDEA Plug-in
+
+Get code editing support by installing the [SAPL Plug-in for IntelliJ IDEA](https://github.com/heutelbeck/sapl-intellij-plugin).
+
+### Other IDEs
+
+SAPL provides a language server for the integration into other IDEs which support the language server protocol.
+For details see [sapl-language-server](sapl-language-server/README.md).
 
 <!-- DEMOS -->
 ## Want to integrate SAPL?
