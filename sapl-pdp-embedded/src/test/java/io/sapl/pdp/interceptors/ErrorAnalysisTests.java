@@ -49,12 +49,15 @@ class ErrorAnalysisTests {
                 """);
         var result = doc.sapl().matches().block();
         log.info("Result: {}", result);
-        dumpErrors(result);
+        dumpErrors(result, true, OutputFormat.ANSI_TEXT);
+        dumpErrors(result, false, OutputFormat.ANSI_TEXT);
+        dumpErrors(result, true, OutputFormat.PLAIN_TEXT);
+        dumpErrors(result, false, OutputFormat.PLAIN_TEXT);
     }
 
-    private void dumpErrors(Traced traced) {
+    private void dumpErrors(Traced traced, boolean enumerateLines, OutputFormat format) {
         for (var error : traced.getErrorsFromTrace()) {
-            multiLog(errorReport(error, true, OutputFormat.ANSI_TEXT));
+            multiLog(errorReport(error, enumerateLines, format));
         }
     }
 
@@ -102,11 +105,8 @@ class ErrorAnalysisTests {
 
     private MarkedSource markErrorSourcePlainText(EObject errorSource, boolean enumerateLines, OutputFormat format) {
         var nodeSet = NodeModelUtils.getNode(errorSource);
-
-        dumpNodeInfo(errorSource);
-
-        var start = nodeSet.getOffset();
-        var end   = nodeSet.getEndOffset();
+        var start   = nodeSet.getOffset();
+        var end     = nodeSet.getEndOffset();
 
         String documentName = null;
         var    root         = nodeSet.getRootNode();
@@ -121,20 +121,22 @@ class ErrorAnalysisTests {
         var markedSource            = "";
         var lineNumber              = 1;
         var column                  = 0;
-        var row                     = 0;
+        var row                     = nodeSet.getStartLine();
         var maxEnumerationWidth     = maxEnumerationWidth(lines.length + 1);
         var enumerationFormatString = enumerationFormatString(maxEnumerationWidth);
         var asciiMarkingLinePrefix  = " ".repeat(maxEnumerationWidth) + "|";
         for (var line : lines) {
             var currentLineEndOffset = currentLineStartOffset + line.length();
-            var formattedLine        = formatLine(line, format, start, end, currentLineStartOffset,
-                    currentLineEndOffset);
+            if (lineNumber == row) {
+                column = start - currentLineStartOffset + 1;
+            }
+            var formattedLine = formatLine(line, format, start, end, currentLineStartOffset, currentLineEndOffset);
             if (enumerateLines) {
                 markedSource += String.format(enumerationFormatString, lineNumber, formattedLine);
             } else {
-                markedSource += line + "\n";
+                markedSource += formattedLine + "\n";
             }
-            if (true || format == OutputFormat.PLAIN_TEXT) {
+            if (format == OutputFormat.PLAIN_TEXT) {
                 var codeMarkingLine = "";
                 if ((currentLineStartOffset <= start && currentLineEndOffset > start)
                         || (currentLineStartOffset < end && currentLineEndOffset >= end)) {
@@ -143,10 +145,6 @@ class ErrorAnalysisTests {
                     }
                     for (var i = 0; i < line.length(); i++) {
                         var currentOffset = currentLineStartOffset + i;
-                        if (currentOffset == start) {
-                            row    = lineNumber;
-                            column = i + 1;
-                        }
                         if (currentOffset == start || currentOffset == end - 1) {
                             codeMarkingLine += "^";
                         } else if (currentOffset >= start && currentOffset < end) {
@@ -196,7 +194,7 @@ class ErrorAnalysisTests {
                 newLine += ANSI_ERROR_ON;
             }
             newLine += character;
-            if (currentOffset == end-1) {
+            if (currentOffset == end - 1) {
                 newLine += ANSI_ERROR_OFF;
             }
             currentOffset++;
