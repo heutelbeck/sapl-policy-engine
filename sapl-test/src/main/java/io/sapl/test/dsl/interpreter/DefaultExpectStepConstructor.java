@@ -19,7 +19,7 @@
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestException;
-import io.sapl.test.grammar.sapltest.TestCase;
+import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.WhenStep;
 import lombok.RequiredArgsConstructor;
@@ -29,15 +29,15 @@ class DefaultExpectStepConstructor {
 
     private final AuthorizationSubscriptionInterpreter authorizationSubscriptionInterpreter;
 
-    ExpectStep constructExpectStep(final TestCase testCase, final WhenStep whenStep) {
-        if (testCase == null || whenStep == null) {
-            throw new SaplTestException("TestCase or whenStep is null");
+    ExpectStep constructExpectStep(final Scenario scenario, final WhenStep whenStep) {
+        if (scenario == null || whenStep == null) {
+            throw new SaplTestException("Scenario or whenStep is null");
         }
 
-        final var dslWhenStep = testCase.getWhenStep();
+        final var dslWhenStep = scenario.getWhenStep();
 
         if (dslWhenStep == null) {
-            throw new SaplTestException("TestCase does not contain a whenStep");
+            throw new SaplTestException("Scenario does not contain a whenStep");
         }
 
         final var authorizationSubscription = dslWhenStep.getAuthorizationSubscription();

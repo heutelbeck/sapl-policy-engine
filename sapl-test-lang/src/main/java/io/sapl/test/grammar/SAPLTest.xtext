@@ -16,13 +16,14 @@
  * limitations under the License.
  */
 grammar io.sapl.test.^grammar.SAPLTest with org.eclipse.xtext.common.Terminals
+hidden(ML_COMMENT, SL_COMMENT, WS)
 
 generate sapltest "http://www.sapl.io/test/grammar/SAPLTest"
 
 import "http://www.eclipse.org/emf/2002/Ecore" as ecore
 
 SAPLTest:
-    (testSuites+=TestSuite)+;
+    (requirements+=Requirement)+;
 
 // Terminals
 
@@ -40,11 +41,11 @@ enum CombiningAlgorithmEnum:
 enum AuthorizationDecisionMatcherType:
     OBLIGATION='obligation' | ADVICE='advice';
 
-enum FunctionLibrary:
-	FILTER='FilterFunctionLibrary' | LOGGING='LoggingFunctionLibrary' | STANDARD='StandardFunctionLibrary' | TEMPORAL='TemporalFunctionLibrary';
-
 enum AuthorizationDecisionType:
 	PERMIT='permit' | DENY='deny' | INDETERMINATE='indeterminate' | NOT_APPLICABLE='notApplicable';
+
+enum ImportType:
+	PIP='pip' | STATIC_PIP='static-pip' | FUNCTION_LIBRARY='function-library' | STATIC_FUNCTION_LIBRARY='static-function-library';
 
 // Matchers
 JsonArrayMatcher: '[' matchers+=JsonNodeMatcher (',' matchers+=JsonNodeMatcher)* ']';
@@ -67,8 +68,7 @@ StringOrStringMatcher:
 ValMatcher:
     {AnyVal} 'any' |
     {ValWithValue} value=Value |
-    {ValWithMatcher} 'matching' matcher=JsonNodeMatcher |
-    {ValWithError} 'with' 'error' (error=StringOrStringMatcher)?;
+    {ValWithMatcher} 'matching' matcher=JsonNodeMatcher;
 
 DefaultObjectMatcher:
     {ObjectWithExactMatch} 'equals' equalTo=Value |
@@ -135,17 +135,32 @@ WhenStep:
      'when' authorizationSubscription=AuthorizationSubscription;
 
 AuthorizationSubscription:
-	'subject' subject=Value 'attempts' 'action' action=Value 'on' 'resource' resource=Value ('with' 'environment' environment=Object)?;
+	'subject'? subject=Value 'attempts' 'action'? action=Value 'on' 'resource'? resource=Value ('in'? environment=Object)?;
 
-GivenStep:
-	{Function} 'function' name=STRING ('parameters' 'matching' parameterMatchers=ParameterMatchers)? 'returns' returnValue=Value ('called' timesCalled=NumericAmount)? |
-	{FunctionInvokedOnce} 'function' name=STRING 'returns' 'stream' returnValue+=Value (',' returnValue+=Value)* |
-	{Attribute} 'attribute' name=STRING ('returns' returnValue+=Value (',' returnValue+=Value)* ('with' 'timing' timing=Duration)?)? |
-	{AttributeWithParameters} 'attribute' name=STRING 'with' 'parent' 'value' parentMatcher=ValMatcher ('and' 'parameters' parameterMatchers=ParameterMatchers)? 'returns' returnValue=Value |
+ErrorValue returns Value:
+    {ErrorValue} 'error' ('(' message=STRING ')')?;
+
+ValueOrErrorValue returns Value:
+    Value | ErrorValue;
+
+MockDefinition:
+	{Function} 'function' name=STRING ('of' parameterMatchers=FunctionParameterMatchers)? 'maps' 'to' returnValue=ValueOrErrorValue ('is' 'called' timesCalled=NumericAmount)? |
+	{FunctionInvokedOnce} 'function' name=STRING 'maps' 'to' 'stream' returnValue+=ValueOrErrorValue (',' returnValue+=ValueOrErrorValue)* |
+	{Attribute} 'attribute' name=STRING 'emits' returnValue+=ValueOrErrorValue (',' returnValue+=ValueOrErrorValue)* ('with' 'timing' timing=Duration)? |
+	{AttributeWithParameters} 'attribute' name=STRING 'of' '<' parentMatcher=ValMatcher '>' (parameterMatchers=AttributeParameterMatchers)? 'emits' returnValue=ValueOrErrorValue |
 	{VirtualTime} 'virtual-time';
 
-ParameterMatchers:
-    matchers+=ValMatcher (',' matchers+=ValMatcher)*;
+Environment:
+    'environment' environment=Object;
+
+GivenStep:
+    MockDefinition | Import;
+
+FunctionParameterMatchers:
+    '(' matchers+=ValMatcher (',' matchers+=ValMatcher)* ')';
+
+AttributeParameterMatchers:
+    '(' matchers+=ValMatcher (',' matchers+=ValMatcher)* ')';
 
 NumericAmount:
     {Once} 'once' |
@@ -154,53 +169,60 @@ NumericAmount:
 Duration: duration=STRING;
 
 Expectation:
-	{SingleExpect} decision=AuthorizationDecision |
-	{SingleExpectWithMatcher} 'decision' matchers+=AuthorizationDecisionMatcher (',' matchers+=AuthorizationDecisionMatcher)* |
-	{TestException} 'exception' |
-	{RepeatedExpect} ('-' expectSteps+=ExpectOrAdjustmentStep)+;
+	{SingleExpect} 'expect' decision=AuthorizationDecision |
+	{SingleExpectWithMatcher} 'expect' 'decision' matchers+=AuthorizationDecisionMatcher (',' matchers+=AuthorizationDecisionMatcher)* |
+	{TestException} 'expect' 'exception' |
+	{RepeatedExpect} expectOrAdjustBlocks+=ExpectOrAdjustBlock+;
 
-ExpectOrAdjustmentStep:
-    ExpectStep | AdjustmentStep;
+ExpectBlock:
+    'expect' ('-' expectSteps+=ExpectStep)+;
 
-ExpectStep returns ExpectOrAdjustmentStep:
+AdjustBlock:
+    'then' ('-' adjustSteps+=AdjustStep)+;
+
+ExpectOrAdjustBlock:
+    ExpectBlock | AdjustBlock;
+
+ExpectStep:
 	{Next} expectedDecision=AuthorizationDecisionType amount=NumericAmount |
 	{NextWithDecision} expectedDecision=AuthorizationDecision |
 	{NextWithMatcher} 'decision' matcher+=AuthorizationDecisionMatcher (',' matcher+=AuthorizationDecisionMatcher)* |
 	{NoEvent} 'no-event' 'for' duration=Duration;
 
-AdjustmentStep returns ExpectOrAdjustmentStep:
-    {AttributeAdjustment} 'let' attribute=STRING 'return' returnValue=Value |
+AdjustStep:
+    {AttributeAdjustment} 'attribute' attribute=STRING 'emits' returnValue=Value |
 	{Await} 'wait' duration=Duration;
 
 AuthorizationDecision:
     decision=AuthorizationDecisionType ('with' 'obligations' obligations+=Value (',' obligations+=Value)*)? ('with' 'resource' resource=Value)? ('with' 'advice' advice+=Value (',' advice+=Value)*)?;
 
-//TestCase and TestSuite
+PdpVariables:
+    'pdp' 'variables' pdpVariables=Object;
 
-TestSuite:
-    UnitTestSuite | IntegrationTestSuite;
+PdpCombiningAlgorithm:
+    'pdp' combiningAlgorithmDefined?='combining-algorithm' combiningAlgorithm=CombiningAlgorithmEnum;
 
-UnitTestSuite:
-	'test' policyName=STRING '{'
-		(testCases+=TestCase)+
-	'}';
+Document:
+    {SingleDocument} 'policy' identifier=STRING |
+    {DocumentSetWithSingleIdentifier} 'set' identifier=STRING |
+    {DocumentSet} 'policies' identifiers+=STRING (',' identifiers+=STRING)+ ('with' 'pdp' 'configuration' pdpConfigurationIdentifier=STRING)?;
 
-IntegrationTestSuite:
-    'test' 'policies' configuration=PolicyResolverConfig
-    ('using' 'variables' pdpVariables=Object)?
-    ('with' combiningAlgorithmDefined?='combining-algorithm' combiningAlgorithm=CombiningAlgorithmEnum)?
-    '{'
-        (testCases+=TestCase)+
+Import:
+    type=ImportType identifier=STRING;
+
+Given:
+    {Given} 'given'
+    ('-' document=Document)?
+    ('-' pdpVariables=PdpVariables)?
+    ('-' pdpCombiningAlgorithm=PdpCombiningAlgorithm)?
+    ('-' environment=Environment)?
+    ('-' givenSteps+=GivenStep)*;
+
+Requirement:
+    'requirement' name=STRING '{'
+        (given=Given)?
+        (scenarios+=Scenario)+
     '}';
 
-PolicyResolverConfig:
-    {PoliciesByIdentifier} 'with' 'identifier' identifier=STRING |
-    {PoliciesByInputString} ('-' policies+=STRING)+ ('with' 'pdp' 'configuration' pdpConfiguration=STRING)?;
-
-TestCase:
-    'scenario' name=STRING ('with' 'environment' environment=Object)? ('register' ('-' registrations+=FixtureRegistration)+)? ('given' ('-' givenSteps+=GivenStep)+)? whenStep=WhenStep 'then' 'expect' expectation=Expectation';';
-
-FixtureRegistration:
-    {Pip} 'PIP' fqn=STRING |
-    {CustomFunctionLibrary} 'custom' 'library' fqn=STRING |
-    {SaplFunctionLibrary} 'library' library=FunctionLibrary;
+Scenario:
+    'scenario' name=STRING (given=Given)? whenStep=WhenStep expectation=Expectation';';

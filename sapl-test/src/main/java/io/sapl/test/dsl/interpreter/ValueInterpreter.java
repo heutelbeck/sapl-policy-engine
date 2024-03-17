@@ -18,6 +18,7 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import io.sapl.test.grammar.sapltest.ErrorValue;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -68,6 +69,10 @@ class ValueInterpreter {
             return Val.NULL;
         } else if (value instanceof UndefinedLiteral) {
             return Val.UNDEFINED;
+        } else if (value instanceof ErrorValue errorValue) {
+            final var message = errorValue.getMessage();
+
+            return message == null ? Val.error() : Val.error(message);
         } else if (value instanceof Array array) {
             return interpretArray(array);
         } else if (value instanceof io.sapl.test.grammar.sapltest.Object object) {

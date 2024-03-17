@@ -16,24 +16,22 @@
  * limitations under the License.
  */
 
-package io.sapl.test.dsl.interpreter;
+import io.sapl.test.utils.ClasspathHelper;
+import java.util.List;
+import org.apache.commons.io.FileUtils;
+import org.assertj.core.util.Arrays;
 
-import io.sapl.test.SaplTestException;
-import lombok.SneakyThrows;
+class TestDiscoveryHelper {
 
-class ReflectionHelper {
-    @SneakyThrows
-    Object constructInstanceOfClass(final String className) {
-        if (className == null || className.isEmpty()) {
-            throw new SaplTestException("null or empty className");
-        }
-        try {
-            final var clazz = Class.forName(className);
+    private TestDiscoveryHelper() {
+    }
 
-            final var constructor = clazz.getConstructor();
-            return constructor.newInstance();
-        } catch (Exception e) {
-            throw new ReflectiveOperationException("Could not construct instance of '%s'".formatted(className), e);
-        }
+    private static final String[] SAPL_TEST_FILE_EXTENSIONS = Arrays.array("sapltest");
+
+    public static List<String> discoverTests() {
+        var dir = ClasspathHelper.findPathOnClasspath(TestDiscoveryHelper.class.getClassLoader(), "").toFile();
+
+        return FileUtils.listFiles(dir, SAPL_TEST_FILE_EXTENSIONS, true).stream()
+                .map(file -> dir.toPath().relativize(file.toPath()).toString()).toList();
     }
 }

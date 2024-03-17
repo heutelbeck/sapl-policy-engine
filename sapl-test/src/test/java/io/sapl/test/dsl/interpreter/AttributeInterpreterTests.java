@@ -23,11 +23,14 @@ import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sapltest.AttributeParameterMatchers;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +52,6 @@ import io.sapl.test.grammar.sapltest.AnyVal;
 import io.sapl.test.grammar.sapltest.Attribute;
 import io.sapl.test.grammar.sapltest.AttributeWithParameters;
 import io.sapl.test.grammar.sapltest.IsJsonNull;
-import io.sapl.test.grammar.sapltest.ParameterMatchers;
 import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.sapltest.ValMatcher;
 import io.sapl.test.grammar.sapltest.ValWithMatcher;
@@ -87,26 +89,29 @@ class AttributeInterpreterTests {
             when(attribute.getName()).thenReturn("fooAttribute");
             when(attribute.getReturnValue()).thenReturn(null);
 
-            when(givenOrWhenStepMock.givenAttribute("fooAttribute")).thenReturn(givenOrWhenStepMock);
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> attributeInterpreter.interpretAttribute(givenOrWhenStepMock, attribute));
 
-            final var result = attributeInterpreter.interpretAttribute(givenOrWhenStepMock, attribute);
-
-            assertEquals(givenOrWhenStepMock, result);
+            assertEquals("Attribute has no return value", exception.getMessage());
         }
 
         @Test
+
         void interpretAttribute_whenReturnValueIsEmpty_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
-            final var attribute = buildAttribute("attribute \"fooAttribute\"");
-            when(givenOrWhenStepMock.givenAttribute("fooAttribute")).thenReturn(givenOrWhenStepMock);
+            final var attribute = mock(Attribute.class);
 
-            final var result = attributeInterpreter.interpretAttribute(givenOrWhenStepMock, attribute);
+            when(attribute.getName()).thenReturn("fooAttribute");
+            TestHelper.mockEListResult(attribute::getReturnValue, Collections.emptyList());
 
-            assertEquals(givenOrWhenStepMock, result);
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> attributeInterpreter.interpretAttribute(givenOrWhenStepMock, attribute));
+
+            assertEquals("Attribute has no return value", exception.getMessage());
         }
 
         @Test
         void interpretAttribute_withReturnValueAndNoTiming_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
-            final var attribute = buildAttribute("attribute \"fooAttribute\" returns \"Foo\"");
+            final var attribute = buildAttribute("attribute \"fooAttribute\" emits \"Foo\"");
 
             final var expectedReturnValue = Val.of("Foo");
 
@@ -125,7 +130,7 @@ class AttributeInterpreterTests {
         void interpretAttribute_withReturnValueAndTiming_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var expectedReturnValue = Val.of("Foo");
 
-            final var attribute = buildAttribute("attribute \"fooAttribute\" returns \"Foo\" with timing \"PT5S\"");
+            final var attribute = buildAttribute("attribute \"fooAttribute\" emits \"Foo\" with timing \"PT5S\"");
 
             when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("Foo")))
                     .thenReturn(expectedReturnValue);
@@ -198,7 +203,7 @@ class AttributeInterpreterTests {
             final var returnValMock = mock(Val.class);
             when(valueInterpreterMock.getValFromValue(returnValueMock)).thenReturn(returnValMock);
 
-            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            final var parameterMatchersMock = mock(AttributeParameterMatchers.class);
             when(attributeWithParametersMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
             when(parameterMatchersMock.getMatchers()).thenReturn(null);
@@ -229,7 +234,7 @@ class AttributeInterpreterTests {
             final var returnValMock = mock(Val.class);
             when(valueInterpreterMock.getValFromValue(returnValueMock)).thenReturn(returnValMock);
 
-            final var parameterMatchersMock = mock(ParameterMatchers.class);
+            final var parameterMatchersMock = mock(AttributeParameterMatchers.class);
             when(attributeWithParametersMock.getParameterMatchers()).thenReturn(parameterMatchersMock);
 
             TestHelper.mockEListResult(parameterMatchersMock::getMatchers, Collections.emptyList());
@@ -246,7 +251,7 @@ class AttributeInterpreterTests {
         @Test
         void interpretAttributeWithParameters_withEmptyParameterMatchers_returnsGivenOrWhenStepWithExpectedAttributeMocking() {
             final var attributeWithParameters = buildAttributeWithParameters(
-                    "attribute \"fooAttribute\" with parent value \"Foo\" returns \"BAR\"");
+                    "attribute \"fooAttribute\" of <\"Foo\"> emits \"BAR\"");
 
             final var expectedReturnValue = Val.of("BAR");
             when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("BAR")))
@@ -270,7 +275,7 @@ class AttributeInterpreterTests {
             final var attributeParametersArgumentCaptor = ArgumentCaptor.forClass(AttributeParameters.class);
 
             final var attributeWithParameters = buildAttributeWithParameters(
-                    "attribute \"fooAttribute\" with parent value any and parameters \"FOO1\", matching null returns \"BAR\"");
+                    "attribute \"fooAttribute\" of <any>(\"FOO1\", matching null) emits \"BAR\"");
 
             final var expectedReturnValue = Val.of("BAR");
             when(valueInterpreterMock.getValFromValue(compareArgumentToStringLiteral("BAR")))

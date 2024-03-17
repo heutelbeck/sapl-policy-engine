@@ -18,17 +18,19 @@
 
 package io.sapl.test.dsl.interfaces;
 
-import java.util.List;
-
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sapltest.FixtureRegistration;
+import io.sapl.test.grammar.sapltest.Environment;
+import io.sapl.test.grammar.sapltest.Expectation;
+import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
-import io.sapl.test.grammar.sapltest.TestCase;
-import io.sapl.test.grammar.sapltest.TestSuite;
+import io.sapl.test.grammar.sapltest.ImportType;
+import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
 import io.sapl.test.steps.WhenStep;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Used to define how the concrete tests steps defined in
@@ -45,55 +47,58 @@ public interface StepConstructor {
      * Defines logic to construct an instance of {@link SaplTestFixture} and handles
      * fixture registrations.
      *
-     * @param fixtureRegistrations The registrations to apply on the created
-     *                             Fixture.
-     * @param testSuite            TestSuite containing information required for
-     *                             building the Fixture.
+     * @param given      The {@link Given} containing information about the
+     *                   {@link io.sapl.test.grammar.sapltest.Document}.
+     * @param givenSteps containing the {@link io.sapl.test.grammar.sapltest.Import}
+     *                   to apply on the constructed fixture.
      * @return The created Fixture.
      */
-    SaplTestFixture constructTestFixture(List<FixtureRegistration> fixtureRegistrations, TestSuite testSuite);
+    SaplTestFixture constructTestFixture(Given given, List<GivenStep> givenSteps,
+            Map<ImportType, Map<String, Object>> fixtureRegistrations);
 
     /**
-     * Constructs the initial TestCase from a given Fixture and an Environment.
+     * Constructs the initial TestCase from a given {@link SaplTestFixture} and an
+     * {@link Environment}.
      *
      * @param saplTestFixture The Fixture created in
-     *                        {@link StepConstructor#constructTestFixture(List, TestSuite)}.
+     *                        {@link StepConstructor#constructTestFixture(Given, List, Map)}.
      * @param environment     The Environment to consider for the TestCase.
      * @param needsMocks      Additional information if mocking is required for the
      *                        TestCase.
      * @return The created initial TestCase.
      */
-    GivenOrWhenStep constructTestCase(SaplTestFixture saplTestFixture, io.sapl.test.grammar.sapltest.Object environment,
-            boolean needsMocks);
+    GivenOrWhenStep constructTestCase(SaplTestFixture saplTestFixture, Environment environment, boolean needsMocks);
 
     /**
      * Defines logic to apply a List of GivenSteps to the initial TestCase to
      * construct a {@link WhenStep}.
      *
-     * @param givenSteps      GivenSteps to apply to the initial TestCase.
+     * @param givenSteps      containing the
+     *                        {@link io.sapl.test.grammar.sapltest.MockDefinition}
+     *                        to apply on the constructed WhenStep.
      * @param initialTestCase The initial TestCase contructed from
-     *                        {@link StepConstructor#constructTestCase(SaplTestFixture, io.sapl.test.grammar.sapltest.Object, boolean)}.
+     *                        {@link StepConstructor#constructTestCase(SaplTestFixture, Environment, boolean)}.
      * @return The created WhenStep instance.
      */
-    WhenStep constructWhenStep(List<GivenStep> givenSteps, GivenOrWhenStep initialTestCase);
+    WhenStep constructWhenStep(List<GivenStep> givenSteps, GivenOrWhenStep initialTestCase, Expectation expectation);
 
     /**
      * Defines logic to construct a {@link ExpectStep} from a WhenStep.
      *
-     * @param testCase The TestCase to derive information from.
+     * @param scenario The Scenario to derive information from.
      * @param whenStep The WhenStep created in
-     *                 {@link StepConstructor#constructWhenStep(List, GivenOrWhenStep)}.
+     *                 {@link StepConstructor#constructWhenStep(List, GivenOrWhenStep, Expectation)}.
      * @return The created ExpectStep.
      */
-    ExpectStep constructExpectStep(TestCase testCase, WhenStep whenStep);
+    ExpectStep constructExpectStep(Scenario scenario, WhenStep whenStep);
 
     /**
      * Defines logic to construct a {@link VerifyStep} from a ExpectStep.
      *
-     * @param testCase   The TestCase to derive information from.
+     * @param scenario   The Scenario to derive information from.
      * @param expectStep The ExpectStep created in
-     *                   {@link StepConstructor#constructExpectStep(TestCase, WhenStep)}.
+     *                   {@link StepConstructor#constructExpectStep(Scenario, WhenStep)}.
      * @return The created VerifyStep.
      */
-    VerifyStep constructVerifyStep(TestCase testCase, ExpectStep expectStep);
+    VerifyStep constructVerifyStep(Scenario scenario, ExpectStep expectStep);
 }
