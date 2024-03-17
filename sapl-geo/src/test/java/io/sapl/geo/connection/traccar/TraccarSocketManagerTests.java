@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package geo.connection;
+package io.sapl.geo.connection.traccar;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -40,7 +40,7 @@ import io.sapl.geo.connection.traccar.TraccarSocketManager;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
-public class AppTest {
+public class TraccarSocketManagerTests {
     String              address;
     Integer             port;
     SourceProvider      source            = SourceProvider.getInstance();
