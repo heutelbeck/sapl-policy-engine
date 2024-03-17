@@ -72,7 +72,7 @@ class ValueInterpreter {
         } else if (value instanceof ErrorValue errorValue) {
             final var message = errorValue.getMessage();
 
-            return message == null ? Val.error() : Val.error(message);
+            return message == null ? Val.error(null, null) : Val.error(null, message);
         } else if (value instanceof Array array) {
             return interpretArray(array);
         } else if (value instanceof io.sapl.test.grammar.sapltest.Object object) {
