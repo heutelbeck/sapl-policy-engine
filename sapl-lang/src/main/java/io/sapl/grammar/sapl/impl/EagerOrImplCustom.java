@@ -36,7 +36,7 @@ public class EagerOrImplCustom extends EagerOrImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return booleanOperator(this, this::or);
+        return booleanOperator(this, this, this::or);
     }
 
     private Val or(Val left, Val right) {

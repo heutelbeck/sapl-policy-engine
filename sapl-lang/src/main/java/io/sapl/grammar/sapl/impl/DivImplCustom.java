@@ -40,7 +40,7 @@ public class DivImplCustom extends DivImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this::divide);
+        return arithmeticOperator(this, this, this::divide);
     }
 
     private Val divide(Val dividend, Val divisor) {

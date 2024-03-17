@@ -36,7 +36,7 @@ public class EagerAndImplCustom extends EagerAndImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return booleanOperator(this, this::and);
+        return booleanOperator(this, this, this::and);
     }
 
     private Val and(Val left, Val right) {

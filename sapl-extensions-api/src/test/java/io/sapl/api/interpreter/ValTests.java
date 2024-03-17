@@ -498,8 +498,8 @@ class ValTests {
     @Test
     void requireBoolean() {
         var sa = new SoftAssertions();
-        sa.assertThat(Val.requireBoolean(Val.TRUE)).isEqualTo(Val.TRUE);
-        var value = Val.requireBoolean(Val.UNDEFINED);
+        sa.assertThat(Val.requireBoolean(this, Val.TRUE)).isEqualTo(Val.TRUE);
+        var value = Val.requireBoolean(this, Val.UNDEFINED);
         sa.assertThat(value.isError()).isTrue();
         sa.assertAll();
     }
@@ -507,50 +507,50 @@ class ValTests {
     @Test
     void requireJsonNode() {
         var sa = new SoftAssertions();
-        sa.assertThat(Val.requireJsonNode(Val.TRUE)).isEqualTo(Val.TRUE);
-        sa.assertThat(Val.requireJsonNode(Val.error("", "")).isError()).isTrue();
-        sa.assertThat(Val.requireJsonNode(Val.UNDEFINED).isError()).isTrue();
+        sa.assertThat(Val.requireJsonNode(this, Val.TRUE)).isEqualTo(Val.TRUE);
+        sa.assertThat(Val.requireJsonNode(this, Val.error("", "")).isError()).isTrue();
+        sa.assertThat(Val.requireJsonNode(this, Val.UNDEFINED).isError()).isTrue();
         sa.assertAll();
     }
 
     @Test
     void requireArrayNode() {
         var sa = new SoftAssertions();
-        sa.assertThat(Val.requireArrayNode(Val.ofEmptyArray())).isEqualTo(Val.ofEmptyArray());
-        sa.assertThat(Val.requireArrayNode(Val.of(1)).isError()).isTrue();
-        sa.assertThat(Val.requireArrayNode(Val.error("", "")).isError()).isTrue();
-        sa.assertThat(Val.requireArrayNode(Val.UNDEFINED).isError()).isTrue();
+        sa.assertThat(Val.requireArrayNode(this, Val.ofEmptyArray())).isEqualTo(Val.ofEmptyArray());
+        sa.assertThat(Val.requireArrayNode(this, Val.of(1)).isError()).isTrue();
+        sa.assertThat(Val.requireArrayNode(this, Val.error("", "")).isError()).isTrue();
+        sa.assertThat(Val.requireArrayNode(this, Val.UNDEFINED).isError()).isTrue();
         sa.assertAll();
     }
 
     @Test
     void requireObjectNode() {
         var sa = new SoftAssertions();
-        sa.assertThat(Val.requireObjectNode(Val.ofEmptyObject())).isEqualTo(Val.ofEmptyObject());
-        sa.assertThat(Val.requireObjectNode(Val.of(1)).isError()).isTrue();
-        sa.assertThat(Val.requireObjectNode(Val.error("", "")).isError()).isTrue();
-        sa.assertThat(Val.requireObjectNode(Val.UNDEFINED).isError()).isTrue();
+        sa.assertThat(Val.requireObjectNode(this, Val.ofEmptyObject())).isEqualTo(Val.ofEmptyObject());
+        sa.assertThat(Val.requireObjectNode(this, Val.of(1)).isError()).isTrue();
+        sa.assertThat(Val.requireObjectNode(this, Val.error("", "")).isError()).isTrue();
+        sa.assertThat(Val.requireObjectNode(this, Val.UNDEFINED).isError()).isTrue();
         sa.assertAll();
     }
 
     @Test
     void requireText() {
         var sa = new SoftAssertions();
-        sa.assertThat(Val.requireText(Val.of(""))).isEqualTo(Val.of(""));
-        sa.assertThat(Val.requireText(Val.of(1)).isError()).isTrue();
-        sa.assertThat(Val.requireText(Val.error("", "")).isError()).isTrue();
-        sa.assertThat(Val.requireText(Val.UNDEFINED).isError()).isTrue();
+        sa.assertThat(Val.requireText(this, Val.of(""))).isEqualTo(Val.of(""));
+        sa.assertThat(Val.requireText(this, Val.of(1)).isError()).isTrue();
+        sa.assertThat(Val.requireText(this, Val.error("", "")).isError()).isTrue();
+        sa.assertThat(Val.requireText(this, Val.UNDEFINED).isError()).isTrue();
         sa.assertAll();
     }
 
     @Test
     void requireNumber() {
         var sa = new SoftAssertions();
-        sa.assertThat(Val.requireNumber(Val.of(1))).isEqualTo(Val.of(1));
-        sa.assertThat(Val.requireNumber(Val.of(1)).isError()).isFalse();
-        sa.assertThat(Val.requireNumber(Val.of("")).isError()).isTrue();
-        sa.assertThat(Val.requireNumber(Val.error("", "")).isError()).isTrue();
-        sa.assertThat(Val.requireNumber(Val.UNDEFINED).isError()).isTrue();
+        sa.assertThat(Val.requireNumber(this, Val.of(1))).isEqualTo(Val.of(1));
+        sa.assertThat(Val.requireNumber(this, Val.of(1)).isError()).isFalse();
+        sa.assertThat(Val.requireNumber(this, Val.of("")).isError()).isTrue();
+        sa.assertThat(Val.requireNumber(this, Val.error("", "")).isError()).isTrue();
+        sa.assertThat(Val.requireNumber(this, Val.UNDEFINED).isError()).isTrue();
         sa.assertAll();
     }
 

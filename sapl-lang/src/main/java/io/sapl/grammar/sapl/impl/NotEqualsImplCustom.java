@@ -36,7 +36,7 @@ public class NotEqualsImplCustom extends NotEqualsImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, this::notEqual);
+        return operator(this, this, this::notEqual);
     }
 
     private Val notEqual(Val left, Val right) {

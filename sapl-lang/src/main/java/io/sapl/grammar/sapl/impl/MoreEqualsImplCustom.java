@@ -36,7 +36,7 @@ public class MoreEqualsImplCustom extends MoreEqualsImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this::moreOrEqual);
+        return arithmeticOperator(this, this, this::moreOrEqual);
     }
 
     private Val moreOrEqual(Val left, Val right) {

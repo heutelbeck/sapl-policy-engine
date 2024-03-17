@@ -26,37 +26,40 @@ import reactor.core.publisher.Flux;
 @UtilityClass
 public class OperatorUtil {
 
-    public static Flux<Val> operator(BinaryOperator operator, java.util.function.UnaryOperator<Val> leftTypeRequirement,
-            java.util.function.UnaryOperator<Val> rightTypeRequirement,
+    public static Flux<Val> operator(Object demandingComponent, BinaryOperator operator,
+            java.util.function.BiFunction<Object, Val, Val> leftTypeRequirement,
+            java.util.function.BiFunction<Object, Val, Val> rightTypeRequirement,
             java.util.function.BinaryOperator<Val> transformation) {
-        var left  = operator.getLeft().evaluate().map(leftTypeRequirement);
-        var right = operator.getRight().evaluate().map(rightTypeRequirement);
+        var left  = operator.getLeft().evaluate().map(v -> leftTypeRequirement.apply(demandingComponent, v));
+        var right = operator.getRight().evaluate().map(v -> rightTypeRequirement.apply(demandingComponent, v));
         return Flux.combineLatest(left, right, errorOrDo(transformation));
     }
 
-    public static Flux<Val> arithmeticOperator(BinaryOperator operator,
+    public static Flux<Val> arithmeticOperator(Object demandingComponent, BinaryOperator operator,
             java.util.function.BinaryOperator<Val> transformation) {
-        return operator(operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation);
+        return operator(demandingComponent, operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation);
     }
 
-    public static Flux<Val> arithmeticOperator(UnaryOperator unaryOperator,
+    public static Flux<Val> arithmeticOperator(Object demandingComponent, UnaryOperator unaryOperator,
             java.util.function.UnaryOperator<Val> transformation) {
-        return operator(unaryOperator, Val::requireBigDecimal, transformation);
+        return operator(demandingComponent, unaryOperator, Val::requireBigDecimal, transformation);
     }
 
-    public static Flux<Val> booleanOperator(BinaryOperator operator,
+    public static Flux<Val> booleanOperator(Object demandingComponent, BinaryOperator operator,
             java.util.function.BinaryOperator<Val> transformation) {
-        return operator(operator, Val::requireBoolean, Val::requireBoolean, transformation);
+        return operator(demandingComponent, operator, Val::requireBoolean, Val::requireBoolean, transformation);
     }
 
-    public static Flux<Val> operator(BinaryOperator operator, java.util.function.BinaryOperator<Val> transformation) {
-        return operator(operator, java.util.function.UnaryOperator.identity(),
-                java.util.function.UnaryOperator.identity(), transformation);
+    public static Flux<Val> operator(Object demandingComponent, BinaryOperator operator,
+            java.util.function.BinaryOperator<Val> transformation) {
+        return operator(demandingComponent, operator, (d, v) -> v, (d, v) -> v, transformation);
     }
 
-    public static Flux<Val> operator(UnaryOperator unaryOperator, java.util.function.UnaryOperator<Val> typeRequirement,
+    public static Flux<Val> operator(Object demandingComponent, UnaryOperator unaryOperator,
+            java.util.function.BiFunction<Object, Val, Val> typeRequirement,
             java.util.function.UnaryOperator<Val> transformation) {
-        return unaryOperator.getExpression().evaluate().map(typeRequirement).map(errorOrDo(transformation));
+        return unaryOperator.getExpression().evaluate().map(v -> typeRequirement.apply(demandingComponent, v))
+                .map(errorOrDo(transformation));
     }
 
     public static java.util.function.BinaryOperator<Val> errorOrDo(

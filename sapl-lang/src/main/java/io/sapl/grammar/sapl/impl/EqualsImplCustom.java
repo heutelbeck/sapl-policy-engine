@@ -36,7 +36,7 @@ public class EqualsImplCustom extends EqualsImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, this::tracedEquals);
+        return operator(this, this, this::tracedEquals);
     }
 
     private Val tracedEquals(Val left, Val right) {

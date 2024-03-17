@@ -36,7 +36,7 @@ public class MoreImplCustom extends MoreImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this::moreThan);
+        return arithmeticOperator(this, this, this::moreThan);
 
     }
 

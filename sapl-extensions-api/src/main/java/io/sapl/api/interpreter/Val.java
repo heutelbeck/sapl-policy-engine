@@ -9,7 +9,7 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
+ * Unless d by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
@@ -598,7 +598,7 @@ public class Val implements Traced {
      *         false for the value.
      */
     public Val filter(Predicate<? super JsonNode> predicate) {
-        Objects.requireNonNull(predicate);
+        Objects.nonNull(predicate);
         if (isUndefined())
             return this;
         else
@@ -919,9 +919,13 @@ public class Val implements Traced {
      * @param value a Val
      * @return the input Val, or an error, if the input is not Boolean.
      */
-    public static Val requireBoolean(Val value) {
+    public static Val requireBoolean(Object demandingComponent, Val value) {
+        if (value.isError()) {
+            return value;
+        }
         if (!value.isBoolean()) {
-            return Val.error(BOOLEAN_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value));
+            return Val.error(demandingComponent, BOOLEAN_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value))
+                    .withTrace(Val.class, true, value);
         }
         return value;
     }
@@ -945,14 +949,14 @@ public class Val implements Traced {
      * @param value a Val
      * @return the input Val, or an error, if the input is not a JsonNode.
      */
-    public static Val requireJsonNode(Val value) {
+    public static Val requireJsonNode(Object demandingComponent, Val value) {
         if (value.isError()) {
             return value;
         }
         if (value.isDefined()) {
             return value;
         }
-        return Val.error(UNDEFINED_VALUE_ERROR);
+        return Val.error(demandingComponent, UNDEFINED_VALUE_ERROR, typeOf(value)).withTrace(Val.class, true, value);
     }
 
     /**
@@ -1019,12 +1023,13 @@ public class Val implements Traced {
      * @param value a Val
      * @return the input Val, or an error, if the input is not an array.
      */
-    public static Val requireArrayNode(Val value) {
+    public static Val requireArrayNode(Object demandingComponent, Val value) {
         if (value.isError()) {
             return value;
         }
         if (value.isUndefined() || !value.get().isArray()) {
-            return Val.error(ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value));
+            return Val.error(demandingComponent, ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value))
+                    .withTrace(Val.class, true, value);
         }
         return value;
     }
@@ -1049,12 +1054,13 @@ public class Val implements Traced {
      * @param value a Val
      * @return the input Val, or an error, if the input is not an object.
      */
-    public static Val requireObjectNode(Val value) {
+    public static Val requireObjectNode(Object demandingComponent, Val value) {
         if (value.isError()) {
             return value;
         }
         if (value.isUndefined() || !value.get().isObject()) {
-            return Val.error(OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value));
+            return Val.error(demandingComponent, OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value))
+                    .withTrace(Val.class, true, value);
         }
         return value;
     }
@@ -1078,12 +1084,13 @@ public class Val implements Traced {
      * @param value a Val
      * @return the input Val, or an error, if the input is not textual.
      */
-    public static Val requireText(Val value) {
+    public static Val requireText(Object demandingComponent, Val value) {
         if (value.isError()) {
             return value;
         }
         if (value.isUndefined() || !value.get().isTextual()) {
-            return Val.error(TEXT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value));
+            return Val.error(demandingComponent, TEXT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value))
+                    .withTrace(Val.class, true, value);
         }
         return value;
     }
@@ -1108,12 +1115,13 @@ public class Val implements Traced {
      * @param value a Val
      * @return the input Val, or an error, if the input is not a number.
      */
-    public static Val requireBigDecimal(Val value) {
+    public static Val requireBigDecimal(Object demandingComponent, Val value) {
         if (value.isError()) {
             return value;
         }
         if (value.isUndefined() || !value.get().isNumber()) {
-            return Val.error(ARITHMETIC_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value));
+            return Val.error(demandingComponent, ARITHMETIC_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value))
+                    .withTrace(Val.class, true, value);
         }
         return value;
     }
@@ -1124,8 +1132,8 @@ public class Val implements Traced {
      * @param value a Val
      * @return the input Val, or an error, if the input is not a number.
      */
-    public static Val requireNumber(Val value) {
-        return requireBigDecimal(value);
+    public static Val requireNumber(Object demandingComponent, Val value) {
+        return requireBigDecimal(demandingComponent, value);
     }
 
     /**

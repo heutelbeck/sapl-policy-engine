@@ -30,7 +30,7 @@ public class MinusImplCustom extends MinusImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this::subtract);
+        return arithmeticOperator(this, this, this::subtract);
     }
 
     private Val subtract(Val minuend, Val subtrahend) {
