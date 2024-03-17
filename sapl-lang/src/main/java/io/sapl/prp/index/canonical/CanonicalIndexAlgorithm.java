@@ -19,7 +19,6 @@ package io.sapl.prp.index.canonical;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,7 +26,7 @@ import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.prp.Document;
-import io.sapl.prp.MatchingDocument;
+import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -62,12 +61,12 @@ public class CanonicalIndexAlgorithm {
             var matching  = matchingCtx.getMatchingCandidatesMask();
             var formulas  = fetchFormulas(matching, dataContainer);
             var documents = fetchDocuments(formulas, dataContainer);
-            var results   = new ArrayList<MatchingDocument>();
+            var results   = new ArrayList<DocumentMatch>();
             for (var document : documents) {
-                results.add(new MatchingDocument(document, Val.TRUE.withTrace(CanonicalIndexAlgorithm.class)));
+                results.add(new DocumentMatch(document, Val.TRUE.withTrace(CanonicalIndexAlgorithm.class)));
             }
-            return new PolicyRetrievalResult(results, matchingCtx.isErrorsInTargets(), true);
-        }).onErrorReturn(new PolicyRetrievalResult(Collections.emptyList(), true, true));
+            return new PolicyRetrievalResult(results, matchingCtx.isErrorsInTargets());
+        }).onErrorResume(error -> Mono.just(PolicyRetrievalResult.retrievalErrorResult(error.getMessage())));
     }
 
     Mono<CanonicalIndexMatchingContext> skipPredicate(CanonicalIndexMatchingContext previousCtx) {

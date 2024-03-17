@@ -22,34 +22,33 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.sapl.prp.Document;
+import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
 import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
+import lombok.Getter;
 import lombok.ToString;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
 
 /**
  * The Index Object has to be immutable to avoid race conditions. SAPL Objects
  * are assumed to be immutable.
  */
-@Slf4j
 @ToString
 public class NaiveImmutableParsedDocumentIndex implements UpdateEventDrivenPolicyRetrievalPoint {
 
     private final Map<String, Document> documentsById;
-
-    private final boolean consistent;
+    @Getter
+    private final boolean               consistent;
 
     public NaiveImmutableParsedDocumentIndex() {
         documentsById = new HashMap<>();
         consistent    = true;
     }
 
-    private NaiveImmutableParsedDocumentIndex(Map<String, Document> documentsById, boolean consistent) {
+    public NaiveImmutableParsedDocumentIndex(Map<String, Document> documentsById, boolean consistent) {
         this.documentsById = documentsById;
         this.consistent    = consistent;
     }
@@ -61,26 +60,15 @@ public class NaiveImmutableParsedDocumentIndex implements UpdateEventDrivenPolic
 
     public Mono<PolicyRetrievalResult> retrievePoliciesCollector() {
         if (!consistent)
-            return Mono.just(new PolicyRetrievalResult().withInvalidState());
+            return Mono.just(PolicyRetrievalResult.invalidPrpResult());
 
-        var documentsWithMatchingInformation = Flux.merge(documentsById.values().stream()
-                .map(document -> document.sapl().matches().map(val -> Tuples.of(document, val))).toList());
+        var documentMatches = Flux
+                .merge(documentsById.values().stream()
+                        .map(document -> document.sapl().matches()
+                                .map(targetExpressionResult -> new DocumentMatch(document, targetExpressionResult)))
+                        .toList());
 
-        return documentsWithMatchingInformation.reduce(new PolicyRetrievalResult(),
-                (policyRetrievalResult, documentWithMatchingInformation) -> {
-                    var document = documentWithMatchingInformation.getT1();
-                    var match = documentWithMatchingInformation.getT2();
-                    if (match.isError())
-                        return policyRetrievalResult.withError();
-                    if (!match.isBoolean()) {
-                        log.error("Matching returned error. Should never happen. Error: {}", match.getMessage());
-                        return policyRetrievalResult.withError();
-                    }
-                    if (match.getBoolean())
-                        return policyRetrievalResult.withMatch(document, match);
-
-                    return policyRetrievalResult;
-                });
+        return documentMatches.reduce(new PolicyRetrievalResult(), PolicyRetrievalResult::withMatch);
     }
 
     @Override
@@ -115,8 +103,4 @@ public class NaiveImmutableParsedDocumentIndex implements UpdateEventDrivenPolic
         return documentsById.values();
     }
 
-    @Override
-    public boolean isConsistent() {
-        return consistent;
-    }
 }

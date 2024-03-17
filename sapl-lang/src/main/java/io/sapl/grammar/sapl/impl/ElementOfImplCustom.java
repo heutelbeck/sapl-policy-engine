@@ -39,7 +39,7 @@ public class ElementOfImplCustom extends ElementOfImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, this::tracedElementOf);
+        return operator(this, this, this::tracedElementOf);
     }
 
     private Val tracedElementOf(Val needle, Val haystack) {

@@ -45,15 +45,17 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        return StepAlgorithmUtil.applyOnArray(parentValue, SelectorUtil.toArrayElementSelector(hasIndex(parentValue)),
-                parameters(), AttributeUnionStep.class);
+        return StepAlgorithmUtil.applyOnArray(parentValue,
+                SelectorUtil.toArrayElementSelector(hasIndex(parentValue), this), parameters(),
+                AttributeUnionStep.class, this);
     }
 
     @Override
     public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
             @NonNull FilterStatement statement) {
         return FilterAlgorithmUtil.applyFilterOnArray(unfilteredValue, stepId,
-                SelectorUtil.toArrayElementSelector(hasIndex(unfilteredValue)), statement, ArraySlicingStep.class);
+                SelectorUtil.toArrayElementSelector(hasIndex(unfilteredValue), this), statement,
+                ArraySlicingStep.class);
     }
 
     private BiPredicate<Integer, Val> hasIndex(Val parentValue) {

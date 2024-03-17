@@ -40,13 +40,13 @@ public class DivImplCustom extends DivImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this::divide);
+        return arithmeticOperator(this, this, this::divide);
     }
 
     private Val divide(Val dividend, Val divisor) {
         var trace = Map.<String, Val>of(Trace.DIVIDEND, dividend, Trace.DIVISOR, divisor);
         if (divisor.decimalValue().compareTo(BigDecimal.ZERO) == 0)
-            return Val.error(DIVISION_BY_ZERO_ERROR).withTrace(Div.class, false, trace);
+            return Val.error(this, DIVISION_BY_ZERO_ERROR).withTrace(Div.class, false, trace);
         return Val.of(dividend.decimalValue().divide(divisor.decimalValue())).withTrace(Div.class, false, trace);
     }
 

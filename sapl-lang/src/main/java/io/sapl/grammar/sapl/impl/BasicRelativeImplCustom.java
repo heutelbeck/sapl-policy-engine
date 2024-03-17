@@ -41,7 +41,7 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
         var relativeNode = AuthorizationContext.getRelativeNode(ctx);
 
         if (relativeNode.isUndefined())
-            return Flux.just(Val.error(NO_RELATIVE_NODE_ERROR).withTrace(BasicRelative.class));
+            return Flux.just(Val.error(this, NO_RELATIVE_NODE_ERROR).withTrace(BasicRelative.class));
 
         return Flux.just(relativeNode.withTrace(BasicRelative.class, true, relativeNode))
                 .switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));

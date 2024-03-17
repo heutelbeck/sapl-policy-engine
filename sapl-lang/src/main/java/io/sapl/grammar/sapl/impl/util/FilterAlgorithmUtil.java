@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
@@ -123,7 +125,7 @@ public class FilterAlgorithmUtil {
                 return Flux.just(conditionResult.withTrace(ConditionStep.class, true, trace));
             }
             if (!conditionResult.isBoolean()) {
-                return Flux.just(Val.error(TYPE_MISMATCH_CONDITION_NOT_BOOLEAN_S, conditionResult)
+                return Flux.just(Val.error(statement, TYPE_MISMATCH_CONDITION_NOT_BOOLEAN_S, conditionResult)
                         .withTrace(ConditionStep.class, true, trace));
             }
             if (conditionResult.getBoolean()) {
@@ -131,7 +133,7 @@ public class FilterAlgorithmUtil {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter
                     return applyFilterFunction(elementValueTraced, statement.getArguments(), statement.getFsteps(),
-                            statement.isEach())
+                            statement.isEach(), statement)
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx,
                                     unfilteredValue.withTrace(ConditionStep.class, true, trace)));
                 } else {
@@ -146,18 +148,18 @@ public class FilterAlgorithmUtil {
     }
 
     public static Flux<Val> applyFilterFunction(Val unfilteredValue, Arguments arguments, Iterable<String> fsteps,
-            boolean each) {
+            boolean each, EObject location) {
         if (unfilteredValue.isError()) {
             return Flux.just(unfilteredValue.withTrace(FilterComponent.class, true, unfilteredValue));
         }
         if (unfilteredValue.isUndefined()) {
-            return Flux.just(Val.error(TYPE_MISMATCH_UNFILTERED_UNDEFINED).withTrace(FilterComponent.class, true,
-                    unfilteredValue));
+            return Flux.just(Val.error(location, TYPE_MISMATCH_UNFILTERED_UNDEFINED).withTrace(FilterComponent.class,
+                    true, unfilteredValue));
         }
 
         if (!each) {
             return FunctionUtil.combineArgumentFluxes(arguments)
-                    .concatMap(parameters -> FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(fsteps,
+                    .concatMap(parameters -> FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(location, fsteps,
                             unfilteredValue, parameters))
                     .map(val -> val.withTrace(FilterComponent.class, true,
                             Map.of(UNFILTERED_VALUE, unfilteredValue, "filterResult", val)));
@@ -165,7 +167,7 @@ public class FilterAlgorithmUtil {
 
         // "|- each" may only be applied to arrays
         if (!unfilteredValue.isArray()) {
-            return Flux.just(Val.error(TYPE_MISMATCH_EACH_ON_NON_ARRAY + unfilteredValue.getValType())
+            return Flux.just(Val.error(location, TYPE_MISMATCH_EACH_ON_NON_ARRAY + unfilteredValue.getValType())
                     .withTrace(FilterComponent.class, true, unfilteredValue));
         }
 
@@ -177,8 +179,8 @@ public class FilterAlgorithmUtil {
             for (var element : rootArray) {
                 var elementVal = Val.of(element).withTrace(FilterComponent.class, true,
                         Map.of(UNFILTERED_VALUE, unfilteredValue, "index", Val.of(index++)));
-                elementsEvaluations
-                        .add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(fsteps, elementVal, parameters));
+                elementsEvaluations.add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(location, fsteps,
+                        elementVal, parameters));
             }
             return Flux.combineLatest(elementsEvaluations, e -> Arrays.copyOf(e, e.length, Val[].class))
                     .map(RepackageUtil::recombineArray);

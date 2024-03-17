@@ -83,24 +83,26 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
             return pdpConfiguration.policyRetrievalPoint().retrievePolicies()
                     .flatMapMany(combineDocuments(pdpConfiguration, authorizationSubscription));
         }
-        return Flux.just(PDPDecision.of(authorizationSubscription, CombinedDecision.error(
-                pdpConfiguration.documentsCombinator(), "Policy Retrieval Point in inconsistent state."), List.of()));
+        return Flux
+                .just(PDPDecision.of(authorizationSubscription,
+                        CombinedDecision.error(pdpConfiguration.documentsCombinator(),
+                                "Policy Retrieval Point in inconsistent state."),
+                        PolicyRetrievalResult.invalidPrpResult()));
     }
 
     private Function<PolicyRetrievalResult, Flux<PDPDecision>> combineDocuments(PDPConfiguration pdpConfiguration,
             AuthorizationSubscription authorizationSubscription) {
         return policyRetrievalResult -> {
-            if (!policyRetrievalResult.isPrpValidState() || policyRetrievalResult.isErrorsInTarget()) {
+            if (policyRetrievalResult.isPrpInconsistent() || policyRetrievalResult.isRetrievalWithErrors()) {
                 var combinedDecision = CombinedDecision.of(AuthorizationDecision.INDETERMINATE,
                         pdpConfiguration.documentsCombinator());
-                return Flux.just(PDPDecision.of(authorizationSubscription, combinedDecision,
-                        policyRetrievalResult.getMatchingDocuments()));
+                return Flux.just(PDPDecision.of(authorizationSubscription, combinedDecision, policyRetrievalResult));
             }
             var matchingDocuments  = policyRetrievalResult.getMatchingDocuments();
             var combiningAlgorithm = CombiningAlgorithmFactory
                     .documentsCombiningAlgorithm(pdpConfiguration.documentsCombinator());
             return combiningAlgorithm.combinePreMatchedDocuments(matchingDocuments).map(combinedDecision -> PDPDecision
-                    .of(authorizationSubscription, combinedDecision, policyRetrievalResult.getMatchingDocuments()));
+                    .of(authorizationSubscription, combinedDecision, policyRetrievalResult));
         };
     }
 

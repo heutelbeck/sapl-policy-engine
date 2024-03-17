@@ -30,7 +30,7 @@ public class MultiImplCustom extends MultiImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this::multiply);
+        return arithmeticOperator(this, this, this::multiply);
     }
 
     private Val multiply(Val left, Val right) {

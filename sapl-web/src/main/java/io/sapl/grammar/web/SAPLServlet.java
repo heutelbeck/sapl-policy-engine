@@ -31,9 +31,9 @@ import lombok.SneakyThrows;
 @WebServlet(name = "XtextServices", urlPatterns = "/xtext-service/*")
 public class SAPLServlet extends XtextServlet {
 
-	private static final long serialVersionUID = 8490798022024116011L;
+    private static final long serialVersionUID = 8490798022024116011L;
 
-	private transient DisposableRegistry disposableRegistry;
+    private transient DisposableRegistry disposableRegistry;
 
     @Override
     @SneakyThrows

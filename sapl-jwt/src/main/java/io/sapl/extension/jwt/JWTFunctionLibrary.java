@@ -17,7 +17,6 @@
  */
 package io.sapl.extension.jwt;
 
-import java.text.ParseException;
 import java.time.Instant;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,6 +30,7 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 
 /**
  * Library of functions for evaluating JSON Web Tokens (JWT)
@@ -64,20 +64,17 @@ public class JWTFunctionLibrary {
      * @return the contents of the JWT token as a Val.
      */
     @Function
+    @SneakyThrows
     public Val parseJwt(@Text Val rawToken) {
-        try {
-            var signedJwt = SignedJWT.parse(rawToken.getText());
-            var jsonToken = JSON.objectNode();
-            var payload   = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
-            ifPresentReplaceEpocFieldWithIsoTime(payload, "nbf");
-            ifPresentReplaceEpocFieldWithIsoTime(payload, "exp");
-            ifPresentReplaceEpocFieldWithIsoTime(payload, "iat");
-            jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
-            jsonToken.set("payload", payload);
-            return Val.of(jsonToken);
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+        var signedJwt = SignedJWT.parse(rawToken.getText());
+        var jsonToken = JSON.objectNode();
+        var payload   = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
+        ifPresentReplaceEpocFieldWithIsoTime(payload, "nbf");
+        ifPresentReplaceEpocFieldWithIsoTime(payload, "exp");
+        ifPresentReplaceEpocFieldWithIsoTime(payload, "iat");
+        jsonToken.set("header", mapper.convertValue(signedJwt.getHeader().toJSONObject(), JsonNode.class));
+        jsonToken.set("payload", payload);
+        return Val.of(jsonToken);
     }
 
     private void ifPresentReplaceEpocFieldWithIsoTime(JsonNode payload, String key) {

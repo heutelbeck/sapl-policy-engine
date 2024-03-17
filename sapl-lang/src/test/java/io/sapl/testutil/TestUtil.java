@@ -97,7 +97,7 @@ public class TestUtil {
     public static void assertExpressionReturnsError(String expression, String errorMessage) {
         if (DEBUG_TESTS) {
             log.debug("Expression: {}", expression);
-            log.debug("Expected  : ERROR[{}", errorMessage + "]");
+            log.debug("Expected  : ERROR[{}]", errorMessage);
         }
         assertExpressionReturnsError(ParserUtil.expression(expression), errorMessage);
     }

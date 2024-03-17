@@ -48,7 +48,7 @@ class PolicySetDecisionTests {
 
     @Test
     void ofTargetError() {
-        var decision = PolicySetDecision.ofTargetError("documentName", Val.error("error message"),
+        var decision = PolicySetDecision.ofTargetError("documentName", Val.error(null, "error message"),
                 CombiningAlgorithm.DENY_OVERRIDES);
         assertThat(decision.getTrace().get(Trace.TARGET).get(Trace.VALUE).textValue())
                 .isEqualTo("|ERROR| error message");

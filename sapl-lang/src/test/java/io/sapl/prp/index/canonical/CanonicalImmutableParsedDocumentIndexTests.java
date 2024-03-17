@@ -61,7 +61,7 @@ import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.Document;
-import io.sapl.prp.MatchingDocument;
+import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
 import io.sapl.prp.PrpUpdateEvent.Type;
@@ -102,7 +102,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
             assertNotNull(result);
             assertTrue(result.getMatchingDocuments().isEmpty());
-            assertTrue(result.isErrorsInTarget());
+            assertTrue(result.isRetrievalWithErrors());
         }
     }
 
@@ -127,7 +127,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         verify(spyIndex, times(1)).recreateIndex(argThat(Map::isEmpty), eq(false));
         spyIndex = (CanonicalImmutableParsedDocumentIndex) spy(updatedIndex);
 
-        assertFalse(updatedIndex.retrievePolicies().block().isPrpValidState());
+        assertTrue(updatedIndex.retrievePolicies().block().isPrpInconsistent());
 
         /* EMPTY */
         prpUpdateEvent = new PrpUpdateEvent();
@@ -165,7 +165,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
         // then
         assertNotNull(result);
         assertTrue(result.getMatchingDocuments().isEmpty());
-        assertTrue(result.isErrorsInTarget());
+        assertTrue(result.isRetrievalWithErrors());
     }
 
     // Test must be repeated a couple of times to test implementation of
@@ -203,14 +203,14 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // then
         assertNotNull(result);
-        assertFalse(result.isErrorsInTarget());
+        assertFalse(result.isRetrievalWithErrors());
         assertThat(result.getMatchingDocuments(), hasSize(3));
         assertTrue(contains(result.getMatchingDocuments(), doc1));
         assertTrue(contains(result.getMatchingDocuments(), doc2));
         assertTrue(contains(result.getMatchingDocuments(), doc3));
     }
 
-    private boolean contains(Iterable<MatchingDocument> matches, Document doc) {
+    private boolean contains(Iterable<DocumentMatch> matches, Document doc) {
         for (var md : matches) {
             if (doc.equals(md.document())) {
                 return true;
@@ -239,7 +239,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // then
         assertNotNull(result);
-        assertFalse(result.isErrorsInTarget());
+        assertFalse(result.isRetrievalWithErrors());
         assertThat(result.getMatchingDocuments(), hasSize(1));
         assertTrue(contains(result.getMatchingDocuments(), document));
     }
@@ -266,7 +266,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // then
         assertNotNull(result);
-        assertFalse(result.isErrorsInTarget());
+        assertFalse(result.isRetrievalWithErrors());
         assertThat(result.getMatchingDocuments(), hasSize(1));
         assertTrue(contains(result.getMatchingDocuments(), document));
     }
@@ -303,7 +303,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // then
         assertNotNull(result);
-        assertFalse(result.isErrorsInTarget());
+        assertFalse(result.isRetrievalWithErrors());
         assertTrue(result.getMatchingDocuments().isEmpty());
     }
 
@@ -330,7 +330,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // then
         assertNotNull(result);
-        assertFalse(result.isErrorsInTarget());
+        assertFalse(result.isRetrievalWithErrors());
         assertThat(result.getMatchingDocuments(), hasSize(1));
         assertTrue(contains(result.getMatchingDocuments(), document));
     }
@@ -360,7 +360,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // then
         assertNotNull(result);
-        assertFalse(result.isErrorsInTarget());
+        assertFalse(result.isRetrievalWithErrors());
         assertThat(result.getMatchingDocuments(), hasSize(1));
         assertTrue(contains(result.getMatchingDocuments(), document));
     }

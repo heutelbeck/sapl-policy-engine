@@ -392,9 +392,9 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 
     static class MockSecurityContext implements SecurityContext {
 
-		private static final long serialVersionUID = 3243005757061371470L;
+        private static final long serialVersionUID = 3243005757061371470L;
 
-		private Authentication authentication;
+        private Authentication authentication;
 
         MockSecurityContext(Authentication authentication) {
             this.authentication = authentication;

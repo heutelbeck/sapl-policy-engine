@@ -22,8 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Trace;
@@ -34,7 +32,8 @@ import io.sapl.api.pdp.TracedDecision;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
-import io.sapl.prp.MatchingDocument;
+import io.sapl.prp.DocumentMatch;
+import io.sapl.prp.PolicyRetrievalResult;
 
 class PDPDecisionTests {
     private static final SAPLInterpreter INTERPERTER = new DefaultSAPLInterpreter();
@@ -48,12 +47,13 @@ class PDPDecisionTests {
         assertThat(sut.getAuthorizationSubscription()).isSameAs(subscription);
         assertThat(sut.getCombinedDecision()).isSameAs(combined);
 
-        var document = INTERPERTER.parseDocument("policy \"x\" permit");
-        var match    = new MatchingDocument(document, Val.TRUE);
-        var sut2     = PDPDecision.of(subscription, combined, List.of(match));
+        var document  = INTERPERTER.parseDocument("policy \"x\" permit");
+        var match     = new DocumentMatch(document, Val.TRUE);
+        var prpResult = new PolicyRetrievalResult().withMatch(match);
+        var sut2      = PDPDecision.of(subscription, combined, prpResult);
         assertThat(sut2.getAuthorizationSubscription()).isSameAs(subscription);
         assertThat(sut2.getCombinedDecision()).isSameAs(combined);
-        assertThat(sut2.getMatchingDocuments()).hasSize(1);
+        assertThat(sut2.getPrpResult().getMatchingDocuments()).hasSize(1);
     }
 
     @Test
@@ -73,13 +73,13 @@ class PDPDecisionTests {
         var subscription = mock(AuthorizationSubscription.class);
         var combined     = mock(CombinedDecision.class);
         var document     = INTERPERTER.parseDocument("policy \"x\" permit");
-        var match        = new MatchingDocument(document, Val.TRUE);
+        var match        = new DocumentMatch(document, Val.TRUE);
         when(combined.getAuthorizationDecision()).thenReturn(AuthorizationDecision.PERMIT);
-        TracedDecision sut             = PDPDecision.of(subscription, combined, List.of(match));
+        var            prpResult       = new PolicyRetrievalResult().withMatch(match);
+        TracedDecision sut             = PDPDecision.of(subscription, combined, prpResult);
         var            unmodifiedTrace = sut.getTrace();
         assertThatJson(unmodifiedTrace).inPath("$." + Trace.OPERATOR).isEqualTo("Policy Decision Point");
         assertThatJson(unmodifiedTrace).inPath("$." + Trace.MODIFICATIONS).isAbsent();
-
         sut = sut.modified(AuthorizationDecision.DENY, "for testing reasons");
         var modifiedTrace = sut.getTrace();
         assertThatJson(modifiedTrace).inPath("$." + Trace.MODIFICATIONS).isArray().isNotEmpty();

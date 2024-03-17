@@ -80,7 +80,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
         if (conditionResult.isBoolean() || conditionResult.isError())
             return conditionResult;
 
-        return Val.error(STATEMENT_NOT_BOOLEAN_ERROR, conditionResult).withTrace(PolicyBody.class, false,
+        return Val.error(this, STATEMENT_NOT_BOOLEAN_ERROR, conditionResult).withTrace(PolicyBody.class, false,
                 Map.of(Trace.PREVIOUS_CONDITION_RESULT, conditionResult));
     }
 

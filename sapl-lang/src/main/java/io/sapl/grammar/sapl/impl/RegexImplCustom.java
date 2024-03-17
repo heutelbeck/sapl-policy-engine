@@ -39,7 +39,7 @@ public class RegexImplCustom extends RegexImpl {
     @Override
     public Flux<Val> evaluate() {
         var leftFlux  = getLeft().evaluate();
-        var rightFlux = getRight().evaluate().map(Val::requireText);
+        var rightFlux = getRight().evaluate().map(v -> Val.requireText(this, v));
         return Flux.combineLatest(leftFlux, rightFlux, this::matchRegexp);
     }
 
@@ -57,7 +57,7 @@ public class RegexImplCustom extends RegexImpl {
             return Val.of(Pattern.matches(right.getText(), left.getText())).withTrace(Regex.class, false,
                     Map.of(Trace.LEFT, left, Trace.RIGHT, right));
         } catch (PatternSyntaxException e) {
-            return Val.error(REGEX_SYNTAX_ERROR, right).withTrace(Regex.class, false,
+            return Val.error(this, REGEX_SYNTAX_ERROR, right).withTrace(Regex.class, false,
                     Map.of(Trace.LEFT, left, Trace.RIGHT, right));
         }
     }

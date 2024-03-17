@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -64,18 +66,18 @@ public class ParameterTypeValidator {
         validateJsonNodeType(parameterValue.get(), parameterType);
     }
 
-    public static Flux<Val> validateType(Flux<Val> parameterFlux, Parameter parameterType) {
+    public static Flux<Val> validateType(Flux<Val> parameterFlux, Parameter parameterType, EObject location) {
         if (hasNoValidationAnnotations(parameterType))
             return parameterFlux;
-        return parameterFlux.map(mapInvalidToError(parameterType));
+        return parameterFlux.map(mapInvalidToError(parameterType, location));
     }
 
-    private static Function<Val, Val> mapInvalidToError(Parameter parameterType) {
+    private static Function<Val, Val> mapInvalidToError(Parameter parameterType, EObject location) {
         return val -> {
             try {
                 validateType(val, parameterType);
             } catch (IllegalParameterType e) {
-                return Val.error(e);
+                return Val.error(location, e);
             }
             return val;
         };

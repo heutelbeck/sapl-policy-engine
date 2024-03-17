@@ -55,11 +55,12 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
                         Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
             if (TargetExpressionUtil.isInTargetExpression(this)) {
-                return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(AttributeFinderStep.class,
-                        false, Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
+                return Flux.just(
+                        Val.error(this, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(AttributeFinderStep.class, false,
+                                Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
             if (parentValue.isUndefined()) {
-                return Flux.just(Val.error(UNDEFINED_VALUE_ERROR).withTrace(AttributeFinderStep.class, false,
+                return Flux.just(Val.error(this, UNDEFINED_VALUE_ERROR).withTrace(AttributeFinderStep.class, false,
                         Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
 
@@ -67,7 +68,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
             var variables        = getVariables(ctxView);
             // @formatter:off
 			return attributeContext
-					.evaluateAttribute(attributeName, parentValue, getArguments(), variables)
+					.evaluateAttribute(this, attributeName, parentValue, getArguments(), variables)
 					.distinctUntilChanged();
 			// @formatter:on
         });
@@ -75,7 +76,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
 
     @Override
     public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
-        return Val.errorFlux(ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR);
+        return Flux.just(Val.error(this, ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR));
     }
 
 }

@@ -18,7 +18,9 @@
 package io.sapl.interpreter.pip;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
+import org.eclipse.emf.ecore.EObject;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
@@ -27,13 +29,15 @@ class ErrorUtilTests {
 
     @Test
     void withCauseReturnsCauseMessage() {
-        var t = new RuntimeException("A", new RuntimeException("B"));
-        assertThat(ErrorUtil.causeOrMessage(t)).isEqualTo(Val.error("B"));
+        var errorSource = mock(EObject.class);
+        var t           = new RuntimeException("A", new RuntimeException("B"));
+        assertThat(ErrorUtil.causeOrMessage(errorSource, t)).isEqualTo(Val.error(errorSource, "B"));
     }
 
     @Test
     void withoutCauseReturnsMessage() {
-        var t = new RuntimeException("A");
-        assertThat(ErrorUtil.causeOrMessage(t)).isEqualTo(Val.error("A"));
+        var errorSource = mock(EObject.class);
+        var t           = new RuntimeException("A");
+        assertThat(ErrorUtil.causeOrMessage(errorSource, t)).isEqualTo(Val.error(errorSource, "A"));
     }
 }

@@ -197,7 +197,7 @@ class ValueInterpreterTests {
 
             final var result = valueInterpreter.getValFromValue(value);
 
-            assertEquals(Val.error(), result);
+            assertEquals(Val.error(null, null), result);
         }
 
         @Test
@@ -206,7 +206,7 @@ class ValueInterpreterTests {
 
             final var result = valueInterpreter.getValFromValue(value);
 
-            assertEquals(Val.error("foo"), result);
+            assertEquals(Val.error(null, "foo"), result);
         }
 
         @Nested

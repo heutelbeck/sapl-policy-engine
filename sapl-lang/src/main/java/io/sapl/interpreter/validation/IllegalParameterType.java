@@ -21,5 +21,5 @@ import lombok.experimental.StandardException;
 
 @StandardException
 public class IllegalParameterType extends Exception {
-	private static final long serialVersionUID = -4710184806898362722L;
+    private static final long serialVersionUID = -4710184806898362722L;
 }

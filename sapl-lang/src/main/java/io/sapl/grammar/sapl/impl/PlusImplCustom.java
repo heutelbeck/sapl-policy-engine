@@ -34,7 +34,7 @@ public class PlusImplCustom extends PlusImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, this::plus);
+        return operator(this, this, this::plus);
     }
 
     private Val plus(Val left, Val right) {

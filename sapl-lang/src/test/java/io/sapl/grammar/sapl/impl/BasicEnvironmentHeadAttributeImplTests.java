@@ -71,13 +71,13 @@ class BasicEnvironmentHeadAttributeImplTests {
     void exceptionDuringEvaluation() {
         var step = headAttributeFinderStep();
         var sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
-                mockAttributeContextWithStream(Flux.just(Val.error("ERROR")))));
+                mockAttributeContextWithStream(Flux.just(Val.error(null, "ERROR")))));
         StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
     }
 
     @Test
     void applyWithSomeStreamData() {
-        Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
+        Val[] data = { Val.FALSE, Val.error(null, "ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
         var   step = headAttributeFinderStep();
         var   sut  = step.evaluate().contextWrite(
                 ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContextWithStream(Flux.just(data))));
@@ -86,8 +86,10 @@ class BasicEnvironmentHeadAttributeImplTests {
 
     private static AttributeContext mockAttributeContextWithStream(Flux<Val> stream) {
         var attributeCtx = mock(AttributeContext.class);
-        when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
-        when(attributeCtx.evaluateEnvironmentAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any())).thenReturn(stream);
+        when(attributeCtx.evaluateAttribute(any(), eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any()))
+                .thenReturn(stream);
+        when(attributeCtx.evaluateEnvironmentAttribute(any(), eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any()))
+                .thenReturn(stream);
         return attributeCtx;
     }
 

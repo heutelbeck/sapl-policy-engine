@@ -48,15 +48,17 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        return StepAlgorithmUtil.applyOnArray(parentValue, SelectorUtil.toArrayElementSelector(isInSlice(parentValue)),
-                parameters(), ArraySlicingStep.class);
+        return StepAlgorithmUtil.applyOnArray(parentValue,
+                SelectorUtil.toArrayElementSelector(isInSlice(parentValue), this), parameters(), ArraySlicingStep.class,
+                this);
     }
 
     @Override
     public Flux<Val> applyFilterStatement(@NonNull Val unfilteredValue, int stepId,
             @NonNull FilterStatement statement) {
         return FilterAlgorithmUtil.applyFilterOnArray(unfilteredValue, stepId,
-                SelectorUtil.toArrayElementSelector(isInSlice(unfilteredValue)), statement, ArraySlicingStep.class);
+                SelectorUtil.toArrayElementSelector(isInSlice(unfilteredValue), this), statement,
+                ArraySlicingStep.class);
     }
 
     private String parameters() {

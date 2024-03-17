@@ -1,0 +1,175 @@
+/*
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.pdp.interceptors;
+
+import static io.sapl.assertj.SaplAssertions.assertThatVal;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+
+import org.eclipse.emf.common.util.URI;
+import org.eclipse.xtext.resource.XtextResource;
+import org.eclipse.xtext.resource.XtextResourceSet;
+import org.junit.jupiter.api.Test;
+
+import com.google.inject.Injector;
+
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.grammar.SAPLStandaloneSetup;
+import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.services.SAPLGrammarAccess;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import io.sapl.pdp.PolicyDecisionPointFactory;
+import io.sapl.pdp.interceptors.ErrorReportGenerator.OutputFormat;
+import lombok.SneakyThrows;
+
+class ErrorReportGeneratorTests {
+    private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
+
+    private static final String ANSI_ERROR_ON  = "\u001B[31m\u001B[7m";
+    private static final String ANSI_ERROR_OFF = "\u001B[0m";
+    private static final String HTML_ERROR_ON  = "<span style=\"color: red\">";
+    private static final String HTML_ERROR_OFF = "</span>";
+
+    @Test
+    void whenError_then_ansiReportMarksRegion() throws IOException, InitializationException {
+        var documents = List.of("""
+                policy "some policy"
+                permit true == false
+                     | "X" != 1 / 0
+                     | 123 != "123" where true;
+                """);
+
+        var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
+                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, Map.of());
+        var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
+
+        var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
+        var errors   = decision.getErrorsFromTrace();
+
+        assertThat(errors).hasSize(2);
+        var iter   = errors.iterator();
+        var error1 = iter.next();
+        assertThatVal(error1).isError();
+        var error2 = iter.next();
+        assertThatVal(error2).isError();
+
+        var errorReport1 = ErrorReportGenerator.errorReport(error1, false, OutputFormat.ANSI_TEXT);
+        assertThat(errorReport1).contains(ANSI_ERROR_ON + "     | \"X\" != 1 / 0" + ANSI_ERROR_OFF);
+
+        var errorReport2 = ErrorReportGenerator.errorReport(error2, true, OutputFormat.ANSI_TEXT);
+        assertThat(errorReport2).contains(ANSI_ERROR_ON + "1 / 0" + ANSI_ERROR_OFF);
+    }
+
+    @Test
+    void whenError_then_htmlReportMarksRegion() throws IOException, InitializationException {
+        var documents = List.of("""
+                policy "some policy"
+                permit true == false
+                     | "X" != 1 / 0
+                     | 123 != "123" where true;
+                """);
+
+        var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
+                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, Map.of());
+        var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
+
+        var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
+        var errors   = decision.getErrorsFromTrace();
+
+        assertThat(errors).hasSize(2);
+        var iter   = errors.iterator();
+        var error1 = iter.next();
+        assertThatVal(error1).isError();
+        var error2 = iter.next();
+        assertThatVal(error2).isError();
+
+        var errorReport2 = ErrorReportGenerator.errorReport(error2, true, OutputFormat.HTML);
+        assertThat(errorReport2).contains(HTML_ERROR_ON + "1 / 0" + HTML_ERROR_OFF);
+    }
+
+    @Test
+    void whenError_then_plainTextReportMarksRegion() throws IOException, InitializationException {
+        var documents = List.of("""
+                policy "some policy"
+                permit true == false
+                     | "X" != 1 / 0
+                     | 123 != "123" where true;
+                """);
+
+        var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
+                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, Map.of());
+        var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
+
+        var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
+        var errors   = decision.getErrorsFromTrace();
+
+        assertThat(errors).hasSize(2);
+        var iter   = errors.iterator();
+        var error1 = iter.next();
+        assertThatVal(error1).isError();
+        var error2 = iter.next();
+        assertThatVal(error2).isError();
+
+        var errorReport1 = ErrorReportGenerator.errorReport(error1, false, OutputFormat.PLAIN_TEXT);
+        assertThat(errorReport1).contains("     | \"X\" != 1 / 0\n-------------------\n");
+
+        var errorReport2 = ErrorReportGenerator.errorReport(error2, true, OutputFormat.PLAIN_TEXT);
+        assertThat(errorReport2).contains("3|     | \"X\" != 1 / 0\n |              ^---^");
+    }
+
+    @Test
+    void when_noError_then_reportedSo() {
+        var noError     = Val.TRUE;
+        var errorReport = ErrorReportGenerator.errorReport(noError, true, OutputFormat.PLAIN_TEXT);
+        assertThat(errorReport).isEqualTo("No error");
+    }
+
+    @Test
+    void when_errorNoSource_then_reportedSo() {
+        var noError     = Val.error(null, "X");
+        var errorReport = ErrorReportGenerator.errorReport(noError, true, OutputFormat.PLAIN_TEXT);
+        assertThat(errorReport).isEqualTo("Error: X");
+    }
+
+    @Test
+    void when_errorSapl_then_noName() {
+        var result      = expression("1/0").evaluate().blockFirst();
+        var errorReport = ErrorReportGenerator.errorReport(result, true, OutputFormat.PLAIN_TEXT);
+        assertThat(errorReport).contains("Error in document at (1,1)");
+    }
+
+    @SneakyThrows
+    public static Expression expression(String sapl) {
+        var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+        var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
+        resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getExpressionRule());
+        InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
+        resource.load(in, resourceSet.getLoadOptions());
+        var expression = (Expression) resource.getContents().get(0);
+        return expression;
+    }
+
+}

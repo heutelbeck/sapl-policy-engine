@@ -80,13 +80,13 @@ class HeadAttributeFinderStepImplCustomTests {
     void exceptionDuringEvaluation() {
         var step = headAttributeFinderStep();
         var sut  = step.apply(Val.NULL).contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
-                mockAttributeContext(Flux.just(Val.error("ERROR")))));
+                mockAttributeContext(Flux.just(Val.error(null, "ERROR")))));
         StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
     }
 
     @Test
     void applyWithSomeStreamData() {
-        Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
+        Val[] data = { Val.FALSE, Val.error(null, "ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
         var   step = headAttributeFinderStep();
         var   sut  = step.apply(Val.NULL).contextWrite(
                 ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContext(Flux.just(data))));
@@ -95,7 +95,8 @@ class HeadAttributeFinderStepImplCustomTests {
 
     private static AttributeContext mockAttributeContext(Flux<Val> stream) {
         var attributeCtx = mock(AttributeContext.class);
-        when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
+        when(attributeCtx.evaluateAttribute(any(), eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any()))
+                .thenReturn(stream);
         return attributeCtx;
     }
 

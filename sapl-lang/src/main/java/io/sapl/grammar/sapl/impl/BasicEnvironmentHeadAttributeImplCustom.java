@@ -44,7 +44,7 @@ public class BasicEnvironmentHeadAttributeImplCustom extends BasicEnvironmentHea
                 return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR, fullyQualifiedName).withTrace(
                         AttributeFinderStep.class, false, Map.of(Trace.ATTRIBUTE, Val.of(fullyQualifiedName))));
 
-            return AuthorizationContext.getAttributeContext(ctx).evaluateEnvironmentAttribute(fullyQualifiedName,
+            return AuthorizationContext.getAttributeContext(ctx).evaluateEnvironmentAttribute(this, fullyQualifiedName,
                     getArguments(), AuthorizationContext.getVariables(ctx)).next();
         });
     }

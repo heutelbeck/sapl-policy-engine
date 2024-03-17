@@ -17,7 +17,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -86,12 +85,12 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
     @Override
     public Mono<PolicyRetrievalResult> retrievePolicies() {
         if (!consistent) {
-            return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, false));
+            return Mono.just(PolicyRetrievalResult.invalidPrpResult());
         }
         try {
             return CanonicalIndexAlgorithm.match(indexDataContainer);
         } catch (PolicyEvaluationException e) {
-            return Mono.just(new PolicyRetrievalResult(new ArrayList<>(), true, true));
+            return Mono.just(PolicyRetrievalResult.retrievalErrorResult(e.getMessage()));
         }
     }
 

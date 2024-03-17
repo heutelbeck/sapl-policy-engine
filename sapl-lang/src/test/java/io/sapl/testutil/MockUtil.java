@@ -103,7 +103,7 @@ public class MockUtil {
 
         @Function
         public Val error(Val... parameters) {
-            return Val.error("INTENTIONALLY CREATED TEST ERROR");
+            return Val.error(null, "INTENTIONALLY CREATED TEST ERROR");
         }
 
         @Function
@@ -141,8 +141,8 @@ public class MockUtil {
 
         @EnvironmentAttribute
         public Flux<Val> numbersWithError(Map<String, Val> variables) {
-            return Flux.just(Val.of(0), Val.of(1), Val.error("INTENTIONAL ERROR IN SEQUENCE"), Val.of(3), Val.of(4),
-                    Val.of(5));
+            return Flux.just(Val.of(0), Val.of(1), Val.error(null, "INTENTIONAL ERROR IN SEQUENCE"), Val.of(3),
+                    Val.of(4), Val.of(5));
         }
 
     }

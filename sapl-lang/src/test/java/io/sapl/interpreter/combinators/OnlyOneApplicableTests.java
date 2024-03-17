@@ -47,6 +47,7 @@ import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
 import reactor.test.StepVerifier;
 
@@ -103,9 +104,17 @@ class OnlyOneApplicableTests {
     }
 
     @Test
-    void combineDocumentsMoreDocsWithError() {
+    void combineDocumentsMoreDocsAllWithError() {
         var given    = mockPolicyRetrievalResult(true, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
-        var expected = AuthorizationDecision.INDETERMINATE;
+        var expected = AuthorizationDecision.NOT_APPLICABLE;
+        verifyDocumentsCombinator(given, expected);
+    }
+
+    @Test
+    void combineDocumentsMoreDocsWithError() {
+        var given    = mockPolicyRetrievalResultErrorOnlyOne(true, denyPolicy(""), notApplicablePolicy(""),
+                permitPolicy(""));
+        var expected = AuthorizationDecision.PERMIT;
         verifyDocumentsCombinator(given, expected);
     }
 
@@ -133,12 +142,28 @@ class OnlyOneApplicableTests {
     }
 
     private PolicyRetrievalResult mockPolicyRetrievalResult(boolean errorsInTarget, String... policies) {
-        var result = new PolicyRetrievalResult();
+        var result       = new PolicyRetrievalResult();
+        Val targetResult = Val.TRUE;
         if (errorsInTarget)
-            result = result.withError();
+            targetResult = Val.error(this, "ERROR FROM MOCK");
         for (var policy : policies) {
             var document = INTERPRETER.parseDocument(policy);
-            result = result.withMatch(document, Val.TRUE);
+            result = result.withMatch(new DocumentMatch(document, targetResult));
+        }
+        return result;
+    }
+
+    private PolicyRetrievalResult mockPolicyRetrievalResultErrorOnlyOne(boolean errorsInTarget, String... policies) {
+        var     result    = new PolicyRetrievalResult();
+        boolean errorUsed = false;
+        for (var policy : policies) {
+            var document = INTERPRETER.parseDocument(policy);
+            if (errorsInTarget && !errorUsed) {
+                errorUsed = true;
+                result    = result.withMatch(new DocumentMatch(document, Val.error(this, "ERROR FROM MOCK")));
+            } else {
+                result = result.withMatch(new DocumentMatch(document, Val.TRUE));
+            }
         }
         return result;
     }

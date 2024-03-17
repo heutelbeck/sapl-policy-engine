@@ -36,7 +36,7 @@ public class LessEqualsImplCustom extends LessEqualsImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this::lessOrEqual);
+        return arithmeticOperator(this, this, this::lessOrEqual);
     }
 
     private Val lessOrEqual(Val left, Val right) {

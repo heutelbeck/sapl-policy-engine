@@ -109,7 +109,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
                     // this was the final step. apply filter
                     elementFluxes.add(FilterAlgorithmUtil
                             .applyFilterFunction(element, statement.getArguments(), statement.getFsteps(),
-                                    statement.isEach())
+                                    statement.isEach(), statement)
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue))
                             .map(filteredValue -> {
                                 var trace = new HashMap<String, Val>();

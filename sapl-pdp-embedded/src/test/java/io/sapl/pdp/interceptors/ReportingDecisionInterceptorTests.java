@@ -39,6 +39,7 @@ import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.prp.Document;
+import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.SneakyThrows;
@@ -62,8 +63,9 @@ class ReportingDecisionInterceptorTests {
             var error     = INTERPERTER.parseDocument(ERROR_DOCUMENT);
             var attribute = INTERPERTER.parseDocument(ATTRIBUTE_DOCUMENT);
             var one       = INTERPERTER.parseDocument(SET_ONE);
-            return Mono.just(new PolicyRetrievalResult().withMatch(permitAll, Val.TRUE).withMatch(error, Val.TRUE)
-                    .withMatch(attribute, Val.TRUE).withMatch(one, Val.TRUE));
+            return Mono.just(new PolicyRetrievalResult().withMatch(new DocumentMatch(permitAll, Val.TRUE))
+                    .withMatch(new DocumentMatch(error, Val.TRUE)).withMatch(new DocumentMatch(attribute, Val.TRUE))
+                    .withMatch(new DocumentMatch(one, Val.TRUE)));
         }
 
         @Override

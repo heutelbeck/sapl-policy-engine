@@ -159,11 +159,11 @@ public class SaplMqttClient {
             return addDefaultValueToMessageFlux(pipMqttClientConfig, mqttPipConfig, messageFlux)
                     .onErrorResume(error -> {
                         log.debug("An error occurred on the sapl mqtt message flux: {}", error.getMessage());
-                        return Flux.just(Val.error(error.getMessage())); // policy will be indeterminate
+                        return Flux.just(Val.error(null, error.getMessage())); // policy will be indeterminate
                     });
         } catch (Exception e) {
             log.debug("An exception occurred while building the mqtt message flux: {}", e.getMessage());
-            return Flux.just(Val.error("Failed to build stream of messages."));
+            return Flux.just(Val.error(null, "Failed to build stream of messages."));
         }
     }
 

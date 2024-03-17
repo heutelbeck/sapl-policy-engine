@@ -40,16 +40,16 @@ public class AndImplCustom extends AndImpl {
     public Flux<Val> evaluate() {
         if (TargetExpressionUtil.isInTargetExpression(this)) {
             // indexing implies: lazy evaluation is not allowed in target expressions.
-            return Flux.just(Val.error(LAZY_OPERATOR_IN_TARGET_ERROR).withTrace(And.class));
+            return Flux.just(Val.error(this, LAZY_OPERATOR_IN_TARGET_ERROR).withTrace(And.class));
         }
-        var left = getLeft().evaluate().map(Val::requireBoolean);
+        var left = getLeft().evaluate().map(v -> Val.requireBoolean(this, v));
         return left.switchMap(leftResult -> {
             if (leftResult.isError()) {
                 return Flux.just(leftResult.withTrace(And.class, false, Map.of(Trace.LEFT, leftResult)));
             }
             // Lazy evaluation of the right expression
             if (Boolean.TRUE.equals(leftResult.getBoolean())) {
-                return getRight().evaluate().map(Val::requireBoolean).map(rightResult -> rightResult
+                return getRight().evaluate().map(v -> Val.requireBoolean(this, v)).map(rightResult -> rightResult
                         .withTrace(And.class, false, Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult)));
             }
             return Flux.just(Val.FALSE);

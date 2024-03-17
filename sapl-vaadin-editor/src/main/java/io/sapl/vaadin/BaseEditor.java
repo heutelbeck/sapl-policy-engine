@@ -32,9 +32,9 @@ import lombok.Getter;
  */
 public class BaseEditor extends Component {
 
-	private static final long serialVersionUID = 1211948611116128730L;
+    private static final long serialVersionUID = 1211948611116128730L;
 
-	private static final String IS_LINT             = "isLint";
+    private static final String IS_LINT             = "isLint";
     private static final String TEXT_UPDATE_DELAY   = "textUpdateDelay";
     private static final String MATCH_BRACKETS      = "matchBrackets";
     private static final String AUTO_CLOSE_BRACKETS = "autoCloseBrackets";

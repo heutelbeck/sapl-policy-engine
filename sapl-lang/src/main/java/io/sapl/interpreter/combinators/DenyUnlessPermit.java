@@ -31,7 +31,7 @@ import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
-import io.sapl.prp.MatchingDocument;
+import io.sapl.prp.DocumentMatch;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
@@ -55,7 +55,7 @@ public class DenyUnlessPermit {
                 DenyUnlessPermit::combinator, CombiningAlgorithm.DENY_UNLESS_PERMIT, AuthorizationDecision.DENY);
     }
 
-    public Flux<CombinedDecision> denyUnlessPermit(List<MatchingDocument> documents) {
+    public Flux<CombinedDecision> denyUnlessPermit(List<DocumentMatch> documents) {
         return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, DenyUnlessPermit::combinator,
                 CombiningAlgorithm.DENY_UNLESS_PERMIT, AuthorizationDecision.DENY);
     }

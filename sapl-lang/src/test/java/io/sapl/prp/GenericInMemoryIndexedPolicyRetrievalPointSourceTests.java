@@ -75,7 +75,7 @@ class GenericInMemoryIndexedPolicyRetrievalPointSourceTests {
     void testConstructAndRetrieveWithResult() {
         // WHEN
         var doc                   = INTERPRETER.parseDocument("policy \"x\" permit");
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(doc, Val.TRUE);
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(new DocumentMatch(doc, Val.TRUE));
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 
         // DO
@@ -97,7 +97,7 @@ class GenericInMemoryIndexedPolicyRetrievalPointSourceTests {
     void testConstructAndRetrieveWithNonSAPLResult() {
         // WHEN
         var doc                   = INTERPRETER.parseDocument("policy \"x\" permit");
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(doc, Val.TRUE);
+        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(new DocumentMatch(doc, Val.TRUE));
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 
         // DO

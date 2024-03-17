@@ -17,6 +17,7 @@
  */
 package io.sapl.api.interpreter;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -63,14 +64,18 @@ public class Trace {
     public static final String MINUEND                    = "minuend";
     public static final String MODIFICATIONS              = "modifications";
     public static final String NEEDLE                     = "needle";
+    public static final String NON_MATCHING_DOCUMENTS     = "nonMatchingDocuments";
     public static final String PARENT_VALUE               = "parentValue";
     public static final String PREVIOUS_CONDITION_RESULT  = "previousConditionResult";
+    public static final String PRP_INCONSISTENT           = "policyRetrievalPointInconsistent";
     public static final String OBLIGATIONS                = "obligations";
     public static final String OPERATOR                   = "operator";
     public static final String POLICY_NAME                = "policyName";
     public static final String POLICY_SET                 = "policySet";
     public static final String POLICY_SET_NAME            = "policySetName";
     public static final String RESOURCE                   = "resource";
+    public static final String RETRIEVAL_ERROR_MESSAGE    = "retrievalErrorMessage";
+    public static final String RETRIEVAL_HAS_ERRORS       = "retrievalHasErrors";
     public static final String RIGHT                      = "right";
     public static final String SELECTED_INDEX             = "selectedIndex";
     public static final String SUBTRAHEND                 = "subtrahend";
@@ -178,5 +183,14 @@ public class Trace {
      */
     public List<ExpressionArgument> getArguments() {
         return Collections.unmodifiableList(arguments);
+    }
+
+    public void collectErrors(ArrayList<Val> errors) {
+        for (var argument : arguments) {
+            var value = argument.value();
+            if (value != null) {
+                value.collectErrors(errors);
+            }
+        }
     }
 }

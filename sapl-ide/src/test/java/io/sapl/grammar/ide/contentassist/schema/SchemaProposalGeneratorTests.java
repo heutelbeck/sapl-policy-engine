@@ -870,7 +870,7 @@ class SchemaProposalGeneratorTests {
 
     @Test
     void when_undefinedSchema_then_proposalsEmpty() {
-        var proposals = SchemaProposalGenerator.getCodeTemplates("", Val.error(""), Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", Val.error(null, ""), Map.of());
         assertThat(proposals).isEmpty();
     }
 

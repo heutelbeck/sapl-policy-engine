@@ -21,6 +21,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
@@ -29,10 +31,11 @@ import reactor.core.publisher.Flux;
 
 public interface AttributeContext extends LibraryFunctionProvider {
 
-    Flux<Val> evaluateAttribute(String attributeName, Val leftHandValue, Arguments arguments,
+    Flux<Val> evaluateAttribute(EObject location, String attributeName, Val leftHandValue, Arguments arguments,
             Map<String, Val> variables);
 
-    Flux<Val> evaluateEnvironmentAttribute(String attributeName, Arguments arguments, Map<String, Val> variables);
+    Flux<Val> evaluateEnvironmentAttribute(EObject location, String attributeName, Arguments arguments,
+            Map<String, Val> variables);
 
     Collection<PolicyInformationPointDocumentation> getDocumentation();
 

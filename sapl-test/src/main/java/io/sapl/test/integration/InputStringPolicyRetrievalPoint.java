@@ -22,13 +22,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.Document;
+import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.utils.DocumentHelper;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
@@ -63,19 +64,12 @@ public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
     @Override
     public Mono<PolicyRetrievalResult> retrievePolicies() {
-        var retrieval = Mono.just(new PolicyRetrievalResult());
-        for (Document document : documents.values()) {
-            retrieval = retrieval.flatMap(retrievalResult -> document.sapl().matches().map(match -> {
-                if (match.isError()) {
-                    return retrievalResult.withError();
-                }
-                if (match.getBoolean()) {
-                    return retrievalResult.withMatch(document, Val.TRUE);
-                }
-                return retrievalResult;
-            }));
-        }
-        return retrieval;
+        var documentMatches = Flux
+                .merge(documents.values().stream()
+                        .map(document -> document.sapl().matches()
+                                .map(targetExpressionResult -> new DocumentMatch(document, targetExpressionResult)))
+                        .toList());
+        return documentMatches.reduce(new PolicyRetrievalResult(), PolicyRetrievalResult::withMatch);
     }
 
     @Override
