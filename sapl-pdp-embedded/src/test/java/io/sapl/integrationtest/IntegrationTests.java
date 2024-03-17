@@ -67,8 +67,8 @@ class IntegrationTests {
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments(), empty());
-        assertThat(result.isErrorsInTarget(), is(false));
-        assertThat(result.isPrpValidState(), is(true));
+        assertThat(result.isRetrievalWithErrors(), is(false));
+        assertThat(result.isPrpInconsistent(), is(false));
     }
 
     @Test
@@ -81,8 +81,8 @@ class IntegrationTests {
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments(), empty());
-        assertThat(result.isErrorsInTarget(), is(true));
-        assertThat(result.isPrpValidState(), is(false));
+        assertThat(result.isRetrievalWithErrors(), is(false));
+        assertThat(result.isPrpInconsistent(), is(true));
 
     }
 
@@ -96,8 +96,8 @@ class IntegrationTests {
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments(), empty());
-        assertThat(result.isErrorsInTarget(), is(true));
-        assertThat(result.isPrpValidState(), is(true));
+        assertThat(result.isRetrievalWithErrors(), is(true));
+        assertThat(result.isPrpInconsistent(), is(false));
     }
 
     @Test
@@ -111,7 +111,7 @@ class IntegrationTests {
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments().size(), is(1));
-        assertThat(result.isErrorsInTarget(), is(false));
+        assertThat(result.isRetrievalWithErrors(), is(false));
         assertThat(result.getMatchingDocuments().get(0).document().name(), is("policy read"));
 
         var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "icecream");
@@ -122,8 +122,8 @@ class IntegrationTests {
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments().size(), is(1));
-        assertThat(result.isErrorsInTarget(), is(false));
-        assertThat(result.isPrpValidState(), is(true));
+        assertThat(result.isRetrievalWithErrors(), is(false));
+        assertThat(result.isPrpInconsistent(), is(false));
 
         assertThat(result.getMatchingDocuments().get(0).document().name(), is("policy eat icecream"));
     }
@@ -138,8 +138,8 @@ class IntegrationTests {
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments(), empty());
-        assertThat(result.isErrorsInTarget(), is(false));
-        assertThat(result.isPrpValidState(), is(true));
+        assertThat(result.isRetrievalWithErrors(), is(false));
+        assertThat(result.isPrpInconsistent(), is(false));
     }
 
     public static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {

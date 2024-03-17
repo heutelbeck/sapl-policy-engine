@@ -17,11 +17,12 @@
  */
 package io.sapl.prp;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import io.sapl.api.interpreter.Val;
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,33 +31,70 @@ import lombok.ToString;
 @ToString
 @EqualsAndHashCode
 @NoArgsConstructor
-@AllArgsConstructor
-public class PolicyRetrievalResult {
+public class PolicyRetrievalResult implements Serializable {
 
-    List<MatchingDocument> matchingDocuments = new ArrayList<>();
+    private static final long serialVersionUID = -1433376078602499899L;
 
+    List<DocumentMatch> matchingDocuments    = new ArrayList<>();
+    List<DocumentMatch> nonMatchingDocuments = new ArrayList<>();
     @Getter
-    boolean errorsInTarget = false;
-
+    private boolean     prpInconsistent      = false;
     @Getter
-    boolean prpValidState = true;
+    private boolean     retrievalWithErrors  = false;
+    @Getter
+    private String      errorMessage;
 
-    public List<MatchingDocument> getMatchingDocuments() {
-        return new ArrayList<>(matchingDocuments);
+    public PolicyRetrievalResult(List<DocumentMatch> matches, boolean retrievalWithErrors) {
+        matches.forEach(this::withMatch);
+        this.retrievalWithErrors = retrievalWithErrors;
     }
 
-    public PolicyRetrievalResult withMatch(Document document, Val targetExpressionResult) {
-        var matches = new ArrayList<>(matchingDocuments);
-        matches.add(new MatchingDocument(document, targetExpressionResult));
-        return new PolicyRetrievalResult(matches, errorsInTarget, prpValidState);
+    public PolicyRetrievalResult withMatch(DocumentMatch match) {
+        var targetExpressionResult = match.targetExpressionResult();
+        if (targetExpressionResult.isError()) {
+            retrievalWithErrors = true;
+            nonMatchingDocuments.add(match);
+        } else if (targetExpressionResult.getBoolean()) {
+            // Can never be non-Boolean because this is caught in MatchingUtl where
+            // non-Boolean is turned into an error already.
+            matchingDocuments.add(match);
+        } else {
+            nonMatchingDocuments.add(match);
+        }
+        return this;
     }
 
-    public PolicyRetrievalResult withError() {
-        return new PolicyRetrievalResult(new ArrayList<>(matchingDocuments), true, prpValidState);
+    public static PolicyRetrievalResult invalidPrpResult() {
+        var result = new PolicyRetrievalResult();
+        result.prpInconsistent     = true;
+        result.retrievalWithErrors = false;
+        return result;
     }
 
-    public PolicyRetrievalResult withInvalidState() {
-        return new PolicyRetrievalResult(new ArrayList<>(matchingDocuments), errorsInTarget, false);
+    public static PolicyRetrievalResult retrievalErrorResult(String errorMessage) {
+        var result = new PolicyRetrievalResult();
+        result.errorMessage        = errorMessage;
+        result.prpInconsistent     = false;
+        result.retrievalWithErrors = true;
+        return result;
     }
 
+    public List<DocumentMatch> getMatchingDocuments() {
+        return Collections.unmodifiableList(matchingDocuments);
+    }
+
+    public List<DocumentMatch> getNonMatchingDocuments() {
+        return Collections.unmodifiableList(nonMatchingDocuments);
+    }
+
+    public List<Val> getErrors() {
+        var errors = new ArrayList<Val>();
+        if (errorMessage != null) {
+            errors.add(Val.error(PolicyRetrievalPoint.class, errorMessage));
+        }
+        for (var match : nonMatchingDocuments) {
+            errors.addAll(match.targetExpressionResult().getErrorsFromTrace());
+        }
+        return errors;
+    }
 }

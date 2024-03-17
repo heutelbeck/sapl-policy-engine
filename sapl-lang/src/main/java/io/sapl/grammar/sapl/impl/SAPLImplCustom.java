@@ -30,6 +30,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.grammar.sapl.BinaryOperator;
 import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.Schema;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
@@ -55,16 +56,15 @@ public class SAPLImplCustom extends SAPLImpl {
     private Val and(Tuple2<Val, Val> matches) {
         var elementMatch = matches.getT1();
         var schemaMatch  = matches.getT2();
-
+        Val result;
         if (schemaMatch.isError()) {
-            return schemaMatch;
+            result = schemaMatch;
+        } else if (elementMatch.isError()) {
+            result = elementMatch;
+        } else {
+            result = Val.of(elementMatch.getBoolean() && schemaMatch.getBoolean());
         }
-
-        if (elementMatch.isError()) {
-            return elementMatch;
-        }
-
-        return Val.of(elementMatch.getBoolean() && schemaMatch.getBoolean());
+        return result.withTrace(SAPL.class, true, elementMatch, schemaMatch);
     }
 
     @Override

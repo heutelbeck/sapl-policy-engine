@@ -17,6 +17,7 @@
  */
 package io.sapl.api.pdp;
 
+import java.io.Serializable;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -40,7 +41,9 @@ import lombok.ToString;
 @EqualsAndHashCode
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuthorizationDecision {
+public class AuthorizationDecision implements Serializable {
+
+    private static final long serialVersionUID = 1357813992021117765L;
 
     /**
      * A simple PERMIT decision.

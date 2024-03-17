@@ -29,14 +29,14 @@ import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicyElement;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
-import io.sapl.prp.MatchingDocument;
+import io.sapl.prp.DocumentMatch;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class BasicCombiningAlgorithm {
 
-    public static Flux<CombinedDecision> eagerlyCombineMatchingDocuments(Collection<MatchingDocument> matchingDocuments,
+    public static Flux<CombinedDecision> eagerlyCombineMatchingDocuments(Collection<DocumentMatch> matchingDocuments,
             Function<DocumentEvaluationResult[], CombinedDecision> combinator, CombiningAlgorithm algorithm,
             AuthorizationDecision defaultDecisionIfEmpty) {
         if (matchingDocuments.isEmpty())
@@ -58,7 +58,7 @@ public class BasicCombiningAlgorithm {
     }
 
     private static List<Flux<DocumentEvaluationResult>> eagerMatchingDocumentsDecisionFluxes(
-            Collection<MatchingDocument> matchingDocuments) {
+            Collection<DocumentMatch> matchingDocuments) {
         var documentDecisions = new ArrayList<Flux<DocumentEvaluationResult>>(matchingDocuments.size());
         for (var matchingDocument : matchingDocuments) {
             documentDecisions.add(matchingDocument.document().sapl().getPolicyElement().evaluate()

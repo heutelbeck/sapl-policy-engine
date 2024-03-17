@@ -40,6 +40,8 @@ import lombok.ToString;
 @ToString
 public class PolicyDecision implements DocumentEvaluationResult {
 
+    private static final long serialVersionUID = 2348048228797752350L;
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static {
@@ -185,6 +187,7 @@ public class PolicyDecision implements DocumentEvaluationResult {
 
     @Override
     public Collection<Val> getErrorsFromTrace() {
+        System.out.println("->" + this);
         var errors = new ArrayList<Val>();
         targetResult.ifPresent(target -> errors.addAll(target.getErrorsFromTrace()));
         whereResult.ifPresent(where -> errors.addAll(where.getErrorsFromTrace()));

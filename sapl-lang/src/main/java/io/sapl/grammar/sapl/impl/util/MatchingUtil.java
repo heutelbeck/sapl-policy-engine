@@ -41,7 +41,10 @@ public class MatchingUtil {
         if (targetExpression == null) {
             return Mono.just(Val.TRUE);
         }
-
+        
+        System.out.println("------------");
+        targetExpression.evaluate().log().blockFirst();
+        System.out.println("------------");
         return targetExpression.evaluate().contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(startObject, ctx))
                 .onErrorResume(error -> Mono.just(Val.error(targetExpression, error))).next().defaultIfEmpty(Val.FALSE)
                 .flatMap(result -> {

@@ -17,11 +17,11 @@
  */
 package io.sapl.interpreter;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,22 +37,24 @@ import lombok.Getter;
 import lombok.ToString;
 
 @ToString
-public class CombinedDecision implements Traced {
+public class CombinedDecision implements Traced, Serializable {
+
+    private static final long serialVersionUID = -3709404066269846569L;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Getter
-    AuthorizationDecision          authorizationDecision;
-    String                         combiningAlgorithm;
-    List<DocumentEvaluationResult> documentEvaluationResults = new LinkedList<>();
-    Optional<String>               errorMessage;
+    AuthorizationDecision                authorizationDecision;
+    String                               combiningAlgorithm;
+    LinkedList<DocumentEvaluationResult> documentEvaluationResults = new LinkedList<>();
+    String                               errorMessage;
 
     static {
         MAPPER.registerModule(new Jdk8Module());
     }
 
     private CombinedDecision(AuthorizationDecision authorizationDecision, String combiningAlgorithm,
-            List<DocumentEvaluationResult> documentEvaluationResults, Optional<String> errorMessage) {
+            List<DocumentEvaluationResult> documentEvaluationResults, String errorMessage) {
         this.authorizationDecision = authorizationDecision;
         this.combiningAlgorithm    = combiningAlgorithm;
         this.documentEvaluationResults.addAll(documentEvaluationResults);
@@ -61,35 +63,35 @@ public class CombinedDecision implements Traced {
 
     public static CombinedDecision error(CombiningAlgorithm combiningAlgorithm, String errorMessage) {
         return new CombinedDecision(AuthorizationDecision.INDETERMINATE, combiningAlgorithm.toString(), List.of(),
-                Optional.ofNullable(errorMessage));
+                errorMessage);
     }
 
     public static CombinedDecision of(AuthorizationDecision authorizationDecision,
             CombiningAlgorithm combiningAlgorithm) {
-        return new CombinedDecision(authorizationDecision, combiningAlgorithm.toString(), List.of(), Optional.empty());
+        return new CombinedDecision(authorizationDecision, combiningAlgorithm.toString(), List.of(), null);
     }
 
     public static CombinedDecision of(AuthorizationDecision authorizationDecision,
             CombiningAlgorithm combiningAlgorithm, List<DocumentEvaluationResult> documentEvaluationResults) {
         return new CombinedDecision(authorizationDecision, combiningAlgorithm.toString(), documentEvaluationResults,
-                Optional.empty());
+                null);
     }
 
     public static CombinedDecision error(PolicyDocumentCombiningAlgorithm combiningAlgorithm, String errorMessage) {
         return new CombinedDecision(AuthorizationDecision.INDETERMINATE, combiningAlgorithm.toString(), List.of(),
-                Optional.ofNullable(errorMessage));
+                errorMessage);
     }
 
     public static CombinedDecision of(AuthorizationDecision authorizationDecision,
             PolicyDocumentCombiningAlgorithm combiningAlgorithm) {
-        return new CombinedDecision(authorizationDecision, combiningAlgorithm.toString(), List.of(), Optional.empty());
+        return new CombinedDecision(authorizationDecision, combiningAlgorithm.toString(), List.of(), null);
     }
 
     public static CombinedDecision of(AuthorizationDecision authorizationDecision,
             PolicyDocumentCombiningAlgorithm combiningAlgorithm,
             List<DocumentEvaluationResult> documentEvaluationResults) {
         return new CombinedDecision(authorizationDecision, combiningAlgorithm.toString(), documentEvaluationResults,
-                Optional.empty());
+                null);
     }
 
     public CombinedDecision withEvaluationResult(DocumentEvaluationResult result) {
@@ -112,7 +114,9 @@ public class CombinedDecision implements Traced {
         var trace = Val.JSON.objectNode();
         trace.set(Trace.COMBINING_ALGORITHM, Val.JSON.textNode(combiningAlgorithm));
         trace.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
-        errorMessage.ifPresent(s -> trace.set(Trace.ERROR_MESSAGE, Val.JSON.textNode(s)));
+        if (errorMessage != null) {
+            trace.set(Trace.ERROR_MESSAGE, Val.JSON.textNode(errorMessage));
+        }
         trace.set(Trace.EVALUATED_POLICIES, listOfTracedToJsonArray(documentEvaluationResults));
         return trace;
     }
@@ -126,6 +130,9 @@ public class CombinedDecision implements Traced {
     @Override
     public Collection<Val> getErrorsFromTrace() {
         var errors = new ArrayList<Val>();
+        if (errorMessage != null) {
+            errors.add(Val.error(this, errorMessage));
+        }
         for (var result : documentEvaluationResults) {
             errors.addAll(result.getErrorsFromTrace());
         }

@@ -26,7 +26,7 @@ import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
-import io.sapl.prp.MatchingDocument;
+import io.sapl.prp.DocumentMatch;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
@@ -60,7 +60,7 @@ public class OnlyOneApplicable {
                 AuthorizationDecision.NOT_APPLICABLE);
     }
 
-    public Flux<CombinedDecision> onlyOneApplicable(List<MatchingDocument> documents) {
+    public Flux<CombinedDecision> onlyOneApplicable(List<DocumentMatch> documents) {
         return BasicCombiningAlgorithm.eagerlyCombineMatchingDocuments(documents, OnlyOneApplicable::combinator,
                 CombiningAlgorithm.ONLY_ONE_APPLICABLE, AuthorizationDecision.NOT_APPLICABLE);
     }

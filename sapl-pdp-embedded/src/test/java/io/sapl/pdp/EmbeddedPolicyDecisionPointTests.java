@@ -128,7 +128,7 @@ class EmbeddedPolicyDecisionPointTests {
 
         when(prpSource.policyRetrievalPoint()).thenReturn(Flux.just(prpMock));
         when(prpMock.retrievePolicies()).thenReturn(Mono.just(prpResult));
-        when(prpResult.isPrpValidState()).thenReturn(Boolean.FALSE);
+        when(prpResult.isPrpInconsistent()).thenReturn(Boolean.TRUE);
 
         var simpleAuthzSubscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),
                 JSON.textNode("something"), JSON.nullNode());
@@ -269,8 +269,8 @@ class EmbeddedPolicyDecisionPointTests {
         when(configProvider.pdpConfiguration()).thenReturn(Flux.just(validConfig));
 
         var retrievalResult = mock(PolicyRetrievalResult.class);
-        when(retrievalResult.isPrpValidState()).thenReturn(Boolean.TRUE);
-        when(retrievalResult.isErrorsInTarget()).thenReturn(Boolean.TRUE);
+        when(retrievalResult.isPrpInconsistent()).thenReturn(Boolean.FALSE);
+        when(retrievalResult.isRetrievalWithErrors()).thenReturn(Boolean.TRUE);
         when(prp.retrievePolicies()).thenReturn(Mono.just(retrievalResult));
 
         var subscription = new AuthorizationSubscription(JSON.textNode("willi"), JSON.textNode("read"),

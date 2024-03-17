@@ -17,84 +17,47 @@
  */
 package io.sapl.pdp.interceptors;
 
-import java.io.IOException;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.junit.jupiter.api.Test;
 
-import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.SAPLInterpreter;
-import lombok.extern.slf4j.Slf4j;
+import lombok.experimental.UtilityClass;
 
-@Slf4j
-class ErrorAnalysisTests {
-
-    private SAPLInterpreter parser = new DefaultSAPLInterpreter();
+@UtilityClass
+public class ErrorReportGenerator {
 
     private static final String ANSI_ERROR_ON  = "\u001B[31m\u001B[7m";
     private static final String ANSI_ERROR_OFF = "\u001B[0m";
     private static final String HTML_ERROR_ON  = "<span style=\"color: red\">";
     private static final String HTML_ERROR_OFF = "</span>";
 
-    @Test
-    void runIt() throws IOException {
-        var doc    = parser.parseDocument("""
-                policy "some policy"
-                permit true == false
-                    || "X" != 1 / 0
-                    || 123 != "123" where true;
-                """);
-        var result = doc.sapl().matches().block();
-        log.info("Result: {}", result);
-        dumpErrors(result, true, OutputFormat.ANSI_TEXT);
-        dumpErrors(result, false, OutputFormat.ANSI_TEXT);
-        dumpErrors(result, true, OutputFormat.PLAIN_TEXT);
-        dumpErrors(result, false, OutputFormat.PLAIN_TEXT);
-        dumpErrors(result, true, OutputFormat.HTML);
-        dumpErrors(result, false, OutputFormat.HTML);
-    }
-
-    private void dumpErrors(Traced traced, boolean enumerateLines, OutputFormat format) {
-        for (var error : traced.getErrorsFromTrace()) {
-            multiLog(errorReport(error, enumerateLines, format));
-        }
-    }
-
-    enum OutputFormat {
+    public enum OutputFormat {
         PLAIN_TEXT, ANSI_TEXT, HTML
     }
 
-    private String errorReport(Val error, boolean enumerateLines, OutputFormat format) {
+    public String errorReport(Val error, boolean enumerateLines, OutputFormat format) {
         if (!error.isError()) {
             return "No error";
         }
-        var report = "";
+        var report = new StringBuilder();
+        if (format == OutputFormat.HTML) {
+            report.append(
+                    "<div style=\"display: block; font-family: monospace; white-space: pre; padding: 0 1em; background-color: #eee;\">\n");
+        }
         if (error.getErrorSourceReference() instanceof EObject errorSource) {
             var markedSource = markErrorSourcePlainText(errorSource, enumerateLines, format);
-            report += String.format("Error in document '%s' at (%d,%d): %s\n", markedSource.documentName(),
-                    markedSource.row(), markedSource.column(), error.getMessage());
-            report += markedSource.source();
-        } else {
-            report += "Error: " + error.getMessage();
+            // %n introduces unnecessary newlines in logs. Stick with \n.
+            report.append(String.format("Error in document '%s' at (%d,%d): %s\n", markedSource.documentName(),
+                    markedSource.row(), markedSource.column(), error.getMessage()));
+            report.append(markedSource.source());
+        } else {                        
+            report.append("Error: ").append(error.toString());
         }
         if (format == OutputFormat.HTML) {
-            report = wrapHtmlReport(report);
+            report.append("</div>\n");
         }
-        return report;
-    }
-
-    private String wrapHtmlReport(String report) {
-        var wrapped = "<div style=\"display: block; font-family: monospace; white-space: pre; padding: 0 1em; background-color: #eee;\">\n";
-        wrapped += report;
-        wrapped += "</div>\n";
-        return wrapped;
-    }
-
-    private record MarkedSource(String source, int row, int column, String documentName) {
+        return report.toString();
     }
 
     private MarkedSource markErrorSourcePlainText(EObject errorSource, boolean enumerateLines, OutputFormat format) {
@@ -112,7 +75,7 @@ class ErrorAnalysisTests {
         var documentSource          = root.getText();
         var lines                   = documentSource.split("\n");
         var currentLineStartOffset  = 0;
-        var markedSource            = "";
+        var markedSource            = new StringBuilder();
         var lineNumber              = 1;
         var column                  = 0;
         var row                     = nodeSet.getStartLine();
@@ -124,43 +87,43 @@ class ErrorAnalysisTests {
             if (lineNumber == row) {
                 column = start - currentLineStartOffset + 1;
             }
-            var formattedLine = formatLine(line, format, start, end, currentLineStartOffset, currentLineEndOffset);
+            var formattedLine = formatLine(line, format, start, end, currentLineStartOffset);
             if (enumerateLines) {
-                markedSource += String.format(enumerationFormatString, lineNumber, formattedLine);
+                markedSource.append(String.format(enumerationFormatString, lineNumber, formattedLine));
             } else {
-                markedSource += formattedLine + "\n";
+                markedSource.append(formattedLine).append('\n');
             }
             if (format == OutputFormat.PLAIN_TEXT) {
-                markedSource += createCodeMarkingLine(line, enumerateLines, start, end, currentLineStartOffset,
-                        currentLineEndOffset, asciiMarkingLinePrefix);
+                markedSource.append(createCodeMarkingLine(line, enumerateLines, start, end, currentLineStartOffset,
+                        currentLineEndOffset, asciiMarkingLinePrefix));
             }
             lineNumber++;
             currentLineStartOffset = currentLineEndOffset + 1;
         }
-        return new MarkedSource(markedSource, row, column, documentName);
+        return new MarkedSource(markedSource.toString(), row, column, documentName);
     }
 
     private String createCodeMarkingLine(String line, boolean enumerateLines, int start, int end,
             int currentLineStartOffset, int currentLineEndOffset, String asciiMarkingLinePrefix) {
-        var codeMarkingLine = "";
+        var codeMarkingLine = new StringBuilder();
         if ((currentLineStartOffset <= start && currentLineEndOffset > start)
                 || (currentLineStartOffset < end && currentLineEndOffset >= end)) {
             if (enumerateLines) {
-                codeMarkingLine += asciiMarkingLinePrefix;
+                codeMarkingLine.append(asciiMarkingLinePrefix);
             }
             for (var i = 0; i < line.length(); i++) {
                 var currentOffset = currentLineStartOffset + i;
                 if (currentOffset == start || currentOffset == end - 1) {
-                    codeMarkingLine += "^";
+                    codeMarkingLine.append('^');
                 } else if (currentOffset >= start && currentOffset < end) {
-                    codeMarkingLine += "-";
+                    codeMarkingLine.append('-');
                 } else {
-                    codeMarkingLine += " ";
+                    codeMarkingLine.append(' ');
                 }
             }
-            codeMarkingLine += "\n";
+            codeMarkingLine.append('\n');
         }
-        return codeMarkingLine;
+        return codeMarkingLine.toString();
     }
 
     private int maxEnumerationWidth(int i) {
@@ -171,47 +134,43 @@ class ErrorAnalysisTests {
         return "%" + width + "d|%s\n";
     }
 
-    private String formatLine(String line, OutputFormat format, int start, int end, int currentLineStartOffset,
-            int currentLineEndOffset) {
+    private String formatLine(String line, OutputFormat format, int start, int end, int currentLineStartOffset) {
         if (format == OutputFormat.PLAIN_TEXT) {
             return line;
         }
-        return styleLine(format, line, start, end, currentLineStartOffset, currentLineEndOffset);
+        return styleLine(format, line, start, end, currentLineStartOffset);
     }
 
-    private String styleLine(OutputFormat format, String line, int start, int end, int currentLineStartOffset,
-            int currentLineEndOffset) {
-        var newLine              = "";
+    private String styleLine(OutputFormat format, String line, int start, int end, int currentLineStartOffset) {
+        var newLine              = new StringBuilder();
         var currentOffset        = currentLineStartOffset;
         var ansi                 = format == OutputFormat.ANSI_TEXT;
         var on                   = ansi ? ANSI_ERROR_ON : HTML_ERROR_ON;
         var off                  = ansi ? ANSI_ERROR_OFF : HTML_ERROR_OFF;
         var highlightingTurnedOn = false;
         if (start < currentLineStartOffset && end >= currentLineStartOffset) {
-            newLine              += on;
-            highlightingTurnedOn  = true;
+            newLine.append(on);
+            highlightingTurnedOn = true;
         }
         for (var character : line.split("(?!^)")) {
             if (currentOffset == start) {
-                newLine              += on;
-                highlightingTurnedOn  = true;
+                newLine.append(on);
+                highlightingTurnedOn = true;
             }
-            newLine += character;
+            newLine.append(character);
             if (currentOffset == end - 1) {
-                newLine              += off;
-                highlightingTurnedOn  = false;
+                newLine.append(off);
+                highlightingTurnedOn = false;
             }
             currentOffset++;
         }
         if (highlightingTurnedOn) {
-            newLine += off;
+            newLine.append(off);
         }
-        return newLine;
+        return newLine.toString();
     }
 
-    void multiLog(String s) {
-        for (var line : s.split("\n")) {
-            log.info(line);
-        }
+    private record MarkedSource(String source, int row, int column, String documentName) {
     }
+
 }

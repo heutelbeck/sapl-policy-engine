@@ -54,8 +54,8 @@ class NaiveImmutableParsedDocumentIndexTests {
         var result = index.retrievePolicies().block();
 
         assertThat(result, notNullValue());
-        assertThat(result.isErrorsInTarget(), is(false));
-        assertThat(result.isPrpValidState(), is(true));
+        assertThat(result.isRetrievalWithErrors(), is(false));
+        assertThat(result.isPrpInconsistent(), is(false));
         assertThat(result.getMatchingDocuments().isEmpty(), is(true));
 
         var document = INTERPERETER.parseDocument("policy \"p_0\" permit !resource.x1");
@@ -83,7 +83,7 @@ class NaiveImmutableParsedDocumentIndexTests {
 
         var result = index2.retrievePolicies().block();
 
-        assertThat(result.isPrpValidState(), is(false));
+        assertThat(result.isPrpInconsistent(), is(true));
     }
 
     @Test
