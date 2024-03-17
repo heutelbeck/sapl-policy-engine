@@ -25,16 +25,16 @@ import io.sapl.geo.pip.GeoPipResponseFormat;
 
 public abstract class ConnectionBase {
 
-    protected static final String USER           = "user";
-    protected static final String PASSWORD       = "password";
-    protected static final String SERVER         = "server";
-    protected static final String RESPONSEFORMAT = "responseFormat";
+    protected static final String USER             = "user";
+    protected static final String PASSWORD         = "password";
+    protected static final String SERVER           = "server";
+    protected static final String RESPONSEFORMAT   = "responseFormat";
     protected static final String POLLING_INTERVAL = "pollingIntervalMs";
     protected static final String REPEAT_TIMES     = "repetitions";
-    
+
     protected static final long DEFAULT_POLLING_INTERVALL_MS = 1000L;
     protected static final long DEFAULT_REPETITIONS          = Long.MAX_VALUE;
-    
+
     protected ConnectionBase() {
     }
 
@@ -82,7 +82,7 @@ public abstract class ConnectionBase {
         }
 
     }
-    
+
     protected static long longOrDefault(JsonNode requestSettings, String fieldName, long defaultValue) {
 
         if (requestSettings.has(fieldName)) {
@@ -96,6 +96,5 @@ public abstract class ConnectionBase {
 
         return defaultValue;
     }
-    
 
 }

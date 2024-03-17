@@ -163,6 +163,13 @@
 		</dependency>
 
 		<dependency>
+		    <groupId>io.projectreactor</groupId>
+		    <artifactId>reactor-test</artifactId>
+		    <scope>test</scope>
+		    
+		</dependency>
+
+		<dependency>
 			<!-- If you want to use the extensions in a Spring application and do 
 				want to supply configuration of the extensions Beans using annotations like 
 				@Component, these annotations must be available via this dependency. For 

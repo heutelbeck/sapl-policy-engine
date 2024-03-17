@@ -65,11 +65,13 @@ public class FileLoader extends ConnectionBase {
     public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
 
         try {
-        	//var sett = mapper.readTree(settings.asText());
+            // var sett = mapper.readTree(settings.asText());
             var loader = getNew(getPath(settings));
-            return loader.getFlux(getResponseFormat(settings, mapper), getCrs(settings),longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
-                    longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS),  mapper).map(Val::of)
-                    .onErrorResume(e -> Flux.just(Val.error(e)));
+            return loader
+                    .getFlux(getResponseFormat(settings, mapper), getCrs(settings),
+                            longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
+                            longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), mapper)
+                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e)));
 
         } catch (Exception e) {
 
@@ -77,7 +79,8 @@ public class FileLoader extends ConnectionBase {
         }
     }
 
-    public Flux<JsonNode> getFlux(GeoPipResponseFormat format, int crs, long repeatTimes, long pollingInterval, ObjectMapper mapper) {
+    public Flux<JsonNode> getFlux(GeoPipResponseFormat format, int crs, long repeatTimes, long pollingInterval,
+            ObjectMapper mapper) {
         try {
             return poll(Mono.just(importGeoData(format, crs, mapper)), repeatTimes, pollingInterval);
         } catch (Exception e) {
@@ -93,7 +96,7 @@ public class FileLoader extends ConnectionBase {
 
             int count = geometries.getNumGeometries();
             if (count > 1) {
-                return createArrayNodeForMultipleGeometries(geometries, format,  mapper);
+                return createArrayNodeForMultipleGeometries(geometries, format, mapper);
             } else {
                 return convertGeometryToOutput(geometries, format);
             }
@@ -102,24 +105,24 @@ public class FileLoader extends ConnectionBase {
         }
     }
 
-    private Geometry convertToGeometry(GeoPipResponseFormat format, GeometryFactory geometryFactory) 
-    		 throws ParseException, IOException, SAXException, ParserConfigurationException
-             {
+    private Geometry convertToGeometry(GeoPipResponseFormat format, GeometryFactory geometryFactory)
+            throws ParseException, IOException, SAXException, ParserConfigurationException {
         switch (format) {
-            case KML:
-                return KmlConverter.kmlToGeometry(readFile(reader), geometryFactory);
-            case GML:
-                return GmlConverter.gmlToGeometry(readFile(reader), geometryFactory);
-            case GEOJSON:
-                return JsonConverter.geoJsonToGeometry(readFile(reader), geometryFactory);
-            case WKT:
-                return WktConverter.wktToGeometry(readFile(reader), geometryFactory);
-            default:
-                throw new PolicyEvaluationException("Unsupported format: " + format);
+        case KML:
+            return KmlConverter.kmlToGeometry(readFile(reader), geometryFactory);
+        case GML:
+            return GmlConverter.gmlToGeometry(readFile(reader), geometryFactory);
+        case GEOJSON:
+            return JsonConverter.geoJsonToGeometry(readFile(reader), geometryFactory);
+        case WKT:
+            return WktConverter.wktToGeometry(readFile(reader), geometryFactory);
+        default:
+            throw new PolicyEvaluationException("Unsupported format: " + format);
         }
     }
 
-    private JsonNode createArrayNodeForMultipleGeometries(Geometry geometries, GeoPipResponseFormat format, ObjectMapper mapper) {
+    private JsonNode createArrayNodeForMultipleGeometries(Geometry geometries, GeoPipResponseFormat format,
+            ObjectMapper mapper) {
         ArrayNode arrayNode = mapper.createArrayNode();
         for (int i = 0; i < geometries.getNumGeometries(); i++) {
             Geometry geometry = geometries.getGeometryN(i);
@@ -130,20 +133,19 @@ public class FileLoader extends ConnectionBase {
 
     private JsonNode convertGeometryToOutput(Geometry geometry, GeoPipResponseFormat format) {
         switch (format) {
-            case KML:
-                return GeometryConverter.geometryToKML(geometry).get();
-            case GML:
-                return GeometryConverter.geometryToGML(geometry).get();
-            case GEOJSON:
-                return GeometryConverter.geometryToGeoJsonNode(geometry).get();
-            case WKT:
-                return GeometryConverter.geometryToWKT(geometry).get();
-            default:
-                throw new PolicyEvaluationException("Unsupported format: " + format);
+        case KML:
+            return GeometryConverter.geometryToKML(geometry).get();
+        case GML:
+            return GeometryConverter.geometryToGML(geometry).get();
+        case GEOJSON:
+            return GeometryConverter.geometryToGeoJsonNode(geometry).get();
+        case WKT:
+            return GeometryConverter.geometryToWKT(geometry).get();
+        default:
+            throw new PolicyEvaluationException("Unsupported format: " + format);
         }
     }
 
-   
     private String readFile(BufferedReader reader) throws IOException {
         StringBuilder stringBuilder = new StringBuilder();
         String        line;
@@ -157,7 +159,7 @@ public class FileLoader extends ConnectionBase {
         return mono.onErrorResume(Mono::error)
                 .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))));
     }
-    
+
     private static String getPath(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(PATH)) {
             return requestSettings.findValue(PATH).asText();

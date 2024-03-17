@@ -49,15 +49,15 @@ import reactor.retry.Repeat;
 
 public class PostGisConnection extends ConnectionBase {
 
-    private static final String PORT             = "port";
-    private static final String DATABASE         = "dataBase";
-    private static final String TABLE            = "table";
-    private static final String GEOCOLUMN        = "geoColumn";
-    private static final String COLUMNS          = "columns";
-    private static final String WHERE            = "where";
-    private static final String DEFAULTCRS       = "defaultCRS";
-    private static final String SINGLE_RESULT    = "singleResult";
-    
+    private static final String PORT          = "port";
+    private static final String DATABASE      = "dataBase";
+    private static final String TABLE         = "table";
+    private static final String GEOCOLUMN     = "geoColumn";
+    private static final String COLUMNS       = "columns";
+    private static final String WHERE         = "where";
+    private static final String DEFAULTCRS    = "defaultCRS";
+    private static final String SINGLE_RESULT = "singleResult";
+
     private ConnectionFactory           connectionFactory;
     private ObjectMapper                mapper;
     private AtomicReference<Connection> connectionReference;
@@ -261,7 +261,7 @@ public class PostGisConnection extends ConnectionBase {
         if (requestSettings.has(COLUMNS)) {
             var columns = requestSettings.findValue(COLUMNS);
             if (columns.isArray()) {
-                
+
                 return mapper.convertValue((ArrayNode) columns, String[].class);
             }
 
