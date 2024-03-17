@@ -1,20 +1,14 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-  <Document>
-    <Placemark>
-      <name>Feature</name>
-      <MultiGeometry>
-        <Polygon>
-          <outerBoundaryIs>
-            <LinearRing>
-              <coordinates>0,0 10,0 10,10 0,10 0,0</coordinates>
-            </LinearRing>
-          </outerBoundaryIs>
-        </Polygon>
-        <Point>
-          <coordinates>5,5</coordinates>
-        </Point>
-      </MultiGeometry>
-    </Placemark>
-  </Document>
-</kml>
+
+<MultiGeometry>
+<Polygon>
+  <outerBoundaryIs>
+	<LinearRing>
+	  <coordinates>0,0 10,0 10,10 0,10 0,0</coordinates>
+	</LinearRing>
+  </outerBoundaryIs>
+</Polygon>
+<Point>
+  <coordinates>5,5</coordinates>
+</Point>
+</MultiGeometry>
+

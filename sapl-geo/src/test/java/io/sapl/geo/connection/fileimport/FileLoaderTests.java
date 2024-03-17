@@ -25,12 +25,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.geojson.GeoJsonReader;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geofunctions.GeometryConverter;
 import reactor.test.StepVerifier;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -38,6 +42,9 @@ public class FileLoaderTests {
 
 	
 	final String GEOJSON = "GEOJSON";
+	final String WKT = "WKT";
+	final String GML = "GML";
+	final String KML = "KML";
 	
 	String path;
     String       resourceDirectory;
@@ -68,6 +75,14 @@ public class FileLoaderTests {
     }
 
     @Test
+    void test() throws Exception {
+    	var str = "{\"type\": \"Feature\", \"geometry\": {\"type\": \"GeometryCollection\", \"geometries\": [{\"type\": \"Polygon\", \"coordinates\": [[[0, 0],[10, 0],[10, 10],[0, 10],[0, 0]]]},{\"type\": \"Point\",\"coordinates\": [5, 5]}]},\"properties\": {}}";
+    	var a = (new GeoJsonReader()).read(str);
+    	var b = GeometryConverter.geometryToGML(a);
+    	var c = b;
+    }
+    
+    @Test
     void geoJsonSingleTest() throws JsonProcessingException {
 
     	var ex = "{\"type\":\"Polygon\",\"coordinates\":[[[0.0,0.0],[10,0.0],[10,10],[0.0,10],[0.0,0.0]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}";
@@ -78,7 +93,9 @@ public class FileLoaderTests {
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }
-
+    
+    
+    
     @Test
     void geoJsonCollectionTest() throws JsonProcessingException {
 
@@ -103,4 +120,162 @@ public class FileLoaderTests {
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }
     
+    
+    
+    @Test
+    void wktSingleTest() throws JsonProcessingException {
+
+    	var ex = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
+    	var exp = Val.of(ex);
+        var pth = mapper.writeValueAsString(String.format(path, "wktSingle.txt"));
+        var node = mapper.readValue(String.format(template, pth, WKT ), JsonNode.class);
+        var res  = FileLoader.connect(node, mapper);
+
+        StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
+    }
+
+    @Test
+    void wktCollectionTest() throws JsonProcessingException {
+
+    	var ex = "[\"POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))\",\"POINT (5 5)\"]";
+    	ArrayNode arrayNode = mapper.createArrayNode();
+    	arrayNode.add("POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))");
+    	arrayNode.add("POINT (5 5)");
+    	var exp = Val.ofJson(arrayNode.toString());
+        var pth = mapper.writeValueAsString(String.format(path, "wktCollection.txt"));
+        var node = mapper.readValue(String.format(template2, pth, WKT ), JsonNode.class);
+        var res  = FileLoader.connect(node, mapper);
+
+        StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
+    }
+    
+   //nur die erste geometrie wird erkannt 
+//    @Test
+//    void wktMultipleTest() throws JsonProcessingException {
+//
+//    	var ex = "[{\"type\":\"Point\",\"coordinates\":[13.404954,52.520008],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},{\"type\":\"LineString\",\"coordinates\":[[13.404954,52.520008],[8.682127,50.110924]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},{\"type\":\"Polygon\",\"coordinates\":[[[13.404954,52.520008],[13.405537,52.520079],[13.405313,52.519505],[13.404743,52.519446],[13.404954,52.520008]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}]";
+//    	var exp = Val.of(ex);
+//        var pth = mapper.writeValueAsString(String.format(path, "wktMultiple.txt"));
+//        var node = mapper.readValue(String.format(template, pth, WKT ), JsonNode.class);
+//        var res  = FileLoader.connect(node, mapper);
+//	
+//        StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
+//    }
+    
+
+	@Test
+	void gmlSingleTest() throws JsonProcessingException {
+	
+		var ex = "<gml:Polygon>\n  <gml:outerBoundaryIs>\n    <gml:LinearRing>\n      <gml:coordinates>\n        0.0,0.0 10.0,0.0 10.0,10.0 0.0,10.0 0.0,0.0 \n      </gml:coordinates>\n    </gml:LinearRing>\n  </gml:outerBoundaryIs>\n</gml:Polygon>\n";
+		var exp = Val.of(ex);
+	    var pth = mapper.writeValueAsString(String.format(path, "gmlSingle.gml"));
+	    var node = mapper.readValue(String.format(template, pth, GML ), JsonNode.class);
+	    var res  = FileLoader.connect(node, mapper);
+
+
+	    
+	    StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
+	}
+	
+	@Test
+	void gmlCollectionTest() throws JsonProcessingException {
+	
+		ArrayNode arrayNode = mapper.createArrayNode();
+		arrayNode.add("<gml:Polygon>\n  <gml:outerBoundaryIs>\n    <gml:LinearRing>\n      <gml:coordinates>\n        0.0,0.0 10.0,0.0 10.0,10.0 0.0,10.0 0.0,0.0 \n      </gml:coordinates>\n    </gml:LinearRing>\n  </gml:outerBoundaryIs>\n</gml:Polygon>\n");
+		arrayNode.add("<gml:Point>\n  <gml:coordinates>\n    5.0,5.0 \n  </gml:coordinates>\n</gml:Point>\n");
+		var exp = Val.ofJson(arrayNode.toString());
+	    var pth = mapper.writeValueAsString(String.format(path, "gmlCollection.gml"));
+	    var node = mapper.readValue(String.format(template2, pth, GML ), JsonNode.class);
+	    var res  = FileLoader.connect(node, mapper);
+		    
+	    StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
+	}
+	
+	
+	@Test
+	void gmlMultipleTest() throws JsonProcessingException {
+	
+		var ex = "[{\"type\":\"Point\",\"coordinates\":[13.404954,52.520008],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},{\"type\":\"LineString\",\"coordinates\":[[13.404954,52.520008],[8.682127,50.110924]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},{\"type\":\"Polygon\",\"coordinates\":[[[13.404954,52.520008],[13.405537,52.520079],[13.405313,52.519505],[13.404743,52.519446],[13.404954,52.520008]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}]";
+		var exp = Val.of(ex);
+	    var pth = mapper.writeValueAsString(String.format(path, "gmlMultiple.gml"));
+	    var node = mapper.readValue(String.format(template, pth, GML ), JsonNode.class);
+	    var res  = FileLoader.connect(node, mapper);
+	
+	    res.subscribe(
+	      		 content ->{ 
+			 var b = content.get().toString();
+			 System.out.println("fileImport content: " + b);
+			 
+		 },
+	      error -> System.out.println(String.format("Error receiving file: {%s}", error)),
+	      () -> System.out.println("Completed!!!")
+	      );
+		try {
+			Thread.sleep(50000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	    
+	    StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
+	}
+
+	@Test
+	void kmlSingleTest() throws JsonProcessingException {
+	
+		var ex = "<Polygon>\n  <outerBoundaryIs>\n  <LinearRing>\n    <coordinates>0.0,0.0 10.0,0.0 10.0,10.0 0.0,10.0 0.0,0.0</coordinates>\n  </LinearRing>\n  </outerBoundaryIs>\n</Polygon>\n";
+		var exp = Val.of(ex);
+	    var pth = mapper.writeValueAsString(String.format(path, "kmlSingle.kml"));
+	    var node = mapper.readValue(String.format(template, pth, KML ), JsonNode.class);
+	    var res  = FileLoader.connect(node, mapper);
+		    
+	    StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
+	}
+
+	@Test
+	void kmlCollectionTest() throws JsonProcessingException {
+	
+		ArrayNode arrayNode = mapper.createArrayNode();
+		arrayNode.add("<Polygon>\n  <outerBoundaryIs>\n  <LinearRing>\n    <coordinates>0.0,0.0 10.0,0.0 10.0,10.0 0.0,10.0 0.0,0.0</coordinates>\n  </LinearRing>\n  </outerBoundaryIs>\n</Polygon>\n");
+		arrayNode.add("<Point>\n  <coordinates>5.0,5.0</coordinates>\n</Point>\n");
+		
+		var exp = Val.ofJson(arrayNode.toString());
+	    var pth = mapper.writeValueAsString(String.format(path, "kmlCollection.kml"));
+	    var node = mapper.readValue(String.format(template2, pth, KML ), JsonNode.class);
+	    var res  = FileLoader.connect(node, mapper);
+
+	    StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
+	}
+	
+	//nur die erste geometrie wird erkannt
+//	@Test
+//	void kmlMultipleTest() throws JsonProcessingException {
+//	
+//		var ex = "[{\"type\":\"Point\",\"coordinates\":[13.404954,52.520008],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},{\"type\":\"LineString\",\"coordinates\":[[13.404954,52.520008],[8.682127,50.110924]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},{\"type\":\"Polygon\",\"coordinates\":[[[13.404954,52.520008],[13.405537,52.520079],[13.405313,52.519505],[13.404743,52.519446],[13.404954,52.520008]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}]";
+//		var exp = Val.of(ex);
+//	    var pth = mapper.writeValueAsString(String.format(path, "kmlMultiple.kml"));
+//	    var node = mapper.readValue(String.format(template, pth, KML ), JsonNode.class);
+//	    var res  = FileLoader.connect(node, mapper);	   
+//	    
+//
+//      res.subscribe(
+//	      		 content ->{ 
+//			 var b = content.get().toString();
+//			 System.out.println("fileImport content: " + b);
+//			 
+//		 },
+//	      error -> System.out.println(String.format("Error receiving file: {%s}", error)),
+//	      () -> System.out.println("Completed!!!")
+//	      );
+//		try {
+//			Thread.sleep(50000);
+//		} catch (InterruptedException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//	    
+//	    StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
+//	}
+
+	
 }
