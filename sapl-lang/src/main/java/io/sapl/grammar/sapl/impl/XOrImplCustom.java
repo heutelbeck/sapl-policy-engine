@@ -36,7 +36,7 @@ public class XOrImplCustom extends XOrImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return booleanOperator(this, this::xor);
+        return booleanOperator(this, this, this::xor);
     }
 
     private Val xor(Val left, Val right) {

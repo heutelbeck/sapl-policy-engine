@@ -62,9 +62,10 @@ public class SAPLImplCustom extends SAPLImpl {
         } else if (elementMatch.isError()) {
             result = elementMatch;
         } else {
-            result = Val.of(elementMatch.getBoolean() && schemaMatch.getBoolean());
+            result = Val.of(elementMatch.getBoolean() && schemaMatch.getBoolean()).withTrace(SAPL.class, true,
+                    elementMatch, schemaMatch);
         }
-        return result.withTrace(SAPL.class, true, elementMatch, schemaMatch);
+        return result;
     }
 
     @Override

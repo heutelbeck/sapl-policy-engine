@@ -48,11 +48,12 @@ public class ErrorReportGenerator {
         if (error.getErrorSourceReference() instanceof EObject errorSource) {
             var markedSource = markErrorSourcePlainText(errorSource, enumerateLines, format);
             // %n introduces unnecessary newlines in logs. Stick with \n.
-            report.append(String.format("Error in document '%s' at (%d,%d): %s\n", markedSource.documentName(),
-                    markedSource.row(), markedSource.column(), error.getMessage()));
+            var name = markedSource.documentName() != null ? "'" + markedSource.documentName() + "' " : "";
+            report.append(String.format("Error in document %sat (%d,%d): %s\n", name, markedSource.row(),
+                    markedSource.column(), error.getMessage()));
             report.append(markedSource.source());
-        } else {                        
-            report.append("Error: ").append(error.toString());
+        } else {
+            report.append("Error: ").append(error.getMessage());
         }
         if (format == OutputFormat.HTML) {
             report.append("</div>\n");
@@ -106,8 +107,7 @@ public class ErrorReportGenerator {
     private String createCodeMarkingLine(String line, boolean enumerateLines, int start, int end,
             int currentLineStartOffset, int currentLineEndOffset, String asciiMarkingLinePrefix) {
         var codeMarkingLine = new StringBuilder();
-        if ((currentLineStartOffset <= start && currentLineEndOffset > start)
-                || (currentLineStartOffset < end && currentLineEndOffset >= end)) {
+        if (isBetween(currentLineStartOffset, start, end) || isBetween(currentLineEndOffset, start, end)) {
             if (enumerateLines) {
                 codeMarkingLine.append(asciiMarkingLinePrefix);
             }
@@ -115,7 +115,7 @@ public class ErrorReportGenerator {
                 var currentOffset = currentLineStartOffset + i;
                 if (currentOffset == start || currentOffset == end - 1) {
                     codeMarkingLine.append('^');
-                } else if (currentOffset >= start && currentOffset < end) {
+                } else if (isBetween(currentOffset, start, end - 1)) {
                     codeMarkingLine.append('-');
                 } else {
                     codeMarkingLine.append(' ');
@@ -124,6 +124,10 @@ public class ErrorReportGenerator {
             codeMarkingLine.append('\n');
         }
         return codeMarkingLine.toString();
+    }
+
+    private boolean isBetween(int x, int lowerBound, int upperBound) {
+        return (x >= lowerBound) && (x <= upperBound);
     }
 
     private int maxEnumerationWidth(int i) {

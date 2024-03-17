@@ -27,7 +27,7 @@ public class NotImplCustom extends NotImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, Val::requireBoolean,
+        return operator(this, this, Val::requireBoolean,
                 x -> Val.of(!x.get().asBoolean()).withTrace(Not.class, false, x));
     }
 

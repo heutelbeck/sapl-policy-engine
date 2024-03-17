@@ -127,8 +127,8 @@ class ClasspathPolicyRetrievalPointTests {
 
         assertThat(result, notNullValue());
         assertThat(result.getMatchingDocuments(), empty());
-        assertThat(result.isErrorsInTarget(), is(hasErrors));
-        assertThat(result.isPrpValidState(), is(true));
+        assertThat(result.isRetrievalWithErrors(), is(hasErrors));
+        assertThat(result.isPrpInconsistent(), is(false));
     }
 
     @Test
@@ -148,7 +148,7 @@ class ClasspathPolicyRetrievalPointTests {
 
         assertThat(result1, notNullValue());
         assertThat(result1.getMatchingDocuments().size(), is(1));
-        assertThat(result1.isErrorsInTarget(), is(false));
+        assertThat(result1.isRetrievalWithErrors(), is(false));
 
         assertThat(result1.getMatchingDocuments().get(0).document().name(), is("policy read"));
 
@@ -164,8 +164,8 @@ class ClasspathPolicyRetrievalPointTests {
 
         assertThat(result2, notNullValue());
         assertThat(result2.getMatchingDocuments().size(), is(1));
-        assertThat(result2.isErrorsInTarget(), is(false));
-        assertThat(result2.isPrpValidState(), is(true));
+        assertThat(result2.isRetrievalWithErrors(), is(false));
+        assertThat(result2.isPrpInconsistent(), is(false));
 
         assertThat(result2.getMatchingDocuments().get(0).document().name(), is("policy eat ice cream"));
     }
@@ -182,7 +182,7 @@ class ClasspathPolicyRetrievalPointTests {
             return AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
         }).block();
 
-        Assertions.assertThat(result.isErrorsInTarget()).isTrue();
+        Assertions.assertThat(result.isRetrievalWithErrors()).isTrue();
     }
 
     @Nested
@@ -205,8 +205,8 @@ class ClasspathPolicyRetrievalPointTests {
 
             assertThat(result, notNullValue());
             assertThat(result.getMatchingDocuments(), empty());
-            assertThat(result.isErrorsInTarget(), is(false));
-            assertThat(result.isPrpValidState(), is(true));
+            assertThat(result.isRetrievalWithErrors(), is(false));
+            assertThat(result.isPrpInconsistent(), is(false));
         }
 
         @Test
@@ -216,8 +216,8 @@ class ClasspathPolicyRetrievalPointTests {
 
             assertThat(result, notNullValue());
             assertThat(result.getMatchingDocuments(), empty());
-            assertThat(result.isErrorsInTarget(), is(false));
-            assertThat(result.isPrpValidState(), is(true));
+            assertThat(result.isRetrievalWithErrors(), is(false));
+            assertThat(result.isPrpInconsistent(), is(false));
         }
 
         @Test
@@ -247,8 +247,8 @@ class ClasspathPolicyRetrievalPointTests {
 
             assertThat(result, notNullValue());
             assertThat(result.getMatchingDocuments(), empty());
-            assertThat(result.isErrorsInTarget(), is(true));
-            assertThat(result.isPrpValidState(), is(true));
+            assertThat(result.isRetrievalWithErrors(), is(true));
+            assertThat(result.isPrpInconsistent(), is(false));
         }
 
         @Test
@@ -260,8 +260,8 @@ class ClasspathPolicyRetrievalPointTests {
 
             assertThat(result, notNullValue());
             assertThat(result.getMatchingDocuments(), empty());
-            assertThat(result.isErrorsInTarget(), is(true));
-            assertThat(result.isPrpValidState(), is(true));
+            assertThat(result.isRetrievalWithErrors(), is(true));
+            assertThat(result.isPrpInconsistent(), is(false));
         }
 
         @Test
@@ -273,8 +273,8 @@ class ClasspathPolicyRetrievalPointTests {
 
             assertThat(result, notNullValue());
             assertThat(result.getMatchingDocuments(), empty());
-            assertThat(result.isErrorsInTarget(), is(true));
-            assertThat(result.isPrpValidState(), is(true));
+            assertThat(result.isRetrievalWithErrors(), is(true));
+            assertThat(result.isPrpInconsistent(), is(false));
         }
 
         @Test
@@ -299,8 +299,8 @@ class ClasspathPolicyRetrievalPointTests {
 
             assertThat(result, notNullValue());
             assertThat(result.getMatchingDocuments(), empty());
-            assertThat(result.isErrorsInTarget(), is(true));
-            assertThat(result.isPrpValidState(), is(true));
+            assertThat(result.isRetrievalWithErrors(), is(true));
+            assertThat(result.isPrpInconsistent(), is(false));
         }
 
         @Test
@@ -315,8 +315,8 @@ class ClasspathPolicyRetrievalPointTests {
             assertThat(result, notNullValue());
             assertThat(result.getMatchingDocuments().size(), is(1));
             assertThat(result.getMatchingDocuments().get(0).document().name(), is("policy eat ice cream"));
-            assertThat(result.isErrorsInTarget(), is(true));
-            assertThat(result.isPrpValidState(), is(true));
+            assertThat(result.isRetrievalWithErrors(), is(true));
+            assertThat(result.isPrpInconsistent(), is(false));
         }
     }
 
