@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>Berlin</name>
+      <Point>
+        <coordinates>13.404954,52.520008</coordinates>
+      </Point>
+      <ExtendedData>
+        <Data name="name">
+          <value>Berlin</value>
+        </Data>
+        <Data name="country">
+          <value>Germany</value>
+        </Data>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>Route</name>
+      <LineString>
+        <coordinates>13.404954,52.520008 8.682127,50.110924</coordinates>
+      </LineString>
+      <ExtendedData>
+        <Data name="name">
+          <value>Route</value>
+        </Data>
+        <Data name="description">
+          <value>Berlin to Bremen</value>
+        </Data>
+      </ExtendedData>
+    </Placemark>
+    <Placemark>
+      <name>Area</name>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>13.404954,52.520008 13.405537,52.520079 13.405313,52.519505 13.404743,52.519446 13.404954,52.520008</coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+      <ExtendedData>
+        <Data name="name">
+          <value>Area</value>
+        </Data>
+        <Data name="description">
+          <value>Berlin city center</value>
+        </Data>
+      </ExtendedData>
+    </Placemark>
+  </Document>
+</kml>
