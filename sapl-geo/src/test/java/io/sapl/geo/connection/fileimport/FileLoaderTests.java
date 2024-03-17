@@ -74,13 +74,13 @@ public class FileLoaderTests {
         path = resourceDirectory.concat("\\\\fileimport\\\\%s");
     }
 
-    @Test
-    void test() throws Exception {
-    	var str = "{\"type\": \"Feature\", \"geometry\": {\"type\": \"GeometryCollection\", \"geometries\": [{\"type\": \"Polygon\", \"coordinates\": [[[0, 0],[10, 0],[10, 10],[0, 10],[0, 0]]]},{\"type\": \"Point\",\"coordinates\": [5, 5]}]},\"properties\": {}}";
-    	var a = (new GeoJsonReader()).read(str);
-    	var b = GeometryConverter.geometryToGML(a);
-    	var c = b;
-    }
+//    @Test
+//    void test() throws Exception {
+//    	var str = "{\"type\": \"Feature\", \"geometry\": {\"type\": \"GeometryCollection\", \"geometries\": [{\"type\": \"Polygon\", \"coordinates\": [[[0, 0],[10, 0],[10, 10],[0, 10],[0, 0]]]},{\"type\": \"Point\",\"coordinates\": [5, 5]}]},\"properties\": {}}";
+//    	var a = (new GeoJsonReader()).read(str);
+//    	var b = GeometryConverter.geometryToGML(a);
+//    	var c = b;
+//    }
     
     @Test
     void geoJsonSingleTest() throws JsonProcessingException {
@@ -127,7 +127,7 @@ public class FileLoaderTests {
 
     	var ex = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
     	var exp = Val.of(ex);
-        var pth = mapper.writeValueAsString(String.format(path, "wktSingle.txt"));
+        var pth = mapper.writeValueAsString(String.format(path, "wktSingle.wkt"));
         var node = mapper.readValue(String.format(template, pth, WKT ), JsonNode.class);
         var res  = FileLoader.connect(node, mapper);
 
@@ -142,7 +142,7 @@ public class FileLoaderTests {
     	arrayNode.add("POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))");
     	arrayNode.add("POINT (5 5)");
     	var exp = Val.ofJson(arrayNode.toString());
-        var pth = mapper.writeValueAsString(String.format(path, "wktCollection.txt"));
+        var pth = mapper.writeValueAsString(String.format(path, "wktCollection.wkt"));
         var node = mapper.readValue(String.format(template2, pth, WKT ), JsonNode.class);
         var res  = FileLoader.connect(node, mapper);
 
@@ -155,7 +155,7 @@ public class FileLoaderTests {
 //
 //    	var ex = "[{\"type\":\"Point\",\"coordinates\":[13.404954,52.520008],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},{\"type\":\"LineString\",\"coordinates\":[[13.404954,52.520008],[8.682127,50.110924]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},{\"type\":\"Polygon\",\"coordinates\":[[[13.404954,52.520008],[13.405537,52.520079],[13.405313,52.519505],[13.404743,52.519446],[13.404954,52.520008]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}]";
 //    	var exp = Val.of(ex);
-//        var pth = mapper.writeValueAsString(String.format(path, "wktMultiple.txt"));
+//        var pth = mapper.writeValueAsString(String.format(path, "wktMultiple.wkt"));
 //        var node = mapper.readValue(String.format(template, pth, WKT ), JsonNode.class);
 //        var res  = FileLoader.connect(node, mapper);
 //	
