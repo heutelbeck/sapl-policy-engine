@@ -156,7 +156,7 @@ class ErrorReportGeneratorTests {
 
     @Test
     void when_errorSapl_then_noName() {
-        var result  = expression("1/0").evaluate().blockFirst();
+        var result      = expression("1/0").evaluate().blockFirst();
         var errorReport = ErrorReportGenerator.errorReport(result, true, OutputFormat.PLAIN_TEXT);
         assertThat(errorReport).contains("Error in document at (1,1)");
     }

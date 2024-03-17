@@ -112,7 +112,8 @@ class OnlyOneApplicableTests {
 
     @Test
     void combineDocumentsMoreDocsWithError() {
-        var given    = mockPolicyRetrievalResultErrorOnlyOne(true, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
+        var given    = mockPolicyRetrievalResultErrorOnlyOne(true, denyPolicy(""), notApplicablePolicy(""),
+                permitPolicy(""));
         var expected = AuthorizationDecision.PERMIT;
         verifyDocumentsCombinator(given, expected);
     }
