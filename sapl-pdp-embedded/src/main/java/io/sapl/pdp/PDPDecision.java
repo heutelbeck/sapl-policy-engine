@@ -43,8 +43,6 @@ import lombok.ToString;
 @ToString
 public class PDPDecision implements TracedDecision {
 
-    private static final long serialVersionUID = -125217168474066329L;
-
     static final ObjectMapper MAPPER = new ObjectMapper();
 
     static {

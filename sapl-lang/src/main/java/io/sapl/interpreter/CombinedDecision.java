@@ -17,7 +17,6 @@
  */
 package io.sapl.interpreter;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -37,9 +36,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 @ToString
-public class CombinedDecision implements Traced, Serializable {
-
-    private static final long serialVersionUID = -3709404066269846569L;
+public class CombinedDecision implements Traced {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

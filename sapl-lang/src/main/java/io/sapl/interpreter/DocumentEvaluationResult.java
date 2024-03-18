@@ -17,13 +17,11 @@
  */
 package io.sapl.interpreter;
 
-import java.io.Serializable;
-
 import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 
-public interface DocumentEvaluationResult extends Traced, Serializable {
+public interface DocumentEvaluationResult extends Traced {
     AuthorizationDecision getAuthorizationDecision();
 
     DocumentEvaluationResult withTargetResult(Val targetResult);

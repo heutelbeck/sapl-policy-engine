@@ -17,10 +17,8 @@
  */
 package io.sapl.prp;
 
-import java.io.Serializable;
-
 import io.sapl.api.interpreter.Val;
 
-public record DocumentMatch(Document document, Val targetExpressionResult) implements Serializable {
+public record DocumentMatch(Document document, Val targetExpressionResult) {
 
 }

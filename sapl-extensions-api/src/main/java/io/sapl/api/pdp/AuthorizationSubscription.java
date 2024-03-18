@@ -17,8 +17,6 @@
  */
 package io.sapl.api.pdp;
 
-import java.io.Serializable;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -52,9 +50,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(Include.NON_NULL)
-public class AuthorizationSubscription implements Serializable {
-
-    private static final long serialVersionUID = 3186064291097711468L;
+public class AuthorizationSubscription {
 
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 

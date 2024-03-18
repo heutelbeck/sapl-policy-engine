@@ -17,7 +17,6 @@
  */
 package io.sapl.prp;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,9 +30,7 @@ import lombok.ToString;
 @ToString
 @EqualsAndHashCode
 @NoArgsConstructor
-public class PolicyRetrievalResult implements Serializable {
-
-    private static final long serialVersionUID = -1433376078602499899L;
+public class PolicyRetrievalResult {
 
     List<DocumentMatch> matchingDocuments    = new ArrayList<>();
     List<DocumentMatch> nonMatchingDocuments = new ArrayList<>();
