@@ -36,8 +36,6 @@ import lombok.ToString;
 @EqualsAndHashCode
 public class PolicySetDecision implements DocumentEvaluationResult {
 
-    private static final long serialVersionUID = -7037274732482213263L;
-
     final CombinedDecision combinedDecision;
     final String           documentName;
     final Optional<Val>    targetResult;

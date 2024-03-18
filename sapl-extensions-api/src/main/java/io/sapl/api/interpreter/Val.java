@@ -598,7 +598,7 @@ public class Val implements Traced {
      *         false for the value.
      */
     public Val filter(Predicate<? super JsonNode> predicate) {
-        Objects.nonNull(predicate);
+        Objects.requireNonNull(predicate);
         if (isUndefined())
             return this;
         else
@@ -1182,7 +1182,7 @@ public class Val implements Traced {
         return errors;
     }
 
-    void collectErrors(ArrayList<Val> errors) {
+    void collectErrors(List<Val> errors) {
         if (isError()) {
             errors.add(this);
         }

@@ -185,7 +185,7 @@ public class Trace {
         return Collections.unmodifiableList(arguments);
     }
 
-    public void collectErrors(ArrayList<Val> errors) {
+    public void collectErrors(List<Val> errors) {
         for (var argument : arguments) {
             var value = argument.value();
             if (value != null) {
