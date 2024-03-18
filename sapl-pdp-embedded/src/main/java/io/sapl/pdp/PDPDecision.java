@@ -17,7 +17,6 @@
  */
 package io.sapl.pdp;
 
-import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,8 +54,7 @@ public class PDPDecision implements TracedDecision {
     Instant                   timestamp;
     LinkedList<Modification>  modifications = new LinkedList<>();
 
-    private record Modification(AuthorizationDecision authorizationDecision, String explanation)
-            implements Serializable {
+    private record Modification(AuthorizationDecision authorizationDecision, String explanation) {
     }
 
     private PDPDecision(AuthorizationSubscription authorizationSubscription, PolicyRetrievalResult prpResult,
