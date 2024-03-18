@@ -17,7 +17,6 @@
  */
 package io.sapl.api.interpreter;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
