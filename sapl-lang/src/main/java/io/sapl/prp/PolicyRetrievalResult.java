@@ -35,14 +35,14 @@ public class PolicyRetrievalResult implements Serializable {
 
     private static final long serialVersionUID = -1433376078602499899L;
 
-    List<DocumentMatch> matchingDocuments    = new ArrayList<>();
-    List<DocumentMatch> nonMatchingDocuments = new ArrayList<>();
+    ArrayList<DocumentMatch> matchingDocuments    = new ArrayList<>();
+    ArrayList<DocumentMatch> nonMatchingDocuments = new ArrayList<>();
     @Getter
-    private boolean     prpInconsistent      = false;
+    private boolean          prpInconsistent      = false;
     @Getter
-    private boolean     retrievalWithErrors  = false;
+    private boolean          retrievalWithErrors  = false;
     @Getter
-    private String      errorMessage;
+    private String           errorMessage;
 
     public PolicyRetrievalResult(List<DocumentMatch> matches, boolean retrievalWithErrors) {
         matches.forEach(this::withMatch);
