@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.grammar.sapl.BinaryOperator;
@@ -46,7 +47,13 @@ public class SAPLImplCustom extends SAPLImpl {
     public Mono<Val> matches() {
         // this does not use the implicit expression to not disrupt hit recording with
         // the test tools
-        return Mono.zip(this.policyElement.matches(), schemasMatch()).map(this::and);
+
+        if (this.schemas == null) {
+            return this.policyElement.matches();
+        } else {
+            return Mono.zip(this.policyElement.matches(), schemasMatch()).map(this::and);
+        }
+
     }
 
     private Mono<Val> schemasMatch() {
@@ -63,7 +70,7 @@ public class SAPLImplCustom extends SAPLImpl {
             result = elementMatch;
         } else {
             result = Val.of(elementMatch.getBoolean() && schemaMatch.getBoolean()).withTrace(SAPL.class, true,
-                    elementMatch, schemaMatch);
+                    Map.of(Trace.TARGET_EXPRESSION_RESULT, elementMatch, Trace.SCHEMA_VALIDATION, schemaMatch));
         }
         return result;
     }

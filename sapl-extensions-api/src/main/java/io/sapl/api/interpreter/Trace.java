@@ -76,9 +76,11 @@ public class Trace {
     public static final String RETRIEVAL_ERROR_MESSAGE    = "retrievalErrorMessage";
     public static final String RETRIEVAL_HAS_ERRORS       = "retrievalHasErrors";
     public static final String RIGHT                      = "right";
+    public static final String SCHEMA_VALIDATION          = "schemaValidationResult";
     public static final String SELECTED_INDEX             = "selectedIndex";
     public static final String SUBTRAHEND                 = "subtrahend";
     public static final String TARGET                     = "target";
+    public static final String TARGET_EXPRESSION_RESULT   = "targetExpressionResult";
     public static final String TIMESTAMP                  = "timestamp";
     public static final String TRACE_KEY                  = "trace";
     public static final String UNFILTERED_VALUE           = "unfilteredValue";

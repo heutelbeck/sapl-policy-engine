@@ -44,7 +44,9 @@ import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.PolicyDecisionPointFactory;
 import io.sapl.pdp.interceptors.ErrorReportGenerator.OutputFormat;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 class ErrorReportGeneratorTests {
     private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 
@@ -52,6 +54,35 @@ class ErrorReportGeneratorTests {
     private static final String ANSI_ERROR_OFF = "\u001B[0m";
     private static final String HTML_ERROR_ON  = "<span style=\"color: red\">";
     private static final String HTML_ERROR_OFF = "</span>";
+
+    @Test
+    void whenError_then_characterAreEscapedForHTML() throws IOException, InitializationException {
+        var documents = List.of("""
+                policy "something&to escape"
+                permit where <unknown.pip> == "test";
+                """);
+
+        var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
+                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, Map.of());
+        var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
+
+        var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
+        var errors   = decision.getErrorsFromTrace();
+
+        var iter1 = errors.iterator();
+        System.out.println(iter1.next()+"\n");
+        System.out.println(iter1.next()+"\n");
+        System.out.println(decision.getTrace()+"\n");
+        assertThat(errors).hasSize(2);
+        var iter   = errors.iterator();
+        var error1 = iter.next();
+        assertThatVal(error1).isError();
+        var error2 = iter.next();
+        assertThatVal(error2).isError();
+
+        var errorReport1 = ErrorReportGenerator.errorReport(error1, true, OutputFormat.HTML);
+        assertThat(errorReport1).contains("&amp;").contains("&lt;").contains("&gt;");
+    }
 
     @Test
     void whenError_then_ansiReportMarksRegion() throws IOException, InitializationException {

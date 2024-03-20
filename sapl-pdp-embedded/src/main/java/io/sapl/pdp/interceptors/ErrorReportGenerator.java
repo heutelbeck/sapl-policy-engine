@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.interceptors;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
@@ -48,9 +49,15 @@ public class ErrorReportGenerator {
         if (error.getErrorSourceReference() instanceof EObject errorSource) {
             var markedSource = markErrorSourcePlainText(errorSource, enumerateLines, format);
             // %n introduces unnecessary newlines in logs. Stick with \n.
-            var name = markedSource.documentName() != null ? "'" + markedSource.documentName() + "' " : "";
-            report.append(String.format("Error in document %sat (%d,%d): %s\n", name, markedSource.row(),
-                    markedSource.column(), error.getMessage()));
+            var name         = markedSource.documentName() != null ? "'" + markedSource.documentName() + "' " : "";
+            var errorMessage = String.format("Error in document %sat (%d,%d): %s\n", name, markedSource.row(),
+                    markedSource.column(), error.getMessage());
+
+            if (format == OutputFormat.HTML) {
+                report.append(StringEscapeUtils.ESCAPE_HTML4.translate(errorMessage));
+            } else {
+                report.append(errorMessage);
+            }
             report.append(markedSource.source());
         } else {
             report.append("Error: ").append(error.getMessage());
@@ -161,7 +168,11 @@ public class ErrorReportGenerator {
                 newLine.append(on);
                 highlightingTurnedOn = true;
             }
-            newLine.append(character);
+            if (ansi) {
+                newLine.append(character);
+            } else {
+                newLine.append(StringEscapeUtils.ESCAPE_HTML4.translate(character));
+            }
             if (currentOffset == end - 1) {
                 newLine.append(off);
                 highlightingTurnedOn = false;
