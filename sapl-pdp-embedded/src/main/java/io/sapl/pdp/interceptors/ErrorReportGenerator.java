@@ -43,7 +43,7 @@ public class ErrorReportGenerator {
         var report = new StringBuilder();
         if (format == OutputFormat.HTML) {
             report.append(
-                    "<div style=\"display: block; font-family: monospace; white-space: pre; padding: 0 1em; background-color: #eee;\">\n");
+                    "<div style=\"display: block; font-family: monospace; white-space: pre; padding: 0 1em; background-color: #282a36;\">\n");
         }
         if (error.getErrorSourceReference() instanceof EObject errorSource) {
             var markedSource = markErrorSourcePlainText(errorSource, enumerateLines, format);
