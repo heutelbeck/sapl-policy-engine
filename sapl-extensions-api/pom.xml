@@ -103,15 +103,6 @@
 						</goals>
 					</execution>
 				</executions>
-				<configuration>
-					<!-- Lombok is not needed as a runtime dependency but is automatically detected as one due when
-                    SneakyThrows is in use because it leaves traces in the class files. This can be removed when the
-                    project uses a version of lombok which contains a fix for
-                     https://github.com/projectlombok/lombok/issues/3601 -->
-					<bnd>
-						Import-Package: !lombok,*
-					</bnd>
-				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

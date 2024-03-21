@@ -35,8 +35,11 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 
 import io.sapl.grammar.sapl.Import;
@@ -48,11 +51,13 @@ import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class enhances the auto-completion proposals that the language server
  * offers.
  */
+@Slf4j
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private static final Collection<String> BLACKLIST_OF_KEYWORD_PROPOSALS = Set.of("null", "undefined", "true",
@@ -93,6 +98,27 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         }
     }
 
+    private static String extractConfigurationIdFromRequest() {
+        try {
+            Class.forName("org.springframework.web.context.request.ServletRequestAttributes");
+        } catch (ClassNotFoundException e) {
+            return "";
+        }
+        var requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (requestAttributes instanceof ServletRequestAttributes servletRequestAttributes) {
+            var httpServletRequest = servletRequestAttributes.getRequest();
+            var query              = httpServletRequest.getQueryString();
+            var queryParameters    = Splitter.on('&').trimResults().withKeyValueSeparator('=').split(query);
+            var configurationId    = queryParameters.get("configurationId");
+            if (configurationId == null) {
+                return "";
+            }
+            log.trace("Code completion for configurationId: {}", configurationId);
+            return configurationId;
+        }
+        return "";
+    }
+
     /*
      * This method generates the domain specific recommendations for SAPL.
      */
@@ -101,10 +127,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             final IIdeContentProposalAcceptor acceptor) {
         lazyLoadDependencies();
 
+        var configurationId  = extractConfigurationIdFromRequest();
         var parserRule       = GrammarUtil.containingParserRule(assignment);
         var parserRuleName   = parserRule.getName().toLowerCase();
         var feature          = assignment.getFeature().toLowerCase();
-        var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration().blockFirst();
+        var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration(configurationId).blockFirst();
 
         if (pdpConfiguration == null)
             return;

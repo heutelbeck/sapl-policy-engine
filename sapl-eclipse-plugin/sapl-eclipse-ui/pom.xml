@@ -64,6 +64,10 @@
 			<groupId>com.networknt</groupId>
 			<artifactId>json-schema-validator</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
+		</dependency>
 		<!-- dependency of networknt-->
 		<dependency>
 			<!-- Used to validate RFC 3339 date and date-time -->

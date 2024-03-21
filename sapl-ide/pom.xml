@@ -50,7 +50,16 @@
 			<artifactId>spring-context</artifactId>
 			<optional>true</optional>
 		</dependency>
-
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
 		<!-- Testing -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -139,14 +148,15 @@
 					</execution>
 				</executions>
 				<configuration>
-					<!-- Lombok is not needed as a runtime dependency but is automatically detected as one due when
-                    SneakyThrows is in use because it leaves traces in the class files. This can be removed when the
+					<!-- Lombok is not needed as a runtime dependency but is
+					automatically detected as one due when
+                    SneakyThrows is in use because it leaves traces in the class files. This can be
+					removed when the
                     project uses a version of lombok which contains a fix for
                      https://github.com/projectlombok/lombok/issues/3601 -->
 					<bnd>
-						Import-Package: !lombok,\
-						    com.google.common.*;version="32",\
-							*
+						Import-Package: com.google.common.*;version="32",\
+						*
 					</bnd>
 				</configuration>
 			</plugin>

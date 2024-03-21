@@ -23,6 +23,10 @@ public interface PDPConfigurationProvider {
 
     Flux<PDPConfiguration> pdpConfiguration();
 
+    default Flux<PDPConfiguration> pdpConfiguration(String configurationId) {
+        return pdpConfiguration();
+    }
+
     default void destroy() {
         // NOOP
     }
