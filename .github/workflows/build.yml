@@ -348,14 +348,14 @@ jobs:
     - name: Clean up Local Repository before Caching
       run: rm -rf ~/.m2/repository/io/sapl
   
-    # Create provenance for the artifact
+  # Create provenance for the artifact
   sapl-server-lt-provenance:
     needs: [ deploy ]
     permissions:
       actions: read # To read the workflow path
       id-token: write # To sign the provenance
       contents: write # To add assets to a release
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.9.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.10.0
     with:
       base64-subjects: ${{ needs.deploy.outputs.sapl-server-lt-hashes }}
   
@@ -389,7 +389,7 @@ jobs:
       actions: read # for detecting the Github Actions environment.
       id-token: write # for creating OIDC tokens for signing.
       packages: write # for uploading attestations.
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v1.9.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v1.10.0
     with:
       image: ghcr.io/heutelbeck/sapl-server-lt
       # The image digest is used to prevent TOCTOU issues.
