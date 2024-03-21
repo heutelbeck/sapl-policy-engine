@@ -99,11 +99,14 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     private static String extractConfigurationIdFromRequest() {
+        log.trace("Extract contextId...");
         try {
             Class.forName("org.springframework.web.context.request.ServletRequestAttributes");
         } catch (ClassNotFoundException e) {
+            log.trace("Extract contextId... NO SERVLET");
             return "";
         }
+        log.trace("Extract contextId...SERVLETR PRESENT");
         var requestAttributes = RequestContextHolder.getRequestAttributes();
         if (requestAttributes instanceof ServletRequestAttributes servletRequestAttributes) {
             var httpServletRequest = servletRequestAttributes.getRequest();
@@ -111,11 +114,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             var queryParameters    = Splitter.on('&').trimResults().withKeyValueSeparator('=').split(query);
             var configurationId    = queryParameters.get("configurationId");
             if (configurationId == null) {
+                log.trace("Extract contextId... id null -> ''");
                 return "";
             }
             log.trace("Code completion for configurationId: {}", configurationId);
             return configurationId;
         }
+        log.trace("Extract contextId... wrong request type -> ''");
         return "";
     }
 
