@@ -22,6 +22,7 @@ class SAPLEditor extends LitElement {
       editor: { type: Object },
       xtextLang: { type: String },
       isLint: { type: Boolean },
+      configurationId: { type: String },     
       isDarkTheme: { type: Boolean }
     }
   }
@@ -73,6 +74,17 @@ class SAPLEditor extends LitElement {
 
   get isLint() {
     return this._isLint;
+  }
+  
+  set configurationId(value) {
+    let oldVal = this._configurationId;
+    this._configurationId = value;
+    console.debug('SaplEditor: set configurationId', oldVal, value);
+    this.requestUpdate("configurationId", oldVal);
+  }
+
+  get configurationId() {
+	  return this._configurationId;
   }
 
   set isDarkTheme(value) {

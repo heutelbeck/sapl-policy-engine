@@ -24,6 +24,7 @@ import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
+import com.vaadin.flow.dom.Element;
 
 import elemental.json.JsonArray;
 
@@ -85,5 +86,15 @@ public class SaplEditor extends BaseEditor {
      */
     public void removeValidationFinishedListener(ValidationFinishedListener listener) {
         this.validationFinishedListeners.remove(listener);
+    }
+
+    /**
+     * Sets the configurationId for code completion.
+     *
+     * @param configurationId a configurationId
+     */
+    public void setConfigurationId(String configurationId) {
+        Element element = getElement();
+        element.setProperty("configurationId", configurationId);
     }
 }

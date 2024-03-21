@@ -1,5 +1,0 @@
-policy "policyWithSimpleFunction"
-permit
-    action == "read"
-where
-    time.dayOfWeek("2021-02-08T16:16:33.616Z") =~ "MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY";
