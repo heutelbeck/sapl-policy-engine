@@ -44,12 +44,19 @@ public class OrImplCustom extends OrImpl {
         var left = getLeft().evaluate().map(v -> Val.requireBoolean(this, v));
         return left.switchMap(leftResult -> {
             if (leftResult.isError()) {
+                // Errors short circuit evaluation. Do not add further traces.
                 return Flux.just(leftResult);
             }
             // Lazy evaluation of the right expression
             if (!leftResult.getBoolean()) {
-                return getRight().evaluate().map(v -> Val.requireBoolean(this, v)).map(rightResult -> rightResult
-                        .withTrace(Or.class, false, Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult)));
+                return getRight().evaluate().map(v -> Val.requireBoolean(this, v)).map(rightResult -> {
+                    if (rightResult.isError()) {
+                        // Errors short circuit evaluation. Do not add further traces.
+                        return rightResult;
+                    }
+                    return rightResult.withTrace(Or.class, false,
+                            Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult));
+                });
             }
             return Flux.just(Val.TRUE.withTrace(Or.class, false, Map.of(Trace.LEFT, leftResult)));
         });

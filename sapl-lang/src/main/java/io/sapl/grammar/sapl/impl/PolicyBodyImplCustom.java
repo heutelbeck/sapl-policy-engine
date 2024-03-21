@@ -47,9 +47,15 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
     }
 
     protected Flux<Val> evaluateStatements(Val previousResult, int statementId) {
-        if (previousResult.isError() || !previousResult.getBoolean() || statementId == statements.size())
+        if (previousResult.isError()) {
+            // Errors short circuit evaluation. Do not add further traces duplicating error in trace.
+            return Flux.just(previousResult);
+        }
+
+        if (!previousResult.getBoolean() || statementId == statements.size()) {
             return Flux.just(previousResult.withTrace(PolicyBody.class, false,
                     Map.of(Trace.PREVIOUS_CONDITION_RESULT, previousResult)));
+        }
 
         var statement = statements.get(statementId);
 

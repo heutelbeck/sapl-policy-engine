@@ -45,12 +45,19 @@ public class AndImplCustom extends AndImpl {
         var left = getLeft().evaluate().map(v -> Val.requireBoolean(this, v));
         return left.switchMap(leftResult -> {
             if (leftResult.isError()) {
-                return Flux.just(leftResult.withTrace(And.class, false, Map.of(Trace.LEFT, leftResult)));
+                // Errors short circuit evaluation. Do not add further traces.
+                return Flux.just(leftResult);
             }
             // Lazy evaluation of the right expression
             if (Boolean.TRUE.equals(leftResult.getBoolean())) {
-                return getRight().evaluate().map(v -> Val.requireBoolean(this, v)).map(rightResult -> rightResult
-                        .withTrace(And.class, false, Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult)));
+                return getRight().evaluate().map(v -> Val.requireBoolean(this, v)).map(rightResult -> {
+                    if (rightResult.isError()) {
+                        // Errors short circuit evaluation. Do not add further traces.
+                        return rightResult;
+                    }
+                    return rightResult.withTrace(And.class, false,
+                            Map.of(Trace.LEFT, leftResult, Trace.RIGHT, rightResult));
+                });
             }
             return Flux.just(Val.FALSE);
         });
