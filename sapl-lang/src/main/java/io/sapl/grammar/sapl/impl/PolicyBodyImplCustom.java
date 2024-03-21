@@ -48,7 +48,8 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 
     protected Flux<Val> evaluateStatements(Val previousResult, int statementId) {
         if (previousResult.isError()) {
-            // Errors short circuit evaluation. Do not add further traces duplicating error in trace.
+            // Errors short circuit evaluation. Do not add further traces duplicating error
+            // in trace.
             return Flux.just(previousResult);
         }
 
