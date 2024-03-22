@@ -98,11 +98,6 @@
 	<build>
 		<plugins>
 			<plugin>
-				<?m2e execute onConfiguration,onIncremental?>
-				<groupId>org.eclipse.xtend</groupId>
-				<artifactId>xtend-maven-plugin</artifactId>
-			</plugin>
-			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
 				<executions>
