@@ -35,7 +35,6 @@ import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sapltest.Attribute;
 import io.sapl.test.grammar.sapltest.Document;
 import io.sapl.test.grammar.sapltest.Function;
-import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.Import;
 import io.sapl.test.grammar.sapltest.ImportType;
@@ -68,27 +67,15 @@ class DefaultTestFixtureConstructorTests {
     protected DefaultTestFixtureConstructor defaultTestFixtureConstructor;
     @Mock
     protected SaplTestFixture               testFixtureMock;
-    @Mock
-    protected Given                         givenMock;
-
-    @Test
-    void constructTestFixture_withNullGiven_throwsSaplTestException() {
-        final var exception = assertThrows(SaplTestException.class,
-                () -> defaultTestFixtureConstructor.constructTestFixture(null, null, null));
-
-        assertEquals("Given is null", exception.getMessage());
-    }
 
     @Test
     void constructTestFixture_documentInterpreterReturnsNull_throwsSaplTestException() {
         final var documentMock = mock(Document.class);
 
-        when(givenMock.getDocument()).thenReturn(documentMock);
-
         when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(null);
 
         final var exception = assertThrows(SaplTestException.class,
-                () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, null, null));
+                () -> defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null, null, null));
 
         assertEquals("TestFixture is null", exception.getMessage());
     }
@@ -97,11 +84,9 @@ class DefaultTestFixtureConstructorTests {
     void constructTestFixture_handlesNullImports_returnsFixture() {
         final var documentMock = mock(Document.class);
 
-        when(givenMock.getDocument()).thenReturn(documentMock);
-
         when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
-        final var result = defaultTestFixtureConstructor.constructTestFixture(givenMock, null, null);
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null, null, null);
 
         assertEquals(testFixtureMock, result);
 
@@ -113,11 +98,10 @@ class DefaultTestFixtureConstructorTests {
     void constructTestFixture_handlesEmptyImports_returnsFixture() {
         final var documentMock = mock(Document.class);
 
-        when(givenMock.getDocument()).thenReturn(documentMock);
-
         when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
-        final var result = defaultTestFixtureConstructor.constructTestFixture(givenMock, Collections.emptyList(), null);
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                Collections.emptyList(), null);
 
         assertEquals(testFixtureMock, result);
 
@@ -133,16 +117,13 @@ class DefaultTestFixtureConstructorTests {
         final var pdpVariablesMock          = mock(PdpVariables.class);
         final var pdpCombiningAlgorithmMock = mock(PdpCombiningAlgorithm.class);
 
-        when(givenMock.getDocument()).thenReturn(documentMock);
-        when(givenMock.getPdpVariables()).thenReturn(pdpVariablesMock);
-        when(givenMock.getPdpCombiningAlgorithm()).thenReturn(pdpCombiningAlgorithmMock);
-
         when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(integrationTestFixture);
 
         when(pdpConfigurationHandlerMock.applyPdpConfigurationToFixture(integrationTestFixture, pdpVariablesMock,
                 pdpCombiningAlgorithmMock)).thenReturn(testFixtureMock);
 
-        final var result = defaultTestFixtureConstructor.constructTestFixture(givenMock, Collections.emptyList(), null);
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, pdpVariablesMock,
+                pdpCombiningAlgorithmMock, Collections.emptyList(), null);
 
         assertEquals(testFixtureMock, result);
 
@@ -152,11 +133,10 @@ class DefaultTestFixtureConstructorTests {
     @Test
     void constructTestFixture_doesNoRegistrationWhenGivenStepsIsNull_returnsFixture() {
         final var documentMock = mock(Document.class);
-        when(givenMock.getDocument()).thenReturn(documentMock);
 
         when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
-        final var result = defaultTestFixtureConstructor.constructTestFixture(givenMock, null, null);
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null, null, null);
 
         assertEquals(testFixtureMock, result);
 
@@ -166,11 +146,11 @@ class DefaultTestFixtureConstructorTests {
     @Test
     void constructTestFixture_doesNoRegistrationWhenGivenStepsIsEmpty_returnsFixture() {
         final var documentMock = mock(Document.class);
-        when(givenMock.getDocument()).thenReturn(documentMock);
 
         when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
-        final var result = defaultTestFixtureConstructor.constructTestFixture(givenMock, Collections.emptyList(), null);
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                Collections.emptyList(), null);
 
         assertEquals(testFixtureMock, result);
 
@@ -180,7 +160,6 @@ class DefaultTestFixtureConstructorTests {
     @Test
     void constructTestFixture_doesNoRegistrationWhenGivenStepsOnlyContainsNonImportTypes_returnsFixture() {
         final var documentMock = mock(Document.class);
-        when(givenMock.getDocument()).thenReturn(documentMock);
 
         when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
 
@@ -189,7 +168,8 @@ class DefaultTestFixtureConstructorTests {
 
         final var givenSteps = List.<GivenStep>of(functionMock, attributeMock);
 
-        final var result = defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, null);
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null, givenSteps,
+                null);
 
         assertEquals(testFixtureMock, result);
 
@@ -200,15 +180,15 @@ class DefaultTestFixtureConstructorTests {
     @DisplayName("fixture registration handling")
     class ImportHandlingTests {
 
+        @Mock
+        Document documentMock;
+
         private Import buildImport(final String input) {
             return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getImportRule, Import.class);
         }
 
         @BeforeEach
         void setUp() {
-            final var documentMock = mock(Document.class);
-            when(givenMock.getDocument()).thenReturn(documentMock);
-
             when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
         }
 
@@ -221,8 +201,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var givenSteps = Arrays.<GivenStep>asList(attributeMock, null);
 
-                final var exception = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, null));
+                final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, null));
 
                 assertEquals("GivenStep is null", exception.getMessage());
 
@@ -237,8 +217,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var givenSteps = List.<GivenStep>of(importWithNullType);
 
-                final var exception = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, null));
+                final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, null));
 
                 assertEquals("Invalid Import", exception.getMessage());
 
@@ -254,8 +234,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var givenSteps = List.<GivenStep>of(importWithNullIdentifier);
 
-                final var exception = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, null));
+                final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, null));
 
                 assertEquals("Invalid Import", exception.getMessage());
 
@@ -272,8 +252,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var givenSteps = List.<GivenStep>of(importMock);
 
-                final var exception = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, null));
+                final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, null));
 
                 assertEquals("No FixtureRegistrations present, please check your setup", exception.getMessage());
 
@@ -291,8 +271,8 @@ class DefaultTestFixtureConstructorTests {
                 final var givenSteps = List.<GivenStep>of(importMock);
 
                 final var registrations = Collections.<ImportType, Map<String, Object>>emptyMap();
-                final var exception     = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, registrations));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
                 assertEquals("No FixtureRegistrations present, please check your setup", exception.getMessage());
 
@@ -311,8 +291,8 @@ class DefaultTestFixtureConstructorTests {
                 final var givenSteps = List.<GivenStep>of(importMock);
 
                 final var registrations = Collections.<ImportType, Map<String, Object>>singletonMap(null, null);
-                final var exception     = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, registrations));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
                 assertEquals("No registrations for type \"%s\" found".formatted(importType), exception.getMessage());
 
@@ -332,8 +312,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var registrations = Collections.<ImportType, Map<String, Object>>singletonMap(importType,
                         Collections.emptyMap());
-                final var exception     = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, registrations));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
                 assertEquals("No registrations for type \"%s\" found".formatted(importType), exception.getMessage());
 
@@ -352,8 +332,8 @@ class DefaultTestFixtureConstructorTests {
                 final var givenSteps = List.<GivenStep>of(importMock);
 
                 final var registrations = Collections.singletonMap(importType, Collections.singletonMap("foo", null));
-                final var exception     = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, registrations));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
                 assertEquals("No \"%s\" registration for name \"foo\" found".formatted(importType),
                         exception.getMessage());
@@ -373,8 +353,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var registrations = Collections.singletonMap(ImportType.PIP,
                         Collections.<String, Object>singletonMap("foo", "abc"));
-                final var exception     = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, registrations));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
                 assertEquals("registration with name \"foo\" is missing the \"PolicyInformationPoint\" annotation",
                         exception.getMessage());
@@ -391,8 +371,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var registrations = Collections.singletonMap(ImportType.PIP,
                         Collections.<String, Object>singletonMap("foo", pipMock));
-                final var result        = defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps,
-                        registrations);
+                final var result        = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                        givenSteps, registrations);
 
                 assertEquals(testFixtureMock, result);
 
@@ -411,8 +391,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var registrations = Collections.singletonMap(ImportType.STATIC_PIP,
                         Collections.<String, Object>singletonMap("foo", "abc"));
-                final var exception     = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, registrations));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
                 assertEquals("Static \"PolicyInformationPoint\" registration with name \"foo\" is not a class type",
                         exception.getMessage());
@@ -428,8 +408,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var registrations = Collections.singletonMap(ImportType.STATIC_PIP,
                         Collections.<String, Object>singletonMap("foo", Object.class));
-                final var exception     = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, registrations));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
                 assertEquals("Class is missing the \"PolicyInformationPoint\" annotation", exception.getMessage());
 
@@ -444,8 +424,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var registrations = Collections.singletonMap(ImportType.STATIC_PIP,
                         Collections.<String, Object>singletonMap("foo", TimePolicyInformationPoint.class));
-                final var result        = defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps,
-                        registrations);
+                final var result        = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                        givenSteps, registrations);
 
                 assertEquals(testFixtureMock, result);
 
@@ -464,8 +444,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var registrations = Collections.singletonMap(ImportType.FUNCTION_LIBRARY,
                         Collections.<String, Object>singletonMap("foo", "abc"));
-                final var exception     = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, registrations));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
                 assertEquals("registration with name \"foo\" is missing the \"FunctionLibrary\" annotation",
                         exception.getMessage());
@@ -482,8 +462,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var registrations = Collections.singletonMap(ImportType.FUNCTION_LIBRARY,
                         Collections.<String, Object>singletonMap("foo", functionLibraryMock));
-                final var result        = defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps,
-                        registrations);
+                final var result        = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                        givenSteps, registrations);
 
                 assertEquals(testFixtureMock, result);
 
@@ -502,8 +482,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var registrations = Collections.singletonMap(ImportType.STATIC_FUNCTION_LIBRARY,
                         Collections.<String, Object>singletonMap("foo", "abc"));
-                final var exception     = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, registrations));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
                 assertEquals("Static \"FunctionLibrary\" registration with name \"foo\" is not a class type",
                         exception.getMessage());
@@ -519,8 +499,8 @@ class DefaultTestFixtureConstructorTests {
 
                 final var registrations = Collections.singletonMap(ImportType.STATIC_FUNCTION_LIBRARY,
                         Collections.<String, Object>singletonMap("foo", Object.class));
-                final var exception     = assertThrows(SaplTestException.class,
-                        () -> defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps, registrations));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
                 assertEquals("Class is missing the \"FunctionLibrary\" annotation", exception.getMessage());
 
@@ -536,12 +516,12 @@ class DefaultTestFixtureConstructorTests {
 
                 final var registrations = Collections.singletonMap(ImportType.STATIC_FUNCTION_LIBRARY,
                         Collections.<String, Object>singletonMap("foo", FilterFunctionLibrary.class));
-                final var result        = defaultTestFixtureConstructor.constructTestFixture(givenMock, givenSteps,
-                        registrations);
+                final var result        = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                        givenSteps, registrations);
 
                 assertEquals(testFixtureMock, result);
 
-                verify(testFixtureMock, times(1)).registerPIP(FilterFunctionLibrary.class);
+                verify(testFixtureMock, times(1)).registerFunctionLibrary(FilterFunctionLibrary.class);
             }
         }
     }

@@ -135,7 +135,7 @@ WhenStep:
      'when' authorizationSubscription=AuthorizationSubscription;
 
 AuthorizationSubscription:
-	'subject'? subject=Value 'attempts' 'action'? action=Value 'on' 'resource'? resource=Value ('in'? environment=Object)?;
+	'subject'? subject=Value 'attempts' 'action'? action=Value 'on' 'resource'? resource=Value ('in' 'environment'? environment=Object)?;
 
 ErrorValue returns Value:
     {ErrorValue} 'error' ('(' message=STRING ')')?;
@@ -171,7 +171,6 @@ Duration: duration=STRING;
 Expectation:
 	{SingleExpect} 'expect' decision=AuthorizationDecision |
 	{SingleExpectWithMatcher} 'expect' 'decision' matchers+=AuthorizationDecisionMatcher (',' matchers+=AuthorizationDecisionMatcher)* |
-	{TestException} 'expect' 'exception' |
 	{RepeatedExpect} expectOrAdjustBlocks+=ExpectOrAdjustBlock+;
 
 ExpectBlock:

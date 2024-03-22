@@ -23,10 +23,12 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sapltest.Given;
+import io.sapl.test.grammar.sapltest.Document;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.Import;
 import io.sapl.test.grammar.sapltest.ImportType;
+import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
+import io.sapl.test.grammar.sapltest.PdpVariables;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
 import java.lang.annotation.Annotation;
 import java.util.List;
@@ -41,13 +43,11 @@ class DefaultTestFixtureConstructor {
     private final DocumentInterpreter     documentInterpreter;
     private final PdpConfigurationHandler pdpConfigurationHandler;
 
-    SaplTestFixture constructTestFixture(final Given given, final List<GivenStep> givenSteps,
+    SaplTestFixture constructTestFixture(final Document document, final PdpVariables pdpVariables,
+            final PdpCombiningAlgorithm pdpCombiningAlgorithm, final List<GivenStep> givenSteps,
             final Map<ImportType, Map<String, Object>> fixtureRegistrations) {
-        if (given == null) {
-            throw new SaplTestException("Given is null");
-        }
 
-        var saplTestFixture = documentInterpreter.getFixtureFromDocument(given.getDocument());
+        var saplTestFixture = documentInterpreter.getFixtureFromDocument(document);
 
         if (saplTestFixture == null) {
             throw new SaplTestException("TestFixture is null");
@@ -55,7 +55,7 @@ class DefaultTestFixtureConstructor {
 
         if (saplTestFixture instanceof SaplIntegrationTestFixture integrationTestFixture) {
             saplTestFixture = pdpConfigurationHandler.applyPdpConfigurationToFixture(integrationTestFixture,
-                    given.getPdpVariables(), given.getPdpCombiningAlgorithm());
+                    pdpVariables, pdpCombiningAlgorithm);
         }
 
         if (givenSteps != null) {
@@ -121,7 +121,7 @@ class DefaultTestFixtureConstructor {
             final String identifier) throws InitializationException {
         final var functionLibraryClass = checkForClassTypeRegistration(registration, FunctionLibrary.class, identifier);
 
-        fixture.registerPIP(functionLibraryClass);
+        fixture.registerFunctionLibrary(functionLibraryClass);
     }
 
     private void checkForValidRegistration(final Object registration, final Class<? extends Annotation> annotationClass,
