@@ -64,13 +64,13 @@ import io.sapl.test.grammar.sapltest.SAPLTest;
 import io.sapl.test.utils.DocumentHelper;
 
 @ExtendWith(MockitoExtension.class)
-class JUnitTestsTests {
+class JUnitTestAdapterTests {
     @Mock
     protected TestProvider        testProviderMock;
     @Mock
     protected SaplTestInterpreter saplTestInterpreterMock;
 
-    protected JUnitTests jUnitTests;
+    protected JUnitTestAdapter jUnitTestAdapter;
 
     protected final MockedStatic<TestProviderFactory>        testProviderFactoryMockedStatic        = mockStatic(
             TestProviderFactory.class);
@@ -94,7 +94,7 @@ class JUnitTestsTests {
         saplTestInterpreterFactoryMockedStatic.when(SaplTestInterpreterFactory::create)
                 .thenReturn(saplTestInterpreterMock);
         testProviderFactoryMockedStatic.when(() -> TestProviderFactory.create(null, null)).thenReturn(testProviderMock);
-        jUnitTests = new JUnitTests();
+        jUnitTestAdapter = new JUnitTestAdapter();
     }
 
     @AfterEach
@@ -136,7 +136,7 @@ class JUnitTestsTests {
     void getTests_withNullTestDiscoveryResult_returnsEmptyList() {
         testDiscoveryHelperMockedStatic.when(TestDiscoveryHelper::discoverTests).thenReturn(null);
 
-        final var result = jUnitTests.getTests();
+        final var result = jUnitTestAdapter.getTests();
 
         assertTrue(result.isEmpty());
     }
@@ -145,7 +145,7 @@ class JUnitTestsTests {
     void getTests_withEmptyTestDiscoveryResult_returnsEmptyList() {
         testDiscoveryHelperMockedStatic.when(TestDiscoveryHelper::discoverTests).thenReturn(Collections.emptyList());
 
-        final var result = jUnitTests.getTests();
+        final var result = jUnitTestAdapter.getTests();
 
         assertTrue(result.isEmpty());
     }
@@ -177,7 +177,7 @@ class JUnitTestsTests {
                     return dynamicContainerMock;
                 });
 
-        final var result = jUnitTests.getTests();
+        final var result = jUnitTestAdapter.getTests();
 
         assertFalse(result.isEmpty());
         assertEquals(dynamicContainerMock, result.get(0));
@@ -216,7 +216,7 @@ class JUnitTestsTests {
                     return null;
                 });
 
-        final var result = jUnitTests.getTests();
+        final var result = jUnitTestAdapter.getTests();
         assertEquals(Collections.singletonList(null), result);
     }
 
@@ -324,7 +324,7 @@ class JUnitTestsTests {
                     return mappedDynamicContainer2Mock;
                 });
 
-        final var result = jUnitTests.getTests();
+        final var result = jUnitTestAdapter.getTests();
 
         assertEquals(2, result.size());
         assertEquals(mappedDynamicContainer1Mock, result.get(0));

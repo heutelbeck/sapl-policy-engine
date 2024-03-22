@@ -19,11 +19,13 @@
 package io.sapl.test.dsl.interpreter;
 
 import io.sapl.test.SaplTestFixture;
+import io.sapl.test.grammar.sapltest.Document;
 import io.sapl.test.grammar.sapltest.Environment;
 import io.sapl.test.grammar.sapltest.Expectation;
-import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.ImportType;
+import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
+import io.sapl.test.grammar.sapltest.PdpVariables;
 import io.sapl.test.grammar.sapltest.Scenario;
 import java.util.List;
 
@@ -50,9 +52,11 @@ public final class DefaultStepConstructor implements StepConstructor {
     private final DefaultVerifyStepConstructor  defaultVerifyStepConstructor;
 
     @Override
-    public SaplTestFixture constructTestFixture(final Given given, final List<GivenStep> givenSteps,
+    public SaplTestFixture constructTestFixture(final Document document, final PdpVariables pdpVariables,
+            final PdpCombiningAlgorithm pdpCombiningAlgorithm, final List<GivenStep> givenSteps,
             final Map<ImportType, Map<String, Object>> fixtureRegistrations) {
-        return defaultTestFixtureConstructor.constructTestFixture(given, givenSteps, fixtureRegistrations);
+        return defaultTestFixtureConstructor.constructTestFixture(document, pdpVariables, pdpCombiningAlgorithm,
+                givenSteps, fixtureRegistrations);
     }
 
     @Override

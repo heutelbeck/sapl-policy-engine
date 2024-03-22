@@ -19,11 +19,13 @@
 package io.sapl.test.dsl.interfaces;
 
 import io.sapl.test.SaplTestFixture;
+import io.sapl.test.grammar.sapltest.Document;
 import io.sapl.test.grammar.sapltest.Environment;
 import io.sapl.test.grammar.sapltest.Expectation;
-import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.ImportType;
+import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
+import io.sapl.test.grammar.sapltest.PdpVariables;
 import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
@@ -47,13 +49,16 @@ public interface StepConstructor {
      * Defines logic to construct an instance of {@link SaplTestFixture} and handles
      * fixture registrations.
      *
-     * @param given      The {@link Given} containing information about the
-     *                   {@link io.sapl.test.grammar.sapltest.Document}.
-     * @param givenSteps containing the {@link io.sapl.test.grammar.sapltest.Import}
-     *                   to apply on the constructed fixture.
+     * @param document              the document to test
+     * @param pdpVariables          the pdp variables to apply to the fixture
+     * @param pdpCombiningAlgorithm the pdp combining algorithm to set
+     * @param givenSteps            containing the
+     *                              {@link io.sapl.test.grammar.sapltest.Import} to
+     *                              apply on the constructed fixture.
      * @return The created Fixture.
      */
-    SaplTestFixture constructTestFixture(Given given, List<GivenStep> givenSteps,
+    SaplTestFixture constructTestFixture(Document document, PdpVariables pdpVariables,
+            PdpCombiningAlgorithm pdpCombiningAlgorithm, List<GivenStep> givenSteps,
             Map<ImportType, Map<String, Object>> fixtureRegistrations);
 
     /**
@@ -61,7 +66,7 @@ public interface StepConstructor {
      * {@link Environment}.
      *
      * @param saplTestFixture The Fixture created in
-     *                        {@link StepConstructor#constructTestFixture(Given, List, Map)}.
+     *                        {@link StepConstructor#constructTestFixture(Document, PdpVariables, PdpCombiningAlgorithm, List, Map)}.
      * @param environment     The Environment to consider for the TestCase.
      * @param needsMocks      Additional information if mocking is required for the
      *                        TestCase.

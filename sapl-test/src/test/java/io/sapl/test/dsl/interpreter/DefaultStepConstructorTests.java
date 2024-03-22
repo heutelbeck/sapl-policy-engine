@@ -23,11 +23,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.sapl.test.SaplTestFixture;
+import io.sapl.test.grammar.sapltest.Document;
 import io.sapl.test.grammar.sapltest.Environment;
 import io.sapl.test.grammar.sapltest.Expectation;
-import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.ImportType;
+import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
+import io.sapl.test.grammar.sapltest.PdpVariables;
 import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.steps.ExpectOrVerifyStep;
 import io.sapl.test.steps.ExpectStep;
@@ -60,17 +62,20 @@ class DefaultStepConstructorTests {
 
     @Test
     void constructTestFixture_callsTestFixtureConstructor_returnsSaplTestFixture() {
-        final var givenMock  = mock(Given.class);
-        final var givenSteps = Collections.<GivenStep>emptyList();
+        final var documentMock              = mock(Document.class);
+        final var pdpVariablesMock          = mock(PdpVariables.class);
+        final var pdpCombiningAlgorithmMock = mock(PdpCombiningAlgorithm.class);
+        final var givenSteps                = Collections.<GivenStep>emptyList();
 
         final var saplTestFixtureMock = mock(SaplTestFixture.class);
 
         final var registrations = new HashMap<ImportType, Map<String, Object>>();
 
-        when(defaultTestFixtureConstructorMock.constructTestFixture(givenMock, givenSteps, registrations))
-                .thenReturn(saplTestFixtureMock);
+        when(defaultTestFixtureConstructorMock.constructTestFixture(documentMock, pdpVariablesMock,
+                pdpCombiningAlgorithmMock, givenSteps, registrations)).thenReturn(saplTestFixtureMock);
 
-        final var result = defaultStepConstructor.constructTestFixture(givenMock, givenSteps, registrations);
+        final var result = defaultStepConstructor.constructTestFixture(documentMock, pdpVariablesMock,
+                pdpCombiningAlgorithmMock, givenSteps, registrations);
 
         assertEquals(saplTestFixtureMock, result);
     }

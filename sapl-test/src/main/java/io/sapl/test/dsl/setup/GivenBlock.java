@@ -15,23 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.sapl.test.dsl.setup;
 
-import io.sapl.test.utils.ClasspathHelper;
+import io.sapl.test.grammar.sapltest.Document;
+import io.sapl.test.grammar.sapltest.Environment;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
+import io.sapl.test.grammar.sapltest.PdpVariables;
 import java.util.List;
-import org.apache.commons.io.FileUtils;
-import org.assertj.core.util.Arrays;
 
-class TestDiscoveryHelper {
-
-    private TestDiscoveryHelper() {
-    }
-
-    private static final String[] SAPL_TEST_FILE_EXTENSIONS = Arrays.array("sapltest");
-
-    public static List<String> discoverTests() {
-        var dir = ClasspathHelper.findPathOnClasspath(TestDiscoveryHelper.class.getClassLoader(), "").toFile();
-
-        return FileUtils.listFiles(dir, SAPL_TEST_FILE_EXTENSIONS, true).stream()
-                .map(file -> dir.toPath().relativize(file.toPath()).toString()).toList();
-    }
+record GivenBlock(Document document, PdpVariables pdpVariables, PdpCombiningAlgorithm pdpConfiguration,
+        Environment environment, List<GivenStep> givenSteps) {
 }

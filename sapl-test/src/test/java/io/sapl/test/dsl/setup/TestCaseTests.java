@@ -20,8 +20,6 @@ package io.sapl.test.dsl.setup;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -29,16 +27,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.sapl.test.TestHelper;
+import io.sapl.test.grammar.sapltest.Document;
 import io.sapl.test.grammar.sapltest.Environment;
 import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.MockDefinition;
+import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
+import io.sapl.test.grammar.sapltest.PdpVariables;
 import io.sapl.test.grammar.sapltest.Requirement;
 import io.sapl.test.grammar.sapltest.Scenario;
 import java.util.Collections;
 import java.util.List;
 
-import org.assertj.core.api.Assertions;
-import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +51,6 @@ import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.grammar.sapltest.Expectation;
 import io.sapl.test.grammar.sapltest.GivenStep;
-import io.sapl.test.grammar.sapltest.TestException;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
@@ -92,25 +90,18 @@ class TestCaseTests {
 
     private SaplTestFixture mockTestFixture(final Given given, final List<GivenStep> givenSteps) {
         final var saplTestFixtureMock = mock(SaplTestFixture.class);
-        when(stepConstructorMock.constructTestFixture(given, givenSteps, null)).thenReturn(saplTestFixtureMock);
+
+        final var documentMock              = mock(Document.class);
+        final var pdpVariablesMock          = mock(PdpVariables.class);
+        final var pdpCombiningAlgorithmMock = mock(PdpCombiningAlgorithm.class);
+
+        when(given.getDocument()).thenReturn(documentMock);
+        when(given.getPdpVariables()).thenReturn(pdpVariablesMock);
+        when(given.getPdpCombiningAlgorithm()).thenReturn(pdpCombiningAlgorithmMock);
+
+        when(stepConstructorMock.constructTestFixture(documentMock, pdpVariablesMock, pdpCombiningAlgorithmMock,
+                givenSteps, null)).thenReturn(saplTestFixtureMock);
         return saplTestFixtureMock;
-    }
-
-    private TestException mockTestCaseWithTestException(Scenario scenarioWithException) {
-        final var testExceptionMock = mock(TestException.class);
-        when(scenarioWithException.getExpectation()).thenReturn(testExceptionMock);
-
-        assertionsMockedStatic
-                .when(() -> Assertions.assertThatExceptionOfType(SaplTestException.class).isThrownBy(any()))
-                .thenAnswer(invocationOnMock -> {
-                    if (invocationOnMock.getArgument(0) instanceof ThrowableAssert.ThrowingCallable callable) {
-                        callable.call();
-                    } else {
-                        fail("No proper ThrowingCallable was passed as an argument!");
-                    }
-                    return null;
-                });
-        return testExceptionMock;
     }
 
     private VerifyStep mockTestBuildingChain(final List<GivenStep> givenSteps, final SaplTestFixture testFixture,
@@ -288,25 +279,41 @@ class TestCaseTests {
     }
 
     @Test
-    void from_withExpectedTestException_returnsTestCase() {
-        mockGiven(null, scenarioGivenMock);
+    void from_withIncompleteScenarioGivenSetsValuesFromRequirementGiven_returnsTestCase() {
+        mockGiven(requirementGivenMock, scenarioGivenMock);
+
         final var environmentMock = mockEnvironment(scenarioGivenMock);
 
-        final var expectationMock = mock(Expectation.class);
-        when(scenarioMock.getExpectation()).thenReturn(expectationMock);
+        final var requirementGivenStep = mock(MockDefinition.class);
+        final var scenarioGivenStep    = mock(MockDefinition.class);
 
-        final var givenSteps = TestHelper.mockEListResult(scenarioGivenMock::getGivenSteps, Collections.emptyList());
+        final var requirementDocumentMock              = mock(Document.class);
+        final var requirementPdpVariablesMock          = mock(PdpVariables.class);
+        final var requirementPdpCombiningAlgorithmMock = mock(PdpCombiningAlgorithm.class);
 
-        final var testFixtureMock = mockTestFixture(scenarioGivenMock, givenSteps);
+        when(requirementGivenMock.getDocument()).thenReturn(requirementDocumentMock);
+        when(requirementGivenMock.getPdpVariables()).thenReturn(requirementPdpVariablesMock);
+        when(requirementGivenMock.getPdpCombiningAlgorithm()).thenReturn(requirementPdpCombiningAlgorithmMock);
 
-        final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
-        when(stepConstructorMock.constructTestCase(testFixtureMock, environmentMock, false))
-                .thenReturn(givenOrWhenStepMock);
+        TestHelper.mockEListResult(requirementGivenMock::getGivenSteps, List.of(requirementGivenStep));
+        TestHelper.mockEListResult(scenarioGivenMock::getGivenSteps, List.of(scenarioGivenStep));
 
-        final var expectation = mockTestCaseWithTestException(scenarioMock);
+        final var givenSteps = List.<GivenStep>of(requirementGivenStep, scenarioGivenStep);
+
+        final var testFixtureMock = mock(SaplTestFixture.class);
+
+        when(scenarioGivenMock.getDocument()).thenReturn(null);
+        when(scenarioGivenMock.getPdpVariables()).thenReturn(null);
+        when(scenarioGivenMock.getPdpCombiningAlgorithm()).thenReturn(null);
+
+        when(stepConstructorMock.constructTestFixture(requirementDocumentMock, requirementPdpVariablesMock,
+                requirementPdpCombiningAlgorithmMock, givenSteps, null)).thenReturn(testFixtureMock);
+
+        final var verifyStepMock = mockTestBuildingChain(givenSteps, testFixtureMock, scenarioMock, environmentMock,
+                true);
 
         assertDynamicTestAndGetRunnable().run();
 
-        verify(stepConstructorMock, times(1)).constructWhenStep(givenSteps, givenOrWhenStepMock, expectation);
+        verify(verifyStepMock, times(1)).verify();
     }
 }

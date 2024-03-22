@@ -37,7 +37,7 @@ import io.sapl.test.dsl.setup.BaseTestAdapter;
 import io.sapl.test.dsl.setup.TestCase;
 import io.sapl.test.dsl.setup.TestContainer;
 
-public class JUnitTests extends BaseTestAdapter<DynamicContainer> {
+public class JUnitTestAdapter extends BaseTestAdapter<DynamicContainer> {
 
     @TestFactory
     @DisplayName("SAPLTest")

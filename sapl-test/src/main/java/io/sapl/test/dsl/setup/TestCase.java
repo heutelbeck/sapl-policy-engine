@@ -21,21 +21,22 @@ package io.sapl.test.dsl.setup;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
+import io.sapl.test.grammar.sapltest.Document;
+import io.sapl.test.grammar.sapltest.Environment;
 import io.sapl.test.grammar.sapltest.Given;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.grammar.sapltest.MockDefinition;
+import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
+import io.sapl.test.grammar.sapltest.PdpVariables;
 import io.sapl.test.grammar.sapltest.Requirement;
 import io.sapl.test.grammar.sapltest.Scenario;
-import io.sapl.test.grammar.sapltest.TestException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.assertj.core.api.Assertions;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TestCase implements TestNode, Runnable {
@@ -43,8 +44,7 @@ public final class TestCase implements TestNode, Runnable {
     @Getter
     private final String                               identifier;
     private final StepConstructor                      stepConstructor;
-    private final Given                                given;
-    private final List<GivenStep>                      givenSteps;
+    private final GivenBlock                           givenBlock;
     private final Scenario                             scenario;
     private final Map<ImportType, Map<String, Object>> fixtureRegistrations;
 
@@ -60,44 +60,56 @@ public final class TestCase implements TestNode, Runnable {
             throw new SaplTestException("Name of the test case is null");
         }
 
-        final var requirementBackground = requirement.getGiven();
-        final var scenarioGivenBlock    = scenario.getGiven();
+        final var requirementGiven = requirement.getGiven();
+        final var scenarioGiven    = scenario.getGiven();
 
-        if (requirementBackground == null && scenarioGivenBlock == null) {
+        if (requirementGiven == null && scenarioGiven == null) {
             throw new SaplTestException("Neither Requirement nor Scenario defines a GivenBlock");
         }
 
-        var givenBlock = scenarioGivenBlock == null ? requirementBackground : scenarioGivenBlock;
+        final var givenBlock = getMergedGivenBlock(requirementGiven, scenarioGiven);
 
-        final var givenSteps = new ArrayList<GivenStep>();
-        addGivenStepsFromGiven(givenSteps, requirementBackground);
-        addGivenStepsFromGiven(givenSteps, scenarioGivenBlock);
-
-        return new TestCase(name, stepConstructor, givenBlock, givenSteps, scenario, fixtureRegistrations);
+        return new TestCase(name, stepConstructor, givenBlock, scenario, fixtureRegistrations);
     }
 
-    @Override
-    public void run() {
-        final var environment = given.getEnvironment();
+    private static GivenBlock getMergedGivenBlock(final Given requirementGiven, final Given scenarioGiven) {
+        Document              document              = null;
+        PdpVariables          pdpVariables          = null;
+        PdpCombiningAlgorithm pdpCombiningAlgorithm = null;
+        Environment           environment           = null;
 
-        final var saplTestFixture = stepConstructor.constructTestFixture(given, givenSteps, fixtureRegistrations);
-
-        final var needsMocks      = givenSteps.stream().anyMatch(MockDefinition.class::isInstance);
-        final var initialTestCase = stepConstructor.constructTestCase(saplTestFixture, environment, needsMocks);
-        final var expectation     = scenario.getExpectation();
-
-        if (scenario.getExpectation() instanceof TestException) {
-            Assertions.assertThatExceptionOfType(SaplTestException.class)
-                    .isThrownBy(() -> stepConstructor.constructWhenStep(givenSteps, initialTestCase, expectation));
-        } else {
-
-            final var whenStep = stepConstructor.constructWhenStep(givenSteps, initialTestCase, expectation);
-
-            final var expectStep = stepConstructor.constructExpectStep(scenario, whenStep);
-            final var verifyStep = stepConstructor.constructVerifyStep(scenario, expectStep);
-
-            verifyStep.verify();
+        if (requirementGiven != null) {
+            document              = requirementGiven.getDocument();
+            pdpVariables          = requirementGiven.getPdpVariables();
+            pdpCombiningAlgorithm = requirementGiven.getPdpCombiningAlgorithm();
+            environment           = requirementGiven.getEnvironment();
         }
+
+        if (scenarioGiven != null) {
+            final var scenarioDocument              = scenarioGiven.getDocument();
+            final var scenarioPdpVariables          = scenarioGiven.getPdpVariables();
+            final var scenarioPdpCombiningAlgorithm = scenarioGiven.getPdpCombiningAlgorithm();
+            final var scenarioEnvironment           = scenarioGiven.getEnvironment();
+
+            if (scenarioDocument != null) {
+                document = scenarioDocument;
+            }
+            if (scenarioPdpVariables != null) {
+                pdpVariables = scenarioPdpVariables;
+            }
+            if (scenarioPdpCombiningAlgorithm != null) {
+                pdpCombiningAlgorithm = scenarioPdpCombiningAlgorithm;
+            }
+            if (scenarioEnvironment != null) {
+                environment = scenarioEnvironment;
+            }
+        }
+
+        final var givenSteps = new ArrayList<GivenStep>();
+        addGivenStepsFromGiven(givenSteps, requirementGiven);
+        addGivenStepsFromGiven(givenSteps, scenarioGiven);
+
+        return new GivenBlock(document, pdpVariables, pdpCombiningAlgorithm, environment, givenSteps);
     }
 
     private static void addGivenStepsFromGiven(final Collection<GivenStep> givenSteps, final Given given) {
@@ -107,5 +119,24 @@ public final class TestCase implements TestNode, Runnable {
                 givenSteps.addAll(steps);
             }
         }
+    }
+
+    @Override
+    public void run() {
+        final var givenSteps = givenBlock.givenSteps();
+
+        final var saplTestFixture = stepConstructor.constructTestFixture(givenBlock.document(),
+                givenBlock.pdpVariables(), givenBlock.pdpConfiguration(), givenSteps, fixtureRegistrations);
+
+        final var needsMocks      = givenSteps.stream().anyMatch(MockDefinition.class::isInstance);
+        final var initialTestCase = stepConstructor.constructTestCase(saplTestFixture, givenBlock.environment(),
+                needsMocks);
+        final var expectation     = scenario.getExpectation();
+
+        final var whenStep   = stepConstructor.constructWhenStep(givenSteps, initialTestCase, expectation);
+        final var expectStep = stepConstructor.constructExpectStep(scenario, whenStep);
+        final var verifyStep = stepConstructor.constructVerifyStep(scenario, expectStep);
+
+        verifyStep.verify();
     }
 }
