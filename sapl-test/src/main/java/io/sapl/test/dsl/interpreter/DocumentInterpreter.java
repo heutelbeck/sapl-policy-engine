@@ -83,6 +83,7 @@ class DocumentInterpreter {
             integrationTestFixture = SaplIntegrationTestFixtureFactory.create(identifier);
         } else {
             final var config = customIntegrationTestPolicyResolver.resolveConfigurationByIdentifier(identifier);
+
             integrationTestFixture = SaplIntegrationTestFixtureFactory
                     .createFromInputStrings(config.getDocumentInputStrings(), config.getPDPConfigurationInputString());
         }
@@ -91,7 +92,7 @@ class DocumentInterpreter {
 
     private SaplIntegrationTestFixture handleDocumentSet(final DocumentSet documentSet) {
         SaplIntegrationTestFixture integrationTestFixture;
-        final var                  pdpConfig   = documentSet.getPdpConfigurationIdentifier();
+        var                        pdpConfig   = documentSet.getPdpConfigurationIdentifier();
         final var                  identifiers = documentSet.getIdentifiers();
 
         if (identifiers == null || identifiers.size() < 2) {
@@ -104,8 +105,11 @@ class DocumentInterpreter {
             final var saplDocumentStrings = identifiers.stream()
                     .map(customIntegrationTestPolicyResolver::resolvePolicyByIdentifier).toList();
 
+            if (pdpConfig != null) {
+                pdpConfig = customIntegrationTestPolicyResolver.resolvePDPConfigurationByIdentifier(pdpConfig);
+            }
             integrationTestFixture = SaplIntegrationTestFixtureFactory.createFromInputStrings(saplDocumentStrings,
-                    customIntegrationTestPolicyResolver.resolvePDPConfigurationByIdentifier(pdpConfig));
+                    pdpConfig);
         }
         return integrationTestFixture;
     }
