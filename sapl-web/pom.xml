@@ -98,6 +98,7 @@
 	<build>
 		<plugins>
 			<plugin>
+				<?m2e execute onConfiguration,onIncremental?>
 				<groupId>org.eclipse.xtend</groupId>
 				<artifactId>xtend-maven-plugin</artifactId>
 			</plugin>
