@@ -22,6 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -243,6 +245,30 @@ class DocumentInterpreterTests {
         }
 
         @Test
+        void getFixtureFromDocument_handlesNullPdpConfigurationIdentifierForDocumentSetWithCustomIntegrationTestPolicyResolver_returnsSaplIntegrationTestFixture() {
+            final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
+            constructTestSuiteInterpreterWithCustomResolvers(null, integrationTestPolicyResolver);
+
+            final var document = buildDocument("policies \"policy1\",\"policy2\"");
+
+            when(integrationTestPolicyResolver.resolvePolicyByIdentifier("policy1")).thenReturn("resolvedPolicy1");
+            when(integrationTestPolicyResolver.resolvePolicyByIdentifier("policy2")).thenReturn("resolvedPolicy2");
+
+            final var saplIntegrationTestFixtureMock = mock(SaplIntegrationTestFixture.class);
+            saplIntegrationTestFixtureFactoryMockedStatic
+                    .when(() -> SaplIntegrationTestFixtureFactory
+                            .createFromInputStrings(List.of("resolvedPolicy1", "resolvedPolicy2"), null))
+                    .thenReturn(saplIntegrationTestFixtureMock);
+
+            final var result = documentInterpreter.getFixtureFromDocument(document);
+
+            assertEquals(saplIntegrationTestFixtureMock, result);
+
+            verifyNoInteractions(saplIntegrationTestFixtureMock);
+            verify(integrationTestPolicyResolver, never()).resolvePDPConfigurationByIdentifier(null);
+        }
+
+        @Test
         void getFixtureFromDocument_handlesIdentifierForDocumentSetWithSingleIdentifier_returnsSaplIntegrationTestFixture() {
             final var document = buildDocument("set \"fooFolder\"");
 
@@ -257,6 +283,7 @@ class DocumentInterpreterTests {
 
             verifyNoInteractions(saplIntegrationTestFixtureMock);
         }
+
 
         @Test
         void getFixtureFromDocument_handlesIdentifierForDocumentSetWithSingleIdentifierWithCustomIntegrationTestPolicyResolver_returnsSaplIntegrationTestFixture() {

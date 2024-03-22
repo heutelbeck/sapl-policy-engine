@@ -178,6 +178,30 @@ class SaplIntegrationTestFixtureTests {
                     .verify();
         }
 
+        @Test
+        void test_withNullPdpConfiguration_givenVariablesAndCombiningAlgorithm() {
+            final var policy_A = """
+                    policy "policy_A"
+                    deny
+                        resource == "foo"
+                    where
+                        "WILLI" == subject;""";
+
+            final var policy_B = """
+                    policy "policy_B"
+                    permit
+                        resource == "foo"
+                    where
+                        "WILLI" == subject;""";
+
+            var       fixture   = new SaplIntegrationTestFixture(List.of(policy_A, policy_B), null);
+            final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(1)));
+            fixture.withPDPVariables(variables)
+                    .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)
+                    .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
+                    .verify();
+        }
+
         @Nested
         @DisplayName("Error cases")
         class ErrorCases {

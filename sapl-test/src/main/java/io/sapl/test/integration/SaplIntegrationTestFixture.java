@@ -42,9 +42,7 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
     private static final String ERROR_MESSAGE_POLICY_FOLDER_PATH_NULL              = "Null is not allowed for the Path pointing to the policies folder.";
     private static final String ERROR_MESSAGE_POLICY_PATHS_NULL_OR_SINGLE_VALUE    = "List of policies paths needs to contain at least 2 values.";
     private static final String ERROR_MESSAGE_INPUT_DOCUMENTS_NULL_OR_SINGLE_VALUE = "List input documents needs to contain at least 2 values.";
-    private static final String ERROR_MESSAGE_PDP_CONFIG_NULL_OR_EMPTY             = "Passed value for PDP config is null or empty.";
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper  objectMapper                                       = new ObjectMapper();
 
     private PolicyDocumentCombiningAlgorithm pdpAlgorithm = null;
     private Map<String, Val>                 pdpVariables = null;
@@ -149,10 +147,10 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
     }
 
     private VariablesAndCombinatorSource constructInputStringPDPConfig(final String input) {
-        if (input == null || input.isEmpty()) {
-            throw new SaplTestException(ERROR_MESSAGE_PDP_CONFIG_NULL_OR_EMPTY);
-        }
-        return new InputStringVariablesAndCombinatorSource(input, objectMapper, this.pdpAlgorithm, this.pdpVariables);
+        final var pdpConfig = (input == null || input.isEmpty()) ? "{}" : input;
+
+        return new InputStringVariablesAndCombinatorSource(pdpConfig, objectMapper, this.pdpAlgorithm,
+                this.pdpVariables);
     }
 
 }
