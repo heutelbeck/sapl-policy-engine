@@ -33,7 +33,7 @@ import org.springframework.http.MediaType;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-
+@SuppressWarnings("all")
 public class Program {
 
 

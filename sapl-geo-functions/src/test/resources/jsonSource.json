@@ -1,7 +1,0 @@
-{
-	"Point" : {"type":"Point","coordinates":[10, 12],"crs":{"type":"name","properties":{"name":"EPSG:0"}}},
-	"Polygon": {"type":"Polygon","coordinates":[[[10,12],[10,14],[12,10],[13,14],[10,12]]],"crs":{"type":"name","properties":{"name":"EPSG:0"}}},
-	"WktPoint": "POINT (10 12)",
-	"WktPolygon": "POLYGON ((10 12, 10 14, 12 10, 13 14, 10 12))",
-	"ResponseWKT" :{ "deviceId":1,"position":"POINT (29 33)","altitude":100.0,"lastUpdate":"2023-07-09T13:34:19.000+00:00","accuracy":14.628999710083008,"geoFences":{}}
-}   

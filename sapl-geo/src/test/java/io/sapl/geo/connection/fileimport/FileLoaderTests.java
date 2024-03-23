@@ -17,16 +17,12 @@
  */
 package io.sapl.geo.connection.fileimport;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
-
 import java.nio.file.Paths;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.geojson.GeoJsonReader;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,7 +31,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.fileimport.FileLoader;
-import io.sapl.geofunctions.GeometryConverter;
+
 import reactor.test.StepVerifier;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -132,7 +128,7 @@ public class FileLoaderTests {
     @Test
     void wktCollectionTest() throws JsonProcessingException {
 
-        var       ex        = "[\"POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))\",\"POINT (5 5)\"]";
+        // var ex = "[\"POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))\",\"POINT (5 5)\"]";
         ArrayNode arrayNode = mapper.createArrayNode();
         arrayNode.add("POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))");
         arrayNode.add("POINT (5 5)");

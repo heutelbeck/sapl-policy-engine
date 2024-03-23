@@ -15,29 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package functionLibrary;
+package io.sapl.geo.functions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import java.io.IOException;
+
 import java.io.StringWriter;
-import javax.xml.parsers.ParserConfigurationException;
+
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
-import org.xml.sax.SAXException;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.geofunctions.GmlConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
-class GmlConverterTest extends TestBase {
+class KmlConverterTest extends TestBase {
 
     String point   = EMPTY_STRING;
     String polygon = EMPTY_STRING;
@@ -45,14 +45,15 @@ class GmlConverterTest extends TestBase {
     @BeforeAll
     void setup() {
         StringWriter sw  = new StringWriter();
-        var          pnt = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
-        var          plg = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
+        var          pnt = source.getXmlSource().getElementsByTagName("Point").item(0);
+        var          plg = source.getXmlSource().getElementsByTagName("Polygon").item(0);
         try {
             source.getTransform().transform(new DOMSource(pnt), new StreamResult(sw));
             point = sw.toString();
             sw    = new StringWriter();
             source.getTransform().transform(new DOMSource(plg), new StreamResult(sw));
             polygon = sw.toString();
+
         } catch (TransformerException e) {
 
             e.printStackTrace();
@@ -61,15 +62,15 @@ class GmlConverterTest extends TestBase {
     }
 
     @Test
-    void gmlToGeoJsonTest() {
+    void kmlToGeoJsonTest() {
 
         Val res  = null;
         Val res1 = null;
         try {
-            res  = GmlConverter.gmlToGeoJsonString(Val.of(point));
-            res1 = GmlConverter.gmlToGeoJsonString(Val.of(polygon));
+            res  = KmlConverter.kmlToGeoJsonString(Val.of(point));
+            res1 = KmlConverter.kmlToGeoJsonString(Val.of(polygon));
         } catch (NullPointerException e) {
-            // TODO Auto-generated catch block
+
             e.printStackTrace();
         }
 
@@ -81,15 +82,15 @@ class GmlConverterTest extends TestBase {
     }
 
     @Test
-    void gmlToGeometryTest() {
+    void kmlToGeometryTest() {
 
         Point   res  = null;
         Polygon res1 = null;
         try {
-            res  = (Point) GmlConverter.gmlToGeometry(Val.of(point));
-            res1 = (Polygon) GmlConverter.gmlToGeometry(Val.of(polygon));
-        } catch (SAXException | IOException | ParserConfigurationException e) {
-            // TODO Auto-generated catch block
+            res  = (Point) KmlConverter.kmlToGeometry(Val.of(point));
+            res1 = (Polygon) KmlConverter.kmlToGeometry(Val.of(polygon));
+        } catch (ParseException e) {
+
             e.printStackTrace();
         }
 
@@ -102,13 +103,13 @@ class GmlConverterTest extends TestBase {
     }
 
     @Test
-    void gmlToKMLTest() {
+    void kmlToGMLTest() {
 
         Val res  = null;
         Val res1 = null;
         try {
-            res  = GmlConverter.gmlToKML(Val.of(point));
-            res1 = GmlConverter.gmlToKML(Val.of(polygon));
+            res  = KmlConverter.kmlToGML(Val.of(point));
+            res1 = KmlConverter.kmlToGML(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();
@@ -120,8 +121,8 @@ class GmlConverterTest extends TestBase {
         ;
         StringWriter sw = new StringWriter();
 
-        var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
-        var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);
+        var pnt1 = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
+        var plg1 = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
         try {
             sw = new StringWriter();
             source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
@@ -140,13 +141,13 @@ class GmlConverterTest extends TestBase {
     }
 
     @Test
-    void gmlToWKTTest() {
+    void kmlToWKTTest() {
 
         Val res  = null;
         Val res1 = null;
         try {
-            res  = GmlConverter.gmlToWKT(Val.of(point));
-            res1 = GmlConverter.gmlToWKT(Val.of(polygon));
+            res  = KmlConverter.kmlToWKT(Val.of(point));
+            res1 = KmlConverter.kmlToWKT(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();

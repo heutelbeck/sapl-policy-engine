@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geofunctions;
+package io.sapl.geo.functions;
 
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;

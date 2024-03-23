@@ -36,8 +36,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
 
-import io.sapl.geo.connection.traccar.TraccarConnection;
-
 @TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
 public class TraccarConnectionTests {

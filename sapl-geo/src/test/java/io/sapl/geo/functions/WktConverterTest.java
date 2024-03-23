@@ -15,16 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package functionLibrary;
+package io.sapl.geo.functions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.StringWriter;
-
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -35,30 +33,27 @@ import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.geofunctions.JsonConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
-class JsonConverterTest extends TestBase {
+class WktConverterTest extends TestBase {
 
-    Val point   = null;
-    Val polygon = null;
+    String point   = EMPTY_STRING;
+    String polygon = EMPTY_STRING;
 
     @BeforeAll
     void setup() {
-        point   = Val.of(source.getJsonSource().get("Point").toPrettyString());
-        polygon = Val.of(source.getJsonSource().get("Polygon").toPrettyString());
+        point   = source.getJsonSource().get("WktPoint").asText();
+        polygon = source.getJsonSource().get("WktPolygon").asText();
 
     }
 
     @Test
-    void geoJsonToKmlTest() {
+    void wktToKmlTest() {
 
-        Val res = null;
-        ;
+        Val res  = null;
         Val res1 = null;
-        ;
-        res  = JsonConverter.geoJsonToKML(point);
-        res1 = JsonConverter.geoJsonToKML(polygon);
+        res  = WktConverter.wktToKML(Val.of(point));
+        res1 = WktConverter.wktToKML(Val.of(polygon));
 
         String expPoint = EMPTY_STRING;
         ;
@@ -84,13 +79,13 @@ class JsonConverterTest extends TestBase {
     }
 
     @Test
-    void geoJsonToGeometryTest() {
+    void wktToGeometryTest() {
 
         Point   res  = null;
         Polygon res1 = null;
         try {
-            res  = (Point) JsonConverter.geoJsonToGeometry(point);
-            res1 = (Polygon) JsonConverter.geoJsonToGeometry(polygon);
+            res  = (Point) WktConverter.wktToGeometry(Val.of(point));
+            res1 = (Polygon) WktConverter.wktToGeometry(Val.of(polygon));
         } catch (ParseException e) {
 
             e.printStackTrace();
@@ -105,13 +100,13 @@ class JsonConverterTest extends TestBase {
     }
 
     @Test
-    void geoJsonToGMLTest() {
+    void wktToGMLTest() {
 
         Val res  = null;
         Val res1 = null;
         try {
-            res  = JsonConverter.geoJsonToGml(point);
-            res1 = JsonConverter.geoJsonToGml(polygon);
+            res  = WktConverter.wktToGML(Val.of(point));
+            res1 = WktConverter.wktToGML(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();
@@ -143,18 +138,18 @@ class JsonConverterTest extends TestBase {
     }
 
     @Test
-    void geoJsonToWktTest() {
+    void wktToGeoJsonTest() {
 
         Val res  = null;
         Val res1 = null;
-        res  = JsonConverter.geoJsonToWKT(point);
-        res1 = JsonConverter.geoJsonToWKT(polygon);
+        res  = WktConverter.wktToGeoJsonString(Val.of(point));
+        res1 = WktConverter.wktToGeoJsonString(Val.of(polygon));
 
         String expPoint   = EMPTY_STRING;
         String expPolygon = EMPTY_STRING;
 
-        expPoint   = source.getJsonSource().get("WktPoint").asText();
-        expPolygon = source.getJsonSource().get("WktPolygon").asText();
+        expPoint   = source.getJsonSource().get("Point").toPrettyString();
+        expPolygon = source.getJsonSource().get("Polygon").toPrettyString();
 
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));

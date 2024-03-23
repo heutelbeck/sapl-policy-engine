@@ -38,12 +38,13 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.shared.ConnectionBase;
+import io.sapl.geo.functions.GeometryConverter;
+import io.sapl.geo.functions.GmlConverter;
+import io.sapl.geo.functions.JsonConverter;
+import io.sapl.geo.functions.KmlConverter;
+import io.sapl.geo.functions.WktConverter;
 import io.sapl.geo.pip.GeoPipResponseFormat;
-import io.sapl.geofunctions.GeometryConverter;
-import io.sapl.geofunctions.GmlConverter;
-import io.sapl.geofunctions.JsonConverter;
-import io.sapl.geofunctions.KmlConverter;
-import io.sapl.geofunctions.WktConverter;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.retry.Repeat;

@@ -15,64 +15,62 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geofunctions;
+package io.sapl.geo.functions;
 
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.geojson.GeoJsonReader;
 
 import io.sapl.api.interpreter.Val;
-import lombok.experimental.UtilityClass;
 
-@UtilityClass
-public class WktConverter {
+public class JsonConverter {
 
-    public static Val wktToGML(Val wkt) {
+    public static Val geoJsonToKML(Val geoJson) {
 
         try {
-            return GeometryConverter.geometryToGML(wktToGeometry(wkt));
+            return GeometryConverter.geometryToKML((new GeoJsonReader()).read(geoJson.getText()));
         } catch (ParseException e) {
             return Val.error(e);
         }
     }
 
-    public static Val wktToKML(Val wkt) {
+    public static Val geoJsonToGml(Val geoJson) {
 
         try {
-            return GeometryConverter.geometryToKML(wktToGeometry(wkt));
+            return GeometryConverter.geometryToGML((new GeoJsonReader()).read(geoJson.getText()));
         } catch (ParseException e) {
             return Val.error(e);
         }
     }
 
-    public static Val wktToGeoJsonString(Val wkt) {
+    public static Val geoJsonToWKT(Val geoJson) {
 
         try {
-            return GeometryConverter.geometryToGeoJsonNode(wktToGeometry(wkt));
+            return GeometryConverter.geometryToWKT((new GeoJsonReader()).read(geoJson.getText()));
         } catch (ParseException e) {
             return Val.error(e);
         }
     }
 
-    public static Geometry wktToGeometry(Val wkt) throws ParseException {
+    public static Geometry geoJsonToGeometry(Val geoJson) throws ParseException {
 
-        return wktToGeometry(wkt.getText());// (new WKTReader()).read(wkt.getText());
+        return geoJsonToGeometry(geoJson.getText());
     }
 
-    public static Geometry wktToGeometry(Val wkt, GeometryFactory factory) throws ParseException {
+    public static Geometry geoJsonToGeometry(Val geoJson, GeometryFactory factory) throws ParseException {
 
-        return wktToGeometry(wkt.getText(), factory);// return (new WKTReader(factory)).read(wkt.getText());
+        return geoJsonToGeometry(geoJson.getText(), factory);
     }
 
-    public static Geometry wktToGeometry(String wkt, GeometryFactory factory) throws ParseException {
+    public static Geometry geoJsonToGeometry(String geoJson, GeometryFactory factory) throws ParseException {
 
-        return (new WKTReader(factory)).read(wkt);
+        return (new GeoJsonReader(factory)).read(geoJson);
     }
 
-    public static Geometry wktToGeometry(String wkt) throws ParseException {
+    public static Geometry geoJsonToGeometry(String geoJson) throws ParseException {
 
-        return (new WKTReader()).read(wkt);
+        return (new GeoJsonReader()).read(geoJson);
     }
 
 }

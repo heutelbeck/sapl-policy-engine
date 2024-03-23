@@ -2526,3 +2526,85 @@ Error loading shared library libsystemd.so: No such file or directory
 Error loading shared library libsystemd.so: No such file or directory
 Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
 2024-03-01 13:15:34  INFO: user: 1, action: login, from: 172.17.0.1
+2024-03-23 13:52:55  INFO: Operating system name: Linux version: 5.15.146.1-microsoft-standard-WSL2 architecture: amd64
+2024-03-23 13:52:55  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-03-23 13:52:55  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-03-23 13:52:55  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-03-23 13:52:55  INFO: Version: 5.8
+2024-03-23 13:52:55  INFO: Starting server...
+2024-03-23 13:52:56  INFO: HikariPool-1 - Starting...
+2024-03-23 13:52:57  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-03-23 13:52:57  INFO: HikariPool-1 - Start completed.
+2024-03-23 13:52:58  INFO: Set default schema name to PUBLIC
+2024-03-23 13:52:58  INFO: Clearing database change log checksums
+2024-03-23 13:52:58  INFO: Successfully acquired change log lock
+2024-03-23 13:52:58  INFO: Successfully released change log lock
+2024-03-23 13:52:58  INFO: Successfully acquired change log lock
+2024-03-23 13:53:01  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-03-23 13:53:02  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-03-23 13:53:02  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-03-23 13:53:02  INFO: UPDATE SUMMARY
+2024-03-23 13:53:02  INFO: Run:                          0
+2024-03-23 13:53:02  INFO: Previously run:              43
+2024-03-23 13:53:02  INFO: Filtered out:                 0
+2024-03-23 13:53:02  INFO: -------------------------------
+2024-03-23 13:53:02  INFO: Total change sets:           43
+
+2024-03-23 13:53:02  INFO: Update summary generated
+2024-03-23 13:53:02  INFO: Successfully released change log lock
+2024-03-23 13:53:02  INFO: Successfully released change log lock
+2024-03-23 13:53:02  INFO: Command execution complete
+2024-03-23 13:53:05  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-03-23 13:53:06  INFO: Started o.t.w.@592a1882{/,null,AVAILABLE}
+2024-03-23 13:53:06  INFO: Session workerName=node0
+2024-03-23 13:53:07  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-03-23 13:53:09  INFO: Started o.e.j.s.ServletContextHandler@30eb55c9{/,null,AVAILABLE}
+2024-03-23 13:53:09  INFO: Started ServerConnector@1753475d{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-03-23 13:53:09  INFO: Started Server@5d92e8e2{STARTING}[10.0.15,sto=0] @17036ms
+2024-03-23 13:53:09  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-03-23 13:53:09  INFO: user: 1, action: login, from: 172.17.0.1
+2024-03-23 13:53:11  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-03-23 14:10:11  INFO: Operating system name: Linux version: 5.15.146.1-microsoft-standard-WSL2 architecture: amd64
+2024-03-23 14:10:11  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-03-23 14:10:11  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-03-23 14:10:11  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-03-23 14:10:11  INFO: Version: 5.8
+2024-03-23 14:10:11  INFO: Starting server...
+2024-03-23 14:10:11  INFO: HikariPool-1 - Starting...
+2024-03-23 14:10:13  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-03-23 14:10:13  INFO: HikariPool-1 - Start completed.
+2024-03-23 14:10:13  INFO: Set default schema name to PUBLIC
+2024-03-23 14:10:13  INFO: Clearing database change log checksums
+2024-03-23 14:10:13  INFO: Successfully acquired change log lock
+2024-03-23 14:10:13  INFO: Successfully released change log lock
+2024-03-23 14:10:14  INFO: Successfully acquired change log lock
+2024-03-23 14:10:16  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-03-23 14:10:16  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-03-23 14:10:16  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-03-23 14:10:16  INFO: UPDATE SUMMARY
+2024-03-23 14:10:16  INFO: Run:                          0
+2024-03-23 14:10:16  INFO: Previously run:              43
+2024-03-23 14:10:16  INFO: Filtered out:                 0
+2024-03-23 14:10:16  INFO: -------------------------------
+2024-03-23 14:10:16  INFO: Total change sets:           43
+
+2024-03-23 14:10:16  INFO: Update summary generated
+2024-03-23 14:10:16  INFO: Successfully released change log lock
+2024-03-23 14:10:16  INFO: Successfully released change log lock
+2024-03-23 14:10:16  INFO: Command execution complete
+2024-03-23 14:10:21  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-03-23 14:10:21  INFO: Started o.t.w.@77ecdc2b{/,null,AVAILABLE}
+2024-03-23 14:10:21  INFO: Session workerName=node0
+2024-03-23 14:10:22  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-03-23 14:10:24  INFO: Started o.e.j.s.ServletContextHandler@1ad1f167{/,null,AVAILABLE}
+2024-03-23 14:10:24  INFO: Started ServerConnector@1753475d{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-03-23 14:10:24  INFO: Started Server@7e3ee128{STARTING}[10.0.15,sto=0] @22235ms
+2024-03-23 14:10:24  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-03-23 14:10:24  INFO: user: 1, action: login, from: 172.17.0.1
+2024-03-23 14:10:26  INFO: user: 1, action: logout, from: 172.17.0.1

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package functionLibrary;
+package io.sapl.geo.functions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -34,8 +34,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.util.StringUtils;
 
 //import org.hamcrest.MatcherAssert.assertThat;
-
-import io.sapl.geofunctions.GeometryConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GeometryConverterTest extends TestBase {

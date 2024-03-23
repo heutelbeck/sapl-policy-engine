@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package functionLibrary;
+package io.sapl.geo.functions;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,8 +28,6 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
-import io.sapl.server.GeoFunctions;
-import io.sapl.geofunctions.GeometryConverter;
 import io.sapl.api.interpreter.Val;
 
 @TestInstance(Lifecycle.PER_CLASS)

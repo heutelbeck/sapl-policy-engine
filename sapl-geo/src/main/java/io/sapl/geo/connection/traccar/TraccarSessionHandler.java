@@ -30,11 +30,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.functions.GeometryConverter;
+import io.sapl.geo.functions.WktConverter;
 import io.sapl.geo.model.traccar.TraccarGeofence;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
-import io.sapl.geofunctions.GeometryConverter;
-import io.sapl.geofunctions.WktConverter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

@@ -61,7 +61,6 @@ public class PostGisConnectionTests {
 
         template = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(),
                 postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
-        var a = template;
 
         var connectionFactory = new PostgresqlConnectionFactory(
                 PostgresqlConnectionConfiguration.builder().host(postgisContainer.getHost())

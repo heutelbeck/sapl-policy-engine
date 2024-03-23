@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geofunctions;
+package io.sapl.geo.functions;
 
 import java.io.IOException;
 import javax.xml.parsers.ParserConfigurationException;

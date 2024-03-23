@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package functionLibrary;
+package io.sapl.geo.functions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -35,61 +35,61 @@ import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.geofunctions.KmlConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
-class KmlConverterTest extends TestBase {
+class JsonConverterTest extends TestBase {
 
-    String point   = EMPTY_STRING;
-    String polygon = EMPTY_STRING;
+    Val point   = null;
+    Val polygon = null;
 
     @BeforeAll
     void setup() {
-        StringWriter sw  = new StringWriter();
-        var          pnt = source.getXmlSource().getElementsByTagName("Point").item(0);
-        var          plg = source.getXmlSource().getElementsByTagName("Polygon").item(0);
-        try {
-            source.getTransform().transform(new DOMSource(pnt), new StreamResult(sw));
-            point = sw.toString();
-            sw    = new StringWriter();
-            source.getTransform().transform(new DOMSource(plg), new StreamResult(sw));
-            polygon = sw.toString();
-
-        } catch (TransformerException e) {
-
-            e.printStackTrace();
-        }
+        point   = Val.of(source.getJsonSource().get("Point").toPrettyString());
+        polygon = Val.of(source.getJsonSource().get("Polygon").toPrettyString());
 
     }
 
     @Test
-    void kmlToGeoJsonTest() {
+    void geoJsonToKmlTest() {
 
-        Val res  = null;
+        Val res = null;
+        ;
         Val res1 = null;
+        ;
+        res  = JsonConverter.geoJsonToKML(point);
+        res1 = JsonConverter.geoJsonToKML(polygon);
+
+        String expPoint = EMPTY_STRING;
+        ;
+        String expPolygon = EMPTY_STRING;
+        ;
+        StringWriter sw = new StringWriter();
+
+        var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
+        var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);
         try {
-            res  = KmlConverter.kmlToGeoJsonString(Val.of(point));
-            res1 = KmlConverter.kmlToGeoJsonString(Val.of(polygon));
-        } catch (NullPointerException e) {
+            sw = new StringWriter();
+            source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
+            expPoint = sw.toString();
+            sw       = new StringWriter();
+            source.getTransform().transform(new DOMSource(plg1), new StreamResult(sw));
+            expPolygon = sw.toString();
+        } catch (TransformerException e) {
 
             e.printStackTrace();
         }
-
-        String expPoint   = source.getJsonSource().get("Point").toPrettyString();
-        String expPolygon = source.getJsonSource().get("Polygon").toPrettyString();
-
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));
     }
 
     @Test
-    void kmlToGeometryTest() {
+    void geoJsonToGeometryTest() {
 
         Point   res  = null;
         Polygon res1 = null;
         try {
-            res  = (Point) KmlConverter.kmlToGeometry(Val.of(point));
-            res1 = (Polygon) KmlConverter.kmlToGeometry(Val.of(polygon));
+            res  = (Point) JsonConverter.geoJsonToGeometry(point);
+            res1 = (Polygon) JsonConverter.geoJsonToGeometry(polygon);
         } catch (ParseException e) {
 
             e.printStackTrace();
@@ -104,13 +104,13 @@ class KmlConverterTest extends TestBase {
     }
 
     @Test
-    void kmlToGMLTest() {
+    void geoJsonToGMLTest() {
 
         Val res  = null;
         Val res1 = null;
         try {
-            res  = KmlConverter.kmlToGML(Val.of(point));
-            res1 = KmlConverter.kmlToGML(Val.of(polygon));
+            res  = JsonConverter.geoJsonToGml(point);
+            res1 = JsonConverter.geoJsonToGml(polygon);
 
         } catch (NullPointerException e) {
             e.printStackTrace();
@@ -142,17 +142,12 @@ class KmlConverterTest extends TestBase {
     }
 
     @Test
-    void kmlToWKTTest() {
+    void geoJsonToWktTest() {
 
         Val res  = null;
         Val res1 = null;
-        try {
-            res  = KmlConverter.kmlToWKT(Val.of(point));
-            res1 = KmlConverter.kmlToWKT(Val.of(polygon));
-
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-        }
+        res  = JsonConverter.geoJsonToWKT(point);
+        res1 = JsonConverter.geoJsonToWKT(polygon);
 
         String expPoint   = EMPTY_STRING;
         String expPolygon = EMPTY_STRING;

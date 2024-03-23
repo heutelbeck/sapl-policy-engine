@@ -39,9 +39,9 @@ import io.r2dbc.spi.Row;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.shared.ConnectionBase;
+import io.sapl.geo.functions.GeometryConverter;
+import io.sapl.geo.functions.JsonConverter;
 import io.sapl.geo.pip.GeoPipResponseFormat;
-import io.sapl.geofunctions.GeometryConverter;
-import io.sapl.geofunctions.JsonConverter;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
