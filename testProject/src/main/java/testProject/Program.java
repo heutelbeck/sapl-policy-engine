@@ -66,25 +66,25 @@ public class Program {
             	"defaultCRS": 3857,
             	"pollingIntervalMs":1000,
             	"repetitions":5,
-            	"singleResult": false,
-            	
+            	"singleResult": true,
+            	"where": "name = 'Point'",
             	"columns": ["name", "text"]
             }
             """;
         var node = Val.ofJson(pg).get();
         
         
-//        var postgis = PostGisConnection.connect(node, mapper);
-//        var dis = postgis.subscribe(
-//	      		 content ->{ 
-//    			 
-//    			 System.out.println("postgis content: " + content.get().toString());
-//    			 System.out.println("--");
-//    			 
-//    		 },
-//  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
-//  	      () -> System.out.println("Completed!!!")
-//  	      );
+        var postgis = PostGisConnection.connect(node, mapper);
+        var dis = postgis.subscribe(
+	      		 content ->{ 
+    			 
+    			 System.out.println("postgis content: " + content.get().toString());
+    			 System.out.println("--");
+    			 
+    		 },
+  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
+  	      () -> System.out.println("Completed!!!")
+  	      );
         
         
         
@@ -112,27 +112,27 @@ public class Program {
 //        });
         
         
-        var fi = """
-                {
-                "path":"D:\\\\Bachelorarbeit\\\\Fileimport\\\\geojsonMultiple.json",
-                "responseFormat":"GEOJSON",
-                "crs":4326
-            	
-            }
-            """;
-
-        var nodefi = Val.ofJson(fi).getJsonNode();
-       var fileimport = FileLoader.connect(nodefi, mapper);
-       
-       fileimport.subscribe(
-	      		 content ->{ 
-   			 var b = content.get().toString();
-   			 System.out.println("fileImport content: " + b);
-   			 
-   		 },
- 	      error -> System.out.println(String.format("Error receiving file: {%s}", error)),
- 	      () -> System.out.println("Completed!!!")
- 	      );
+//        var fi = """
+//                {
+//                "path":"D:\\\\Bachelorarbeit\\\\Fileimport\\\\geojsonMultiple.json",
+//                "responseFormat":"GEOJSON",
+//                "crs":4326
+//            	
+//            }
+//            """;
+//
+//        var nodefi = Val.ofJson(fi).getJsonNode();
+//       var fileimport = FileLoader.connect(nodefi, mapper);
+//       
+//       fileimport.subscribe(
+//	      		 content ->{ 
+//   			 var b = content.get().toString();
+//   			 System.out.println("fileImport content: " + b);
+//   			 
+//   		 },
+// 	      error -> System.out.println(String.format("Error receiving file: {%s}", error)),
+// 	      () -> System.out.println("Completed!!!")
+// 	      );
 
         
 //        var st = """
