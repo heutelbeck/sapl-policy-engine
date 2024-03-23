@@ -31,7 +31,6 @@ import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.r2dbc.spi.ConnectionFactory;
 import io.sapl.api.interpreter.Val;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -40,17 +39,17 @@ import reactor.test.StepVerifier;
 public class PostGisConnectionTests {
 
     String template = """
-                {
-                "user":"%s",
-                "password":"%s",
-            	"server":"%s",
-            	"port": %s,
-            	"dataBase":"%s",
-    			"responseFormat":"GEOJSON",
-            	"defaultCRS": 4326,
-            	"pollingIntervalMs":1000,
-            	"repetitions":2
-            """;
+                     {
+                     "user":"%s",
+                     "password":"%s",
+                 	"server":"%s",
+                 	"port": %s,
+                 	"dataBase":"%s",
+            "responseFormat":"GEOJSON",
+                 	"defaultCRS": 4326,
+                 	"pollingIntervalMs":1000,
+                 	"repetitions":2
+                 """;
 
     @Container
     private static final PostgreSQLContainer<?> postgisContainer = new PostgreSQLContainer<>(
@@ -60,33 +59,30 @@ public class PostGisConnectionTests {
     @BeforeAll
     public void setUp() throws Exception {
 
-    	template = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(), postgisContainer.getHost(),
-        		postgisContainer.getMappedPort(5432),postgisContainer.getDatabaseName());
+        template = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(),
+                postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
         var a = template;
-    	
-        var connectionFactory = new PostgresqlConnectionFactory(PostgresqlConnectionConfiguration.builder()
-                .host(postgisContainer.getHost()).port(postgisContainer.getMappedPort(5432))
-                .database(postgisContainer.getDatabaseName()).username(postgisContainer.getUsername()).password(postgisContainer.getPassword()).build());
+
+        var connectionFactory = new PostgresqlConnectionFactory(
+                PostgresqlConnectionConfiguration.builder().host(postgisContainer.getHost())
+                        .port(postgisContainer.getMappedPort(5432)).database(postgisContainer.getDatabaseName())
+                        .username(postgisContainer.getUsername()).password(postgisContainer.getPassword()).build());
 
         createTable(connectionFactory);
         insert(connectionFactory);
-        
-        
-        		
     }
 
-    
     @Test
     public void Test01PostGisConnectionGemoetry() throws JsonProcessingException {
 
         var tmp = template.concat("""
-                ,
-                "table":"%s",
-                "geoColumn":"%s",
-            	"singleResult": false,
-            	"columns": ["name"]
-            }
-            """);
+                    ,
+                    "table":"%s",
+                    "geoColumn":"%s",
+                	"singleResult": false,
+                	"columns": ["name"]
+                }
+                """);
         var str = String.format(tmp, "geometries", "geom");
 
         var exp = Val.ofJson(
@@ -100,14 +96,14 @@ public class PostGisConnectionTests {
     public void Test02PostGisConnectionGeometrySingleResult() throws JsonProcessingException {
 
         var tmp = template.concat("""
-                ,
-                "table":"%s",
-                "geoColumn":"%s",
-            	"singleResult": true,
-            	"columns": ["name"],
-            	"where": "name = 'point'"
-            }
-            """);
+                    ,
+                    "table":"%s",
+                    "geoColumn":"%s",
+                	"singleResult": true,
+                	"columns": ["name"],
+                	"where": "name = 'point'"
+                }
+                """);
         var str = String.format(tmp, "geometries", "geom");
 
         var exp = Val.ofJson(
@@ -119,15 +115,15 @@ public class PostGisConnectionTests {
 
     @Test
     public void Test03PostGisConnectionGeography() throws JsonProcessingException {
-    	
+
         var tmp = template.concat("""
-                ,
-                "table":"%s",
-                "geoColumn":"%s",
-            	"singleResult": false,
-            	"columns": ["name", "text"]
-            }
-            """);
+                    ,
+                    "table":"%s",
+                    "geoColumn":"%s",
+                	"singleResult": false,
+                	"columns": ["name", "text"]
+                }
+                """);
         var str = String.format(tmp, "geographies", "geog");
 
         var exp = Val.ofJson(
@@ -141,14 +137,14 @@ public class PostGisConnectionTests {
     public void Test04PostGisConnectionGeographySingleResult() throws JsonProcessingException {
 
         var tmp = template.concat("""
-                ,
-                "table":"%s",
-                "geoColumn":"%s",
-            	"singleResult": true,
-            	"columns": ["name", "text"],
-            	"where": "name = 'point'"
-            }
-            """);
+                    ,
+                    "table":"%s",
+                    "geoColumn":"%s",
+                	"singleResult": true,
+                	"columns": ["name", "text"],
+                	"where": "name = 'point'"
+                }
+                """);
         var str = String.format(tmp, "geographies", "geog");
 
         var exp = Val.ofJson(
@@ -162,27 +158,27 @@ public class PostGisConnectionTests {
     public void Test05Error() throws JsonProcessingException {
 
         var tmp = template.concat("""
-                ,
-                "table":"%s",
-                "geoColumn":"%s",
-            	"singleResult": true,
-            	"columns": ["name", "text"],
-            	"where": "name = 'point'"
-            }
-            """);
+                    ,
+                    "table":"%s",
+                    "geoColumn":"%s",
+                	"singleResult": true,
+                	"columns": ["name", "text"],
+                	"where": "name = 'point'"
+                }
+                """);
         var str = String.format(tmp, "nonExistant", "geog");
-     
+
         var postgis = PostGisConnection.connect(Val.ofJson(str).get(), new ObjectMapper());
         StepVerifier.create(postgis).expectError();
     }
-    
+
     private void createTable(ConnectionFactory connectionFactory) {
         Mono.from(connectionFactory.create()).flatMap(connection -> {
             String createTableQuery = "CREATE TABLE geometries (id SERIAL PRIMARY KEY, geom GEOMETRY, name CHARACTER VARYING(25), text CHARACTER VARYING(25) );";
 
             return Mono.from(connection.createStatement(createTableQuery).execute());
         }).block();
-        
+
         Mono.from(connectionFactory.create()).flatMap(connection -> {
             String createTableQuery = "CREATE TABLE geographies (id SERIAL PRIMARY KEY, geog GEOGRAPHY, name CHARACTER VARYING(25), text CHARACTER VARYING(25) );";
 
@@ -204,7 +200,6 @@ public class PostGisConnectionTests {
             return Mono.from(connection.createStatement(insertPointQuery).execute());
         }).block();
 
-        
     }
 
 }

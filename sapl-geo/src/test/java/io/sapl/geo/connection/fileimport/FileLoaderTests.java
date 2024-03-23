@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.fileimport.FileLoader;
 import io.sapl.geofunctions.GeometryConverter;
 import reactor.test.StepVerifier;
 

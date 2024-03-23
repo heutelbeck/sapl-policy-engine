@@ -31,7 +31,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 
 import reactor.core.publisher.Flux;
 
-public class TraccarSocketManager extends ConnectionBase {
+public class TraccarConnection extends ConnectionBase {
 
     private static final String DEVICEID_CONST = "deviceId";
     private static final String PROTOCOL       = "protocol";
@@ -49,7 +49,7 @@ public class TraccarSocketManager extends ConnectionBase {
 
     private TraccarSessionHandler handler;
 
-    private TraccarSocketManager(String user, String password, String serverName, String protocol, int deviceId,
+    private TraccarConnection(String user, String password, String serverName, String protocol, int deviceId,
             ObjectMapper mapper) throws PolicyEvaluationException {
 
         url = "ws://" + serverName + "/api/socket";
@@ -60,10 +60,10 @@ public class TraccarSocketManager extends ConnectionBase {
                 mapper);
     }
 
-    public static TraccarSocketManager getNew(String user, String password, String server, String protocol,
-            int deviceId, ObjectMapper mapper) throws PolicyEvaluationException {
+    public static TraccarConnection getNew(String user, String password, String server, String protocol, int deviceId,
+            ObjectMapper mapper) throws PolicyEvaluationException {
 
-        return new TraccarSocketManager(user, password, server, protocol, deviceId, mapper);
+        return new TraccarConnection(user, password, server, protocol, deviceId, mapper);
     }
 
     public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {

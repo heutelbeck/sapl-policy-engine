@@ -36,11 +36,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
 
-import io.sapl.geo.connection.traccar.TraccarSocketManager;
+import io.sapl.geo.connection.traccar.TraccarConnection;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
-public class TraccarSocketManagerTests {
+public class TraccarConnectionTests {
     String              address;
     Integer             port;
     SourceProvider      source            = SourceProvider.getInstance();
@@ -75,7 +75,7 @@ public class TraccarSocketManagerTests {
                 }
                 """;
         var val = Val.ofJson(String.format(st, address));
-        var res = TraccarSocketManager.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+        var res = TraccarConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 

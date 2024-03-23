@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.geo.connection.traccar.TraccarSocketManager;
+import io.sapl.geo.connection.traccar.TraccarConnection;
 import reactor.core.publisher.Flux;
 
 @Component
@@ -46,7 +46,7 @@ public class GeoPolicyInformationPoint {
     public Flux<Val> connectToTraccar(Val leftHandValue, Val variables) {
 
         try {
-            return TraccarSocketManager.connect(variables.get(), mapper);// .map(Val::of)
+            return TraccarConnection.connect(variables.get(), mapper);// .map(Val::of)
             // .onErrorResume(e -> Flux.just(Val.error(e)));
         } catch (Exception e) {
 

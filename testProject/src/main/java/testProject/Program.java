@@ -19,9 +19,9 @@ package testProject;
 
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.connection.fileimport.FileLoader;
 import io.sapl.geo.connection.postgis.PostGisConnection;
-import io.sapl.geo.connection.traccar.TraccarSocketManager;
+import io.sapl.geo.connection.traccar.TraccarConnection;
+import io.sapl.geo.fileimport.FileLoader;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.pip.http.ReactiveWebClient;
 
