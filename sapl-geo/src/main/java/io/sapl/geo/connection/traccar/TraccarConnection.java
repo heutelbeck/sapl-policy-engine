@@ -17,6 +17,8 @@
  */
 package io.sapl.geo.connection.traccar;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,7 +39,7 @@ public class TraccarConnection extends ConnectionBase {
     private static final String PROTOCOL       = "protocol";
 //    private Disposable           subscription;
 //    private WebSocketSession     session;
-
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private int deviceId;
 
     public int getDeviceId() {
@@ -105,20 +107,21 @@ public class TraccarConnection extends ConnectionBase {
                 .flatMap(res -> handler.getGeofences(res, deviceId, format))
                 .map(res -> mapper.convertValue(res, ObjectNode.class));
 
-        System.out.println("Traccar-Client connected.");
+        logger.info("Traccar-Client connected.");
         return flux;
     }
 
     public void disconnect() throws PolicyEvaluationException {
-        System.out.println("Trying to close Traccar-Session.");
+        
         try {
             if (this.sessionManager.closeTraccarSession()) {
-                System.out.println("Traccar-Client disconnected.");
+            	
+            	logger.info("Traccar-Client disconnected.");
             } else {
                 throw new PolicyEvaluationException();
             }
         } catch (Exception e) {
-            throw new PolicyEvaluationException("Traccar-Session could not be closed");
+            throw new PolicyEvaluationException("Traccar-Client could not be disconnected");
         }
     }
 

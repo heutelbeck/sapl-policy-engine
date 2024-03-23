@@ -50,7 +50,7 @@ public class TraccarConnectionTests {
             DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082)
             .withFileSystemBind(resourceDirectory + "/opt/traccar/logs", "/opt/traccar/logs", BindMode.READ_WRITE)
             .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
-            .withReuse(true);
+            .withReuse(false);
 
     @BeforeAll
     void setup() {

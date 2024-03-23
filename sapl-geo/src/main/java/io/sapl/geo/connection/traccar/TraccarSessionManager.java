@@ -103,6 +103,8 @@ public class TraccarSessionManager {
 
             res.headers().firstValue("set-cookie").ifPresent(v -> sessionCookie = v);
             session = createTraccarSession(res.body());
+            var msg = String.format("Traccar Session %s established", session.getId());
+            logger.info(msg);
         } else {
             throw new PolicyEvaluationException(
                     "Session could not be established. Server respondet with " + res.statusCode());
@@ -136,10 +138,12 @@ public class TraccarSessionManager {
             throw new PolicyEvaluationException(e);
         }
         if (res.statusCode() == 204) {
-            logger.info("Traccar Session for DeviceId " + "" + "closed.");
+        	var msg = String.format("Traccar Session %s closed", session.getId());
+            logger.info(msg);
             return true;
         }
-
+        var msg = String.format("Traccar Session %s could not be closed", session.getId());
+        logger.info(msg);
         return false;
 
     }

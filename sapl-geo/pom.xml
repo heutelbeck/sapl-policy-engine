@@ -157,6 +157,17 @@
 		    <scope>test</scope>
 		    
 		</dependency>
+		
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			
+		</dependency>
 
 		<dependency>
 			<!-- If you want to use the extensions in a Spring application and do 
