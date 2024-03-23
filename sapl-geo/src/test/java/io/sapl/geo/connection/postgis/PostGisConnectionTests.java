@@ -79,16 +79,14 @@ public class PostGisConnectionTests {
     @Test
     public void Test01PostGisConnectionGemoetry() throws JsonProcessingException {
 
-        var tmp2 = """
-                    ,
-                    "table":"%s",
-                    "geoColumn":"%s",
-                	"singleResult": false,
-                	"columns": ["name"]
-                }
-                """;
-
-        var tmp = template.concat(tmp2);
+        var tmp = template.concat("""
+                ,
+                "table":"%s",
+                "geoColumn":"%s",
+            	"singleResult": false,
+            	"columns": ["name"]
+            }
+            """);
         var str = String.format(tmp, "geometries", "geom");
 
         var exp = Val.ofJson(
@@ -101,17 +99,15 @@ public class PostGisConnectionTests {
     @Test
     public void Test02PostGisConnectionGeometrySingleResult() throws JsonProcessingException {
 
-        var tmp2 = """
-                    ,
-                    "table":"%s",
-                    "geoColumn":"%s",
-                	"singleResult": true,
-                	"columns": ["name"],
-                	"where": "name = 'point'"
-                }
-                """;
-
-        var tmp = template.concat(tmp2);
+        var tmp = template.concat("""
+                ,
+                "table":"%s",
+                "geoColumn":"%s",
+            	"singleResult": true,
+            	"columns": ["name"],
+            	"where": "name = 'point'"
+            }
+            """);
         var str = String.format(tmp, "geometries", "geom");
 
         var exp = Val.ofJson(
@@ -123,17 +119,15 @@ public class PostGisConnectionTests {
 
     @Test
     public void Test03PostGisConnectionGeography() throws JsonProcessingException {
-
-        var tmp2 = """
-                    ,
-                    "table":"%s",
-                    "geoColumn":"%s",
-                	"singleResult": false,
-                	"columns": ["name", "text"]
-                }
-                """;
-
-        var tmp = template.concat(tmp2);
+    	
+        var tmp = template.concat("""
+                ,
+                "table":"%s",
+                "geoColumn":"%s",
+            	"singleResult": false,
+            	"columns": ["name", "text"]
+            }
+            """);
         var str = String.format(tmp, "geographies", "geog");
 
         var exp = Val.ofJson(
@@ -146,17 +140,15 @@ public class PostGisConnectionTests {
     @Test
     public void Test04PostGisConnectionGeographySingleResult() throws JsonProcessingException {
 
-        var tmp2 = """
-                    ,
-                    "table":"%s",
-                    "geoColumn":"%s",
-                	"singleResult": true,
-                	"columns": ["name", "text"],
-                	"where": "name = 'point'"
-                }
-                """;
-
-        var tmp = template.concat(tmp2);
+        var tmp = template.concat("""
+                ,
+                "table":"%s",
+                "geoColumn":"%s",
+            	"singleResult": true,
+            	"columns": ["name", "text"],
+            	"where": "name = 'point'"
+            }
+            """);
         var str = String.format(tmp, "geographies", "geog");
 
         var exp = Val.ofJson(
@@ -166,16 +158,33 @@ public class PostGisConnectionTests {
         StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
+    @Test
+    public void Test05Error() throws JsonProcessingException {
+
+        var tmp = template.concat("""
+                ,
+                "table":"%s",
+                "geoColumn":"%s",
+            	"singleResult": true,
+            	"columns": ["name", "text"],
+            	"where": "name = 'point'"
+            }
+            """);
+        var str = String.format(tmp, "nonExistant", "geog");
+     
+        var postgis = PostGisConnection.connect(Val.ofJson(str).get(), new ObjectMapper());
+        StepVerifier.create(postgis).expectError();
+    }
     
     private void createTable(ConnectionFactory connectionFactory) {
         Mono.from(connectionFactory.create()).flatMap(connection -> {
-            String createTableQuery = "CREATE TABLE IF NOT EXISTS geometries (id SERIAL PRIMARY KEY, geom GEOMETRY, name CHARACTER VARYING(25), text CHARACTER VARYING(25) );";
+            String createTableQuery = "CREATE TABLE geometries (id SERIAL PRIMARY KEY, geom GEOMETRY, name CHARACTER VARYING(25), text CHARACTER VARYING(25) );";
 
             return Mono.from(connection.createStatement(createTableQuery).execute());
         }).block();
         
         Mono.from(connectionFactory.create()).flatMap(connection -> {
-            String createTableQuery = "CREATE TABLE IF NOT EXISTS geographies (id SERIAL PRIMARY KEY, geog GEOGRAPHY, name CHARACTER VARYING(25), text CHARACTER VARYING(25) );";
+            String createTableQuery = "CREATE TABLE geographies (id SERIAL PRIMARY KEY, geog GEOGRAPHY, name CHARACTER VARYING(25), text CHARACTER VARYING(25) );";
 
             return Mono.from(connection.createStatement(createTableQuery).execute());
         }).block();
