@@ -17,13 +17,9 @@
  */
 package io.sapl.geo.connection.postgis;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.ArrayList;
-import java.util.List;
+
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -31,15 +27,11 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
-import io.r2dbc.postgresql.codec.Point;
 import io.r2dbc.spi.ConnectionFactory;
-import io.r2dbc.spi.Result;
 import io.sapl.api.interpreter.Val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -54,7 +46,21 @@ public class PostGisConnectionTests {
 
     String userName;
     String password;
-    
+    String template = """
+                {
+                "user":"%s",
+                "password":"%s",
+            	"server":"%s",
+            	"port": %s,
+            	"dataBase":"%s",
+            	"table":"%s",
+            	"geoColumn":"%s",
+            	"responseFormat":"GEOJSON",
+            	"defaultCRS": 4326,
+            	"pollingIntervalMs":1000,
+            	"repetitions":2
+            """;
+
     @Container
     private static final PostgreSQLContainer<?> postgisContainer = new PostgreSQLContainer<>(
             DockerImageName.parse("postgis/postgis:16-3.4-alpine").asCompatibleSubstituteFor("postgres"))
@@ -74,87 +80,150 @@ public class PostGisConnectionTests {
                 .host(postgisContainer.getHost()).port(postgisContainer.getMappedPort(5432))
                 .database(postgisContainer.getDatabaseName()).username(userName).password(password).build());
 
-        createTable().block();
-        insertPoint().block();
-
+        createTable();
+        insert();
+        var z = 1;
     }
 
-    private Mono<? extends Result> createTable() {
-        return Mono.from(connectionFactory.create()).flatMap(connection -> {
+    
+    @Test
+    public void Test01Select() {
+        StepVerifier.create(selectPoints()).expectNext("{\"type\":\"Point\",\"coordinates\":[1,1]}")
+                .expectNext("{\"type\":\"Polygon\",\"coordinates\":[[[0,0],[1,0],[1,1],[0,1],[0,0]]]}")
+                .verifyComplete();
+    }
+
+    @Test
+    public void Test02PostGisConnectionGemoetry() throws JsonProcessingException {
+
+        var tmp2 = """
+                    ,
+                	"singleResult": false,
+                	"columns": ["name"]
+                }
+                """;
+
+        var tmp = template.concat(tmp2);
+        var str = String.format(tmp, userName, password, postgisContainer.getHost(),
+                postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName(), "geometries", "geom");
+
+        var node = Val.ofJson(str).get();
+
+        var exp = Val.ofJson(
+                "[{\"srid\":4326,\"geo\":{\"type\":\"Point\",\"coordinates\":[1,1],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"point\"},{\"srid\":4326,\"geo\":{\"type\":\"Polygon\",\"coordinates\":[[[0.0,0.0],[1,0.0],[1,1],[0.0,1],[0.0,0.0]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"polygon\"}]");
+
+        var postgis = PostGisConnection.connect(node, new ObjectMapper());
+        StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
+    }
+
+    @Test
+    public void Test03PostGisConnectionGeometrySingleResult() throws JsonProcessingException {
+
+        var tmp2 = """
+                    ,
+                	"singleResult": true,
+                	"columns": ["name"],
+                	"where": "name = 'point'"
+                }
+                """;
+
+        var tmp = template.concat(tmp2);
+        var str = String.format(tmp, userName, password, postgisContainer.getHost(),
+                postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName(), "geometries", "geom");
+
+        var node = Val.ofJson(str).get();
+
+        var exp = Val.ofJson(
+                "{\"srid\":4326,\"geo\":{\"type\":\"Point\",\"coordinates\":[1,1],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"point\"}");
+
+        var postgis = PostGisConnection.connect(node, new ObjectMapper());
+        StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
+    }
+
+    @Test
+    public void Test04PostGisConnectionGeography() throws JsonProcessingException {
+
+        var tmp2 = """
+                    ,
+                	"singleResult": false,
+                	"columns": ["name", "text"]
+                }
+                """;
+
+        var tmp = template.concat(tmp2);
+        var str = String.format(tmp, userName, password, postgisContainer.getHost(),
+                postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName(), "geographies", "geog");
+
+        var node = Val.ofJson(str).get();
+
+        var exp = Val.ofJson(
+                "[{\"srid\":4326,\"geo\":{\"type\":\"Point\",\"coordinates\":[1,1],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"point\",\"text\":\"text point\"},{\"srid\":4326,\"geo\":{\"type\":\"Polygon\",\"coordinates\":[[[0.0,0.0],[1,0.0],[1,1],[0.0,1],[0.0,0.0]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"polygon\",\"text\":\"text polygon\"}]");
+
+        var postgis = PostGisConnection.connect(node, new ObjectMapper());
+        StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
+    }
+
+    @Test
+    public void Test05PostGisConnectionGeographySingleResult() throws JsonProcessingException {
+
+        var tmp2 = """
+                    ,
+                	"singleResult": true,
+                	"columns": ["name", "text"],
+                	"where": "name = 'point'"
+                }
+                """;
+
+        var tmp = template.concat(tmp2);
+        var str = String.format(tmp, userName, password, postgisContainer.getHost(),
+                postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName(), "geographies", "geog");
+
+        var node = Val.ofJson(str).get();
+
+        var exp = Val.ofJson(
+                "{\"srid\":4326,\"geo\":{\"type\":\"Point\",\"coordinates\":[1,1],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"point\",\"text\":\"text point\"}");
+
+        var postgis = PostGisConnection.connect(node, new ObjectMapper());
+        StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
+    }
+
+    
+    private void createTable() {
+        Mono.from(connectionFactory.create()).flatMap(connection -> {
             String createTableQuery = "CREATE TABLE IF NOT EXISTS geometries (id SERIAL PRIMARY KEY, geom GEOMETRY, name CHARACTER VARYING(25), text CHARACTER VARYING(25) );";
 
             return Mono.from(connection.createStatement(createTableQuery).execute());
-        });
-    }
-    
-    private Mono<? extends Result> insertPoint() {
+        }).block();
+        
+        Mono.from(connectionFactory.create()).flatMap(connection -> {
+            String createTableQuery = "CREATE TABLE IF NOT EXISTS geographies (id SERIAL PRIMARY KEY, geog GEOGRAPHY, name CHARACTER VARYING(25), text CHARACTER VARYING(25) );";
 
-        return Mono.from(connectionFactory.create()).flatMap(connection -> {
+            return Mono.from(connection.createStatement(createTableQuery).execute());
+        }).block();
+    }
+
+    private void insert() {
+
+        Mono.from(connectionFactory.create()).flatMap(connection -> {
             String insertPointQuery = "INSERT INTO geometries VALUES (1, ST_GeomFromText('POINT(1 1)', 4326), 'point', 'text point'), (2, ST_GeomFromText('POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))', 4326), 'polygon', 'text polygon');";
 
             return Mono.from(connection.createStatement(insertPointQuery).execute());
-        });
+        }).block();
 
-    }
+        Mono.from(connectionFactory.create()).flatMap(connection -> {
+            String insertPointQuery = "INSERT INTO geographies VALUES (1, ST_GeogFromText('SRID=4326; POINT(1 1)'), 'point', 'text point'), (2, ST_GeogFromText('SRID=4326; POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))'), 'polygon', 'text polygon');";
 
-    
+            return Mono.from(connection.createStatement(insertPointQuery).execute());
+        }).block();
 
-    @Test
-    @Order(1)
-    public void SelectTest() {
-        StepVerifier.create(selectPoints())
-        .expectNext("{\"type\":\"Point\",\"coordinates\":[1,1]}")
-        .expectNext("{\"type\":\"Polygon\",\"coordinates\":[[[0,0],[1,0],[1,1],[0,1],[0,0]]]}")
-        .verifyComplete();
+        
     }
 
     private Flux<String> selectPoints() {
         return Mono.from(connectionFactory.create())
-                .flatMapMany(connection -> Mono
-                        .from(connection.createStatement("SELECT ST_AsGeoJSON(geom) as geom FROM geometries;").execute())
-                        .flatMapMany(result -> result.map((row, rowMetadata) -> row.get("geom", String.class))))
-                ;
+                .flatMapMany(connection -> Mono.from(
+                        connection.createStatement("SELECT ST_AsGeoJSON(geom) as geom FROM geometries;").execute())
+                        .flatMapMany(result -> result.map((row, rowMetadata) -> row.get("geom", String.class))));
     }
 
-    
-    @Test
-    @Order(2)
-    public void PostGisConnectionTest() throws JsonProcessingException {
-    	
-//    	.host(postgisContainer.getHost()).port(postgisContainer.getMappedPort(5432))
-//        .database(postgisContainer.getDatabaseName()).username(username).password(password)
-    	
-    	var template = """
-                {
-                "user":"%s",
-                "password":"%s",
-            	"server":"%s",
-            	"port": %s,
-            	"dataBase":"%s",
-            	"table":"%s",
-            	"geoColumn":"geom",
-            	"responseFormat":"GEOJSON",
-            	"defaultCRS": 4326,
-            	"pollingIntervalMs":1000,
-            	"repetitions":2,
-            	"singleResult": false,           
-            	"columns": ["name"]
-            }
-            """;
-    	
-    	var str = String.format(template, userName, password, 
-    			postgisContainer.getHost(),postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName(),
-    			"geometries");
-    	
-        var node = Val.ofJson(str).get();
-        
-        var exp = Val.ofJson("[{\"srid\":4326,\"geo\":{\"type\":\"Point\",\"coordinates\":[1,1],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"point\"},{\"srid\":4326,\"geo\":{\"type\":\"Polygon\",\"coordinates\":[[[0.0,0.0],[1,0.0],[1,1],[0.0,1],[0.0,0.0]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"polygon\"}]");
-        
-        var postgis = PostGisConnection.connect(node, new ObjectMapper());
-        StepVerifier.create(postgis)
-        .expectNext(exp)
-        .expectNext(exp)
-        .verifyComplete();
-    }
-    
 }
