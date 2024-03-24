@@ -47,9 +47,6 @@ public class Program {
         var httpCl = new ReactiveWebClient(new ObjectMapper());
         
 
-//		var traccarSocket =  TraccarSocketManager.getNew("longhair089@yahoo.de", "Aig1979.", "128.0.0.1:8082", "http", 1, new ObjectMapper());
-//		
-//		var trc = traccarSocket.connect(GeoPipResponseFormat.WKT );
 ////		
         
         
@@ -74,17 +71,17 @@ public class Program {
         var node = Val.ofJson(pg).get();
         
         
-        var postgis = PostGisConnection.connect(node, mapper);
-        var dis = postgis.subscribe(
-	      		 content ->{ 
-    			 
-    			 System.out.println("postgis content: " + content.get().toString());
-    			 System.out.println("--");
-    			 
-    		 },
-  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
-  	      () -> System.out.println("Completed!!!")
-  	      );
+//        var postgis = PostGisConnection.connect(node, mapper);
+//        var dis = postgis.subscribe(
+//	      		 content ->{ 
+//    			 
+//    			 System.out.println("postgis content: " + content.get().toString());
+//    			 System.out.println("--");
+//    			 
+//    		 },
+//  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
+//  	      () -> System.out.println("Completed!!!")
+//  	      );
         
         
         
@@ -135,29 +132,29 @@ public class Program {
 // 	      );
 
         
-//        var st = """
-//                {
-//                "user":"longhair089@yahoo.de",
-//                "password":"Aig1979.",
-//            	"server":"127.0.0.1:8082",
-//            	"protocol":"http",
-//            	"responseFormat":"GEOJSON",
-//            	"deviceId":1
-//            }
-//            """;
-//        var node1 = Val.ofJson(st).get();
-//        var trc = TraccarSocketManager.connect( node1, mapper);
-//		var dis = trc.subscribe(
-//	      		 content ->{ 
-//     			 var a = content.get().toString();
-//     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-//     			 System.out.println("res: " + b.getDeviceId());
-//     			 System.out.println("traccar content: " + a);
-//     			 
-//     		 },
-//   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-//   	      () -> System.out.println("Completed!!!")
-//   	      );
+        var st = """
+                {
+                "user":"longhair089@yahoo.de",
+                "password":"Aig1979.",
+            	"server":"127.0.0.1:8082",
+            	"protocol":"http",
+            	"responseFormat":"GEOJSON",
+            	"deviceId":1
+            }
+            """;
+        var node1 = Val.ofJson(st).get();
+        var trc = TraccarConnection.connect( node1, mapper);
+		var dis = trc.subscribe(
+	      		 content ->{ 
+     			 var a = content.get().toString();
+     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+     			 System.out.println("res: " + b.getDeviceId());
+     			 System.out.println("traccar content: " + a);
+     			 
+     		 },
+   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+   	      () -> System.out.println("Completed!!!")
+   	      );
 
 		
 		

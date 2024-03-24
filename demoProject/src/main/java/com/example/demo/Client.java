@@ -70,7 +70,7 @@ public class Client implements ApplicationListener<ApplicationReadyEvent> {
 //			pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new HttpPolicyInformationPointFluxComplete(new ObjectMapper())), List::of, 
 //                    List::of,  List::of);
 			try {
-				pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new GeoPolicyInformationPoint(new ObjectMapper())),
+				pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new GeoPolicyInformationPoint()),
 						List::of, 
 						() -> List.of(new GeoFunctions()), 
 						List::of);
@@ -103,21 +103,36 @@ public class Client implements ApplicationListener<ApplicationReadyEvent> {
 		
 		var authzSubscription1 = AuthorizationSubscription.of("Test1", "login", "1");
 		
-		pdp.decideTraced(authzSubscription1).doOnNext(decision -> System.out.println("Decision Test1 allow: "+ decision.getAuthorizationDecision()))
+		var sub = pdp.decideTraced(authzSubscription1).doOnNext(decision -> System.out.println("Decision Test1 allow: "+ decision.getAuthorizationDecision()))
 		.doOnNext(d-> System.out.println("Decision Test1 allow: " + d.getTrace().toPrettyString() + "---" + d.getAuthorizationDecision()))
 		.subscribe();
 
-    	 Mono
-         .delay(Duration.ofSeconds(120))
-         .publishOn(Schedulers.boundedElastic())
-         .subscribe(value -> {
-             //socket.disconnect();
-        	 //pip.disconnectTraccar(1);
-             SpringApplication.exit(applicationContext, () -> 0);
-         });
-
- 
+//    	 Mono
+//         .delay(Duration.ofSeconds(30))
+//         .publishOn(Schedulers.boundedElastic())
+//         .subscribe(value -> {
+//             //socket.disconnect();
+//        	 //pip.disconnectTraccar(1);
+//             SpringApplication.exit(applicationContext, () -> 0);
+//         });
+		
+		try {
+			Thread.sleep(20000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	 
+		sub.dispose();
+		
+		try {
+			Thread.sleep(20000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		System.out.println("End");
 	 }
 	
 }
