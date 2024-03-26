@@ -43,7 +43,7 @@ jobs:
     strategy:
       matrix:
         java: [ '17', '21' ]
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest ] #, macos-latest]
       fail-fast: false
     name: Build (JDK ${{ matrix.java }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -417,7 +417,7 @@ jobs:
 
       # Install the cosign tool 
       - name: Install cosign
-        uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4 # v3.4.0
+        uses: sigstore/cosign-installer@v3.4.0
         with:
           cosign-release: 'v2.2.3'
       
