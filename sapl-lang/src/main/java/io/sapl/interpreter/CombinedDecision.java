@@ -59,8 +59,7 @@ public class CombinedDecision implements Traced {
     }
 
     public static CombinedDecision error(String errorMessage) {
-        return new CombinedDecision(AuthorizationDecision.INDETERMINATE, "", List.of(),
-                errorMessage);
+        return new CombinedDecision(AuthorizationDecision.INDETERMINATE, "", List.of(), errorMessage);
     }
 
     public static CombinedDecision error(CombiningAlgorithm combiningAlgorithm, String errorMessage) {

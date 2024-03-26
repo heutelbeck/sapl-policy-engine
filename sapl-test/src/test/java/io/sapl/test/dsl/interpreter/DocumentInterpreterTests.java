@@ -284,7 +284,6 @@ class DocumentInterpreterTests {
             verifyNoInteractions(saplIntegrationTestFixtureMock);
         }
 
-
         @Test
         void getFixtureFromDocument_handlesIdentifierForDocumentSetWithSingleIdentifierWithCustomIntegrationTestPolicyResolver_returnsSaplIntegrationTestFixture() {
             final var integrationTestPolicyResolver = mock(IntegrationTestPolicyResolver.class);
