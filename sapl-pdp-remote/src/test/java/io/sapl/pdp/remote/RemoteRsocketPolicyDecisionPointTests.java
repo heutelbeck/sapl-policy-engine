@@ -39,7 +39,7 @@ import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
-import org.springframework.security.rsocket.metadata.SimpleAuthenticationEncoder;
+import io.sapl.pdp.remote.metadata.SimpleAuthenticationEncoder;
 import org.springframework.stereotype.Controller;
 
 import io.netty.handler.ssl.SslContextBuilder;

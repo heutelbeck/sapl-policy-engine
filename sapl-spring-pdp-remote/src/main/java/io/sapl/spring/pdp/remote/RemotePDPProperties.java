@@ -19,6 +19,9 @@ package io.sapl.spring.pdp.remote;
 
 import org.hibernate.validator.constraints.URL;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.Errors;
+import org.springframework.validation.ValidationUtils;
+import org.springframework.validation.Validator;
 import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.NotEmpty;
@@ -27,18 +30,57 @@ import lombok.Data;
 @Data
 @Validated
 @ConfigurationProperties(prefix = "io.sapl.pdp.remote")
-public class RemotePDPProperties {
+public class RemotePDPProperties implements Validator {
 
-    @URL
+    // general connection settings
     @NotEmpty
-    private String host = "";
-
-    @NotEmpty
-    private String key = "";
-
-    @NotEmpty
-    private String secret = "";
-
+    private String  type               = "rsocket"; // rsocket or http
     private boolean ignoreCertificates = false;
 
+    // http
+    @URL
+    private String host = "";
+
+    // rsocket
+    private String  rsocketHost = "";
+    private Integer rsocketPort = 7000;
+
+    // basic authentication
+    private String key    = "";
+    private String secret = "";
+
+    // api_key authentication
+    private String apiKey = "";
+
+    @Override
+    public boolean supports(Class<?> clazz) {
+        return RemotePDPProperties.class.isAssignableFrom(clazz);
+    }
+
+    @Override
+    public void validate(Object target, Errors errors) {
+        RemotePDPProperties properties = (RemotePDPProperties) target;
+        if ("rsocket".equals(properties.type)) {
+            ValidationUtils.rejectIfEmpty(errors, "rsocketHost", "required-non-empty", "rsocketHost is required");
+            ValidationUtils.rejectIfEmpty(errors, "rsocketPort", "required-non-empty", "rsocketPort is required");
+
+        } else if ("http".equals(properties.type)) {
+            ValidationUtils.rejectIfEmpty(errors, "host", "required-non-empty", "host containing http url is required");
+
+        } else {
+            errors.rejectValue("type", "type-invalid", new String[] { properties.type },
+                    "Invalid type specified, valid values are \"http\" or \"rsocket\"");
+        }
+
+        // ensure that exactly one authentication mecanisn is specified
+        if (apiKey.isEmpty() ^ key.isEmpty()) {
+            if (!key.isEmpty()) {
+                ValidationUtils.rejectIfEmpty(errors, "secret", "secret-non-empty", "\"secret\" must not be empty");
+            }
+        } else {
+            errors.rejectValue("key", "key-invalid", new String[] { properties.key },
+                    "At least one authentication mechanismn needed \"key\" and \"secret\" or \"api_key\"");
+        }
+
+    }
 }
