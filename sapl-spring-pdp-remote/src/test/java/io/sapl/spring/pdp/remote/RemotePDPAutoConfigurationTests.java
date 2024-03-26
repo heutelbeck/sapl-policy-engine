@@ -31,11 +31,20 @@ class RemotePDPAutoConfigurationTests {
             .withConfiguration(AutoConfigurations.of(RemotePDPAutoConfiguration.class));
 
     @Test
-    void whenValidPropertiesArePresent_thenTheRemotePdpIsPresent() {
+    void whenValidRsocketPropertiesArePresent_thenTheRemotePdpIsPresent() {
         contextRunner
                 .withPropertyValues("io.sapl.pdp.remote.rsocketHost=localhost", "io.sapl.pdp.remote.rsocketPort=7000",
                         "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret")
                 .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+                });
+    }
+
+    @Test
+    void whenValidHttpPropertiesArePresent_thenTheRemotePdpIsPresent() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=http",
+                "io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.apiKey=anApiKey").run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
                 });
