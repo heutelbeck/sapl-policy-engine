@@ -18,23 +18,6 @@
 
 package io.sapl.pdp.remote.metadata;
 
-public final class UsernamePasswordMetadata {
-
-    private final String username;
-
-    private final String password;
-
-    public UsernamePasswordMetadata(String username, String password) {
-        this.username = username;
-        this.password = password;
-    }
-
-    public String getUsername() {
-        return this.username;
-    }
-
-    public String getPassword() {
-        return this.password;
-    }
+public record UsernamePasswordMetadata(String username, String password) {
 
 }

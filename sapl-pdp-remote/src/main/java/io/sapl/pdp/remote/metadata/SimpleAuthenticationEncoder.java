@@ -48,14 +48,14 @@ public class SimpleAuthenticationEncoder extends AbstractEncoder<UsernamePasswor
     public Flux<DataBuffer> encode(Publisher<? extends UsernamePasswordMetadata> inputStream,
             DataBufferFactory bufferFactory, ResolvableType elementType, MimeType mimeType, Map<String, Object> hints) {
         return Flux.from(inputStream)
-                .map((credentials) -> encodeValue(credentials, bufferFactory, elementType, mimeType, hints));
+                .map(credentials -> encodeValue(credentials, bufferFactory, elementType, mimeType, hints));
     }
 
     @Override
     public DataBuffer encodeValue(UsernamePasswordMetadata credentials, DataBufferFactory bufferFactory,
             ResolvableType valueType, MimeType mimeType, Map<String, Object> hints) {
-        String                 username             = credentials.getUsername();
-        String                 password             = credentials.getPassword();
+        String                 username             = credentials.username();
+        String                 password             = credentials.password();
         NettyDataBufferFactory factory              = nettyFactory(bufferFactory);
         ByteBufAllocator       allocator            = factory.getByteBufAllocator();
         ByteBuf                simpleAuthentication = AuthMetadataCodec.encodeSimpleMetadata(allocator,
@@ -64,8 +64,8 @@ public class SimpleAuthenticationEncoder extends AbstractEncoder<UsernamePasswor
     }
 
     private NettyDataBufferFactory nettyFactory(DataBufferFactory bufferFactory) {
-        if (bufferFactory instanceof NettyDataBufferFactory) {
-            return (NettyDataBufferFactory) bufferFactory;
+        if (bufferFactory instanceof NettyDataBufferFactory nettyDataBufferFactory) {
+            return nettyDataBufferFactory;
         }
         return this.defaultBufferFactory;
     }

@@ -61,11 +61,11 @@ public class RemotePDPProperties implements Validator {
     public void validate(Object target, Errors errors) {
         RemotePDPProperties properties = (RemotePDPProperties) target;
         if ("rsocket".equals(properties.type)) {
-            ValidationUtils.rejectIfEmpty(errors, "rsocketHost", "required-non-empty", "rsocketHost is required");
-            ValidationUtils.rejectIfEmpty(errors, "rsocketPort", "required-non-empty", "rsocketPort is required");
+            ValidationUtils.rejectIfEmpty(errors, "rsocketHost", "requires-rsocket-host", "rsocketHost is required");
+            ValidationUtils.rejectIfEmpty(errors, "rsocketPort", "requires-rsocket-port", "rsocketPort is required");
 
         } else if ("http".equals(properties.type)) {
-            ValidationUtils.rejectIfEmpty(errors, "host", "required-non-empty", "host containing http url is required");
+            ValidationUtils.rejectIfEmpty(errors, "host", "requires-host", "host containing http url is required");
 
         } else {
             errors.rejectValue("type", "type-invalid", new String[] { properties.type },
@@ -75,7 +75,7 @@ public class RemotePDPProperties implements Validator {
         // ensure that exactly one authentication mecanisn is specified
         if (apiKey.isEmpty() ^ key.isEmpty()) {
             if (!key.isEmpty()) {
-                ValidationUtils.rejectIfEmpty(errors, "secret", "secret-non-empty", "\"secret\" must not be empty");
+                ValidationUtils.rejectIfEmpty(errors, "secret", "requires-secret", "\"secret\" must not be empty");
             }
         } else {
             errors.rejectValue("key", "key-invalid", new String[] { properties.key },
