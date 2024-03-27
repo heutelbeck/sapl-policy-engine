@@ -1,0 +1,28 @@
+set "query_name_user_repository"
+first-applicable
+
+policy "permit method name query (1)"
+permit
+where
+    action == "excludeAdminsAndFirstname";
+obligation {
+               "type": "mongoQueryManipulation",
+               "conditions": [ "{'role': {'$eq': 'USER'}}" ],
+			       "selection": {
+					"type": "blacklist",
+					"columns": ["firstname"]
+				}	
+             }
+             
+policy "permit method name query (2)"
+permit
+where
+    action == "includeActiveUsersAndFirstname";
+obligation {
+               "type": "mongoQueryManipulation",
+               "conditions": [ "{'active': {'$eq': true}}" ],
+			       "selection": {
+					"type": "whitelist",
+					"columns": ["firstname"]
+				}	
+             }

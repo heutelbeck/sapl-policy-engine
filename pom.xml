@@ -135,6 +135,8 @@
 		<module>sapl-spring-data-r2dbc-mk2</module>
 		<module>sapl-spring-data-mongo-reactive</module>		
 		<module>sapl-spring-data-common</module>
+		<module>spring-data-r2dbc-demo</module>
+		<module>spring-data-mongo-reactive-demo</module>
 	</modules>
 	<dependencyManagement>
 		<dependencies>

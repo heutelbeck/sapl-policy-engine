@@ -27,7 +27,7 @@ import net.javacrumbs.jsonunit.assertj.JsonAssertions;
 
 /**
  * Assertions for SAPL Val.
- * 
+ *
  * @author Mohammed Aljer
  * @author Dominic Heutelbeck
  */

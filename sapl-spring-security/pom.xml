@@ -119,6 +119,5 @@
 			<artifactId>spring-webflux</artifactId>
 			<scope>test</scope>
 		</dependency>
-
 	</dependencies>
 </project>

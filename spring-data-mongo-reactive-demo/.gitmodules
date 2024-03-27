@@ -1,0 +1,3 @@
+[submodule "spring-data-mongo-reactive-demo"]
+	path = spring-data-mongo-reactive-demo
+	url = https://github.com/RooSchoo/2023-roman-scholpp-thesis.git

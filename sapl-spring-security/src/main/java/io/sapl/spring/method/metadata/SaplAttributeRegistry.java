@@ -40,7 +40,8 @@ import lombok.NonNull;
 
 public class SaplAttributeRegistry {
     public static final List<Class<? extends Annotation>> SAPL_ANNOTATIONS = List.of(EnforceRecoverableIfDenied.class,
-            EnforceTillDenied.class, EnforceDropWhileDenied.class, PreEnforce.class, PostEnforce.class);
+            EnforceTillDenied.class, EnforceDropWhileDenied.class, PreEnforce.class, PostEnforce.class,
+            QueryEnforce.class);
 
     private final Map<Class<?>, Map<MethodClassKey, SaplAttribute>> cachedAttributes = new ConcurrentHashMap<>();
     private final MethodSecurityExpressionHandler                   expressionHandler;
@@ -162,6 +163,11 @@ public class SaplAttributeRegistry {
                     parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
         }
         if (annotation instanceof EnforceDropWhileDenied saplAnnotation) {
+            return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
+                    parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
+                    parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());
+        }
+        if (annotation instanceof QueryEnforce saplAnnotation) {
             return new SaplAttribute(annotationType, parseExpression(saplAnnotation.subject()),
                     parseExpression(saplAnnotation.action()), parseExpression(saplAnnotation.resource()),
                     parseExpression(saplAnnotation.environment()), saplAnnotation.genericsType());

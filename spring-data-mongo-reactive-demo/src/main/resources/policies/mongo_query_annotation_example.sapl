@@ -1,0 +1,14 @@
+set "query_annotation_user_repository"
+first-applicable
+
+policy "permit query method (1)"
+permit
+where
+    action == "includeActiveUsers";
+    subject.admin == true;
+obligation {
+               "type": "mongoQueryManipulation",
+               "conditions": [ "{'active': {'$eq': true}}" ]
+             }
+
+
