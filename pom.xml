@@ -104,6 +104,7 @@
 	</properties>
 
 	<modules>
+		<module>sapl-code-style</module>
 		<module>sapl-pdp-api</module>
 		<module>sapl-extensions-api</module>
 		<module>sapl-hamcrest</module>
@@ -434,24 +435,34 @@
 						</execution>
 					</executions>
 				</plugin>
+				<plugin>
+					<groupId>net.revelc.code.formatter</groupId>
+					<artifactId>formatter-maven-plugin</artifactId>
+					<version>2.23.0</version>
+					<dependencies>
+						<dependency>
+							<groupId>io.sapl</groupId>
+							<artifactId>sapl-code-style</artifactId>
+							<version>${project.version}</version>
+						</dependency>
+					</dependencies>
+					<executions>
+						<execution>
+							<goals>
+								<goal>format</goal>
+							</goals>
+							<configuration>
+								<configFile>eclipse/formatter.xml</configFile>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>
 			<plugin>
 				<groupId>net.revelc.code.formatter</groupId>
 				<artifactId>formatter-maven-plugin</artifactId>
-				<version>2.23.0</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>format</goal>
-						</goals>
-						<configuration>
-							<configFile>
-								${maven.multiModuleProjectDirectory}/formatter.xml</configFile>
-						</configuration>
-					</execution>
-				</executions>
 			</plugin>
 			<plugin>
 				<groupId>com.mycila</groupId>

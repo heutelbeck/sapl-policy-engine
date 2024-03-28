@@ -30,9 +30,10 @@
 	<packaging>pom</packaging>
 
 	<name>SAPL Bill of Materials</name>
-	
-	<description>This project provides Maven managed dependencies for all SAPL artifacts.</description>
-	
+
+	<description>This project provides Maven managed dependencies for all SAPL
+		artifacts.</description>
+
 	<url>https://sapl.io</url>
 
 	<developers>
@@ -58,10 +59,11 @@
 
 	<scm>
 		<connection>scm:git:git://github.com/heutelbeck/sapl-policy-engine.git</connection>
-		<developerConnection>scm:git:git@github.com:heutelbeck/sapl-policy-engine.git</developerConnection>
+		<developerConnection>
+			scm:git:git@github.com:heutelbeck/sapl-policy-engine.git</developerConnection>
 		<url>https://github.com/heutelbeck/sapl-policy-engine</url>
 	</scm>
-	
+
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -73,7 +75,7 @@
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-pdp-api</artifactId>
 				<version>${project.version}</version>
-			</dependency>		
+			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-extensions-api</artifactId>
@@ -89,12 +91,12 @@
 				<artifactId>sapl-ide</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-					<dependency>
+			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-hancrest</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-					<dependency>
+			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-assertj</artifactId>
 				<version>${project.version}</version>
@@ -179,24 +181,29 @@
 				<artifactId>sapl-jwt</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-	        <dependency>
+			<dependency>
 				<groupId>${project.groupId}</groupId>
-    	        <artifactId>sapl-mqtt-pip</artifactId>
+				<artifactId>sapl-mqtt-pip</artifactId>
 				<version>${project.version}</version>
-	        </dependency>
-	        <dependency>
+			</dependency>
+			<dependency>
 				<groupId>${project.groupId}</groupId>
-    	        <artifactId>sapl-mqtt-functions</artifactId>
+				<artifactId>sapl-mqtt-functions</artifactId>
 				<version>${project.version}</version>
-	        </dependency>
-	        <dependency>
+			</dependency>
+			<dependency>
 				<groupId>${project.groupId}</groupId>
-    	        <artifactId>sapl-vaadin-theme</artifactId>
+				<artifactId>sapl-vaadin-theme</artifactId>
 				<version>${project.version}</version>
-	        </dependency>
+			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-vaadin-editor</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>sapl-code-style</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 		</dependencies>
@@ -211,7 +218,8 @@
 		</snapshotRepository>
 		<repository>
 			<id>ossrh</id>
-			<url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+			<url>
+				https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
 		</repository>
 	</distributionManagement>
 
@@ -223,7 +231,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-deploy-plugin</artifactId>
-						<version>3.1.1</version>						
+						<version>3.1.1</version>
 						<configuration>
 							<skip>true</skip>
 						</configuration>
@@ -273,5 +281,5 @@
 			</build>
 		</profile>
 	</profiles>
-	
+
 </project>
