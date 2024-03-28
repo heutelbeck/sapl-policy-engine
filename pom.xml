@@ -26,8 +26,9 @@
           -DgenerateBackupPoms=false
 	  
 	* Correct the license headers of all source files:
-	  mvn license:format -pl !sapl-bom
-	  This command excludes the sapl-bom module. Update the license there manually.
+	  mvn license:format -pl !sapl-bom,!sapl-code-style
+	  This command excludes the sapl-bom and sapl-code-style modules. 
+          Update the license there manually.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

@@ -23,18 +23,15 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>io.sapl</groupId>
-		<artifactId>sapl-policy-engine</artifactId>
-		<version>3.0.0-SNAPSHOT</version>
-	</parent>
-	
+	<groupId>io.sapl</groupId>
 	<artifactId>sapl-code-style</artifactId>
+	<version>3.0.0-SNAPSHOT</version>
 
 	<packaging>jar</packaging>
 
 	<name>SAPL Eclispe Formatter Settings</name>
-	
-	<description>Contains coder formatting settings to be applied in SAPL projects.</description>
-		
+
+	<description>Contains coder formatting settings to be applied in SAPL
+		projects.</description>
+
 </project>
