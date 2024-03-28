@@ -37,7 +37,7 @@ class RemotePDPPropertiesValidationTests {
     void whenValidRsocketPropertiesPresent_thenConfigurationBeanIsPresent() {
         contextRunner
                 .withPropertyValues("io.sapl.pdp.remote.rsocketHost=localhost", "io.sapl.pdp.remote.rsocketPort=7000",
-                        "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret")
+                        "io.sapl.pdp.remote.apiKey=aValidApiKey")
                 .run(context -> assertThat(context).hasNotFailed());
     }
 
@@ -74,5 +74,11 @@ class RemotePDPPropertiesValidationTests {
                 "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=")
                 .run(context -> assertThat(context).hasFailed());
     }
-
+    @Test
+    void whenInvalidTypePropertyPresent_thenConfigurationFails() {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.remote.type=other", "io.sapl.pdp.remote.host=https://localhost:8443",
+                        "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret")
+                .run(context -> assertThat(context).hasFailed());
+    }
 }
