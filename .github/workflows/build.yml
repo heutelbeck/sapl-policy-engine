@@ -120,7 +120,7 @@ jobs:
       # fork and workflows triggered by other events.
     - name: Run Unit Tests, Analysis, and Integration Tests
       if: env.RUN_ANALYSIS == 'true'
-      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom' -Pcoverage,it,spotbugs
+      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs
         
     - name: Cache Sonar Packages
       if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
@@ -142,7 +142,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
       run: >
         mvn -B sonar:sonar
-        -pl '!sapl-bom'
+        -pl '!sapl-bom,!sapl-code-style'
         -Dsonar.organization=heutelbeck
         -Dsonar.host.url=https://sonarcloud.io
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
