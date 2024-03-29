@@ -26,8 +26,9 @@
           -DgenerateBackupPoms=false
 	  
 	* Correct the license headers of all source files:
-	  mvn license:format -pl !sapl-bom
-	  This command excludes the sapl-bom module. Update the license there manually.
+	  mvn license:format -pl !sapl-bom,!sapl-code-style
+	  This command excludes the sapl-bom and sapl-code-style modules. 
+          Update the license there manually.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -104,6 +105,7 @@
 	</properties>
 
 	<modules>
+		<module>sapl-code-style</module>
 		<module>sapl-pdp-api</module>
 		<module>sapl-extensions-api</module>
 		<module>sapl-hamcrest</module>
@@ -434,24 +436,34 @@
 						</execution>
 					</executions>
 				</plugin>
+				<plugin>
+					<groupId>net.revelc.code.formatter</groupId>
+					<artifactId>formatter-maven-plugin</artifactId>
+					<version>2.23.0</version>
+					<dependencies>
+						<dependency>
+							<groupId>io.sapl</groupId>
+							<artifactId>sapl-code-style</artifactId>
+							<version>${project.version}</version>
+						</dependency>
+					</dependencies>
+					<executions>
+						<execution>
+							<goals>
+								<goal>format</goal>
+							</goals>
+							<configuration>
+								<configFile>eclipse/formatter.xml</configFile>
+							</configuration>
+						</execution>
+					</executions>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>
 			<plugin>
 				<groupId>net.revelc.code.formatter</groupId>
 				<artifactId>formatter-maven-plugin</artifactId>
-				<version>2.23.0</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>format</goal>
-						</goals>
-						<configuration>
-							<configFile>
-								${maven.multiModuleProjectDirectory}/formatter.xml</configFile>
-						</configuration>
-					</execution>
-				</executions>
 			</plugin>
 			<plugin>
 				<groupId>com.mycila</groupId>
@@ -741,4 +753,44 @@
 				https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
 		</repository>
 	</distributionManagement>
+	
+	<repositories>
+		<!-- Central on top here makes sure it has the highest priority. -->
+		<repository>
+			<id>central</id>
+			<url>https://repo.maven.apache.org/maven2</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>ossrh</id>
+			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+			<snapshots>
+				<enabled>true</enabled>
+				<updatePolicy>always</updatePolicy>
+			</snapshots>
+		</repository>
+	</repositories>
+	
+	<pluginRepositories>
+		<!-- Central on top here makes sure it has the highest priority. -->
+		<pluginRepository>
+			<id>central</id>
+			<url>https://repo.maven.apache.org/maven2</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</pluginRepository>
+		<pluginRepository>
+			<id>ossrh</id>
+			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+			<snapshots>
+				<enabled>true</enabled>
+				<updatePolicy>always</updatePolicy>
+			</snapshots>
+		</pluginRepository>
+	</pluginRepositories>
+
+
 </project>
