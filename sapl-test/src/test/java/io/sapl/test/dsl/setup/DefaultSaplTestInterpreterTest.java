@@ -171,8 +171,10 @@ class DefaultSaplTestInterpreterTests {
         TestHelper.mockEListResult(resourceMock::getContents, List.of(saplTestMock));
 
         final var inputStreamMock = mock(InputStream.class);
-        ioUtilsMockedStatic.when(() -> IOUtils.toInputStream("foo", StandardCharsets.UTF_8))
-                .thenReturn(inputStreamMock);
+        ioUtilsMockedStatic.when(() -> {
+            try (var is = IOUtils.toInputStream("foo", StandardCharsets.UTF_8)) {
+            }
+        }).thenReturn(inputStreamMock);
 
         final var result = defaultSaplTestInterpreter.loadAsResource("foo");
 

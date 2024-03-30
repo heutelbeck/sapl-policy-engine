@@ -45,6 +45,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
 
+@SuppressWarnings("resource")
 class SaplMqttClientConnectionIT {
 
     private static final ObjectMapper MAPPER   = new ObjectMapper();

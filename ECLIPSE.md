@@ -6,7 +6,7 @@ This document outlines some key configurations to make in your Eclipse install t
 
 ## Code Formatter and Warnings
 
-SAPL applies a standardized code formatting style based on the Eclipse auto formatter. Import the settings from the [SAPL Formatter setting XML](https://github.com/heutelbeck/sapl-policy-engine/blob/master/formatter.xml) file. To import it go to "Window -> Preferences". Then navigate to "Java -> Code Style -> Formatter" and use "Import..." to import the settings.
+SAPL applies a standardized code formatting style based on the Eclipse auto formatter. Import the settings from the [SAPL Formatter setting XML](https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-code-style/src/main/resources/eclipse/formatter.xml) file. To import it go to "Window -> Preferences". Then navigate to "Java -> Code Style -> Formatter" and use "Import..." to import the settings.
 
 SAPL ignores the "Serializable class without serialVersionUID" warning. You can deactivate the warning in the preferences under "Java -> Compiler -> Errors/Warnings".
 
@@ -20,10 +20,12 @@ SAPL makes extensive use of Lombok to eliminate boilerplate code. Without the Lo
 
 The Lombok Plug-in cannot be downloaded via the Eclipse Marketplace. Please download it from the official [Project Lombok download page](https://projectlombok.org/download).
 
-### M2E - PDE Integration
+### PDE Integration
 
 SAPL generates an Eclipse Plug-in. This requires the tycho tooling for building and packaging. Eclipse itself cannot deal with this out of the box.
 Install the "M2E - PDE Integration" from the update site [Eclipse IDE integration for Maven](https://download.eclipse.org/technology/m2e/releases/latest). Use the "Help -> Install New Software..." menu in Eclipse. The update site should already be present.
+
+Further, in the "Install New Software..." add the update site (https://download.eclipse.org/eclipse/updates/4.4) and install "Eclipse PDE Plug-in Developer Resources".
 
 ### Xtext Eclipse Plug-In
 
