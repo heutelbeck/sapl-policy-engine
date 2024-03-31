@@ -43,10 +43,8 @@ class RemotePDPAutoConfigurationTests {
 
     @Test
     void whenValidRsocketApiKeyPropertiesArePresent_thenTheRemotePdpIsPresent() {
-        contextRunner
-                .withPropertyValues("io.sapl.pdp.remote.rsocketHost=localhost",
-                        "io.sapl.pdp.remote.rsocketPort=7000", "io.sapl.pdp.remote.apiKey=aValidApiKey")
-                .run(context -> {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.rsocketHost=localhost",
+                "io.sapl.pdp.remote.rsocketPort=7000", "io.sapl.pdp.remote.apiKey=aValidApiKey").run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
                 });
@@ -54,11 +52,13 @@ class RemotePDPAutoConfigurationTests {
 
     @Test
     void whenValidHttpBasicPropertiesArePresent_thenTheRemotePdpIsPresent() {
-        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=http", "io.sapl.pdp.remote.host=https://localhost:8443",
-                "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret").run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
-        });
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.remote.type=http", "io.sapl.pdp.remote.host=https://localhost:8443",
+                        "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+                });
     }
 
     @Test
@@ -85,9 +85,9 @@ class RemotePDPAutoConfigurationTests {
         contextRunner.withPropertyValues("io.sapl.pdp.remote.type=http",
                 "io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.key=aKey",
                 "io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.ignoreCertificates=true").run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
-        });
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+                });
     }
 
     @Test
