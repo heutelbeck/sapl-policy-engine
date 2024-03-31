@@ -371,7 +371,7 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: slsa-framework/slsa-verifier/actions/installer@v2.5.1
+      - uses: slsa-framework/slsa-verifier/actions/installer@eb7007070baa04976cb9e25a0d8034f8db030a86 # v2.5.1
 
       - name: Download the artifact
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
@@ -417,7 +417,7 @@ jobs:
 
       # Install the cosign tool 
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3.4.0
+        uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4 # v3.4.0
         with:
           cosign-release: 'v2.2.3'
       
