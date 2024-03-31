@@ -23,9 +23,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
@@ -42,24 +39,38 @@ public class RemotePDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     PolicyDecisionPoint policyDecisionPoint() throws SSLException {
-        log.info("Binding to remote PDP server: {}", configuration.getHost());
-        if (configuration.isIgnoreCertificates()) {
-            log.warn("INSECURE SSL SETTINGS! This demo uses an insecure SslContext for "
-                    + "testing purposes only. It will accept all certificates. "
-                    + "This is only for testing local servers with self-signed certificates easily. "
-                    + "NEVER USE THIS A CONFIGURATION IN PRODUCTION!");
-            var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-            return RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost())
-                    .basicAuth(configuration.getKey(), configuration.getSecret()).secure(sslContext).build();
+        if ("rsocket".equals(configuration.getType())) {
+            log.info("Binding to rsocket remote PDP server: {}:{}", configuration.getRsocketHost(),
+                    configuration.getRsocketPort());
+            var builder = RemotePolicyDecisionPoint.builder().rsocket().host(configuration.getRsocketHost())
+                    .port(configuration.getRsocketPort());
+            if (!configuration.getKey().isEmpty()) {
+                log.info("Connecting with basic authentication");
+                builder.basicAuth(configuration.getKey(), configuration.getSecret());
+            } else if (!configuration.getApiKey().isEmpty()) {
+                log.info("Connecting with apiKey authentication");
+                builder.apiKey(configuration.getApiKey());
+            }
+            if (configuration.isIgnoreCertificates()) {
+                builder.withUnsecureSSL();
+            }
+            return builder.build();
 
+        } else {
+            log.info("Binding to http remote PDP server: {}", configuration.getHost());
+            var builder = RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost());
+            if (!configuration.getKey().isEmpty()) {
+                log.info("Connecting with basic authentication");
+                builder.basicAuth(configuration.getKey(), configuration.getSecret());
+            } else if (!configuration.getApiKey().isEmpty()) {
+                log.info("Connecting with apiKey authentication");
+                builder.apiKey(configuration.getApiKey());
+            }
+            if (configuration.isIgnoreCertificates()) {
+                builder.withUnsecureSSL();
+            }
+            return builder.build();
         }
-
-        var builder = RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost())
-                .basicAuth(configuration.getKey(), configuration.getSecret());
-        if (configuration.getHost().startsWith("https://")) {
-            builder = builder.secure();
-        }
-        return builder.build();
     }
 
 }

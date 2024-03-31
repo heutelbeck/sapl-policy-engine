@@ -31,31 +31,70 @@ class RemotePDPAutoConfigurationTests {
             .withConfiguration(AutoConfigurations.of(RemotePDPAutoConfiguration.class));
 
     @Test
-    void whenValidPropertiesArePresent_thenTheRemotePdpIsPresent() {
-        contextRunner.withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443",
-                "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret").run(context -> {
+    void whenValidRsocketBasicPropertiesArePresent_thenTheRemotePdpIsPresent() {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.remote.rsocketHost=localhost", "io.sapl.pdp.remote.rsocketPort=7000",
+                        "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret")
+                .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
                 });
     }
 
     @Test
-    void whenValidPropertiesArePresentWithIgnore_thenTheRemotePdpIsPresent() {
+    void whenValidRsocketApiKeyPropertiesArePresent_thenTheRemotePdpIsPresent() {
         contextRunner
-                .withPropertyValues("io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.key=aKey",
-                        "io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.ignoreCertificates=true")
+                .withPropertyValues("io.sapl.pdp.remote.rsocketHost=localhost",
+                        "io.sapl.pdp.remote.rsocketPort=7000", "io.sapl.pdp.remote.apiKey=aValidApiKey")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
                 });
+    }
+
+    @Test
+    void whenValidHttpBasicPropertiesArePresent_thenTheRemotePdpIsPresent() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=http", "io.sapl.pdp.remote.host=https://localhost:8443",
+                "io.sapl.pdp.remote.key=aKey", "io.sapl.pdp.remote.secret=aSecret").run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+        });
+    }
+
+    @Test
+    void whenValidHttpApiKeyPropertiesArePresent_thenTheRemotePdpIsPresent() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=http",
+                "io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.apiKey=anApiKey").run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+                });
+    }
+
+    @Test
+    void whenValidHttpPropertiesArePresentWithIgnore_thenTheRemotePdpIsPresent() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.rsocketHost=localhost",
+                "io.sapl.pdp.remote.rsocketPort=7000", "io.sapl.pdp.remote.key=aKey",
+                "io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.ignoreCertificates=true").run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+                });
+    }
+
+    @Test
+    void whenValidRsocketPropertiesArePresentWithIgnore_thenTheRemotePdpIsPresent() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=http",
+                "io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.key=aKey",
+                "io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.ignoreCertificates=true").run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
+        });
     }
 
     @Test
     void whenValidPropertiesArePresentNoTLS_thenTheRemotePdpIsPresent() {
-        contextRunner
-                .withPropertyValues("io.sapl.pdp.remote.host=http://localhost:8443", "io.sapl.pdp.remote.key=aKey",
-                        "io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.ignoreCertificates=false")
-                .run(context -> {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.rsocketHost=localhost",
+                "io.sapl.pdp.remote.rsocketPort=7000", "io.sapl.pdp.remote.key=aKey",
+                "io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.ignoreCertificates=false").run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(PolicyDecisionPoint.class);
                 });
