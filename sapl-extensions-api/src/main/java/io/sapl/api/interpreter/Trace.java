@@ -17,6 +17,7 @@
  */
 package io.sapl.api.interpreter;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -26,13 +27,17 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.SaplVersion;
 import lombok.Value;
 
 /**
  * A policy evaluation trace.
  */
 @Value
-public class Trace {
+public class Trace implements Serializable {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+
     public static final String ADVICE                     = "advice";
     public static final String ARGUMENT                   = "argument";
     public static final String ARGUMENTS_KEY              = "arguments";
@@ -90,8 +95,8 @@ public class Trace {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    Class<?>                 operation;
-    List<ExpressionArgument> arguments = new LinkedList<>();
+    Class<?>                       operation;
+    LinkedList<ExpressionArgument> arguments = new LinkedList<>();
 
     /**
      * Creates a trace for an operation.

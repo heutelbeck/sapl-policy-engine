@@ -25,6 +25,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.ElementConstants;
 
+import io.sapl.api.SaplVersion;
 import lombok.Getter;
 
 /**
@@ -32,7 +33,7 @@ import lombok.Getter;
  */
 public class BaseEditor extends Component {
 
-    private static final long serialVersionUID = 1211948611116128730L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private static final String IS_LINT             = "isLint";
     private static final String TEXT_UPDATE_DELAY   = "textUpdateDelay";

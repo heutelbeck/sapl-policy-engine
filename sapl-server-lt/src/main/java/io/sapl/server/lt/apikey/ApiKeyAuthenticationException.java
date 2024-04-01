@@ -19,9 +19,10 @@ package io.sapl.server.lt.apikey;
 
 import org.springframework.security.core.AuthenticationException;
 
+import io.sapl.api.SaplVersion;
 import lombok.experimental.StandardException;
 
 @StandardException
 public class ApiKeyAuthenticationException extends AuthenticationException {
-    private static final long serialVersionUID = 4690188836974772190L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 }

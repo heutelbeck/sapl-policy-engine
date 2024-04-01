@@ -29,6 +29,7 @@ import com.vaadin.flow.dom.Element;
 
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
+import io.sapl.api.SaplVersion;
 
 /**
  * An editor component for SAPLTest documents supporting code-completion,
@@ -41,7 +42,7 @@ import elemental.json.JsonObject;
 public class SaplTestEditor extends BaseEditor {
 
     @Serial
-    private static final long                      serialVersionUID = 9000952473571011987L;
+    private static final long                      serialVersionUID = SaplVersion.VERISION_UID;
     private final List<ValidationFinishedListener> validationFinishedListeners;
 
     /**

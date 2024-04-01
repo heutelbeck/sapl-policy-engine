@@ -32,6 +32,7 @@ import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.api.SaplVersion;
 import lombok.Getter;
 import lombok.experimental.StandardException;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +58,7 @@ public class JWTKeyProvider {
      */
     @StandardException
     public static class CachingException extends Exception {
-        private static final long serialVersionUID = 2862097120464678488L;
+        private static final long serialVersionUID = SaplVersion.VERISION_UID;
     }
 
     private final Map<String, RSAPublicKey> keyCache;

@@ -19,10 +19,11 @@ package io.sapl.test;
 
 import java.io.Serial;
 
+import io.sapl.api.SaplVersion;
 import lombok.experimental.StandardException;
 
 @StandardException
 public class SaplTestException extends RuntimeException {
     @Serial
-    private static final long serialVersionUID = -6876498115062892595L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 }

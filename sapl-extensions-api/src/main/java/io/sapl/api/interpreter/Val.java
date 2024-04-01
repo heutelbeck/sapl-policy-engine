@@ -36,10 +36,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.sapl.api.SaplVersion;
 import lombok.Getter;
 import reactor.core.publisher.Flux;
 
@@ -47,7 +49,9 @@ import reactor.core.publisher.Flux;
  * This class is the central value during policy evaluation. It can be a JSON
  * value, an error,or undefined. A Val can be marked as secret.
  */
-public class Val implements Traced {
+public class Val implements Traced, Serializable {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     static final String ERROR_LITERAL                              = "ERROR";
     static final String UNDEFINED_LITERAL                          = "undefined";
@@ -96,21 +100,21 @@ public class Val implements Traced {
 
     private static final NumericAwareComparator NUMERIC_AWARE_COMPARATOR = new NumericAwareComparator();
 
-    private final JsonNode value;
-    private final String   errorMessage;
+    private final BaseJsonNode value;
+    private final String       errorMessage;
 
     @Getter
-    private final boolean secret;
-    final Trace           trace;
+    private final boolean    secret;
+    final Trace              trace;
     @Getter
-    private final Object  errorSourceReference;
+    private transient Object errorSourceReference;
 
     private Val(JsonNode value) {
         this(value, null, false, null, null);
     }
 
     private Val(JsonNode value, String errorMessage, boolean isSecret, Trace trace, Object errorSourceReference) {
-        this.value                = value;
+        this.value                = (BaseJsonNode) value;
         this.errorMessage         = errorMessage;
         this.secret               = isSecret;
         this.trace                = trace;
@@ -1194,7 +1198,7 @@ public class Val implements Traced {
 
     private static class NumericAwareComparator implements Comparator<JsonNode>, Serializable {
 
-        private static final long serialVersionUID = 1444623807424351401L;
+        private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
         @Override
         public int compare(JsonNode o1, JsonNode o2) {

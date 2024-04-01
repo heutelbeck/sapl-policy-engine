@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import io.sapl.api.SaplVersion;
 import lombok.experimental.UtilityClass;
 import okhttp3.mockwebserver.MockWebServer;
 
@@ -119,7 +120,7 @@ class KeyTestUtility {
 
     private static class InvalidRSAPublicKey implements RSAPublicKey {
 
-        private static final long serialVersionUID = 8969585653668288855L;
+        private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
         @Override
         public String getAlgorithm() {
