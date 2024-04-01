@@ -17,13 +17,18 @@
  */
 package io.sapl.api.pdp;
 
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
+import io.sapl.api.SaplVersion;
 import jakarta.validation.constraints.NotNull;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -48,22 +53,84 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @JsonInclude(Include.NON_NULL)
-public class AuthorizationSubscription {
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class AuthorizationSubscription implements Serializable {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 
     @NotNull
-    private JsonNode subject;
+    private BaseJsonNode subject;
 
     @NotNull
-    private JsonNode action;
+    private BaseJsonNode action;
 
     @NotNull
-    private JsonNode resource;
+    private BaseJsonNode resource;
 
-    private JsonNode environment;
+    private BaseJsonNode environment;
+
+    /**
+     * Create a new AuthorizationSubscription with the provided parameters.
+     *
+     * @param subject     the subject
+     * @param action      the action
+     * @param resource    the resource
+     * @param environment the environment
+     */
+    public AuthorizationSubscription(@NotNull JsonNode subject, @NotNull JsonNode action, @NotNull JsonNode resource,
+            JsonNode environment) {
+        this.subject     = (BaseJsonNode) subject;
+        this.action      = (BaseJsonNode) action;
+        this.resource    = (BaseJsonNode) resource;
+        this.environment = (BaseJsonNode) environment;
+    }
+
+    /**
+     * Returns the subject of the authorization subscription. The subject is the
+     * entity attempting to perform the action on a resource.
+     *
+     * @return the subject
+     */
+    @NotNull
+    public JsonNode getSubject() {
+        return subject;
+    }
+
+    /**
+     * Returns the action of the authorization subscription. The action is
+     * indicating what the subject attempts to do with the resource.
+     *
+     * @return the action
+     */
+    @NotNull
+    public JsonNode getAction() {
+        return action;
+    }
+
+    /**
+     * Returns the resource of the authorization subscription. The resource is the
+     * entity the subject is attempting the action on.
+     *
+     * @return the resource
+     */
+    @NotNull
+    public JsonNode getResource() {
+        return resource;
+    }
+
+    /**
+     * Return the environment of the authorization subscription. The environment
+     * describes attributes that are not directly describing the subject, action, or
+     * resource, e.g., IP addresses, time, emergency state etc.
+     *
+     * @return
+     */
+    public JsonNode getEnvironment() {
+        return environment;
+    }
 
     /**
      * Creates an AuthorizationSubscription, containing the supplied objects
