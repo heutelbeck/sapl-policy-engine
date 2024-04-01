@@ -46,7 +46,8 @@ class HasResourceMatchingTests {
         ObjectMapper mapper   = new ObjectMapper();
         ObjectNode   resource = mapper.createObjectNode();
         resource.put("foo", "bar");
-        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), Optional.empty(),
+                Optional.empty());
 
         assertThat(dec, is(sut));
     }
@@ -59,7 +60,8 @@ class HasResourceMatchingTests {
         ObjectMapper mapper   = new ObjectMapper();
         ObjectNode   resource = mapper.createObjectNode();
         resource.put("foo", "bar");
-        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), Optional.empty(),
+                Optional.empty());
 
         assertThat(dec, not(is(sut)));
     }
@@ -75,7 +77,8 @@ class HasResourceMatchingTests {
     void test_resourceEmpty() {
         Predicate<JsonNode>   pred = (JsonNode jsonNode) -> jsonNode.has("foo");
         var                   sut  = hasResourceMatching(pred);
-        AuthorizationDecision dec  = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
+        AuthorizationDecision dec  = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+                Optional.empty());
         assertThat(dec, not(is(sut)));
     }
 
