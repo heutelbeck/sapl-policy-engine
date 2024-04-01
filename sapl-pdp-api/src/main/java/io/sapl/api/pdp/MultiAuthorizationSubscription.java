@@ -45,7 +45,7 @@ import lombok.NonNull;
  * holding subscription IDs and corresponding
  * {@link AuthorizationSubscriptionElements authorization subscription
  * elements}. It provides methods to
- * {@link #addAuthorizationSubscription(String, Object, Object, Object, Object)
+ * {@link #addAuthorizationSubscription(String, JsonNode, JsonNode, JsonNode, JsonNode)
  * add} single authorization subscriptions and to {@link #iterator() iterate}
  * over all the authorization subscriptions.
  *
@@ -99,7 +99,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
     /**
      * Convenience method to add an authorization subscription without environment
      * data. Calls
-     * {@link #addAuthorizationSubscription(String, Object, Object, Object)
+     * {@link #addAuthorizationSubscription(String, JsonNode, JsonNode, JsonNode)
      * addAuthorizationSubscription(subscriptionId, subject, action, resource,
      * null)}.
      *
