@@ -26,12 +26,13 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.SaplError;
 
 class ValAssertTests {
 
     @Test
     void isErrorPositive() {
-        var sut = assertThatVal(Val.error(null, null));
+        var sut = assertThatVal(Val.error(SaplError.UNKNOWN_ERROR));
         assertDoesNotThrow(() -> sut.isError());
     }
 
@@ -44,13 +45,13 @@ class ValAssertTests {
 
     @Test
     void isErrorWithMessagePositive() {
-        var sut = assertThatVal(Val.error(null, "message"));
-        assertDoesNotThrow(() -> sut.isError("message"));
+        var sut = assertThatVal(Val.error(SaplError.UNKNOWN_ERROR));
+        assertDoesNotThrow(() -> sut.isError(SaplError.UNKNOWN_ERROR_MESSAGE));
     }
 
     @Test
     void isErrorWithMessageNegativeWrongMessage() {
-        var sut = assertThatVal(Val.error(null, "message"));
+        var sut = assertThatVal(Val.error(SaplError.UNKNOWN_ERROR));
         assertThatThrownBy(() -> sut.isError("another message")).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to be <ERROR[another message]>");
     }
@@ -70,7 +71,7 @@ class ValAssertTests {
 
     @Test
     void noErrorNegative() {
-        var sut = assertThatVal(Val.error(null, null));
+        var sut = assertThatVal(Val.error((String) null));
         assertThatThrownBy(() -> sut.noError()).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to not be an error but was");
     }
@@ -116,7 +117,7 @@ class ValAssertTests {
 
     @Test
     void hasValueNegativeError() {
-        var sut = assertThatVal(Val.error(null, "error"));
+        var sut = assertThatVal(Val.error(SaplError.UNKNOWN_ERROR));
         assertThatThrownBy(() -> sut.hasValue()).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Excpected Val to be defined");
     }

@@ -27,6 +27,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.ValueDefinition;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
@@ -87,7 +88,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
         if (conditionResult.isBoolean() || conditionResult.isError())
             return conditionResult;
 
-        return Val.error(this, STATEMENT_NOT_BOOLEAN_ERROR, conditionResult).withTrace(PolicyBody.class, false,
+        return ErrorFactory.error(this, STATEMENT_NOT_BOOLEAN_ERROR, conditionResult).withTrace(PolicyBody.class, false,
                 Map.of(Trace.PREVIOUS_CONDITION_RESULT, conditionResult));
     }
 

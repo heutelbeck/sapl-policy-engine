@@ -18,7 +18,6 @@
 
 package io.sapl.test.dsl.interpreter;
 
-import io.sapl.test.grammar.sapltest.ErrorValue;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.Array;
+import io.sapl.test.grammar.sapltest.ErrorValue;
 import io.sapl.test.grammar.sapltest.FalseLiteral;
 import io.sapl.test.grammar.sapltest.NullLiteral;
 import io.sapl.test.grammar.sapltest.NumberLiteral;
@@ -71,8 +71,7 @@ class ValueInterpreter {
             return Val.UNDEFINED;
         } else if (value instanceof ErrorValue errorValue) {
             final var message = errorValue.getMessage();
-
-            return message == null ? Val.error(null, null) : Val.error(null, message);
+            return Val.error(message);
         } else if (value instanceof Array array) {
             return interpretArray(array);
         } else if (value instanceof io.sapl.test.grammar.sapltest.Object object) {

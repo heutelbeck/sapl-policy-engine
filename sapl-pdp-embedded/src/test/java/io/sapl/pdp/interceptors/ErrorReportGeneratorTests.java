@@ -169,7 +169,7 @@ class ErrorReportGeneratorTests {
 
     @Test
     void when_errorNoSource_then_reportedSo() {
-        var noError     = Val.error(null, "X");
+        var noError     = Val.error("X");
         var errorReport = ErrorReportGenerator.errorReport(noError, true, OutputFormat.PLAIN_TEXT);
         assertThat(errorReport).isEqualTo("Error: X");
     }

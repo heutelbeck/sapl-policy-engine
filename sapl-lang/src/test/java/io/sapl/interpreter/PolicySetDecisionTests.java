@@ -25,6 +25,7 @@ import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 
 class PolicySetDecisionTests {
 
@@ -48,7 +49,7 @@ class PolicySetDecisionTests {
 
     @Test
     void ofTargetError() {
-        var decision = PolicySetDecision.ofTargetError("documentName", Val.error(null, "error message"),
+        var decision = PolicySetDecision.ofTargetError("documentName", ErrorFactory.error("error message"),
                 CombiningAlgorithm.DENY_OVERRIDES);
         assertThat(decision.getTrace().get(Trace.TARGET).get(Trace.VALUE).textValue())
                 .isEqualTo("|ERROR| error message");

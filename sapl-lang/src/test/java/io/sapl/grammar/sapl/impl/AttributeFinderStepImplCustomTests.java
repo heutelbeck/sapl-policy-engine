@@ -35,6 +35,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.testutil.MockUtil;
@@ -87,13 +88,13 @@ class AttributeFinderStepImplCustomTests {
     void exceptionDuringEvaluation() {
         var step = attributeFinderStep();
         var sut  = step.apply(Val.NULL).contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
-                mockAttributeContext(Flux.just(Val.error(null, "ERROR")))));
+                mockAttributeContext(Flux.just(ErrorFactory.error("ERROR")))));
         StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
     }
 
     @Test
     void applyWithSomeStreamData() {
-        Val[] data = { Val.FALSE, Val.error(null, "ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
+        Val[] data = { Val.FALSE, ErrorFactory.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
         var   step = attributeFinderStep();
         var   sut  = step.apply(Val.NULL).contextWrite(
                 ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContext(Flux.just(data))));

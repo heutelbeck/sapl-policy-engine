@@ -125,7 +125,7 @@ public class FilterAlgorithmUtil {
                 return Flux.just(conditionResult.withTrace(ConditionStep.class, true, trace));
             }
             if (!conditionResult.isBoolean()) {
-                return Flux.just(Val.error(statement, TYPE_MISMATCH_CONDITION_NOT_BOOLEAN_S, conditionResult)
+                return Flux.just(ErrorFactory.error(statement, TYPE_MISMATCH_CONDITION_NOT_BOOLEAN_S, conditionResult)
                         .withTrace(ConditionStep.class, true, trace));
             }
             if (conditionResult.getBoolean()) {
@@ -153,8 +153,8 @@ public class FilterAlgorithmUtil {
             return Flux.just(unfilteredValue.withTrace(FilterComponent.class, true, unfilteredValue));
         }
         if (unfilteredValue.isUndefined()) {
-            return Flux.just(Val.error(location, TYPE_MISMATCH_UNFILTERED_UNDEFINED).withTrace(FilterComponent.class,
-                    true, unfilteredValue));
+            return Flux.just(ErrorFactory.error(location, TYPE_MISMATCH_UNFILTERED_UNDEFINED)
+                    .withTrace(FilterComponent.class, true, unfilteredValue));
         }
 
         if (!each) {
@@ -167,8 +167,9 @@ public class FilterAlgorithmUtil {
 
         // "|- each" may only be applied to arrays
         if (!unfilteredValue.isArray()) {
-            return Flux.just(Val.error(location, TYPE_MISMATCH_EACH_ON_NON_ARRAY + unfilteredValue.getValType())
-                    .withTrace(FilterComponent.class, true, unfilteredValue));
+            return Flux
+                    .just(ErrorFactory.error(location, TYPE_MISMATCH_EACH_ON_NON_ARRAY + unfilteredValue.getValType())
+                            .withTrace(FilterComponent.class, true, unfilteredValue));
         }
 
         var rootArray      = (ArrayNode) unfilteredValue.get();

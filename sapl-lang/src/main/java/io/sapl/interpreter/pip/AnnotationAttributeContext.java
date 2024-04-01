@@ -47,6 +47,7 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.grammar.sapl.Arguments;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SchemaLoadingUtil;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
@@ -127,7 +128,7 @@ public class AnnotationAttributeContext implements AttributeContext {
             Map<String, Val> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), false);
         if (attributeMetadata == null)
-            return Flux.just(Val.error(location, UNKNOWN_ATTRIBUTE_ERROR, attributeName));
+            return Flux.just(ErrorFactory.error(location, UNKNOWN_ATTRIBUTE_ERROR, attributeName));
         return evaluateAttribute(attributeName, attributeMetadata, leftHandValue, arguments, variables);
     }
 
@@ -136,7 +137,7 @@ public class AnnotationAttributeContext implements AttributeContext {
             Map<String, Val> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), true);
         if (attributeMetadata == null)
-            return Flux.just(Val.error(location, UNKNOWN_ATTRIBUTE_ERROR, attributeName));
+            return Flux.just(ErrorFactory.error(location, UNKNOWN_ATTRIBUTE_ERROR, attributeName));
         return evaluateEnvironmentAttribute(attributeName, attributeMetadata, arguments, variables);
     }
 
@@ -194,7 +195,7 @@ public class AnnotationAttributeContext implements AttributeContext {
                     return val.withTrace(AttributeContext.class, false, trace);
                 });
             } catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
-                return Flux.just(ErrorUtil.causeOrMessage(location, e));
+                return Flux.just(ErrorFactory.causeOrMessage(location, e));
             }
         };
     }

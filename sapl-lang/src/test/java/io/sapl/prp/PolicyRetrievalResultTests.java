@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 
 class PolicyRetrievalResultTests {
@@ -62,7 +63,7 @@ class PolicyRetrievalResultTests {
     void whenNoArgsConstructorUsedThenWithMatchAddsDocumentWithError() {
         var sut = new PolicyRetrievalResult();
         var doc = INTERPRETER.parseDocument("policy \"x\" permit");
-        sut = sut.withMatch(new DocumentMatch(doc, Val.error(null, "")));
+        sut = sut.withMatch(new DocumentMatch(doc, ErrorFactory.error("")));
         assertThat(sut.getNonMatchingDocuments().get(0).document(), is(doc));
         assertThat(sut.getMatchingDocuments(), empty());
         assertThat(sut.isRetrievalWithErrors(), is(true));

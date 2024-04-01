@@ -34,20 +34,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.pdp.SaplError;
 import reactor.test.StepVerifier;
 
 class ValTests {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    private static final String ERROR_MESSAGE = "Error Message";
-
     @Test
     void createError() {
-        var error = Val.error("", ERROR_MESSAGE);
+        var error = Val.error(SaplError.UNKNOWN_ERROR);
 
         var sa = new SoftAssertions();
-        sa.assertThat(error.getMessage()).isEqualTo(ERROR_MESSAGE);
+        sa.assertThat(error.getMessage()).isEqualTo(SaplError.UNKNOWN_ERROR_MESSAGE);
         sa.assertThat(error.isError()).isTrue();
         sa.assertThat(error.isArray()).isFalse();
         sa.assertThat(error.isBigDecimal()).isFalse();
@@ -79,8 +78,8 @@ class ValTests {
         sa.assertThat(Val.notEqual(Val.of(1.0D), Val.of(1.1D))).isEqualTo(Val.TRUE);
         sa.assertThat(Val.notEqual(Val.of("X"), Val.of(1))).isEqualTo(Val.TRUE);
         sa.assertThat(Val.notEqual(Val.of(1.0D), Val.of("X"))).isEqualTo(Val.TRUE);
-        sa.assertThat(Val.notEqual(Val.UNDEFINED, Val.error("", ""))).isEqualTo(Val.TRUE);
-        sa.assertThat(Val.notEqual(Val.error("", ""), Val.UNDEFINED)).isEqualTo(Val.TRUE);
+        sa.assertThat(Val.notEqual(Val.UNDEFINED, Val.error(SaplError.UNKNOWN_ERROR))).isEqualTo(Val.TRUE);
+        sa.assertThat(Val.notEqual(Val.error(SaplError.UNKNOWN_ERROR), Val.UNDEFINED)).isEqualTo(Val.TRUE);
         sa.assertThat(Val.notEqual(Val.UNDEFINED, Val.UNDEFINED)).isEqualTo(Val.FALSE);
         sa.assertAll();
     }
@@ -94,36 +93,6 @@ class ValTests {
     }
 
     @Test
-    void createErrorWithFormattedMessage() {
-        var source = "";
-        var error  = Val.error(source, "MESSAGE STRING %d", 1);
-        assertThat(error.getMessage()).isEqualTo("MESSAGE STRING 1");
-        assertThat(error.getErrorSourceReference()).isEqualTo(source);
-    }
-
-    @Test
-    void createErrorWithNullMessage() {
-        var source = "";
-        var error  = Val.error(source, (String) null);
-        assertThat(error.getMessage()).isEqualTo(Val.UNKNOWN_ERROR);
-        assertThat(error.getErrorSourceReference()).isEqualTo(source);
-    }
-
-    @Test
-    void createErrorWithNullCause() {
-        var error = Val.error("", (Throwable) null);
-        assertThat(error.getMessage()).isEqualTo(Val.UNKNOWN_ERROR);
-    }
-
-//    @Test
-//    void createUnknownError() {
-//        var source = "";
-//        var error  = Val.error(source);
-//        assertThat(error.getMessage()).isEqualTo(Val.UNKNOWN_ERROR);
-//        assertThat(error.getErrorSourceReference()).isEqualTo(source);
-//    }
-
-    @Test
     void noError() {
         assertThat(Val.UNDEFINED.noError()).isTrue();
     }
@@ -135,14 +104,14 @@ class ValTests {
     }
 
     @Test
-    void gerValueFromError() {
-        var value = Val.error("", ERROR_MESSAGE);
+    void getValueFromError() {
+        var value = Val.error(SaplError.UNKNOWN_ERROR);
         assertThatThrownBy(value::get).isInstanceOf(NoSuchElementException.class)
-                .hasMessage(String.format(Val.VALUE_IS_AN_ERROR_S_ERROR, ERROR_MESSAGE));
+                .hasMessage(String.format(Val.VALUE_IS_AN_ERROR_S_ERROR, SaplError.UNKNOWN_ERROR_MESSAGE));
     }
 
     @Test
-    void gerValueFromUndefined() {
+    void getValueFromUndefined() {
         assertThatThrownBy(Val.UNDEFINED::get).isInstanceOf(NoSuchElementException.class)
                 .hasMessage(Val.VALUE_UNDEFINED_ERROR);
     }
@@ -183,29 +152,11 @@ class ValTests {
     }
 
     @Test
-    void errorOfThrowableNoMessage() {
-        var error = Val.error("", new RuntimeException());
-        assertThat(error.getMessage()).isEqualTo("RuntimeException");
-    }
-
-    @Test
-    void errorOfThrowableBlankMessage() {
-        var error = Val.error("", new RuntimeException(""));
-        assertThat(error.getMessage()).isEqualTo("RuntimeException");
-    }
-
-    @Test
-    void errorOfThrowableWithMessage() {
-        var error = Val.error("", new RuntimeException(ERROR_MESSAGE));
-        assertThat(error.getMessage()).isEqualTo(ERROR_MESSAGE);
-    }
-
-    @Test
     void isUndefined() {
         var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.isUndefined()).isFalse();
         sa.assertThat(Val.UNDEFINED.isUndefined()).isTrue();
-        sa.assertThat(Val.error("", "").isUndefined()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isUndefined()).isFalse();
         sa.assertAll();
     }
 
@@ -214,7 +165,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.isArray()).isFalse();
         sa.assertThat(Val.ofEmptyArray().isArray()).isTrue();
-        sa.assertThat(Val.error("", "").isArray()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isArray()).isFalse();
         sa.assertAll();
     }
 
@@ -223,7 +174,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.isBigDecimal()).isFalse();
         sa.assertThat(Val.of(BigDecimal.ONE).isBigDecimal()).isTrue();
-        sa.assertThat(Val.error("", "").isBigDecimal()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isBigDecimal()).isFalse();
         sa.assertAll();
     }
 
@@ -232,7 +183,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.isBigInteger()).isFalse();
         sa.assertThat(Val.of(BigInteger.ONE).isBigInteger()).isTrue();
-        sa.assertThat(Val.error("", "").isBigInteger()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isBigInteger()).isFalse();
         sa.assertAll();
     }
 
@@ -241,7 +192,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.of(1).isBoolean()).isFalse();
         sa.assertThat(Val.TRUE.isBoolean()).isTrue();
-        sa.assertThat(Val.error("", "").isBoolean()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isBoolean()).isFalse();
         sa.assertAll();
     }
 
@@ -250,7 +201,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.of(1).isDouble()).isFalse();
         sa.assertThat(Val.of(1D).isDouble()).isTrue();
-        sa.assertThat(Val.error("", "").isDouble()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isDouble()).isFalse();
         sa.assertAll();
     }
 
@@ -262,7 +213,7 @@ class ValTests {
         sa.assertThat(Val.of(1F).isFloatingPointNumber()).isTrue();
         sa.assertThat(Val.of(new BigDecimal("2.2")).isFloatingPointNumber()).isTrue();
         sa.assertThat(Val.of(BigInteger.valueOf(10L)).isFloatingPointNumber()).isFalse();
-        sa.assertThat(Val.error("", "").isFloatingPointNumber()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isFloatingPointNumber()).isFalse();
         sa.assertAll();
     }
 
@@ -271,7 +222,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.of(1L).isInt()).isFalse();
         sa.assertThat(Val.of(1).isInt()).isTrue();
-        sa.assertThat(Val.error("", "").isInt()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isInt()).isFalse();
         sa.assertAll();
     }
 
@@ -280,7 +231,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.of(1).isLong()).isFalse();
         sa.assertThat(Val.of(1L).isLong()).isTrue();
-        sa.assertThat(Val.error("", "").isLong()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isLong()).isFalse();
         sa.assertAll();
     }
 
@@ -289,7 +240,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.of(1).isFloat()).isFalse();
         sa.assertThat(Val.of(1F).isFloat()).isTrue();
-        sa.assertThat(Val.error("", "").isFloat()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isFloat()).isFalse();
         sa.assertAll();
     }
 
@@ -298,7 +249,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.of(1).isNull()).isFalse();
         sa.assertThat(Val.NULL.isNull()).isTrue();
-        sa.assertThat(Val.error("", "").isNull()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isNull()).isFalse();
         sa.assertAll();
     }
 
@@ -307,7 +258,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.of("").isNumber()).isFalse();
         sa.assertThat(Val.of(1).isNumber()).isTrue();
-        sa.assertThat(Val.error("", "").isNumber()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isNumber()).isFalse();
         sa.assertAll();
     }
 
@@ -316,7 +267,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.of("").isObject()).isFalse();
         sa.assertThat(Val.ofEmptyObject().isObject()).isTrue();
-        sa.assertThat(Val.error("", "").isObject()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isObject()).isFalse();
         sa.assertAll();
     }
 
@@ -325,7 +276,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.isTextual()).isFalse();
         sa.assertThat(Val.of("A").isTextual()).isTrue();
-        sa.assertThat(Val.error("", "").isTextual()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isTextual()).isFalse();
         sa.assertAll();
     }
 
@@ -334,7 +285,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.ofEmptyArray().isValueNode()).isFalse();
         sa.assertThat(Val.TRUE.isValueNode()).isTrue();
-        sa.assertThat(Val.error("", "").isValueNode()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isValueNode()).isFalse();
         sa.assertAll();
     }
 
@@ -346,7 +297,7 @@ class ValTests {
         sa.assertThat(Val.UNDEFINED.isEmpty()).isFalse();
         sa.assertThat(Val.ofEmptyArray().isEmpty()).isTrue();
         sa.assertThat(Val.of(array).isEmpty()).isFalse();
-        sa.assertThat(Val.error("", "").isEmpty()).isFalse();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isEmpty()).isFalse();
         sa.assertAll();
     }
 
@@ -355,7 +306,8 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.toString()).isEqualTo("true");
         sa.assertThat(Val.UNDEFINED.toString()).isEqualTo("undefined");
-        sa.assertThat(Val.error("", null).toString()).isEqualTo("ERROR[" + Val.UNKNOWN_ERROR + "]");
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).toString())
+                .isEqualTo("ERROR[" + SaplError.UNKNOWN_ERROR_MESSAGE + "]");
         sa.assertAll();
     }
 
@@ -420,7 +372,7 @@ class ValTests {
     void optional() {
         var sa = new SoftAssertions();
         sa.assertThat(Val.UNDEFINED.optional()).isEmpty();
-        sa.assertThat(Val.error("", "").optional()).isEmpty();
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).optional()).isEmpty();
         sa.assertAll();
         assertThatJson(Val.TRUE.optional().get()).isBoolean().isTrue();
     }
@@ -429,7 +381,7 @@ class ValTests {
     void getValType() {
         var sa = new SoftAssertions();
         sa.assertThat(Val.UNDEFINED.getValType()).isEqualTo(Val.UNDEFINED_LITERAL);
-        sa.assertThat(Val.error("", "").getValType()).isEqualTo(Val.ERROR_LITERAL);
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).getValType()).isEqualTo(Val.ERROR_LITERAL);
         sa.assertThat(Val.TRUE.getValType()).isEqualTo("BOOLEAN");
         sa.assertAll();
     }
@@ -496,65 +448,6 @@ class ValTests {
     }
 
     @Test
-    void requireBoolean() {
-        var sa = new SoftAssertions();
-        sa.assertThat(Val.requireBoolean(this, Val.TRUE)).isEqualTo(Val.TRUE);
-        var value = Val.requireBoolean(this, Val.UNDEFINED);
-        sa.assertThat(value.isError()).isTrue();
-        sa.assertAll();
-    }
-
-    @Test
-    void requireJsonNode() {
-        var sa = new SoftAssertions();
-        sa.assertThat(Val.requireJsonNode(this, Val.TRUE)).isEqualTo(Val.TRUE);
-        sa.assertThat(Val.requireJsonNode(this, Val.error("", "")).isError()).isTrue();
-        sa.assertThat(Val.requireJsonNode(this, Val.UNDEFINED).isError()).isTrue();
-        sa.assertAll();
-    }
-
-    @Test
-    void requireArrayNode() {
-        var sa = new SoftAssertions();
-        sa.assertThat(Val.requireArrayNode(this, Val.ofEmptyArray())).isEqualTo(Val.ofEmptyArray());
-        sa.assertThat(Val.requireArrayNode(this, Val.of(1)).isError()).isTrue();
-        sa.assertThat(Val.requireArrayNode(this, Val.error("", "")).isError()).isTrue();
-        sa.assertThat(Val.requireArrayNode(this, Val.UNDEFINED).isError()).isTrue();
-        sa.assertAll();
-    }
-
-    @Test
-    void requireObjectNode() {
-        var sa = new SoftAssertions();
-        sa.assertThat(Val.requireObjectNode(this, Val.ofEmptyObject())).isEqualTo(Val.ofEmptyObject());
-        sa.assertThat(Val.requireObjectNode(this, Val.of(1)).isError()).isTrue();
-        sa.assertThat(Val.requireObjectNode(this, Val.error("", "")).isError()).isTrue();
-        sa.assertThat(Val.requireObjectNode(this, Val.UNDEFINED).isError()).isTrue();
-        sa.assertAll();
-    }
-
-    @Test
-    void requireText() {
-        var sa = new SoftAssertions();
-        sa.assertThat(Val.requireText(this, Val.of(""))).isEqualTo(Val.of(""));
-        sa.assertThat(Val.requireText(this, Val.of(1)).isError()).isTrue();
-        sa.assertThat(Val.requireText(this, Val.error("", "")).isError()).isTrue();
-        sa.assertThat(Val.requireText(this, Val.UNDEFINED).isError()).isTrue();
-        sa.assertAll();
-    }
-
-    @Test
-    void requireNumber() {
-        var sa = new SoftAssertions();
-        sa.assertThat(Val.requireNumber(this, Val.of(1))).isEqualTo(Val.of(1));
-        sa.assertThat(Val.requireNumber(this, Val.of(1)).isError()).isFalse();
-        sa.assertThat(Val.requireNumber(this, Val.of("")).isError()).isTrue();
-        sa.assertThat(Val.requireNumber(this, Val.error("", "")).isError()).isTrue();
-        sa.assertThat(Val.requireNumber(this, Val.UNDEFINED).isError()).isTrue();
-        sa.assertAll();
-    }
-
-    @Test
     void getText() {
         var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.getText()).isEqualTo("true");
@@ -568,7 +461,7 @@ class ValTests {
     void decimalValue() {
         var sa = new SoftAssertions();
         sa.assertThat(Val.of(100D).decimalValue()).isEqualByComparingTo(new BigDecimal("100"));
-        var errorValue = Val.error("", "");
+        var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
         sa.assertThatThrownBy(errorValue::decimalValue).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.NUMBER_OPERATION_TYPE_MISMATCH_S_ERROR, "ERROR"));
         sa.assertThatThrownBy(Val.UNDEFINED::decimalValue).isInstanceOf(PolicyEvaluationException.class)
@@ -584,7 +477,7 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThatThrownBy(Val.UNDEFINED::getObjectNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, "undefined"));
-        var errorValue = Val.error("", "");
+        var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
         sa.assertThatThrownBy(errorValue::getObjectNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, "ERROR"));
         var emptyStringValue = Val.of("");
@@ -600,7 +493,7 @@ class ValTests {
         sa.assertThat(Val.of(JSON.arrayNode()).getArrayNode()).isEqualTo(JSON.arrayNode());
         sa.assertThatThrownBy(Val.UNDEFINED::getArrayNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, "undefined"));
-        var errorValue = Val.error("", "");
+        var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
         sa.assertThatThrownBy(errorValue::getArrayNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, "ERROR"));
         var emptyStringValue = Val.of("");
@@ -615,9 +508,9 @@ class ValTests {
         var sa = new SoftAssertions();
         sa.assertThatThrownBy(Val.UNDEFINED::getJsonNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(Val.UNDEFINED_VALUE_ERROR);
-        var errorValue = Val.error("", null);
+        var errorValue = Val.error((String) null);
         sa.assertThatThrownBy(errorValue::getJsonNode).isInstanceOf(PolicyEvaluationException.class)
-                .hasMessage(String.format(Val.VALUE_IS_AN_ERROR_S_ERROR, Val.UNKNOWN_ERROR));
+                .hasMessage(String.format(Val.VALUE_IS_AN_ERROR_S_ERROR, SaplError.UNKNOWN_ERROR_MESSAGE));
         sa.assertAll();
         assertThatJson(Val.ofEmptyArray().getJsonNode()).isArray();
     }
@@ -628,10 +521,10 @@ class ValTests {
         sa.assertThat(Val.TRUE).isEqualTo(Val.TRUE);
         sa.assertThat(Val.UNDEFINED).isEqualTo(Val.UNDEFINED);
         sa.assertThat(Val.UNDEFINED).isEqualTo(Val.UNDEFINED.withTrace(getClass()));
-        sa.assertThat(Val.error("", "ABC")).isEqualTo(Val.error("", "ABC"));
-        sa.assertThat(Val.error("", "X")).isNotEqualTo(Val.error("", "Y"));
-        sa.assertThat(Val.UNDEFINED).isNotEqualTo(Val.error("", "X"));
-        sa.assertThat(Val.of(1L)).isNotEqualTo(Val.error("", "X"));
+        sa.assertThat(Val.error(SaplError.of("ABC"))).isEqualTo(Val.error(SaplError.of("ABC")));
+        sa.assertThat(Val.error(SaplError.of("ABC"))).isNotEqualTo(Val.error(SaplError.of("CBA")));
+        sa.assertThat(Val.UNDEFINED).isNotEqualTo(Val.error(SaplError.of("ABC")));
+        sa.assertThat(Val.of(1L)).isNotEqualTo(Val.error(SaplError.of("ABC")));
         sa.assertThat(Val.of(1L)).isNotEqualTo(BigInteger.valueOf(1L));
         sa.assertThat(Val.TRUE).isNotEqualTo(Val.UNDEFINED);
         sa.assertThat(Val.of("")).isEqualTo(Val.of(""));
@@ -648,8 +541,9 @@ class ValTests {
     void hashTest() throws JsonProcessingException {
         var sa = new SoftAssertions();
         sa.assertThat(Val.UNDEFINED.hashCode()).isEqualTo(Val.UNDEFINED.hashCode());
-        sa.assertThat(Val.error("", "ABC").hashCode()).isEqualTo(Val.error("", "ABC").hashCode());
-        sa.assertThat(Val.error("", "X").hashCode()).isNotEqualTo(Val.error("", "Y").hashCode());
+        sa.assertThat(Val.error(SaplError.of("ABC")).hashCode()).isEqualTo(Val.error(SaplError.of("ABC")).hashCode());
+        sa.assertThat(Val.error(SaplError.of("ABC")).hashCode())
+                .isNotEqualTo(Val.error(SaplError.of("BCA")).hashCode());
         sa.assertThat(Val.of(1L).hashCode()).isNotEqualTo(BigInteger.valueOf(1L).hashCode());
         sa.assertThat(Val.TRUE.hashCode()).isNotEqualTo(Val.UNDEFINED.hashCode());
         sa.assertThat(Val.UNDEFINED.hashCode()).isNotEqualTo(Val.TRUE.hashCode());
@@ -670,7 +564,7 @@ class ValTests {
     void orElse() {
         var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.orElse(JSON.arrayNode())).isEqualTo(JSON.booleanNode(true));
-        sa.assertThat(Val.error("", "").orElse(JSON.arrayNode())).isEqualTo(JSON.arrayNode());
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).orElse(JSON.arrayNode())).isEqualTo(JSON.arrayNode());
         sa.assertThat(Val.UNDEFINED.orElse(JSON.arrayNode())).isEqualTo(JSON.arrayNode());
         sa.assertAll();
     }
@@ -679,7 +573,7 @@ class ValTests {
     void orElseGet() {
         var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.orElse(JSON::arrayNode)).isEqualTo(JSON.booleanNode(true));
-        sa.assertThat(Val.error("", "").orElse(JSON::arrayNode)).isEqualTo(JSON.arrayNode());
+        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).orElse(JSON::arrayNode)).isEqualTo(JSON.arrayNode());
         sa.assertThat(Val.UNDEFINED.orElse(JSON::arrayNode)).isEqualTo(JSON.arrayNode());
         sa.assertAll();
     }
@@ -922,7 +816,7 @@ class ValTests {
 
     @Test
     void traceOfError() {
-        var givenError = Val.error("", "xxx");
+        var givenError = Val.error(SaplError.of("xxx"));
         assertThatJson(givenError.getTrace()).inPath("$.value").isString().isEqualTo("|ERROR| xxx");
     }
 
@@ -1000,7 +894,7 @@ class ValTests {
         sa.assertThat(Val.TRUE.orElseThrow(RuntimeException::new)).isEqualTo(JSON.booleanNode(true));
         sa.assertThatThrownBy(() -> Val.UNDEFINED.orElseThrow(RuntimeException::new))
                 .isInstanceOf(RuntimeException.class).hasMessage(null);
-        var errorValue = Val.error("", "");
+        var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
         sa.assertThatThrownBy(() -> errorValue.orElseThrow(RuntimeException::new)).isInstanceOf(RuntimeException.class)
                 .hasMessage(null);
         sa.assertAll();

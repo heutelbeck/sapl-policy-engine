@@ -77,7 +77,7 @@ class SaplMqttClientExceptionIT {
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
-                .expectNext(Val.error(null, "Failed to build stream of messages.")).thenCancel().verify();
+                .expectNext(Val.error("Failed to build stream of messages.")).thenCancel().verify();
     }
 
     @Test
@@ -95,7 +95,7 @@ class SaplMqttClientExceptionIT {
                     .thenThrow(new RuntimeException("Error in stream"));
             // THEN
             StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
-                    .expectNext(Val.error(null, "Error in stream")).thenCancel().verify();
+                    .expectNext(Val.error("Error in stream")).thenCancel().verify();
         }
     }
 }

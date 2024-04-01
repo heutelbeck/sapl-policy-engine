@@ -39,6 +39,7 @@ import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
 import io.sapl.functions.SchemaValidationLibrary;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
@@ -77,7 +78,7 @@ public class ParameterTypeValidator {
             try {
                 validateType(val, parameterType);
             } catch (IllegalParameterType e) {
-                return Val.error(location, e);
+                return ErrorFactory.error(location, e);
             }
             return val;
         };

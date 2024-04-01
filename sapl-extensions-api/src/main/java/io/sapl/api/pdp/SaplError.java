@@ -15,21 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.sapl.impl;
+package io.sapl.api.pdp;
 
-import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
+import java.io.Serializable;
 
-import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.Not;
-import io.sapl.grammar.sapl.impl.util.OperatorUtil;
-import reactor.core.publisher.Flux;
+public record SaplError(String message, String documentName, String source, int offset, int endOffset, int startLine)
+        implements Serializable {
 
-public class NotImplCustom extends NotImpl {
+    public static final String UNKNOWN_ERROR_MESSAGE = "Unknown Error.";
+    public static final SaplError UNKNOWN_ERROR = new SaplError(UNKNOWN_ERROR_MESSAGE, null, null, 0, 0, 0);
 
-    @Override
-    public Flux<Val> evaluate() {
-        return operator(this, this, OperatorUtil::requireBoolean,
-                x -> Val.of(!x.get().asBoolean()).withTrace(Not.class, false, x));
+    public static SaplError of(String message) {
+        return new SaplError(message, null, null, 0, 0, 0);
     }
-
 }

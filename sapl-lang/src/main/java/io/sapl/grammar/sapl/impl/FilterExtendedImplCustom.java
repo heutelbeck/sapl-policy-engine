@@ -26,6 +26,7 @@ import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterExtended;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil;
 import reactor.core.publisher.Flux;
 
@@ -40,7 +41,7 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
                     Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
         }
         if (unfilteredValue.isUndefined()) {
-            return Flux.just(Val.error(this, FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR)
+            return Flux.just(ErrorFactory.error(this, FILTERS_CANNOT_BE_APPLIED_TO_UNDEFINED_VALUES_ERROR)
                     .withTrace(FilterExtended.class, true, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
         }
         if (statements == null) {

@@ -36,6 +36,7 @@ import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.SaplFactoryImpl;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SimpleFunctionLibrary;
 import io.sapl.interpreter.context.AuthorizationContext;
@@ -103,7 +104,7 @@ public class MockUtil {
 
         @Function
         public Val error(Val... parameters) {
-            return Val.error(null, "INTENTIONALLY CREATED TEST ERROR");
+            return ErrorFactory.error("INTENTIONALLY CREATED TEST ERROR");
         }
 
         @Function
@@ -141,7 +142,7 @@ public class MockUtil {
 
         @EnvironmentAttribute
         public Flux<Val> numbersWithError(Map<String, Val> variables) {
-            return Flux.just(Val.of(0), Val.of(1), Val.error(null, "INTENTIONAL ERROR IN SEQUENCE"), Val.of(3),
+            return Flux.just(Val.of(0), Val.of(1), ErrorFactory.error("INTENTIONAL ERROR IN SEQUENCE"), Val.of(3),
                     Val.of(4), Val.of(5));
         }
 

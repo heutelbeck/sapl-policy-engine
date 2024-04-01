@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.testutil.MockUtil;
 import reactor.test.StepVerifier;
@@ -198,7 +199,7 @@ class PolicySetImplCustomTests {
         var policy = INTERPRETER
                 .parse("set \"set\" deny-overrides " + "policy \"set.p1\" permit where var a=5; var b=2; "
                         + "policy \"set.p2\" permit where a==undefined && b == undefined;");
-        assertThat(policy.getPolicyElement().targetResult(Val.error(null, "Error")).getAuthorizationDecision()
+        assertThat(policy.getPolicyElement().targetResult(ErrorFactory.error("Error")).getAuthorizationDecision()
                 .getDecision()).isEqualTo(Decision.INDETERMINATE);
         assertThat(policy.getPolicyElement().targetResult(Val.of("XXX")).getAuthorizationDecision().getDecision())
                 .isEqualTo(Decision.NOT_APPLICABLE);

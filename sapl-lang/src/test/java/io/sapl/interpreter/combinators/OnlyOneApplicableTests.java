@@ -42,6 +42,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
@@ -145,7 +146,7 @@ class OnlyOneApplicableTests {
         var result       = new PolicyRetrievalResult();
         Val targetResult = Val.TRUE;
         if (errorsInTarget)
-            targetResult = Val.error(this, "ERROR FROM MOCK");
+            targetResult = ErrorFactory.error("ERROR FROM MOCK");
         for (var policy : policies) {
             var document = INTERPRETER.parseDocument(policy);
             result = result.withMatch(new DocumentMatch(document, targetResult));
@@ -160,7 +161,7 @@ class OnlyOneApplicableTests {
             var document = INTERPRETER.parseDocument(policy);
             if (errorsInTarget && !errorUsed) {
                 errorUsed = true;
-                result    = result.withMatch(new DocumentMatch(document, Val.error(this, "ERROR FROM MOCK")));
+                result    = result.withMatch(new DocumentMatch(document, ErrorFactory.error("ERROR FROM MOCK")));
             } else {
                 result = result.withMatch(new DocumentMatch(document, Val.TRUE));
             }

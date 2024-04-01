@@ -15,29 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter.pip;
+package io.sapl.grammar.sapl.impl.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
-import org.eclipse.emf.ecore.EObject;
+import java.io.IOException;
+
 import org.junit.jupiter.api.Test;
 
-import io.sapl.api.interpreter.Val;
+import io.sapl.testutil.ParserUtil;
 
-class ErrorUtilTests {
+class ErrorFactoryTests {
 
     @Test
-    void withCauseReturnsCauseMessage() {
-        var errorSource = mock(EObject.class);
+    void withCauseReturnsCauseMessage() throws IOException {
+        var errorSource = ParserUtil.expression("null");
         var t           = new RuntimeException("A", new RuntimeException("B"));
-        assertThat(ErrorUtil.causeOrMessage(errorSource, t)).isEqualTo(Val.error(errorSource, "B"));
+        assertThat(ErrorFactory.causeOrMessage(errorSource, t)).isEqualTo(ErrorFactory.error(errorSource, "B"));
     }
 
     @Test
-    void withoutCauseReturnsMessage() {
-        var errorSource = mock(EObject.class);
+    void withoutCauseReturnsMessage() throws IOException {
+        var errorSource = ParserUtil.expression("null");
         var t           = new RuntimeException("A");
-        assertThat(ErrorUtil.causeOrMessage(errorSource, t)).isEqualTo(Val.error(errorSource, "A"));
+        assertThat(ErrorFactory.causeOrMessage(errorSource, t)).isEqualTo(ErrorFactory.error(errorSource, "A"));
     }
 }

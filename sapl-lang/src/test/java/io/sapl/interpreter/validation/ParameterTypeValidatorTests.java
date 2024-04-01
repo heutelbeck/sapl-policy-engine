@@ -68,7 +68,7 @@ class ParameterTypeValidatorTests {
 	//      GIVEN VALUE                         WILL BE VALID WITH THESE ANNOTATIONS
 			Val.of(123), 						new Class<?>[] { Number.class, Int.class, Long.class },
 			Val.UNDEFINED, 						new Class<?>[] { },
-			Val.error(null,null),       		new Class<?>[] { },
+			Val.error((String)null),            new Class<?>[] { },
 			Val.of(Double.MAX_VALUE), 			new Class<?>[] { Number.class },
 			Val.of(java.lang.Long.MAX_VALUE),	new Class<?>[] { Number.class, Long.class },
 			Val.of(Integer.MAX_VALUE),			new Class<?>[] { Number.class, Long.class, Int.class },

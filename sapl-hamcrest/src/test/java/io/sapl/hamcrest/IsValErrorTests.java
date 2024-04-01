@@ -27,6 +27,7 @@ import org.hamcrest.StringDescription;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.SaplError;
 
 class IsValErrorTests {
 
@@ -37,7 +38,7 @@ class IsValErrorTests {
     @Test
     void testType() {
         var sut = valError();
-        assertThat(Val.error(null, null), is(sut));
+        assertThat(Val.error(SaplError.of(null)), is(sut));
     }
 
     @Test
@@ -49,19 +50,19 @@ class IsValErrorTests {
     @Test
     void testMessageTrue() {
         var sut = valError(MESSAGE);
-        assertThat(Val.error(null, MESSAGE), is(sut));
+        assertThat(Val.error(SaplError.of(MESSAGE)), is(sut));
     }
 
     @Test
     void testMessageFalse() {
         var sut = valError(MESSAGE);
-        assertThat(Val.error(null, "X"), not(is(sut)));
+        assertThat(Val.error(SaplError.of("X")), not(is(sut)));
     }
 
     @Test
     void testMatcher() {
         var sut = valError(equalToIgnoringCase(MESSAGE_MIXED_CASE));
-        assertThat(Val.error(null, MESSAGE), is(sut));
+        assertThat(Val.error(SaplError.of(MESSAGE)), is(sut));
     }
 
     @Test
