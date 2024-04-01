@@ -19,9 +19,12 @@ package io.sapl.api.pdp;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.sapl.api.SaplVersion;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -38,7 +41,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(NON_NULL)
-public class IdentifiableAuthorizationDecision {
+public class IdentifiableAuthorizationDecision implements Serializable {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+
     /**
      * A simple INDETERMINATE decision.
      */

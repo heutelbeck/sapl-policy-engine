@@ -19,12 +19,14 @@ package io.sapl.api.pdp;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import io.sapl.api.SaplVersion;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -43,10 +45,12 @@ import lombok.NonNull;
  */
 @Data
 @NoArgsConstructor
-public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthorizationDecision> {
+public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthorizationDecision>, Serializable {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     @JsonInclude(NON_EMPTY)
-    Map<String, AuthorizationDecision> authorizationDecisions = new HashMap<>();
+    HashMap<String, AuthorizationDecision> authorizationDecisions = new HashMap<>();
 
     /**
      * @return A simple INDETERMINATE decision.
