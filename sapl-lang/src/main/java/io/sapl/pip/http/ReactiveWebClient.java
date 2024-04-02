@@ -47,6 +47,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -213,9 +214,9 @@ public class ReactiveWebClient {
 
     private Mono<Val> mapError(Throwable e) {
         if (e instanceof WebClientResponseException clientException) {
-            return Mono.just(Val.error(null, clientException.getRootCause()));
+            return Mono.just(ErrorFactory.error(null, clientException.getRootCause()));
         }
-        return Mono.just(Val.error(null, e));
+        return Mono.just(ErrorFactory.error(null, e));
     }
 
     private Mono<Void> sendAndListen(WebSocketSession session, JsonNode body, Many<Val> receiveBuffer) {
@@ -234,7 +235,7 @@ public class ReactiveWebClient {
             try {
                 receiveBuffer.tryEmitNext(Val.ofJson(payload));
             } catch (JsonProcessingException e) {
-                receiveBuffer.tryEmitNext(Val.error(null, e.getMessage()));
+                receiveBuffer.tryEmitNext(ErrorFactory.error(e.getMessage()));
             }
         }).then();
     }

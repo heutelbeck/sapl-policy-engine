@@ -42,6 +42,8 @@ import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHa
 import io.sapl.pdp.remote.metadata.SimpleAuthenticationEncoder;
 import org.springframework.stereotype.Controller;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.rsocket.core.RSocketServer;
@@ -70,6 +72,8 @@ public class RemoteRsocketPolicyDecisionPointTests {
     private static final String SUBJECT = "subject";
 
     private static AnnotationConfigApplicationContext context;
+
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     @BeforeAll
     public static void setupOnce() {
@@ -127,8 +131,8 @@ public class RemoteRsocketPolicyDecisionPointTests {
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
 
-        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
-                RESOURCE);
+        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
+                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decideAll(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
@@ -143,8 +147,8 @@ public class RemoteRsocketPolicyDecisionPointTests {
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
 
-        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
-                RESOURCE);
+        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
+                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();

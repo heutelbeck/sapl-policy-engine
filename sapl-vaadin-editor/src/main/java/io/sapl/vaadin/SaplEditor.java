@@ -27,6 +27,7 @@ import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.dom.Element;
 
 import elemental.json.JsonArray;
+import io.sapl.api.SaplVersion;
 
 /**
  * An editor component for SAPL documents supporting code-completion,
@@ -38,7 +39,7 @@ import elemental.json.JsonArray;
 @NpmPackage(value = "codemirror", version = "5.65.16")
 public class SaplEditor extends BaseEditor {
 
-    private static final long serialVersionUID = -9222878383914229515L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private final List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
 

@@ -36,6 +36,7 @@ import io.sapl.grammar.sapl.ConditionStep;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.RecursiveIndexStep;
 import io.sapl.grammar.sapl.Step;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.testutil.ParserUtil;
 import reactor.test.StepVerifier;
 
@@ -63,7 +64,7 @@ class StepApplyNullCheckAndErrorPropagationTests {
     @ParameterizedTest
     @MethodSource("data")
     void stepsPropagateErrors(Step step) throws IOException {
-        var error = Val.error(null, "TEST");
+        var error = ErrorFactory.error("TEST");
         if (step instanceof ConditionStep) {
             // Special case. this expression checks for expression first and that is just Ok
             ((ConditionStep) step).setExpression(ParserUtil.expression("true"));

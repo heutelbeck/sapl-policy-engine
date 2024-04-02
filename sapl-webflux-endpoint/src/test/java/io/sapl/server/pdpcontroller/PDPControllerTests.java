@@ -33,6 +33,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
@@ -46,6 +48,8 @@ import reactor.test.StepVerifier;
 @WebFluxTest(controllers = PDPController.class)
 @ContextConfiguration(classes = { PDPController.class })
 class PDPControllerTests {
+
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
     @MockBean
     private PolicyDecisionPoint pdp;
@@ -135,9 +139,10 @@ class PDPControllerTests {
                 .just(IdentifiableAuthorizationDecision.INDETERMINATE, IdentifiableAuthorizationDecision.INDETERMINATE,
                         IdentifiableAuthorizationDecision.INDETERMINATE));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = webClient.post().uri("/api/pdp/multi-decide").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
@@ -156,9 +161,10 @@ class PDPControllerTests {
         when(pdp.decide((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = webClient.post().uri("/api/pdp/multi-decide").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
@@ -186,9 +192,10 @@ class PDPControllerTests {
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = webClient.post().uri("/api/pdp/multi-decide-all").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
@@ -209,9 +216,10 @@ class PDPControllerTests {
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = webClient.post().uri("/api/pdp/multi-decide-all-once").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
@@ -229,9 +237,10 @@ class PDPControllerTests {
         when(pdp.decideAll((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = webClient.post().uri("/api/pdp/multi-decide-all").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
@@ -249,9 +258,10 @@ class PDPControllerTests {
         when(pdp.decideAll((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = webClient.post().uri("/api/pdp/multi-decide-all-once").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)

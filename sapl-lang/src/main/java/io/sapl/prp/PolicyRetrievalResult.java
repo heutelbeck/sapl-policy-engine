@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -87,7 +88,7 @@ public class PolicyRetrievalResult {
     public List<Val> getErrors() {
         var errors = new ArrayList<Val>();
         if (errorMessage != null) {
-            errors.add(Val.error(PolicyRetrievalPoint.class, errorMessage));
+            errors.add(ErrorFactory.error(errorMessage));
         }
         for (var match : nonMatchingDocuments) {
             errors.addAll(match.targetExpressionResult().getErrorsFromTrace());

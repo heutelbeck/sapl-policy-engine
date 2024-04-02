@@ -17,6 +17,8 @@
  */
 package io.sapl.grammar.sapl.impl.util;
 
+import org.eclipse.emf.ecore.EObject;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.BinaryOperator;
 import io.sapl.grammar.sapl.UnaryOperator;
@@ -25,38 +27,47 @@ import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class OperatorUtil {
+    static final String UNDEFINED_VALUE_ERROR                      = "Undefined value error.";
+    static final String OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR     = "Type mismatch. Expected an object, but got %s.";
+    static final String ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR      = "Type mismatch. Expected an array, but got %s.";
+    static final String BOOLEAN_OPERATION_TYPE_MISMATCH_S_ERROR    = "Type mismatch. Boolean operation expects boolean values, but got: '%s'.";
+    static final String NUMBER_OPERATION_TYPE_MISMATCH_S_ERROR     = "Type mismatch. Number operation expects number values, but got: '%s'.";
+    static final String TEXT_OPERATION_TYPE_MISMATCH_S_ERROR       = "Type mismatch. Text operation expects text values, but got: '%s'.";
+    static final String ARITHMETIC_OPERATION_TYPE_MISMATCH_S_ERROR = "Type mismatch. Number operation expects number values, but got: '%s'.";
 
-    public static Flux<Val> operator(Object demandingComponent, BinaryOperator operator,
-            java.util.function.BiFunction<Object, Val, Val> leftTypeRequirement,
-            java.util.function.BiFunction<Object, Val, Val> rightTypeRequirement,
+    public static Flux<Val> operator(EObject demandingComponent, BinaryOperator operator,
+            java.util.function.BiFunction<EObject, Val, Val> leftTypeRequirement,
+            java.util.function.BiFunction<EObject, Val, Val> rightTypeRequirement,
             java.util.function.BinaryOperator<Val> transformation) {
         var left  = operator.getLeft().evaluate().map(v -> leftTypeRequirement.apply(demandingComponent, v));
         var right = operator.getRight().evaluate().map(v -> rightTypeRequirement.apply(demandingComponent, v));
         return Flux.combineLatest(left, right, errorOrDo(transformation));
     }
 
-    public static Flux<Val> arithmeticOperator(Object demandingComponent, BinaryOperator operator,
+    public static Flux<Val> arithmeticOperator(EObject demandingComponent, BinaryOperator operator,
             java.util.function.BinaryOperator<Val> transformation) {
-        return operator(demandingComponent, operator, Val::requireBigDecimal, Val::requireBigDecimal, transformation);
+        return operator(demandingComponent, operator, OperatorUtil::requireBigDecimal, OperatorUtil::requireBigDecimal,
+                transformation);
     }
 
-    public static Flux<Val> arithmeticOperator(Object demandingComponent, UnaryOperator unaryOperator,
+    public static Flux<Val> arithmeticOperator(EObject demandingComponent, UnaryOperator unaryOperator,
             java.util.function.UnaryOperator<Val> transformation) {
-        return operator(demandingComponent, unaryOperator, Val::requireBigDecimal, transformation);
+        return operator(demandingComponent, unaryOperator, OperatorUtil::requireBigDecimal, transformation);
     }
 
-    public static Flux<Val> booleanOperator(Object demandingComponent, BinaryOperator operator,
+    public static Flux<Val> booleanOperator(EObject demandingComponent, BinaryOperator operator,
             java.util.function.BinaryOperator<Val> transformation) {
-        return operator(demandingComponent, operator, Val::requireBoolean, Val::requireBoolean, transformation);
+        return operator(demandingComponent, operator, OperatorUtil::requireBoolean, OperatorUtil::requireBoolean,
+                transformation);
     }
 
-    public static Flux<Val> operator(Object demandingComponent, BinaryOperator operator,
+    public static Flux<Val> operator(EObject demandingComponent, BinaryOperator operator,
             java.util.function.BinaryOperator<Val> transformation) {
         return operator(demandingComponent, operator, (d, v) -> v, (d, v) -> v, transformation);
     }
 
-    public static Flux<Val> operator(Object demandingComponent, UnaryOperator unaryOperator,
-            java.util.function.BiFunction<Object, Val, Val> typeRequirement,
+    public static Flux<Val> operator(EObject demandingComponent, UnaryOperator unaryOperator,
+            java.util.function.BiFunction<EObject, Val, Val> typeRequirement,
             java.util.function.UnaryOperator<Val> transformation) {
         return unaryOperator.getExpression().evaluate().map(v -> typeRequirement.apply(demandingComponent, v))
                 .map(errorOrDo(transformation));
@@ -82,4 +93,116 @@ public class OperatorUtil {
         };
     }
 
+    /**
+     * Validation method to ensure a Val is a JsonNode, i.e., not undefined or an
+     * error.
+     *
+     * @param value a Val
+     * @return the input Val, or an error, if the input is not a JsonNode.
+     */
+    public static Val requireJsonNode(EObject demandingComponent, Val value) {
+        if (value.isError()) {
+            return value;
+        }
+        if (value.isDefined()) {
+            return value;
+        }
+        return ErrorFactory.error(demandingComponent, UNDEFINED_VALUE_ERROR, Val.typeOf(value)).withTrace(Val.class,
+                true, value);
+    }
+
+    /**
+     * Validation method to ensure a Val is a Boolean.
+     *
+     * @param value a Val
+     * @return the input Val, or an error, if the input is not Boolean.
+     */
+    public static Val requireBoolean(EObject demandingComponent, Val value) {
+        if (value.isError()) {
+            return value;
+        }
+        if (!value.isBoolean()) {
+            return ErrorFactory.error(demandingComponent, BOOLEAN_OPERATION_TYPE_MISMATCH_S_ERROR, Val.typeOf(value))
+                    .withTrace(Val.class, true, value);
+        }
+        return value;
+    }
+
+    /**
+     * Validation method to ensure a Val is a JSON array.
+     *
+     * @param value a Val
+     * @return the input Val, or an error, if the input is not an array.
+     */
+    public static Val requireArrayNode(EObject demandingComponent, Val value) {
+        if (value.isError()) {
+            return value;
+        }
+        if (value.isUndefined() || !value.get().isArray()) {
+            return ErrorFactory.error(demandingComponent, ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, Val.typeOf(value))
+                    .withTrace(Val.class, true, value);
+        }
+        return value;
+    }
+
+    /**
+     * Validation method to ensure a Val is a JSON object.
+     *
+     * @param value a Val
+     * @return the input Val, or an error, if the input is not an object.
+     */
+    public static Val requireObjectNode(EObject demandingComponent, Val value) {
+        if (value.isError()) {
+            return value;
+        }
+        if (value.isUndefined() || !value.get().isObject()) {
+            return ErrorFactory.error(demandingComponent, OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, Val.typeOf(value))
+                    .withTrace(Val.class, true, value);
+        }
+        return value;
+    }
+
+    /**
+     * Validation method to ensure a Val is a textual value.
+     *
+     * @param value a Val
+     * @return the input Val, or an error, if the input is not textual.
+     */
+    public static Val requireText(EObject demandingComponent, Val value) {
+        if (value.isError()) {
+            return value;
+        }
+        if (value.isUndefined() || !value.get().isTextual()) {
+            return ErrorFactory.error(demandingComponent, TEXT_OPERATION_TYPE_MISMATCH_S_ERROR, Val.typeOf(value))
+                    .withTrace(Val.class, true, value);
+        }
+        return value;
+    }
+
+    /**
+     * Validation method to ensure a val is a numerical value.
+     *
+     * @param value a Val
+     * @return the input Val, or an error, if the input is not a number.
+     */
+    public static Val requireBigDecimal(EObject demandingComponent, Val value) {
+        if (value.isError()) {
+            return value;
+        }
+        if (value.isUndefined() || !value.get().isNumber()) {
+            return ErrorFactory.error(demandingComponent, ARITHMETIC_OPERATION_TYPE_MISMATCH_S_ERROR, Val.typeOf(value))
+                    .withTrace(Val.class, true, value);
+        }
+        return value;
+    }
+
+    /**
+     * Validation method to ensure a val is a numerical value.
+     *
+     * @param value a Val
+     * @return the input Val, or an error, if the input is not a number.
+     */
+    public static Val requireNumber(EObject demandingComponent, Val value) {
+        return requireBigDecimal(demandingComponent, value);
+    }
 }

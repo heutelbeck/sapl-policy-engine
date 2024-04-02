@@ -17,12 +17,14 @@
  */
 package io.sapl.interpreter;
 
+import io.sapl.api.SaplVersion;
+
 /**
  * Indicates an error during function context setup or function evaluation.
  */
 public class InitializationException extends Exception {
 
-    private static final long serialVersionUID = -8106759560820743825L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     /**
      * Create a new FunctionException

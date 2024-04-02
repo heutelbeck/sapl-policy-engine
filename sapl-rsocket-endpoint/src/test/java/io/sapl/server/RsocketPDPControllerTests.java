@@ -37,6 +37,8 @@ import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHa
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.util.TestSocketUtils;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import io.rsocket.SocketAcceptor;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.frame.decoder.PayloadDecoder;
@@ -59,6 +61,9 @@ import reactor.test.StepVerifier;
 @Import({ PolicyDecisionPoint.class, RSocketMessageHandler.class })
 @ContextConfiguration(classes = { RsocketPDPControllerTests.class })
 class RsocketPDPControllerTests {
+
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
     private final int  serverPort = TestSocketUtils.findAvailableTcpPort();
     private Disposable server;
 
@@ -150,9 +155,10 @@ class RsocketPDPControllerTests {
                 IdentifiableAuthorizationDecision.INDETERMINATE, IdentifiableAuthorizationDecision.INDETERMINATE,
                 IdentifiableAuthorizationDecision.INDETERMINATE));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = requester.route("multi-decide").data(multiAuthzSubscription)
                 .retrieveFlux(IdentifiableAuthorizationDecision.class);
@@ -168,9 +174,10 @@ class RsocketPDPControllerTests {
     void subscribeToMultiDecisionsProcessingError() {
         when(pdp.decide(any(MultiAuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = requester.route("multi-decide").data(multiAuthzSubscription)
                 .retrieveFlux(IdentifiableAuthorizationDecision.class);
@@ -194,9 +201,10 @@ class RsocketPDPControllerTests {
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = requester.route("multi-decide-all").data(multiAuthzSubscription)
                 .retrieveFlux(MultiAuthorizationDecision.class);
@@ -215,9 +223,10 @@ class RsocketPDPControllerTests {
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
                 .retrieveMono(MultiAuthorizationDecision.class);
@@ -231,9 +240,10 @@ class RsocketPDPControllerTests {
     void subscribeToMultiAllDecisionsProcessingError() {
         when(pdp.decideAll(any(MultiAuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
                 .retrieveMono(MultiAuthorizationDecision.class);
@@ -247,9 +257,10 @@ class RsocketPDPControllerTests {
     void oneMultiAllDecisionsProcessingError() {
         when(pdp.decideAll(any(MultiAuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "subject", "action1", "resource")
-                .addAuthorizationSubscription("id2", "subject", "action2", "other resource");
+        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
+                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
+                        JSON.textNode("other resource"));
 
         var result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
                 .retrieveMono(MultiAuthorizationDecision.class);

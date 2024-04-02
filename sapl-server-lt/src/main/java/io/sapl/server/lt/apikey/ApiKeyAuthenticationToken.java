@@ -23,12 +23,14 @@ import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
+import io.sapl.api.SaplVersion;
+
 /**
  * Represents an authentication token within the example application.
  */
 public class ApiKeyAuthenticationToken implements Authentication {
 
-    private static final long serialVersionUID = -2054882429348699109L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private final String apiKey;
     private final String principal;

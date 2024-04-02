@@ -21,12 +21,29 @@ import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 class AuthorizationSubscriptionTests {
 
     private static final String ENVIRONMENT = "ENVIRONMENT";
     private static final String RESOURCE    = "RESOURCE";
     private static final String ACTION      = "ACTION";
     private static final String SUBJECT     = "SUBJECT";
+
+    public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
+    @Test
+    void subjectActionResourceConstructorr() {
+        var subject      = JSON.textNode(SUBJECT);
+        var action       = JSON.textNode(ACTION);
+        var resource     = JSON.textNode(RESOURCE);
+        var environment  = JSON.textNode(ENVIRONMENT);
+        var subscription = new AuthorizationSubscription(subject, action, resource, environment);
+        assertThatJson(subscription.getSubject()).isString().isEqualTo(SUBJECT);
+        assertThatJson(subscription.getAction()).isString().isEqualTo(ACTION);
+        assertThatJson(subscription.getResource()).isString().isEqualTo(RESOURCE);
+        assertThatJson(subscription.getEnvironment()).isString().isEqualTo(ENVIRONMENT);
+    }
 
     @Test
     void subjectActionResourceDefaultMapper() {

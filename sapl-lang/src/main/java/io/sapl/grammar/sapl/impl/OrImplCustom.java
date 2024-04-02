@@ -22,6 +22,8 @@ import java.util.Map;
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Or;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
+import io.sapl.grammar.sapl.impl.util.OperatorUtil;
 import io.sapl.grammar.sapl.impl.util.TargetExpressionUtil;
 import reactor.core.publisher.Flux;
 
@@ -39,9 +41,9 @@ public class OrImplCustom extends OrImpl {
     public Flux<Val> evaluate() {
         if (TargetExpressionUtil.isInTargetExpression(this)) {
             // lazy evaluation is not allowed in target expressions.
-            return Flux.just(Val.error(this, LAZY_OPERATOR_IN_TARGET_ERROR).withTrace(Or.class));
+            return Flux.just(ErrorFactory.error(this, LAZY_OPERATOR_IN_TARGET_ERROR).withTrace(Or.class));
         }
-        var left = getLeft().evaluate().map(v -> Val.requireBoolean(this, v));
+        var left = getLeft().evaluate().map(v -> OperatorUtil.requireBoolean(this, v));
         return left.switchMap(leftResult -> {
             if (leftResult.isError()) {
                 // Errors short circuit evaluation. Do not add further traces.
@@ -49,7 +51,7 @@ public class OrImplCustom extends OrImpl {
             }
             // Lazy evaluation of the right expression
             if (!leftResult.getBoolean()) {
-                return getRight().evaluate().map(v -> Val.requireBoolean(this, v)).map(rightResult -> {
+                return getRight().evaluate().map(v -> OperatorUtil.requireBoolean(this, v)).map(rightResult -> {
                     if (rightResult.isError()) {
                         // Errors short circuit evaluation. Do not add further traces.
                         return rightResult;

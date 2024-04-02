@@ -102,7 +102,7 @@ public class PayloadFormatUtility {
         try {
             return Val.of(convertBytesToJson(publishMessage.getPayloadAsBytes()));
         } catch (IOException e) {
-            return Val.error(null, "The mqtt message couldn't be converted to json.");
+            return Val.error("The mqtt message couldn't be converted to json.");
         }
     }
 

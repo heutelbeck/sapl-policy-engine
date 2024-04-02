@@ -31,6 +31,7 @@ import io.sapl.api.interpreter.Traced;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import lombok.Getter;
 import lombok.ToString;
@@ -132,7 +133,7 @@ public class CombinedDecision implements Traced {
     public Collection<Val> getErrorsFromTrace() {
         var errors = new ArrayList<Val>();
         if (errorMessage != null) {
-            errors.add(Val.error(this, errorMessage));
+            errors.add(ErrorFactory.error(errorMessage));
         }
         for (var result : documentEvaluationResults) {
             errors.addAll(result.getErrorsFromTrace());

@@ -22,6 +22,8 @@ import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.dom.Element;
 
+import io.sapl.api.SaplVersion;
+
 /**
  * A JSON Editor component with syntax highlighting and linting.
  */
@@ -32,7 +34,7 @@ import com.vaadin.flow.dom.Element;
 @NpmPackage(value = "codemirror", version = "5.65.16")
 public class JsonEditor extends BaseEditor {
 
-    private static final long serialVersionUID = 5820153273838122172L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     /**
      * Creates the editor component.

@@ -18,11 +18,9 @@
 package io.sapl.pdp.interceptors;
 
 import org.apache.commons.text.StringEscapeUtils;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.api.pdp.SaplError;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -37,8 +35,8 @@ public class ErrorReportGenerator {
         PLAIN_TEXT, ANSI_TEXT, HTML
     }
 
-    public String errorReport(Val error, boolean enumerateLines, OutputFormat format) {
-        if (!error.isError()) {
+    public String errorReport(Val value, boolean enumerateLines, OutputFormat format) {
+        if (!value.isError()) {
             return "No error";
         }
         var report = new StringBuilder();
@@ -46,21 +44,26 @@ public class ErrorReportGenerator {
             report.append(
                     "<div style=\"display: block; font-family: monospace; white-space: pre; padding: 0 1em; background-color: #282a36;\">\n");
         }
-        if (error.getErrorSourceReference() instanceof EObject errorSource) {
-            var markedSource = markErrorSourcePlainText(errorSource, enumerateLines, format);
-            // %n introduces unnecessary newlines in logs. Stick with \n.
-            var name         = markedSource.documentName() != null ? "'" + markedSource.documentName() + "' " : "";
-            var errorMessage = String.format("Error in document %sat (%d,%d): %s\n", name, markedSource.row(),
-                    markedSource.column(), error.getMessage());
 
-            if (format == OutputFormat.HTML) {
-                report.append(StringEscapeUtils.ESCAPE_HTML4.translate(errorMessage));
-            } else {
-                report.append(errorMessage);
-            }
-            report.append(markedSource.source());
+        var          error        = value.getError();
+        String       errorMessage;
+        MarkedSource markedSource = null;
+        if (error.source() == null || error.source().isEmpty()) {
+            errorMessage = String.format("Error: %s", error.message());
         } else {
-            report.append("Error: ").append(error.getMessage());
+            markedSource = markErrorSourcePlainText(error, enumerateLines, format);
+            // %n introduces unnecessary newlines in logs. Stick with \n.
+            var name = markedSource.documentName() != null ? "'" + markedSource.documentName() + "' " : "";
+            errorMessage = String.format("Error in document %sat (%d,%d): %s\n", name, markedSource.row(),
+                    markedSource.column(), value.getMessage());
+        }
+        if (format == OutputFormat.HTML) {
+            report.append(StringEscapeUtils.ESCAPE_HTML4.translate(errorMessage));
+        } else {
+            report.append(errorMessage);
+        }
+        if (markedSource != null) {
+            report.append(markedSource.source());
         }
         if (format == OutputFormat.HTML) {
             report.append("</div>\n");
@@ -68,25 +71,17 @@ public class ErrorReportGenerator {
         return report.toString();
     }
 
-    private MarkedSource markErrorSourcePlainText(EObject errorSource, boolean enumerateLines, OutputFormat format) {
-        var nodeSet = NodeModelUtils.getNode(errorSource);
-        var start   = nodeSet.getOffset();
-        var end     = nodeSet.getEndOffset();
-
-        String documentName = null;
-        var    root         = nodeSet.getRootNode();
-
-        if (root.getSemanticElement() instanceof SAPL sapl) {
-            documentName = sapl.getPolicyElement().getSaplName();
-        }
-
-        var documentSource          = root.getText();
-        var lines                   = documentSource.split("\n");
+    private MarkedSource markErrorSourcePlainText(SaplError saplError, boolean enumerateLines, OutputFormat format) {
+        var documentSource          = saplError.source();
+        var start                   = saplError.offset();
+        var end                     = saplError.endOffset();
+        var documentName            = saplError.documentName();
         var currentLineStartOffset  = 0;
         var markedSource            = new StringBuilder();
         var lineNumber              = 1;
         var column                  = 0;
-        var row                     = nodeSet.getStartLine();
+        var row                     = saplError.startLine();
+        var lines                   = documentSource.split("\n");
         var maxEnumerationWidth     = maxEnumerationWidth(lines.length + 1);
         var enumerationFormatString = enumerationFormatString(maxEnumerationWidth);
         var asciiMarkingLinePrefix  = " ".repeat(maxEnumerationWidth) + "|";

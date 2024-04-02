@@ -19,6 +19,7 @@ package io.sapl.api.pdp;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -26,9 +27,12 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
+import io.sapl.api.SaplVersion;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -41,7 +45,7 @@ import lombok.NonNull;
  * holding subscription IDs and corresponding
  * {@link AuthorizationSubscriptionElements authorization subscription
  * elements}. It provides methods to
- * {@link #addAuthorizationSubscription(String, Object, Object, Object, Object)
+ * {@link #addAuthorizationSubscription(String, JsonNode, JsonNode, JsonNode, JsonNode)
  * add} single authorization subscriptions and to {@link #iterator() iterate}
  * over all the authorization subscriptions.
  *
@@ -50,23 +54,25 @@ import lombok.NonNull;
 @Data
 @NoArgsConstructor
 @JsonInclude(NON_EMPTY)
-public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuthorizationSubscription> {
+public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuthorizationSubscription>, Serializable {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
 
     @NotEmpty
-    List<Object> subjects = new ArrayList<>();
+    ArrayList<BaseJsonNode> subjects = new ArrayList<>();
 
     @NotEmpty
-    List<Object> actions = new ArrayList<>();
+    ArrayList<BaseJsonNode> actions = new ArrayList<>();
 
     @NotEmpty
-    List<Object> resources = new ArrayList<>();
+    ArrayList<BaseJsonNode> resources = new ArrayList<>();
 
-    List<Object> environments = new ArrayList<>();
+    ArrayList<BaseJsonNode> environments = new ArrayList<>();
 
     @NotEmpty
-    Map<String, AuthorizationSubscriptionElements> authorizationSubscriptions = new HashMap<>();
+    HashMap<String, AuthorizationSubscriptionElements> authorizationSubscriptions = new HashMap<>();
 
     /**
      * Convenience method to add an authorization subscription without environment
@@ -85,15 +91,15 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * @return this {@code MultiAuthorizationSubscription} instance to support
      *         chaining of multiple calls to {@code addAuthorizationSubscription}.
      */
-    public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId, Object subject,
-            Object action, Object resource) {
+    public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId, JsonNode subject,
+            JsonNode action, JsonNode resource) {
         return addAuthorizationSubscription(subscriptionId, subject, action, resource, null);
     }
 
     /**
      * Convenience method to add an authorization subscription without environment
      * data. Calls
-     * {@link #addAuthorizationSubscription(String, Object, Object, Object)
+     * {@link #addAuthorizationSubscription(String, JsonNode, JsonNode, JsonNode)
      * addAuthorizationSubscription(subscriptionId, subject, action, resource,
      * null)}.
      *
@@ -129,7 +135,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      *         chaining of multiple calls to {@code addAuthorizationSubscription}.
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId,
-            @NonNull Object subject, @NonNull Object action, @NonNull Object resource, Object environment) {
+            @NonNull JsonNode subject, @NonNull JsonNode action, @NonNull JsonNode resource, JsonNode environment) {
 
         if (authorizationSubscriptions.containsKey(subscriptionId))
             throw new IllegalArgumentException("Cannot add two subscriptions with the same ID: " + subscriptionId);
@@ -144,14 +150,14 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
         return this;
     }
 
-    private Integer ensureIsElementOfListAndReturnIndex(Object element, List<Object> list) {
+    private Integer ensureIsElementOfListAndReturnIndex(JsonNode element, List<BaseJsonNode> list) {
         if (element == null)
             return null;
 
         int index = list.indexOf(element);
         if (index == -1) {
             index = list.size();
-            list.add(element);
+            list.add((BaseJsonNode) element);
         }
         return index;
     }

@@ -17,9 +17,10 @@
  */
 package io.sapl.spring.constraints.providers;
 
+import io.sapl.api.SaplVersion;
 import lombok.experimental.StandardException;
 
 @StandardException
 public class AccessConstraintViolationException extends RuntimeException {
-    private static final long serialVersionUID = 9032386243935864029L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 }

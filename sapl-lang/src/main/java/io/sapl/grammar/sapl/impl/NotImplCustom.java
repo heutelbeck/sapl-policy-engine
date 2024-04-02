@@ -21,13 +21,14 @@ import static io.sapl.grammar.sapl.impl.util.OperatorUtil.operator;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Not;
+import io.sapl.grammar.sapl.impl.util.OperatorUtil;
 import reactor.core.publisher.Flux;
 
 public class NotImplCustom extends NotImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, this, Val::requireBoolean,
+        return operator(this, this, OperatorUtil::requireBoolean,
                 x -> Val.of(!x.get().asBoolean()).withTrace(Not.class, false, x));
     }
 

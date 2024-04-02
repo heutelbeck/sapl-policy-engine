@@ -22,6 +22,7 @@ import java.util.Map;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.ExpressionStep;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -60,8 +61,9 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
         if (parentValue.isObject()) {
             return expression.evaluate().map(index -> extractKey(parentValue, index));
         }
-        return Flux.just(Val.error(this, EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S_ERROR, parentValue)
-                .withParentTrace(ExpressionStep.class, false, parentValue));
+        return Flux.just(
+                ErrorFactory.error(this, EXPRESSIONS_STEP_ONLY_APPLICABLE_TO_ARRAY_OR_OBJECT_WAS_S_ERROR, parentValue)
+                        .withParentTrace(ExpressionStep.class, false, parentValue));
     }
 
     @Override
@@ -82,9 +84,9 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
             // This is an IndexStep equivalent
             return IndexStepImplCustom.doApplyFilterStatement(key.decimalValue(), parentValue, stepId, statement);
         }
-        return Flux
-                .just(Val.error("Type mismatch. Tried to access {} with {}", parentValue.getValType(), key.getValType())
-                        .withParentTrace(ExpressionStep.class, false, parentValue));
+        return Flux.just(ErrorFactory
+                .error(this, "Type mismatch. Tried to access {} with {}", parentValue.getValType(), key.getValType())
+                .withParentTrace(ExpressionStep.class, false, parentValue));
     }
 
     private Val extractValueAt(Val parentValue, Val index) {
@@ -93,13 +95,14 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
             return index.withTrace(ExpressionStep.class, false, trace);
         }
         if (!index.isNumber()) {
-            return Val.error(this, ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S_ERROR, index)
+            return ErrorFactory.error(this, ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S_ERROR, index)
                     .withTrace(ExpressionStep.class, false, trace);
         }
         var idx   = index.get().asInt();
         var array = parentValue.get();
         if (idx < 0 || idx > array.size()) {
-            return Val.error(this, INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D_ERROR, array.size(), idx)
+            return ErrorFactory
+                    .error(this, INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D_ERROR, array.size(), idx)
                     .withTrace(ExpressionStep.class, false, trace);
         }
         return Val.of(array.get(idx)).withTrace(ExpressionStep.class, true, trace);
@@ -111,7 +114,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
             return key.withTrace(ExpressionStep.class, false, trace);
         }
         if (!key.isTextual()) {
-            return Val.error(this, OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S_ERROR, key)
+            return ErrorFactory.error(this, OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S_ERROR, key)
                     .withTrace(ExpressionStep.class, false, trace);
         }
         var fieldName = key.get().asText();

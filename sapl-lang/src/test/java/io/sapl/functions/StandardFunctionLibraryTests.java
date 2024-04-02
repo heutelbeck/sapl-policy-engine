@@ -118,7 +118,8 @@ class StandardFunctionLibraryTests {
 
     @Test
     void when_error_then_valueIsReplaced() {
-        assertThat(StandardFunctionLibrary.onErrorMap(Val.error(null, null), Val.of("REPLACED")), is(val("REPLACED")));
+        assertThat(StandardFunctionLibrary.onErrorMap(Val.error((String) null), Val.of("REPLACED")),
+                is(val("REPLACED")));
     }
 
 }

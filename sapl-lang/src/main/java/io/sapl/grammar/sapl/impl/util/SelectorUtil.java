@@ -37,7 +37,7 @@ public class SelectorUtil {
             try {
                 return Flux.just(Val.of(selector.test(index, relativeNode)));
             } catch (PolicyEvaluationException e) {
-                return Flux.just(Val.error(location, e.getMessage()));
+                return Flux.just(ErrorFactory.error(location, e.getMessage()));
             }
         });
     }

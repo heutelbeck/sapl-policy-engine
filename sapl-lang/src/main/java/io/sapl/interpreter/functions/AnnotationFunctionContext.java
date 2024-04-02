@@ -41,6 +41,7 @@ import io.sapl.api.functions.FunctionLibrarySupplier;
 import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.interpreter.ExpressionArgument;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SchemaLoadingUtil;
 import io.sapl.interpreter.pip.LibraryEntryMetadata;
@@ -120,8 +121,8 @@ public class AnnotationFunctionContext implements FunctionContext {
         }
         var metadata = functions.get(function);
         if (metadata == null)
-            return Val.error(location, UNKNOWN_FUNCTION_ERROR, function).withTrace(FunctionContext.class, false,
-                    functionTrace);
+            return ErrorFactory.error(location, UNKNOWN_FUNCTION_ERROR, function).withTrace(FunctionContext.class,
+                    false, functionTrace);
 
         var funParams = metadata.getFunction().getParameters();
 
@@ -133,7 +134,7 @@ public class AnnotationFunctionContext implements FunctionContext {
             return evaluateFixedParametersFunction(location, metadata, funParams, parameters)
                     .withTrace(FunctionContext.class, false, functionTrace);
         }
-        return Val.error(location, ILLEGAL_NUMBER_OF_PARAMETERS_ERROR, metadata.getNumberOfParameters(),
+        return ErrorFactory.error(location, ILLEGAL_NUMBER_OF_PARAMETERS_ERROR, metadata.getNumberOfParameters(),
                 parameters.length).withTrace(FunctionContext.class, false, functionTrace);
     }
 
@@ -143,10 +144,10 @@ public class AnnotationFunctionContext implements FunctionContext {
             try {
                 ParameterTypeValidator.validateType(parameters[i], funParams[i]);
             } catch (IllegalParameterType e) {
-                return Val.error(location, e);
+                return ErrorFactory.error(location, e);
             }
         }
-        return invokeFunction(metadata, (Object[]) parameters);
+        return invokeFunction(location, metadata, (Object[]) parameters);
     }
 
     private Val evaluateVarArgsFunction(EObject location, FunctionMetadata metadata, Parameter[] funParams,
@@ -155,29 +156,30 @@ public class AnnotationFunctionContext implements FunctionContext {
             try {
                 ParameterTypeValidator.validateType(parameter, funParams[0]);
             } catch (IllegalParameterType e) {
-                return Val.error(location, e);
+                return ErrorFactory.error(location, e);
             }
         }
-        return invokeFunction(metadata, (Object[]) new Object[] { parameters });
+        return invokeFunction(location, metadata, (Object[]) new Object[] { parameters });
     }
 
-    private Val invokeFunction(FunctionMetadata metadata, Object... parameters) {
+    private Val invokeFunction(EObject location, FunctionMetadata metadata, Object... parameters) {
         try {
             return (Val) metadata.getFunction().invoke(metadata.getLibrary(), parameters);
         } catch (Throwable e) {
-            return invocationExceptionToError(e, metadata, parameters);
+            return invocationExceptionToError(e, location, metadata, parameters);
         }
     }
 
-    private Val invocationExceptionToError(Throwable e, LibraryEntryMetadata metadata, Object... parameters) {
+    private Val invocationExceptionToError(Throwable e, EObject location, LibraryEntryMetadata metadata,
+            Object... parameters) {
         var params = new StringBuilder();
         for (var i = 0; i < parameters.length; i++) {
             params.append(parameters[i]);
             if (i < parameters.length - 2)
                 params.append(',');
         }
-        return Val.error("Error during evaluation of function %s(%s): %s", metadata.getFunctionName(),
-                params.toString(), e.getMessage());
+        return ErrorFactory.error(location, "Error during evaluation of function %s(%s): %s",
+                metadata.getFunctionName(), params.toString(), e.getMessage());
     }
 
     /**

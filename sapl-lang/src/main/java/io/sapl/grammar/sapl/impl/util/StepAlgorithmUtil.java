@@ -47,8 +47,8 @@ public class StepAlgorithmUtil {
         if (parentValue.isObject()) {
             return applyOnObject(parentValue, selector, stepParameters, operationType, location);
         }
-        return Flux.just(Val.error(location, STEP_ACCESS_TYPE_MISMATCH, parentValue).withTrace(operationType, true,
-                parentValue));
+        return Flux.just(ErrorFactory.error(location, STEP_ACCESS_TYPE_MISMATCH, parentValue).withTrace(operationType,
+                true, parentValue));
     }
 
     public static Flux<Val> applyOnArray(Val parentValue, Supplier<Flux<Val>> selector, String stepParameters,
@@ -58,8 +58,8 @@ public class StepAlgorithmUtil {
         }
 
         if (!parentValue.isArray()) {
-            return Flux.just(Val.error(location, ARRAY_ACCESS_TYPE_MISMATCH, parentValue).withParentTrace(operationType,
-                    true, parentValue));
+            return Flux.just(ErrorFactory.error(location, ARRAY_ACCESS_TYPE_MISMATCH, parentValue)
+                    .withParentTrace(operationType, true, parentValue));
         }
 
         if (parentValue.isEmpty()) {
@@ -87,7 +87,7 @@ public class StepAlgorithmUtil {
         }
 
         if (!parentValue.isObject()) {
-            return Flux.just(Val.error(location, OBJECT_ACCESS_TYPE_MISMATCH, parentValue)
+            return Flux.just(ErrorFactory.error(location, OBJECT_ACCESS_TYPE_MISMATCH, parentValue)
                     .withParentTrace(operationType, true, parentValue));
         }
 

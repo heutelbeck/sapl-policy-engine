@@ -25,6 +25,7 @@ import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.HeadAttributeFinderStep;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.grammar.sapl.impl.util.FunctionUtil;
 import io.sapl.grammar.sapl.impl.util.TargetExpressionUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
@@ -52,13 +53,14 @@ public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepIm
                         Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
             if (TargetExpressionUtil.isInTargetExpression(this)) {
-                return Flux.just(Val.error(this, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(
+                return Flux.just(ErrorFactory.error(this, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(
                         HeadAttributeFinderStep.class, false,
                         Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
             if (parentValue.isUndefined()) {
-                return Flux.just(Val.error(this, UNDEFINED_VALUE_ERROR).withTrace(HeadAttributeFinderStep.class, false,
-                        Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
+                return Flux.just(
+                        ErrorFactory.error(this, UNDEFINED_VALUE_ERROR).withTrace(HeadAttributeFinderStep.class, false,
+                                Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
             return AuthorizationContext.getAttributeContext(ctxView).evaluateAttribute(this, attributeName, parentValue,
                     getArguments(), AuthorizationContext.getVariables(ctxView)).take(1);
@@ -67,7 +69,7 @@ public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepIm
 
     @Override
     public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
-        return Flux.just(Val.error(this, ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR));
+        return Flux.just(ErrorFactory.error(this, ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR));
     }
 
 }

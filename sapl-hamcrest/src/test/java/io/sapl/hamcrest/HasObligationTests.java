@@ -115,8 +115,8 @@ class HasObligationTests {
         actualObligation.put("foo", 1);
         ArrayNode actualObligations = mapper.createArrayNode();
         actualObligations.add(actualObligation);
-        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations),
-                null);
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+                Optional.of(actualObligations), Optional.empty());
 
         var sut = new HasObligation();
 

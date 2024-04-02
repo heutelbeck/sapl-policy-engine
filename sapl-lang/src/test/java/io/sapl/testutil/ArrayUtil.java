@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.api.interpreter.Val;
 
 /**
@@ -79,7 +80,7 @@ public class ArrayUtil {
 
     private static class NumericAwareComparator implements Comparator<JsonNode>, Serializable {
 
-        private static final long serialVersionUID = -340324650567650268L;
+        private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
         @Override
         public int compare(JsonNode o1, JsonNode o2) {

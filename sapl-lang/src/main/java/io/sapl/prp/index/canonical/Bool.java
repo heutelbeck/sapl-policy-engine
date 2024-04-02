@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -65,7 +66,7 @@ public class Bool {
         Flux<Val> resultFlux = isConstantExpression ? Flux.just(Val.of(constant))
                 : expression.evaluate().contextWrite(ctx -> AuthorizationContext.setImports(ctx, imports));
         return resultFlux.map(result -> result.isError() || result.isBoolean() ? result
-                : Val.error(null, "Canonical Index Lookup: expression not boolean")).next();
+                : ErrorFactory.error("Canonical Index Lookup: expression not boolean")).next();
     }
 
     public boolean isImmutable() {

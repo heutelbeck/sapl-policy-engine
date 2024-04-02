@@ -22,6 +22,8 @@ import org.bson.types.ObjectId;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
+import io.sapl.api.SaplVersion;
+
 import java.io.Serial;
 
 public class OidObjectMapper extends ObjectMapper {
@@ -30,7 +32,7 @@ public class OidObjectMapper extends ObjectMapper {
      *
      */
     @Serial
-    private static final long serialVersionUID = -1238167469457710403L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     /**
      * A modified ObjectMapper to handle {@link ObjectId}s.

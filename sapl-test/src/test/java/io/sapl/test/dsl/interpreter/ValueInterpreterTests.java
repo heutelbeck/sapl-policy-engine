@@ -28,9 +28,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.dsl.ParserUtil;
-import io.sapl.test.grammar.sapltest.ErrorValue;
-import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -54,7 +51,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sapltest.Array;
+import io.sapl.test.grammar.sapltest.ErrorValue;
 import io.sapl.test.grammar.sapltest.FalseLiteral;
 import io.sapl.test.grammar.sapltest.NullLiteral;
 import io.sapl.test.grammar.sapltest.NumberLiteral;
@@ -62,6 +61,7 @@ import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.sapltest.TrueLiteral;
 import io.sapl.test.grammar.sapltest.UndefinedLiteral;
 import io.sapl.test.grammar.sapltest.Value;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 
 @ExtendWith(MockitoExtension.class)
 class ValueInterpreterTests {
@@ -197,7 +197,7 @@ class ValueInterpreterTests {
 
             final var result = valueInterpreter.getValFromValue(value);
 
-            assertEquals(Val.error(null, null), result);
+            assertEquals(Val.error((String) null), result);
         }
 
         @Test
@@ -206,7 +206,7 @@ class ValueInterpreterTests {
 
             final var result = valueInterpreter.getValFromValue(value);
 
-            assertEquals(Val.error(null, "foo"), result);
+            assertEquals(Val.error("foo"), result);
         }
 
         @Nested

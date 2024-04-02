@@ -15,12 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.mavenplugin.test.coverage;
+package io.sapl.api.pdp;
 
-import io.sapl.api.SaplVersion;
-import lombok.experimental.StandardException;
+import java.io.Serializable;
 
-@StandardException
-public class SaplTestException extends RuntimeException {
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+public record SaplError(String message, String documentName, String source, int offset, int endOffset, int startLine)
+        implements Serializable {
+
+    public static final String UNKNOWN_ERROR_MESSAGE = "Unknown Error.";
+    public static final SaplError UNKNOWN_ERROR = new SaplError(UNKNOWN_ERROR_MESSAGE, null, null, 0, 0, 0);
+
+    public static SaplError of(String message) {
+        return new SaplError(message, null, null, 0, 0, 0);
+    }
 }

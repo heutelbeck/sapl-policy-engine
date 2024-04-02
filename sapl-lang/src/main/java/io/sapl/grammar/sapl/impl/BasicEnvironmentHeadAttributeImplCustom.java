@@ -22,6 +22,7 @@ import java.util.Map;
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.AttributeFinderStep;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.grammar.sapl.impl.util.FunctionUtil;
 import io.sapl.grammar.sapl.impl.util.TargetExpressionUtil;
 import io.sapl.interpreter.context.AuthorizationContext;
@@ -41,8 +42,9 @@ public class BasicEnvironmentHeadAttributeImplCustom extends BasicEnvironmentHea
                     AuthorizationContext.getImports(ctx));
 
             if (TargetExpressionUtil.isInTargetExpression(this))
-                return Flux.just(Val.error(EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR, fullyQualifiedName).withTrace(
-                        AttributeFinderStep.class, false, Map.of(Trace.ATTRIBUTE, Val.of(fullyQualifiedName))));
+                return Flux.just(
+                        ErrorFactory.error(this, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR, fullyQualifiedName).withTrace(
+                                AttributeFinderStep.class, false, Map.of(Trace.ATTRIBUTE, Val.of(fullyQualifiedName))));
 
             return AuthorizationContext.getAttributeContext(ctx).evaluateEnvironmentAttribute(this, fullyQualifiedName,
                     getArguments(), AuthorizationContext.getVariables(ctx)).next();

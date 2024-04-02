@@ -15,12 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.mavenplugin.test.coverage;
+package io.sapl.api;
 
-import io.sapl.api.SaplVersion;
-import lombok.experimental.StandardException;
+import lombok.experimental.UtilityClass;
 
-@StandardException
-public class SaplTestException extends RuntimeException {
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+/**
+ * Class defining the common serialization ID for all Serializable classes.
+ * Objects are not intended to be sezializable between versions of the engine.
+ */
+@UtilityClass
+public class SaplVersion {
+    public static final long VERISION_UID = 03_00_00L;
 }

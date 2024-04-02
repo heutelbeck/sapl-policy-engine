@@ -17,8 +17,10 @@
  */
 package io.sapl.api.interpreter;
 
+import java.io.Serializable;
+
 /**
  * Traced expression argument value.
  */
-public record ExpressionArgument(String name, Val value) {
+public record ExpressionArgument(String name, Val value) implements Serializable {
 }

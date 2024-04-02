@@ -171,7 +171,8 @@ class EmbeddedPolicyDecisionPointTests {
     @Test
     void decide_withMultiSubscription_shouldReturnDecision() {
         final MultiAuthorizationSubscription multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id", "willi", "read", "something");
+                .addAuthorizationSubscription("id", JSON.textNode("willi"), JSON.textNode("read"),
+                        JSON.textNode("something"));
 
         final Flux<IdentifiableAuthorizationDecision> flux = pdp.decide(multiAuthzSubscription);
         StepVerifier.create(flux).expectNextMatches(iad -> "id".equals(iad.getAuthorizationSubscriptionId())
@@ -181,8 +182,10 @@ class EmbeddedPolicyDecisionPointTests {
     @Test
     void decide_withMultiSubscriptionContainingTwoSubscriptions_shouldReturnTwoDecisions() {
         final MultiAuthorizationSubscription multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "willi", "read", "something")
-                .addAuthorizationSubscription("id2", "willi", "write", "something");
+                .addAuthorizationSubscription("id1", JSON.textNode("willi"), JSON.textNode("read"),
+                        JSON.textNode("something"))
+                .addAuthorizationSubscription("id2", JSON.textNode("willi"), JSON.textNode("write"),
+                        JSON.textNode("something"));
 
         final Flux<IdentifiableAuthorizationDecision> flux = pdp.decide(multiAuthzSubscription);
         StepVerifier.create(flux).expectNextMatches(iad -> {
@@ -207,8 +210,10 @@ class EmbeddedPolicyDecisionPointTests {
     @Test
     void decideAll_withMultiSubscriptionContainingTwoSubscriptions_shouldReturnTwoDecisions() {
         final MultiAuthorizationSubscription multiAuthzSubscription = new MultiAuthorizationSubscription()
-                .addAuthorizationSubscription("id1", "willi", "read", "something")
-                .addAuthorizationSubscription("id2", "willi", "write", "something");
+                .addAuthorizationSubscription("id1", JSON.textNode("willi"), JSON.textNode("read"),
+                        JSON.textNode("something"))
+                .addAuthorizationSubscription("id2", JSON.textNode("willi"), JSON.textNode("write"),
+                        JSON.textNode("something"));
 
         final Flux<MultiAuthorizationDecision> flux = pdp.decideAll(multiAuthzSubscription);
         StepVerifier.create(flux).expectNextMatches(mad -> {

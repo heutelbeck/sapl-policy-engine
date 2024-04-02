@@ -36,10 +36,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.sapl.api.SaplVersion;
+import io.sapl.api.pdp.SaplError;
 import lombok.Getter;
 import reactor.core.publisher.Flux;
 
@@ -47,14 +50,15 @@ import reactor.core.publisher.Flux;
  * This class is the central value during policy evaluation. It can be a JSON
  * value, an error,or undefined. A Val can be marked as secret.
  */
-public class Val implements Traced {
+public class Val implements Traced, Serializable {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     static final String ERROR_LITERAL                              = "ERROR";
     static final String UNDEFINED_LITERAL                          = "undefined";
     static final String VALUE_IS_AN_ERROR_S_ERROR                  = "Value is an error: '%s'.";
     static final String VALUE_UNDEFINED_ERROR                      = "Value undefined";
     static final String VALUE_NOT_AN_ERROR                         = "Value not an error.";
-    static final String UNKNOWN_ERROR                              = "Unknown Error";
     static final String UNDEFINED_VALUE_ERROR                      = "Undefined value error.";
     static final String OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR     = "Type mismatch. Expected an object, but got %s.";
     static final String ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR      = "Type mismatch. Expected an array, but got %s.";
@@ -77,7 +81,7 @@ public class Val implements Traced {
     /**
      * Constant 'undefined' Val.
      */
-    public static final Val UNDEFINED = new Val(null, null, false, null, null);
+    public static final Val UNDEFINED = new Val(null, false, null, null);
 
     /**
      * Constant 'true' Val.
@@ -96,32 +100,30 @@ public class Val implements Traced {
 
     private static final NumericAwareComparator NUMERIC_AWARE_COMPARATOR = new NumericAwareComparator();
 
-    private final JsonNode value;
-    private final String   errorMessage;
+    private final BaseJsonNode value;
 
     @Getter
     private final boolean secret;
     final Trace           trace;
     @Getter
-    private final Object  errorSourceReference;
+    private SaplError     error;
 
     private Val(JsonNode value) {
-        this(value, null, false, null, null);
+        this(value, false, null, null);
     }
 
-    private Val(JsonNode value, String errorMessage, boolean isSecret, Trace trace, Object errorSourceReference) {
-        this.value                = value;
-        this.errorMessage         = errorMessage;
-        this.secret               = isSecret;
-        this.trace                = trace;
-        this.errorSourceReference = errorSourceReference;
+    private Val(JsonNode value, boolean isSecret, Trace trace, SaplError error) {
+        this.value  = (BaseJsonNode) value;
+        this.secret = isSecret;
+        this.trace  = trace;
+        this.error  = error;
     }
 
     /**
      * @return marks a value to be a secret.
      */
     public Val asSecret() {
-        return new Val(value, errorMessage, true, trace, errorSourceReference);
+        return new Val(value, true, trace, error);
     }
 
     /**
@@ -129,7 +131,7 @@ public class Val implements Traced {
      * @return the Val with attached trace.
      */
     private Val withTrace(Trace trace) {
-        return new Val(value, errorMessage, secret, trace, errorSourceReference);
+        return new Val(value, secret, trace, error);
     }
 
     /**
@@ -283,36 +285,24 @@ public class Val implements Traced {
     }
 
     /**
-     * @return a Val with an unknown error.
+     * @return a Val with an error.
      */
-    private static Val error(Object errorSource) {
-        return new Val(null, UNKNOWN_ERROR, false, null, errorSource);
-    }
-
-    /**
-     * @param errorMessage The error message. The same formatting options apply as
-     *                     with String.format.
-     * @param args         Arguments referenced by the format.
-     * @return a Val with a formatted error message.
-     */
-    public static Val error(Object errorSource, String errorMessage, Object... args) {
-        return new Val(null, String.format(errorMessage == null ? UNKNOWN_ERROR : errorMessage, args), false, null,
-                errorSource);
-    }
-
-    /**
-     * @param throwable a Throwable
-     * @return a Val with an error message from the throwable. If no message is
-     *         preset, the type of the Throwable is used as the message.
-     */
-    public static Val error(Object errorSource, Throwable throwable) {
-        if (throwable == null) {
-            return error(errorSource);
+    public static Val error(SaplError error) {
+        if (error == null) {
+            error = SaplError.UNKNOWN_ERROR;
         }
+        return new Val(null, false, null, error);
+    }
 
-        return (throwable.getMessage() == null || throwable.getMessage().isBlank())
-                ? error(errorSource, throwable.getClass().getSimpleName())
-                : error(errorSource, throwable.getMessage());
+    /**
+     * @return a Val with an error Message.
+     */
+    public static Val error(String errorMessage) {
+        var error = SaplError.UNKNOWN_ERROR;
+        if (errorMessage != null) {
+            error = SaplError.of(errorMessage);
+        }
+        return new Val(null, false, null, error);
     }
 
     /**
@@ -320,7 +310,7 @@ public class Val implements Traced {
      */
     public String getMessage() {
         if (isError()) {
-            return errorMessage;
+            return error.message();
         }
         throw new NoSuchElementException(VALUE_NOT_AN_ERROR);
     }
@@ -329,14 +319,14 @@ public class Val implements Traced {
      * @return true, iff the Val is an error.
      */
     public boolean isError() {
-        return errorMessage != null;
+        return error != null;
     }
 
     /**
      * @return true, iff the Val is not an error.
      */
     public boolean noError() {
-        return errorMessage == null;
+        return error == null;
     }
 
     /**
@@ -650,7 +640,7 @@ public class Val implements Traced {
             return false;
         }
         if (isError()) {
-            return Objects.equals(errorMessage, other.getMessage());
+            return Objects.equals(error, other.getError());
         }
         if (isDefined() != other.isDefined()) {
             return false;
@@ -664,9 +654,9 @@ public class Val implements Traced {
     @Override
     public int hashCode() {
         if (value == null)
-            return Objects.hash(errorMessage);
+            return Objects.hash(error);
 
-        return Objects.hash(hashCodeOfJsonNode(value), errorMessage);
+        return Objects.hash(hashCodeOfJsonNode(value), error);
     }
 
     private static int hashCodeOfJsonNode(JsonNode json) {
@@ -713,7 +703,7 @@ public class Val implements Traced {
             return "SECRET";
         }
         if (isError()) {
-            return ERROR_LITERAL + '[' + errorMessage + ']';
+            return ERROR_LITERAL + '[' + error.message() + ']';
         }
         return value != null ? value.toString() : UNDEFINED_LITERAL;
     }
@@ -915,23 +905,6 @@ public class Val implements Traced {
     }
 
     /**
-     * Validation method to ensure a Val is a Boolean.
-     *
-     * @param value a Val
-     * @return the input Val, or an error, if the input is not Boolean.
-     */
-    public static Val requireBoolean(Object demandingComponent, Val value) {
-        if (value.isError()) {
-            return value;
-        }
-        if (!value.isBoolean()) {
-            return Val.error(demandingComponent, BOOLEAN_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value))
-                    .withTrace(Val.class, true, value);
-        }
-        return value;
-    }
-
-    /**
      * @param value a Val
      * @return a Flux of the value of the Val as an JsonNode. Or a Flux with an
      *         error.
@@ -941,23 +914,6 @@ public class Val implements Traced {
             return Flux.error(new PolicyEvaluationException(UNDEFINED_VALUE_ERROR));
         }
         return Flux.just(value.get());
-    }
-
-    /**
-     * Validation method to ensure a Val is a JsonNode, i.e., not undefined or an
-     * error.
-     *
-     * @param value a Val
-     * @return the input Val, or an error, if the input is not a JsonNode.
-     */
-    public static Val requireJsonNode(Object demandingComponent, Val value) {
-        if (value.isError()) {
-            return value;
-        }
-        if (value.isDefined()) {
-            return value;
-        }
-        return Val.error(demandingComponent, UNDEFINED_VALUE_ERROR, typeOf(value)).withTrace(Val.class, true, value);
     }
 
     /**
@@ -1019,23 +975,6 @@ public class Val implements Traced {
     }
 
     /**
-     * Validation method to ensure a Val is a JSON array.
-     *
-     * @param value a Val
-     * @return the input Val, or an error, if the input is not an array.
-     */
-    public static Val requireArrayNode(Object demandingComponent, Val value) {
-        if (value.isError()) {
-            return value;
-        }
-        if (value.isUndefined() || !value.get().isArray()) {
-            return Val.error(demandingComponent, ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value))
-                    .withTrace(Val.class, true, value);
-        }
-        return value;
-    }
-
-    /**
      * Converts Val to a Flux of ObjectNode.
      *
      * @param value a Val
@@ -1047,23 +986,6 @@ public class Val implements Traced {
             return Flux.error(new PolicyEvaluationException(OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value)));
         }
         return Flux.just((ObjectNode) value.get());
-    }
-
-    /**
-     * Validation method to ensure a Val is a JSON object.
-     *
-     * @param value a Val
-     * @return the input Val, or an error, if the input is not an object.
-     */
-    public static Val requireObjectNode(Object demandingComponent, Val value) {
-        if (value.isError()) {
-            return value;
-        }
-        if (value.isUndefined() || !value.get().isObject()) {
-            return Val.error(demandingComponent, OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value))
-                    .withTrace(Val.class, true, value);
-        }
-        return value;
     }
 
     /**
@@ -1080,23 +1002,6 @@ public class Val implements Traced {
     }
 
     /**
-     * Validation method to ensure a Val is a textual value.
-     *
-     * @param value a Val
-     * @return the input Val, or an error, if the input is not textual.
-     */
-    public static Val requireText(Object demandingComponent, Val value) {
-        if (value.isError()) {
-            return value;
-        }
-        if (value.isUndefined() || !value.get().isTextual()) {
-            return Val.error(demandingComponent, TEXT_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value))
-                    .withTrace(Val.class, true, value);
-        }
-        return value;
-    }
-
-    /**
      * Converts Val to a Flux of BigDecimal.
      *
      * @param value a Val
@@ -1108,33 +1013,6 @@ public class Val implements Traced {
             return Flux.error(new PolicyEvaluationException(ARITHMETIC_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value)));
         }
         return Flux.just(value.get().decimalValue());
-    }
-
-    /**
-     * Validation method to ensure a val is a numerical value.
-     *
-     * @param value a Val
-     * @return the input Val, or an error, if the input is not a number.
-     */
-    public static Val requireBigDecimal(Object demandingComponent, Val value) {
-        if (value.isError()) {
-            return value;
-        }
-        if (value.isUndefined() || !value.get().isNumber()) {
-            return Val.error(demandingComponent, ARITHMETIC_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(value))
-                    .withTrace(Val.class, true, value);
-        }
-        return value;
-    }
-
-    /**
-     * Validation method to ensure a val is a numerical value.
-     *
-     * @param value a Val
-     * @return the input Val, or an error, if the input is not a number.
-     */
-    public static Val requireNumber(Object demandingComponent, Val value) {
-        return requireBigDecimal(demandingComponent, value);
     }
 
     /**
@@ -1161,7 +1039,7 @@ public class Val implements Traced {
         if (isSecret())
             val = JSON.textNode("|SECRET|");
         else if (isError()) {
-            val = JSON.textNode("|ERROR| " + errorMessage);
+            val = JSON.textNode("|ERROR| " + error.message());
         } else if (isUndefined()) {
             val = JSON.textNode("|UNDEFINED|");
         } else {
@@ -1194,7 +1072,7 @@ public class Val implements Traced {
 
     private static class NumericAwareComparator implements Comparator<JsonNode>, Serializable {
 
-        private static final long serialVersionUID = 1444623807424351401L;
+        private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
         @Override
         public int compare(JsonNode o1, JsonNode o2) {

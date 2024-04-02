@@ -43,10 +43,10 @@ public class MatchingUtil {
         }
 
         return targetExpression.evaluate().contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(startObject, ctx))
-                .onErrorResume(error -> Mono.just(Val.error(targetExpression, error))).next().defaultIfEmpty(Val.FALSE)
-                .flatMap(result -> {
+                .onErrorResume(error -> Mono.just(ErrorFactory.error(targetExpression, error))).next()
+                .defaultIfEmpty(Val.FALSE).flatMap(result -> {
                     if (result.isError() || !result.isBoolean()) {
-                        return Mono.just(Val.error(targetExpression, CONDITION_NOT_BOOLEAN_ERROR, result)
+                        return Mono.just(ErrorFactory.error(targetExpression, CONDITION_NOT_BOOLEAN_ERROR, result)
                                 .withTrace(PolicyElement.class, false, result));
                     }
                     return Mono.just(result);
