@@ -631,7 +631,7 @@ public class ConstraintEnforcementService {
                 handlers.accept(s);
             } catch (Throwable t) {
                 Exceptions.throwIfFatal(t);
-                throw Exceptions.bubble(new AccessDeniedException("Failed to execute request obligation handler", t));
+                throw new AccessDeniedException("Failed to execute request obligation handler", t);
             }
         };
     }
