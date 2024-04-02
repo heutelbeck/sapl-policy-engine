@@ -155,7 +155,6 @@ public class AuthorizationDecision implements Serializable {
      *         newResource.
      */
     public AuthorizationDecision withResource(@NonNull JsonNode newResource) {
-        System.out.println("with R: " + newResource);
         return new AuthorizationDecision(decision, (BaseJsonNode) newResource, obligations, advice);
     }
 

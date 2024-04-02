@@ -35,6 +35,7 @@ import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.CoreSubscriber;
 import reactor.core.Disposable;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 /**
@@ -152,8 +153,9 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     private void handleSubscribe(Subscription s) {
         try {
             constraintHandler.get().handleOnSubscribeConstraints(s);
-        } catch (Throwable t) {
-            sink.error(t);
+        } catch (Exception e) {
+            Exceptions.throwIfFatal(e);
+            sink.error(e);
             disposeDecisionsAndResourceAccessPoint();
         }
     }
@@ -177,8 +179,9 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
             var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
             if (transformedValue != null)
                 sink.next(transformedValue);
-        } catch (Throwable t) {
-            sink.error(t);
+        } catch (Exception e) {
+            Exceptions.throwIfFatal(e);
+            sink.error(e);
             disposeDecisionsAndResourceAccessPoint();
         }
     }
@@ -186,8 +189,9 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     private void handleRequest(Long value) {
         try {
             constraintHandler.get().handleOnRequestConstraints(value);
-        } catch (Throwable t) {
-            sink.error(t);
+        } catch (Exception e) {
+            Exceptions.throwIfFatal(e);
+            sink.error(e);
             disposeDecisionsAndResourceAccessPoint();
         }
     }
@@ -198,8 +202,9 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         try {
             constraintHandler.get().handleOnCompleteConstraints();
             sink.complete();
-        } catch (Throwable t) {
-            sink.error(t);
+        } catch (Exception e) {
+            Exceptions.throwIfFatal(e);
+            sink.error(e);
             sink.complete();
         }
         disposeDecisionsAndResourceAccessPoint();
@@ -208,9 +213,10 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     private void handleCancel() {
         try {
             constraintHandler.get().handleOnCancelConstraints();
-        } catch (Throwable t) {
+        } catch (Exception e) {
+            Exceptions.throwIfFatal(e);
             log.warn("Failed to handle obligation during onCancel. Error is dropped and Flux is canceled. "
-                    + "No information is leaked, however take actions to mitigate error.", t);
+                    + "No information is leaked, however take actions to mitigate error.", e);
         }
         disposeDecisionsAndResourceAccessPoint();
     }
@@ -218,8 +224,9 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     private void handleError(Throwable error) {
         try {
             sink.error(constraintHandler.get().handleAllOnErrorConstraints(error));
-        } catch (Throwable t) {
-            sink.error(t);
+        } catch (Exception e) {
+            Exceptions.throwIfFatal(e);
+            sink.error(e);
             disposeDecisionsAndResourceAccessPoint();
         }
     }
@@ -227,9 +234,10 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     private Throwable handleAccessDenied(Throwable error) {
         try {
             return constraintHandler.get().handleAllOnErrorConstraints(error);
-        } catch (Throwable t) {
+        } catch (Exception e) {
+            Exceptions.throwIfFatal(e);
             disposeDecisionsAndResourceAccessPoint();
-            return t;
+            return e;
         }
     }
 
