@@ -58,7 +58,7 @@ public class TraccarConnection extends ConnectionBase {
 
         this.sessionManager = new TraccarSessionManager(user, password, serverName, protocol, mapper);
         this.deviceId       = deviceId;
-        this.handler        = new TraccarSessionHandler(sessionManager.getSessionCookie(), serverName, protocol,
+        this.handler        = new TraccarSessionHandler(deviceId, sessionManager.getSessionCookie(), serverName, protocol,
                 mapper);
     }
 
@@ -103,8 +103,8 @@ public class TraccarConnection extends ConnectionBase {
         }
 
         var flux = client.consumeWebSocket(request).map(Val::get)
-                .flatMap(msg -> handler.mapPosition(msg, deviceId, format))
-                .flatMap(res -> handler.getGeofences(res, deviceId, format))
+                .flatMap(msg -> handler.mapPosition(msg, format))
+                .flatMap(res -> handler.getGeofences(res, format))
                 .map(res -> mapper.convertValue(res, ObjectNode.class));
 
         logger.info("Traccar-Client connected.");

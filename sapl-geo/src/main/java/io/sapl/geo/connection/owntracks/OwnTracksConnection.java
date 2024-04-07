@@ -2,10 +2,11 @@ package io.sapl.geo.connection.owntracks;
 
 import java.util.Base64;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -19,10 +20,13 @@ import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.pip.http.ReactiveWebClient;
 import reactor.core.publisher.Flux;
 
+
 public class OwnTracksConnection extends ConnectionBase{
 
-	
 
+	private GeoMapper geoMapper;
+	private int deviceId;
+	private final Logger logger = LoggerFactory.getLogger(getClass());
     private static final String ALTITUDE    = "alt";
     private static final String LASTUPDATE  = "created_at";
     private static final String ACCURACY    = "acc";
@@ -33,24 +37,26 @@ public class OwnTracksConnection extends ConnectionBase{
 	
 	private ReactiveWebClient client;
 	
-    private OwnTracksConnection(ObjectMapper mapper) throws PolicyEvaluationException {
-
+    private OwnTracksConnection(ObjectMapper mapper, int deviceId) throws PolicyEvaluationException {
+    	
     	client = new ReactiveWebClient(mapper);
+    	this.deviceId = deviceId;
+    	geoMapper = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
     
     }
 
-    public static OwnTracksConnection getNew(ObjectMapper mapper)   {
+    public static OwnTracksConnection getNew(ObjectMapper mapper, int deviceId)   {
 
-        return new OwnTracksConnection(mapper);
+        return new OwnTracksConnection(mapper, deviceId);
     }
 
     
     public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
 
         try {
-            var connection = getNew(mapper);
+            var connection = getNew(mapper, getDeviceId(settings));
             return connection.getFlux(getHttpBasicAuthUser(settings), getPassword(settings), getServer(settings),
-            		getProtocol(settings), getUser(settings), getDeviceId(settings), getResponseFormat(settings, mapper), mapper).map(Val::of);
+            		getProtocol(settings), getUser(settings), getResponseFormat(settings, mapper), mapper).map(Val::of);
 
         } catch (Exception e) {
             return Flux.just(Val.error(e));
@@ -58,7 +64,7 @@ public class OwnTracksConnection extends ConnectionBase{
 
     }
     
-    private Flux<ObjectNode> getFlux(String httpBasicAuthUser, String password, String server, String protocol, String user, int deviceId, GeoPipResponseFormat format, ObjectMapper mapper) {
+    private Flux<ObjectNode> getFlux(String httpBasicAuthUser, String password, String server, String protocol, String user, GeoPipResponseFormat format, ObjectMapper mapper) {
     	
     	
     	var valueToEncode = String.format("%s:%s", httpBasicAuthUser, password);
@@ -75,41 +81,35 @@ public class OwnTracksConnection extends ConnectionBase{
                 	}
                 }
                 """;
-	 
-		 try {
-			var val1 = Val.ofJson(String.format(html, url, MediaType.APPLICATION_JSON_VALUE, basicAuthHeader));
+    	Val request;
+		try {
+			request = Val.ofJson(String.format(html, url, MediaType.APPLICATION_JSON_VALUE, basicAuthHeader));
 			
-			client.httpRequest(HttpMethod.GET, val1)//.map(Val::toString)
-			.doOnNext(a->{
-				//System.out.println("-!-"+a);
-			})
-			.flatMap(v -> mapPosition(v.get(), deviceId, format, mapper))
-			.map(res -> mapper.convertValue(res, ObjectNode.class))
-			.doOnNext(a->{
-				System.out.println("-!!"+a.toString());
-			})
-			.subscribe()
 			
-			;
-		 } catch (JsonProcessingException e) {
+		 } catch (Exception e) {
 			throw new PolicyEvaluationException(e);
 		 }
-	 
-	 
-    	return null;
-    	
+		 
+		 var flux = client.httpRequest(HttpMethod.GET, request)
+					.flatMap(v -> mapPosition(v.get(), format, mapper))
+					.map(res -> mapper.convertValue(res, ObjectNode.class));
+		 logger.info("OwnTracks-Client connected.");
+		 return flux;
     }
 	
     
-    public Flux<GeoPipResponse> mapPosition(JsonNode in, int deviceId, GeoPipResponseFormat format, ObjectMapper mapper) {
+    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper) {
   
-    	var geoMapper = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY);
-    	var a = geoMapper.mapPosition(in.get(0), format, mapper);
-    	return Flux.just(geoMapper.mapPosition(in.get(0), format, mapper));
-        	
+    	var response = geoMapper.mapPosition(in.get(0), format);
+    	var res = in.findValue("inregions");
     	
+    	response.setGeoFences(geoMapper.mapOwnTracksInRegions(res, mapper));
+    	
+    	return Flux.just(response);
+ 
     }
     
+   
     
     private static String getHttpBasicAuthUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(HTTP_BASIC_AUTH_USER)) {

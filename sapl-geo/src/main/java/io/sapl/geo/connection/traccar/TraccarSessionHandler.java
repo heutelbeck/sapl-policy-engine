@@ -19,20 +19,10 @@ package io.sapl.geo.connection.traccar;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.PrecisionModel;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
-import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.shared.GeoMapper;
-import io.sapl.geo.functions.GeometryConverter;
-import io.sapl.geo.functions.WktConverter;
 import io.sapl.geo.model.Geofence;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
@@ -42,67 +32,33 @@ import reactor.core.publisher.Mono;
 public class TraccarSessionHandler {
 
     private ObjectMapper mapper;
-
-    private static final String DEVICEID    = "deviceId";
+    private GeoMapper geoMapper;
+    private int deviceId;
+    
+    private static final String DEVICE_ID    = "deviceId";
     private static final String POSITIONS   = "positions";
     private static final String ALTITUDE    = "altitude";
     private static final String LASTUPDATE  = "fixTime";
     private static final String ACCURACY    = "accuracy";
-    private static final String FENCENAME   = "name";
-    private static final String AREA        = "area";
     private static final String LATITUDE    = "latitude";
     private static final String LONGITUDE   = "longitude";
-    private static final String ATTRIBUTES  = "attributes";
-    private static final String DESCRIPTION = "description";
-    private static final String CALENDARID  = "calendarId";
-    private static final String ID          = "id";
-    // private final Logger logger = LoggerFactory.getLogger(getClass());
+    
     private TraccarRestManager rest;
 
-    public TraccarSessionHandler(String sessionCookie, String serverName, String protocol, ObjectMapper mapper) {
+    public TraccarSessionHandler(int deviceId, String sessionCookie, String serverName, String protocol, ObjectMapper mapper) {
+    	this.deviceId = deviceId;
     	this.mapper = mapper;
+    	geoMapper = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
         this.rest = new TraccarRestManager(sessionCookie, serverName, protocol, mapper);
     }
 
-    public Flux<GeoPipResponse> mapPosition(JsonNode in, int deviceId, GeoPipResponseFormat format) {
+    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format) {
         JsonNode pos = getPositionFromMessage(in, deviceId);
 
-        if (pos.has(DEVICEID)) {
+        if (pos.has(DEVICE_ID)) {
         	
-        	var geoMapper = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY);
-        	return Flux.just(geoMapper.mapPosition(pos, format, mapper));
         	
-//            GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
-//            var             position        = geometryFactory.createPoint(
-//                    new Coordinate(pos.findValue(LATITUDE).asDouble(), pos.findValue(LONGITUDE).asDouble()));
-//            JsonNode        posRes          = mapper.createObjectNode();
-//            switch (format) {
-//            case GEOJSON:
-//
-//                posRes = GeometryConverter.geometryToGeoJsonNode(position).get();
-//                break;
-//
-//            case WKT:
-//                posRes = GeometryConverter.geometryToWKT(position).get();
-//                break;
-//
-//            case GML:
-//                posRes = GeometryConverter.geometryToGML(position).get();
-//                break;
-//
-//            case KML:
-//                posRes = GeometryConverter.geometryToKML(position).get();
-//                break;
-//
-//            default:
-//
-//                break;
-//            }
-
-//            return Flux.just(GeoPipResponse.builder().deviceId(deviceId).position(posRes)
-//                    .altitude(pos.findValue(ALTITUDE).asDouble()).lastUpdate(pos.findValue(FIXTIME).asText())
-//                    .accuracy(pos.findValue(ACCURACY).asDouble()).build());
-             	
+        	return Flux.just(geoMapper.mapPosition(pos, format));
         }
 
         return Flux.just();
@@ -113,7 +69,7 @@ public class TraccarSessionHandler {
         if (in.has(POSITIONS)) {
             ArrayNode pos1 = (ArrayNode) in.findValue(POSITIONS);
             for (var p : pos1) {
-                if (p.findValue(DEVICEID).toPrettyString().equals(Integer.toString(deviceId))) {
+                if (p.findValue(DEVICE_ID).toPrettyString().equals(Integer.toString(deviceId))) {
                     return p;
                 }
             }
@@ -123,7 +79,7 @@ public class TraccarSessionHandler {
 
     }
 
-    public Mono<GeoPipResponse> getGeofences(GeoPipResponse response, int deviceId, GeoPipResponseFormat format) {
+    public Mono<GeoPipResponse> getGeofences(GeoPipResponse response, GeoPipResponseFormat format) {
 
         if (response.getDeviceId() != 0) {
             return rest.getGeofences(Integer.toString(deviceId))
@@ -133,38 +89,11 @@ public class TraccarSessionHandler {
     }
 
     private Mono<GeoPipResponse> mapGeofences(GeoPipResponse response, GeoPipResponseFormat format, JsonNode in) {
-        JsonNode              fences   = mapper.createArrayNode();
         List<Geofence> fenceRes = new ArrayList<>();
 
         try {
-            fences = mapper.readTree(in.toString());
-
-            for (JsonNode geoFence : fences) {
-                var      factory = new GeometryFactory(new PrecisionModel(), 4326);
-                Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
-                switch (format) {
-
-                case GEOJSON:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
-                    break;
-
-                case WKT:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
-                    break;
-
-                case GML:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
-                    break;
-
-                case KML:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
-                    break;
-                default:
-
-                    break;
-                }
-
-            }
+        	
+        	fenceRes = geoMapper.mapTraccarGeoFences(in, format, mapper);
 
         } catch (Exception e) {
             return Mono.error(e);
@@ -175,11 +104,5 @@ public class TraccarSessionHandler {
 
     }
 
-    private Geofence mapFence(JsonNode geoFence, JsonNode area) {
-
-        return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
-                .calendarId(geoFence.findValue(CALENDARID).asInt()).name(geoFence.findValue(FENCENAME).asText())
-                .description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
-    }
 
 }

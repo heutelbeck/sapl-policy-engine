@@ -70,7 +70,7 @@ public class TraccarRestManager {
             e.printStackTrace();
         }
 
-        return webClient.httpRequest(HttpMethod.GET, request).next().map(v -> v.get());
+        return webClient.httpRequest(HttpMethod.GET, request).next().map(Val::get);
     }
 
 }

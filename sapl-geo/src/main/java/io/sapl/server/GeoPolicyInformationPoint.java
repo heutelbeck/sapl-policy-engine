@@ -28,7 +28,6 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.geo.connection.postgis.PostGisConnection;
 import io.sapl.geo.connection.traccar.TraccarConnection;
 import io.sapl.geo.fileimport.FileLoader;
-import io.sapl.pip.http.ReactiveWebClient;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 

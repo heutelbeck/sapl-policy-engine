@@ -226,7 +226,7 @@ public class Program {
 	      		 content ->{ 
      			 var a = content.get().toString();
      			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-     			 System.out.println("res: " + b.getDeviceId());
+     			 System.out.println("traccar res: " + b.getDeviceId());
      			 System.out.println("traccar content: " + a);
      			 
      		 },
@@ -250,8 +250,19 @@ public class Program {
             """;
 		var node2 = Val.ofJson(settings).get();
 		var owntracks = OwnTracksConnection.connect(node2, mapper);
+		var ot = owntracks.subscribe(
+	      		 content ->{ 
+    			 var a = content.get().toString();
+
+    			 System.out.println("owntracks content: " + a);
+    			 
+    		 },
+  	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+  	      () -> System.out.println("Completed!!!")
+  	      );
+		 
 		
-		// testcontainer
+		//testcontainer
         
 //        var rest = new TraccarRestManager("JSESSIONID=node075ntxtx3f30w1h33e3bw1f94d0.node0; Path=/", "localhost:51114", "http", mapper);
 //
