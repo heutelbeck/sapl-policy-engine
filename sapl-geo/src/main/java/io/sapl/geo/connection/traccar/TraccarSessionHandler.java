@@ -32,7 +32,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.WktConverter;
-import io.sapl.geo.model.traccar.TraccarGeofence;
+import io.sapl.geo.model.Geofence;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import reactor.core.publisher.Flux;
@@ -129,7 +129,7 @@ public class TraccarSessionHandler {
 
     private Mono<GeoPipResponse> mapGeofences(GeoPipResponse response, GeoPipResponseFormat format, JsonNode in) {
         JsonNode              fences   = MAPPER.createArrayNode();
-        List<TraccarGeofence> fenceRes = new ArrayList<>();
+        List<Geofence> fenceRes = new ArrayList<>();
 
         try {
             fences = MAPPER.readTree(in.toString());
@@ -170,9 +170,9 @@ public class TraccarSessionHandler {
 
     }
 
-    private TraccarGeofence mapFence(JsonNode geoFence, JsonNode area) {
+    private Geofence mapFence(JsonNode geoFence, JsonNode area) {
 
-        return TraccarGeofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
+        return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
                 .calendarId(geoFence.findValue(CALENDARID).asInt()).name(geoFence.findValue(FENCENAME).asText())
                 .description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
     }

@@ -25,16 +25,17 @@ import io.sapl.geo.pip.GeoPipResponseFormat;
 
 public abstract class ConnectionBase {
 
-    protected static final String USER             = "user";
-    protected static final String PASSWORD         = "password";
-    protected static final String SERVER           = "server";
-    protected static final String RESPONSEFORMAT   = "responseFormat";
-    protected static final String POLLING_INTERVAL = "pollingIntervalMs";
-    protected static final String REPEAT_TIMES     = "repetitions";
-
-    protected static final long DEFAULT_POLLING_INTERVALL_MS = 1000L;
-    protected static final long DEFAULT_REPETITIONS          = Long.MAX_VALUE;
-
+    protected static final String USER             				= "user";
+    protected static final String PASSWORD         				= "password";
+    protected static final String SERVER           				= "server";
+    protected static final String RESPONSEFORMAT   				= "responseFormat";
+    protected static final String POLLING_INTERVAL 				= "pollingIntervalMs";
+    protected static final String REPEAT_TIMES     				= "repetitions";
+    protected static final String PROTOCOL       				= "protocol";
+    protected static final long DEFAULT_POLLING_INTERVALL_MS 	= 1000L;
+    protected static final long DEFAULT_REPETITIONS          	= Long.MAX_VALUE;
+    protected static final String DEVICEID_CONST = "deviceId";
+    
     protected ConnectionBase() {
     }
 
@@ -96,5 +97,24 @@ public abstract class ConnectionBase {
 
         return defaultValue;
     }
+    
+    protected static String getProtocol(JsonNode requestSettings) {
+        if (requestSettings.has(PROTOCOL)) {
+            return requestSettings.findValue(PROTOCOL).asText();
+        } else {
 
+            return "https";
+        }
+
+    }
+
+    protected static int getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
+        if (requestSettings.has(DEVICEID_CONST)) {
+            return requestSettings.findValue(DEVICEID_CONST).asInt();
+        } else {
+
+            throw new PolicyEvaluationException("No Device ID found");
+        }
+
+    }
 }

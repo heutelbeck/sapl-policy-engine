@@ -19,12 +19,28 @@ package testProject;
 
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.connection.owntracks.OwnTracksConnection;
 import io.sapl.geo.connection.postgis.PostGisConnection;
 import io.sapl.geo.connection.traccar.TraccarConnection;
 import io.sapl.geo.fileimport.FileLoader;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.pip.http.ReactiveWebClient;
 
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
 
@@ -45,7 +61,68 @@ public class Program {
         ///////
         
         var httpCl = new ReactiveWebClient(new ObjectMapper());
+   
         
+        
+        ///owntracks
+        
+        var uri = new URI("http://owntracks.localhost/api/0/last");
+        var valueToEncode = "mane:test";
+        var h = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
+        
+        
+//        HttpRequest req = null;
+//
+//        req = HttpRequest.newBuilder().uri(uri).header("Authorization", h).GET()
+//                .build();
+//
+//        var client = HttpClient.newBuilder()
+//        		.connectTimeout(Duration.ofSeconds(10))
+//        		.build();
+//
+//        var res = client.send(req, BodyHandlers.ofString());
+//        System.out.println(res.body());
+//        
+        
+		 var html1        = """
+	                {
+	                    "baseUrl" : "%s",
+	                    "accept" : "%s",
+	                    "headers" : {
+                        	"Authorization": "%s"
+                    },
+                 	"pollingIntervalMs" : 1000,
+                 	"repetitions" : 5
+	                }
+	                """;
+		 
+		 var val1 = Val.ofJson(String.format(html1, "http://owntracks.localhost/owntracks/api/0/last?user=mane&device=1", MediaType.APPLICATION_JSON_VALUE, h));
+//		var flux1 = httpCl.httpRequest(HttpMethod.GET, val1).map(Val::toString)
+//				.doOnNext(a->{
+//					System.out.println("---"+a);
+//				}).subscribe();
+//		 
+		 var template  =  """
+	                {
+                 "baseUrl" : "%s",
+                 "accept" : "%s",
+                 "headers" : {
+                 	"Authorization": "%s"
+		 		}
+             }
+             """;
+//		 var req = Val.ofJson(String.format(template, "ws://localhost:8083/ws", MediaType.APPLICATION_JSON_VALUE, h));
+//	        var stream = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(req);  
+//	        
+//	        stream.map(Val::toString)
+//	        .doOnNext(a->{
+//				System.out.println("---"+a);
+//			})
+//	        .doOnError(a ->{
+//	        	System.out.println("---------");
+//	        	System.out.println(a.getMessage());
+//	        })
+//	        .subscribe();
 
 ////		
         
@@ -139,24 +216,40 @@ public class Program {
             	"server":"127.0.0.1:8082",
             	"protocol":"http",
             	"responseFormat":"GEOJSON",
-            	"deviceId":1
+            	"deviceId":1,
+            	"protocol":"http"
             }
             """;
-        var node1 = Val.ofJson(st).get();
-        var trc = TraccarConnection.connect( node1, mapper);
-		var dis = trc.subscribe(
-	      		 content ->{ 
-     			 var a = content.get().toString();
-     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-     			 System.out.println("res: " + b.getDeviceId());
-     			 System.out.println("traccar content: " + a);
-     			 
-     		 },
-   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-   	      () -> System.out.println("Completed!!!")
-   	      );
+//        var node1 = Val.ofJson(st).get();
+//        var trc = TraccarConnection.connect( node1, mapper);
+//		var dis = trc.subscribe(
+//	      		 content ->{ 
+//     			 var a = content.get().toString();
+//     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+//     			 System.out.println("res: " + b.getDeviceId());
+//     			 System.out.println("traccar content: " + a);
+//     			 
+//     		 },
+//   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+//   	      () -> System.out.println("Completed!!!")
+//   	      );
 
 		
+		
+		var settings = """
+                {
+                "httpBasicAuthUser":"mane",
+                "user":"mane",
+                "password":"test",
+            	"server":"owntracks.localhost/owntracks",
+            	"protocol":"http",
+            	"responseFormat":"GEOJSON",
+            	"deviceId":1,
+            	"protocol":"http"
+            }
+            """;
+		var node2 = Val.ofJson(settings).get();
+		var owntracks = OwnTracksConnection.connect(node2, mapper);
 		
 		// testcontainer
         

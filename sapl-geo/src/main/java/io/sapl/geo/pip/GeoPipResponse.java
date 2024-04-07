@@ -18,9 +18,12 @@
 package io.sapl.geo.pip;
 
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.geo.model.traccar.TraccarGeofence;
+import io.sapl.geo.model.Geofence;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,6 +33,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(Include.NON_NULL)
 public class GeoPipResponse {
 
     private int                   deviceId;
@@ -37,6 +41,7 @@ public class GeoPipResponse {
     private double                altitude;
     private String                lastUpdate;
     private double                accuracy;
-    private List<TraccarGeofence> geoFences;
+    private List<Geofence> 		  geoFences;
+    
 
 }

@@ -55,21 +55,21 @@ public class TraccarSessionManager {
         return session;
     }
 
-    public TraccarSessionManager(String user, String password, String server, ObjectMapper mapper)
+    public TraccarSessionManager(String user, String password, String server, String protocol, ObjectMapper mapper)
             throws PolicyEvaluationException {
         this.user     = user;
         this.password = password;
         this.mapper   = mapper;
-        establishSession(server);
+        establishSession(server, protocol);
 
     }
 
-    private void establishSession(String serverName) throws PolicyEvaluationException {
+    private void establishSession(String serverName, String protocol) throws PolicyEvaluationException {
 
         HttpResponse<String> res;
 
         try {
-            uri = new URI(String.format("http://%s/api/session", serverName));
+            uri = new URI(String.format("%s://%s/api/session", protocol, serverName));
 
             Map<String, String> bodyProperties = new HashMap<String, String>() {
                 private static final long serialVersionUID = 1L;

@@ -35,8 +35,8 @@ import reactor.core.publisher.Flux;
 
 public class TraccarConnection extends ConnectionBase {
 
-    private static final String DEVICEID_CONST = "deviceId";
-    private static final String PROTOCOL       = "protocol";
+
+    
 //    private Disposable           subscription;
 //    private WebSocketSession     session;
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -56,7 +56,7 @@ public class TraccarConnection extends ConnectionBase {
 
         url = "ws://" + serverName + "/api/socket";
 
-        this.sessionManager = new TraccarSessionManager(user, password, serverName, mapper);
+        this.sessionManager = new TraccarSessionManager(user, password, serverName, protocol, mapper);
         this.deviceId       = deviceId;
         this.handler        = new TraccarSessionHandler(sessionManager.getSessionCookie(), serverName, protocol,
                 mapper);
@@ -135,24 +135,5 @@ public class TraccarConnection extends ConnectionBase {
 
     }
 
-    private static int getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(DEVICEID_CONST)) {
-            return requestSettings.findValue(DEVICEID_CONST).asInt();
-        } else {
-
-            throw new PolicyEvaluationException("No Device ID found");
-        }
-
-    }
-
-    private static String getProtocol(JsonNode requestSettings) {
-        if (requestSettings.has(PROTOCOL)) {
-            return requestSettings.findValue(PROTOCOL).asText();
-        } else {
-
-            return "https";
-        }
-
-    }
 
 }
