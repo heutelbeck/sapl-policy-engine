@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.connection.shared.GeoMapper;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.WktConverter;
 import io.sapl.geo.model.Geofence;
@@ -40,12 +41,12 @@ import reactor.core.publisher.Mono;
 
 public class TraccarSessionHandler {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private ObjectMapper mapper;
 
     private static final String DEVICEID    = "deviceId";
     private static final String POSITIONS   = "positions";
     private static final String ALTITUDE    = "altitude";
-    private static final String FIXTIME     = "fixTime";
+    private static final String LASTUPDATE  = "fixTime";
     private static final String ACCURACY    = "accuracy";
     private static final String FENCENAME   = "name";
     private static final String AREA        = "area";
@@ -59,7 +60,7 @@ public class TraccarSessionHandler {
     private TraccarRestManager rest;
 
     public TraccarSessionHandler(String sessionCookie, String serverName, String protocol, ObjectMapper mapper) {
-
+    	this.mapper = mapper;
         this.rest = new TraccarRestManager(sessionCookie, serverName, protocol, mapper);
     }
 
@@ -67,37 +68,41 @@ public class TraccarSessionHandler {
         JsonNode pos = getPositionFromMessage(in, deviceId);
 
         if (pos.has(DEVICEID)) {
+        	
+        	var geoMapper = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY);
+        	return Flux.just(geoMapper.mapPosition(pos, format, mapper));
+        	
+//            GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+//            var             position        = geometryFactory.createPoint(
+//                    new Coordinate(pos.findValue(LATITUDE).asDouble(), pos.findValue(LONGITUDE).asDouble()));
+//            JsonNode        posRes          = mapper.createObjectNode();
+//            switch (format) {
+//            case GEOJSON:
+//
+//                posRes = GeometryConverter.geometryToGeoJsonNode(position).get();
+//                break;
+//
+//            case WKT:
+//                posRes = GeometryConverter.geometryToWKT(position).get();
+//                break;
+//
+//            case GML:
+//                posRes = GeometryConverter.geometryToGML(position).get();
+//                break;
+//
+//            case KML:
+//                posRes = GeometryConverter.geometryToKML(position).get();
+//                break;
+//
+//            default:
+//
+//                break;
+//            }
 
-            GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
-            var             position        = geometryFactory.createPoint(
-                    new Coordinate(pos.findValue(LATITUDE).asDouble(), pos.findValue(LONGITUDE).asDouble()));
-            JsonNode        posRes          = MAPPER.createObjectNode();
-            switch (format) {
-            case GEOJSON:
-
-                posRes = GeometryConverter.geometryToGeoJsonNode(position).get();
-                break;
-
-            case WKT:
-                posRes = GeometryConverter.geometryToWKT(position).get();
-                break;
-
-            case GML:
-                posRes = GeometryConverter.geometryToGML(position).get();
-                break;
-
-            case KML:
-                posRes = GeometryConverter.geometryToKML(position).get();
-                break;
-
-            default:
-
-                break;
-            }
-
-            return Flux.just(GeoPipResponse.builder().deviceId(deviceId).position(posRes)
-                    .altitude(pos.findValue(ALTITUDE).asDouble()).lastUpdate(pos.findValue(FIXTIME).asText())
-                    .accuracy(pos.findValue(ACCURACY).asDouble()).build());
+//            return Flux.just(GeoPipResponse.builder().deviceId(deviceId).position(posRes)
+//                    .altitude(pos.findValue(ALTITUDE).asDouble()).lastUpdate(pos.findValue(FIXTIME).asText())
+//                    .accuracy(pos.findValue(ACCURACY).asDouble()).build());
+             	
         }
 
         return Flux.just();
@@ -114,7 +119,7 @@ public class TraccarSessionHandler {
             }
         }
 
-        return MAPPER.createObjectNode();
+        return mapper.createObjectNode();
 
     }
 
@@ -128,11 +133,11 @@ public class TraccarSessionHandler {
     }
 
     private Mono<GeoPipResponse> mapGeofences(GeoPipResponse response, GeoPipResponseFormat format, JsonNode in) {
-        JsonNode              fences   = MAPPER.createArrayNode();
+        JsonNode              fences   = mapper.createArrayNode();
         List<Geofence> fenceRes = new ArrayList<>();
 
         try {
-            fences = MAPPER.readTree(in.toString());
+            fences = mapper.readTree(in.toString());
 
             for (JsonNode geoFence : fences) {
                 var      factory = new GeometryFactory(new PrecisionModel(), 4326);

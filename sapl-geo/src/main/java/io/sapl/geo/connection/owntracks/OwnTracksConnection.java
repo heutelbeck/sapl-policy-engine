@@ -13,12 +13,21 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.shared.ConnectionBase;
+import io.sapl.geo.connection.shared.GeoMapper;
+import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.pip.http.ReactiveWebClient;
 import reactor.core.publisher.Flux;
 
 public class OwnTracksConnection extends ConnectionBase{
 
+	
+
+    private static final String ALTITUDE    = "alt";
+    private static final String LASTUPDATE  = "created_at";
+    private static final String ACCURACY    = "acc";
+    private static final String LATITUDE    = "lat";
+    private static final String LONGITUDE   = "lon";
 	
     protected static final String HTTP_BASIC_AUTH_USER             = "user";
 	
@@ -72,8 +81,16 @@ public class OwnTracksConnection extends ConnectionBase{
 			
 			client.httpRequest(HttpMethod.GET, val1)//.map(Val::toString)
 			.doOnNext(a->{
-				System.out.println("-!-"+a);
-			}).subscribe();
+				//System.out.println("-!-"+a);
+			})
+			.flatMap(v -> mapPosition(v.get(), deviceId, format, mapper))
+			.map(res -> mapper.convertValue(res, ObjectNode.class))
+			.doOnNext(a->{
+				System.out.println("-!!"+a.toString());
+			})
+			.subscribe()
+			
+			;
 		 } catch (JsonProcessingException e) {
 			throw new PolicyEvaluationException(e);
 		 }
@@ -83,6 +100,16 @@ public class OwnTracksConnection extends ConnectionBase{
     	
     }
 	
+    
+    public Flux<GeoPipResponse> mapPosition(JsonNode in, int deviceId, GeoPipResponseFormat format, ObjectMapper mapper) {
+  
+    	var geoMapper = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY);
+    	var a = geoMapper.mapPosition(in.get(0), format, mapper);
+    	return Flux.just(geoMapper.mapPosition(in.get(0), format, mapper));
+        	
+    	
+    }
+    
     
     private static String getHttpBasicAuthUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(HTTP_BASIC_AUTH_USER)) {

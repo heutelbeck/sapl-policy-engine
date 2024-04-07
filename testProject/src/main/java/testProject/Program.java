@@ -220,19 +220,19 @@ public class Program {
             	"protocol":"http"
             }
             """;
-//        var node1 = Val.ofJson(st).get();
-//        var trc = TraccarConnection.connect( node1, mapper);
-//		var dis = trc.subscribe(
-//	      		 content ->{ 
-//     			 var a = content.get().toString();
-//     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-//     			 System.out.println("res: " + b.getDeviceId());
-//     			 System.out.println("traccar content: " + a);
-//     			 
-//     		 },
-//   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-//   	      () -> System.out.println("Completed!!!")
-//   	      );
+        var node1 = Val.ofJson(st).get();
+        var trc = TraccarConnection.connect( node1, mapper);
+		var dis = trc.subscribe(
+	      		 content ->{ 
+     			 var a = content.get().toString();
+     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+     			 System.out.println("res: " + b.getDeviceId());
+     			 System.out.println("traccar content: " + a);
+     			 
+     		 },
+   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+   	      () -> System.out.println("Completed!!!")
+   	      );
 
 		
 		
