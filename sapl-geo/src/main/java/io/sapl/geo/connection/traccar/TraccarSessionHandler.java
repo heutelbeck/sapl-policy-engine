@@ -32,33 +32,33 @@ import reactor.core.publisher.Mono;
 public class TraccarSessionHandler {
 
     private ObjectMapper mapper;
-    private GeoMapper geoMapper;
-    private int deviceId;
-    
-    private static final String DEVICE_ID    = "deviceId";
-    private static final String POSITIONS   = "positions";
-    private static final String ALTITUDE    = "altitude";
-    private static final String LASTUPDATE  = "fixTime";
-    private static final String ACCURACY    = "accuracy";
-    private static final String LATITUDE    = "latitude";
-    private static final String LONGITUDE   = "longitude";
-    
+    private GeoMapper    geoMapper;
+    private int          deviceId;
+
+    private static final String DEVICE_ID  = "deviceId";
+    private static final String POSITIONS  = "positions";
+    private static final String ALTITUDE   = "altitude";
+    private static final String LASTUPDATE = "fixTime";
+    private static final String ACCURACY   = "accuracy";
+    private static final String LATITUDE   = "latitude";
+    private static final String LONGITUDE  = "longitude";
+
     private TraccarRestManager rest;
 
-    public TraccarSessionHandler(int deviceId, String sessionCookie, String serverName, String protocol, ObjectMapper mapper) {
-    	this.deviceId = deviceId;
-    	this.mapper = mapper;
-    	geoMapper = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
-        this.rest = new TraccarRestManager(sessionCookie, serverName, protocol, mapper);
+    public TraccarSessionHandler(int deviceId, String sessionCookie, String serverName, String protocol,
+            ObjectMapper mapper) {
+        this.deviceId = deviceId;
+        this.mapper   = mapper;
+        geoMapper     = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
+        this.rest     = new TraccarRestManager(sessionCookie, serverName, protocol, mapper);
     }
 
     public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format) {
         JsonNode pos = getPositionFromMessage(in, deviceId);
 
         if (pos.has(DEVICE_ID)) {
-        	
-        	
-        	return Flux.just(geoMapper.mapPosition(pos, format));
+
+            return Flux.just(geoMapper.mapPosition(pos, format));
         }
 
         return Flux.just();
@@ -92,8 +92,8 @@ public class TraccarSessionHandler {
         List<Geofence> fenceRes = new ArrayList<>();
 
         try {
-        	
-        	fenceRes = geoMapper.mapTraccarGeoFences(in, format, mapper);
+
+            fenceRes = geoMapper.mapTraccarGeoFences(in, format, mapper);
 
         } catch (Exception e) {
             return Mono.error(e);
@@ -103,6 +103,5 @@ public class TraccarSessionHandler {
         return Mono.just(response);
 
     }
-
 
 }

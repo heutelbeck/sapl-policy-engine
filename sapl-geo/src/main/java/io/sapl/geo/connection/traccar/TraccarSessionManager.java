@@ -138,7 +138,7 @@ public class TraccarSessionManager {
             throw new PolicyEvaluationException(e);
         }
         if (res.statusCode() == 204) {
-        	var msg = String.format("Traccar Session %s closed", session.getId());
+            var msg = String.format("Traccar Session %s closed", session.getId());
             logger.info(msg);
             return true;
         }

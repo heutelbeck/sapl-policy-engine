@@ -42,51 +42,50 @@ public class GeoPolicyInformationPoint {
 
     private final ObjectMapper mapper;
 
-    
     public GeoPolicyInformationPoint() {
-    	this(new ObjectMapper());
+        this(new ObjectMapper());
     }
 
     @Attribute(name = "traccar")
     public Flux<Val> connectToTraccar(Val leftHandValue, Val variables) {
 
-            return TraccarConnection.connect(variables.get(), mapper);
-            
+        return TraccarConnection.connect(variables.get(), mapper);
+
     }
 
     @EnvironmentAttribute(name = "traccar")
     public Flux<Val> connectToTraccar(Val variables) {
-    	
-            return TraccarConnection.connect(variables.get(), mapper);
-            
+
+        return TraccarConnection.connect(variables.get(), mapper);
+
     }
 
     @Attribute(name = "postGIS")
     public Flux<Val> connectToPostGIS(Val leftHandValue, Val variables) {
 
-            return PostGisConnection.connect(variables.get(), mapper);
-            
+        return PostGisConnection.connect(variables.get(), mapper);
+
     }
 
     @EnvironmentAttribute(name = "postGIS")
     public Flux<Val> connectToPostGIS(Val variables) {
-    	
-            return PostGisConnection.connect(variables.get(), mapper);
-            
+
+        return PostGisConnection.connect(variables.get(), mapper);
+
     }
-    
+
     @Attribute(name = "file")
     public Flux<Val> loadFile(Val leftHandValue, Val variables) {
 
-            return FileLoader.connect(variables.get(), mapper);
-            
+        return FileLoader.connect(variables.get(), mapper);
+
     }
 
     @EnvironmentAttribute(name = "file")
     public Flux<Val> loadFile(Val variables) {
-    	
-            return FileLoader.connect(variables.get(), mapper);
-            
+
+        return FileLoader.connect(variables.get(), mapper);
+
     }
-    
+
 }

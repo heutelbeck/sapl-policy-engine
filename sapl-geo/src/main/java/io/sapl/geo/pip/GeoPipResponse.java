@@ -36,12 +36,11 @@ import lombok.NoArgsConstructor;
 @JsonInclude(Include.NON_NULL)
 public class GeoPipResponse {
 
-    private int                   deviceId;
-    private JsonNode              position;
-    private double                altitude;
-    private String                lastUpdate;
-    private double                accuracy;
-    private List<Geofence> 		  geoFences;
-    
+    private int            deviceId;
+    private JsonNode       position;
+    private double         altitude;
+    private String         lastUpdate;
+    private double         accuracy;
+    private List<Geofence> geoFences;
 
 }

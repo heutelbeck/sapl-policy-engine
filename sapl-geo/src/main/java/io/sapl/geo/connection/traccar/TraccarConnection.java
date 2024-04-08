@@ -35,12 +35,10 @@ import reactor.core.publisher.Flux;
 
 public class TraccarConnection extends ConnectionBase {
 
-
-    
 //    private Disposable           subscription;
 //    private WebSocketSession     session;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private int deviceId;
+    private int          deviceId;
 
     public int getDeviceId() {
         return deviceId;
@@ -58,8 +56,8 @@ public class TraccarConnection extends ConnectionBase {
 
         this.sessionManager = new TraccarSessionManager(user, password, serverName, protocol, mapper);
         this.deviceId       = deviceId;
-        this.handler        = new TraccarSessionHandler(deviceId, sessionManager.getSessionCookie(), serverName, protocol,
-                mapper);
+        this.handler        = new TraccarSessionHandler(deviceId, sessionManager.getSessionCookie(), serverName,
+                protocol, mapper);
     }
 
     public static TraccarConnection getNew(String user, String password, String server, String protocol, int deviceId,
@@ -102,8 +100,7 @@ public class TraccarConnection extends ConnectionBase {
             throw new PolicyEvaluationException(e);
         }
 
-        var flux = client.consumeWebSocket(request).map(Val::get)
-                .flatMap(msg -> handler.mapPosition(msg, format))
+        var flux = client.consumeWebSocket(request).map(Val::get).flatMap(msg -> handler.mapPosition(msg, format))
                 .flatMap(res -> handler.getGeofences(res, format))
                 .map(res -> mapper.convertValue(res, ObjectNode.class));
 
@@ -112,11 +109,11 @@ public class TraccarConnection extends ConnectionBase {
     }
 
     public void disconnect() throws PolicyEvaluationException {
-        
+
         try {
             if (this.sessionManager.closeTraccarSession()) {
-            	
-            	logger.info("Traccar-Client disconnected.");
+
+                logger.info("Traccar-Client disconnected.");
             } else {
                 throw new PolicyEvaluationException();
             }
@@ -134,6 +131,5 @@ public class TraccarConnection extends ConnectionBase {
         return sessionManager.getSessionCookie();
 
     }
-
 
 }
