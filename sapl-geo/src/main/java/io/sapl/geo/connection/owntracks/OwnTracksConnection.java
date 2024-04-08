@@ -83,20 +83,8 @@ public class OwnTracksConnection extends ConnectionBase {
     private Flux<ObjectNode> getFlux(String httpBasicAuthUser, String password, String server, String protocol,
             String user, GeoPipResponseFormat format, ObjectMapper mapper) {
 
-        
-
         var url = String.format("%s://%s/api/0/last?user=%s&device=%s", protocol, server, user, deviceId);
-
-//        var html = """
-//                {
-//                    "baseUrl" : "%s",
-//                    "accept" : "%s",
-//                    "headers" : {
-//                    	"Authorization": "%s"
-//                	}
-//                }
-//                """;
-        
+       
         var html1 = """
                 {
                     "baseUrl" : "%s",
@@ -123,13 +111,9 @@ public class OwnTracksConnection extends ConnectionBase {
         	html1 = html1.concat("}");	
         	
         }
-        
-         
-//        var res1= String.format(html1, url, MediaType.APPLICATION_JSON_VALUE, basicAuthHeader);
-        
+               
         Val request;
         try {
-//            request = Val.ofJson(String.format(html1, url, MediaType.APPLICATION_JSON_VALUE, basicAuthHeader));
         	  request = Val.ofJson(html1);
 
         } catch (Exception e) {

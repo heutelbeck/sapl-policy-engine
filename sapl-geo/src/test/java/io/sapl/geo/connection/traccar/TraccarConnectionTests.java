@@ -36,8 +36,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
 
-@TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
+@TestInstance(Lifecycle.PER_CLASS)
 public class TraccarConnectionTests {
     String              address;
     Integer             port;
