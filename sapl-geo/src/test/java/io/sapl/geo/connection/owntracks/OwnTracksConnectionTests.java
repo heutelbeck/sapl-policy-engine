@@ -33,15 +33,11 @@ public class OwnTracksConnectionTests {
             DockerImageName.parse("owntracks/recorder:latest")).withExposedPorts(8083)
             .withFileSystemBind(resourceDirectory + "/owntracks/store", "/store", BindMode.READ_WRITE)
             .withEnv("OTR_PORT", "0")
-//            .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
             .withReuse(false);
 
     @BeforeAll
     void setup() {
 
-    	
-    	var a = owntracksRecorder.getHost();
-    	var b = owntracksRecorder.getMappedPort(8083);
         address = owntracksRecorder.getHost() + ":" + owntracksRecorder.getMappedPort(8083);
     }
     
