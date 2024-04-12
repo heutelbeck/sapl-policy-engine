@@ -18,7 +18,9 @@ import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.Row;
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.api.interpreter.Val;
+import io.sapl.geo.connection.mysql.MySqlConnection;
+import io.sapl.geo.connection.postgis.PostGisConnection;
+import io.sapl.geo.functions.GeoProjector;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.JsonConverter;
 import io.sapl.geo.pip.GeoPipResponseFormat;
@@ -37,6 +39,8 @@ public abstract class DatabaseConnection extends ConnectionBase {
 	protected static final String DEFAULTCRS    = "defaultCRS";
 	protected static final String SINGLE_RESULT = "singleResult";
 
+	private static final String EPSG = "EPSG:";
+	
 	protected ConnectionFactory           connectionFactory;
 	protected ObjectMapper                mapper;
 	protected AtomicReference<Connection> connectionReference;
@@ -51,16 +55,16 @@ public abstract class DatabaseConnection extends ConnectionBase {
 	
 	
     public Flux<JsonNode> getFlux(GeoPipResponseFormat format, String sql, String[] columns, boolean singleResult,
-            int defaultCrs, long repeatTimes, long pollingInterval) {
+            int defaultCrs, long repeatTimes, long pollingInterval, boolean latitudeFirst) {
         var connection = createConnection();
 
         if (singleResult) {
 
             sql = sql.concat(" LIMIT 1");
-            return poll(getResults(connection, sql, columns, format, defaultCrs).next(), repeatTimes, pollingInterval);
+            return poll(getResults(connection, sql, columns, format, defaultCrs, latitudeFirst).next(), repeatTimes, pollingInterval);
         } else {
 
-            return poll(collectAndMapResults(getResults(connection, sql, columns, format, defaultCrs)), repeatTimes,
+            return poll(collectAndMapResults(getResults(connection, sql, columns, format, defaultCrs, latitudeFirst)), repeatTimes,
                     pollingInterval);
         }
 
@@ -72,14 +76,14 @@ public abstract class DatabaseConnection extends ConnectionBase {
     }
 
     protected Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, String[] columns,
-            GeoPipResponseFormat format, int defaultCrs) {
+            GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
 
         return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute())
-                .flatMap(result -> result.map((row, rowMetadata) -> mapResult(row, columns, format, defaultCrs))));
+                .flatMap(result -> result.map((row, rowMetadata) -> mapResult(row, columns, format, defaultCrs, latitudeFirst))));
 
     }
 
-    protected JsonNode mapResult(Row row, String[] columns, GeoPipResponseFormat format, int defaultCrs) {
+    protected JsonNode mapResult(Row row, String[] columns, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
         ObjectNode resultNode = mapper.createObjectNode();
         JsonNode   geoNode;
 
@@ -87,9 +91,9 @@ public abstract class DatabaseConnection extends ConnectionBase {
         Integer srid     = row.get("srid", Integer.class);
 
         if (srid != 0) {
-            geoNode = convertResponse(resValue, format, srid);
+            geoNode = convertResponse(resValue, format, srid, latitudeFirst);
         } else {
-            geoNode = convertResponse(resValue, format, defaultCrs);
+            geoNode = convertResponse(resValue, format, defaultCrs, latitudeFirst);
         }
 
         resultNode.put("srid", srid);
@@ -101,44 +105,57 @@ public abstract class DatabaseConnection extends ConnectionBase {
         return resultNode;
     }
 
-    protected JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid) {
+    protected JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) {
 
-        Geometry geo;
         JsonNode res = mapper.createObjectNode();
-
+        var crs = EPSG+srid;
+        
         try {
+        	
+            Geometry geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
+        	
+	        if(this.getClass() == MySqlConnection.class && !latitudeFirst) {
+	        	var geoProjector = new GeoProjector(crs, false, crs, true);
+	        	geo = geoProjector.project(geo);
+	        }else if (this.getClass() == PostGisConnection.class && latitudeFirst) {
+	        	
+	        	var geoProjector = new GeoProjector(crs, true, crs, false);
+	        	geo = geoProjector.project(geo);
+	        }
+        
             switch (format) {
             case GEOJSON:
 
-                geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
                 res = GeometryConverter.geometryToGeoJsonNode(geo).get();
                 break;
 
             case WKT:
-                geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
+                
                 res = GeometryConverter.geometryToWKT(geo).get();
                 break;
 
             case GML:
-                geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
+                
                 res = GeometryConverter.geometryToGML(geo).get();
                 break;
 
             case KML:
-                geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
+               
                 res = GeometryConverter.geometryToKML(geo).get();
                 break;
 
             default:
                 break;
             }
-
+            
+              
         } catch (Exception e) {
             throw new PolicyEvaluationException(e.getMessage());
         }
         return res;
     }
 
+    
     protected Mono<JsonNode> collectAndMapResults(Flux<JsonNode> resultFlux) {
 
         return resultFlux.collect(ArrayList::new, List::add).map(results -> {

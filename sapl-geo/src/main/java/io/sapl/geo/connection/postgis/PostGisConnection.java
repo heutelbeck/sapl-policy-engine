@@ -58,7 +58,8 @@ public class PostGisConnection extends DatabaseConnection {
                             buildSql(getGeoColumn(settings), columns, getTable(settings), getWhere(settings)), columns,
                             getSingleResult(settings), getDefaultCRS(settings),
                             longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
-                            longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS))
+                            longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), 
+                            getLatitudeFirst(settings))
                     .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e)));
 
         } catch (Exception e) {
