@@ -149,17 +149,17 @@ public class Program {
         var node = Val.ofJson(pg).get();
         
         
-//        var postgis = PostGisConnection.connect(node, mapper);
-//        var dis = postgis.subscribe(
-//	      		 content ->{ 
-//    			 
-//    			 System.out.println("postgis content: " + content.get().toString());
-//    			 System.out.println("--");
-//    			 
-//    		 },
-//  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
-//  	      () -> System.out.println("Completed!!!")
-//  	      );
+        var postgis = PostGisConnection.connect(node, mapper);
+        var dis = postgis.subscribe(
+	      		 content ->{ 
+    			 
+    			 System.out.println("postgis content: " + content.get().toString());
+    			 System.out.println("--");
+    			 
+    		 },
+  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
+  	      () -> System.out.println("Completed!!!")
+  	      );
         
         
         
@@ -209,17 +209,17 @@ public class Program {
         var nod = Val.ofJson(pg1).get();
         
         
-        var mysql = MySqlConnection.connect(nod, mapper);
-        var dis = mysql.subscribe(
-	      		 content ->{ 
-    			 
-    			 System.out.println("mysql content content: " + content.get().toString());
-    			 System.out.println("--");
-    			 
-    		 },
-  	      error -> System.out.println(String.format("Error receiving mysql: {%s}", error)),
-  	      () -> System.out.println("Completed!!!")
-  	      );
+//        var mysql = MySqlConnection.connect(nod, mapper);
+//        var dis = mysql.subscribe(
+//	      		 content ->{ 
+//    			 
+//    			 System.out.println("mysql content content: " + content.get().toString());
+//    			 System.out.println("--");
+//    			 
+//    		 },
+//  	      error -> System.out.println(String.format("Error receiving mysql: {%s}", error)),
+//  	      () -> System.out.println("Completed!!!")
+//  	      );
         
         
         
