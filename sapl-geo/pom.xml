@@ -91,6 +91,11 @@
 		    <groupId>org.postgresql</groupId>
 		    <artifactId>r2dbc-postgresql</artifactId>
 		</dependency>
+		
+		<dependency>
+		    <groupId>io.asyncer</groupId>
+		    <artifactId>r2dbc-mysql</artifactId>
+		</dependency>
 				
 		<dependency>
     		<groupId>org.geotools</groupId>

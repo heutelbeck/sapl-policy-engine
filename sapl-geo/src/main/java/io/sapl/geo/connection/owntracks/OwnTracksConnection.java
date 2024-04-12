@@ -84,37 +84,37 @@ public class OwnTracksConnection extends ConnectionBase {
             String user, GeoPipResponseFormat format, ObjectMapper mapper) {
 
         var url = String.format("%s://%s/api/0/last?user=%s&device=%s", protocol, server, user, deviceId);
-       
+
         var html1 = """
                 {
                     "baseUrl" : "%s",
                     "accept" : "%s"
                 """;
-        
+
         html1 = String.format(html1, url, MediaType.APPLICATION_JSON_VALUE);
-        
-        if(!httpBasicAuthUser.equals("none") && !password.equals("none")) {
-	        
-        	var valueToEncode   = String.format("%s:%s", httpBasicAuthUser, password);
+
+        if (!httpBasicAuthUser.equals("none") && !password.equals("none")) {
+
+            var valueToEncode   = String.format("%s:%s", httpBasicAuthUser, password);
             var basicAuthHeader = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
-            
-        	var html2 = """
-	                	,
-	                    "headers" : {
-	                    	"Authorization": "%s"
-	                	}
-	                }
-	                """;
-        	html2 = String.format(html2, basicAuthHeader);
-        	html1 = html1.concat(html2);
-        }else {
-        	html1 = html1.concat("}");	
-        	
+
+            var html2 = """
+                    	,
+                        "headers" : {
+                        	"Authorization": "%s"
+                    	}
+                    }
+                    """;
+            html2 = String.format(html2, basicAuthHeader);
+            html1 = html1.concat(html2);
+        } else {
+            html1 = html1.concat("}");
+
         }
-               
+
         Val request;
         try {
-        	  request = Val.ofJson(html1);
+            request = Val.ofJson(html1);
 
         } catch (Exception e) {
             throw new PolicyEvaluationException(e);
@@ -146,7 +146,7 @@ public class OwnTracksConnection extends ConnectionBase {
         }
 
     }
-       
+
     protected static String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(PASSWORD)) {
             return requestSettings.findValue(PASSWORD).asText();

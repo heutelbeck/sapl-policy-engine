@@ -19,6 +19,7 @@ package testProject;
 
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.connection.mysql.MySqlConnection;
 import io.sapl.geo.connection.owntracks.OwnTracksConnection;
 import io.sapl.geo.connection.postgis.PostGisConnection;
 import io.sapl.geo.connection.traccar.TraccarConnection;
@@ -186,6 +187,45 @@ public class Program {
 //        });
         
         
+        
+        var pg1 = """
+                {
+                "user":"mane",
+                "password":"Aig1979.",
+            	"server":"localhost",
+            	"port": 3306,
+            	"dataBase":"test",
+            	"table":"geometry",
+            	"geoColumn":"geom",
+            	"responseFormat":"GEOJSON",
+            	"defaultCRS": 3857,
+            	"pollingIntervalMs":1000,
+            	"repetitions":5,
+            	"singleResult": false,
+            	
+            	"columns": ["text"]
+            }
+            """;
+        var nod = Val.ofJson(pg1).get();
+        
+        
+        var mysql = MySqlConnection.connect(nod, mapper);
+        var dis = mysql.subscribe(
+	      		 content ->{ 
+    			 
+    			 System.out.println("mysql content content: " + content.get().toString());
+    			 System.out.println("--");
+    			 
+    		 },
+  	      error -> System.out.println(String.format("Error receiving mysql: {%s}", error)),
+  	      () -> System.out.println("Completed!!!")
+  	      );
+        
+        
+        
+        
+        
+        
 //        var fi = """
 //                {
 //                "path":"D:\\\\Bachelorarbeit\\\\Fileimport\\\\geojsonMultiple.json",
@@ -258,18 +298,18 @@ public class Program {
             	"protocol":"http"
             }
             """;
-		var node2 = Val.ofJson(settings).get();
-		var owntracks = OwnTracksConnection.connect(node2, mapper);
-		var ot = owntracks.subscribe(
-	      		 content ->{ 
-    			 var a = content.get().toString();
-
-    			 System.out.println("owntracks content: " + a);
-    			 
-    		 },
-  	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-  	      () -> System.out.println("Completed!!!")
-  	      );
+//		var node2 = Val.ofJson(settings).get();
+//		var owntracks = OwnTracksConnection.connect(node2, mapper);
+//		var ot = owntracks.subscribe(
+//	      		 content ->{ 
+//    			 var a = content.get().toString();
+//
+//    			 System.out.println("owntracks content: " + a);
+//    			 
+//    		 },
+//  	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+//  	      () -> System.out.println("Completed!!!")
+//  	      );
 		 
 		
 		//testcontainer

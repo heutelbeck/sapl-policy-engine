@@ -39,7 +39,7 @@ import io.sapl.api.interpreter.Val;
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
 public class OwnTracksConnectionTests {
-	String              address;
+    String              address;
     Integer             port;
     SourceProvider      source            = SourceProvider.getInstance();
     final static String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
@@ -49,34 +49,33 @@ public class OwnTracksConnectionTests {
     public static GenericContainer<?> owntracksRecorder = new GenericContainer<>(
             DockerImageName.parse("owntracks/recorder:latest")).withExposedPorts(8083)
             .withFileSystemBind(resourceDirectory + "/owntracks/store", "/store", BindMode.READ_WRITE)
-            .withEnv("OTR_PORT", "0")
-            .withReuse(false);
+            .withEnv("OTR_PORT", "0").withReuse(false);
 
     @BeforeAll
     void setup() {
 
         address = owntracksRecorder.getHost() + ":" + owntracksRecorder.getMappedPort(8083);
     }
-    
+
     @Test
     void test() throws Exception {
         var exp = "{\"deviceId\":1,\"position\":{\"type\":\"Point\",\"coordinates\":[40,10],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"altitude\":409.0,\"lastUpdate\":\"1712477273\",\"accuracy\":20.0,\"geoFences\":[{\"name\":\"home\"},{\"name\":\"home2\"}]}";
 
         var st = """
-                {
-                "user":"user",
-            	"server":"%s",
-            	"protocol":"http",
-            	"responseFormat":"GEOJSON",
-            	"deviceId":1
-            }
-            """;
-        
+                    {
+                    "user":"user",
+                	"server":"%s",
+                	"protocol":"http",
+                	"responseFormat":"GEOJSON",
+                	"deviceId":1
+                }
+                """;
+
         var val = Val.ofJson(String.format(st, address));
         var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toString();
 
         assertEquals(exp, res);
 
     }
-    
+
 }
