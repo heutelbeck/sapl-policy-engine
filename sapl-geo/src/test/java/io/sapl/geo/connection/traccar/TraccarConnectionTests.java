@@ -42,8 +42,20 @@ public class TraccarConnectionTests {
     String              address;
     Integer             port;
     SourceProvider      source            = SourceProvider.getInstance();
+    String				template 		  =  """
+            {
+            "user":"test@fake.de",
+            "password":"1234",
+        	"server":"%s",
+        	"protocol":"http",
+        	"deviceId":1
+        
+        """;
+    
     final static String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
-
+    
+    
+    
     @Container
 
     public static GenericContainer<?> traccarServer = new GenericContainer<>(
@@ -56,23 +68,18 @@ public class TraccarConnectionTests {
     void setup() {
 
         address = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
+        template = String.format(template, address);
+        
     }
 
     @Test
-    void Test01() throws Exception {
-        String exp = source.getJsonSource().get("ResponseWKT").toPrettyString();
-
-        var st  = """
-                    {
-                    "user":"test@fake.de",
-                    "password":"1234",
-                	"server":"%s",
-                	"protocol":"http",
-                	"responseFormat":"WKT",
-                	"deviceId":1
-                }
-                """;
-        var val = Val.ofJson(String.format(st, address));
+    void Test01WKT() throws Exception {
+        
+    	String exp = source.getJsonSource().get("ResponseWKT").toPrettyString();
+      
+        var tmp = template.concat(",\"responseFormat\":\"WKT\"}");
+        
+        var val = Val.ofJson(tmp);
         var res = TraccarConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
@@ -80,21 +87,42 @@ public class TraccarConnectionTests {
     }
 
     @Test
-    void Test02() throws Exception {
-        String exp = source.getJsonSource().get("ResponseGeoJsonSwitchedCoordinates").toPrettyString();
+    void Test02GeoJson() throws Exception {
+        
+    	String exp = source.getJsonSource().get("ResponseGeoJsonSwitchedCoordinates").toPrettyString();
 
-        var st  = """
-                    {
-                    "user":"test@fake.de",
-                    "password":"1234",
-                	"server":"%s",
-                	"protocol":"http",
-                	"responseFormat":"GEOJSON",
-                	"deviceId":1,
-                	"latitudeFirst":false
-                }
-                """;
-        var val = Val.ofJson(String.format(st, address));
+        
+        var tmp = template.concat(",\"responseFormat\":\"GEOJSON\",\"latitudeFirst\":false}");
+        
+        var val = Val.ofJson(tmp);
+        var res = TraccarConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+
+        assertEquals(exp, res);
+
+    }
+    
+    @Test
+    void Test03GML() throws Exception {
+        
+    	String exp = source.getJsonSource().get("ResponseGML").toPrettyString();
+       
+        var tmp = template.concat(",\"responseFormat\":\"GML\"}");
+
+        var val = Val.ofJson(tmp);
+        var res = TraccarConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+
+        assertEquals(exp, res);
+
+    }
+    
+    @Test
+    void Test04KML() throws Exception {
+        
+    	String exp = source.getJsonSource().get("ResponseKML").toPrettyString();
+
+        var tmp = template.concat(",\"responseFormat\":\"KML\"}");
+        
+        var val = Val.ofJson(tmp);
         var res = TraccarConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
