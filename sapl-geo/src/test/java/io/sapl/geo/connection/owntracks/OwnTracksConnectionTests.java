@@ -58,7 +58,7 @@ public class OwnTracksConnectionTests {
     }
 
     @Test
-    void test() throws Exception {
+    void Test01() throws Exception {
         var exp = "{\"deviceId\":1,\"position\":{\"type\":\"Point\",\"coordinates\":[40,10],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"altitude\":409.0,\"lastUpdate\":\"1712477273\",\"accuracy\":20.0,\"geoFences\":[{\"name\":\"home\"},{\"name\":\"home2\"}]}";
 
         var st = """
@@ -78,4 +78,24 @@ public class OwnTracksConnectionTests {
 
     }
 
+    void Test02SwitchedCoordinates() throws Exception {
+        
+        var exp = "{\"deviceId\":1,\"position\":\"POINT (29 33)\",\"altitude\":409.0,\"lastUpdate\":\"1712477273\",\"accuracy\":20.0,\"geoFences\":[{\"name\":\"home\"},{\"name\":\"home2\"}]}";
+        
+        var st = """
+                    {
+                    "user":"user",
+                	"server":"%s",
+                	"protocol":"http",
+                	"responseFormat":"WKT",
+                	"deviceId":1,
+                	"latitudeFirst":false
+                }
+                """;
+
+        var val = Val.ofJson(String.format(st, address));
+        var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toString();
+
+        assertEquals(exp, res);
+    }
 }

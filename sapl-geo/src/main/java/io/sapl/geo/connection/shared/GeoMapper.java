@@ -23,6 +23,7 @@ import java.util.List;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,6 +31,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.connection.mysql.MySqlConnection;
+import io.sapl.geo.functions.GeoProjector;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.WktConverter;
 import io.sapl.geo.model.Geofence;
@@ -54,13 +57,27 @@ public class GeoMapper {
     private static final String DESCRIPTION = "description";
     private static final String CALENDARID  = "calendarId";
     private static final String ID          = "id";
-
-    public GeoPipResponse mapPosition(JsonNode in, GeoPipResponseFormat format) {
+    private final String EPSG = "EPSG:4326";
+    
+    
+    public GeoPipResponse mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst) {
 
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
-
-        var      position = geometryFactory
-                .createPoint(new Coordinate(in.findValue(latitude).asDouble(), in.findValue(longitude).asDouble()));
+        Point position;
+        
+        var lat = in.findValue(latitude).asDouble();
+        var lon = in.findValue(longitude).asDouble();
+        
+        if(!latitudeFirst) {
+        	position = geometryFactory
+                    .createPoint(new Coordinate(lon, lat));
+        	
+        }else {
+        	position = geometryFactory
+                    .createPoint(new Coordinate(lat, lon));
+        }
+        
+               
         JsonNode posRes   = mapper.createObjectNode();
         switch (format) {
         case GEOJSON:
@@ -89,7 +106,7 @@ public class GeoMapper {
                 .lastUpdate(in.findValue(lastUpdate).asText()).accuracy(in.findValue(accuracy).asDouble()).build();
     }
 
-    public List<Geofence> mapTraccarGeoFences(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper)
+    public List<Geofence> mapTraccarGeoFences(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst)
             throws PolicyEvaluationException {
         JsonNode       fences   = mapper.createArrayNode();
         List<Geofence> fenceRes = new ArrayList<>();
@@ -100,6 +117,12 @@ public class GeoMapper {
             for (JsonNode geoFence : fences) {
                 var      factory = new GeometryFactory(new PrecisionModel(), 4326);
                 Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
+                
+    	        if(!latitudeFirst) {
+    	        	var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
+    	        	geo = geoProjector.project(geo);
+    	        }
+    	        
                 switch (format) {
 
                 case GEOJSON:

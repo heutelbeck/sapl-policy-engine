@@ -71,7 +71,7 @@ public class TraccarConnection extends ConnectionBase {
         try {
             var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings),
                     getProtocol(settings), getDeviceId(settings), mapper);
-            return socketManager.getFlux(getResponseFormat(settings, mapper), mapper).map(Val::of)
+            return socketManager.getFlux(getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of)
                     .onErrorResume(e -> Flux.just(Val.error(e))).doFinally(s -> socketManager.disconnect());
 
         } catch (Exception e) {
@@ -80,7 +80,7 @@ public class TraccarConnection extends ConnectionBase {
 
     }
 
-    public Flux<ObjectNode> getFlux(GeoPipResponseFormat format, ObjectMapper mapper) throws PolicyEvaluationException {
+    public Flux<ObjectNode> getFlux(GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst) throws PolicyEvaluationException {
 
         var client = new ReactiveWebClient(mapper);
 
@@ -100,8 +100,8 @@ public class TraccarConnection extends ConnectionBase {
             throw new PolicyEvaluationException(e);
         }
 
-        var flux = client.consumeWebSocket(request).map(Val::get).flatMap(msg -> handler.mapPosition(msg, format))
-                .flatMap(res -> handler.getGeofences(res, format))
+        var flux = client.consumeWebSocket(request).map(Val::get).flatMap(msg -> handler.mapPosition(msg, format, latitudeFirst))
+                .flatMap(res -> handler.getGeofences(res, format, latitudeFirst))
                 .map(res -> mapper.convertValue(res, ObjectNode.class));
 
         logger.info("Traccar-Client connected.");

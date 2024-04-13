@@ -59,7 +59,7 @@ public class TraccarConnectionTests {
     }
 
     @Test
-    void test() throws Exception {
+    void Test01() throws Exception {
         String exp = source.getJsonSource().get("ResponseWKT").toPrettyString();
 
         var st  = """
@@ -79,4 +79,26 @@ public class TraccarConnectionTests {
 
     }
 
+    @Test
+    void Test02() throws Exception {
+        String exp = source.getJsonSource().get("ResponseGeoJsonSwitchedCoordinates").toPrettyString();
+
+        var st  = """
+                    {
+                    "user":"test@fake.de",
+                    "password":"1234",
+                	"server":"%s",
+                	"protocol":"http",
+                	"responseFormat":"GEOJSON",
+                	"deviceId":1,
+                	"latitudeFirst":false
+                }
+                """;
+        var val = Val.ofJson(String.format(st, address));
+        var res = TraccarConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+
+        assertEquals(exp, res);
+
+    }
+    
 }

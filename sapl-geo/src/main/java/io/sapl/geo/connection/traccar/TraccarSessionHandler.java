@@ -53,12 +53,12 @@ public class TraccarSessionHandler {
         this.rest     = new TraccarRestManager(sessionCookie, serverName, protocol, mapper);
     }
 
-    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format) {
+    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst) {
         JsonNode pos = getPositionFromMessage(in, deviceId);
 
         if (pos.has(DEVICE_ID)) {
 
-            return Flux.just(geoMapper.mapPosition(pos, format));
+            return Flux.just(geoMapper.mapPosition(pos, format, latitudeFirst));
         }
 
         return Flux.just();
@@ -79,21 +79,21 @@ public class TraccarSessionHandler {
 
     }
 
-    public Mono<GeoPipResponse> getGeofences(GeoPipResponse response, GeoPipResponseFormat format) {
+    public Mono<GeoPipResponse> getGeofences(GeoPipResponse response, GeoPipResponseFormat format, boolean latitudeFirst) {
 
         if (response.getDeviceId() != 0) {
             return rest.getGeofences(Integer.toString(deviceId))
-                    .flatMap(fences -> mapGeofences(response, format, fences));
+                    .flatMap(fences -> mapGeofences(response, format, fences, latitudeFirst));
         }
         return Mono.just(response);
     }
 
-    private Mono<GeoPipResponse> mapGeofences(GeoPipResponse response, GeoPipResponseFormat format, JsonNode in) {
+    private Mono<GeoPipResponse> mapGeofences(GeoPipResponse response, GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
         List<Geofence> fenceRes = new ArrayList<>();
 
         try {
 
-            fenceRes = geoMapper.mapTraccarGeoFences(in, format, mapper);
+            fenceRes = geoMapper.mapTraccarGeoFences(in, format, mapper, latitudeFirst);
 
         } catch (Exception e) {
             return Mono.error(e);

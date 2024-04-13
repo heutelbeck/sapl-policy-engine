@@ -71,7 +71,7 @@ public class OwnTracksConnection extends ConnectionBase {
             var connection = getNew(mapper, getDeviceId(settings));
             return connection
                     .getFlux(getHttpBasicAuthUser(settings), getPassword(settings), getServer(settings),
-                            getProtocol(settings), getUser(settings), getResponseFormat(settings, mapper), mapper)
+                            getProtocol(settings), getUser(settings), getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings))
                     .map(Val::of);
 
         } catch (Exception e) {
@@ -81,7 +81,7 @@ public class OwnTracksConnection extends ConnectionBase {
     }
 
     private Flux<ObjectNode> getFlux(String httpBasicAuthUser, String password, String server, String protocol,
-            String user, GeoPipResponseFormat format, ObjectMapper mapper) {
+            String user, GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst) {
 
         var url = String.format("%s://%s/api/0/last?user=%s&device=%s", protocol, server, user, deviceId);
 
@@ -120,15 +120,15 @@ public class OwnTracksConnection extends ConnectionBase {
             throw new PolicyEvaluationException(e);
         }
 
-        var flux = client.httpRequest(HttpMethod.GET, request).flatMap(v -> mapPosition(v.get(), format, mapper))
+        var flux = client.httpRequest(HttpMethod.GET, request).flatMap(v -> mapPosition(v.get(), format, mapper, latitudeFirst))
                 .map(res -> mapper.convertValue(res, ObjectNode.class));
         logger.info("OwnTracks-Client connected.");
         return flux;
     }
 
-    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper) {
+    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst) {
 
-        var response = geoMapper.mapPosition(in.get(0), format);
+        var response = geoMapper.mapPosition(in.get(0), format, latitudeFirst);
         var res      = in.findValue("inregions");
 
         response.setGeoFences(geoMapper.mapOwnTracksInRegions(res, mapper));
