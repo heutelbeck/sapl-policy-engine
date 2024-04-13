@@ -35,6 +35,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.connection.traccar.TraccarConnection;
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
@@ -42,6 +43,15 @@ public class OwnTracksConnectionTests {
     String              address;
     Integer             port;
     SourceProvider      source            = SourceProvider.getInstance();
+    
+    String				template 		  =  """
+            {
+            "user":"user",
+        	"server":"%s",
+        	"protocol":"http",
+        	"deviceId":1
+        """;
+    
     final static String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
 
     @Container
@@ -53,49 +63,66 @@ public class OwnTracksConnectionTests {
 
     @BeforeAll
     void setup() {
-
+    	
         address = owntracksRecorder.getHost() + ":" + owntracksRecorder.getMappedPort(8083);
+        template = String.format(template, address);
     }
 
     @Test
-    void Test01() throws Exception {
-        var exp = "{\"deviceId\":1,\"position\":{\"type\":\"Point\",\"coordinates\":[40,10],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"altitude\":409.0,\"lastUpdate\":\"1712477273\",\"accuracy\":20.0,\"geoFences\":[{\"name\":\"home\"},{\"name\":\"home2\"}]}";
+    void Test01WKT() throws Exception {
 
-        var st = """
-                    {
-                    "user":"user",
-                	"server":"%s",
-                	"protocol":"http",
-                	"responseFormat":"GEOJSON",
-                	"deviceId":1
-                }
-                """;
-
-        var val = Val.ofJson(String.format(st, address));
-        var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toString();
+    	String exp = source.getJsonSource().get("ResponseWKT").toPrettyString();
+        
+        var tmp = template.concat(",\"responseFormat\":\"WKT\"}");
+    	
+        var val = Val.ofJson(tmp);
+        var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 
     }
 
-    void Test02SwitchedCoordinates() throws Exception {
-        
-        var exp = "{\"deviceId\":1,\"position\":\"POINT (29 33)\",\"altitude\":409.0,\"lastUpdate\":\"1712477273\",\"accuracy\":20.0,\"geoFences\":[{\"name\":\"home\"},{\"name\":\"home2\"}]}";
-        
-        var st = """
-                    {
-                    "user":"user",
-                	"server":"%s",
-                	"protocol":"http",
-                	"responseFormat":"WKT",
-                	"deviceId":1,
-                	"latitudeFirst":false
-                }
-                """;
+    @Test
+    void Test02GeoJson() throws Exception {
+       
+    	
+    	String exp = source.getJsonSource().get("ResponseGeoJsonSwitchedCoordinates").toPrettyString();
 
-        var val = Val.ofJson(String.format(st, address));
-        var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toString();
+        
+        var tmp = template.concat(",\"responseFormat\":\"GEOJSON\",\"latitudeFirst\":false}");
+        
+        var val = Val.ofJson(tmp);
+        var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
     }
+    
+    @Test
+    void Test03GML() throws Exception {
+        
+    	String exp = source.getJsonSource().get("ResponseGML").toPrettyString();
+       
+        var tmp = template.concat(",\"responseFormat\":\"GML\"}");
+
+        var val = Val.ofJson(tmp);
+        var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+
+        assertEquals(exp, res);
+
+    }
+    
+    @Test
+    void Test04KML() throws Exception {
+        
+    	String exp = source.getJsonSource().get("ResponseKML").toPrettyString();
+
+        var tmp = template.concat(",\"responseFormat\":\"KML\"}");
+        
+        var val = Val.ofJson(tmp);
+        var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+
+        assertEquals(exp, res);
+
+    }
+    
 }
