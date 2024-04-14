@@ -64,8 +64,7 @@ public class MySqlConnection extends DatabaseConnection {
         try {
             instance = getNew(getUser(settings), getPassword(settings), getServer(settings), getPort(settings),
                     getDataBase(settings), mapper);
-            var columns    = getColumns(settings, mapper);
-            
+            var columns    = getColumns(settings, mapper);  
             
             return instance
                     .getFlux(getResponseFormat(settings, mapper),

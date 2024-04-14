@@ -25,6 +25,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,6 +43,7 @@ import io.sapl.geo.functions.GeoProjector;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.JsonConverter;
 import io.sapl.geo.pip.GeoPipResponseFormat;
+import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.retry.Repeat;
@@ -56,8 +59,10 @@ public abstract class DatabaseConnection extends ConnectionBase {
 	protected static final String DEFAULTCRS    = "defaultCRS";
 	protected static final String SINGLE_RESULT = "singleResult";
 
-	private static final String EPSG = "EPSG:";
+	protected final Logger logger = LoggerFactory.getLogger(getClass());
 	
+	private static final String EPSG = "EPSG:";
+		
 	protected ConnectionFactory           connectionFactory;
 	protected ObjectMapper                mapper;
 	protected AtomicReference<Connection> connectionReference;
@@ -75,6 +80,8 @@ public abstract class DatabaseConnection extends ConnectionBase {
             int defaultCrs, long repeatTimes, long pollingInterval, boolean latitudeFirst) {
         var connection = createConnection();
 
+        logger.info("Database-Client connected.");
+        
         if (singleResult) {
 
             sql = sql.concat(" LIMIT 1");
@@ -188,10 +195,20 @@ public abstract class DatabaseConnection extends ConnectionBase {
     protected Flux<JsonNode> poll(Mono<JsonNode> mono, long repeatTimes, long pollingInterval) {
         return mono.onErrorResume(Mono::error)
                 .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
-                .doOnCancel(() -> connectionReference.get().close())
-                .doOnTerminate(() -> connectionReference.get().close());
+//                .doOnCancel(() -> disconnect())
+//                .doOnTerminate(() -> disconnect());
+                .doFinally(s -> disconnect());
     }
 
+    private void disconnect() {
+    	
+    	if(connectionReference != null) {
+    		connectionReference.get().close();
+    		logger.info("Database-Client disconnected.");
+    	}
+    
+    }
+    
     protected static String buildSql(String geoColumn, String[] columns, String table, String where) {
         String frmt = "ST_AsGeoJSON";
 
@@ -287,6 +304,5 @@ public abstract class DatabaseConnection extends ConnectionBase {
         }
 
     }
-
 	
 }

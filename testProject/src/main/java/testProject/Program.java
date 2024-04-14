@@ -140,7 +140,7 @@ public class Program {
             	"responseFormat":"GEOJSON",
             	"defaultCRS": 3857,
             	"pollingIntervalMs":1000,
-            	"repetitions":5,
+            	"repetitions":50,
             	"singleResult": true,
             	"where": "name = 'Point'",
             	"columns": ["name", "text"]
@@ -149,17 +149,17 @@ public class Program {
         var node = Val.ofJson(pg).get();
         
         
-//        var postgis = PostGisConnection.connect(node, mapper);
-//        var dis = postgis.subscribe(
-//	      		 content ->{ 
-//    			 
-//    			 System.out.println("postgis content: " + content.get().toString());
-//    			 System.out.println("--");
-//    			 
-//    		 },
-//  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
-//  	      () -> System.out.println("Completed!!!")
-//  	      );
+        var postgis = PostGisConnection.connect(node, mapper);
+        var dis = postgis.subscribe(
+	      		 content ->{ 
+    			 
+    			 System.out.println("postgis content: " + content.get().toString());
+    			 System.out.println("--");
+    			 
+    		 },
+  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
+  	      () -> System.out.println("Completed!!!")
+  	      );
         
         
         
@@ -200,7 +200,7 @@ public class Program {
             	"responseFormat":"GEOJSON",
             	"defaultCRS": 3857,
             	"pollingIntervalMs":1000,
-            	"repetitions":5,
+            	"repetitions":50,
             	"singleResult": false,
             	
             	"columns": ["text"]
@@ -261,19 +261,19 @@ public class Program {
             	"latitudeFirst":false
             }
             """;
-        var node1 = Val.ofJson(st).get();
-        var trc = TraccarConnection.connect( node1, mapper);
-		var dis = trc.subscribe(
-	      		 content ->{ 
-     			 var a = content.get().toString();
-     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-     			 System.out.println("traccar res: " + b.getDeviceId());
-     			 System.out.println("traccar content: " + a);
-     			 
-     		 },
-   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-   	      () -> System.out.println("Completed!!!")
-   	      );
+//        var node1 = Val.ofJson(st).get();
+//        var trc = TraccarConnection.connect( node1, mapper);
+//		var dis = trc.subscribe(
+//	      		 content ->{ 
+//     			 var a = content.get().toString();
+//     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+//     			 System.out.println("traccar res: " + b.getDeviceId());
+//     			 System.out.println("traccar content: " + a);
+//     			 
+//     		 },
+//   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+//   	      () -> System.out.println("Completed!!!")
+//   	      );
 
 		
 		
@@ -376,16 +376,16 @@ public class Program {
 
 			
 		try {
-			Thread.sleep(50000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		//dis.dispose();
+		System.out.println("disposing...");
+		dis.dispose();
 		
 		try {
-			Thread.sleep(30000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

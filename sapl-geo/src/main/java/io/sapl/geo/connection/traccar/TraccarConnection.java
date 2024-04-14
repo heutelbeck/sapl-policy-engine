@@ -69,10 +69,10 @@ public class TraccarConnection extends ConnectionBase {
     public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
 
         try {
-            var socketManager = getNew(getUser(settings), getPassword(settings), getServer(settings),
+            var traccarConnection = getNew(getUser(settings), getPassword(settings), getServer(settings),
                     getProtocol(settings), getDeviceId(settings), mapper);
-            return socketManager.getFlux(getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of)
-                    .onErrorResume(e -> Flux.just(Val.error(e))).doFinally(s -> socketManager.disconnect());
+            return traccarConnection.getFlux(getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of)
+                    .onErrorResume(e -> Flux.just(Val.error(e))).doFinally(s -> traccarConnection.disconnect());
 
         } catch (Exception e) {
             return Flux.just(Val.error(e));
