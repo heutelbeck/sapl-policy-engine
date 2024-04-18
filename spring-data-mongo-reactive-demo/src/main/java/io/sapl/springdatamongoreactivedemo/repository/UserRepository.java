@@ -70,6 +70,6 @@ public interface UserRepository extends ReactiveCrudRepository<User, ObjectId> {
 	 */
 	@QueryEnforce(action = "includeActiveUsers", subject = "{\"admin\": hasRole('ROLE_ADMIN')}")
 	@Query(value = "{'lastname': {'$regex': ?0}}", fields = "{'firstname': 0}", sort = "{'lastname': 1}")
-	Flux<User> fetchingByQueryMethod(String lastnameContains);
+	Flux<User> fetchingByQueryMethod(String lastnameContains, Pageable pageable);
 
 }

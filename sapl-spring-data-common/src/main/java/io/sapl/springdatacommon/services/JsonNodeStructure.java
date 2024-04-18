@@ -42,12 +42,8 @@ public class JsonNodeStructure {
 	 *                               structure.
 	 */
 	public static boolean compare(JsonNode obligation, JsonNode template) {
-		try {
-			if (obligation.getNodeType() != template.getNodeType()) {
-				return false;
-			}
-		} catch (NullPointerException e) {
-			throw getAccessDeniedException(obligation, template);
+		if (obligation.getNodeType() != template.getNodeType()) {
+			return false;
 		}
 
 		if (obligation.isObject()) {
@@ -104,16 +100,19 @@ public class JsonNodeStructure {
 		 */
 		var templateArrayValuesAmountEqualsOne = templateArray.size() == 1;
 
-		for (int i = 0; i < templateArray.size(); i++) {
+		if (!templateArrayValuesAmountEqualsOne && (obligationArray.size() != templateArray.size())) {
+			throw getAccessDeniedException(obligation, template);
+		}
+
+		for (int i = 0; i < obligationArray.size(); i++) {
 
 			var templateIndex = templateArrayValuesAmountEqualsOne ? 0 : i;
 
-			try {
-				if (!compare(obligationArray.get(i), templateArray.get(templateIndex))) {
-					return false;
-				}
-			} catch (NullPointerException e) {
-				throw getAccessDeniedException(obligation, template);
+			if (!compare(obligationArray.get(i), templateArray.get(templateIndex))) {
+				return false;
+			}
+			if (!areSameType(obligationArray.get(i), templateArray.get(templateIndex))) {
+				return false;
 			}
 		}
 
@@ -123,6 +122,12 @@ public class JsonNodeStructure {
 	private AccessDeniedException getAccessDeniedException(JsonNode obligation, JsonNode template) {
 		return new AccessDeniedException("Obligation does not satisfy the required structure. \n\n Obligation: "
 				+ obligation.toPrettyString() + " \n Template:   " + template.toPrettyString());
+	}
+
+	private boolean areSameType(JsonNode value1, JsonNode value2) {
+	    return (value1.isTextual() && value2.isTextual()) ||
+	           (value1.isInt() && value2.isInt()) ||
+	           (value1.isBoolean() && value2.isBoolean());
 	}
 
 }

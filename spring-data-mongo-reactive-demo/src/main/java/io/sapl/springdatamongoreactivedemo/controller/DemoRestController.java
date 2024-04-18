@@ -46,7 +46,7 @@ public class DemoRestController {
 
 	@GetMapping("/fetchingByQueryMethod/{lastnameContains}")
 	public Flux<User> fetchingByQueryMethod(@PathVariable String lastnameContains) {
-		return repository.fetchingByQueryMethod(lastnameContains);
+		return repository.fetchingByQueryMethod(lastnameContains, PageRequest.of(0, 2));
 	}
 
 }

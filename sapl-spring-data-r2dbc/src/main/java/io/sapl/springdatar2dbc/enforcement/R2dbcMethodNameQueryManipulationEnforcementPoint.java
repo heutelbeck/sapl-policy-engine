@@ -84,7 +84,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> {
 
 				var conditions = bundle.getConditions();
 				var selections = bundle.getSelections();
-
+				
 				return enforceQueryManipulation(conditions, selections, domainType, baseQuery);
 			} else {
 				return Flux.error(new AccessDeniedException("Access Denied by PDP"));

@@ -35,7 +35,6 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
 import io.sapl.springdatamongoreactive.queries.QueryCreation;
 import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -63,14 +62,12 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
 	 *
 	 * @return database objects that may have been filtered and/or transformed.
 	 */
-	@SneakyThrows
 	public Flux<T> enforce(AuthorizationSubscription authorizationSubscription, Class<T> domainType,
 			MethodInvocation invocation) {
-		
 		var baseQuery = QueryCreation.createBaselineQuery(invocation);
 
 		return Mono.defer(() -> pdpProvider.getObject().decide(authorizationSubscription).next())
-				.flatMapMany(enforceDecision(baseQuery, domainType));
+				.flatMapMany(enforceDecision(baseQuery, domainType, invocation));
 	}
 
 	/**
@@ -80,7 +77,7 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
 	 *
 	 * @return database objects that may have been filtered and/or transformed.
 	 */
-	public Function<AuthorizationDecision, Flux<T>> enforceDecision(BasicQuery basicQuery, Class<T> domainType) {
+	private Function<AuthorizationDecision, Flux<T>> enforceDecision(BasicQuery basicQuery, Class<T> domainType, MethodInvocation invocation) {
 
 		return decision -> {
 			var decisionIsPermit = Decision.PERMIT == decision.getDecision();
@@ -92,7 +89,7 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
 				var conditions = bundle.getConditions();
 				var selections = bundle.getSelections();
 
-				return retrieveDataFromDatabase(conditions, selections, basicQuery, domainType);
+				return retrieveDataFromDatabase(conditions, selections, basicQuery, domainType, invocation);
 			} else {
 				return Flux.error(new AccessDeniedException("Access Denied by PDP"));
 			}
@@ -112,9 +109,9 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
 	 *         query.
 	 */
 	private Flux<T> retrieveDataFromDatabase(ArrayNode conditions, ArrayNode selections, BasicQuery annotationQuery,
-			Class<T> domainType) {
+			Class<T> domainType, MethodInvocation invocation) {
 
-		var manipulatedQuery = QueryCreation.manipulateQuery(conditions, selections, annotationQuery);
+		var manipulatedQuery = QueryCreation.manipulateQuery(conditions, selections, annotationQuery, invocation);
 
 		log.info(QUERY_LOG, manipulatedQuery);
 

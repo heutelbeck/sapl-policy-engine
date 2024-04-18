@@ -30,17 +30,13 @@ public class RepositoryInformationCollectorService {
 		repositories.add(repositoryInformation);
 	}
 
-	public Set<RepositoryInformation> getRepositoriesInformation() {
-		return repositories;
-	}
-
 	public RepositoryInformation getRepositoryByName(String repositoryName) {
-		return getRepositoriesInformation().stream()
+		return repositories.stream()
 				.filter(repository -> repository.getRepositoryInterface().getName().equals(repositoryName)).findFirst().orElse(null);
 	}
 	
 	public Set<RepositoryInformation> getRepositories() {
 		return repositories;
 	}
-
+	
 }

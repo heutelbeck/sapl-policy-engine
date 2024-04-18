@@ -58,7 +58,7 @@ public class ConstraintQueryEnforcementService {
 	}
 
 	private List<RecordConstraintData> filterHandlerType(HashSet<JsonNode> obligations,
-			HashSet<JsonNode> unhandledObligations, EnumConstraintHandlerType type) {
+			HashSet<JsonNode> handledObligations, EnumConstraintHandlerType type) {
 		var constraintDataRecords = new ArrayList<RecordConstraintData>();
 
 		for (JsonNode obligation : obligations) {
@@ -69,7 +69,7 @@ public class ConstraintQueryEnforcementService {
 
 				if (jsonNodeStructureIsFine) {
 					constraintDataRecords.add(new RecordConstraintData(type, obligation));
-					unhandledObligations.add(obligation);
+					handledObligations.add(obligation);
 				}
 			}
 		}

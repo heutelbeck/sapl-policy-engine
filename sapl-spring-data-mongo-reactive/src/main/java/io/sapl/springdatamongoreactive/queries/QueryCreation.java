@@ -40,9 +40,9 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class QueryCreation {
 
-	public static Query manipulateQuery(ArrayNode conditions, ArrayNode selections, BasicQuery annotationQuery) {
+	public static Query manipulateQuery(ArrayNode conditions, ArrayNode selections, BasicQuery annotationQuery, MethodInvocation invocation) {
 
-		var query = enforceQueryManipulation(annotationQuery, conditions);
+		var query = enforceQueryManipulation(annotationQuery, conditions, invocation);
 
 		return addSelectionPart(selections, query);
 	}
@@ -70,15 +70,16 @@ public class QueryCreation {
 	 * @param conditions      are the query conditions from the {@link Decision}.
 	 * @return the manipulated query.
 	 */
-	private BasicQuery enforceQueryManipulation(BasicQuery annotationQuery, ArrayNode conditions) {
-
+	private Query enforceQueryManipulation(BasicQuery annotationQuery, ArrayNode conditions, MethodInvocation invocation) {
+		var sorting = ConvertToMQL.createPageable(invocation, annotationQuery);
+		
 		for (JsonNode condition : conditions) {
 			var conditionAsBasicQuery = new BasicQuery(condition.asText());
 			conditionAsBasicQuery.getQueryObject()
 					.forEach((key, value) -> annotationQuery.getQueryObject().append(key, value));
 		}
 
-		return annotationQuery;
+		return annotationQuery.with(sorting);
 	}
 
 	public static BasicQuery createBaselineQuery(MethodInvocation invocation) {

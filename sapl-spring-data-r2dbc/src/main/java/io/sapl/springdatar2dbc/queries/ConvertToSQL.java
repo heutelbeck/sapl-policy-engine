@@ -26,11 +26,13 @@ import org.springframework.data.domain.Sort;
 
 import lombok.experimental.UtilityClass;
 
+
 @UtilityClass
 public class ConvertToSQL {
+	private static final String ORDERBY = " ORDER BY ";
 
 	public static String getSorting(String query, Object[] parameters) {
-		if (!query.contains(" ORDER BY ")) {
+		if (!query.contains(ORDERBY)) {
 
 			for (Object param : parameters) {
 				if (param instanceof Sort sort) {
@@ -42,12 +44,12 @@ public class ConvertToSQL {
 		return "";
 	}
 
-	public static String sort(Sort sort) {
-		if (sort == null || sort.isUnsorted() || sort.isEmpty()) {
+	private static String sort(Sort sort) {
+		if (sort.isUnsorted()) {
 			return "";
 		}
 
-		var sqlSortClause = " ORDER BY ";
+		var sqlSortClause = ORDERBY;
 
 		var sortOrders = sort.stream().map(order -> order.getProperty() + " " + getOrderDirection(order.getDirection()))
 				.collect(Collectors.joining(", "));
@@ -93,12 +95,10 @@ public class ConvertToSQL {
 			finalSort = pageable.getSort();
 		}
 
-		Consumer<Sort.Order> appendOrder = order -> {
-			sqlQuery.append(order.getProperty()).append(" ").append(order.getDirection().name()).append(", ");
-		};
+		Consumer<Sort.Order> appendOrder = order -> sqlQuery.append(order.getProperty()).append(" ").append(order.getDirection().name()).append(", ");
 
 		if (finalSort != null && !finalSort.isEmpty()) {
-			sqlQuery.append(" ORDER BY ");
+			sqlQuery.append(ORDERBY);
 			finalSort.forEach(appendOrder);
 			sqlQuery.setLength(sqlQuery.length() - 2);
 		}

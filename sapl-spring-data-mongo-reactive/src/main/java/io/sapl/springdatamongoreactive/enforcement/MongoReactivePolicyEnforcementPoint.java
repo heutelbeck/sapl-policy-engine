@@ -80,7 +80,8 @@ public class MongoReactivePolicyEnforcementPoint<T> implements MethodInterceptor
 			var repositoryInformation = repositoryInformationCollectorService.getRepositoryByName(repository.getName());
 
 			if (repositoryInformation.isCustomMethod(repositoryMethod)) {
-				return invocation.proceed();
+				throw new IllegalStateException(
+						"The QueryEnforce annotation cannot be applied to custom repository methods. ");
 			}
 
 			@SuppressWarnings("unchecked") // over repositoryInformation we can be save about domainType

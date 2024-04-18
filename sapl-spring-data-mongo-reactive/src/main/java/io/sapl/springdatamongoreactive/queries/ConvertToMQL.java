@@ -17,77 +17,75 @@
  */
 package io.sapl.springdatamongoreactive.queries;
 
-import java.util.Map;
-
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Query;
 
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ConvertToMQL {
-	
-	public Pageable createPageable(MethodInvocation invocation, Query query) {
+
+	public Pageable createPageable(MethodInvocation invocation, BasicQuery query) {
 		var arguments = invocation.getArguments();
 		var sortMethodName = extractSort(query);
 		var sortMethodArguments = extractSort(arguments);
 		var mergedSort = sortMethodName.and(sortMethodArguments);
 		var pageable = extractPageable(arguments);
-		
+
 		return processSort(pageable, mergedSort);
 	}
-	
+
     private static Pageable processSort(Pageable pageable, Sort sort) {
         if (pageable != null) {
-            if (sort != null) {
+            if (!sort.isEmpty()) {
                 return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort.and(pageable.getSort()));
+            } else {
+                return pageable;
             }
         } else if (!sort.isEmpty()) {
-        	return PageRequest.of(0, Integer.MAX_VALUE, sort);
+            return PageRequest.of(0, Integer.MAX_VALUE, sort);
         }
         return Pageable.unpaged();
     }
-    
-    private Pageable extractPageable(Object[] arguments) {
-    	for (Object argument : arguments) {
-    		if (argument instanceof Pageable pageable) {
-    			return pageable;
-    		}
-    	}
-    	return null;
-    }
-    
-    private Sort extractSort(Object[] arguments) {
-    	for (Object argument : arguments) {
-    		if (argument instanceof Sort sort) {
-    			return sort;
-    		}
-    	}
-    	return Sort.unsorted();
-    }
-    
-    private static Sort extractSort(Query query) {
-        var sortDocument = query.getSortObject();
-        
-        if (sortDocument.isEmpty()) {
-        	
-            var orders = new Sort.Order[sortDocument.size()];
-            var i = 0;
-            
-            for (Map.Entry<String, Object> entry : sortDocument.entrySet()) {
-            	
-                var key = entry.getKey();
-                var value = entry.getValue();
-                var direction = Sort.Direction.fromString(value.toString());
-                
-                orders[i++] = new Sort.Order(direction, key);
-            }
-            return Sort.by(orders);
-        }
-        return Sort.unsorted();
-    }
+
+	private Pageable extractPageable(Object[] arguments) {
+		for (Object argument : arguments) {
+			if (argument instanceof Pageable pageable) {
+				return pageable;
+			}
+		}
+		return null;
+	}
+
+	private Sort extractSort(Object[] arguments) {
+		for (Object argument : arguments) {
+			if (argument instanceof Sort sort) {
+				return sort;
+			}
+		}
+		return Sort.unsorted();
+	}
+
+	private static Sort extractSort(Query query) {
+		var sortDocument = query.getSortObject();
+
+		if (!sortDocument.isEmpty()) {
+
+			var orders = new Sort.Order[sortDocument.size()];
+			var i = 0;
+			for (String key : sortDocument.keySet()) {
+				var directionValue = sortDocument.getInteger(key);
+				var direction = directionValue == 1 ? Sort.Direction.ASC : Sort.Direction.DESC;
+				orders[i++] = new Sort.Order(direction, key);
+			}
+			return Sort.by(orders);
+		}
+
+		return Sort.unsorted();
+	}
 
 }

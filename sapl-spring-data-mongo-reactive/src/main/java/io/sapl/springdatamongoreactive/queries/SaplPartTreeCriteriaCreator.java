@@ -17,6 +17,7 @@
  */
 package io.sapl.springdatamongoreactive.queries;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
@@ -39,14 +40,7 @@ public class SaplPartTreeCriteriaCreator {
 
 	public static CriteriaDefinition create(List<Object> allParametersValueAsObjects, PartTree manipulatedPartTree) {
 
-		var criteria = buildCriteria(manipulatedPartTree, allParametersValueAsObjects);
-
-		if (criteria == null) {
-			throw new IllegalStateException(
-					"The parameters specified in the policy do not appear to match the desired changes to the query.");
-		}
-
-		return criteria;
+		return buildCriteria(manipulatedPartTree, allParametersValueAsObjects);
 	}
 
 	/**
@@ -66,28 +60,31 @@ public class SaplPartTreeCriteriaCreator {
 		var iterator = parameters.iterator();
 
 		for (PartTree.OrPart node : manipulatedPartTree) {
+			var andPart = new ArrayList<Criteria>();
 
 			var parts = node.iterator();
-			var criteria = buildCriteria(parts.next(), iterator.next());
+			andPart.add(buildCriteria(parts.next(), iterator.next()));
 
 			while (parts.hasNext()) {
-				criteria = new Criteria().andOperator(criteria, buildCriteria(parts.next(), iterator.next()));
+				andPart.add(buildCriteria(parts.next(), iterator.next()));
 			}
 
-			base = base == null ? criteria : new Criteria().orOperator(base, criteria);
+			var criteria = new Criteria().andOperator(andPart.toArray(new Criteria[0]));
+
+			base = base == null ? criteria : base.orOperator(andPart.toArray(new Criteria[0]));
 		}
 
 		return base;
 	}
 
-	public Criteria buildCriteria(Part part, Object value) {
+	private Criteria buildCriteria(Part part, Object value) {
 		var propertyName = part.getProperty().getSegment();
-		
+
 		switch (part.getType()) {
 		case SIMPLE_PROPERTY:
 			return Criteria.where(propertyName).is(value);
 		case NEGATING_SIMPLE_PROPERTY:
-			return Criteria.where(propertyName).not().is(value);
+			return Criteria.where(propertyName).ne(value);
 		case GREATER_THAN:
 			return Criteria.where(propertyName).gt(value);
 		case GREATER_THAN_EQUAL:
@@ -98,6 +95,8 @@ public class SaplPartTreeCriteriaCreator {
 			return Criteria.where(propertyName).lte(value);
 		case AFTER:
 			return Criteria.where(propertyName).gt(value);
+		case BEFORE:
+			return Criteria.where(propertyName).lt(value);
 		case IS_NULL:
 			return Criteria.where(propertyName).is(null);
 		case IS_NOT_NULL:

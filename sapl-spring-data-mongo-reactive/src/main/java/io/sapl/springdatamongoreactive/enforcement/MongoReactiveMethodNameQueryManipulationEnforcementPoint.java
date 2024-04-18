@@ -75,7 +75,7 @@ public class MongoReactiveMethodNameQueryManipulationEnforcementPoint<T> {
 	 *
 	 * @return database objects that may have been filtered and/or transformed.
 	 */
-	public Function<AuthorizationDecision, Flux<T>> enforceDecision(Class<T> domainType, MethodInvocation invocation) {
+	private Function<AuthorizationDecision, Flux<T>> enforceDecision(Class<T> domainType, MethodInvocation invocation) {
 
 		return decision -> {
 			var decisionIsPermit = Decision.PERMIT == decision.getDecision();

@@ -79,7 +79,7 @@ public class Utilities {
 	}
 
 	public static boolean isString(Class<?> clazz) {
-		return clazz.isAssignableFrom(String.class);
+		return clazz.equals(String.class);
 	}
 
 	/**

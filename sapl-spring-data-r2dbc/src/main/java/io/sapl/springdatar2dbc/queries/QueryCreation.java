@@ -130,7 +130,7 @@ public class QueryCreation {
 
 		for (int i = 0; i < conditions.size(); i++) {
 			if (i == conditions.size() - 1 && "".equals(baseQuery)) {
-				// baseQuery´is empty, when repository method is like findAll(), streamAll()
+				// baseQuery is empty, when repository method is like findAll(), streamAll()
 				queryBuilder.append(conditions.get(i).asText());
 			} else {
 				queryBuilder.append(addMissingConjunction(conditions.get(i).asText()));
@@ -157,7 +157,7 @@ public class QueryCreation {
 		var sqlCondition = sqlConditionFromDecision.trim().substring(3);
 
 		if (conditionStartsWithPropositionalConnectives) {
-			return sqlCondition + " " + propositionalConnective;
+			return sqlCondition + " " + propositionalConnective + " ";
 		} else {
 			return sqlConditionFromDecision + " AND ";
 		}

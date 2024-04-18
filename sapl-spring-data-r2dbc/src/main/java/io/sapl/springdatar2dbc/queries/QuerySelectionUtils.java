@@ -20,7 +20,6 @@ package io.sapl.springdatar2dbc.queries;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -99,7 +98,7 @@ public class QuerySelectionUtils {
 		}
 
 		if (WHITELIST.equals(selection.get(TYPE).asText())) {
-			return handleWhitelist(fieldList.iterator(), alias);
+			return handleWhitelist(fieldList.get(0), alias);
 		} else {
 			return handleBlacklist(fieldList, domainType, alias);
 		}
@@ -138,16 +137,25 @@ public class QuerySelectionUtils {
 		return stringBuilder.append(SPACE).toString();
 	}
 
-	private static String handleWhitelist(Iterator<String> whiteListIterator, String alias) {
+	private static String handleWhitelist(String fieldListAsString, String alias) {
+		var fieldList = new ArrayList<String>();
+		var fieldListSplitted = fieldListAsString.split(",");
+		
+		for (String field : fieldListSplitted) {
+			fieldList.add(field.trim());
+		}
+		
+		var whiteListIterator = fieldList.iterator();
 		var stringBuilder = new StringBuilder();
 
 		while (whiteListIterator.hasNext()) {
+			var nextValue = whiteListIterator.next();
 
 			if (!alias.equals(EMPTY_STRING)) {
-				stringBuilder.append(alias).append(DOT);
+				stringBuilder.append(alias + DOT);
 			}
 
-			stringBuilder.append(whiteListIterator.next());
+			stringBuilder.append(nextValue);
 
 			if (whiteListIterator.hasNext()) {
 				stringBuilder.append(COMMA_WITH_SPACE);

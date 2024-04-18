@@ -17,8 +17,6 @@
  */
 package io.sapl.springdatar2dbc.queries;
 
-import static io.sapl.springdatacommon.utils.Utilities.isString;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -44,7 +42,7 @@ public class PartTreeToSqlQueryStringConverter {
 	 * @param <T>             the domain type
 	 * @return SQL query of a {@link PartTree}.
 	 */
-	public <T> String createSqlBaseQuery(MethodInvocation invocation, Class<T> domainType) {
+	public <T> String createSqlBaseQuery(MethodInvocation invocation, Class<T> domainType) { 
 		var methodName = invocation.getMethod().getName();
 
 		if (Utilities.isSpringDataDefaultMethod(methodName)) {
@@ -160,22 +158,23 @@ public class PartTreeToSqlQueryStringConverter {
 	 * @return created {@link SqlCondition}.
 	 */
 	@SneakyThrows // NoSuchFieldException, NullPointerException
-	public <T> SqlCondition and(Part part, Object argument, Class<T> domainType) {
+	private <T> SqlCondition and(Part part, Object argument, Class<T> domainType) {
 		if (argument == null) {
 			throw new NullPointerException("The appropriate argument is missing for this part of the method. ");
 		}
+		
 		var operator = OperatorR2dbc.valueOf(part.getType().name());
 		var fieldType = domainType.getDeclaredField(part.getProperty().toDotPath()).getType();
 
-		if (isString(fieldType) && operator.isArray()) {
+		if (fieldType.isAssignableFrom(String.class) && operator.isArray()) {
 			argument = createSqlArgumentArray(argument);
 		}
 
-		if (!isString(fieldType) && operator.isArray()) {
+		if (!fieldType.isAssignableFrom(String.class) && operator.isArray()) {
 			argument = replaceSquareBracketsWithRoundBrackets(argument);
 		}
 
-		if (isString(fieldType) && !operator.isArray()) {
+		if (fieldType.isAssignableFrom(String.class) && !operator.isArray()) {
 			argument = toSqlConditionString(argument.toString());
 		}
 

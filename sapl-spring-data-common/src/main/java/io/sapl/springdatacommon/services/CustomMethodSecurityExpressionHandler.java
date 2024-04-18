@@ -26,18 +26,18 @@ import org.springframework.security.core.context.SecurityContextHolder;
 public class CustomMethodSecurityExpressionHandler {
 
 	private ExpressionParser expressionParser = new SpelExpressionParser();
+	private StandardEvaluationContext context = new StandardEvaluationContext();
 
 	public Object evaluateExpression(String expressionString) {
 		var authentication = SecurityContextHolder.getContext().getAuthentication();
 		var evaluationContext = createEvaluationContext(authentication);
-		
+
 		return expressionParser.parseExpression(expressionString).getValue(evaluationContext);
 	}
 
 	private StandardEvaluationContext createEvaluationContext(Authentication authentication) {
-		var context = new StandardEvaluationContext();
 		context.setVariable("authentication", authentication);
-		
+
 		return context;
 	}
 }

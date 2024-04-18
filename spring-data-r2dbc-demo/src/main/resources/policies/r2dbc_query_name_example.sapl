@@ -5,12 +5,13 @@ policy "permit method name query (1)"
 permit
 where
     action == "excludeAdminsAndFirstname";
+    subject == "true";
 obligation {
                "type": "r2dbcQueryManipulation",
                "conditions": [ "role = 'USER'" ],
-			       "selection": {
-					"type": "blacklist",
-					"columns": ["firstname"]
+			   "selection": {
+						"type": "blacklist",
+						"columns": ["firstname"]
 				}	
              }
 
@@ -22,9 +23,9 @@ where
 obligation {
                "type": "r2dbcQueryManipulation",
                "conditions": [ "active = true" ],
-			       "selection": {
-					"type": "whitelist",
-					"columns": ["firstname"]
+			   "selection": {
+						"type": "whitelist",
+						"columns": ["firstname"]
 				}	
              }
 

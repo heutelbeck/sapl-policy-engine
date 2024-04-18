@@ -49,42 +49,46 @@ public class SecurityExpressionService {
 			"#target", 
 			"#authentication");
 	// @formatter:on
-	
+
 	private static final String ID = "ID_";
 
 	public String evaluateSpelMethods(String input, MethodInvocation methodInvocation) {
 
-		var expressionMap = new HashMap<String, Object>();
-		var inputWithReplacedSpelMethods = extractSpelMethodsAndReplaceWithKeys(input, expressionMap);
-		
-		if (inputWithReplacedSpelMethods.isEmpty()) {
+		if (input.isEmpty()) {
 			return input;
 		}
-		
+
+		var expressionMap = new HashMap<String, Object>();
+		var inputWithReplacedSpelMethods = extractSpelMethodsAndReplaceWithKeys(input, expressionMap);
+
+		if (inputWithReplacedSpelMethods.equals(input)) {
+			return input;
+		}
+
 		var evaluatedSpelMethods = evaluateSpelMethods(expressionMap, methodInvocation);
 
 		return replaceKeysWithEvaluatedValues(inputWithReplacedSpelMethods, evaluatedSpelMethods);
 	}
 
 	private String extractSpelMethodsAndReplaceWithKeys(String input, Map<String, Object> expressionMap) {
-		
+
 		var counter = 1;
-		
+
 		for (String method : spelMethods) {
-			
+
 			method = method + "(";
 			var startIndex = input.indexOf(method);
-			
+
 			while (startIndex != -1) {
 				var endIndex = input.indexOf(")", startIndex);
-				
+
 				if (endIndex != -1) {
 					var extractedText = input.substring(startIndex, endIndex + 1);
 					var uniqueID = ID + counter;
-					
+
 					input = input.replaceFirst("\\Q" + extractedText + "\\E", uniqueID);
 					expressionMap.put(uniqueID, extractedText);
-					
+
 					counter++;
 					startIndex = input.indexOf(method, endIndex + 1);
 				} else {
@@ -92,12 +96,12 @@ public class SecurityExpressionService {
 				}
 			}
 		}
-		
+
 		return input;
 	}
 
 	private Map<String, Object> evaluateSpelMethods(Map<String, Object> extractedStrings, MethodInvocation invocation) {
-		
+
 		var evaluatedSpelMethods = new HashMap<String, Object>();
 
 		for (Map.Entry<String, Object> entry : extractedStrings.entrySet()) {
@@ -108,17 +112,16 @@ public class SecurityExpressionService {
 
 		return evaluatedSpelMethods;
 	}
-	
-	
+
 	public String evaluateSpelVariables(String input) {
 
 		var expressionMap = new HashMap<String, Object>();
 		var inputWithReplacedSpelMethods = extractSpelVariablesAndReplaceWithKeys(input, expressionMap);
-		
+
 		if (inputWithReplacedSpelMethods.isEmpty()) {
 			return input;
 		}
-		
+
 		var evaluatedSpelVariables = evaluateSpelVariables(expressionMap);
 
 		return replaceKeysWithEvaluatedValues(inputWithReplacedSpelMethods, evaluatedSpelVariables);
@@ -129,25 +132,25 @@ public class SecurityExpressionService {
 		var idCounter = 1;
 
 		for (String speLVariable : speLVariables) {
-			
+
 			if (input.contains(speLVariable)) {
 				var startIndex = input.indexOf(speLVariable);
 				var endIndex = input.indexOf(" ", startIndex);
 				var closingBracketIndex = input.indexOf(")", startIndex);
-				
-				if (closingBracketIndex != -1 && closingBracketIndex < endIndex) {
+
+				if (closingBracketIndex != -1) {
 					endIndex = closingBracketIndex + 1;
 				}
-				
+
 				if (endIndex == -1) {
 					endIndex = input.length();
 				}
 
 				var expression = input.substring(startIndex, endIndex);
 				var replacement = ID + idCounter;
-				
+
 				idCounter++;
-				
+
 				input = input.replace(expression, replacement);
 				expressionMap.put(replacement, expression);
 			}
@@ -155,9 +158,9 @@ public class SecurityExpressionService {
 
 		return input;
 	}
-	
+
 	private Map<String, Object> evaluateSpelVariables(Map<String, Object> extractedStrings) {
-		
+
 		var evaluatedSpelVariables = new HashMap<String, Object>();
 
 		for (Map.Entry<String, Object> entry : extractedStrings.entrySet()) {
@@ -170,17 +173,15 @@ public class SecurityExpressionService {
 	}
 
 	private String replaceKeysWithEvaluatedValues(String input, Map<String, Object> evaluatedSpelMethods) {
-		
+
 		for (Map.Entry<String, Object> entry : evaluatedSpelMethods.entrySet()) {
 			var key = entry.getKey();
 			var value = String.valueOf(entry.getValue());
-
-			if (input.contains(key)) {
-				input = input.replace(key, value);
-			}
+			
+			input = input.replace(key, value);
 		}
-		
+
 		return input;
 	}
-	
+
 }
