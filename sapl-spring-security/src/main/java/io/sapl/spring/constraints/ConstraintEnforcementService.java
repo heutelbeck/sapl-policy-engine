@@ -18,6 +18,7 @@
 package io.sapl.spring.constraints;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -159,8 +160,8 @@ public class ConstraintEnforcementService {
      *         constraints in the decision, or throws AccessDeniedException, if
      *         bundle cannot be constructed.
      */
-    public <T> ReactiveConstraintHandlerBundle<T> reactiveTypeBundleFor(AuthorizationDecision decision,
-            Class<T> clazz) {
+    public <T> ReactiveConstraintHandlerBundle<T> reactiveTypeBundleFor(AuthorizationDecision decision, Class<T> clazz,
+            JsonNode... ignoredObligations) {
 
         var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
 
@@ -181,8 +182,14 @@ public class ConstraintEnforcementService {
 				methodInvocationHandlers(decision, unhandledObligations));
 		// @formatter:on
 
-        if (!unhandledObligations.isEmpty())
-            throw missingHandlerError(unhandledObligations);
+        if (!unhandledObligations.isEmpty()) {
+            for (var unhandledObligation : unhandledObligations) {
+                if (Arrays.stream(ignoredObligations).filter(ignored -> ignored.equals(unhandledObligation)).findFirst()
+                        .isEmpty()) {
+                    throw missingHandlerError(unhandledObligations);
+                }
+            }
+        }
 
         return bundle;
     }
