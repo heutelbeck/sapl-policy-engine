@@ -153,9 +153,14 @@ public class ConstraintEnforcementService {
     }
 
     /**
-     * @param <T>      event type
-     * @param decision a decision
-     * @param clazz    class of the event type
+     * @param <T>                event type
+     * @param decision           a decision
+     * @param clazz              class of the event type
+     * @param ignoredObligations if the client of this method already has taken care
+     *                           of specific obligations that have not to be handled
+     *                           by the bundle, these can be indicated here and will
+     *                           be ignored when checking for completeness of
+     *                           obligation handing by the bundle.
      * @return a ReactiveTypeConstraintHandlerBundle with handlers for all
      *         constraints in the decision, or throws AccessDeniedException, if
      *         bundle cannot be constructed.
