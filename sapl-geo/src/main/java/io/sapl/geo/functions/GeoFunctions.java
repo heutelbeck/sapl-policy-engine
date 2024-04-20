@@ -658,7 +658,6 @@ public class GeoFunctions {
         return GeometryConverter.geometryToGeoJsonNode(geomFactory.createGeometryCollection(geometries));
     }
 
-    // ?
     @Function(docs = RES_TO_GEOMETRY_BAG_DOC)
     public Val resToGeometryBag(@Array Val resourceArray) {
         ObjectMapper mapper = new ObjectMapper();
@@ -732,17 +731,4 @@ public class GeoFunctions {
         return (resultSet.cardinality() == geometryCollectionThis.getNumGeometries());
     }
 
-    /*
-     * @Function(docs = GET_PROJECTION_DOC) public Val getProjection(@Text Val
-     * srcSystem, @Text Val destSystem) throws NoSuchAuthorityCodeException,
-     * FactoryException { return Val.of(new GeoProjector(srcSystem.get().asText(),
-     * destSystem.get().asText()).toWkt()); }
-     *
-     * @Function(docs = PROJECT_DOC) public Val project(@JsonObject Val
-     * jsonGeometry, @Text Val mathTransform) throws FactoryException,
-     * MismatchedDimensionException, TransformException { GeoProjector projection =
-     * new GeoProjector(mathTransform.get().asText()); Geometry geometry =
-     * JsonConverter.geoJsonToGeometry(jsonGeometry.top); return
-     * toVal(projection.project(geometry)); }
-     */
 }

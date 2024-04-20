@@ -35,13 +35,13 @@ import io.sapl.geo.connection.shared.GeoMapper;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.pip.http.ReactiveWebClient;
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
+@RequiredArgsConstructor
 public class OwnTracksConnection extends ConnectionBase {
 
-    private GeoMapper           geoMapper;
-    private int                 deviceId;
-    private final Logger        logger     = LoggerFactory.getLogger(getClass());
+    
     private static final String ALTITUDE   = "alt";
     private static final String LASTUPDATE = "created_at";
     private static final String ACCURACY   = "acc";
@@ -50,28 +50,25 @@ public class OwnTracksConnection extends ConnectionBase {
 
     protected static final String HTTP_BASIC_AUTH_USER = "user";
 
-    private ReactiveWebClient client;
+    private ReactiveWebClient   client;
+    private GeoMapper           geoMapper;
+    private final ObjectMapper  mapper;
+    private final Logger        logger     = LoggerFactory.getLogger(getClass());
 
-    private OwnTracksConnection(ObjectMapper mapper, int deviceId) throws PolicyEvaluationException {
+    
+    /**
+     * @param settings a {@link JsonNode} containing the settings
+     * @return a {@link Flux}<{@link Val}
+     */
+    public Flux<Val> connect(JsonNode settings) {
 
-        client        = new ReactiveWebClient(mapper);
-        this.deviceId = deviceId;
+    	var deviceId = getDeviceId(settings);
+    	client        = new ReactiveWebClient(mapper);     
         geoMapper     = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
-
-    }
-
-    public static OwnTracksConnection getNew(ObjectMapper mapper, int deviceId) {
-
-        return new OwnTracksConnection(mapper, deviceId);
-    }
-
-    public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
-
+        var url = String.format("%s://%s/api/0/last?user=%s&device=%s", getProtocol(settings), getServer(settings), getUser(settings), deviceId);
+        
         try {
-            var connection = getNew(mapper, getDeviceId(settings));
-            return connection
-                    .getFlux(getHttpBasicAuthUser(settings), getPassword(settings), getServer(settings),
-                            getProtocol(settings), getUser(settings), getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings))
+            return getFlux(getHttpBasicAuthUser(settings), getPassword(settings), url , getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings))
                     .map(Val::of);
 
         } catch (Exception e) {
@@ -80,10 +77,9 @@ public class OwnTracksConnection extends ConnectionBase {
 
     }
 
-    private Flux<ObjectNode> getFlux(String httpBasicAuthUser, String password, String server, String protocol,
-            String user, GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst) {
+    private Flux<ObjectNode> getFlux(String httpBasicAuthUser, String password, String url, 
+    		GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst) {
 
-        var url = String.format("%s://%s/api/0/last?user=%s&device=%s", protocol, server, user, deviceId);
 
         var html1 = """
                 {

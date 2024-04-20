@@ -40,7 +40,7 @@ import reactor.test.StepVerifier;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
-public class MySqlConnectionTests extends DatabaseTestBase {
+class MySqlConnectionTests extends DatabaseTestBase {
 
 	private String tmpAll;
 	private String tmpPoint;	
@@ -52,7 +52,7 @@ public class MySqlConnectionTests extends DatabaseTestBase {
 	   .withUsername("test").withPassword("test").withDatabaseName("test");
 	
 	@BeforeAll
-	public void setUp() throws Exception {
+	void setUp() throws Exception {
 	
 		template = String.format(template1, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
 				mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
@@ -76,31 +76,31 @@ public class MySqlConnectionTests extends DatabaseTestBase {
 	}
 
 	@Test
-    public void Test01MySqlConnection() throws JsonProcessingException {
+    void Test01MySqlConnection() throws JsonProcessingException {
 
 
         var str = String.format(tmpAll, "geometries", "geom");
 
         var exp = Val.ofJson(expAll);
-        var mysql = MySqlConnection.connect(Val.ofJson(str).get(), new ObjectMapper());
+        var mysql = new MySqlConnection(Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
         StepVerifier.create(mysql).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
     @Test
-    public void Test02MySqlConnectionSingleResult() throws JsonProcessingException {
+    void Test02MySqlConnectionSingleResult() throws JsonProcessingException {
 
         
         var str = String.format(tmpPoint, "geometries", "geom");
 
         var exp = Val.ofJson(expPt);
 
-        var mysql = MySqlConnection.connect(Val.ofJson(str).get(), new ObjectMapper());
+        var mysql = new MySqlConnection(Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
         StepVerifier.create(mysql).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
     
     @Test
-    public void Test03Error() throws JsonProcessingException {
+    void Test03Error() throws JsonProcessingException {
 
         var tmp = template.concat("""
                     ,
@@ -113,7 +113,7 @@ public class MySqlConnectionTests extends DatabaseTestBase {
                 """);
         var str = String.format(tmp, "nonExistant", "geog");
 
-        var mysql = MySqlConnection.connect(Val.ofJson(str).get(), new ObjectMapper());
+        var mysql = new MySqlConnection(Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
         StepVerifier.create(mysql).expectError();
     }
 

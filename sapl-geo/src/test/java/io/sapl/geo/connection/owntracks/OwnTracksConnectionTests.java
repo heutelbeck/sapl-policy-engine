@@ -35,7 +35,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.connection.traccar.TraccarConnection;
+
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
@@ -76,7 +76,7 @@ public class OwnTracksConnectionTests {
         var tmp = template.concat(",\"responseFormat\":\"WKT\"}");
     	
         var val = Val.ofJson(tmp);
-        var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+        var res = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 
@@ -92,7 +92,7 @@ public class OwnTracksConnectionTests {
         var tmp = template.concat(",\"responseFormat\":\"GEOJSON\",\"latitudeFirst\":false}");
         
         var val = Val.ofJson(tmp);
-        var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+        var res = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
     }
@@ -105,7 +105,7 @@ public class OwnTracksConnectionTests {
         var tmp = template.concat(",\"responseFormat\":\"GML\"}");
 
         var val = Val.ofJson(tmp);
-        var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+        var res = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 
@@ -119,7 +119,7 @@ public class OwnTracksConnectionTests {
         var tmp = template.concat(",\"responseFormat\":\"KML\"}");
         
         var val = Val.ofJson(tmp);
-        var res = OwnTracksConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+        var res = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 

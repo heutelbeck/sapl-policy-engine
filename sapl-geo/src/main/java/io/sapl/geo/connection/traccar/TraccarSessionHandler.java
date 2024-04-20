@@ -29,7 +29,7 @@ import io.sapl.geo.pip.GeoPipResponseFormat;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class TraccarSessionHandler {
+class TraccarSessionHandler {
 
     private ObjectMapper mapper;
     private GeoMapper    geoMapper;
@@ -45,7 +45,7 @@ public class TraccarSessionHandler {
 
     private TraccarRestManager rest;
 
-    public TraccarSessionHandler(int deviceId, String sessionCookie, String serverName, String protocol,
+    TraccarSessionHandler(int deviceId, String sessionCookie, String serverName, String protocol,
             ObjectMapper mapper) {
         this.deviceId = deviceId;
         this.mapper   = mapper;
@@ -53,7 +53,7 @@ public class TraccarSessionHandler {
         this.rest     = new TraccarRestManager(sessionCookie, serverName, protocol, mapper);
     }
 
-    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst) {
+    Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst) {
         JsonNode pos = getPositionFromMessage(in, deviceId);
 
         if (pos.has(DEVICE_ID)) {
@@ -79,7 +79,7 @@ public class TraccarSessionHandler {
 
     }
 
-    public Mono<GeoPipResponse> getGeofences(GeoPipResponse response, GeoPipResponseFormat format, boolean latitudeFirst) {
+    Mono<GeoPipResponse> getGeofences(GeoPipResponse response, GeoPipResponseFormat format, boolean latitudeFirst) {
 
         if (response.getDeviceId() != 0) {
             return rest.getGeofences(Integer.toString(deviceId))
@@ -88,7 +88,7 @@ public class TraccarSessionHandler {
         return Mono.just(response);
     }
 
-    private Mono<GeoPipResponse> mapGeofences(GeoPipResponse response, GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
+    Mono<GeoPipResponse> mapGeofences(GeoPipResponse response, GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
         List<Geofence> fenceRes = new ArrayList<>();
 
         try {

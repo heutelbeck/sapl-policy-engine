@@ -24,63 +24,30 @@ import java.time.ZoneId;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-
 import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
 import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
-
-import io.sapl.api.interpreter.Val;
-
-import reactor.core.publisher.Flux;
 
 
 public class MySqlConnection extends DatabaseConnection {
 
-
-    private MySqlConnection(String user, String password, String serverName, int port, String dataBase,
-            ObjectMapper mapper) {
-        
+	/**
+	 * @param settings a {@link JsonNode} containing the settings
+	 * @param mapper a {@link ObjectMapper}
+	 */
+	public MySqlConnection(JsonNode settings, ObjectMapper mapper) {
     	super(mapper);
 
         connectionFactory = MySqlConnectionFactory.from(
                 	MySqlConnectionConfiguration.builder()
-                        .username(user)
-                        .password(password)
-                        .host(serverName)
-                        .port(port)
-                        .database(dataBase)
+                        .username(getUser(settings))
+                        .password(getPassword(settings))
+                        .host(getServer(settings))
+                        .port(getPort(settings))
+                        .database(getDataBase(settings))
                         .serverZoneId(ZoneId.of("UTC"))
                         .build());
 
     }
-
-    public static MySqlConnection getNew(String user, String password, String server, int port, String dataBase,
-            ObjectMapper mapper) {
-
-        return new MySqlConnection(user, password, server, port, dataBase, mapper);
-    }
-
-    public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
-
-        try {
-            instance = getNew(getUser(settings), getPassword(settings), getServer(settings), getPort(settings),
-                    getDataBase(settings), mapper);
-            var columns    = getColumns(settings, mapper);  
-            
-            return instance
-                    .getFlux(getResponseFormat(settings, mapper),
-                            buildSql(getGeoColumn(settings), columns, getTable(settings), getWhere(settings)), columns,
-                            getSingleResult(settings), getDefaultCRS(settings),
-                            longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
-                            longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS),
-                            getLatitudeFirst(settings))
-                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e)));
-
-        } catch (Exception e) {
-            return Flux.just(Val.error(e));
-        }
-
-    }
-    
-    
+        
 }
 

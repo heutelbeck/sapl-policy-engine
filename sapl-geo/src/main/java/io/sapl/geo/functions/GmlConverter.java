@@ -30,11 +30,6 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class GmlConverter {
 
-    // public static String gmlToKML(String gml) throws SAXException, IOException,
-    // ParserConfigurationException{
-    //
-    // return GeometryConverter.geometryToKML(gmlToGeometry(gml));
-    // }
 
     public static Val gmlToKML(Val gml) {
 
@@ -65,13 +60,13 @@ public class GmlConverter {
 
     public static Geometry gmlToGeometry(Val gml) throws SAXException, IOException, ParserConfigurationException {
 
-        return gmlToGeometry(gml.getText());// return (new GMLReader()).read(gml.getText(), null);
+        return gmlToGeometry(gml.getText());
     }
 
     public static Geometry gmlToGeometry(Val gml, GeometryFactory factory)
             throws SAXException, IOException, ParserConfigurationException {
 
-        return gmlToGeometry(gml.getText(), factory);// return (new GMLReader()).read(gml.getText(), factory);
+        return gmlToGeometry(gml.getText(), factory);
     }
 
     public static Geometry gmlToGeometry(String gml) throws SAXException, IOException, ParserConfigurationException {

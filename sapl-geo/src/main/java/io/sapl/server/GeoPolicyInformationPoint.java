@@ -26,6 +26,7 @@ import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.geo.connection.mysql.MySqlConnection;
+import io.sapl.geo.connection.owntracks.OwnTracksConnection;
 import io.sapl.geo.connection.postgis.PostGisConnection;
 import io.sapl.geo.connection.traccar.TraccarConnection;
 import io.sapl.geo.fileimport.FileLoader;
@@ -50,56 +51,70 @@ public class GeoPolicyInformationPoint {
     @Attribute(name = "traccar")
     public Flux<Val> connectToTraccar(Val leftHandValue, Val variables) {
 
-        return TraccarConnection.connect(variables.get(), mapper);
+        return new TraccarConnection(mapper).connect(variables.get());
 
     }
 
     @EnvironmentAttribute(name = "traccar")
     public Flux<Val> connectToTraccar(Val variables) {
 
-        return TraccarConnection.connect(variables.get(), mapper);
+    	return new TraccarConnection(mapper).connect(variables.get());
 
     }
 
+    @Attribute(name = "ownTracks")
+    public Flux<Val> connectToOwnTracks(Val leftHandValue, Val variables) {
+
+        return new OwnTracksConnection(mapper).connect(variables.get());
+
+    }
+
+    @EnvironmentAttribute(name = "ownTracks")
+    public Flux<Val> connectToOwnTracks(Val variables) {
+
+    	return new OwnTracksConnection(mapper).connect(variables.get());
+
+    }
+    
     @Attribute(name = "postGIS")
     public Flux<Val> connectToPostGIS(Val leftHandValue, Val variables) {
+    	return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
 
-        return PostGisConnection.connect(variables.get(), mapper);
 
     }
 
     @EnvironmentAttribute(name = "postGIS")
     public Flux<Val> connectToPostGIS(Val variables) {
 
-        return PostGisConnection.connect(variables.get(), mapper);
+    	return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
 
     }
 
     @Attribute(name = "mySQL")
     public Flux<Val> connectToMySQL(Val leftHandValue, Val variables) {
 
-        return MySqlConnection.connect(variables.get(), mapper);
+        return new MySqlConnection(variables.get(), new ObjectMapper()).connect(variables.get());
 
     }
 
     @EnvironmentAttribute(name = "mySQL")
     public Flux<Val> connectToMySQL(Val variables) {
 
-        return MySqlConnection.connect(variables.get(), mapper);
+        return new MySqlConnection(variables.get(), new ObjectMapper()).connect(variables.get());
 
     }
     
     @Attribute(name = "file")
     public Flux<Val> loadFile(Val leftHandValue, Val variables) {
 
-        return FileLoader.connect(variables.get(), mapper);
+        return new FileLoader().connect(variables.get(), mapper);
 
     }
 
     @EnvironmentAttribute(name = "file")
     public Flux<Val> loadFile(Val variables) {
 
-        return FileLoader.connect(variables.get(), mapper);
+        return new FileLoader().connect(variables.get(), mapper);
 
     }
 

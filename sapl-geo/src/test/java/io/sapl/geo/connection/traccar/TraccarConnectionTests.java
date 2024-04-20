@@ -80,7 +80,7 @@ public class TraccarConnectionTests {
         var tmp = template.concat(",\"responseFormat\":\"WKT\"}");
         
         var val = Val.ofJson(tmp);
-        var res = TraccarConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+        var res = new TraccarConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 
@@ -95,7 +95,7 @@ public class TraccarConnectionTests {
         var tmp = template.concat(",\"responseFormat\":\"GEOJSON\",\"latitudeFirst\":false}");
         
         var val = Val.ofJson(tmp);
-        var res = TraccarConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+        var res = new TraccarConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 
@@ -109,7 +109,7 @@ public class TraccarConnectionTests {
         var tmp = template.concat(",\"responseFormat\":\"GML\"}");
 
         var val = Val.ofJson(tmp);
-        var res = TraccarConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+        var res = new TraccarConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 
@@ -123,7 +123,7 @@ public class TraccarConnectionTests {
         var tmp = template.concat(",\"responseFormat\":\"KML\"}");
         
         var val = Val.ofJson(tmp);
-        var res = TraccarConnection.connect(val.get(), new ObjectMapper()).blockFirst().get().toPrettyString();
+        var res = new TraccarConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 

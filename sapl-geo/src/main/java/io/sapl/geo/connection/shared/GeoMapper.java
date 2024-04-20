@@ -31,7 +31,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.connection.mysql.MySqlConnection;
 import io.sapl.geo.functions.GeoProjector;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.WktConverter;
@@ -57,9 +56,13 @@ public class GeoMapper {
     private static final String DESCRIPTION = "description";
     private static final String CALENDARID  = "calendarId";
     private static final String ID          = "id";
-    private final String EPSG = "EPSG:4326";
+    private static final String EPSG = "EPSG:4326";
     
-    
+	/**
+	 * @param in a {@link JsonNode} containing the latutide/longitude
+	 * @param format a {@link GeoPipResponseFormat}
+	 * @param latitudeFirst a {@link Boolean} to set latitude/longitude as first coordinate 
+	 */
     public GeoPipResponse mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst) {
 
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
@@ -106,6 +109,12 @@ public class GeoMapper {
                 .lastUpdate(in.findValue(lastUpdate).asText()).accuracy(in.findValue(accuracy).asDouble()).build();
     }
 
+	/**
+	 * @param a {@link JsonNode} containing the traccar geofences
+	 * @param a {@link GeoPipResponseFormat}
+	 * @param a {@link ObjectMapper}
+	 * @param a {@link Boolean} to set latitude/longitude as first coordinate 
+	 */
     public List<Geofence> mapTraccarGeoFences(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst)
             throws PolicyEvaluationException {
         JsonNode       fences   = mapper.createArrayNode();
@@ -161,6 +170,10 @@ public class GeoMapper {
                 .description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
     }
 
+	/**
+	 * @param a {@link JsonNode} containing the owntracks in-regions
+	 * @param a {@link ObjectMapper}
+	 */
     public List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws PolicyEvaluationException {
         JsonNode       fences   = mapper.createArrayNode();
         List<Geofence> fenceRes = new ArrayList<>();

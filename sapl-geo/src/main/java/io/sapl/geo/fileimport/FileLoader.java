@@ -55,21 +55,15 @@ public class FileLoader extends ConnectionBase {
     private static final String CRS  = "crs";
     private BufferedReader      reader;
 
-    private FileLoader(String path) throws IOException {
-        reader = new BufferedReader(new FileReader(path));
-    }
-
-    public static FileLoader getNew(String path) throws IOException {
-        return new FileLoader(path);
-    }
-
-    public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
+    /**
+     * @param settings a {@link JsonNode} containing the settings
+     * @return a {@link Flux}<{@link Val}
+     */
+    public Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
 
         try {
-            // var sett = mapper.readTree(settings.asText());
-            var loader = getNew(getPath(settings));
-            return loader
-                    .getFlux(getResponseFormat(settings, mapper), getCrs(settings),
+        	reader = new BufferedReader(new FileReader(getPath(settings)));
+            return getFlux(getResponseFormat(settings, mapper), getCrs(settings),
                             longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
                             longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), mapper)
                     .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e)));

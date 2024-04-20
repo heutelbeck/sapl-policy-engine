@@ -28,7 +28,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TraccarSession {
+class TraccarSession {
 
     private int     id;
     private Object  attributes;

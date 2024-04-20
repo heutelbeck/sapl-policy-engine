@@ -35,11 +35,6 @@ public final class GeometryConverter {
 
     private final String EMPTY = "";
 
-    // public static String geometryToGML(Geometry geo) {
-    //
-    // return (new GMLWriter()).write(geo);
-    // }
-    //
 
     public static Val geometryToGML(Geometry geo) {
 
@@ -55,11 +50,6 @@ public final class GeometryConverter {
 
     }
 
-    // public static String geometryToKML(Geometry geo) {
-    //
-    // return (new KMLWriter().write(geo));
-    // }
-
     public static Val geometryToKML(Geometry geo) {
         String s = EMPTY;
         try {
@@ -72,10 +62,6 @@ public final class GeometryConverter {
         return Val.of(s);
     }
 
-    // public static String geometryToWKT(Geometry geo) {
-    //
-    // return (new WKTWriter().write(geo));
-    // }
 
     public static Val geometryToWKT(Geometry geo) {
         String s = EMPTY;

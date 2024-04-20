@@ -27,52 +27,40 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.pip.http.ReactiveWebClient;
+import lombok.RequiredArgsConstructor;
 import io.sapl.geo.connection.shared.ConnectionBase;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 
 import reactor.core.publisher.Flux;
 
+@RequiredArgsConstructor
 public class TraccarConnection extends ConnectionBase {
 
-//    private Disposable           subscription;
-//    private WebSocketSession     session;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private int          deviceId;
-
-    public int getDeviceId() {
-        return deviceId;
-    }
-
-    private final TraccarSessionManager sessionManager;
-    private String                      url;
-
+    private final ObjectMapper mapper;
+    
+    private  TraccarSessionManager sessionManager;
     private TraccarSessionHandler handler;
 
-    private TraccarConnection(String user, String password, String serverName, String protocol, int deviceId,
-            ObjectMapper mapper) throws PolicyEvaluationException {
+    
+    /**
+     * @param settings a {@link JsonNode} containing the settings
+     * @return a {@link Flux}<{@link Val}
+     */
+    public Flux<Val> connect(JsonNode settings) {
 
-        url = "ws://" + serverName + "/api/socket";
+    	var server = getServer(settings);
+    	var protocol = getProtocol(settings);
+    	var url = "ws://" + server + "/api/socket";
 
-        this.sessionManager = new TraccarSessionManager(user, password, serverName, protocol, mapper);
-        this.deviceId       = deviceId;
-        this.handler        = new TraccarSessionHandler(deviceId, sessionManager.getSessionCookie(), serverName,
+        this.sessionManager = new TraccarSessionManager(getUser(settings), getPassword(settings), server, protocol, mapper);
+        this.handler        = new TraccarSessionHandler(getDeviceId(settings), sessionManager.getSessionCookie(), server,
                 protocol, mapper);
-    }
-
-    public static TraccarConnection getNew(String user, String password, String server, String protocol, int deviceId,
-            ObjectMapper mapper) throws PolicyEvaluationException {
-
-        return new TraccarConnection(user, password, server, protocol, deviceId, mapper);
-    }
-
-    public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
-
+    	
         try {
-            var traccarConnection = getNew(getUser(settings), getPassword(settings), getServer(settings),
-                    getProtocol(settings), getDeviceId(settings), mapper);
-            return traccarConnection.getFlux(getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of)
-                    .onErrorResume(e -> Flux.just(Val.error(e))).doFinally(s -> traccarConnection.disconnect());
+            return getFlux(url, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of)
+                    .onErrorResume(e -> Flux.just(Val.error(e))).doFinally(s -> disconnect());
 
         } catch (Exception e) {
             return Flux.just(Val.error(e));
@@ -80,7 +68,7 @@ public class TraccarConnection extends ConnectionBase {
 
     }
 
-    public Flux<ObjectNode> getFlux(GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst) throws PolicyEvaluationException {
+    private Flux<ObjectNode> getFlux(String url, GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst) throws PolicyEvaluationException {
 
         var client = new ReactiveWebClient(mapper);
 
@@ -108,7 +96,7 @@ public class TraccarConnection extends ConnectionBase {
         return flux;
     }
 
-    public void disconnect() throws PolicyEvaluationException {
+    private void disconnect() throws PolicyEvaluationException {
 
         try {
             if (this.sessionManager.closeTraccarSession()) {

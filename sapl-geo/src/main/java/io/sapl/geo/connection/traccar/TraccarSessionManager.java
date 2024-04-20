@@ -45,17 +45,17 @@ public class TraccarSessionManager {
     private ObjectMapper mapper;
     private String       sessionCookie;
 
-    public String getSessionCookie() {
+    String getSessionCookie() {
         return sessionCookie;
     }
 
     private TraccarSession session;
 
-    public TraccarSession getSession() {
+    TraccarSession getSession() {
         return session;
     }
 
-    public TraccarSessionManager(String user, String password, String server, String protocol, ObjectMapper mapper)
+    TraccarSessionManager(String user, String password, String server, String protocol, ObjectMapper mapper)
             throws PolicyEvaluationException {
         this.user     = user;
         this.password = password;
@@ -109,8 +109,7 @@ public class TraccarSessionManager {
             throw new PolicyEvaluationException(
                     "Session could not be established. Server respondet with " + res.statusCode());
         }
-
-        // 617662
+ 
     }
 
     private TraccarSession createTraccarSession(String json) throws PolicyEvaluationException {
@@ -122,7 +121,7 @@ public class TraccarSessionManager {
         }
     }
 
-    public Boolean closeTraccarSession() throws PolicyEvaluationException {
+    Boolean closeTraccarSession() throws PolicyEvaluationException {
 
         HttpRequest req = null;
         req = HttpRequest.newBuilder().uri(uri).header("cookie", sessionCookie).DELETE().build();

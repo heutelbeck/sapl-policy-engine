@@ -37,14 +37,14 @@ public class TraccarRestManager {
     private String                  baseURL;
     private HashMap<String, String> headers = new HashMap<>();
 
-    public TraccarRestManager(String sessionCookie, String serverName, String protocol, ObjectMapper mapper) {
+    TraccarRestManager(String sessionCookie, String serverName, String protocol, ObjectMapper mapper) {
         baseURL            = protocol + "://" + serverName;
         this.sessionCookie = sessionCookie;
         headers.put(COOKIE, sessionCookie);
         webClient = new ReactiveWebClient(mapper);
     }
 
-    public Mono<JsonNode> getGeofences(String deviceId) {
+    Mono<JsonNode> getGeofences(String deviceId) {
 
         var params = new HashMap<String, String>();
         params.put("deviceId", deviceId);

@@ -22,50 +22,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.shared.DatabaseConnection;
-
-
 import reactor.core.publisher.Flux;
 
 
 public class PostGisConnection extends DatabaseConnection {
 
-    private PostGisConnection(String user, String password, String serverName, int port, String dataBase,
-            ObjectMapper mapper) {
-       
+    /**
+     * @param settings a {@link JsonNode} containing the settings
+     * @param mapper a {@link ObjectMapper}
+     */
+    public PostGisConnection(JsonNode settings, ObjectMapper mapper) {  
+    	
     	super(mapper);
-        connectionFactory = new PostgresqlConnectionFactory(PostgresqlConnectionConfiguration.builder().username(user)
-                .password(password).host(serverName).port(port).database(dataBase).build());
-
-    }
-
-    public static PostGisConnection getNew(String user, String password, String server, int port, String dataBase,
-            ObjectMapper mapper) {
-
-        return new PostGisConnection(user, password, server, port, dataBase, mapper);
-    }
-
-    public static Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
-
-        try {
-            instance = getNew(getUser(settings), getPassword(settings), getServer(settings), getPort(settings),
-                    getDataBase(settings), mapper);
-            var columns    = getColumns(settings, mapper);
-            return instance
-                    .getFlux(getResponseFormat(settings, mapper),
-                            buildSql(getGeoColumn(settings), columns, getTable(settings), getWhere(settings)), columns,
-                            getSingleResult(settings), getDefaultCRS(settings),
-                            longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
-                            longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), 
-                            getLatitudeFirst(settings))
-                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e)));
-
-        } catch (Exception e) {
-            return Flux.just(Val.error(e));
-        }
-
+        connectionFactory = new PostgresqlConnectionFactory(PostgresqlConnectionConfiguration.builder()
+        		.username(getUser(settings))
+                .password(getPassword(settings))
+                .host(getServer(settings))
+                .port(getPort(settings))
+                .database(getDataBase(settings))
+                .build());
+        
     }
 
 }
