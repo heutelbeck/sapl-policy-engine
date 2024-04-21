@@ -51,42 +51,38 @@ import reactor.retry.Repeat;
 
 @RequiredArgsConstructor
 public abstract class DatabaseConnection extends ConnectionBase {
-	
-	
-	private static final String DATABASE      = "dataBase";
-	private static final String TABLE         = "table";
-	private static final String GEOCOLUMN     = "geoColumn";
-	private static final String COLUMNS       = "columns";
-	private static final String WHERE         = "where";
-	private static final String DEFAULTCRS    = "defaultCRS";
-	private static final String SINGLE_RESULT = "singleResult";
-	private static final String EPSG 		  = "EPSG:";
-	protected static final String PORT          = "port";
-	
-	private final Logger logger = LoggerFactory.getLogger(getClass());
-		
-	protected ConnectionFactory           connectionFactory;	
-	private AtomicReference<Connection> connectionReference = new AtomicReference<>();
-	private String[] selectColumns;
-	
-	private final ObjectMapper                mapper;
-		
+
+    private static final String   DATABASE      = "dataBase";
+    private static final String   TABLE         = "table";
+    private static final String   GEOCOLUMN     = "geoColumn";
+    private static final String   COLUMNS       = "columns";
+    private static final String   WHERE         = "where";
+    private static final String   DEFAULTCRS    = "defaultCRS";
+    private static final String   SINGLE_RESULT = "singleResult";
+    private static final String   EPSG          = "EPSG:";
+    protected static final String PORT          = "port";
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    protected ConnectionFactory         connectionFactory;
+    private AtomicReference<Connection> connectionReference = new AtomicReference<>();
+    private String[]                    selectColumns;
+
+    private final ObjectMapper mapper;
 
     /**
      * @param settings a {@link JsonNode} containing the settings
      * @return a {@link Flux}<{@link Val}
      */
-	public Flux<Val> connect(JsonNode settings) {
+    public Flux<Val> connect(JsonNode settings) {
 
         try {
-            selectColumns    = getColumns(settings, mapper);             
+            selectColumns = getColumns(settings, mapper);
             return getFlux(getResponseFormat(settings, mapper),
-                            buildSql(getGeoColumn(settings), selectColumns, getTable(settings), 
-                            getWhere(settings)),
-                            getSingleResult(settings), getDefaultCRS(settings),
-                            longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
-                            longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS),
-                            getLatitudeFirst(settings))
+                    buildSql(getGeoColumn(settings), selectColumns, getTable(settings), getWhere(settings)),
+                    getSingleResult(settings), getDefaultCRS(settings),
+                    longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
+                    longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), getLatitudeFirst(settings))
                     .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e)));
 
         } catch (Exception e) {
@@ -94,32 +90,32 @@ public abstract class DatabaseConnection extends ConnectionBase {
         }
 
     }
-	
-    private Flux<JsonNode> getFlux(GeoPipResponseFormat format, String sql, boolean singleResult,
-            int defaultCrs, long repeatTimes, long pollingInterval, boolean latitudeFirst) {
-        
-    	var connection = Mono.from(connectionFactory.create()).doOnNext(connectionReference::set);//createConnection();
+
+    private Flux<JsonNode> getFlux(GeoPipResponseFormat format, String sql, boolean singleResult, int defaultCrs,
+            long repeatTimes, long pollingInterval, boolean latitudeFirst) {
+
+        var connection = Mono.from(connectionFactory.create()).doOnNext(connectionReference::set);// createConnection();
 
         logger.info("Database-Client connected.");
-        
+
         if (singleResult) {
 
             sql = sql.concat(" LIMIT 1");
-            return poll(getResults(connection, sql, format, defaultCrs, latitudeFirst).next(), repeatTimes, pollingInterval);
+            return poll(getResults(connection, sql, format, defaultCrs, latitudeFirst).next(), repeatTimes,
+                    pollingInterval);
         } else {
 
-            return poll(collectAndMapResults(getResults(connection, sql, format, defaultCrs, latitudeFirst)), repeatTimes,
-                    pollingInterval);
+            return poll(collectAndMapResults(getResults(connection, sql, format, defaultCrs, latitudeFirst)),
+                    repeatTimes, pollingInterval);
         }
 
     }
 
+    private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, GeoPipResponseFormat format,
+            int defaultCrs, boolean latitudeFirst) {
 
-    private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, 
-            GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
-
-        return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute())
-                .flatMap(result -> result.map((row, rowMetadata) -> mapResult(row, format, defaultCrs, latitudeFirst))));
+        return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute()).flatMap(
+                result -> result.map((row, rowMetadata) -> mapResult(row, format, defaultCrs, latitudeFirst))));
 
     }
 
@@ -148,21 +144,21 @@ public abstract class DatabaseConnection extends ConnectionBase {
     private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) {
 
         JsonNode res = mapper.createObjectNode();
-        var crs = EPSG+srid;
-        
+        var      crs = EPSG + srid;
+
         try {
-        	
+
             Geometry geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
-        	
-	        if(this.getClass() == MySqlConnection.class && !latitudeFirst) {
-	        	var geoProjector = new GeoProjector(crs, false, crs, true);
-	        	geo = geoProjector.project(geo);
-	        }else if (this.getClass() == PostGisConnection.class && latitudeFirst) {
-	        	
-	        	var geoProjector = new GeoProjector(crs, true, crs, false);
-	        	geo = geoProjector.project(geo);
-	        }
-        
+
+            if (this.getClass() == MySqlConnection.class && !latitudeFirst) {
+                var geoProjector = new GeoProjector(crs, false, crs, true);
+                geo = geoProjector.project(geo);
+            } else if (this.getClass() == PostGisConnection.class && latitudeFirst) {
+
+                var geoProjector = new GeoProjector(crs, true, crs, false);
+                geo = geoProjector.project(geo);
+            }
+
             switch (format) {
             case GEOJSON:
 
@@ -170,25 +166,24 @@ public abstract class DatabaseConnection extends ConnectionBase {
                 break;
 
             case WKT:
-                
+
                 res = GeometryConverter.geometryToWKT(geo).get();
                 break;
 
             case GML:
-                
+
                 res = GeometryConverter.geometryToGML(geo).get();
                 break;
 
             case KML:
-               
+
                 res = GeometryConverter.geometryToKML(geo).get();
                 break;
 
             default:
                 break;
             }
-            
-              
+
         } catch (Exception e) {
             throw new PolicyEvaluationException(e.getMessage());
         }
@@ -214,14 +209,14 @@ public abstract class DatabaseConnection extends ConnectionBase {
     }
 
     private void disconnect() {
-    	
-    	if(connectionReference != null) {
-    		connectionReference.get().close();
-    		logger.info("Database-Client disconnected.");
-    	}
-    
+
+        if (connectionReference != null) {
+            connectionReference.get().close();
+            logger.info("Database-Client disconnected.");
+        }
+
     }
-    
+
     private String buildSql(String geoColumn, String[] columns, String table, String where) {
         String frmt = "ST_AsGeoJSON";
 
@@ -307,5 +302,5 @@ public abstract class DatabaseConnection extends ConnectionBase {
         }
 
     }
-	
+
 }

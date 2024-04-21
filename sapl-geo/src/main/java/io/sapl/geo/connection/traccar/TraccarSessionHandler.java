@@ -45,8 +45,7 @@ class TraccarSessionHandler {
 
     private TraccarRestManager rest;
 
-    TraccarSessionHandler(int deviceId, String sessionCookie, String serverName, String protocol,
-            ObjectMapper mapper) {
+    TraccarSessionHandler(int deviceId, String sessionCookie, String serverName, String protocol, ObjectMapper mapper) {
         this.deviceId = deviceId;
         this.mapper   = mapper;
         geoMapper     = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
@@ -88,7 +87,8 @@ class TraccarSessionHandler {
         return Mono.just(response);
     }
 
-    Mono<GeoPipResponse> mapGeofences(GeoPipResponse response, GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
+    Mono<GeoPipResponse> mapGeofences(GeoPipResponse response, GeoPipResponseFormat format, JsonNode in,
+            boolean latitudeFirst) {
         List<Geofence> fenceRes = new ArrayList<>();
 
         try {

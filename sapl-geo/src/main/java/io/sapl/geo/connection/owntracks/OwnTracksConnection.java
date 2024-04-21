@@ -41,7 +41,6 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class OwnTracksConnection extends ConnectionBase {
 
-    
     private static final String ALTITUDE   = "alt";
     private static final String LASTUPDATE = "created_at";
     private static final String ACCURACY   = "acc";
@@ -50,26 +49,26 @@ public class OwnTracksConnection extends ConnectionBase {
 
     protected static final String HTTP_BASIC_AUTH_USER = "httpUser";
 
-    private ReactiveWebClient   client;
-    private GeoMapper           geoMapper;
-    private final ObjectMapper  mapper;
-    private final Logger        logger     = LoggerFactory.getLogger(getClass());
+    private ReactiveWebClient  client;
+    private GeoMapper          geoMapper;
+    private final ObjectMapper mapper;
+    private final Logger       logger = LoggerFactory.getLogger(getClass());
 
-    
     /**
      * @param settings a {@link JsonNode} containing the settings
      * @return a {@link Flux}<{@link Val}
      */
     public Flux<Val> connect(JsonNode settings) {
 
-    	var deviceId = getDeviceId(settings);
-    	client        = new ReactiveWebClient(mapper);     
-        geoMapper     = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
-        var url = String.format("%s://%s/api/0/last?user=%s&device=%s", getProtocol(settings), getServer(settings), getUser(settings), deviceId);
-        
+        var deviceId = getDeviceId(settings);
+        client    = new ReactiveWebClient(mapper);
+        geoMapper = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
+        var url = String.format("%s://%s/api/0/last?user=%s&device=%s", getProtocol(settings), getServer(settings),
+                getUser(settings), deviceId);
+
         try {
-            return getFlux(getHttpBasicAuthUser(settings), getPassword(settings), url , getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings))
-                    .map(Val::of);
+            return getFlux(getHttpBasicAuthUser(settings), getPassword(settings), url,
+                    getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of);
 
         } catch (Exception e) {
             return Flux.just(Val.error(e));
@@ -77,9 +76,8 @@ public class OwnTracksConnection extends ConnectionBase {
 
     }
 
-    private Flux<ObjectNode> getFlux(String httpBasicAuthUser, String password, String url, 
-    		GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst) {
-
+    private Flux<ObjectNode> getFlux(String httpBasicAuthUser, String password, String url, GeoPipResponseFormat format,
+            ObjectMapper mapper, boolean latitudeFirst) {
 
         var html1 = """
                 {
@@ -116,13 +114,15 @@ public class OwnTracksConnection extends ConnectionBase {
             throw new PolicyEvaluationException(e);
         }
 
-        var flux = client.httpRequest(HttpMethod.GET, request).flatMap(v -> mapPosition(v.get(), format, mapper, latitudeFirst))
+        var flux = client.httpRequest(HttpMethod.GET, request)
+                .flatMap(v -> mapPosition(v.get(), format, mapper, latitudeFirst))
                 .map(res -> mapper.convertValue(res, ObjectNode.class));
         logger.info("OwnTracks-Client connected.");
         return flux;
     }
 
-    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst) {
+    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
+            boolean latitudeFirst) {
 
         var response = geoMapper.mapPosition(in.get(0), format, latitudeFirst);
         var res      = in.findValue("inregions");

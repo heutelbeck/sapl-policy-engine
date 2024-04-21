@@ -65,7 +65,7 @@ public class TraccarRestManager {
                 """;
         Val request  = Val.of("");
         try {
-        	
+
             request = Val.ofJson(String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE,
                     sessionCookie, deviceId));
         } catch (Exception e) {

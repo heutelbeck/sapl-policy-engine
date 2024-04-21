@@ -28,7 +28,6 @@ import org.opengis.referencing.operation.TransformException;
 
 import io.sapl.api.interpreter.Val;
 
-
 public class GeoProjector {
 
     private final MathTransform mathTransform;
@@ -39,22 +38,36 @@ public class GeoProjector {
     }
 
     /**
-	 * @param srcCrs a {@link CrsConst} to set the coordinate reference system for the source geometry. see {@link #project(Geometry)}
-	 * @param srcLatitudeFirst a {@link Boolean} to set latitude/longitude as first coordinate 
-	 * @param destCrs a {@link CrsConst} to set the coordinate reference system for the destination geometry. see {@link #project(Geometry)}
-	 * @param destLongitudeFirst a {@link Boolean} to set latitude/longitude as first coordinate 
-	 */
+     * @param srcCrs             a {@link CrsConst} to set the coordinate reference
+     *                           system for the source geometry. see
+     *                           {@link #project(Geometry)}
+     * @param srcLatitudeFirst   a {@link Boolean} to set latitude/longitude as
+     *                           first coordinate
+     * @param destCrs            a {@link CrsConst} to set the coordinate reference
+     *                           system for the destination geometry. see
+     *                           {@link #project(Geometry)}
+     * @param destLongitudeFirst a {@link Boolean} to set latitude/longitude as
+     *                           first coordinate
+     */
     public GeoProjector(CrsConst srcCrs, Boolean srcLongitudeFirst, CrsConst destCrs, Boolean destLongitudeFirst)
             throws FactoryException {
         this(srcCrs.getValue(), srcLongitudeFirst, destCrs.getValue(), destLongitudeFirst);
     }
 
     /**
-	 * @param srcCrs sets the coordinate reference system for the source geometry, e. g. "EPSG:4326". see {@link #project(Geometry)} and @see <a href=https://epsg.io/?q=>epsg.io</a>
-	 * @param srcLatitudeFirst a {@link Boolean} to set latitude/longitude as first coordinate 
-	 * @param destCrs sets the coordinate reference system for the destination geometry,e. g. "EPSG:4326". see {@link #project(Geometry)} and @see <a href=https://epsg.io/?q=>epsg.io</a>
-	 * @param destLongitudeFirst a {@link Boolean} to set latitude/longitude as first coordinate 
-	 */
+     * @param srcCrs             sets the coordinate reference system for the source
+     *                           geometry, e. g. "EPSG:4326". see
+     *                           {@link #project(Geometry)} and @see <a
+     *                           href=https://epsg.io/?q=>epsg.io</a>
+     * @param srcLatitudeFirst   a {@link Boolean} to set latitude/longitude as
+     *                           first coordinate
+     * @param destCrs            sets the coordinate reference system for the
+     *                           destination geometry,e. g. "EPSG:4326". see
+     *                           {@link #project(Geometry)} and @see <a
+     *                           href=https://epsg.io/?q=>epsg.io</a>
+     * @param destLongitudeFirst a {@link Boolean} to set latitude/longitude as
+     *                           first coordinate
+     */
     public GeoProjector(String srcCrs, Boolean srcLongitudeFirst, String destCrs, Boolean destLongitudeFirst)
             throws FactoryException {
         this(CRS.getAuthorityFactory(srcLongitudeFirst).createCoordinateReferenceSystem(srcCrs),
@@ -62,11 +75,17 @@ public class GeoProjector {
     }
 
     /**
-	 * @param srcCrs a {@link CoordinateReferenceSystem} to set the coordinate reference system for the source geometry. see {@link #project(Geometry)}
-	 * @param srcLatitudeFirst a {@link Boolean} to set latitude/longitude as first coordinate 
-	 * @param destCrs a {@link CoordinateReferenceSystem} to set the coordinate reference system for the destination geometry. see {@link #project(Geometry)}
-	 * @param destLongitudeFirst a {@link Boolean} to set latitude/longitude as first coordinate 
-	 */
+     * @param srcCrs             a {@link CoordinateReferenceSystem} to set the
+     *                           coordinate reference system for the source
+     *                           geometry. see {@link #project(Geometry)}
+     * @param srcLatitudeFirst   a {@link Boolean} to set latitude/longitude as
+     *                           first coordinate
+     * @param destCrs            a {@link CoordinateReferenceSystem} to set the
+     *                           coordinate reference system for the destination
+     *                           geometry. see {@link #project(Geometry)}
+     * @param destLongitudeFirst a {@link Boolean} to set latitude/longitude as
+     *                           first coordinate
+     */
     public GeoProjector(CoordinateReferenceSystem srcCrs, CoordinateReferenceSystem destCrs) throws FactoryException {
 
         mathTransform = CRS.findMathTransform(srcCrs, destCrs, false);

@@ -25,26 +25,21 @@ import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.connection.shared.DatabaseConnection;
 
-
 public class PostGisConnection extends DatabaseConnection {
 
     /**
      * @param settings a {@link JsonNode} containing the settings
-     * @param mapper a {@link ObjectMapper}
+     * @param mapper   a {@link ObjectMapper}
      */
-    public PostGisConnection(JsonNode settings, ObjectMapper mapper) {  
-    	
-    	super(mapper);
-        connectionFactory = new PostgresqlConnectionFactory(PostgresqlConnectionConfiguration.builder()
-        		.username(getUser(settings))
-                .password(getPassword(settings))
-                .host(getServer(settings))
-                .port(getPort(settings))
-                .database(getDataBase(settings))
-                .build());
-        
+    public PostGisConnection(JsonNode settings, ObjectMapper mapper) {
+
+        super(mapper);
+        connectionFactory = new PostgresqlConnectionFactory(
+                PostgresqlConnectionConfiguration.builder().username(getUser(settings)).password(getPassword(settings))
+                        .host(getServer(settings)).port(getPort(settings)).database(getDataBase(settings)).build());
+
     }
-    
+
     protected int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(PORT)) {
             return requestSettings.findValue(PORT).asInt();

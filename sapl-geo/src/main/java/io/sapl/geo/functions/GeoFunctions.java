@@ -94,20 +94,13 @@ public class GeoFunctions {
     private static final String DEGREE_TOMETER_DOC = "toMeter(VALUE, UNIT): Converts the given VALUE from DEGREES to [m].";
     // private static final String TOSQUAREMETER_DOC = "toSquareMeter(VALUE, UNIT):
     // Converts the given VALUE from [UNIT] to [m].";
-    private static final String ONE_AND_ONLY_DOC           = "oneAndOnly(GEOMETRYCOLLECTION): If GEOMETRYCOLLECTION only contains one element, this element will be returned. In all other cases an error will be thrown.";
-    private static final String BAG_SIZE_DOC               = "bagSize(GOEMETRYCOLLECTION): Returns the number of elements in the GEOMETRYCOLLECTION.";
-    private static final String GEOMETRY_IS_IN_DOC         = "geometryIsIn(GEOMETRY, GEOMETRYCOLLECTION): Tests if GEOMETRY is included in GEOMETRYCOLLECTION.";
-    private static final String GEOMETRY_BAG_DOC           = "geometryBag(GEOMETRY,...): Takes any number of GEOMETRY and returns a GEOMETRYCOLLECTION containing all of them.";
-    private static final String RES_TO_GEOMETRY_BAG_DOC    = "resToGeometryBag(RESOURCE_ARRAY): Takes multiple Geometries from RESOURCE_ARRAY and turns them into a GeometryCollection (e.g. geofences from a third party system).";
-    private static final String AT_LEAST_ONE_MEMBER_OF_DOC = "atLeastOneMemberOf(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns TRUE if at least one member of GEOMETRYCOLLECTIONTHIS is contained in GEOMETRYCOLLECTIONTHAT.";
-    private static final String SUBSET_DOC                 = "subset(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns true, if GEOMETRYCOLLECTIONTHIS is a subset of GEOMETRYCOLLECTIONTHAT.";
-    // private static final String GET_PROJECTION_DOC = "getProjection(SRCSYSTEM,
-    // DESTSYSTEM): Returns the projection
-    // parameters between the given set of coordinate systems (given as EPSG id).";
-    // private static final String PROJECT_DOC = "project(GEOMETRY): Returns the
-    // projected geometry (or the geometry
-    // itself in case no projection is defined).";
-
+    private static final String ONE_AND_ONLY_DOC                            = "oneAndOnly(GEOMETRYCOLLECTION): If GEOMETRYCOLLECTION only contains one element, this element will be returned. In all other cases an error will be thrown.";
+    private static final String BAG_SIZE_DOC                                = "bagSize(GOEMETRYCOLLECTION): Returns the number of elements in the GEOMETRYCOLLECTION.";
+    private static final String GEOMETRY_IS_IN_DOC                          = "geometryIsIn(GEOMETRY, GEOMETRYCOLLECTION): Tests if GEOMETRY is included in GEOMETRYCOLLECTION.";
+    private static final String GEOMETRY_BAG_DOC                            = "geometryBag(GEOMETRY,...): Takes any number of GEOMETRY and returns a GEOMETRYCOLLECTION containing all of them.";
+    private static final String RES_TO_GEOMETRY_BAG_DOC                     = "resToGeometryBag(RESOURCE_ARRAY): Takes multiple Geometries from RESOURCE_ARRAY and turns them into a GeometryCollection (e.g. geofences from a third party system).";
+    private static final String AT_LEAST_ONE_MEMBER_OF_DOC                  = "atLeastOneMemberOf(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns TRUE if at least one member of GEOMETRYCOLLECTIONTHIS is contained in GEOMETRYCOLLECTIONTHAT.";
+    private static final String SUBSET_DOC                                  = "subset(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns true, if GEOMETRYCOLLECTIONTHIS is a subset of GEOMETRYCOLLECTIONTHAT.";
     private static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM = "Input must be a GeometryCollection containing only one Geometry.";
 
     @Function(name = "equalsExact", docs = EQUALS_DOC)

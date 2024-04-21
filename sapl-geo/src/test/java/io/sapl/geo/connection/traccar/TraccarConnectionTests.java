@@ -39,23 +39,21 @@ import io.sapl.api.interpreter.Val;
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
 public class TraccarConnectionTests {
-    String              address;
-    Integer             port;
-    SourceProvider      source            = SourceProvider.getInstance();
-    String				template 		  =  """
-            {
-            "user":"test@fake.de",
-            "password":"1234",
-        	"server":"%s",
-        	"protocol":"http",
-        	"deviceId":1
-        
-        """;
-    
+    String         address;
+    Integer        port;
+    SourceProvider source   = SourceProvider.getInstance();
+    String         template = """
+                {
+                "user":"test@fake.de",
+                "password":"1234",
+            	"server":"%s",
+            	"protocol":"http",
+            	"deviceId":1
+
+            """;
+
     final static String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
-    
-    
-    
+
     @Container
 
     public static GenericContainer<?> traccarServer = new GenericContainer<>(
@@ -67,18 +65,18 @@ public class TraccarConnectionTests {
     @BeforeAll
     void setup() {
 
-        address = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
+        address  = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
         template = String.format(template, address);
-        
+
     }
 
     @Test
     void Test01WKT() throws Exception {
-        
-    	String exp = source.getJsonSource().get("ResponseWKT").toPrettyString();
-      
+
+        String exp = source.getJsonSource().get("ResponseWKT").toPrettyString();
+
         var tmp = template.concat(",\"responseFormat\":\"WKT\"}");
-        
+
         var val = Val.ofJson(tmp);
         var res = new TraccarConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
@@ -88,24 +86,23 @@ public class TraccarConnectionTests {
 
     @Test
     void Test02GeoJson() throws Exception {
-        
-    	String exp = source.getJsonSource().get("ResponseGeoJsonSwitchedCoordinates").toPrettyString();
 
-        
+        String exp = source.getJsonSource().get("ResponseGeoJsonSwitchedCoordinates").toPrettyString();
+
         var tmp = template.concat(",\"responseFormat\":\"GEOJSON\",\"latitudeFirst\":false}");
-        
+
         var val = Val.ofJson(tmp);
         var res = new TraccarConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 
     }
-    
+
     @Test
     void Test03GML() throws Exception {
-        
-    	String exp = source.getJsonSource().get("ResponseGML").toPrettyString();
-       
+
+        String exp = source.getJsonSource().get("ResponseGML").toPrettyString();
+
         var tmp = template.concat(",\"responseFormat\":\"GML\"}");
 
         var val = Val.ofJson(tmp);
@@ -114,19 +111,19 @@ public class TraccarConnectionTests {
         assertEquals(exp, res);
 
     }
-    
+
     @Test
     void Test04KML() throws Exception {
-        
-    	String exp = source.getJsonSource().get("ResponseKML").toPrettyString();
+
+        String exp = source.getJsonSource().get("ResponseKML").toPrettyString();
 
         var tmp = template.concat(",\"responseFormat\":\"KML\"}");
-        
+
         var val = Val.ofJson(tmp);
         var res = new TraccarConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
         assertEquals(exp, res);
 
     }
-    
+
 }

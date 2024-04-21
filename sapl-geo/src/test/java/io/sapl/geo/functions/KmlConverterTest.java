@@ -39,11 +39,13 @@ import io.sapl.api.interpreter.Val;
 @TestInstance(Lifecycle.PER_CLASS)
 class KmlConverterTest extends TestBase {
 
-    String point   = EMPTY_STRING;
-    String polygon = EMPTY_STRING;
+    String       point   = EMPTY_STRING;
+    String       polygon = EMPTY_STRING;
+    GeoConverter geoConverter;
 
     @BeforeAll
     void setup() {
+    	geoConverter = new GeoConverter();
         StringWriter sw  = new StringWriter();
         var          pnt = source.getXmlSource().getElementsByTagName("Point").item(0);
         var          plg = source.getXmlSource().getElementsByTagName("Polygon").item(0);
@@ -67,8 +69,8 @@ class KmlConverterTest extends TestBase {
         Val res  = null;
         Val res1 = null;
         try {
-            res  = KmlConverter.kmlToGeoJsonString(Val.of(point));
-            res1 = KmlConverter.kmlToGeoJsonString(Val.of(polygon));
+            res  = geoConverter.kmlToGeoJsonString(Val.of(point));
+            res1 = geoConverter.kmlToGeoJsonString(Val.of(polygon));
         } catch (NullPointerException e) {
 
             e.printStackTrace();
@@ -108,8 +110,8 @@ class KmlConverterTest extends TestBase {
         Val res  = null;
         Val res1 = null;
         try {
-            res  = KmlConverter.kmlToGml(Val.of(point));
-            res1 = KmlConverter.kmlToGml(Val.of(polygon));
+            res  = geoConverter.kmlToGml(Val.of(point));
+            res1 = geoConverter.kmlToGml(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();
@@ -146,8 +148,8 @@ class KmlConverterTest extends TestBase {
         Val res  = null;
         Val res1 = null;
         try {
-            res  = KmlConverter.kmlToWkt(Val.of(point));
-            res1 = KmlConverter.kmlToWkt(Val.of(polygon));
+            res  = geoConverter.kmlToWkt(Val.of(point));
+            res1 = geoConverter.kmlToWkt(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();

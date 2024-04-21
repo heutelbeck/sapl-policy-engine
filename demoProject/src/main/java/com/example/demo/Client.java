@@ -31,7 +31,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.geo.functions.GeoConverter;
 import io.sapl.geo.functions.GeoFunctions;
+import io.sapl.geo.functions.GmlConverter;
+import io.sapl.geo.functions.WktConverter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointFactory;
@@ -89,7 +92,7 @@ public class Client implements ApplicationListener<ApplicationReadyEvent> {
 			try {
 				pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new GeoPolicyInformationPoint(new ObjectMapper())),
 						List::of, 
-						() -> List.of(new GeoFunctions()), 
+						() -> List.of(new GeoFunctions(), new GeoConverter()), 
 						List::of);
 			} catch (InitializationException e) {
 				// TODO Auto-generated catch block

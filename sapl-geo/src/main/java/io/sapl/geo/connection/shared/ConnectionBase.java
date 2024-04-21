@@ -33,11 +33,10 @@ public abstract class ConnectionBase {
     protected static final String REPEAT_TIMES                 = "repetitions";
     protected static final String PROTOCOL                     = "protocol";
     protected static final String DEVICEID_CONST               = "deviceId";
-    protected static final String LATITUDE_FIRST			   = "latitudeFirst";
+    protected static final String LATITUDE_FIRST               = "latitudeFirst";
     protected static final long   DEFAULT_POLLING_INTERVALL_MS = 1000L;
     protected static final long   DEFAULT_REPETITIONS          = Long.MAX_VALUE;
-    
-    
+
 //    protected ConnectionBase() {
 //    }
 
@@ -119,7 +118,7 @@ public abstract class ConnectionBase {
         }
 
     }
-    
+
     protected static boolean getLatitudeFirst(JsonNode requestSettings) {
         if (requestSettings.has(LATITUDE_FIRST)) {
             return requestSettings.findValue(LATITUDE_FIRST).asBoolean();
@@ -128,5 +127,5 @@ public abstract class ConnectionBase {
         }
 
     }
-    
+
 }

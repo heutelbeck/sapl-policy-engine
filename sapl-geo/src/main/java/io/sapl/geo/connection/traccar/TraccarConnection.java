@@ -37,27 +37,27 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 public class TraccarConnection extends ConnectionBase {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger       logger = LoggerFactory.getLogger(getClass());
     private final ObjectMapper mapper;
-    
-    private  TraccarSessionManager sessionManager;
+
+    private TraccarSessionManager sessionManager;
     private TraccarSessionHandler handler;
 
-    
     /**
      * @param settings a {@link JsonNode} containing the settings
      * @return a {@link Flux}<{@link Val}
      */
     public Flux<Val> connect(JsonNode settings) {
 
-    	var server = getServer(settings);
-    	var protocol = getProtocol(settings);
-    	var url = "ws://" + server + "/api/socket";
+        var server   = getServer(settings);
+        var protocol = getProtocol(settings);
+        var url      = "ws://" + server + "/api/socket";
 
-        this.sessionManager = new TraccarSessionManager(getUser(settings), getPassword(settings), server, protocol, mapper);
-        this.handler        = new TraccarSessionHandler(getDeviceId(settings), sessionManager.getSessionCookie(), server,
-                protocol, mapper);
-    	
+        this.sessionManager = new TraccarSessionManager(getUser(settings), getPassword(settings), server, protocol,
+                mapper);
+        this.handler        = new TraccarSessionHandler(getDeviceId(settings), sessionManager.getSessionCookie(),
+                server, protocol, mapper);
+
         try {
             return getFlux(url, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of)
                     .onErrorResume(e -> Flux.just(Val.error(e))).doFinally(s -> disconnect());
@@ -68,7 +68,8 @@ public class TraccarConnection extends ConnectionBase {
 
     }
 
-    private Flux<ObjectNode> getFlux(String url, GeoPipResponseFormat format, ObjectMapper mapper, boolean latitudeFirst) throws PolicyEvaluationException {
+    private Flux<ObjectNode> getFlux(String url, GeoPipResponseFormat format, ObjectMapper mapper,
+            boolean latitudeFirst) throws PolicyEvaluationException {
 
         var client = new ReactiveWebClient(mapper);
 
@@ -88,7 +89,8 @@ public class TraccarConnection extends ConnectionBase {
             throw new PolicyEvaluationException(e);
         }
 
-        var flux = client.consumeWebSocket(request).map(Val::get).flatMap(msg -> handler.mapPosition(msg, format, latitudeFirst))
+        var flux = client.consumeWebSocket(request).map(Val::get)
+                .flatMap(msg -> handler.mapPosition(msg, format, latitudeFirst))
                 .flatMap(res -> handler.getGeofences(res, format, latitudeFirst))
                 .map(res -> mapper.convertValue(res, ObjectNode.class));
 

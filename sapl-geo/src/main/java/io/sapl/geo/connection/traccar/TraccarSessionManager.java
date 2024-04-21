@@ -109,7 +109,7 @@ public class TraccarSessionManager {
             throw new PolicyEvaluationException(
                     "Session could not be established. Server respondet with " + res.statusCode());
         }
- 
+
     }
 
     private TraccarSession createTraccarSession(String json) throws PolicyEvaluationException {

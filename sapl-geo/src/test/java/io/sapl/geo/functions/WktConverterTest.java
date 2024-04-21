@@ -37,14 +37,15 @@ import io.sapl.api.interpreter.Val;
 @TestInstance(Lifecycle.PER_CLASS)
 class WktConverterTest extends TestBase {
 
-    String point   = EMPTY_STRING;
-    String polygon = EMPTY_STRING;
+    String       point   = EMPTY_STRING;
+    String       polygon = EMPTY_STRING;
+    GeoConverter geoConverter;
 
     @BeforeAll
     void setup() {
-        point   = source.getJsonSource().get("WktPoint").asText();
-        polygon = source.getJsonSource().get("WktPolygon").asText();
-
+        point        = source.getJsonSource().get("WktPoint").asText();
+        polygon      = source.getJsonSource().get("WktPolygon").asText();
+        geoConverter = new GeoConverter();
     }
 
     @Test
@@ -52,12 +53,12 @@ class WktConverterTest extends TestBase {
 
         Val res  = null;
         Val res1 = null;
-        res  = WktConverter.wktToKml(Val.of(point));
-        res1 = WktConverter.wktToKml(Val.of(polygon));
+        res  = geoConverter.wktToKml(Val.of(point));
+        res1 = geoConverter.wktToKml(Val.of(polygon));
 
-        String expPoint = EMPTY_STRING;
-        String expPolygon = EMPTY_STRING;
-        StringWriter sw = new StringWriter();
+        String       expPoint   = EMPTY_STRING;
+        String       expPolygon = EMPTY_STRING;
+        StringWriter sw         = new StringWriter();
 
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
         var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);
@@ -103,8 +104,8 @@ class WktConverterTest extends TestBase {
         Val res  = null;
         Val res1 = null;
         try {
-            res  = WktConverter.wktToGml(Val.of(point));
-            res1 = WktConverter.wktToGml(Val.of(polygon));
+            res  = geoConverter.wktToGml(Val.of(point));
+            res1 = geoConverter.wktToGml(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();
@@ -140,8 +141,8 @@ class WktConverterTest extends TestBase {
 
         Val res  = null;
         Val res1 = null;
-        res  = WktConverter.wktToGeoJsonString(Val.of(point));
-        res1 = WktConverter.wktToGeoJsonString(Val.of(polygon));
+        res  = geoConverter.wktToGeoJsonString(Val.of(point));
+        res1 = geoConverter.wktToGeoJsonString(Val.of(polygon));
 
         String expPoint   = EMPTY_STRING;
         String expPolygon = EMPTY_STRING;

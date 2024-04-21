@@ -21,49 +21,18 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
+import org.springframework.stereotype.Component;
 
 import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
-import lombok.experimental.UtilityClass;
+import lombok.NoArgsConstructor;
 
-@UtilityClass
+@Component
+@NoArgsConstructor
+@FunctionLibrary(name = "wktConverter", description = "")
 public class WktConverter {
-
-	private static final String WKT_TO_GML   		= "converts WKT to GML";
-	private static final String WKT_TO_GEOJSON   	= "converts WKT to GeoJSON";
-	private static final String WKT_TO_KML   		= "converts WKT to KML";
-	
-	@Function(name = "wktToGml", docs = WKT_TO_GML )
-    public static Val wktToGml(Val wkt) {
-
-        try {
-            return GeometryConverter.geometryToGML(wktToGeometry(wkt));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
-    }
-
-	@Function(name = "wktToKml", docs = WKT_TO_KML )
-    public static Val wktToKml(Val wkt) {
-
-        try {
-            return GeometryConverter.geometryToKML(wktToGeometry(wkt));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
-    }
-
-	@Function(name = "wktToGeoJsonString", docs = WKT_TO_GEOJSON )
-    public static Val wktToGeoJsonString(Val wkt) {
-
-        try {
-            return GeometryConverter.geometryToGeoJsonNode(wktToGeometry(wkt));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
-    }
-
-	
+    
     public static Geometry wktToGeometry(Val wkt) throws ParseException {
 
         return wktToGeometry(wkt.getText());

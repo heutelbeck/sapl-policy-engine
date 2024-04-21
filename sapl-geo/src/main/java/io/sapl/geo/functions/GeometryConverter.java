@@ -35,7 +35,6 @@ public final class GeometryConverter {
 
     private final String EMPTY = "";
 
-
     public static Val geometryToGML(Geometry geo) {
 
         String s = EMPTY;
@@ -61,7 +60,6 @@ public final class GeometryConverter {
         }
         return Val.of(s);
     }
-
 
     public static Val geometryToWKT(Geometry geo) {
         String s = EMPTY;

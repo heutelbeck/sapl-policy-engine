@@ -21,48 +21,20 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
+import org.springframework.stereotype.Component;
 
 import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
-import lombok.experimental.UtilityClass;
+import lombok.NoArgsConstructor;
 
-@UtilityClass
+@Component
+@NoArgsConstructor
+@FunctionLibrary(name = GeoFunctions.NAME, description = GeoFunctions.DESCRIPTION)
 public class JsonConverter {
-	
-	private static final String GEOJSON_TO_KML   		= "converts GeoJSON to KML";
-	private static final String GEOJSON_TO_GML   		= "converts GeoJSON to GML";
-	private static final String GEOJSON_TO_WKT   		= "converts GeoJSON to WKT";
 
-	
-	@Function(name = "geoJsonToKml", docs = GEOJSON_TO_KML)
-    public static Val geoJsonToKml(Val geoJson) {
-
-        try {
-            return GeometryConverter.geometryToKML((new GeoJsonReader()).read(geoJson.getText()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
-    }
-
-	@Function(name = "geoJsonToGml", docs = GEOJSON_TO_GML  )
-    public static Val geoJsonToGml(Val geoJson) {
-
-        try {
-            return GeometryConverter.geometryToGML((new GeoJsonReader()).read(geoJson.getText()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
-    }
-
-	@Function(name = "geoJsonToWkt", docs = GEOJSON_TO_WKT)
-    public static Val geoJsonToWkt(Val geoJson) {
-
-        try {
-            return GeometryConverter.geometryToWKT((new GeoJsonReader()).read(geoJson.getText()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
-    }
+    
+    
 
     public static Geometry geoJsonToGeometry(Val geoJson) throws ParseException {
 

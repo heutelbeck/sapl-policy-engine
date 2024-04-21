@@ -36,12 +36,12 @@ import reactor.test.StepVerifier;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
-class PostGisConnectionTests extends DatabaseTestBase{
+class PostGisConnectionTests extends DatabaseTestBase {
 
-	private String tmpAll;
-	private String tmpPoint;
-	private String template;
-	
+    private String tmpAll;
+    private String tmpPoint;
+    private String template;
+
     @Container
     private static final PostgreSQLContainer<?> postgisContainer = new PostgreSQLContainer<>(
             DockerImageName.parse("postgis/postgis:16-3.4-alpine").asCompatibleSubstituteFor("postgres"))
@@ -54,9 +54,9 @@ class PostGisConnectionTests extends DatabaseTestBase{
                 postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
 
         tmpAll = template.concat(tmpAll1);
-		
-		tmpPoint = template.concat(tmpPoint1);	
-        
+
+        tmpPoint = template.concat(tmpPoint1);
+
         var connectionFactory = new PostgresqlConnectionFactory(
                 PostgresqlConnectionConfiguration.builder().host(postgisContainer.getHost())
                         .port(postgisContainer.getMappedPort(5432)).database(postgisContainer.getDatabaseName())
@@ -80,10 +80,9 @@ class PostGisConnectionTests extends DatabaseTestBase{
     @Test
     void Test02PostGisConnectionGeometrySingleResult() throws JsonProcessingException {
 
-        
         var str = String.format(tmpPoint, "geometries", "geom");
 
-        var exp = Val.ofJson(expPt);
+        var exp     = Val.ofJson(expPt);
         var postgis = new PostGisConnection(Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
     }
@@ -91,10 +90,9 @@ class PostGisConnectionTests extends DatabaseTestBase{
     @Test
     void Test03PostGisConnectionGeography() throws JsonProcessingException {
 
-        
         var str = String.format(tmpAll, "geographies", "geog");
 
-        var exp = Val.ofJson(expAll);
+        var exp     = Val.ofJson(expAll);
         var postgis = new PostGisConnection(Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
     }
@@ -104,7 +102,7 @@ class PostGisConnectionTests extends DatabaseTestBase{
 
         var str = String.format(tmpPoint, "geographies", "geog");
 
-        var exp = Val.ofJson(expPt);
+        var exp     = Val.ofJson(expPt);
         var postgis = new PostGisConnection(Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
     }
@@ -117,7 +115,5 @@ class PostGisConnectionTests extends DatabaseTestBase{
         var postgis = new PostGisConnection(Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectError();
     }
-
-    
 
 }

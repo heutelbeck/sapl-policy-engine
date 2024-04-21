@@ -28,28 +28,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
 import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
 
-
 public class MySqlConnection extends DatabaseConnection {
 
-	/**
-	 * @param settings a {@link JsonNode} containing the settings
-	 * @param mapper a {@link ObjectMapper}
-	 */
-	public MySqlConnection(JsonNode settings, ObjectMapper mapper) {
-    	super(mapper);
+    /**
+     * @param settings a {@link JsonNode} containing the settings
+     * @param mapper   a {@link ObjectMapper}
+     */
+    public MySqlConnection(JsonNode settings, ObjectMapper mapper) {
+        super(mapper);
 
-        connectionFactory = MySqlConnectionFactory.from(
-                	MySqlConnectionConfiguration.builder()
-                        .username(getUser(settings))
-                        .password(getPassword(settings))
-                        .host(getServer(settings))
-                        .port(getPort(settings))
-                        .database(getDataBase(settings))
-                        .serverZoneId(ZoneId.of("UTC"))
-                        .build());
+        connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
+                .username(getUser(settings)).password(getPassword(settings)).host(getServer(settings))
+                .port(getPort(settings)).database(getDataBase(settings)).serverZoneId(ZoneId.of("UTC")).build());
 
     }
-    
+
     protected int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(PORT)) {
             return requestSettings.findValue(PORT).asInt();
@@ -58,6 +51,5 @@ public class MySqlConnection extends DatabaseConnection {
             return 3306;
         }
     }
-	
-}
 
+}

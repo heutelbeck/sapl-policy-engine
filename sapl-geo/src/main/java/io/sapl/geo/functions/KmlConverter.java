@@ -21,49 +21,19 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.kml.KMLReader;
+import org.springframework.stereotype.Component;
 
 import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
-import lombok.experimental.UtilityClass;
+import lombok.NoArgsConstructor;
 
-@UtilityClass
+@Component
+@NoArgsConstructor
+@FunctionLibrary(name = GeoFunctions.NAME, description = GeoFunctions.DESCRIPTION)
 public class KmlConverter {
 
-	private static final String KML_TO_GML   		= "converts KML to GML";
-	private static final String KML_TO_GEOJSON   	= "converts KML to GeoJSON";
-	private static final String KML_TO_WKT   		= "converts KML to WKT";
-	
-	
-	@Function(name = "kmlToGml", docs = KML_TO_GML )
-    public static Val kmlToGml(Val kml) {
-
-        try {
-            return GeometryConverter.geometryToGML(kmlToGeometry(kml));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
-    }
-
-	@Function(name = "kmlToGeoJsonString", docs = KML_TO_GEOJSON)
-    public static Val kmlToGeoJsonString(Val kml) {
-
-        try {
-            return GeometryConverter.geometryToGeoJsonNode(kmlToGeometry(kml));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
-    }
-
-	@Function(name = "kmlToWkt", docs = KML_TO_WKT )
-    public static Val kmlToWkt(Val kml) {
-
-        try {
-            return GeometryConverter.geometryToWKT(kmlToGeometry(kml));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
-    }
-
+    
     public static Geometry kmlToGeometry(Val kml) throws ParseException {
 
         return kmlToGeometry(kml.getText());

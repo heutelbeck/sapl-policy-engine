@@ -42,46 +42,41 @@ import reactor.test.StepVerifier;
 @Testcontainers
 class MySqlConnectionTests extends DatabaseTestBase {
 
-	private String tmpAll;
-	private String tmpPoint;	
-	private String template;
-	
-	@Container
-	private static final MySQLContainer<?> mySqlContainer = new MySQLContainer<>(
-	   DockerImageName.parse("mysql:8.2.0")) //8.3.0 is buggy
-	   .withUsername("test").withPassword("test").withDatabaseName("test");
-	
-	@BeforeAll
-	void setUp() throws Exception {
-	
-		template = String.format(template1, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
-				mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
-		
-		tmpAll = template.concat(tmpAll1);
-			
-		tmpPoint = template.concat(tmpPoint1);	
-		
-		var connectionFactory = MySqlConnectionFactory.from(
-	        	MySqlConnectionConfiguration.builder()
-	            .username(mySqlContainer.getUsername())
-	            .password(mySqlContainer.getPassword())
-	            .host(mySqlContainer.getHost())
-	            .port(mySqlContainer.getMappedPort(3306))
-	            .database(mySqlContainer.getDatabaseName())
-	            .serverZoneId(ZoneId.of("UTC"))
-	            .build());
-	 
-		createTable(connectionFactory);
-		insert(connectionFactory);
-	}
+    private String tmpAll;
+    private String tmpPoint;
+    private String template;
 
-	@Test
+    @Container
+    private static final MySQLContainer<?> mySqlContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.2.0")) // 8.3.0
+                                                                                                                       // is
+                                                                                                                       // buggy
+            .withUsername("test").withPassword("test").withDatabaseName("test");
+
+    @BeforeAll
+    void setUp() throws Exception {
+
+        template = String.format(template1, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
+                mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
+
+        tmpAll = template.concat(tmpAll1);
+
+        tmpPoint = template.concat(tmpPoint1);
+
+        var connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
+                .username(mySqlContainer.getUsername()).password(mySqlContainer.getPassword())
+                .host(mySqlContainer.getHost()).port(mySqlContainer.getMappedPort(3306))
+                .database(mySqlContainer.getDatabaseName()).serverZoneId(ZoneId.of("UTC")).build());
+
+        createTable(connectionFactory);
+        insert(connectionFactory);
+    }
+
+    @Test
     void Test01MySqlConnection() throws JsonProcessingException {
-
 
         var str = String.format(tmpAll, "geometries", "geom");
 
-        var exp = Val.ofJson(expAll);
+        var exp   = Val.ofJson(expAll);
         var mysql = new MySqlConnection(Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
         StepVerifier.create(mysql).expectNext(exp).expectNext(exp).verifyComplete();
     }
@@ -89,7 +84,6 @@ class MySqlConnectionTests extends DatabaseTestBase {
     @Test
     void Test02MySqlConnectionSingleResult() throws JsonProcessingException {
 
-        
         var str = String.format(tmpPoint, "geometries", "geom");
 
         var exp = Val.ofJson(expPt);
@@ -98,7 +92,6 @@ class MySqlConnectionTests extends DatabaseTestBase {
         StepVerifier.create(mysql).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
-    
     @Test
     void Test03Error() throws JsonProcessingException {
 
@@ -117,6 +110,4 @@ class MySqlConnectionTests extends DatabaseTestBase {
         StepVerifier.create(mysql).expectError();
     }
 
-
 }
-

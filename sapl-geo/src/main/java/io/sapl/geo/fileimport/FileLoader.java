@@ -53,10 +53,10 @@ public class FileLoader extends ConnectionBase {
 
     private static final String PATH = "path";
     private static final String CRS  = "crs";
-    
+
     private final ObjectMapper mapper;
-    
-    private BufferedReader      reader;
+
+    private BufferedReader reader;
 
     /**
      * @param settings a {@link JsonNode} containing the settings
@@ -65,11 +65,11 @@ public class FileLoader extends ConnectionBase {
     public Flux<Val> connect(JsonNode settings) {
 
         try {
-        	reader = new BufferedReader(new FileReader(getPath(settings)));
+            reader = new BufferedReader(new FileReader(getPath(settings)));
             return getFlux(getResponseFormat(settings, mapper), getCrs(settings),
-                            longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
-                            longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), mapper)
-                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e)));
+                    longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
+                    longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), mapper).map(Val::of)
+                    .onErrorResume(e -> Flux.just(Val.error(e)));
 
         } catch (Exception e) {
 

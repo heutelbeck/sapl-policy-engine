@@ -44,7 +44,6 @@ public class GeoPolicyInformationPoint {
 
     private final ObjectMapper mapper;
 
-
     @Attribute(name = "traccar")
     public Flux<Val> connectToTraccar(Val leftHandValue, Val variables) {
 
@@ -55,7 +54,7 @@ public class GeoPolicyInformationPoint {
     @EnvironmentAttribute(name = "traccar")
     public Flux<Val> connectToTraccar(Val variables) {
 
-    	return new TraccarConnection(mapper).connect(variables.get());
+        return new TraccarConnection(mapper).connect(variables.get());
 
     }
 
@@ -69,21 +68,20 @@ public class GeoPolicyInformationPoint {
     @EnvironmentAttribute(name = "ownTracks")
     public Flux<Val> connectToOwnTracks(Val variables) {
 
-    	return new OwnTracksConnection(mapper).connect(variables.get());
+        return new OwnTracksConnection(mapper).connect(variables.get());
 
     }
-    
+
     @Attribute(name = "postGIS")
     public Flux<Val> connectToPostGIS(Val leftHandValue, Val variables) {
-    	return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
-
+        return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
 
     }
 
     @EnvironmentAttribute(name = "postGIS")
     public Flux<Val> connectToPostGIS(Val variables) {
 
-    	return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
+        return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
 
     }
 
@@ -100,7 +98,7 @@ public class GeoPolicyInformationPoint {
         return new MySqlConnection(variables.get(), new ObjectMapper()).connect(variables.get());
 
     }
-    
+
     @Attribute(name = "file")
     public Flux<Val> loadFile(Val leftHandValue, Val variables) {
 

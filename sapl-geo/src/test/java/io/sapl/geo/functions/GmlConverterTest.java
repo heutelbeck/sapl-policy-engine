@@ -38,11 +38,13 @@ import io.sapl.api.interpreter.Val;
 @TestInstance(Lifecycle.PER_CLASS)
 class GmlConverterTest extends TestBase {
 
-    String point   = EMPTY_STRING;
-    String polygon = EMPTY_STRING;
+    String       point   = EMPTY_STRING;
+    String       polygon = EMPTY_STRING;
+    GeoConverter geoConverter;
 
     @BeforeAll
     void setup() {
+        geoConverter = new GeoConverter();
         StringWriter sw  = new StringWriter();
         var          pnt = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         var          plg = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
@@ -65,8 +67,8 @@ class GmlConverterTest extends TestBase {
         Val res  = null;
         Val res1 = null;
         try {
-            res  = GmlConverter.gmlToGeoJsonString(Val.of(point));
-            res1 = GmlConverter.gmlToGeoJsonString(Val.of(polygon));
+            res  = geoConverter.gmlToGeoJsonString(Val.of(point));
+            res1 = geoConverter.gmlToGeoJsonString(Val.of(polygon));
         } catch (NullPointerException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -106,8 +108,8 @@ class GmlConverterTest extends TestBase {
         Val res  = null;
         Val res1 = null;
         try {
-            res  = GmlConverter.gmlToKml(Val.of(point));
-            res1 = GmlConverter.gmlToKml(Val.of(polygon));
+            res  = geoConverter.gmlToKml(Val.of(point));
+            res1 = geoConverter.gmlToKml(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();
@@ -144,8 +146,8 @@ class GmlConverterTest extends TestBase {
         Val res  = null;
         Val res1 = null;
         try {
-            res  = GmlConverter.gmlToWkt(Val.of(point));
-            res1 = GmlConverter.gmlToWkt(Val.of(polygon));
+            res  = geoConverter.gmlToWkt(Val.of(point));
+            res1 = geoConverter.gmlToWkt(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();

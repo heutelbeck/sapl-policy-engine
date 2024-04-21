@@ -69,7 +69,6 @@ class FileLoaderTests {
         path              = resourceDirectory.concat("\\\\fileimport\\\\%s");
     }
 
-
     @Test
     void geoJsonSingleTest() throws JsonProcessingException {
 

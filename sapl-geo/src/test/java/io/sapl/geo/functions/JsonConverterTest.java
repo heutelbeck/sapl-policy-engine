@@ -39,13 +39,15 @@ import io.sapl.api.interpreter.Val;
 @TestInstance(Lifecycle.PER_CLASS)
 class JsonConverterTest extends TestBase {
 
-    Val point   = null;
-    Val polygon = null;
+    Val           point   = null;
+    Val           polygon = null;
+    GeoConverter geoConverter;
 
     @BeforeAll
     void setup() {
-        point   = Val.of(source.getJsonSource().get("Point").toPrettyString());
-        polygon = Val.of(source.getJsonSource().get("Polygon").toPrettyString());
+    	geoConverter = new GeoConverter();
+        point         = Val.of(source.getJsonSource().get("Point").toPrettyString());
+        polygon       = Val.of(source.getJsonSource().get("Polygon").toPrettyString());
 
     }
 
@@ -56,8 +58,8 @@ class JsonConverterTest extends TestBase {
         ;
         Val res1 = null;
         ;
-        res  = JsonConverter.geoJsonToKml(point);
-        res1 = JsonConverter.geoJsonToKml(polygon);
+        res  = geoConverter.geoJsonToKml(point);
+        res1 = geoConverter.geoJsonToKml(polygon);
 
         String expPoint = EMPTY_STRING;
         ;
@@ -109,8 +111,8 @@ class JsonConverterTest extends TestBase {
         Val res  = null;
         Val res1 = null;
         try {
-            res  = JsonConverter.geoJsonToGml(point);
-            res1 = JsonConverter.geoJsonToGml(polygon);
+            res  = geoConverter.geoJsonToGml(point);
+            res1 = geoConverter.geoJsonToGml(polygon);
 
         } catch (NullPointerException e) {
             e.printStackTrace();
@@ -146,8 +148,8 @@ class JsonConverterTest extends TestBase {
 
         Val res  = null;
         Val res1 = null;
-        res  = JsonConverter.geoJsonToWkt(point);
-        res1 = JsonConverter.geoJsonToWkt(polygon);
+        res  = geoConverter.geoJsonToWkt(point);
+        res1 = geoConverter.geoJsonToWkt(polygon);
 
         String expPoint   = EMPTY_STRING;
         String expPolygon = EMPTY_STRING;
