@@ -22,13 +22,20 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.kml.KMLReader;
 
+import io.sapl.api.functions.Function;
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class KmlConverter {
 
-    public static Val kmlToGML(Val kml) {
+	private static final String KML_TO_GML   		= "converts KML to GML";
+	private static final String KML_TO_GEOJSON   	= "converts KML to GeoJSON";
+	private static final String KML_TO_WKT   		= "converts KML to WKT";
+	
+	
+	@Function(name = "kmlToGml", docs = KML_TO_GML )
+    public static Val kmlToGml(Val kml) {
 
         try {
             return GeometryConverter.geometryToGML(kmlToGeometry(kml));
@@ -37,6 +44,7 @@ public class KmlConverter {
         }
     }
 
+	@Function(name = "kmlToGeoJsonString", docs = KML_TO_GEOJSON)
     public static Val kmlToGeoJsonString(Val kml) {
 
         try {
@@ -46,7 +54,8 @@ public class KmlConverter {
         }
     }
 
-    public static Val kmlToWKT(Val kml) {
+	@Function(name = "kmlToWkt", docs = KML_TO_WKT )
+    public static Val kmlToWkt(Val kml) {
 
         try {
             return GeometryConverter.geometryToWKT(kmlToGeometry(kml));

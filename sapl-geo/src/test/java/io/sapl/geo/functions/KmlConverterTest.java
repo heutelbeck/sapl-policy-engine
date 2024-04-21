@@ -108,8 +108,8 @@ class KmlConverterTest extends TestBase {
         Val res  = null;
         Val res1 = null;
         try {
-            res  = KmlConverter.kmlToGML(Val.of(point));
-            res1 = KmlConverter.kmlToGML(Val.of(polygon));
+            res  = KmlConverter.kmlToGml(Val.of(point));
+            res1 = KmlConverter.kmlToGml(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();
@@ -146,8 +146,8 @@ class KmlConverterTest extends TestBase {
         Val res  = null;
         Val res1 = null;
         try {
-            res  = KmlConverter.kmlToWKT(Val.of(point));
-            res1 = KmlConverter.kmlToWKT(Val.of(polygon));
+            res  = KmlConverter.kmlToWkt(Val.of(point));
+            res1 = KmlConverter.kmlToWkt(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();

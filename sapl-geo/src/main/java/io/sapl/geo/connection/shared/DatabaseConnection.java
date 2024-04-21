@@ -44,13 +44,15 @@ import io.sapl.geo.functions.GeoProjector;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.JsonConverter;
 import io.sapl.geo.pip.GeoPipResponseFormat;
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.retry.Repeat;
 
+@RequiredArgsConstructor
 public abstract class DatabaseConnection extends ConnectionBase {
 	
-	private static final String PORT          = "port";
+	
 	private static final String DATABASE      = "dataBase";
 	private static final String TABLE         = "table";
 	private static final String GEOCOLUMN     = "geoColumn";
@@ -59,20 +61,16 @@ public abstract class DatabaseConnection extends ConnectionBase {
 	private static final String DEFAULTCRS    = "defaultCRS";
 	private static final String SINGLE_RESULT = "singleResult";
 	private static final String EPSG 		  = "EPSG:";
+	protected static final String PORT          = "port";
 	
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 		
-	protected ConnectionFactory           connectionFactory;
-	private ObjectMapper                mapper;
-	private AtomicReference<Connection> connectionReference = new AtomicReference<>();;
+	protected ConnectionFactory           connectionFactory;	
+	private AtomicReference<Connection> connectionReference = new AtomicReference<>();
 	private String[] selectColumns;
 	
-	protected DatabaseConnection(ObjectMapper mapper) {
+	private final ObjectMapper                mapper;
 		
-		this.mapper = mapper;
-	}		
-
-	
 
     /**
      * @param settings a {@link JsonNode} containing the settings
@@ -235,18 +233,6 @@ public abstract class DatabaseConnection extends ConnectionBase {
         String str  = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid%s FROM %s %s";
 
         return String.format(str, frmt, geoColumn, geoColumn, clms, table, where);
-    }
-
-    
-    
-    protected int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(PORT)) {
-            return requestSettings.findValue(PORT).asInt();
-        } else {
-
-            return 5432;
-        }
-
     }
 
     protected String getDataBase(JsonNode requestSettings) throws PolicyEvaluationException {

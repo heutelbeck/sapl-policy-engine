@@ -56,8 +56,8 @@ class JsonConverterTest extends TestBase {
         ;
         Val res1 = null;
         ;
-        res  = JsonConverter.geoJsonToKML(point);
-        res1 = JsonConverter.geoJsonToKML(polygon);
+        res  = JsonConverter.geoJsonToKml(point);
+        res1 = JsonConverter.geoJsonToKml(polygon);
 
         String expPoint = EMPTY_STRING;
         ;
@@ -146,8 +146,8 @@ class JsonConverterTest extends TestBase {
 
         Val res  = null;
         Val res1 = null;
-        res  = JsonConverter.geoJsonToWKT(point);
-        res1 = JsonConverter.geoJsonToWKT(polygon);
+        res  = JsonConverter.geoJsonToWkt(point);
+        res1 = JsonConverter.geoJsonToWkt(polygon);
 
         String expPoint   = EMPTY_STRING;
         String expPolygon = EMPTY_STRING;

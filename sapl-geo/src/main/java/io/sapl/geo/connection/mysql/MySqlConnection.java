@@ -17,6 +17,7 @@
  */
 package io.sapl.geo.connection.mysql;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.connection.shared.DatabaseConnection;
 
 import java.time.ZoneId;
@@ -48,6 +49,15 @@ public class MySqlConnection extends DatabaseConnection {
                         .build());
 
     }
-        
+    
+    protected int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
+        if (requestSettings.has(PORT)) {
+            return requestSettings.findValue(PORT).asInt();
+        } else {
+
+            return 3306;
+        }
+    }
+	
 }
 

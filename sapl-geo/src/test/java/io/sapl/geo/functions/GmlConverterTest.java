@@ -101,13 +101,13 @@ class GmlConverterTest extends TestBase {
     }
 
     @Test
-    void gmlToKMLTest() {
+    void gmlToKmlTest() {
 
         Val res  = null;
         Val res1 = null;
         try {
-            res  = GmlConverter.gmlToKML(Val.of(point));
-            res1 = GmlConverter.gmlToKML(Val.of(polygon));
+            res  = GmlConverter.gmlToKml(Val.of(point));
+            res1 = GmlConverter.gmlToKml(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();
@@ -139,13 +139,13 @@ class GmlConverterTest extends TestBase {
     }
 
     @Test
-    void gmlToWKTTest() {
+    void gmlToWktTest() {
 
         Val res  = null;
         Val res1 = null;
         try {
-            res  = GmlConverter.gmlToWKT(Val.of(point));
-            res1 = GmlConverter.gmlToWKT(Val.of(polygon));
+            res  = GmlConverter.gmlToWkt(Val.of(point));
+            res1 = GmlConverter.gmlToWkt(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();

@@ -87,7 +87,7 @@ public class Client implements ApplicationListener<ApplicationReadyEvent> {
 //			pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new HttpPolicyInformationPointFluxComplete(new ObjectMapper())), List::of, 
 //                    List::of,  List::of);
 			try {
-				pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new GeoPolicyInformationPoint()),
+				pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new GeoPolicyInformationPoint(new ObjectMapper())),
 						List::of, 
 						() -> List.of(new GeoFunctions()), 
 						List::of);

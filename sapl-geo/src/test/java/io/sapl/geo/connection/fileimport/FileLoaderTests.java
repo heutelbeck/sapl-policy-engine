@@ -35,7 +35,7 @@ import io.sapl.geo.fileimport.FileLoader;
 import reactor.test.StepVerifier;
 
 @TestInstance(Lifecycle.PER_CLASS)
-public class FileLoaderTests {
+class FileLoaderTests {
 
     final String GEOJSON = "GEOJSON";
     final String WKT     = "WKT";
@@ -77,7 +77,7 @@ public class FileLoaderTests {
         var exp  = Val.ofJson(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "geoJsonSingle.json"));
         var node = mapper.readValue(String.format(template, pth, GEOJSON), JsonNode.class);
-        var res  = new FileLoader().connect(node, mapper);
+        var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }
@@ -89,7 +89,7 @@ public class FileLoaderTests {
         var exp  = Val.ofJson(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "geojsonCollection.json"));
         var node = mapper.readValue(String.format(template2, pth, GEOJSON), JsonNode.class);
-        var res  = new FileLoader().connect(node, mapper);
+        var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }
@@ -101,7 +101,7 @@ public class FileLoaderTests {
         var exp  = Val.ofJson(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "geojsonMultiple.json"));
         var node = mapper.readValue(String.format(template, pth, GEOJSON), JsonNode.class);
-        var res  = new FileLoader().connect(node, mapper);
+        var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }
@@ -113,7 +113,7 @@ public class FileLoaderTests {
         var exp  = Val.of(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "wktSingle.wkt"));
         var node = mapper.readValue(String.format(template, pth, WKT), JsonNode.class);
-        var res  = new FileLoader().connect(node, mapper);
+        var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }
@@ -128,7 +128,7 @@ public class FileLoaderTests {
         var exp  = Val.ofJson(arrayNode.toString());
         var pth  = mapper.writeValueAsString(String.format(path, "wktCollection.wkt"));
         var node = mapper.readValue(String.format(template2, pth, WKT), JsonNode.class);
-        var res  = new FileLoader().connect(node, mapper);
+        var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }
@@ -153,7 +153,7 @@ public class FileLoaderTests {
         var exp  = Val.of(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "gmlSingle.gml"));
         var node = mapper.readValue(String.format(template, pth, GML), JsonNode.class);
-        var res  = new FileLoader().connect(node, mapper);
+        var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }
@@ -168,7 +168,7 @@ public class FileLoaderTests {
         var exp  = Val.ofJson(arrayNode.toString());
         var pth  = mapper.writeValueAsString(String.format(path, "gmlCollection.gml"));
         var node = mapper.readValue(String.format(template2, pth, GML), JsonNode.class);
-        var res  = new FileLoader().connect(node, mapper);
+        var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }
@@ -193,7 +193,7 @@ public class FileLoaderTests {
         var exp  = Val.of(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "kmlSingle.kml"));
         var node = mapper.readValue(String.format(template, pth, KML), JsonNode.class);
-        var res  = new FileLoader().connect(node, mapper);
+        var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }
@@ -209,7 +209,7 @@ public class FileLoaderTests {
         var exp  = Val.ofJson(arrayNode.toString());
         var pth  = mapper.writeValueAsString(String.format(path, "kmlCollection.kml"));
         var node = mapper.readValue(String.format(template2, pth, KML), JsonNode.class);
-        var res  = new FileLoader().connect(node, mapper);
+        var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }

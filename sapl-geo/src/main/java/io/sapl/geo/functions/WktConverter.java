@@ -22,13 +22,19 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 
+import io.sapl.api.functions.Function;
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class WktConverter {
 
-    public static Val wktToGML(Val wkt) {
+	private static final String WKT_TO_GML   		= "converts WKT to GML";
+	private static final String WKT_TO_GEOJSON   	= "converts WKT to GeoJSON";
+	private static final String WKT_TO_KML   		= "converts WKT to KML";
+	
+	@Function(name = "wktToGml", docs = WKT_TO_GML )
+    public static Val wktToGml(Val wkt) {
 
         try {
             return GeometryConverter.geometryToGML(wktToGeometry(wkt));
@@ -37,7 +43,8 @@ public class WktConverter {
         }
     }
 
-    public static Val wktToKML(Val wkt) {
+	@Function(name = "wktToKml", docs = WKT_TO_KML )
+    public static Val wktToKml(Val wkt) {
 
         try {
             return GeometryConverter.geometryToKML(wktToGeometry(wkt));
@@ -46,6 +53,7 @@ public class WktConverter {
         }
     }
 
+	@Function(name = "wktToGeoJsonString", docs = WKT_TO_GEOJSON )
     public static Val wktToGeoJsonString(Val wkt) {
 
         try {
@@ -55,6 +63,7 @@ public class WktConverter {
         }
     }
 
+	
     public static Geometry wktToGeometry(Val wkt) throws ParseException {
 
         return wktToGeometry(wkt.getText());

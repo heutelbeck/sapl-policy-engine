@@ -26,6 +26,8 @@ import io.sapl.geo.connection.traccar.TraccarConnection;
 import io.sapl.geo.fileimport.FileLoader;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.pip.http.ReactiveWebClient;
+import io.sapl.server.GeoPolicyInformationPoint;
+
 
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
@@ -35,6 +37,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
+import java.sql.Array;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.HashMap;
@@ -102,7 +105,7 @@ public class Program {
 //				.doOnNext(a->{
 //					System.out.println("---"+a);
 //				}).subscribe();
-//		 
+		 
 		 var template  =  """
 	                {
                  "baseUrl" : "%s",
@@ -188,25 +191,37 @@ public class Program {
         
         
         
-        var pg1 = """
+        var msql = """
                 {
                 "user":"mane",
                 "password":"Aig1979.",
             	"server":"localhost",
             	"port": 3306,
             	"dataBase":"test",
-            	"table":"geometry",
+            	"table":"fences",
             	"geoColumn":"geom",
-            	"responseFormat":"GEOJSON",
-            	"defaultCRS": 3857,
-            	"pollingIntervalMs":1000,
-            	"repetitions":50,
-            	"singleResult": false,
-            	
-            	"columns": ["text"]
+            	"responseFormat":"GEOJSON"
             }
             """;
-        var nod = Val.ofJson(pg1).get();
+        
+//        , 	
+//    	"singleResult": true,
+//    	"where": "name = 'position1'"
+//        var nod = Val.ofJson(msql).get();
+        
+        var point = new GeoPolicyInformationPoint(mapper);
+        var f = point.connectToMySQL(Val.ofJson(msql));
+        
+      var dis = f.subscribe(
+ 		 content ->{ 
+		 
+		 System.out.println("mysql content content: " + content.get().toString());
+		 System.out.println("--");
+		 
+	 },
+   error -> System.out.println(String.format("Error receiving mysql: {%s}", error)),
+   () -> System.out.println("Completed!!!")
+   );
         
         
 //        var mysql = MySqlConnection.connect(nod, mapper);
@@ -265,19 +280,19 @@ public class Program {
        
         var node1 = Val.ofJson(st).get();
 
-        var trc = TraccarConnection.connect( node1, mapper);  
-  
-		var dis = trc.subscribe(
-	      		 content ->{ 
-     			 var a = content.get().toString();
-     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-     			 System.out.println("traccar res: " + b.getDeviceId());
-     			 System.out.println("traccar content: " + a);
-     			 
-     		 },
-   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-   	      () -> System.out.println("Completed!!!")
-   	      );
+//        var trc = new TraccarConnection(mapper).connect(node1);  
+//  
+//		var dis = trc.subscribe(
+//	      		 content ->{ 
+//     			 var a = content.get().toString();
+//     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+//     			 System.out.println("traccar res: " + b.getDeviceId());
+//     			 System.out.println("traccar content: " + a);
+//     			 
+//     		 },
+//   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+//   	      () -> System.out.println("Completed!!!")
+//   	      );
 
 		
 
@@ -296,6 +311,8 @@ public class Program {
 //            """;
         var settings = """
                 {
+                "httpUser":"mane",
+                "password":"test",
                 "user":"mane",
             	"server":"owntracks.localhost/owntracks",
             	"protocol":"http",
@@ -304,8 +321,8 @@ public class Program {
             	"protocol":"http"
             }
             """;
-//		var node2 = Val.ofJson(settings).get();
-//		var owntracks = OwnTracksConnection.connect(node2, mapper);
+		var node2 = Val.ofJson(settings).get();
+//		var owntracks = new OwnTracksConnection(mapper).connect(node2);
 //		var ot = owntracks.subscribe(
 //	      		 content ->{ 
 //    			 var a = content.get().toString();
@@ -316,7 +333,9 @@ public class Program {
 //  	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
 //  	      () -> System.out.println("Completed!!!")
 //  	      );
-		 
+//		 
+		
+		String[] vowels = { "A", "I", "E", "O", "U" };
 		
 		//testcontainer
         
@@ -387,7 +406,7 @@ public class Program {
 			e.printStackTrace();
 		}
 		System.out.println("disposing...");
-		dis.dispose();
+		//dis.dispose();
 		
 		try {
 			Thread.sleep(10000);

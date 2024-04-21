@@ -22,9 +22,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
-import io.sapl.api.interpreter.Val;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.connection.shared.DatabaseConnection;
-import reactor.core.publisher.Flux;
 
 
 public class PostGisConnection extends DatabaseConnection {
@@ -44,6 +43,15 @@ public class PostGisConnection extends DatabaseConnection {
                 .database(getDataBase(settings))
                 .build());
         
+    }
+    
+    protected int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
+        if (requestSettings.has(PORT)) {
+            return requestSettings.findValue(PORT).asInt();
+        } else {
+
+            return 5432;
+        }
     }
 
 }

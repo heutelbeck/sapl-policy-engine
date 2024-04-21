@@ -48,7 +48,7 @@ public class OwnTracksConnection extends ConnectionBase {
     private static final String LATITUDE   = "lat";
     private static final String LONGITUDE  = "lon";
 
-    protected static final String HTTP_BASIC_AUTH_USER = "user";
+    protected static final String HTTP_BASIC_AUTH_USER = "httpUser";
 
     private ReactiveWebClient   client;
     private GeoMapper           geoMapper;

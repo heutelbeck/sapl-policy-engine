@@ -21,7 +21,6 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.ParseException;
-
 import org.xml.sax.SAXException;
 
 import java.io.BufferedReader;
@@ -44,22 +43,26 @@ import io.sapl.geo.functions.JsonConverter;
 import io.sapl.geo.functions.KmlConverter;
 import io.sapl.geo.functions.WktConverter;
 import io.sapl.geo.pip.GeoPipResponseFormat;
-
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.retry.Repeat;
 
+@RequiredArgsConstructor
 public class FileLoader extends ConnectionBase {
 
     private static final String PATH = "path";
     private static final String CRS  = "crs";
+    
+    private final ObjectMapper mapper;
+    
     private BufferedReader      reader;
 
     /**
      * @param settings a {@link JsonNode} containing the settings
      * @return a {@link Flux}<{@link Val}
      */
-    public Flux<Val> connect(JsonNode settings, ObjectMapper mapper) {
+    public Flux<Val> connect(JsonNode settings) {
 
         try {
         	reader = new BufferedReader(new FileReader(getPath(settings)));

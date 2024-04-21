@@ -52,13 +52,11 @@ class WktConverterTest extends TestBase {
 
         Val res  = null;
         Val res1 = null;
-        res  = WktConverter.wktToKML(Val.of(point));
-        res1 = WktConverter.wktToKML(Val.of(polygon));
+        res  = WktConverter.wktToKml(Val.of(point));
+        res1 = WktConverter.wktToKml(Val.of(polygon));
 
         String expPoint = EMPTY_STRING;
-        ;
         String expPolygon = EMPTY_STRING;
-        ;
         StringWriter sw = new StringWriter();
 
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
@@ -105,8 +103,8 @@ class WktConverterTest extends TestBase {
         Val res  = null;
         Val res1 = null;
         try {
-            res  = WktConverter.wktToGML(Val.of(point));
-            res1 = WktConverter.wktToGML(Val.of(polygon));
+            res  = WktConverter.wktToGml(Val.of(point));
+            res1 = WktConverter.wktToGml(Val.of(polygon));
 
         } catch (NullPointerException e) {
             e.printStackTrace();
