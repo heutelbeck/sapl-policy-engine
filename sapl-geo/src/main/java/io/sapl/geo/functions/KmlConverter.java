@@ -32,24 +32,42 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class KmlConverter {
 
+	/**
+     * @param 		kml   	 a {@link Val} containing the KML-String 
+     * @return		a {@link Geometry}
+     */
     public static Geometry kmlToGeometry(Val kml) throws ParseException {
 
         return kmlToGeometry(kml.getText());
     }
 
+    /**
+     * @param 		kml   	 a {@link Val} containing the KML-String
+     * @param		factory  a {@link GeometryFactory}
+     * @return		a {@link Geometry}
+     */
     public static Geometry kmlToGeometry(Val kml, GeometryFactory factory) throws ParseException {
 
         return kmlToGeometry(kml.getText(), factory);
     }
 
-    public static Geometry kmlToGeometry(String kml, GeometryFactory factory) throws ParseException {
-
-        return (new KMLReader(factory)).read(kml);
-    }
-
+    /**
+     * @param 		kml   	 a KML-String 
+     * @return		a {@link Geometry}
+     */
     public static Geometry kmlToGeometry(String kml) throws ParseException {
 
         return (new KMLReader()).read(kml);
+    }
+
+    /**
+     * @param 		kml   	 a KML-String
+     * @param		factory  a {@link GeometryFactory} 
+     * @return		a {@link Geometry}
+     */
+    public static Geometry kmlToGeometry(String kml, GeometryFactory factory) throws ParseException {
+
+        return (new KMLReader(factory)).read(kml);
     }
 
 }

@@ -31,24 +31,42 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class WktConverter {
 
+	/**
+     * @param 		wkt   	 a {@link Val} containing the WKT-String 
+     * @return		a {@link Geometry}
+     */
     public static Geometry wktToGeometry(Val wkt) throws ParseException {
 
         return wktToGeometry(wkt.getText());
     }
 
+    /**
+     * @param 		wkt   	 a {@link Val} containing the WKT-String
+     * @param		factory  a {@link GeometryFactory}
+     * @return		a {@link Geometry}
+     */
     public static Geometry wktToGeometry(Val wkt, GeometryFactory factory) throws ParseException {
 
         return wktToGeometry(wkt.getText(), factory);
     }
 
-    public static Geometry wktToGeometry(String wkt, GeometryFactory factory) throws ParseException {
-
-        return (new WKTReader(factory)).read(wkt);
-    }
-
+    /**
+     * @param 		wkt   	 a WKT-String 
+     * @return		a {@link Geometry}
+     */
     public static Geometry wktToGeometry(String wkt) throws ParseException {
 
         return (new WKTReader()).read(wkt);
     }
 
+    /**
+     * @param 		wkt   	 a WKT-String
+     * @param		factory  a {@link GeometryFactory} 
+     * @return		a {@link Geometry}
+     */
+    public static Geometry wktToGeometry(String wkt, GeometryFactory factory) throws ParseException {
+
+        return (new WKTReader(factory)).read(wkt);
+    }
+    
 }

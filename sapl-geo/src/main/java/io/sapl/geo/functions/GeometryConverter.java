@@ -35,7 +35,11 @@ import lombok.NoArgsConstructor;
 public final class GeometryConverter {
 
     private static final String EMPTY = "";
-
+    
+    /**
+     * @param 		geo   	 a {@link Geometry} 
+     * @return		a {@link Val} containing the GML-string}
+     */
     public static Val geometryToGML(Geometry geo) {
 
         String s = EMPTY;
@@ -50,6 +54,10 @@ public final class GeometryConverter {
 
     }
 
+    /**
+     * @param 		geo   	 a {@link Geometry} 
+     * @return		a {@link Val} containing the KML-string}
+     */
     public static Val geometryToKML(Geometry geo) {
         String s = EMPTY;
         try {
@@ -62,6 +70,10 @@ public final class GeometryConverter {
         return Val.of(s);
     }
 
+    /**
+     * @param 		geo   	 a {@link Geometry} 
+     * @return		a {@link Val} containing the WKT-string}
+     */
     public static Val geometryToWKT(Geometry geo) {
         String s = EMPTY;
         try {
@@ -72,6 +84,10 @@ public final class GeometryConverter {
         return Val.of(s);
     }
 
+    /**
+     * @param 		geo   	 a {@link Geometry} 
+     * @return		a {@link Val} containing the GeoJSON-string}
+     */
     public static Val geometryToGeoJsonNode(Geometry geo) {
         JsonNode json = null;
         try {

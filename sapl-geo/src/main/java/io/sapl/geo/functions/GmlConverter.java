@@ -33,22 +33,40 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GmlConverter {
 
+	/**
+     * @param 		gml   	 a {@link Val} containing the GML-String 
+     * @return		a {@link Geometry}
+     */
     public static Geometry gmlToGeometry(Val gml) throws SAXException, IOException, ParserConfigurationException {
 
         return gmlToGeometry(gml.getText());
     }
 
+    /**
+     * @param 		gml   	 a {@link Val} containing the GML-String
+     * @param		factory  a {@link GeometryFactory}
+     * @return		a {@link Geometry}
+     */
     public static Geometry gmlToGeometry(Val gml, GeometryFactory factory)
             throws SAXException, IOException, ParserConfigurationException {
 
         return gmlToGeometry(gml.getText(), factory);
     }
 
+    /**
+     * @param 		gml   	 a GML-String 
+     * @return		a {@link Geometry}
+     */
     public static Geometry gmlToGeometry(String gml) throws SAXException, IOException, ParserConfigurationException {
 
         return (new GMLReader()).read(gml, null);
     }
 
+    /**
+     * @param 		gml   	 a GML-String
+     * @param		factory  a {@link GeometryFactory} 
+     * @return		a {@link Geometry}
+     */
     public static Geometry gmlToGeometry(String gml, GeometryFactory factory)
             throws SAXException, IOException, ParserConfigurationException {
 
