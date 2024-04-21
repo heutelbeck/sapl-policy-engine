@@ -49,10 +49,6 @@ class JsonConverterTest extends TestBase {
         var res  = geoConverter.geoJsonToKml(point);
         var res1 = geoConverter.geoJsonToKml(polygon);
 
-        String expPoint = EMPTY_STRING;
-        
-        String expPolygon = EMPTY_STRING;
-        
         StringWriter sw = new StringWriter();
 
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
@@ -60,10 +56,10 @@ class JsonConverterTest extends TestBase {
         
         sw = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
-        expPoint = sw.toString();
+        var expPoint = sw.toString();
         sw       = new StringWriter();
         source.getTransform().transform(new DOMSource(plg1), new StreamResult(sw));
-        expPolygon = sw.toString();
+        var expPolygon = sw.toString();
 
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));

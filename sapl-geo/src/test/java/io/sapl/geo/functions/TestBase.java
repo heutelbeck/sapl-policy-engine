@@ -27,8 +27,6 @@ import io.sapl.geo.functionlibraries.GeoConverter;
 @TestInstance(Lifecycle.PER_CLASS)
 abstract class TestBase {
 
-    final String EMPTY_STRING = "";
-
     Val       point;
     Val       polygon;
     GeoConverter geoConverter = new GeoConverter();
