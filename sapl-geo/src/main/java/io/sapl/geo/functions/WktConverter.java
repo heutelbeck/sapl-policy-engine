@@ -23,16 +23,14 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.springframework.stereotype.Component;
 
-import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-@Component
-@NoArgsConstructor
-@FunctionLibrary(name = "wktConverter", description = "")
-public class WktConverter {
-    
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class WktConverter {
+
     public static Geometry wktToGeometry(Val wkt) throws ParseException {
 
         return wktToGeometry(wkt.getText());

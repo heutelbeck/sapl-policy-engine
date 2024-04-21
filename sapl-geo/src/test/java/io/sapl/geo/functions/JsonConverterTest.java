@@ -35,19 +35,20 @@ import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.functionlibraries.GeoConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class JsonConverterTest extends TestBase {
 
-    Val           point   = null;
-    Val           polygon = null;
+    Val          point   = null;
+    Val          polygon = null;
     GeoConverter geoConverter;
 
     @BeforeAll
     void setup() {
-    	geoConverter = new GeoConverter();
-        point         = Val.of(source.getJsonSource().get("Point").toPrettyString());
-        polygon       = Val.of(source.getJsonSource().get("Polygon").toPrettyString());
+        geoConverter = new GeoConverter();
+        point        = Val.of(source.getJsonSource().get("Point").toPrettyString());
+        polygon      = Val.of(source.getJsonSource().get("Polygon").toPrettyString());
 
     }
 

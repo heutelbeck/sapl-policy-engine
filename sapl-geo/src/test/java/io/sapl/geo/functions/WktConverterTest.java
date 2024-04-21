@@ -33,6 +33,7 @@ import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.functionlibraries.GeoConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class WktConverterTest extends TestBase {

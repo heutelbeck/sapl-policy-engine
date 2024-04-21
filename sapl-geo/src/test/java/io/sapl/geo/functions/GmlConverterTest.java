@@ -34,6 +34,7 @@ import org.springframework.util.StringUtils;
 import org.xml.sax.SAXException;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.functionlibraries.GeoConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GmlConverterTest extends TestBase {

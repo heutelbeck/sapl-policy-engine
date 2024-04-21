@@ -23,18 +23,14 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.springframework.stereotype.Component;
 
-import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.functionlibraries.GeoFunctions;
+import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-@Component
-@NoArgsConstructor
-@FunctionLibrary(name = GeoFunctions.NAME, description = GeoFunctions.DESCRIPTION)
-public class JsonConverter {
-
-    
-    
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class JsonConverter {
 
     public static Geometry geoJsonToGeometry(Val geoJson) throws ParseException {
 

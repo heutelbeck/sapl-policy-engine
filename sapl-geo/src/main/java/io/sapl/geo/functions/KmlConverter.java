@@ -23,17 +23,15 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.kml.KMLReader;
 import org.springframework.stereotype.Component;
 
-import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.functionlibraries.GeoFunctions;
+import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-@Component
-@NoArgsConstructor
-@FunctionLibrary(name = GeoFunctions.NAME, description = GeoFunctions.DESCRIPTION)
-public class KmlConverter {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class KmlConverter {
 
-    
     public static Geometry kmlToGeometry(Val kml) throws ParseException {
 
         return kmlToGeometry(kml.getText());

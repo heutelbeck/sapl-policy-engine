@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.functions;
+package io.sapl.geo.functionlibraries;
 
 import java.util.BitSet;
 import javax.naming.OperationNotSupportedException;
@@ -45,6 +45,9 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
+import io.sapl.geo.functions.CrsConst;
+import io.sapl.geo.functions.GeometryConverter;
+import io.sapl.geo.functions.JsonConverter;
 import lombok.NoArgsConstructor;
 
 /*

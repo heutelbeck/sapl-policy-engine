@@ -28,12 +28,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
-import lombok.experimental.UtilityClass;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
-@UtilityClass
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GeometryConverter {
 
-    private final String EMPTY = "";
+    private static final String EMPTY = "";
 
     public static Val geometryToGML(Geometry geo) {
 

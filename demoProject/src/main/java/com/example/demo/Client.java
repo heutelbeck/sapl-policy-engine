@@ -31,8 +31,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.geo.functions.GeoConverter;
-import io.sapl.geo.functions.GeoFunctions;
+import io.sapl.geo.functionlibraries.GeoConverter;
+import io.sapl.geo.functionlibraries.GeoFunctions;
 import io.sapl.geo.functions.GmlConverter;
 import io.sapl.geo.functions.WktConverter;
 import io.sapl.interpreter.InitializationException;

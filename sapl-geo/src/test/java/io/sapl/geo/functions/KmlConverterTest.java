@@ -35,6 +35,7 @@ import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.functionlibraries.GeoConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class KmlConverterTest extends TestBase {
@@ -45,7 +46,7 @@ class KmlConverterTest extends TestBase {
 
     @BeforeAll
     void setup() {
-    	geoConverter = new GeoConverter();
+        geoConverter = new GeoConverter();
         StringWriter sw  = new StringWriter();
         var          pnt = source.getXmlSource().getElementsByTagName("Point").item(0);
         var          plg = source.getXmlSource().getElementsByTagName("Polygon").item(0);

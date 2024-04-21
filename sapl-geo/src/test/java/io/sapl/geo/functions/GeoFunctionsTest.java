@@ -29,6 +29,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.functionlibraries.GeoFunctions;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GeoFunctionsTest extends TestBase {

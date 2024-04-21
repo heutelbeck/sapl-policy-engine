@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.functions;
+package io.sapl.geo.functionlibraries;
 
 import java.io.IOException;
 
@@ -28,6 +28,11 @@ import org.xml.sax.SAXException;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.functions.GeometryConverter;
+import io.sapl.geo.functions.GmlConverter;
+import io.sapl.geo.functions.JsonConverter;
+import io.sapl.geo.functions.KmlConverter;
+import io.sapl.geo.functions.WktConverter;
 import lombok.NoArgsConstructor;
 
 @Component
@@ -35,7 +40,7 @@ import lombok.NoArgsConstructor;
 @FunctionLibrary(name = "geoConverter", description = "")
 public class GeoConverter {
 
-	private static final String GML_TO_KML     = "converts GML to KML";
+    private static final String GML_TO_KML     = "converts GML to KML";
     private static final String GML_TO_GEOJSON = "converts GML to GeoJSON";
     private static final String GML_TO_WKT     = "converts GML to WKT";
 
@@ -46,12 +51,11 @@ public class GeoConverter {
     private static final String KML_TO_GML     = "converts KML to GML";
     private static final String KML_TO_GEOJSON = "converts KML to GeoJSON";
     private static final String KML_TO_WKT     = "converts KML to WKT";
-    
+
     private static final String WKT_TO_GML     = "converts WKT to GML";
     private static final String WKT_TO_GEOJSON = "converts WKT to GeoJSON";
     private static final String WKT_TO_KML     = "converts WKT to KML";
 
-    
     @Function(name = "gmlToKml", docs = GML_TO_KML)
     public Val gmlToKml(Val gml) {
 
@@ -82,11 +86,10 @@ public class GeoConverter {
         }
     }
 
-	
     @Function(name = "geoJsonToKml", docs = GEOJSON_TO_KML)
     public Val geoJsonToKml(Val geoJson) {
 
-        try { //geoJsonToGeometry
+        try { // geoJsonToGeometry
 //            return GeometryConverter.geometryToKML((new GeoJsonReader()).read(geoJson.getText()));
             return GeometryConverter.geometryToKML(JsonConverter.geoJsonToGeometry(geoJson));
         } catch (ParseException e) {
@@ -144,7 +147,6 @@ public class GeoConverter {
         }
     }
 
-    
     @Function(name = "wktToGml", docs = WKT_TO_GML)
     public Val wktToGml(Val wkt) {
 
@@ -175,5 +177,4 @@ public class GeoConverter {
         }
     }
 
-    
 }
