@@ -22,10 +22,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.gml2.GMLReader;
-import org.springframework.stereotype.Component;
 import org.xml.sax.SAXException;
-
-import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

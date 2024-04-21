@@ -21,11 +21,17 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 import common.SourceProvider;
+import io.sapl.api.interpreter.Val;
+import io.sapl.geo.functionlibraries.GeoConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 abstract class TestBase {
 
     final String EMPTY_STRING = "";
 
+    Val       point;
+    Val       polygon;
+    GeoConverter geoConverter = new GeoConverter();
+    
     SourceProvider source = SourceProvider.getInstance();
 }

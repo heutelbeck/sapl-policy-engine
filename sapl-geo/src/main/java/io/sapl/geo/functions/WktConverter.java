@@ -21,9 +21,6 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
-import org.springframework.stereotype.Component;
-
-import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

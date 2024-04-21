@@ -21,11 +21,7 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.kml.KMLReader;
-import org.springframework.stereotype.Component;
-
-import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.functionlibraries.GeoFunctions;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
