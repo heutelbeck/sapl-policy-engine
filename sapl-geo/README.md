@@ -172,4 +172,4 @@ with "singleResult": true
 }
 ```
 
-The property "srid" is the crs/srid set in the database. If there is none, it is 0 and the set "defaultCrS" is used
+The property "srid" is the crs/srid set in the database. If there is none, it is 0 and the set "defaultCrS" is used for the geometries
