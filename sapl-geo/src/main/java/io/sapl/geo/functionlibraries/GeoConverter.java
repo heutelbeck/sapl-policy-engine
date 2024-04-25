@@ -76,7 +76,7 @@ public class GeoConverter {
         }
     }
 
-    @Function(name = "equalsExact", docs = GML_TO_WKT)
+    @Function(name = "gmlToWkt", docs = GML_TO_WKT)
     public Val gmlToWkt(Val gml) {
 
         try {

@@ -46,7 +46,7 @@ where
 * "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first (Default is true)
 
 
-#### response
+#### Response
 
 ```json
 {
@@ -92,7 +92,7 @@ where
 * "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first (Default is true)
 
 
-#### response
+#### Response
 
 ```json
 {
@@ -143,7 +143,7 @@ To use MySQL instead replace geo.postGIs with geo.MySQL.
 * "pollingIntervalMs": the interval to poll from the database in ms (Default is 1000)
 * "repetitions": the count of repetitions (Default is Long.MAX_VALUE)
 
-#### response
+#### Response
 
 ```json
 [
@@ -173,3 +173,35 @@ with "singleResult": true
 ```
 
 The property "srid" is the crs/srid set in the database. If there is none, it is 0 and the set "defaultCrS" is used for the geometries
+
+
+## Function libraries
+
+### GeoConverter
+
+#### Functions
+
+* gmlToGeoJsonString
+* gmlToKml
+* gmlToWkt
+* geoJsonToKml
+* geoJsonToGml
+* geoJsonToWkt
+* kmlToGml
+* kmlToGeoJsonString
+* kmlToWkt
+* wktToGml
+* wktToKml
+* wktToGeoJsonString
+
+#### Example policy
+```
+permit
+where
+  var p = <geo.postGIS({"user":"postgres", "password":"anotherPassword", "server":"localhost", "dataBase":"MyDatabase", "table":"position", "geoColumn":"geom", "responseFormat":"WKT", "singleResult": true, "where": "name = 'position1'"})>;
+  var fences = <geo.mySQL({"user":"mysql", "password":"abcdefg", "server":"localhost", "dataBase":"test", "table":"fences", "geoColumn":"geom", "responseFormat":"GML"})>;
+  var pos = geoConverter.wktToGeoJsonString(p.geo);
+  var fence = geoConverter.gmlToGeoJsonString(fences[0].geo);
+  var res = geoFunctions.within(pos, fence);
+  res == true;
+ ``` 
