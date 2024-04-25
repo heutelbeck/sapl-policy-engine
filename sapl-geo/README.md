@@ -43,7 +43,7 @@ where
 * "protocol": "http"/"https". (default is "http")
 * "responseFormat": Possible values: "GEOJSON", "WKT", "GML", "KML" (default is "GEOJSON" which is reccomended as the GeoFunction-library needs GeoJson as parameters)
 * "deviceId": the id of the device (int)
-* "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first
+* "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first (Default is true)
 
 
 #### response
@@ -83,13 +83,13 @@ where
 #### Parameters
 
 * "httpUser": Username vor http basic auth (optional)
-* "password": the password httpUser (optional)
+* "password": the password of the httpUser (optional)
 * "user": the OwnTracks device-user
 * "server": the ip/dns-name of the traccar server
 * "protocol": "http"/"https". (default is "http")
 * "responseFormat": Possible values: "GEOJSON", "WKT", "GML", "KML" (default is "GEOJSON" which is reccomended as the GeoFunction-library needs GeoJson as parameters)
 * "deviceId": the id of the device (int)
-* "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first
+* "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first (Default is true)
 
 
 #### response
@@ -108,3 +108,66 @@ where
 ```
 
 As you can see OwnTracks delivers its coordinates in WGS84 (EPSG:4326). It provides all geofences the device is inside, but only their name.
+
+### PostGIS/MySQL
+
+
+#### Example policy
+```
+permit
+where
+  var p = <geo.postGIS({"user":"postgres", "password":"anotherPassword", "server":"localhost", "dataBase":"MyDatabase", "table":"position", "geoColumn":"geom", "defaultCRS": 3857, "responseFormat":"GEOJSON", "singleResult": true, "where": "name = 'position1'"})>;
+  var fences = <geo.postGIS({"user":"postgres", "password":"anotherPassword", "server":"localhost", "dataBase":"MyDatabase", "table":"fences", "geoColumn":"geom", "defaultCRS": 3857, "responseFormat":"GEOJSON", "columns": ["name", "text"]})>;
+  var pos = p.geo;
+  var fence = fences[0].geo;
+  var res = geoFunctions.within(pos, fence);
+  res == true;
+```
+To use MySQL instead replace geo.postGIs with geo.MySQL.
+
+#### Parameters
+
+* "user": the PostGIS/MySQL user
+* "password": the password of the user (optional)
+* "server": name/ip of the database server
+* "port": the port of the database server (int, Default is 5432 for PostGIS and 3306 for MySQL)
+* "database": the name of the database
+* "table": the name of the table
+* "geoColumn": the name of the column containing the geometries
+* "defaultCRS": if you dont have a SRID specified in the database you can set the coordinate reference system for the response (int Default is 4326 for WGS84, EPSG:4326); otherwise the one from the database is used 
+* "responseFormat": Possible values: "GEOJSON", "WKT", "GML", "KML" (default is "GEOJSON" which is reccomended as the GeoFunction-library needs GeoJson as parameters)
+* "where": a where clause in sql
+* "columns": additional columns to select (Array, ["column_1", "column_2",..., "column_x"]
+* "singleResult": if you expect only one result, set it to true to get the result without beeing wrapped in an array (boolean, Default is false)
+* "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first (Default is true)
+
+#### response
+
+```json
+[
+	{
+		"srid":0,
+		"geo":{"type":"Point","coordinates":[0.0,0.0],"crs":{"type":"name","properties":{"name":"EPSG:3857"}}},
+		"name":"Point",
+		"text":"textValue"
+	},
+	{
+		"srid":0,
+		"geo":{"type":"Polygon","coordinates":[[[0.0,0.0],[1,0.0],[1,1],[0.0,1],[0.0,0.0]]],"crs":{"type":"name","properties":{"name":"EPSG:3857"}}},
+		"name":"Polygon",
+		"text":"textValue"
+	}
+]
+```
+
+with "singleResult": true
+```json
+{
+	"srid":4326,
+	"geo":{"type":"Point","coordinates":[0.0,0.0],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}},
+	"name":"Point",
+	"text":"textValue"
+}
+```
+
+The property "srid" is the crs/srid set in the database. If there is none, it is 0 and the set "defaultCrS" is used

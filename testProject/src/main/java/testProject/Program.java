@@ -144,7 +144,7 @@ public class Program {
             	"defaultCRS": 3857,
             	"pollingIntervalMs":1000,
             	"repetitions":50,
-            	"singleResult": true,
+            	"singleResult": false,
             	"where": "name = 'Point'",
             	"columns": ["name", "text"]
             }
@@ -152,17 +152,17 @@ public class Program {
         var node = Val.ofJson(pg).get();
         
         
-//        var postgis = PostGisConnection.connect(node, mapper);
-//        var dis = postgis.subscribe(
-//	      		 content ->{ 
-//    			 
-//    			 System.out.println("postgis content: " + content.get().toString());
-//    			 System.out.println("--");
-//    			 
-//    		 },
-//  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
-//  	      () -> System.out.println("Completed!!!")
-//  	      );
+        var postgis = new PostGisConnection(node, mapper).connect(node);
+        var dis = postgis.subscribe(
+	      		 content ->{ 
+    			 
+    			 System.out.println("postgis content: " + content.get().toString());
+    			 System.out.println("--");
+    			 
+    		 },
+  	      error -> System.out.println(String.format("Error receiving postgis: {%s}", error)),
+  	      () -> System.out.println("Completed!!!")
+  	      );
         
         
         
@@ -279,28 +279,28 @@ public class Program {
        
         var node1 = Val.ofJson(st).get();
 
-        var trc = new TraccarConnection(mapper).connect(node1);  
-        var func = new GeoFunctions();
-		var dis = trc.subscribe(
-	      		 content ->{ 
-     			 var a = content.get().toString();
-     			 var pos = content.get().findValue("position");
-     			 
-     			 try {
-					var res = func.within(Val.of(pos), Val.ofJson("{\"type\":\"LineString\",\"coordinates\":[[48.63060132,12.8515458],[48.63035176,12.85150088],[48.63033986,12.85188421],[48.63060174,12.85189762],[48.63060058,12.85154645]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}"));
-					var x = 1;
-     			 } catch (JsonProcessingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-     			 //var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-     			 //System.out.println("traccar res: " + b.getDeviceId());
-     			 System.out.println("traccar content: " + a);
-     			 
-     		 },
-   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-   	      () -> System.out.println("Completed!!!")
-   	      );
+//        var trc = new TraccarConnection(mapper).connect(node1);  
+//        var func = new GeoFunctions();
+//		var dis = trc.subscribe(
+//	      		 content ->{ 
+//     			 var a = content.get().toString();
+//     			 var pos = content.get().findValue("position");
+//     			 
+//     			 try {
+//					var res = func.within(Val.of(pos), Val.ofJson("{\"type\":\"LineString\",\"coordinates\":[[48.63060132,12.8515458],[48.63035176,12.85150088],[48.63033986,12.85188421],[48.63060174,12.85189762],[48.63060058,12.85154645]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}"));
+//					var x = 1;
+//     			 } catch (JsonProcessingException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+//     			 //var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+//     			 //System.out.println("traccar res: " + b.getDeviceId());
+//     			 System.out.println("traccar content: " + a);
+//     			 
+//     		 },
+//   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+//   	      () -> System.out.println("Completed!!!")
+//   	      );
 
 		
 
