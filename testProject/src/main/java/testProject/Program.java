@@ -209,19 +209,19 @@ public class Program {
 //    	"where": "name = 'position1'"
 //        var nod = Val.ofJson(msql).get();
         
-        var point = new GeoPolicyInformationPoint(mapper);
-        var f = point.connectToMySQL(Val.ofJson(msql));
-        
-      var dis = f.subscribe(
- 		 content ->{ 
-		 
-		 System.out.println("mysql content content: " + content.get().toString());
-		 System.out.println("--");
-		 
-	 },
-   error -> System.out.println(String.format("Error receiving mysql: {%s}", error)),
-   () -> System.out.println("Completed!!!")
-   );
+//        var point = new GeoPolicyInformationPoint(mapper);
+//        var f = point.connectToMySQL(Val.ofJson(msql));
+//        
+//      var dis = f.subscribe(
+// 		 content ->{ 
+//		 
+//		 System.out.println("mysql content content: " + content.get().toString());
+//		 System.out.println("--");
+//		 
+//	 },
+//   error -> System.out.println(String.format("Error receiving mysql: {%s}", error)),
+//   () -> System.out.println("Completed!!!")
+//   );
         
         
 //        var mysql = MySqlConnection.connect(nod, mapper);
@@ -280,19 +280,19 @@ public class Program {
        
         var node1 = Val.ofJson(st).get();
 
-//        var trc = new TraccarConnection(mapper).connect(node1);  
-//  
-//		var dis = trc.subscribe(
-//	      		 content ->{ 
-//     			 var a = content.get().toString();
-//     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
-//     			 System.out.println("traccar res: " + b.getDeviceId());
-//     			 System.out.println("traccar content: " + a);
-//     			 
-//     		 },
-//   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
-//   	      () -> System.out.println("Completed!!!")
-//   	      );
+        var trc = new TraccarConnection(mapper).connect(node1);  
+  
+		var dis = trc.subscribe(
+	      		 content ->{ 
+     			 var a = content.get().toString();
+     			 var b = mapper.convertValue(content.get(), GeoPipResponse.class);
+     			 System.out.println("traccar res: " + b.getDeviceId());
+     			 System.out.println("traccar content: " + a);
+     			 
+     		 },
+   	      error -> System.out.println(String.format("Error receiving socket: {%s}", error)),
+   	      () -> System.out.println("Completed!!!")
+   	      );
 
 		
 
