@@ -15,22 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.database;
+package io.sapl.springdatar2dbc.integration;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.stereotype.Service;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+@Service
+public class CustomBean {
+	
+	public int getAge() {
+		return 20;
+	}
 
-@Getter
-@Document
-@NoArgsConstructor
-@AllArgsConstructor
-public class TestUser {
-    ObjectId id;
-    String   firstname;
-    int      age;
-    boolean  admin;
 }
