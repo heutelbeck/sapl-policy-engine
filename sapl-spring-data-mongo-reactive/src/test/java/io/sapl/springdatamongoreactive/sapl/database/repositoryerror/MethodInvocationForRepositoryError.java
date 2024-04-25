@@ -25,8 +25,6 @@ import org.aopalliance.intercept.MethodInvocation;
 
 import lombok.AllArgsConstructor;
 
-import javax.annotation.Nonnull;
-
 @AllArgsConstructor
 public class MethodInvocationForRepositoryError implements MethodInvocation {
 
@@ -35,7 +33,6 @@ public class MethodInvocationForRepositoryError implements MethodInvocation {
     ArrayList<Object>   argumentValues;
     Object              proceedObject;
 
-    @Nonnull
     @Override
     public Method getMethod() {
         try {
@@ -46,7 +43,6 @@ public class MethodInvocationForRepositoryError implements MethodInvocation {
         }
     }
 
-    @Nonnull
     @Override
     public Object[] getArguments() {
         return argumentValues.toArray(new Object[argumentValues.size()]);
@@ -62,9 +58,8 @@ public class MethodInvocationForRepositoryError implements MethodInvocation {
         return this;
     }
 
-    @Nonnull
     @Override
     public AccessibleObject getStaticPart() {
-        throw new InternalError();
+        return getMethod();
     }
 }

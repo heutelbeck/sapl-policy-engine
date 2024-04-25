@@ -22,21 +22,18 @@ import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 
-import io.sapl.springdatacommon.sapl.Enforce;
-import io.sapl.springdatacommon.sapl.SaplProtected;
+import io.sapl.spring.method.metadata.QueryEnforce;
 import reactor.core.publisher.Flux;
 
 @Repository
 public interface MongoReactiveUserRepository extends ReactiveMongoRepository<User, ObjectId> {
 
-    @Enforce(subject = "subject", action = "general_protection_reactive_mongo_repository", resource = "resource", environment = "environment")
+    @QueryEnforce(subject = "subject", action = "general_protection_reactive_mongo_repository", resource = "resource", environment = "environment")
     Flux<User> findAllByFirstname(String firstname);
 
-    @SaplProtected
     @Query("{'firstname':  {'$in': [ ?0 ]}}")
     Flux<User> findAllUsersTest(String user);
 
-    @SaplProtected
     @Query("{'age':  {'$in': [ ?0 ]}}")
     Flux<User> findAllByAge(int age);
 

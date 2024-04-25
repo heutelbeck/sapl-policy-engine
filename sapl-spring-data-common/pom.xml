@@ -22,50 +22,57 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
- 
+
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
 		<version>3.0.0-SNAPSHOT</version>
 	</parent>
-  
-  <artifactId>sapl-spring-data-common</artifactId>
-  <name>Sapl Spring Data Common</name>
-  <packaging>jar</packaging>
-	
-  <dependencies>
-	 	 <!-- MongoDB -->
-	 	 <dependency>
-		    <groupId>org.springframework.data</groupId>
-		    <artifactId>spring-data-mongodb</artifactId>
-		</dependency>
-		
-		<!-- R2dbc --> 
+
+	<artifactId>sapl-spring-data-common</artifactId>
+	<name>Sapl Spring Data Common</name>
+	<packaging>jar</packaging>
+
+	<dependencies>
+		<!-- MongoDB -->
 		<dependency>
-		    <groupId>org.springframework.data</groupId>
-		    <artifactId>spring-data-r2dbc</artifactId>
+			<groupId>org.springframework.data</groupId>
+			<artifactId>spring-data-mongodb</artifactId>
 		</dependency>
-	  
-	  	<!-- Lombok -->
+
+		<!-- R2dbc -->
+		<dependency>
+			<groupId>org.springframework.data</groupId>
+			<artifactId>spring-data-r2dbc</artifactId>
+		</dependency>
+
+		<!-- Lombok -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		
+
 		<!-- Streaming Attribute Policy Language -->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-spring-security</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 		</dependency>
-		
-		<!-- Testing -->
+
+		<!-- JSON schema
+		<dependency>
+			<groupId>com.networknt</groupId>
+			<artifactId>json-schema-validator</artifactId>
+			<version>1.0.72</version>
+		</dependency> 
+
+		 Testing -->
 		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
@@ -81,7 +88,7 @@
 			<artifactId>sapl-pdp-embedded</artifactId>
 			<version>3.0.0-SNAPSHOT</version>
 		</dependency>
-  </dependencies>
-  
-  
+	</dependencies>
+
+
 </project>
