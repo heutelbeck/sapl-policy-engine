@@ -37,13 +37,13 @@ where
 
 #### Parameters
 
-"user": the traccar user account
-"password": the password of the account
-"server": the ip/dns-name of the traccar server
-"protocol": "http"/"https". (default is "http")
-"responseFormat": Possible values: "GEOJSON", "WKT", "GML", "KML" (default is "GEOJSON" which is reccomended as the GeoFunction-library needs GeoJson as parameters)
-"deviceId": the id of the device (int)
-"latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first
+* "user": the traccar user account
+* "password": the password of the account
+* "server": the ip/dns-name of the traccar server
+* "protocol": "http"/"https". (default is "http")
+* "responseFormat": Possible values: "GEOJSON", "WKT", "GML", "KML" (default is "GEOJSON" which is reccomended as the GeoFunction-library needs GeoJson as parameters)
+* "deviceId": the id of the device (int)
+* "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first
 
 
 #### response
@@ -61,3 +61,5 @@ where
 		]
 }
 ```
+
+As you can see traccar delivers its coordinates in WGS84 (EPSG:4326).
