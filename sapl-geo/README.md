@@ -140,6 +140,8 @@ To use MySQL instead replace geo.postGIs with geo.MySQL.
 * "columns": additional columns to select (Array, ["column_1", "column_2",..., "column_x"]
 * "singleResult": if you expect only one result, set it to true to get the result without beeing wrapped in an array (boolean, Default is false)
 * "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first (Default is true)
+* "pollingIntervalMs": the interval to poll from the database in ms (Default is 1000)
+* "repetitions": the count of repetitions (Default is Long.MAX_VALUE)
 
 #### response
 
