@@ -63,3 +63,48 @@ where
 ```
 
 As you can see traccar delivers its coordinates in WGS84 (EPSG:4326).
+
+
+### OwnTracks
+
+The PIP connects to the api of the OwnTracks-recorder and polls. As OwnTracks no built-in authentication, the recorder is usually hosted by a webserver and protected by http basic auth.
+
+#### Example policy
+```
+permit
+where
+  var a = <geo.ownTracks({"httpUser":"httpUser", "password":"test123", "user":"deviceUser", "server":"owntracks.somewhere/owntracks", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
+  var pos = a.position;
+  var fence = a.geoFences[0].name;
+  var res = (fence=="home");
+  res == tru	
+```
+
+#### Parameters
+
+* "httpUser": Username vor http basic auth (optional)
+* "password": the password httpUser (optional)
+* "user": the OwnTracks device-user
+* "server": the ip/dns-name of the traccar server
+* "protocol": "http"/"https". (default is "http")
+* "responseFormat": Possible values: "GEOJSON", "WKT", "GML", "KML" (default is "GEOJSON" which is reccomended as the GeoFunction-library needs GeoJson as parameters)
+* "deviceId": the id of the device (int)
+* "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first
+
+
+#### response
+
+```json
+{
+	"deviceId":1,
+	"position":{"type":"Point","coordinates":[48.6304265,12.8517104],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}},
+	"altitude":409.0,"lastUpdate":"1714043759",
+	"accuracy":100.0,
+	"geoFences":[
+		{"name":"home"},
+		{"name":"home2"}
+	]
+}
+```
+
+As you can see OwnTracks delivers its coordinates in WGS84 (EPSG:4326). It provides all geofences the device is inside, but only their name.
