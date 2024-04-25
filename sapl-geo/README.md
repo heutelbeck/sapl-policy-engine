@@ -17,14 +17,14 @@ EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDec
 						List::of);
 }
 ```
-##Policy Information Point
+## Policy Information Point
 
-###Traccar
+### Traccar
 
 After establishing a session with the traccar server the PIP uses the traccar socket endpoint to provide the current position of an device. Additionally all of the devices geofences are responded too.
 You can use the "within" function from the GeoFunctions-library to check if the device is inside a fence.
 
-####Example policy
+#### Example policy
 ```
 permit
 where
@@ -35,7 +35,7 @@ where
   res == true;
 ```
 
-####Parameters
+#### Parameters
 
 "user": the traccar user account
 "password": the password of the account
@@ -46,7 +46,7 @@ where
 "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first
 
 
-####response
+#### response
 
 ```json
 {
