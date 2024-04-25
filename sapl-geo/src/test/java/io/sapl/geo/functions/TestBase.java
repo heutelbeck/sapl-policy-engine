@@ -27,9 +27,9 @@ import io.sapl.geo.functionlibraries.GeoConverter;
 @TestInstance(Lifecycle.PER_CLASS)
 abstract class TestBase {
 
-    Val       point;
-    Val       polygon;
+    Val          point;
+    Val          polygon;
     GeoConverter geoConverter = new GeoConverter();
-    
+
     SourceProvider source = SourceProvider.getInstance();
 }

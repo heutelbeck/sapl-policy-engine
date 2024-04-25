@@ -34,7 +34,6 @@ import org.springframework.util.StringUtils;
 import org.xml.sax.SAXException;
 import io.sapl.api.interpreter.Val;
 
-
 @TestInstance(Lifecycle.PER_CLASS)
 class GmlConverterTest extends TestBase {
 
@@ -56,9 +55,9 @@ class GmlConverterTest extends TestBase {
     @Test
     void gmlToGeoJsonTest() {
 
-        var res  = geoConverter.gmlToGeoJsonString(point);
-        var res1 = geoConverter.gmlToGeoJsonString(polygon);
-        
+        var res  = geoConverter.gmlToGeoJson(point);
+        var res1 = geoConverter.gmlToGeoJson(polygon);
+
         var expPoint   = source.getJsonSource().get("Point").toPrettyString();
         var expPolygon = source.getJsonSource().get("Polygon").toPrettyString();
 
@@ -85,7 +84,7 @@ class GmlConverterTest extends TestBase {
 
         var res  = geoConverter.gmlToKml(point);
         var res1 = geoConverter.gmlToKml(polygon);
-        
+
         StringWriter sw = new StringWriter();
 
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
@@ -94,7 +93,7 @@ class GmlConverterTest extends TestBase {
         sw = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
         var expPoint = sw.toString();
-        sw       = new StringWriter();
+        sw = new StringWriter();
         source.getTransform().transform(new DOMSource(plg1), new StreamResult(sw));
         var expPolygon = sw.toString();
 

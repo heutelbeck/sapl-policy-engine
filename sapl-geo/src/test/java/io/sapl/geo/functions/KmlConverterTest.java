@@ -36,29 +36,25 @@ import io.sapl.api.interpreter.Val;
 @TestInstance(Lifecycle.PER_CLASS)
 class KmlConverterTest extends TestBase {
 
-    
-
     @BeforeAll
     void setup() throws TransformerException {
         StringWriter sw  = new StringWriter();
         var          pnt = source.getXmlSource().getElementsByTagName("Point").item(0);
         var          plg = source.getXmlSource().getElementsByTagName("Polygon").item(0);
- 
+
         source.getTransform().transform(new DOMSource(pnt), new StreamResult(sw));
         point = Val.of(sw.toString());
         sw    = new StringWriter();
         source.getTransform().transform(new DOMSource(plg), new StreamResult(sw));
         polygon = Val.of(sw.toString());
 
-
-
     }
 
     @Test
     void kmlToGeoJsonTest() {
 
-        var res  = geoConverter.kmlToGeoJsonString(point);
-        var res1 = geoConverter.kmlToGeoJsonString(polygon);
+        var res  = geoConverter.kmlToGeoJson(point);
+        var res1 = geoConverter.kmlToGeoJson(polygon);
 
         var expPoint   = source.getJsonSource().get("Point").toPrettyString();
         var expPolygon = source.getJsonSource().get("Polygon").toPrettyString();
@@ -84,8 +80,8 @@ class KmlConverterTest extends TestBase {
     @Test
     void kmlToGMLTest() throws TransformerException {
 
-        var  res  = geoConverter.kmlToGml(point);
-        var  res1 = geoConverter.kmlToGml(polygon);
+        var res  = geoConverter.kmlToGml(point);
+        var res1 = geoConverter.kmlToGml(polygon);
 
         StringWriter sw = new StringWriter();
 
@@ -95,10 +91,9 @@ class KmlConverterTest extends TestBase {
         sw = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
         var expPoint = sw.toString();
-        sw       = new StringWriter();
+        sw = new StringWriter();
         source.getTransform().transform(new DOMSource(plg1), new StreamResult(sw));
         var expPolygon = sw.toString();
-
 
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));
@@ -107,7 +102,7 @@ class KmlConverterTest extends TestBase {
 
     @Test
     void kmlToWKTTest() {
-       
+
         var res  = geoConverter.kmlToWkt(point);
         var res1 = geoConverter.kmlToWkt(polygon);
 

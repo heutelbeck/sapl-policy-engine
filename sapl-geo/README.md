@@ -177,22 +177,64 @@ The property "srid" is the crs/srid set in the database. If there is none, it is
 
 ## Function libraries
 
+### GeoFunctions
+
+All function parameters are Vals containing a JsonNode with the GeoJSON-representation of a geometry.
+
+#### Functions
+
+* geometryEquals(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) returns a Val containing a boolean
+* disjoint(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) returns a Val containing a boolean
+* touches(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) returns a Val containing a boolean
+* crosses(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) returns a Val containing a boolean
+* within(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) returns a Val containing a boolean
+* contains(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) returns a Val containing a boolean
+* overlaps(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) returns a Val containing a boolean
+* intersects(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) returns a Val containing a boolean
+* buffer(@JsonObject Val jsonGeometry, @Number Val buffer) returns a new Geometry with added buffer
+* boundary(@JsonObject JsonNode jsonGeometry) returns a Val containing the boundary geometry, or an empty geometry 
+* centroid(@JsonObject Val jsonGeometry) returns a Val containing the centroid point
+* convexHull(@JsonObject Val jsonGeometry) returns a Val containing the convex hull as geometry
+* union(@JsonObject Val... jsonGeometries) returns a Val containing a geometry which represents the union
+* intersection(@JsonObject Val... jsonGeometries) returns a Val containing a geometry which represents the intersection
+* difference(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) returns a Val containing a Geometry representing the closure of the point-set of the points contained in this Geometry that are not contained in the other Geometry.
+* symDifference (@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) returns a Val containing a Geometry representing the closure of the point-set which is the union of the points in this Geometry which are not contained in the other Geometry, with the points in the other Geometry not contained in this Geometry
+* distance(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) returns a Val containing the distance 
+* isWithinDistance(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat, @Number Val distInput) returns a Val containing a boolean
+* geoDistance(@JsonObject Val jsonGeometryThis, @JsonObject Val jsonGeometryThat) returns a Val containing the distance concerning a coordinate reference system (e.g. "EPSG:4326")
+* isWithinGeoDistance(@JsonObject Val jsonGeometryThis, @JsonObject Val jsonGeometryThat, @Number Val distance)          
+* length(@JsonObject Val jsonGeometry) returns a Val containing the length of the geometry
+* area(@JsonObject Val jsonGeometry) returns a Val containing the area of the geometry
+* isSimple(@JsonObject Val jsonGeometry) returns a Val containing a boolean which indicates if the geometry is a simple feature
+* isValid(@JsonObject Val jsonGeometry) returns a Val containing a boolean which indicates if the geometry is valid according to the OGC SFS specification
+* isClosed(@JsonObject JsonNode jsonGeometry) returns a Val containing a boolean
+* milesToMeter(@Number Val jsonValue) returns a Val containing the meters
+* yardToMeter(@Number Val jsonValue) returns a Val containing the meters
+* degreeToMeter(@Number Val jsonValue) returns a Val containing the meters
+* bagSize(@JsonObject Val jsonGeometry) returns a Val containit the number of geometries contained
+* oneAndOnly(@JsonObject Val jsonGeometryCollection) returns a Val containing the only geometry from a collection or throws an error
+* geometryIsIn(@JsonObject Val jsonGeometry, @JsonObject Val jsonGeometryCollection) returns a Val containing a boolean
+* geometryBag(@JsonObject Val... geometryJsonInput) returns a Val containing a geometry collection
+* resToGeometryBag(@Array Val resourceArray) returns a Val containing a geometry collection
+* atLeastOneMemberOf(@JsonObject Val jsonGeometryCollectionThis, @JsonObject Val jsonGeometryCollectionThat) returns a Val containing a boolean which indicates if at least one member of geometryCollectinThis is contained in geometryCollectionThat
+* subset(@JsonObject Val jsonGeometryCollectionThis, @JsonObject Val jsonGeometryCollectionThat) returns a Val containing a boolean
+
 ### GeoConverter
 
 #### Functions
 
-* gmlToGeoJsonString
+* gmlToGeoJson
 * gmlToKml
 * gmlToWkt
 * geoJsonToKml
 * geoJsonToGml
 * geoJsonToWkt
 * kmlToGml
-* kmlToGeoJsonString
+* kmlToGeoJson
 * kmlToWkt
 * wktToGml
 * wktToKml
-* wktToGeoJsonString
+* wktToGeoJson
 
 #### Example policy
 ```

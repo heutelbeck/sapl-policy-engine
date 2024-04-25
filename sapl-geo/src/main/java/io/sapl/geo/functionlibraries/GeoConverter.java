@@ -66,8 +66,8 @@ public class GeoConverter {
         }
     }
 
-    @Function(name = "gmlToGeoJsonString", docs = GML_TO_GEOJSON)
-    public Val gmlToGeoJsonString(Val gml) {
+    @Function(name = "gmlToGeoJson", docs = GML_TO_GEOJSON)
+    public Val gmlToGeoJson(Val gml) {
 
         try {
             return GeometryConverter.geometryToGeoJsonNode(GmlConverter.gmlToGeometry(gml));
@@ -127,8 +127,8 @@ public class GeoConverter {
         }
     }
 
-    @Function(name = "kmlToGeoJsonString", docs = KML_TO_GEOJSON)
-    public Val kmlToGeoJsonString(Val kml) {
+    @Function(name = "kmlToGeoJson", docs = KML_TO_GEOJSON)
+    public Val kmlToGeoJson(Val kml) {
 
         try {
             return GeometryConverter.geometryToGeoJsonNode(KmlConverter.kmlToGeometry(kml));
@@ -167,8 +167,8 @@ public class GeoConverter {
         }
     }
 
-    @Function(name = "wktToGeoJsonString", docs = WKT_TO_GEOJSON)
-    public Val wktToGeoJsonString(Val wkt) {
+    @Function(name = "wktToGeoJson", docs = WKT_TO_GEOJSON)
+    public Val wktToGeoJson(Val wkt) {
 
         try {
             return GeometryConverter.geometryToGeoJsonNode(WktConverter.wktToGeometry(wkt));

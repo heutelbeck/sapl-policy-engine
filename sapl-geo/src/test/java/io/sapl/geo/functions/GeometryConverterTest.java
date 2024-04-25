@@ -41,17 +41,17 @@ class GeometryConverterTest extends TestBase {
     @Test
     void geometryToGMLTest() throws TransformerException {
 
-        StringWriter sw         = new StringWriter();
+        StringWriter sw = new StringWriter();
 
         var pnt = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         var plg = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
         source.getTransform().transform(new DOMSource(pnt), new StreamResult(sw));
         var expPoint = sw.toString();
-        sw       = new StringWriter();
+        sw = new StringWriter();
         source.getTransform().transform(new DOMSource(plg), new StreamResult(sw));
         var expPolygon = sw.toString();
-       
+
         var res  = GeometryConverter.geometryToGML(source.getPoint());
         var res1 = GeometryConverter.geometryToGML(source.getPolygon());
 
@@ -62,14 +62,14 @@ class GeometryConverterTest extends TestBase {
     @Test
     void geometryToKMLTest() throws TransformerException {
 
-        StringWriter sw         = new StringWriter();
+        StringWriter sw = new StringWriter();
 
         var pnt = source.getXmlSource().getElementsByTagName("Point").item(0);
         var plg = source.getXmlSource().getElementsByTagName("Polygon").item(0);
-        
+
         source.getTransform().transform(new DOMSource(pnt), new StreamResult(sw));
         var expPoint = sw.toString();
-        sw       = new StringWriter();
+        sw = new StringWriter();
         source.getTransform().transform(new DOMSource(plg), new StreamResult(sw));
         var expPolygon = sw.toString();
 
@@ -95,7 +95,7 @@ class GeometryConverterTest extends TestBase {
 
     @Test
     void geometryToWktTest() {
-     
+
         var expPoint   = source.getJsonSource().get("WktPoint").asText();
         var expPolygon = source.getJsonSource().get("WktPolygon").asText();
 

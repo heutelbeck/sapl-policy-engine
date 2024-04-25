@@ -28,9 +28,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class KmlConverter {
 
-	/**
-     * @param 		kml   	 a {@link Val} containing the KML-String 
-     * @return		a {@link Geometry}
+    /**
+     * @param kml a {@link Val} containing the KML-String
+     * @return a {@link Geometry}
      */
     public static Geometry kmlToGeometry(Val kml) throws ParseException {
 
@@ -38,9 +38,9 @@ public final class KmlConverter {
     }
 
     /**
-     * @param 		kml   	 a {@link Val} containing the KML-String
-     * @param		factory  a {@link GeometryFactory}
-     * @return		a {@link Geometry}
+     * @param kml     a {@link Val} containing the KML-String
+     * @param factory a {@link GeometryFactory}
+     * @return a {@link Geometry}
      */
     public static Geometry kmlToGeometry(Val kml, GeometryFactory factory) throws ParseException {
 
@@ -48,8 +48,8 @@ public final class KmlConverter {
     }
 
     /**
-     * @param 		kml   	 a KML-String 
-     * @return		a {@link Geometry}
+     * @param kml a KML-String
+     * @return a {@link Geometry}
      */
     public static Geometry kmlToGeometry(String kml) throws ParseException {
 
@@ -57,9 +57,9 @@ public final class KmlConverter {
     }
 
     /**
-     * @param 		kml   	 a KML-String
-     * @param		factory  a {@link GeometryFactory} 
-     * @return		a {@link Geometry}
+     * @param kml     a KML-String
+     * @param factory a {@link GeometryFactory}
+     * @return a {@link Geometry}
      */
     public static Geometry kmlToGeometry(String kml, GeometryFactory factory) throws ParseException {
 

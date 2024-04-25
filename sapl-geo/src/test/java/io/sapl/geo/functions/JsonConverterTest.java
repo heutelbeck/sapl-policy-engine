@@ -38,8 +38,8 @@ class JsonConverterTest extends TestBase {
 
     @BeforeAll
     void setup() {
-        point        = Val.of(source.getJsonSource().get("Point").toPrettyString());
-        polygon      = Val.of(source.getJsonSource().get("Polygon").toPrettyString());
+        point   = Val.of(source.getJsonSource().get("Point").toPrettyString());
+        polygon = Val.of(source.getJsonSource().get("Polygon").toPrettyString());
 
     }
 
@@ -53,11 +53,11 @@ class JsonConverterTest extends TestBase {
 
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
         var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);
-        
+
         sw = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
         var expPoint = sw.toString();
-        sw       = new StringWriter();
+        sw = new StringWriter();
         source.getTransform().transform(new DOMSource(plg1), new StreamResult(sw));
         var expPolygon = sw.toString();
 
@@ -81,7 +81,7 @@ class JsonConverterTest extends TestBase {
 
     @Test
     void geoJsonToGMLTest() throws TransformerException {
-        
+
         var res  = geoConverter.geoJsonToGml(point);
         var res1 = geoConverter.geoJsonToGml(polygon);
 
@@ -93,7 +93,7 @@ class JsonConverterTest extends TestBase {
         sw = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
         var expPoint = sw.toString();
-        sw       = new StringWriter();
+        sw = new StringWriter();
         source.getTransform().transform(new DOMSource(plg1), new StreamResult(sw));
         var expPolygon = sw.toString();
 

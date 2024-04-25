@@ -28,9 +28,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class JsonConverter {
 
-	/**
-     * @param 		geoJson   	 a {@link Val} containing the GML-String 
-     * @return		a {@link Geometry}
+    /**
+     * @param geoJson a {@link Val} containing the GML-String
+     * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(Val geoJson) throws ParseException {
 
@@ -38,9 +38,9 @@ public final class JsonConverter {
     }
 
     /**
-     * @param 		geoJson   	 a {@link Val} containing the GML-String
-     * @param		factory  a {@link GeometryFactory}
-     * @return		a {@link Geometry}
+     * @param geoJson a {@link Val} containing the GML-String
+     * @param factory a {@link GeometryFactory}
+     * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(Val geoJson, GeometryFactory factory) throws ParseException {
 
@@ -48,8 +48,8 @@ public final class JsonConverter {
     }
 
     /**
-     * @param 		geoJson   	 a GeoJson-String 
-     * @return		a {@link Geometry}
+     * @param geoJson a GeoJson-String
+     * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(String geoJson, GeometryFactory factory) throws ParseException {
 
@@ -57,9 +57,9 @@ public final class JsonConverter {
     }
 
     /**
-     * @param 		geoJson   	 a GeoJson-String
-     * @param		factory  a {@link GeometryFactory} 
-     * @return		a {@link Geometry}
+     * @param geoJson a GeoJson-String
+     * @param factory a {@link GeometryFactory}
+     * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(String geoJson) throws ParseException {
 

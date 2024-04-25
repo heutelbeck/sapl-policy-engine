@@ -36,11 +36,10 @@ import io.sapl.api.interpreter.Val;
 @TestInstance(Lifecycle.PER_CLASS)
 class WktConverterTest extends TestBase {
 
-
     @BeforeAll
     void setup() {
-        point        = Val.of(source.getJsonSource().get("WktPoint").asText());
-        polygon      = Val.of(source.getJsonSource().get("WktPolygon").asText());
+        point   = Val.of(source.getJsonSource().get("WktPoint").asText());
+        polygon = Val.of(source.getJsonSource().get("WktPolygon").asText());
     }
 
     @Test
@@ -49,7 +48,7 @@ class WktConverterTest extends TestBase {
         var res  = geoConverter.wktToKml(point);
         var res1 = geoConverter.wktToKml(polygon);
 
-        StringWriter sw         = new StringWriter();
+        StringWriter sw = new StringWriter();
 
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
         var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);
@@ -57,7 +56,7 @@ class WktConverterTest extends TestBase {
         sw = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
         var expPoint = sw.toString();
-        sw       = new StringWriter();
+        sw = new StringWriter();
         source.getTransform().transform(new DOMSource(plg1), new StreamResult(sw));
         var expPolygon = sw.toString();
 
@@ -67,7 +66,7 @@ class WktConverterTest extends TestBase {
 
     @Test
     void wktToGeometryTest() throws ParseException {
-           
+
         var res  = (Point) WktConverter.wktToGeometry(point);
         var res1 = (Polygon) WktConverter.wktToGeometry(polygon);
 
@@ -84,7 +83,7 @@ class WktConverterTest extends TestBase {
 
         var res  = geoConverter.wktToGml(point);
         var res1 = geoConverter.wktToGml(polygon);
-       
+
         StringWriter sw = new StringWriter();
 
         var pnt1 = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
@@ -93,10 +92,9 @@ class WktConverterTest extends TestBase {
         sw = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
         var expPoint = sw.toString();
-        sw       = new StringWriter();
+        sw = new StringWriter();
         source.getTransform().transform(new DOMSource(plg1), new StreamResult(sw));
         var expPolygon = sw.toString();
-
 
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));
@@ -106,8 +104,8 @@ class WktConverterTest extends TestBase {
     @Test
     void wktToGeoJsonTest() {
 
-        var res  = geoConverter.wktToGeoJsonString(point);
-        var res1 = geoConverter.wktToGeoJsonString(polygon);
+        var res  = geoConverter.wktToGeoJson(point);
+        var res1 = geoConverter.wktToGeoJson(polygon);
 
         var expPoint   = source.getJsonSource().get("Point").toPrettyString();
         var expPolygon = source.getJsonSource().get("Polygon").toPrettyString();
