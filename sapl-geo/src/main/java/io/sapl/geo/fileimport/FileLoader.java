@@ -51,9 +51,9 @@ import reactor.retry.Repeat;
 @RequiredArgsConstructor
 public class FileLoader extends ConnectionBase {
 
-    private static final String PATH = "path";
-    private static final String CRS  = "crs";
-
+    private static final String PATH 					  = "path";
+    private static final String CRS  					  = "crs";
+    private static final String INPUTFORMAT               = "inputFormat";
     private final ObjectMapper mapper;
 
     private BufferedReader reader;
@@ -66,7 +66,9 @@ public class FileLoader extends ConnectionBase {
 
         try {
             reader = new BufferedReader(new FileReader(getPath(settings)));
-            return getFlux(getResponseFormat(settings, mapper), getCrs(settings),
+            return getFlux(getInputFormat(settings, mapper),
+            		getResponseFormat(settings, mapper), 
+            		getCrs(settings),
                     longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
                     longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), mapper).map(Val::of)
                     .onErrorResume(e -> Flux.just(Val.error(e)));
@@ -77,35 +79,35 @@ public class FileLoader extends ConnectionBase {
         }
     }
 
-    public Flux<JsonNode> getFlux(GeoPipResponseFormat format, int crs, long repeatTimes, long pollingInterval,
+    public Flux<JsonNode> getFlux(GeoPipResponseFormat inputFormat, GeoPipResponseFormat responseFormat, int crs, long repeatTimes, long pollingInterval,
             ObjectMapper mapper) {
         try {
-            return poll(Mono.just(importGeoData(format, crs, mapper)), repeatTimes, pollingInterval);
+            return poll(Mono.just(importGeoData(inputFormat, responseFormat, crs, mapper)), repeatTimes, pollingInterval);
         } catch (Exception e) {
             return Flux.error(e);
         }
     }
 
-    private JsonNode importGeoData(GeoPipResponseFormat format, int crs, ObjectMapper mapper)
+    private JsonNode importGeoData(GeoPipResponseFormat inputFormat, GeoPipResponseFormat responseFormat, int crs, ObjectMapper mapper)
             throws PolicyEvaluationException {
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), crs);
         try {
-            Geometry geometries = convertToGeometry(format, geometryFactory);
+            Geometry geometries = convertToGeometry(inputFormat, geometryFactory);
 
             int count = geometries.getNumGeometries();
             if (count > 1) {
-                return createArrayNodeForMultipleGeometries(geometries, format, mapper);
+                return createArrayNodeForMultipleGeometries(geometries, responseFormat, mapper);
             } else {
-                return convertGeometryToOutput(geometries, format);
+                return convertGeometryToOutput(geometries, responseFormat);
             }
         } catch (Exception e) {
             throw new PolicyEvaluationException(e);
         }
     }
 
-    private Geometry convertToGeometry(GeoPipResponseFormat format, GeometryFactory geometryFactory)
+    private Geometry convertToGeometry(GeoPipResponseFormat responseFormat, GeometryFactory geometryFactory)
             throws ParseException, IOException, SAXException, ParserConfigurationException {
-        switch (format) {
+        switch (responseFormat) {
         case KML:
             return KmlConverter.kmlToGeometry(readFile(reader), geometryFactory);
         case GML:
@@ -115,16 +117,16 @@ public class FileLoader extends ConnectionBase {
         case WKT:
             return WktConverter.wktToGeometry(readFile(reader), geometryFactory);
         default:
-            throw new PolicyEvaluationException("Unsupported format: " + format);
+            throw new PolicyEvaluationException("Unsupported format: " + responseFormat);
         }
     }
 
-    private JsonNode createArrayNodeForMultipleGeometries(Geometry geometries, GeoPipResponseFormat format,
+    private JsonNode createArrayNodeForMultipleGeometries(Geometry geometries, GeoPipResponseFormat responseFormat,
             ObjectMapper mapper) {
         ArrayNode arrayNode = mapper.createArrayNode();
         for (int i = 0; i < geometries.getNumGeometries(); i++) {
             Geometry geometry = geometries.getGeometryN(i);
-            arrayNode.add(convertGeometryToOutput(geometry, format));
+            arrayNode.add(convertGeometryToOutput(geometry, responseFormat));
         }
         return arrayNode;
     }
@@ -174,4 +176,18 @@ public class FileLoader extends ConnectionBase {
         }
     }
 
+    private static GeoPipResponseFormat getInputFormat(JsonNode requestSettings, ObjectMapper mapper)
+            throws PolicyEvaluationException {
+        if (requestSettings.has(INPUTFORMAT)) {
+            try {
+                return mapper.convertValue(requestSettings.findValue(INPUTFORMAT), GeoPipResponseFormat.class);
+            } catch (Exception e) {
+                throw new PolicyEvaluationException(e);
+            }
+        } else {
+
+        	 throw new PolicyEvaluationException("No input format found");
+        }
+
+    }
 }

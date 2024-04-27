@@ -49,6 +49,7 @@ class FileLoaderTests {
     String template  = """
                      {
                      "path":%s,
+                     "inputFormat":"%s",
                      "responseFormat":"%s",
             "repetitions":2
                  }
@@ -56,6 +57,7 @@ class FileLoaderTests {
     String template2 = """
                      {
                      "path":%s,
+                     "inputFormat":"%s",
                      "responseFormat":"%s",
                      "crs":3857,
             "repetitions":2
@@ -75,7 +77,7 @@ class FileLoaderTests {
         var ex   = "{\"type\":\"Polygon\",\"coordinates\":[[[0.0,0.0],[10,0.0],[10,10],[0.0,10],[0.0,0.0]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}";
         var exp  = Val.ofJson(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "geoJsonSingle.json"));
-        var node = mapper.readValue(String.format(template, pth, GEOJSON), JsonNode.class);
+        var node = mapper.readValue(String.format(template, pth,GEOJSON, GEOJSON), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
@@ -87,7 +89,7 @@ class FileLoaderTests {
         var ex   = "[{\"type\":\"Polygon\",\"coordinates\":[[[0.0,0.0],[10,0.0],[10,10],[0.0,10],[0.0,0.0]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:3857\"}}},{\"type\":\"Point\",\"coordinates\":[5,5],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:3857\"}}}]";
         var exp  = Val.ofJson(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "geojsonCollection.json"));
-        var node = mapper.readValue(String.format(template2, pth, GEOJSON), JsonNode.class);
+        var node = mapper.readValue(String.format(template2, pth,GEOJSON, GEOJSON), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
@@ -99,7 +101,7 @@ class FileLoaderTests {
         var ex   = "[{\"type\":\"Point\",\"coordinates\":[13.404954,52.520008],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},{\"type\":\"LineString\",\"coordinates\":[[13.404954,52.520008],[8.682127,50.110924]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},{\"type\":\"Polygon\",\"coordinates\":[[[13.404954,52.520008],[13.405537,52.520079],[13.405313,52.519505],[13.404743,52.519446],[13.404954,52.520008]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}]";
         var exp  = Val.ofJson(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "geojsonMultiple.json"));
-        var node = mapper.readValue(String.format(template, pth, GEOJSON), JsonNode.class);
+        var node = mapper.readValue(String.format(template, pth, GEOJSON, GEOJSON), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
@@ -111,7 +113,7 @@ class FileLoaderTests {
         var ex   = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
         var exp  = Val.of(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "wktSingle.wkt"));
-        var node = mapper.readValue(String.format(template, pth, WKT), JsonNode.class);
+        var node = mapper.readValue(String.format(template, pth, WKT, WKT), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
@@ -126,7 +128,7 @@ class FileLoaderTests {
         arrayNode.add("POINT (5 5)");
         var exp  = Val.ofJson(arrayNode.toString());
         var pth  = mapper.writeValueAsString(String.format(path, "wktCollection.wkt"));
-        var node = mapper.readValue(String.format(template2, pth, WKT), JsonNode.class);
+        var node = mapper.readValue(String.format(template2, pth, WKT, WKT), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
@@ -151,7 +153,7 @@ class FileLoaderTests {
         var ex   = "<gml:Polygon>\n  <gml:outerBoundaryIs>\n    <gml:LinearRing>\n      <gml:coordinates>\n        0.0,0.0 10.0,0.0 10.0,10.0 0.0,10.0 0.0,0.0 \n      </gml:coordinates>\n    </gml:LinearRing>\n  </gml:outerBoundaryIs>\n</gml:Polygon>\n";
         var exp  = Val.of(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "gmlSingle.gml"));
-        var node = mapper.readValue(String.format(template, pth, GML), JsonNode.class);
+        var node = mapper.readValue(String.format(template, pth, GML,GML), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
@@ -166,7 +168,7 @@ class FileLoaderTests {
         arrayNode.add("<gml:Point>\n  <gml:coordinates>\n    5.0,5.0 \n  </gml:coordinates>\n</gml:Point>\n");
         var exp  = Val.ofJson(arrayNode.toString());
         var pth  = mapper.writeValueAsString(String.format(path, "gmlCollection.gml"));
-        var node = mapper.readValue(String.format(template2, pth, GML), JsonNode.class);
+        var node = mapper.readValue(String.format(template2, pth, GML, GML), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
@@ -191,7 +193,7 @@ class FileLoaderTests {
         var ex   = "<Polygon>\n  <outerBoundaryIs>\n  <LinearRing>\n    <coordinates>0.0,0.0 10.0,0.0 10.0,10.0 0.0,10.0 0.0,0.0</coordinates>\n  </LinearRing>\n  </outerBoundaryIs>\n</Polygon>\n";
         var exp  = Val.of(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "kmlSingle.kml"));
-        var node = mapper.readValue(String.format(template, pth, KML), JsonNode.class);
+        var node = mapper.readValue(String.format(template, pth, KML, KML), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
@@ -207,7 +209,7 @@ class FileLoaderTests {
 
         var exp  = Val.ofJson(arrayNode.toString());
         var pth  = mapper.writeValueAsString(String.format(path, "kmlCollection.kml"));
-        var node = mapper.readValue(String.format(template2, pth, KML), JsonNode.class);
+        var node = mapper.readValue(String.format(template2, pth, KML, KML), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
