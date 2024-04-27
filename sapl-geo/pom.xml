@@ -31,15 +31,22 @@
 <url>http://maven.apache.org</url>
  
 	<properties>
-		<geotools.version>29.2</geotools.version>
+		<geotools.version>31.0</geotools.version>
 		<jts.version>1.19.0</jts.version>
 		<sapl.version></sapl.version>
 	</properties>
 
 	<repositories>
-		<repository>
+		<!--repository>
 			<id>geo</id>
 			<url> https://nexus.terrestris.de/repository/public/</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository-->
+ 		<repository>
+			<id>geo</id>
+			<url> https://repo.osgeo.org/repository/release/</url>
 			<snapshots>
 				<enabled>false</enabled>
 			</snapshots>
@@ -102,6 +109,12 @@
     		<artifactId>gt-geojson</artifactId>
     		<version>${geotools.version}</version>
 		</dependency>
+		<dependency>
+		    <groupId>org.geotools.xsd</groupId>
+		    <artifactId>gt-xsd-kml</artifactId>
+		    <version>31.0</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-epsg-hsql</artifactId>

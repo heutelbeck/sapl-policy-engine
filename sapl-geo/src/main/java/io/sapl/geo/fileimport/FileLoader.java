@@ -37,6 +37,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.shared.ConnectionBase;
+import io.sapl.geo.functionlibraries.GeoParser;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.GmlConverter;
 import io.sapl.geo.functions.JsonConverter;
@@ -109,6 +110,9 @@ public class FileLoader extends ConnectionBase {
             throws ParseException, IOException, SAXException, ParserConfigurationException {
         switch (responseFormat) {
         case KML:
+//        	var txt = readFile(reader);
+//        	GeoParser parser = new GeoParser(mapper);
+//        	var a = parser.parseKML(Val.of(txt));
             return KmlConverter.kmlToGeometry(readFile(reader), geometryFactory);
         case GML:
             return GmlConverter.gmlToGeometry(readFile(reader), geometryFactory);
@@ -134,6 +138,7 @@ public class FileLoader extends ConnectionBase {
     private JsonNode convertGeometryToOutput(Geometry geometry, GeoPipResponseFormat format) {
         switch (format) {
         case KML:
+
             return GeometryConverter.geometryToKML(geometry).get();
         case GML:
             return GeometryConverter.geometryToGML(geometry).get();

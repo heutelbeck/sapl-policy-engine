@@ -19,6 +19,9 @@ package io.sapl.geo.functions;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.geotools.api.referencing.FactoryException;
+import org.geotools.api.referencing.operation.TransformException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -333,7 +336,7 @@ class GeoFunctionsTest extends TestBase {
     }
 
     @Test
-    void geoDistanceTest() throws ParseException {
+    void geoDistanceTest() throws ParseException, FactoryException, TransformException {
 
         var st = GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(10.0, 10.0)));
         var de = GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(10.0, 10.000001)));

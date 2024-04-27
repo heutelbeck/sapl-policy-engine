@@ -31,9 +31,10 @@ import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.spatial4j.distance.DistanceUtils;
-import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
-import org.opengis.referencing.operation.TransformException;
+import org.geotools.api.referencing.NoSuchAuthorityCodeException;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.FactoryException;
+import org.geotools.api.referencing.operation.TransformException;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -379,10 +380,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = GEO_DISTANCE_DOC)
-    public Val geoDistance(@JsonObject Val jsonGeometryThis, @JsonObject Val jsonGeometryThat) {
+    public Val geoDistance(@JsonObject Val jsonGeometryThis, @JsonObject Val jsonGeometryThat) throws FactoryException, TransformException {
         try {
             return Val.of(geoDistance(jsonGeometryThis.get(), jsonGeometryThat.get()));
-        } catch (ParseException | FactoryException | TransformException e) {
+        } catch (ParseException e) {
             return Val.error(e);
         }
     }
@@ -393,7 +394,7 @@ public class GeoFunctions {
         try {
             return Val.of(
                     geoDistance(jsonGeometryThis.get(), jsonGeometryThat.get(), coordinateReferenceSystem.getText()));
-        } catch (ParseException | FactoryException | TransformException e) {
+        } catch (Exception e) {
             return Val.error(e);
         }
     }
@@ -404,7 +405,7 @@ public class GeoFunctions {
     }
 
     public double geoDistance(JsonNode jsonGeometryThis, JsonNode jsonGeometryThat, String coordinateReferenceSystem)
-            throws ParseException, FactoryException, TransformException {
+            throws ParseException, NoSuchAuthorityCodeException, FactoryException, TransformException{
         return geodesicDistance(jsonGeometryThis, jsonGeometryThat, coordinateReferenceSystem);
 
     }

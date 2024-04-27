@@ -17,18 +17,16 @@
  */
 package io.sapl.geo.connection.fileimport;
 
-import java.nio.file.Paths;
 
+import java.nio.file.Paths;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.fileimport.FileLoader;
 
@@ -215,6 +213,25 @@ class FileLoaderTests {
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
     }
 
+//    @Test
+//    void kmlExampleTest() throws JsonProcessingException {
+//
+//        ArrayNode arrayNode = mapper.createArrayNode();
+//        arrayNode.add(
+//                "<Polygon>\n  <outerBoundaryIs>\n  <LinearRing>\n    <coordinates>0.0,0.0 10.0,0.0 10.0,10.0 0.0,10.0 0.0,0.0</coordinates>\n  </LinearRing>\n  </outerBoundaryIs>\n</Polygon>\n");
+//        arrayNode.add("<Point>\n  <coordinates>5.0,5.0</coordinates>\n</Point>\n");
+//        var path1= "D:\\Bachelorarbeit\\example.kml";
+//        var exp  = Val.ofJson(arrayNode.toString());
+//        var pth  = mapper.writeValueAsString(path1);
+//        var node = mapper.readValue(String.format(template2, pth, KML, KML), JsonNode.class);
+//        
+//        
+//        
+//        var res  = new FileLoader(mapper).connect(node);
+//
+//        StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
+//    }
+    
     // nur die erste geometrie wird erkannt
 //	@Test
 //	void kmlMultipleTest() throws JsonProcessingException {
