@@ -145,6 +145,25 @@ class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
+    void whenRequestingDecisionFromRsocketPdp_withInvalidBasicAuth_thenIndeterminateDecisionIsProvided() {
+        var key           = "mpI3KjU7n1";
+        var secret        = "invalidSecret";
+        var encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
+        try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
+             var container = saplServerWithRSocketNoTls(baseContainer)
+                     .withEnv("io_sapl_server-lt_allowNoAuth", "true")
+                     .withEnv("io_sapl_server-lt_allowBasicAuth", "true").withEnv("io_sapl_server-lt_key", key)
+                     .withEnv("io_sapl_server-lt_secret", encodedSecret)) {
+            container.start();
+            var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+                    .port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT)).basicAuth(key, secret).build();
+            StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.INDETERMINATE).thenCancel()
+                    .verify();
+            container.stop();
+        }
+    }
+
+    @Test
     void whenRequestingDecisionFromRsocketPdp_withApiKeyAuth_thenDecisionIsProvided() {
         var SAPL_API_KEY = "abD12344cdefDuwg8721abD12344cdefDuwg8721";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
