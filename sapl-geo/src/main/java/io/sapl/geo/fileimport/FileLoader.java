@@ -52,10 +52,10 @@ import reactor.retry.Repeat;
 @RequiredArgsConstructor
 public class FileLoader extends ConnectionBase {
 
-    private static final String PATH 					  = "path";
-    private static final String CRS  					  = "crs";
-    private static final String INPUTFORMAT               = "inputFormat";
-    private final ObjectMapper mapper;
+    private static final String PATH        = "path";
+    private static final String CRS         = "crs";
+    private static final String INPUTFORMAT = "inputFormat";
+    private final ObjectMapper  mapper;
 
     private BufferedReader reader;
 
@@ -67,9 +67,7 @@ public class FileLoader extends ConnectionBase {
 
         try {
             reader = new BufferedReader(new FileReader(getPath(settings)));
-            return getFlux(getInputFormat(settings, mapper),
-            		getResponseFormat(settings, mapper), 
-            		getCrs(settings),
+            return getFlux(getInputFormat(settings, mapper), getResponseFormat(settings, mapper), getCrs(settings),
                     longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
                     longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), mapper).map(Val::of)
                     .onErrorResume(e -> Flux.just(Val.error(e)));
@@ -80,17 +78,18 @@ public class FileLoader extends ConnectionBase {
         }
     }
 
-    public Flux<JsonNode> getFlux(GeoPipResponseFormat inputFormat, GeoPipResponseFormat responseFormat, int crs, long repeatTimes, long pollingInterval,
-            ObjectMapper mapper) {
+    public Flux<JsonNode> getFlux(GeoPipResponseFormat inputFormat, GeoPipResponseFormat responseFormat, int crs,
+            long repeatTimes, long pollingInterval, ObjectMapper mapper) {
         try {
-            return poll(Mono.just(importGeoData(inputFormat, responseFormat, crs, mapper)), repeatTimes, pollingInterval);
+            return poll(Mono.just(importGeoData(inputFormat, responseFormat, crs, mapper)), repeatTimes,
+                    pollingInterval);
         } catch (Exception e) {
             return Flux.error(e);
         }
     }
 
-    private JsonNode importGeoData(GeoPipResponseFormat inputFormat, GeoPipResponseFormat responseFormat, int crs, ObjectMapper mapper)
-            throws PolicyEvaluationException {
+    private JsonNode importGeoData(GeoPipResponseFormat inputFormat, GeoPipResponseFormat responseFormat, int crs,
+            ObjectMapper mapper) throws PolicyEvaluationException {
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), crs);
         try {
             Geometry geometries = convertToGeometry(inputFormat, geometryFactory);
@@ -191,7 +190,7 @@ public class FileLoader extends ConnectionBase {
             }
         } else {
 
-        	 throw new PolicyEvaluationException("No input format found");
+            throw new PolicyEvaluationException("No input format found");
         }
 
     }

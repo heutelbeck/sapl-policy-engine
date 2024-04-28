@@ -45,15 +45,15 @@ import lombok.RequiredArgsConstructor;
 @FunctionLibrary(name = "geoParser", description = "")
 public class GeoParser {
 
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-	private static final String PARSE_KML     = "parses kml to Geometries";
-	private static final String ERROR 		  = "Error while parsing kml";
-    private static final String NAME 		  = "name";
-    private static final String GEOM 		  = "Geometry";
-	
+    private static final JsonNodeFactory JSON      = JsonNodeFactory.instance;
+    private static final String          PARSE_KML = "parses kml to Geometries";
+    private static final String          ERROR     = "Error while parsing kml";
+    private static final String          NAME      = "name";
+    private static final String          GEOM      = "Geometry";
+
     private final ObjectMapper mapper;
-    
-	@Function(name = "parseKml", docs = PARSE_KML)
+
+    @Function(name = "parseKml", docs = PARSE_KML)
     public Val parseKML(Val kml) {
 
         try {
@@ -62,29 +62,29 @@ public class GeoParser {
             return Val.error(e);
         }
     }
-	
-	public ArrayNode parseKML(String kmlString) {
-		
-		var features = new ArrayList<SimpleFeature>();
-		try {
-			var stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
-			var config = new KMLConfiguration();
-			PullParser parser = new PullParser(config, stream, KML.Placemark);
-			SimpleFeature f = null;		    
-		    
-			while ((f = (SimpleFeature) parser.parse()) != null) {
 
-		        features.add(f);
-		      }
-	        
-		}catch (Exception e) {
-			
-			throw new PolicyEvaluationException(ERROR, e);
-		}
-		return  convertToObjects(features);
-	}
-	
-	protected ArrayNode convertToObjects(Collection<?> placeMarks) {
+    public ArrayNode parseKML(String kmlString) {
+
+        var features = new ArrayList<SimpleFeature>();
+        try {
+            var           stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
+            var           config = new KMLConfiguration();
+            PullParser    parser = new PullParser(config, stream, KML.Placemark);
+            SimpleFeature f      = null;
+
+            while ((f = (SimpleFeature) parser.parse()) != null) {
+
+                features.add(f);
+            }
+
+        } catch (Exception e) {
+
+            throw new PolicyEvaluationException(ERROR, e);
+        }
+        return convertToObjects(features);
+    }
+
+    protected ArrayNode convertToObjects(Collection<?> placeMarks) {
         ArrayNode arrayNode = mapper.createArrayNode();
 
         for (Object obj : placeMarks) {
@@ -92,22 +92,22 @@ public class GeoParser {
             if (!(obj instanceof SimpleFeature feature)) {
                 throw new PolicyEvaluationException(ERROR);
             } else {
-            	String name = "unnamed geometry";
-            	var nameProperty = feature.getAttribute(NAME);
-            	if(nameProperty != null) {
-            		name = nameProperty.toString();
-            	}
-                Geometry geom = (Geometry) feature.getAttribute(GEOM);
-                ObjectNode geo = JSON.objectNode();
-                
+                String name         = "unnamed geometry";
+                var    nameProperty = feature.getAttribute(NAME);
+                if (nameProperty != null) {
+                    name = nameProperty.toString();
+                }
+                Geometry   geom = (Geometry) feature.getAttribute(GEOM);
+                ObjectNode geo  = JSON.objectNode();
+
                 if (geom != null) {
-                	geo.set(NAME, new TextNode(name));
-                	geo.set(GEOM, GeometryConverter.geometryToKML(geom).get());
-                	arrayNode.add(geo);
+                    geo.set(NAME, new TextNode(name));
+                    geo.set(GEOM, GeometryConverter.geometryToKML(geom).get());
+                    arrayNode.add(geo);
                 }
             }
         }
         return arrayNode;
     }
-	
+
 }

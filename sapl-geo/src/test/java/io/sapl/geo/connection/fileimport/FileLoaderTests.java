@@ -17,7 +17,6 @@
  */
 package io.sapl.geo.connection.fileimport;
 
-
 import java.nio.file.Paths;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -75,7 +74,7 @@ class FileLoaderTests {
         var ex   = "{\"type\":\"Polygon\",\"coordinates\":[[[0.0,0.0],[10,0.0],[10,10],[0.0,10],[0.0,0.0]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}";
         var exp  = Val.ofJson(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "geoJsonSingle.json"));
-        var node = mapper.readValue(String.format(template, pth,GEOJSON, GEOJSON), JsonNode.class);
+        var node = mapper.readValue(String.format(template, pth, GEOJSON, GEOJSON), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
@@ -87,7 +86,7 @@ class FileLoaderTests {
         var ex   = "[{\"type\":\"Polygon\",\"coordinates\":[[[0.0,0.0],[10,0.0],[10,10],[0.0,10],[0.0,0.0]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:3857\"}}},{\"type\":\"Point\",\"coordinates\":[5,5],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:3857\"}}}]";
         var exp  = Val.ofJson(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "geojsonCollection.json"));
-        var node = mapper.readValue(String.format(template2, pth,GEOJSON, GEOJSON), JsonNode.class);
+        var node = mapper.readValue(String.format(template2, pth, GEOJSON, GEOJSON), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
@@ -151,7 +150,7 @@ class FileLoaderTests {
         var ex   = "<gml:Polygon>\n  <gml:outerBoundaryIs>\n    <gml:LinearRing>\n      <gml:coordinates>\n        0.0,0.0 10.0,0.0 10.0,10.0 0.0,10.0 0.0,0.0 \n      </gml:coordinates>\n    </gml:LinearRing>\n  </gml:outerBoundaryIs>\n</gml:Polygon>\n";
         var exp  = Val.of(ex);
         var pth  = mapper.writeValueAsString(String.format(path, "gmlSingle.gml"));
-        var node = mapper.readValue(String.format(template, pth, GML,GML), JsonNode.class);
+        var node = mapper.readValue(String.format(template, pth, GML, GML), JsonNode.class);
         var res  = new FileLoader(mapper).connect(node);
 
         StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
@@ -224,14 +223,14 @@ class FileLoaderTests {
 //        var exp  = Val.ofJson(arrayNode.toString());
 //        var pth  = mapper.writeValueAsString(path1);
 //        var node = mapper.readValue(String.format(template2, pth, KML, KML), JsonNode.class);
-//        
-//        
-//        
+//
+//
+//
 //        var res  = new FileLoader(mapper).connect(node);
 //
 //        StepVerifier.create(res).expectNext(exp).expectNext(exp).expectComplete().verify();
 //    }
-    
+
     // nur die erste geometrie wird erkannt
 //	@Test
 //	void kmlMultipleTest() throws JsonProcessingException {

@@ -380,7 +380,8 @@ public class GeoFunctions {
     }
 
     @Function(docs = GEO_DISTANCE_DOC)
-    public Val geoDistance(@JsonObject Val jsonGeometryThis, @JsonObject Val jsonGeometryThat) throws FactoryException, TransformException {
+    public Val geoDistance(@JsonObject Val jsonGeometryThis, @JsonObject Val jsonGeometryThat)
+            throws FactoryException, TransformException {
         try {
             return Val.of(geoDistance(jsonGeometryThis.get(), jsonGeometryThat.get()));
         } catch (ParseException e) {
@@ -405,7 +406,7 @@ public class GeoFunctions {
     }
 
     public double geoDistance(JsonNode jsonGeometryThis, JsonNode jsonGeometryThat, String coordinateReferenceSystem)
-            throws ParseException, NoSuchAuthorityCodeException, FactoryException, TransformException{
+            throws ParseException, NoSuchAuthorityCodeException, FactoryException, TransformException {
         return geodesicDistance(jsonGeometryThis, jsonGeometryThat, coordinateReferenceSystem);
 
     }

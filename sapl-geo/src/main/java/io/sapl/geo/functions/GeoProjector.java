@@ -95,10 +95,10 @@ public class GeoProjector {
     /**
      * @param geometry a {@link Geometry} containing the settings
      * @return a transformed {@link Geometry}<{@link Val}
-     * @throws TransformException 
-     * @throws MismatchedDimensionException 
+     * @throws TransformException
+     * @throws MismatchedDimensionException
      */
-    public Geometry project(Geometry geometry) throws MismatchedDimensionException, TransformException    {
+    public Geometry project(Geometry geometry) throws MismatchedDimensionException, TransformException {
 
         return JTS.transform(geometry, mathTransform);
 
@@ -107,11 +107,12 @@ public class GeoProjector {
     /**
      * @param geometry a {@link Geometry} containing the settings
      * @return a transformed {@link Geometry}<{@link Val}
-     * @throws TransformException 
-     * @throws NoninvertibleTransformException 
-     * @throws MismatchedDimensionException 
+     * @throws TransformException
+     * @throws NoninvertibleTransformException
+     * @throws MismatchedDimensionException
      */
-    public Geometry reProject(Geometry geometry) throws MismatchedDimensionException, NoninvertibleTransformException, TransformException    {
+    public Geometry reProject(Geometry geometry)
+            throws MismatchedDimensionException, NoninvertibleTransformException, TransformException {
 
         return JTS.transform(geometry, mathTransform.inverse());
 
