@@ -17,8 +17,10 @@
  */
 package io.sapl.server.lt;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
+import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
+import io.sapl.server.lt.apikey.ApiKeyService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -39,7 +41,6 @@ import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpe
 import org.springframework.security.config.web.server.ServerHttpSecurity.FormLoginSpec;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.messaging.handler.invocation.reactive.AuthenticationPrincipalArgumentResolver;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
@@ -52,11 +53,7 @@ import org.springframework.security.rsocket.core.PayloadSocketAcceptorIntercepto
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 
-import io.sapl.server.lt.apikey.ApiKeyAuthenticationConverter;
-import io.sapl.server.lt.apikey.ApiKeyPayloadExchangeAuthenticationConverter;
-import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Slf4j
 @Configuration
@@ -65,7 +62,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
+    private final ApiKeyService apiKeyService;
     private final SAPLServerLTProperties pdpProperties;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:#{null}}")
     private String jwtIssuerURI;
@@ -95,7 +94,7 @@ public class SecurityConfiguration {
             }
             var customAuthenticationWebFilter = new AuthenticationWebFilter(new ApiKeyReactiveAuthenticationManager());
             customAuthenticationWebFilter
-                    .setServerAuthenticationConverter(new ApiKeyAuthenticationConverter(pdpProperties));
+                    .setServerAuthenticationConverter(apiKeyService.getHttpApiKeyAuthenticationConverter());
             http = http.addFilterAt(customAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);
         }
 
@@ -140,10 +139,6 @@ public class SecurityConfiguration {
         return new MapReactiveUserDetailsService(client);
     }
 
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
-    }
 
     /**
      * The RSocketMessageHandler Bean (rsocketMessageHandler), activates parts of
@@ -192,7 +187,7 @@ public class SecurityConfiguration {
         UserDetailsRepositoryReactiveAuthenticationManager simpleManager = null;
         if (pdpProperties.isAllowBasicAuth()) {
             simpleManager = new UserDetailsRepositoryReactiveAuthenticationManager(this.userDetailsServiceLocal());
-            simpleManager.setPasswordEncoder(this.passwordEncoder());
+            simpleManager.setPasswordEncoder(passwordEncoder);
         }
 
         JwtReactiveAuthenticationManager jwtManager = null;
@@ -221,7 +216,7 @@ public class SecurityConfiguration {
             ReactiveAuthenticationManager    manager           = new ApiKeyReactiveAuthenticationManager();
             AuthenticationPayloadInterceptor apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
             apikeyInterceptor
-                    .setAuthenticationConverter(new ApiKeyPayloadExchangeAuthenticationConverter(pdpProperties));
+                    .setAuthenticationConverter(apiKeyService.getRsocketApiKeyAuthenticationConverter());
             apikeyInterceptor.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
             security.addPayloadInterceptor(apikeyInterceptor);
         }

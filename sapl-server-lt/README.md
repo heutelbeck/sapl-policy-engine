@@ -269,7 +269,7 @@ To add a client, create a random key with at least a length of 32 characters. An
 If you do not have a tool at hand to create a good random key, the SAPL Server LT binary can be used to generate a new reasonably secure random key:
 
 ```
- java -jar sapl-server-lt-3.0.0-SNAPSHOT.jar -key
+ java -jar sapl-server-lt-3.0.0-SNAPSHOT.jar -apiKey
 ```
 
 This will print the pair to the console. Doing so will not start up an instance of the server.

@@ -219,12 +219,9 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
         }
 
         public RemoteRsocketPolicyDecisionPointBuilder apiKey(String apikey) {
-            return this.apiKey("API_KEY", apikey);
-        }
-
-        public RemoteRsocketPolicyDecisionPointBuilder apiKey(String headerName, String apikey) {
             return setApplyAuthenticationFunction(
-                    builder -> builder.setupMetadata(apikey, MimeType.valueOf("messaging/" + headerName)));
+                    builder -> builder.setupMetadata(apikey, MimeType.valueOf("messaging/Bearer"))
+            );
         }
 
         /**

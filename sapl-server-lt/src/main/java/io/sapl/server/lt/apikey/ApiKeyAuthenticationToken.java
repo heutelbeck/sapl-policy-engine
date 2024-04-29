@@ -36,9 +36,9 @@ public class ApiKeyAuthenticationToken implements Authentication {
     private final String principal;
     private boolean      authenticated = false;
 
-    public ApiKeyAuthenticationToken(final String apiKey, final String principal) {
+    public ApiKeyAuthenticationToken(final String apiKey) {
         this.apiKey    = apiKey;
-        this.principal = principal;
+        this.principal = "apiKey";
     }
 
     @Override

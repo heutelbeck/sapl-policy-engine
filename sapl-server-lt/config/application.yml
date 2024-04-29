@@ -124,8 +124,10 @@ io.sapl:
     allowApiKeyAuth: false
     # list of API keys
     allowedApiKeys:
-      - phsNZdvQAFX9P2jgGzq9TrzUecQhsnHh
-      - uQKyuL3LkBY84hJXLFPgF6cATCsTYGgy
+      # sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
+      - $argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM
+      # sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
+      - $argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k
 
 # - Authentication with OAuth2 and JWT 
 #
