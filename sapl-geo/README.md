@@ -21,7 +21,7 @@ EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDec
 
 ### Traccar
 
-After establishing a session with the traccar server the PIP uses the traccar socket endpoint to provide the current position of an device. Additionally all of the devices geofences are responded too.
+After establishing a session with the traccar server the PIP uses the traccar socket endpoint to provide the current position of a device. Additionally all of the devices geofences are responded too.
 You can use the "within" function from the GeoFunctions-library to check if the device is inside a fence.
 
 #### Example policy
