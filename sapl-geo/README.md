@@ -108,7 +108,7 @@ where
 ```json
 {
 	"deviceId":1,
-	"position":{"type":"Point","coordinates":[48.6304265,12.8517104],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}},
+	"position":{"type":"Point","coordinates":[38.6304265,22.8517104],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}},
 	"altitude":409.0,"lastUpdate":"1714043759",
 	"accuracy":100.0,
 	"geoFences":[
