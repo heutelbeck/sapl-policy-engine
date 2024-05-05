@@ -7,7 +7,7 @@ Also there is a function library containing geo-spatial operations like "within"
 
 ### Setup
 
-To the pip and the libraries add them to the PDP:
+To use the pip and the libraries, add them to the PDP:
 
 ```java
 EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, 
