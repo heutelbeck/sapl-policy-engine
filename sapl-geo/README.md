@@ -7,7 +7,7 @@ Also there is a function library containing geo-spatial operations like "within"
 
 ### Setup
 
-To the pip and the libraries add them to the PDP:
+To use the pip and the libraries, add them to the PDP:
 
 ```java
 EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, 
@@ -15,13 +15,13 @@ EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDec
 						List::of, 
 						() -> List.of(new GeoFunctions(), new GeoConverter()), 
 						List::of);
-}
+
 ```
 ## Policy Information Point
 
 ### Traccar
 
-After establishing a session with the traccar server the PIP uses the traccar socket endpoint to provide the current position of an device. Additionally all of the devices geofences are responded too.
+After establishing a session with the traccar server the PIP uses the traccar socket endpoint to provide the current position of a device. Additionally all of the devices geofences are responded too.
 You can use the "within" function from the GeoFunctions-library to check if the device is inside a fence.
 
 #### Example policy
@@ -55,9 +55,22 @@ where
 	"altitude":409.1,
 	"lastUpdate":"2024-04-17T17:54:09.000+00:00",
 	"accuracy":3.24399995803833,
-	"geoFences":[
-		{"id":"1","attributes":{},"calendarId":"0","name":"home","description":"null","area":{"type":"LineString","coordinates":[[22.8515682,36.63058385],[22.85154205,36.63036821],[22.85185214,36.63035504],[22.85187082,36.63055175],[22.85156945,36.6305855]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}},
-		{"id":"2","attributes":{},"calendarId":"0","name":"notHome","description":"null","area":{"type":"LineString","coordinates":[[22.8511593,36.63125866],[22.8511169,36.63086963],[22.85217445,36.6308004],[22.85223681,36.63126196],[22.85115681,36.63126196]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}}
+	"geoFences":
+		[
+		    {
+			"id":"1",
+			"attributes":{},
+			"calendarId":"0",
+			"name":"home",
+			"description":"null",
+			"area":{"type":"Polygon","coordinates":[[[38.63064114,22.85146998],[38.63063834,22.85193789],[38.63032237,22.85192263],[38.63033917,22.85144285],[38.63064114,22.85146998]]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}},
+		   {
+			"id":"2",
+		    	"attributes":{},
+			"calendarId":"0",
+			"name":"notHome",
+			"description":"null",
+			"area":{"type":"Polygon","coordinates":[[[38.63106758,22.8511551],[38.63101144,22.85210792],[38.63071854,22.8518531],[38.63106758,22.8511551]]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}}
 		]
 }
 ```
@@ -67,17 +80,15 @@ As you can see traccar delivers its coordinates in WGS84 (EPSG:4326).
 
 ### OwnTracks
 
-The PIP connects to the api of the OwnTracks-recorder and polls. As OwnTracks no built-in authentication, the recorder is usually hosted by a webserver and protected by http basic auth.
+The PIP connects to the api of the OwnTracks-recorder and polls. As OwnTracks has no built-in authentication, the recorder is usually hosted by a webserver and protected by http basic auth.
 
 #### Example policy
 ```
 permit
 where
-  var a = <geo.ownTracks({"httpUser":"httpUser", "password":"test123", "user":"deviceUser", "server":"owntracks.somewhere/owntracks", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
-  var pos = a.position;
-  var fence = a.geoFences[0].name;
-  var res = (fence=="home");
-  res == tru	
+  var response = <geo.ownTracks({"httpUser":"httpUser", "password":"test123", "user":"deviceUser", "server":"owntracks.somewhere/owntracks", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
+  var res = "home" in response.geoFences..name;
+  res == true;
 ```
 
 #### Parameters
@@ -97,7 +108,7 @@ where
 ```json
 {
 	"deviceId":1,
-	"position":{"type":"Point","coordinates":[48.6304265,12.8517104],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}},
+	"position":{"type":"Point","coordinates":[38.6304265,22.8517104],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}},
 	"altitude":409.0,"lastUpdate":"1714043759",
 	"accuracy":100.0,
 	"geoFences":[
