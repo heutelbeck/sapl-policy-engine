@@ -15,7 +15,7 @@ EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDec
 						List::of, 
 						() -> List.of(new GeoFunctions(), new GeoConverter()), 
 						List::of);
-}
+
 ```
 ## Policy Information Point
 
