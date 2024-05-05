@@ -67,17 +67,15 @@ As you can see traccar delivers its coordinates in WGS84 (EPSG:4326).
 
 ### OwnTracks
 
-The PIP connects to the api of the OwnTracks-recorder and polls. As OwnTracks no built-in authentication, the recorder is usually hosted by a webserver and protected by http basic auth.
+The PIP connects to the api of the OwnTracks-recorder and polls. As OwnTracks has no built-in authentication, the recorder is usually hosted by a webserver and protected by http basic auth.
 
 #### Example policy
 ```
 permit
 where
-  var a = <geo.ownTracks({"httpUser":"httpUser", "password":"test123", "user":"deviceUser", "server":"owntracks.somewhere/owntracks", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
-  var pos = a.position;
-  var fence = a.geoFences[0].name;
-  var res = (fence=="home");
-  res == tru	
+  var response = <geo.ownTracks({"httpUser":"httpUser", "password":"test123", "user":"deviceUser", "server":"owntracks.somewhere/owntracks", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
+  var res = "home" in a.geoFences..name;
+  res == true;
 ```
 
 #### Parameters
