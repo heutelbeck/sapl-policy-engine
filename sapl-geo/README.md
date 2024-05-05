@@ -55,9 +55,22 @@ where
 	"altitude":409.1,
 	"lastUpdate":"2024-04-17T17:54:09.000+00:00",
 	"accuracy":3.24399995803833,
-	"geoFences":[
-		{"id":"1","attributes":{},"calendarId":"0","name":"home","description":"null","area":{"type":"LineString","coordinates":[[22.8515682,36.63058385],[22.85154205,36.63036821],[22.85185214,36.63035504],[22.85187082,36.63055175],[22.85156945,36.6305855]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}},
-		{"id":"2","attributes":{},"calendarId":"0","name":"notHome","description":"null","area":{"type":"LineString","coordinates":[[22.8511593,36.63125866],[22.8511169,36.63086963],[22.85217445,36.6308004],[22.85223681,36.63126196],[22.85115681,36.63126196]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}}
+	"geoFences":
+		[
+		    {
+			"id":"1",
+			"attributes":{},
+			"calendarId":"0",
+			"name":"home",
+			"description":"null",
+			"area":{"type":"Polygon","coordinates":[[[38.63064114,22.85146998],[38.63063834,22.85193789],[38.63032237,22.85192263],[38.63033917,22.85144285],		 [38.63064114,22.85146998]]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}},
+		   {
+			"id":"2",
+		    	"attributes":{},
+			"calendarId":"0",
+			"name":"notHome",
+			"description":"null",
+			"area":{"type":"Polygon","coordinates":[[[38.63106758,22.8511551],[38.63101144,22.85210792],[38.63071854,22.8518531],[38.63106758,22.8511551]]],"crs":{"type":"name","properties":{"name":"EPSG:4326"}}}}
 		]
 }
 ```
