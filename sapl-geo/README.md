@@ -87,7 +87,7 @@ The PIP connects to the api of the OwnTracks-recorder and polls. As OwnTracks ha
 permit
 where
   var response = <geo.ownTracks({"httpUser":"httpUser", "password":"test123", "user":"deviceUser", "server":"owntracks.somewhere/owntracks", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
-  var res = "home" in a.geoFences..name;
+  var res = "home" in response.geoFences..name;
   res == true;
 ```
 
