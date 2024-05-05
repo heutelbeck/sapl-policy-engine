@@ -37,7 +37,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.shared.ConnectionBase;
-import io.sapl.geo.functionlibraries.GeoParser;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.GmlConverter;
 import io.sapl.geo.functions.JsonConverter;

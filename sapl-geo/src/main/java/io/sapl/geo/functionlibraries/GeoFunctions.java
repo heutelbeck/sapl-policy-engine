@@ -22,6 +22,7 @@ import javax.naming.OperationNotSupportedException;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.GeodeticCalculator;
+import org.locationtech.jts.algorithm.MinimumBoundingCircle;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -236,7 +237,13 @@ public class GeoFunctions {
     }
 
     public Val buffer(@JsonObject JsonNode jsonGeometry, @Number Double buffer) throws ParseException {
-        return GeometryConverter
+        
+    	
+    	
+    	var a = GeometryConverter
+                .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString()).buffer(buffer));
+    	
+    	return GeometryConverter
                 .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString()).buffer(buffer));
     }
 

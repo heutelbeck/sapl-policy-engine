@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.locationtech.jts.algorithm.MinimumBoundingCircle;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -183,18 +184,14 @@ class GeoFunctionsTest extends TestBase {
         assertFalse(func.intersects(polygon, polygon4).getBoolean());
     }
 
-    // @Test
-    // void bufferTest(){
-    //
-    // try {
-    // var a = func.buffer(polygon1, Val.of(2.0));
-    // var b = a;
-    // } catch (ParseException e1) {
-    // // TODO Auto-generated catch block
-    // e1.printStackTrace();
-    // }
-    //
-    // }
+     @Test
+     void bufferTest() throws ParseException{
+
+    	 var expBuffer = GeometryConverter.geometryToGeoJsonNode(po1.buffer(10.0));
+    	 
+    	 assertEquals(expBuffer,func.buffer(point1, Val.of(10.0)));
+     
+     }
 
     @Test
     void boundaryTest() {
