@@ -220,8 +220,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
         public RemoteRsocketPolicyDecisionPointBuilder apiKey(String apikey) {
             return setApplyAuthenticationFunction(
-                    builder -> builder.setupMetadata(apikey, MimeType.valueOf("messaging/Bearer"))
-            );
+                    builder -> builder.setupMetadata(apikey, MimeType.valueOf("messaging/Bearer")));
         }
 
         /**

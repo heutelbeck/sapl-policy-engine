@@ -32,13 +32,11 @@ public class ApiKeyAuthenticationToken implements Authentication {
 
     private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
-    private final String apiKey;
-    private final String principal;
+    private final String encodedApiKey;
     private boolean      authenticated = false;
 
-    public ApiKeyAuthenticationToken(final String apiKey) {
-        this.apiKey    = apiKey;
-        this.principal = "apiKey";
+    public ApiKeyAuthenticationToken(final String encodedApiKey) {
+        this.encodedApiKey = encodedApiKey;
     }
 
     @Override
@@ -48,7 +46,7 @@ public class ApiKeyAuthenticationToken implements Authentication {
 
     @Override
     public Object getCredentials() {
-        return apiKey;
+        return this.encodedApiKey;
     }
 
     @Override
@@ -58,7 +56,7 @@ public class ApiKeyAuthenticationToken implements Authentication {
 
     @Override
     public Object getPrincipal() {
-        return principal;
+        return encodedApiKey;
     }
 
     @Override

@@ -109,18 +109,18 @@ io.sapl:
 #
 # Clients will get an API key assigned and authenticate by providing the following HTTP header:
 #
-# API_KEY: <API KEY>
+# Authorization: Bearer sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
 #
 # Example:
 #
-# API_KEY: phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc
+# Authorization: Bearer phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc
 #
 # Advantage:    Low latency, no cryptography per request necessary.
 #
 # Disadvantage: Credentials are stored in plain text on the server.  
 #
     # true|false If true, allow access to the PDP API whenever a client authenticates using 
-    # am API_KEY header.
+    # am Authorization Bearer header.
     allowApiKeyAuth: false
     # list of API keys
     allowedApiKeys:
@@ -139,7 +139,7 @@ io.sapl:
 #               More complex authentication process for client application.  
 #
     # true|false If true, allow access to the PDP API whenever a client authenticates using 
-    # am API_KEY header.
+    # am Authorization Bearer header.
     allowOauth2Auth: false
 # Setup Spring OAuth2 Resource Server.
 # Also refer to: https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html 

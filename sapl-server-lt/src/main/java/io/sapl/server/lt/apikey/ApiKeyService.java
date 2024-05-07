@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.server.lt.apikey;
 
 import io.netty.buffer.ByteBuf;
@@ -21,9 +38,10 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ApiKeyService {
     private final SAPLServerLTProperties pdpProperties;
-    private final PasswordEncoder passwordEncoder;
-    private final String rsocketApiKeyMimeTypeValue = String.valueOf(MimeType.valueOf("messaging/Bearer"));
-    private final CacheManager cacheManager;
+    private final PasswordEncoder        passwordEncoder;
+    private final String                 rsocketApiKeyMimeTypeValue = String
+            .valueOf(MimeType.valueOf("messaging/Bearer"));
+    private final CacheManager           cacheManager;
 
     /**
      * Lookup authentication token in cache.
@@ -31,16 +49,18 @@ public class ApiKeyService {
      * @param apiKey api key
      */
     private Mono<Authentication> checkApiKey(final String apiKey) {
-        var cache = cacheManager.getCache("ApiKeyCache");
-        var cacheEntry = cache.get(apiKey);
-        if (cacheEntry != null){
-            return Mono.just(new ApiKeyAuthenticationToken((String) cacheEntry.get()));
-        } else {
-            for (var encodedApiKey : pdpProperties.getAllowedApiKeys()) {
-                log.debug("checking ApiKey against encoded ApiKey: " + encodedApiKey);
-                if (passwordEncoder.matches(apiKey, encodedApiKey)) {
-                    cache.put(apiKey, encodedApiKey);
-                    return Mono.just(new ApiKeyAuthenticationToken(encodedApiKey));
+        var cache      = cacheManager.getCache("ApiKeyCache");
+        if ( cache != null ) {
+            var cacheEntry = cache.get(apiKey);
+            if (cacheEntry != null) {
+                return Mono.just(new ApiKeyAuthenticationToken((String) cacheEntry.get()));
+            } else {
+                for (var encodedApiKey : pdpProperties.getAllowedApiKeys()) {
+                    log.debug("checking ApiKey against encoded ApiKey: " + encodedApiKey);
+                    if (passwordEncoder.matches(apiKey, encodedApiKey)) {
+                        cache.put(apiKey, encodedApiKey);
+                        return Mono.just(new ApiKeyAuthenticationToken(encodedApiKey));
+                    }
                 }
             }
         }
@@ -51,18 +71,14 @@ public class ApiKeyService {
         return exchange -> Mono.justOrEmpty(exchange)
                 .flatMap(serverWebExchange -> Mono
                         .justOrEmpty(serverWebExchange.getRequest().getHeaders().get("Authorization")))
-                        .map(headerValues -> headerValues
-                        .stream()
-                        .filter(x -> x.startsWith("Bearer sapl_"))
-                        .map(x -> x.replaceFirst("^Bearer ", ""))
-                        .findFirst())
-                .filter(Optional::isPresent)
-                .flatMap(apiKey -> checkApiKey(apiKey.get()));
+                .map(headerValues -> headerValues.stream().filter(x -> x.startsWith("Bearer sapl_"))
+                        .map(x -> x.replaceFirst("^Bearer ", "")).findFirst())
+                .filter(Optional::isPresent).flatMap(apiKey -> checkApiKey(apiKey.get()));
     }
 
     public PayloadExchangeAuthenticationConverter getRsocketApiKeyAuthenticationConverter() {
         return exchange -> {
-            ByteBuf metadata = exchange.getPayload().metadata();
+            ByteBuf           metadata          = exchange.getPayload().metadata();
             CompositeMetadata compositeMetadata = new CompositeMetadata(metadata, false);
             for (CompositeMetadata.Entry entry : compositeMetadata) {
                 if (rsocketApiKeyMimeTypeValue.equals(entry.getMimeType())) {

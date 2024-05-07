@@ -62,9 +62,9 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private final ApiKeyService apiKeyService;
+    private final ApiKeyService          apiKeyService;
     private final SAPLServerLTProperties pdpProperties;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder        passwordEncoder;
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:#{null}}")
     private String jwtIssuerURI;
@@ -138,7 +138,6 @@ public class SecurityConfiguration {
         var client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
         return new MapReactiveUserDetailsService(client);
     }
-
 
     /**
      * The RSocketMessageHandler Bean (rsocketMessageHandler), activates parts of
@@ -215,8 +214,7 @@ public class SecurityConfiguration {
         if (pdpProperties.isAllowApiKeyAuth()) {
             ReactiveAuthenticationManager    manager           = new ApiKeyReactiveAuthenticationManager();
             AuthenticationPayloadInterceptor apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
-            apikeyInterceptor
-                    .setAuthenticationConverter(apiKeyService.getRsocketApiKeyAuthenticationConverter());
+            apikeyInterceptor.setAuthenticationConverter(apiKeyService.getRsocketApiKeyAuthenticationConverter());
             apikeyInterceptor.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
             security.addPayloadInterceptor(apikeyInterceptor);
         }

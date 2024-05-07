@@ -204,9 +204,8 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
         }
 
         public RemoteHttpPolicyDecisionPointBuilder apiKey(String apikey) {
-            setApplyAuthenticationFunction(builder -> builder.defaultHeaders(
-                    header -> header.add("Authorization", "Bearer " + apikey)
-            ));
+            setApplyAuthenticationFunction(
+                    builder -> builder.defaultHeaders(header -> header.add("Authorization", "Bearer " + apikey)));
             return this;
         }
 

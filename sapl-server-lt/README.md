@@ -252,7 +252,7 @@ Take note of the plain text of the secret as it will not be stored. Also make su
 
 In SAPL Server LT, API keys are a way of managing more than one client application with individual secrets.
 
-Each client is assigned to an individual API key and can authenticate by providing the following HTTP header: `API_KEY: <API KEY>`. For example: `API_KEY: phsNZdvQAFX9P2jgGzq9TrzUecQhsnHc`.
+Each client is assigned to an individual API key and can authenticate by providing the following HTTP header: `Authorization: Bearer <API KEY>`. For example: `Authorization Bearer sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j`.
 
 **Use Case:** Managing multiple clients with high traffic and low latency requirements.
 
@@ -277,8 +277,9 @@ This will print the pair to the console. Doing so will not start up an instance 
 Example Output:
 
 ```
-17:33:04.474 [main] INFO io.sapl.server.lt.SAPLServerLTApplication -- Generating new API Key...
-17:33:04.536 [main] INFO io.sapl.server.lt.SAPLServerLTApplication -- API key: h.a.2wOojs6K'qhHip6X$,1kU8vH')UK
+23:58:04.892 [main] INFO io.sapl.server.lt.SAPLServerLTApplication -- Generating new API Key...
+23:58:05.017 [main] INFO io.sapl.server.lt.SAPLServerLTApplication -- ApiKey Plaintext: sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
+23:58:05.253 [main] INFO io.sapl.server.lt.SAPLServerLTApplication -- ApiKey Encoded  : $argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k
 ```
 
 The new API key can now be added in the configuration. If you want to test whether access via the API key works, you can use the following command:
@@ -286,25 +287,25 @@ The new API key can now be added in the configuration. If you want to test wheth
 CMD
 
 ```
-curl -k -X POST -H "API_KEY: <API Key>" -H "Content-Type: application/json" -d "{\"subject\":\"WILLI\",\"action\":\"read\",\"resource\":\"something\"}" https://localhost:8443/api/pdp/decide-once
+curl -k -X POST -H "Authorization: Bearer <API Key>" -H "Content-Type: application/json" -d "{\"subject\":\"WILLI\",\"action\":\"read\",\"resource\":\"something\"}" https://localhost:8443/api/pdp/decide-once
 ```
 
 PowerShell (Invoke-WebRequest)
 
 ```
-Invoke-WebRequest -Uri "https://localhost:8443/api/pdp/decide-once" -Method Post -Headers @{"API_KEY"="<API Key>";"Content-Type"="application/json"} -Body '{"subject":"WILLI","action":"read","resource":"something"}'
+Invoke-WebRequest -Uri "https://localhost:8443/api/pdp/decide-once" -Method Post -Headers @{"Authorization"="Bearer <API Key>";"Content-Type"="application/json"} -Body '{"subject":"WILLI","action":"read","resource":"something"}'
 ```
 
 PowerShell (curl)
 
 ```
-curl.exe -k -X POST -H 'API_KEY: <API Key>' -H 'Content-Type: application/json' -d '{\"subject\":\"WILLI\",\"action\":\"read\",\"resource\":\"something\"}' https://localhost:8443/api/pdp/decide-once
+curl.exe -k -X POST -H 'Authorization: Bearer <API Key>' -H 'Content-Type: application/json' -d '{\"subject\":\"WILLI\",\"action\":\"read\",\"resource\":\"something\"}' https://localhost:8443/api/pdp/decide-once
 ```
 
 Bash
 
 ```
-curl -k -X POST -H "API_KEY: <API Key>" -H "Content-Type: application/json" -d '{"subject":"WILLI","action":"read","resource":"something"}' https://localhost:8443/api/pdp/decide
+curl -k -X POST -H "Authorization: Bearer <API Key>" -H "Content-Type: application/json" -d '{"subject":"WILLI","action":"read","resource":"something"}' https://localhost:8443/api/pdp/decide
 ```
 
 You should receive something like this:
