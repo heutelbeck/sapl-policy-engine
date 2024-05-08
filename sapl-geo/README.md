@@ -28,11 +28,11 @@ You can use the "within" function from the GeoFunctions-library to check if the 
 ```
 permit
 where
-  var response = <geo.traccar({"user":"TraccarUser", "password":"123Secret", "server":"123.45.67.1:8082", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
-  var pos = response.position;
-  var fence = response.geoFences[0].area;
-  var res = geoFunctions.within(pos, fence);
-  res == true;
+  var positionAndGeoFences = <geo.traccar({"user":"TraccarUser", "password":"123Secret", "server":"123.45.67.1:8082", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
+  var position = positionAndGeoFences.position;
+  var geofence = positionAndGeoFences.geoFences[0].area;
+  var positionIsInsideOfGeofence = geoFunctions.within(position, geofence);
+  positionIsInsideOfGeofence;
 ```
 
 #### Parameters
