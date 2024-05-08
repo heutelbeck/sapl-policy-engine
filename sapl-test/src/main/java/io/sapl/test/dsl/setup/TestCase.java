@@ -51,13 +51,13 @@ public final class TestCase implements TestNode, Runnable {
     public static TestCase from(final StepConstructor stepConstructor, final Requirement requirement, Scenario scenario,
             Map<ImportType, Map<String, Object>> fixtureRegistrations) {
         if (stepConstructor == null || requirement == null || scenario == null) {
-            throw new SaplTestException("StepConstructor or testSuite or testCase is null");
+            throw new SaplTestException("StepConstructor or Requirement or Scenario is null");
         }
 
         final var name = scenario.getName();
 
         if (name == null) {
-            throw new SaplTestException("Name of the test case is null");
+            throw new SaplTestException("Name of the scenario is null");
         }
 
         final var requirementGiven = requirement.getGiven();

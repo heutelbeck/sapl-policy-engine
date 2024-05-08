@@ -141,7 +141,7 @@ class TestCaseTests {
         final var exception = assertThrows(SaplTestException.class,
                 () -> TestCase.from(null, requirementMock, scenarioMock, null));
 
-        assertEquals("StepConstructor or testSuite or testCase is null", exception.getMessage());
+        assertEquals("StepConstructor or Requirement or Scenario is null", exception.getMessage());
     }
 
     @Test
@@ -149,7 +149,7 @@ class TestCaseTests {
         final var exception = assertThrows(SaplTestException.class,
                 () -> TestCase.from(stepConstructorMock, null, scenarioMock, null));
 
-        assertEquals("StepConstructor or testSuite or testCase is null", exception.getMessage());
+        assertEquals("StepConstructor or Requirement or Scenario is null", exception.getMessage());
     }
 
     @Test
@@ -157,14 +157,14 @@ class TestCaseTests {
         final var exception = assertThrows(SaplTestException.class,
                 () -> TestCase.from(stepConstructorMock, requirementMock, null, null));
 
-        assertEquals("StepConstructor or testSuite or testCase is null", exception.getMessage());
+        assertEquals("StepConstructor or Requirement or Scenario is null", exception.getMessage());
     }
 
     @Test
     void from_withStepConstructorAndRequirementAndScenarioBeingNull_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class, () -> TestCase.from(null, null, null, null));
 
-        assertEquals("StepConstructor or testSuite or testCase is null", exception.getMessage());
+        assertEquals("StepConstructor or Requirement or Scenario is null", exception.getMessage());
     }
 
     @Test
@@ -173,7 +173,7 @@ class TestCaseTests {
 
         final var exception = assertThrows(SaplTestException.class, () -> TestCase.from(stepConstructorMock, requirementMock, scenarioMock, null));
 
-        assertEquals("Name of the test case is null", exception.getMessage());
+        assertEquals("Name of the scenario is null", exception.getMessage());
     }
 
     @Test
