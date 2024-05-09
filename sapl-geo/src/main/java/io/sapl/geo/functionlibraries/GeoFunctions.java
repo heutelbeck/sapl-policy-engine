@@ -22,7 +22,6 @@ import javax.naming.OperationNotSupportedException;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.GeodeticCalculator;
-import org.locationtech.jts.algorithm.MinimumBoundingCircle;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -32,7 +31,6 @@ import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.spatial4j.distance.DistanceUtils;
-import org.geotools.api.referencing.NoSuchAuthorityCodeException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.TransformException;
@@ -238,9 +236,6 @@ public class GeoFunctions {
 
     public Val buffer(@JsonObject JsonNode jsonGeometry, @Number Double buffer) throws ParseException {
 
-        var a = GeometryConverter
-                .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString()).buffer(buffer));
-
         return GeometryConverter
                 .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString()).buffer(buffer));
     }
@@ -411,7 +406,7 @@ public class GeoFunctions {
     }
 
     public double geoDistance(JsonNode jsonGeometryThis, JsonNode jsonGeometryThat, String coordinateReferenceSystem)
-            throws ParseException, NoSuchAuthorityCodeException, FactoryException, TransformException {
+            throws ParseException, FactoryException, TransformException {
         return geodesicDistance(jsonGeometryThis, jsonGeometryThat, coordinateReferenceSystem);
 
     }

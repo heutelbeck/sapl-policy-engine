@@ -45,7 +45,6 @@ public class MySqlPolicyInformationPoint {
     @Attribute(name = "geometry")
     public Flux<Val> geometry(Val leftHandValue, Map<String, Val> auth, @JsonObject Val variables) {
 
-        var a = leftHandValue;
         return new MySqlConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(),variables.get(), mapper)
                 .connect(variables.get());
 

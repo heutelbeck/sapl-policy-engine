@@ -18,23 +18,13 @@
 package com.example.demo;
 
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.geo.functionlibraries.GeoConverter;
 import io.sapl.geo.functionlibraries.GeoFunctions;
-import io.sapl.geo.functions.GmlConverter;
-import io.sapl.geo.functions.WktConverter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointFactory;
@@ -42,11 +32,7 @@ import io.sapl.server.GeoPolicyInformationPoint;
 import io.sapl.server.MySqlPolicyInformationPoint;
 import io.sapl.server.PostGisPolicyInformationPoint;
 import picocli.CommandLine.Option;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.List;
 
 @Component
@@ -54,9 +40,9 @@ public class Client implements ApplicationListener<ApplicationReadyEvent> {
 
 	
 	//private final  AtomicInteger MESSAGE_ID = new AtomicInteger(0);
-	private final  Logger logger = LoggerFactory.getLogger(Client.class);
-    @Autowired
-    private ConfigurableApplicationContext applicationContext;
+	//private final  Logger logger = LoggerFactory.getLogger(Client.class);
+    //@Autowired
+    //private ConfigurableApplicationContext applicationContext;
     private static final ObjectMapper MAPPER = new ObjectMapper();
     final String resourceDirectory = Paths.get("src","main","resources").toFile().getAbsolutePath();
     
@@ -97,7 +83,7 @@ public class Client implements ApplicationListener<ApplicationReadyEvent> {
 						() -> List.of(new GeoFunctions(), new GeoConverter()), 
 						List::of);
 			} catch (InitializationException e) {
-				// TODO Auto-generated catch block
+
 				e.printStackTrace();
 			}
 		}
@@ -124,37 +110,37 @@ public class Client implements ApplicationListener<ApplicationReadyEvent> {
 
 		var user1 = new User("username", 1);
 		var authzSubscription1 = AuthorizationSubscription.of(user1, "login", "1");
-		
-		var sub = pdp.decideTraced(authzSubscription1).doOnNext(decision -> System.out.println("Decision Test1 allow: "+ decision.getAuthorizationDecision()))
-		.doOnNext(d-> System.out.println("Decision Test1 allow: " + d.getTrace().toPrettyString() + "---" + d.getAuthorizationDecision()))
-		.subscribe();
-
-//    	 Mono
-//         .delay(Duration.ofSeconds(30))
-//         .publishOn(Schedulers.boundedElastic())
-//         .subscribe(value -> {
-//             //socket.disconnect();
-//        	 //pip.disconnectTraccar(1);
-//             SpringApplication.exit(applicationContext, () -> 0);
-//         });
-		
-		try {
-			Thread.sleep(40000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if(pdp != null) {
+			var sub = pdp.decideTraced(authzSubscription1).doOnNext(decision -> System.out.println("Decision Test1 allow: "+ decision.getAuthorizationDecision()))
+			.doOnNext(d-> System.out.println("Decision Test1 allow: " + d.getTrace().toPrettyString() + "---" + d.getAuthorizationDecision()))
+			.subscribe();
+			
+	//    	 Mono
+	//         .delay(Duration.ofSeconds(30))
+	//         .publishOn(Schedulers.boundedElastic())
+	//         .subscribe(value -> {
+	//             //socket.disconnect();
+	//        	 //pip.disconnectTraccar(1);
+	//             SpringApplication.exit(applicationContext, () -> 0);
+	//         });
+			
+			try {
+				Thread.sleep(40000);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				e.printStackTrace();
+			}
+		 
+			sub.dispose();
+			
+			try {
+				Thread.sleep(20000);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				e.printStackTrace();
+			}
+			
+			System.out.println("End");
 		}
-	 
-		sub.dispose();
-		
-		try {
-			Thread.sleep(20000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		System.out.println("End");
-	 }
-	
+	}
 }
