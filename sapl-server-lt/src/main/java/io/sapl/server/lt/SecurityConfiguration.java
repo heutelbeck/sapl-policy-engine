@@ -39,6 +39,7 @@ import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpec;
 import org.springframework.security.config.web.server.ServerHttpSecurity.FormLoginSpec;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -47,11 +48,14 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders;
 import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtReactiveAuthenticationManager;
+import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.rsocket.authentication.AuthenticationPayloadExchangeConverter;
 import org.springframework.security.rsocket.authentication.AuthenticationPayloadInterceptor;
 import org.springframework.security.rsocket.core.PayloadSocketAcceptorInterceptor;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -109,7 +113,18 @@ public class SecurityConfiguration {
                 throw new IllegalStateException(
                         "If JWT authentication is active, a token issuer must be supplied. Please set: 'spring.security.oauth2.resourceserver.jwt.issuer-uri'.");
             }
-            http = http.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+            http = http.oauth2ResourceServer(
+                    oauth2 -> oauth2.bearerTokenConverter(new ServerBearerTokenAuthenticationConverter() {
+                        @Override
+                        public Mono<Authentication> convert(ServerWebExchange exchange) {
+                            var authorization = exchange.getRequest().getHeaders().getFirst("Authorization");
+                            if (authorization != null && authorization.startsWith("Bearer sapl_")) {
+                                // This Bearer token is used for sapl api key authentication
+                                return Mono.empty();
+                            }
+                            return super.convert(exchange);
+                        }
+                    }).jwt(Customizer.withDefaults()));
         }
 
         return http.formLogin(FormLoginSpec::disable).build();

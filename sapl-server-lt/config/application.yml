@@ -145,7 +145,7 @@ io.sapl:
 # Also refer to: https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html 
 spring.security.oauth2:
       resourceserver:
-         jwt.issuer-uri: http://auth-server:9000
+         jwt.issuer-uri: http://auth-host:32769/default
 
 #
 # Setup paths for PDP configuration and SAPL documents. I.e. policies and policy sets.

@@ -31,7 +31,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.MimeType;
 import reactor.core.publisher.Mono;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -49,8 +48,8 @@ public class ApiKeyService {
      * @param apiKey api key
      */
     private Mono<Authentication> checkApiKey(final String apiKey) {
-        var cache      = cacheManager.getCache("ApiKeyCache");
-        if ( cache != null ) {
+        var cache = cacheManager.getCache("ApiKeyCache");
+        if (cache != null) {
             var cacheEntry = cache.get(apiKey);
             if (cacheEntry != null) {
                 return Mono.just(new ApiKeyAuthenticationToken((String) cacheEntry.get()));
@@ -68,12 +67,15 @@ public class ApiKeyService {
     }
 
     public ServerAuthenticationConverter getHttpApiKeyAuthenticationConverter() {
-        return exchange -> Mono.justOrEmpty(exchange)
-                .flatMap(serverWebExchange -> Mono
-                        .justOrEmpty(serverWebExchange.getRequest().getHeaders().get("Authorization")))
-                .map(headerValues -> headerValues.stream().filter(x -> x.startsWith("Bearer sapl_"))
-                        .map(x -> x.replaceFirst("^Bearer ", "")).findFirst())
-                .filter(Optional::isPresent).flatMap(apiKey -> checkApiKey(apiKey.get()));
+        return exchange -> {
+            var authorization = exchange.getRequest().getHeaders().getFirst("Authorization");
+            if (authorization != null && authorization.startsWith("Bearer sapl_")) {
+                var apiKeyToken = authorization.replaceFirst("^Bearer ", "");
+                return checkApiKey(apiKeyToken);
+            } else {
+                return Mono.empty();
+            }
+        };
     }
 
     public PayloadExchangeAuthenticationConverter getRsocketApiKeyAuthenticationConverter() {
