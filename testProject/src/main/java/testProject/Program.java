@@ -137,7 +137,12 @@ public class Program {
                 "password":"Aig1979.",
             	"server":"localhost",
             	"port": 5432,
-            	"dataBase":"nyc",
+            	"dataBase":"nyc"
+            }
+            """;
+        
+        var pgauth =  """
+                {
             	"table":"geometries",
             	"geoColumn":"geom",
             	"responseFormat":"GEOJSON",
@@ -152,7 +157,7 @@ public class Program {
         var node = Val.ofJson(pg).get();
         
         
-        var postgis = new PostGisConnection(node, mapper).connect(node);
+        var postgis = new PostGisConnection(Val.ofJson(pgauth).get(), Val.ofJson(pg).get(), mapper).connect(node);
 //        var dis = postgis.subscribe(
 //	      		 content ->{ 
 //    			 

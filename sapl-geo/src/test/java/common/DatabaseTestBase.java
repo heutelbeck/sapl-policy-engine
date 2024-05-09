@@ -27,22 +27,19 @@ public abstract class DatabaseTestBase {
             "user":"%s",
             "password":"%s",
         	"server":"%s",
-        	"port": %s
+        	"port": %s,
+        	"dataBase":"%s",
         	}       	
         """;
 	
     protected String template1 = """
                      {
-                     "user":"%s",
-                     "password":"%s",
-                 	"server":"%s",
-                 	"port": %s,
-                 	"dataBase":"%s",
+                 	
             "responseFormat":"GEOJSON",
-                 	"defaultCRS": 4326,
-                 	"pollingIntervalMs":1000,
-                 	"repetitions":2
-                 """;
+            "defaultCRS": 4326,
+            "pollingIntervalMs":1000,
+            "repetitions":2
+        """;
 
     protected String tmpAll1 = ("""
                 ,

@@ -39,7 +39,7 @@ public class MySqlConnection extends DatabaseConnection {
 
         connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
                 .username(getUser(auth)).password(getPassword(auth)).host(getServer(auth))
-                .port(getPort(auth)).database(getDataBase(settings)).serverZoneId(ZoneId.of("UTC")).build());
+                .port(getPort(auth)).database(getDataBase(auth)).serverZoneId(ZoneId.of("UTC")).build());
 
     }
 

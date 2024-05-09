@@ -36,7 +36,7 @@ public class PostGisConnection extends DatabaseConnection {
         super(mapper);
         connectionFactory = new PostgresqlConnectionFactory(
                 PostgresqlConnectionConfiguration.builder().username(getUser(auth)).password(getPassword(auth))
-                        .host(getServer(auth)).port(getPort(auth)).database(getDataBase(settings)).build());
+                        .host(getServer(auth)).port(getPort(auth)).database(getDataBase(auth)).build());
 
     }
 

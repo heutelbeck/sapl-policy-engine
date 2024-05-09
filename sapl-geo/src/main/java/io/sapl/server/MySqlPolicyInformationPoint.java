@@ -18,15 +18,13 @@
 package io.sapl.server;
 
 import java.util.Map;
-
 import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.validation.JsonObject;
 import io.sapl.geo.connection.mysql.MySqlConnection;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -45,7 +43,7 @@ public class MySqlPolicyInformationPoint {
     private static final String MYSQL_DEFAULT_CONFIG = "MYSQL_DEFAULT_CONFIG";
 
     @Attribute(name = "geometry")
-    public Flux<Val> geometry(Val leftHandValue, Map<String, Val> auth,  Val variables) {
+    public Flux<Val> geometry(Val leftHandValue, Map<String, Val> auth, @JsonObject Val variables) {
 
         var a = leftHandValue;
         return new MySqlConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(),variables.get(), mapper)
@@ -54,7 +52,7 @@ public class MySqlPolicyInformationPoint {
     }
 
     @Attribute(name = "geometry")
-    public Flux<Val> geometry(Val leftHandValue, Val auth,  Val variables) {
+    public Flux<Val> geometry(Val leftHandValue, @JsonObject Val auth, @JsonObject Val variables) {
 
         return new MySqlConnection(auth.get(),variables.get(), mapper)
                 .connect(variables.get());
@@ -62,7 +60,7 @@ public class MySqlPolicyInformationPoint {
     }
     
     @EnvironmentAttribute(name = "geometry")
-    public Flux<Val> geometry(Map<String, Val> auth, Val variables) {
+    public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
 
         return new MySqlConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(),variables.get(), mapper)
                 .connect(variables.get());
@@ -70,7 +68,7 @@ public class MySqlPolicyInformationPoint {
     }
     
     @EnvironmentAttribute(name = "geometry")
-    public Flux<Val> geometry(Val auth, Val variables) {
+    public Flux<Val> geometry(@JsonObject Val auth, @JsonObject Val variables) {
 
         return new MySqlConnection(auth.get(), variables.get(), mapper)
                 .connect(variables.get());
