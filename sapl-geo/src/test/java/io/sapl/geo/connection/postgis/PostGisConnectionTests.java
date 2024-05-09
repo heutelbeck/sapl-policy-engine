@@ -21,52 +21,21 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import common.DatabaseTestBase;
-import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
-import io.r2dbc.postgresql.PostgresqlConnectionFactory;
+import common.PostgisTestBase;
 import io.sapl.api.interpreter.Val;
 import reactor.test.StepVerifier;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
-class PostGisConnectionTests extends DatabaseTestBase {
-
-    private String tmpAll;
-    private String tmpPoint;
-    private String template;
-    private String authTemp;
-    
-    @Container
-    private static final PostgreSQLContainer<?> postgisContainer = new PostgreSQLContainer<>(
-            DockerImageName.parse("postgis/postgis:16-3.4-alpine").asCompatibleSubstituteFor("postgres"))
-            .withUsername("test").withPassword("test").withDatabaseName("test");
+class PostGisConnectionTests extends PostgisTestBase {
 
     @BeforeAll
     void setUp() throws Exception {
 
-    	authTemp= String.format(authenticationTemplate, postgisContainer.getUsername(), postgisContainer.getPassword(), postgisContainer.getHost(), postgisContainer.getMappedPort(5432));
-
-        template = String.format(template1, postgisContainer.getUsername(), postgisContainer.getPassword(),
-                postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
-
-        tmpAll = template.concat(tmpAll1);
-
-        tmpPoint = template.concat(tmpPoint1);
-
-        var connectionFactory = new PostgresqlConnectionFactory(
-                PostgresqlConnectionConfiguration.builder().host(postgisContainer.getHost())
-                        .port(postgisContainer.getMappedPort(5432)).database(postgisContainer.getDatabaseName())
-                        .username(postgisContainer.getUsername()).password(postgisContainer.getPassword()).build());
-
-        createTable(connectionFactory);
-        insert(connectionFactory);
+        commonSetUp();
     }
 
     @Test
@@ -76,7 +45,8 @@ class PostGisConnectionTests extends DatabaseTestBase {
 
         var exp = Val.ofJson(expAll);
 
-        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(),Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
+        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
+                .connect(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
@@ -86,7 +56,8 @@ class PostGisConnectionTests extends DatabaseTestBase {
         var str = String.format(tmpPoint, "geometries", "geom");
 
         var exp     = Val.ofJson(expPt);
-        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
+        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
+                .connect(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
@@ -96,7 +67,8 @@ class PostGisConnectionTests extends DatabaseTestBase {
         var str = String.format(tmpAll, "geographies", "geog");
 
         var exp     = Val.ofJson(expAll);
-        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
+        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
+                .connect(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
@@ -106,7 +78,8 @@ class PostGisConnectionTests extends DatabaseTestBase {
         var str = String.format(tmpPoint, "geographies", "geog");
 
         var exp     = Val.ofJson(expPt);
-        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
+        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
+                .connect(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
@@ -115,7 +88,8 @@ class PostGisConnectionTests extends DatabaseTestBase {
 
         var str = String.format(tmpPoint, "nonExistant", "geog");
 
-        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
+        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
+                .connect(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectError();
     }
 

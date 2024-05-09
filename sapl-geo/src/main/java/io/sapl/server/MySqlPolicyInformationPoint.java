@@ -45,7 +45,7 @@ public class MySqlPolicyInformationPoint {
     @Attribute(name = "geometry")
     public Flux<Val> geometry(Val leftHandValue, Map<String, Val> auth, @JsonObject Val variables) {
 
-        return new MySqlConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(),variables.get(), mapper)
+        return new MySqlConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(), variables.get(), mapper)
                 .connect(variables.get());
 
     }
@@ -53,24 +53,22 @@ public class MySqlPolicyInformationPoint {
     @Attribute(name = "geometry")
     public Flux<Val> geometry(Val leftHandValue, @JsonObject Val auth, @JsonObject Val variables) {
 
-        return new MySqlConnection(auth.get(),variables.get(), mapper)
-                .connect(variables.get());
+        return new MySqlConnection(auth.get(), variables.get(), mapper).connect(variables.get());
 
     }
-    
+
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
 
-        return new MySqlConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(),variables.get(), mapper)
+        return new MySqlConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(), variables.get(), mapper)
                 .connect(variables.get());
 
     }
-    
+
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(@JsonObject Val auth, @JsonObject Val variables) {
 
-        return new MySqlConnection(auth.get(), variables.get(), mapper)
-                .connect(variables.get());
+        return new MySqlConnection(auth.get(), variables.get(), mapper).connect(variables.get());
 
     }
 

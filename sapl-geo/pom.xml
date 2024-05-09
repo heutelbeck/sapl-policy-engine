@@ -197,6 +197,11 @@
 			<artifactId>mockwebserver</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-pdp-embedded</artifactId>
+			<scope>test</scope>
+		</dependency>
 		
 		<dependency>
 			<groupId>org.slf4j</groupId>

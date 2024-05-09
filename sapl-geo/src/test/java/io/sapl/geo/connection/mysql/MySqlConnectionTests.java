@@ -17,60 +17,26 @@
  */
 package io.sapl.geo.connection.mysql;
 
-import java.time.ZoneId;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import common.DatabaseTestBase;
-import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
-import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
+import common.MySqlTestBase;
 import io.sapl.api.interpreter.Val;
 
 import reactor.test.StepVerifier;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
-class MySqlConnectionTests extends DatabaseTestBase {
-
-    private String tmpAll;
-    private String tmpPoint;
-    private String template;
-    private String authTemp;
-    
-    @Container
-    private static final MySQLContainer<?> mySqlContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.2.0")) // 8.3.0
-                                                                                                                       // is
-                                                                                                                       // buggy
-            .withUsername("test").withPassword("test").withDatabaseName("test");
+class MySqlConnectionTests extends MySqlTestBase {
 
     @BeforeAll
     void setUp() throws Exception {
 
-    	authTemp= String.format(authenticationTemplate, mySqlContainer.getUsername(), mySqlContainer.getPassword(), mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306));
-        template = String.format(template1, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
-                mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
-
-        tmpAll = template.concat(tmpAll1);
-
-        tmpPoint = template.concat(tmpPoint1);
-
-        var connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
-                .username(mySqlContainer.getUsername()).password(mySqlContainer.getPassword())
-                .host(mySqlContainer.getHost()).port(mySqlContainer.getMappedPort(3306))
-                .database(mySqlContainer.getDatabaseName()).serverZoneId(ZoneId.of("UTC")).build());
-
-        createTable(connectionFactory);
-        insert(connectionFactory);
+        commonSetUp();
     }
 
     @Test
@@ -79,7 +45,8 @@ class MySqlConnectionTests extends DatabaseTestBase {
         var str = String.format(tmpAll, "geometries", "geom");
 
         var exp   = Val.ofJson(expAll);
-        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
+        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
+                .connect(Val.ofJson(str).get());
         StepVerifier.create(mysql).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
@@ -90,7 +57,8 @@ class MySqlConnectionTests extends DatabaseTestBase {
 
         var exp = Val.ofJson(expPt);
 
-        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(),Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
+        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
+                .connect(Val.ofJson(str).get());
         StepVerifier.create(mysql).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
@@ -108,7 +76,8 @@ class MySqlConnectionTests extends DatabaseTestBase {
                 """);
         var str = String.format(tmp, "nonExistant", "geog");
 
-        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
+        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
+                .connect(Val.ofJson(str).get());
         StepVerifier.create(mysql).expectError();
     }
 

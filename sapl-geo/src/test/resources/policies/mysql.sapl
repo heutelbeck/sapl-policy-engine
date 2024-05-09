@@ -1,0 +1,9 @@
+policy "mysql"
+permit
+where
+  var position = <mySql.geometry({"user":"mane", "password":"Aig1979.", "server":"localhost", "port": 3306, "dataBase":"test"}, "table":"position", "geoColumn":"geom", "responseFormat":"GEOJSON", "singleResult": true, "where": "name = 'point'"})>.geo;
+  var fences = <mySql.geometry({"user":"mane", "password":"Aig1979.", "server":"localhost", "port": 3306, "dataBase":"test"}, "table":"fences", "geoColumn":"geom", "responseFormat":"GEOJSON", "where": "name = 'polygon'"})>;
+  var fence = fences[0].geo;
+  var res = geoFunctions.within(pos, fence);
+  res == true;
+  

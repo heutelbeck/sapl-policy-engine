@@ -1,0 +1,11 @@
+{
+  "algorithm": "DENY_OVERRIDES",
+  "variables": {"MYSQL_DEFAULT_CONFIG": 
+	{
+		"user":"test",
+		"password":"test",
+		"server":"localhost",
+		"port": 3306
+	}  
+  }
+}

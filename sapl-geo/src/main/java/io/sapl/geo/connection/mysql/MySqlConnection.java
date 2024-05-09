@@ -37,9 +37,9 @@ public class MySqlConnection extends DatabaseConnection {
     public MySqlConnection(JsonNode auth, JsonNode settings, ObjectMapper mapper) {
         super(mapper);
 
-        connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
-                .username(getUser(auth)).password(getPassword(auth)).host(getServer(auth))
-                .port(getPort(auth)).database(getDataBase(auth)).serverZoneId(ZoneId.of("UTC")).build());
+        connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))
+                .password(getPassword(auth)).host(getServer(auth)).port(getPort(auth)).database(getDataBase(auth))
+                .serverZoneId(ZoneId.of("UTC")).build());
 
     }
 

@@ -22,24 +22,29 @@ import reactor.core.publisher.Mono;
 
 public abstract class DatabaseTestBase {
 
-	protected String authenticationTemplate = """
-            {
-            "user":"%s",
-            "password":"%s",
-        	"server":"%s",
-        	"port": %s,
-        	"dataBase":"%s",
-        	}       	
-        """;
-	
+    protected String tmpAll;
+    protected String tmpPoint;
+    protected String template;
+    protected String authTemp;
+
+    protected String authenticationTemplate = """
+                {
+                "user":"%s",
+                "password":"%s",
+            	"server":"%s",
+            	"port": %s,
+            	"dataBase":"%s"
+            	}
+            """;
+
     protected String template1 = """
-                     {
-                 	
-            "responseFormat":"GEOJSON",
-            "defaultCRS": 4326,
-            "pollingIntervalMs":1000,
-            "repetitions":2
-        """;
+                         {
+
+                "responseFormat":"GEOJSON",
+                "defaultCRS": 4326,
+                "pollingIntervalMs":1000,
+                "repetitions":2
+            """;
 
     protected String tmpAll1 = ("""
                 ,
