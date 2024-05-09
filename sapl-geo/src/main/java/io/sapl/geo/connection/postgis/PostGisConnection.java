@@ -31,12 +31,12 @@ public class PostGisConnection extends DatabaseConnection {
      * @param settings a {@link JsonNode} containing the settings
      * @param mapper   a {@link ObjectMapper}
      */
-    public PostGisConnection(JsonNode settings, ObjectMapper mapper) {
+    public PostGisConnection(JsonNode auth, JsonNode settings, ObjectMapper mapper) {
 
         super(mapper);
         connectionFactory = new PostgresqlConnectionFactory(
-                PostgresqlConnectionConfiguration.builder().username(getUser(settings)).password(getPassword(settings))
-                        .host(getServer(settings)).port(getPort(settings)).database(getDataBase(settings)).build());
+                PostgresqlConnectionConfiguration.builder().username(getUser(auth)).password(getPassword(auth))
+                        .host(getServer(auth)).port(getPort(auth)).database(getDataBase(settings)).build());
 
     }
 

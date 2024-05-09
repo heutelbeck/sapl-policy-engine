@@ -43,13 +43,13 @@ public class PostGisPolicyInformationPoint {
 
     private final ObjectMapper mapper;
 
-   
+    private static final String POSTGIS_DEFAULT_CONFIG = "POSTGIS_DEFAULT_CONFIG";
 
     @Attribute(name = "geometry")
     public Flux<Val> geometry(Val leftHandValue, Map<String, Val> auth,  Val variables) {
 
         var a = leftHandValue;
-        return new PostGisConnection(variables.get(), mapper)
+        return new PostGisConnection(auth.get(POSTGIS_DEFAULT_CONFIG).get(),variables.get(), mapper)
                 .connect(variables.get());
 
     }
@@ -57,7 +57,7 @@ public class PostGisPolicyInformationPoint {
     @Attribute(name = "geometry")
     public Flux<Val> geometry(Val leftHandValue, Val auth,  Val variables) {
 
-        return new PostGisConnection(variables.get(), mapper)
+        return new PostGisConnection(auth.get(),variables.get(), mapper)
                 .connect(variables.get());
 
     }
@@ -65,7 +65,7 @@ public class PostGisPolicyInformationPoint {
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, Val variables) {
 
-        return new PostGisConnection(variables.get(), mapper)
+        return new PostGisConnection(auth.get(POSTGIS_DEFAULT_CONFIG).get(),variables.get(), mapper)
                 .connect(variables.get());
 
     }
@@ -73,9 +73,10 @@ public class PostGisPolicyInformationPoint {
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Val auth, Val variables) {
 
-        return new PostGisConnection(variables.get(), mapper)
+        return new PostGisConnection(auth.get(), variables.get(), mapper)
                 .connect(variables.get());
 
     }
+
 
 }

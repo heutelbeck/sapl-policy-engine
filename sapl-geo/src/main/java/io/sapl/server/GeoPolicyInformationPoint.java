@@ -72,18 +72,18 @@ public class GeoPolicyInformationPoint {
 
     }
 
-    @Attribute(name = "postGIS")
-    public Flux<Val> connectToPostGIS(Val leftHandValue, Val variables) {
-        return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
-
-    }
-
-    @EnvironmentAttribute(name = "postGIS")
-    public Flux<Val> connectToPostGIS(Val variables) {
-
-        return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
-
-    }
+//    @Attribute(name = "postGIS")
+//    public Flux<Val> connectToPostGIS(Val leftHandValue, Val variables) {
+//        return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
+//
+//    }
+//
+//    @EnvironmentAttribute(name = "postGIS")
+//    public Flux<Val> connectToPostGIS(Val variables) {
+//
+//        return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
+//
+//    }
 
 //    @Attribute(name = "mySQL")
 //    public Flux<Val> connectToMySQL(Val leftHandValue, Val variables) {
