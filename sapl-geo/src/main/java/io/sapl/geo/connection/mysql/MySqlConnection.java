@@ -34,12 +34,12 @@ public class MySqlConnection extends DatabaseConnection {
      * @param settings a {@link JsonNode} containing the settings
      * @param mapper   a {@link ObjectMapper}
      */
-    public MySqlConnection(JsonNode settings, ObjectMapper mapper) {
+    public MySqlConnection(JsonNode auth, JsonNode settings, ObjectMapper mapper) {
         super(mapper);
 
         connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
-                .username(getUser(settings)).password(getPassword(settings)).host(getServer(settings))
-                .port(getPort(settings)).database(getDataBase(settings)).serverZoneId(ZoneId.of("UTC")).build());
+                .username(getUser(auth)).password(getPassword(auth)).host(getServer(auth))
+                .port(getPort(auth)).database(getDataBase(settings)).serverZoneId(ZoneId.of("UTC")).build());
 
     }
 

@@ -63,6 +63,11 @@
 			<artifactId>picocli</artifactId>
 			<version>4.6.1</version>
 		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<scope>provided</scope>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.codehaus.mojo/license-maven-plugin -->
 		<dependency>
 		    <groupId>org.codehaus.mojo</groupId>

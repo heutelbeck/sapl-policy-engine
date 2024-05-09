@@ -45,7 +45,8 @@ class MySqlConnectionTests extends DatabaseTestBase {
     private String tmpAll;
     private String tmpPoint;
     private String template;
-
+    private String authTemp;
+    
     @Container
     private static final MySQLContainer<?> mySqlContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.2.0")) // 8.3.0
                                                                                                                        // is
@@ -55,6 +56,7 @@ class MySqlConnectionTests extends DatabaseTestBase {
     @BeforeAll
     void setUp() throws Exception {
 
+    	authTemp= String.format(authenticationTemplate, mySqlContainer.getUsername(), mySqlContainer.getPassword(), mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306));
         template = String.format(template1, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
 
@@ -77,7 +79,7 @@ class MySqlConnectionTests extends DatabaseTestBase {
         var str = String.format(tmpAll, "geometries", "geom");
 
         var exp   = Val.ofJson(expAll);
-        var mysql = new MySqlConnection(Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
+        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
         StepVerifier.create(mysql).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
@@ -88,7 +90,7 @@ class MySqlConnectionTests extends DatabaseTestBase {
 
         var exp = Val.ofJson(expPt);
 
-        var mysql = new MySqlConnection(Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
+        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(),Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
         StepVerifier.create(mysql).expectNext(exp).expectNext(exp).verifyComplete();
     }
 
@@ -106,7 +108,7 @@ class MySqlConnectionTests extends DatabaseTestBase {
                 """);
         var str = String.format(tmp, "nonExistant", "geog");
 
-        var mysql = new MySqlConnection(Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
+        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper()).connect(Val.ofJson(str).get());
         StepVerifier.create(mysql).expectError();
     }
 

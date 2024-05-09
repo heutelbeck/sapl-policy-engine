@@ -237,13 +237,11 @@ public class GeoFunctions {
     }
 
     public Val buffer(@JsonObject JsonNode jsonGeometry, @Number Double buffer) throws ParseException {
-        
-    	
-    	
-    	var a = GeometryConverter
+
+        var a = GeometryConverter
                 .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString()).buffer(buffer));
-    	
-    	return GeometryConverter
+
+        return GeometryConverter
                 .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString()).buffer(buffer));
     }
 

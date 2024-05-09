@@ -184,14 +184,14 @@ class GeoFunctionsTest extends TestBase {
         assertFalse(func.intersects(polygon, polygon4).getBoolean());
     }
 
-     @Test
-     void bufferTest() throws ParseException{
+    @Test
+    void bufferTest() throws ParseException {
 
-    	 var expBuffer = GeometryConverter.geometryToGeoJsonNode(po1.buffer(10.0));
-    	 
-    	 assertEquals(expBuffer,func.buffer(point1, Val.of(10.0)));
-     
-     }
+        var expBuffer = GeometryConverter.geometryToGeoJsonNode(po1.buffer(10.0));
+
+        assertEquals(expBuffer, func.buffer(point1, Val.of(10.0)));
+
+    }
 
     @Test
     void boundaryTest() {

@@ -22,6 +22,15 @@ import reactor.core.publisher.Mono;
 
 public abstract class DatabaseTestBase {
 
+	protected String authenticationTemplate = """
+            {
+            "user":"%s",
+            "password":"%s",
+        	"server":"%s",
+        	"port": %s
+        	}       	
+        """;
+	
     protected String template1 = """
                      {
                      "user":"%s",

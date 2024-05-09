@@ -39,7 +39,8 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointFactory;
 import io.sapl.server.GeoPolicyInformationPoint;
-
+import io.sapl.server.MySqlPolicyInformationPoint;
+import io.sapl.server.PostGisPolicyInformationPoint;
 import picocli.CommandLine.Option;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -90,7 +91,8 @@ public class Client implements ApplicationListener<ApplicationReadyEvent> {
 //			pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new HttpPolicyInformationPointFluxComplete(new ObjectMapper())), List::of, 
 //                    List::of,  List::of);
 			try {
-				pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new GeoPolicyInformationPoint(new ObjectMapper())),
+				pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new GeoPolicyInformationPoint(MAPPER),
+						new MySqlPolicyInformationPoint(MAPPER), new PostGisPolicyInformationPoint(MAPPER)),
 						List::of, 
 						() -> List.of(new GeoFunctions(), new GeoConverter()), 
 						List::of);
@@ -120,8 +122,8 @@ public class Client implements ApplicationListener<ApplicationReadyEvent> {
 
 		}
 
-		
-		var authzSubscription1 = AuthorizationSubscription.of("Test1", "login", "1");
+		var user1 = new User("username", 1);
+		var authzSubscription1 = AuthorizationSubscription.of(user1, "login", "1");
 		
 		var sub = pdp.decideTraced(authzSubscription1).doOnNext(decision -> System.out.println("Decision Test1 allow: "+ decision.getAuthorizationDecision()))
 		.doOnNext(d-> System.out.println("Decision Test1 allow: " + d.getTrace().toPrettyString() + "---" + d.getAuthorizationDecision()))

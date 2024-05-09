@@ -85,19 +85,19 @@ public class GeoPolicyInformationPoint {
 
     }
 
-    @Attribute(name = "mySQL")
-    public Flux<Val> connectToMySQL(Val leftHandValue, Val variables) {
-
-        return new MySqlConnection(variables.get(), new ObjectMapper()).connect(variables.get());
-
-    }
-
-    @EnvironmentAttribute(name = "mySQL")
-    public Flux<Val> connectToMySQL(Val variables) {
-
-        return new MySqlConnection(variables.get(), new ObjectMapper()).connect(variables.get());
-
-    }
+//    @Attribute(name = "mySQL")
+//    public Flux<Val> connectToMySQL(Val leftHandValue, Val variables) {
+//
+//        return new MySqlConnection(variables.get(), new ObjectMapper()).connect(variables.get());
+//
+//    }
+//
+//    @EnvironmentAttribute(name = "mySQL")
+//    public Flux<Val> connectToMySQL(Val variables) {
+//
+//        return new MySqlConnection(variables.get(), new ObjectMapper()).connect(variables.get());
+//
+//    }
 
     @Attribute(name = "file")
     public Flux<Val> loadFile(Val leftHandValue, Val variables) {
