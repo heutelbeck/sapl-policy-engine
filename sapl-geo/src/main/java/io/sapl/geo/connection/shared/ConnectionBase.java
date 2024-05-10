@@ -22,7 +22,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.pip.GeoPipResponseFormat;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class ConnectionBase {
 
     protected static final String USER                         = "user";
@@ -36,9 +39,6 @@ public abstract class ConnectionBase {
     protected static final String LATITUDE_FIRST               = "latitudeFirst";
     protected static final long   DEFAULT_POLLING_INTERVALL_MS = 1000L;
     protected static final long   DEFAULT_REPETITIONS          = Long.MAX_VALUE;
-
-//    protected ConnectionBase() {
-//    }
 
     protected static String getUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(USER)) {

@@ -17,24 +17,22 @@
  */
 package io.sapl.geo.connection.owntracks;
 
-import static org.junit.Assert.assertEquals;
-
 import java.nio.file.Paths;
-
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
+import reactor.test.StepVerifier;
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
@@ -67,59 +65,30 @@ public class OwnTracksConnectionTests {
         template = String.format(template, address);
     }
 
-    @Test
-    void Test01WKT() throws Exception {
-
-        String exp = source.getJsonSource().get("ResponseWKT").toPrettyString();
-
-        var tmp = template.concat(",\"responseFormat\":\"WKT\"}");
-
+    @ParameterizedTest
+    @CsvSource({
+        "WKT,ResponseWKT,true",
+        "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false",
+        "GML,ResponseGML,true",
+        "KML,ResponseKML,true"
+    })
+    void testConnection(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
+    	String exp = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        String tmp = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
+        
+        if (!latitudeFirst) {
+        	tmp = tmp.concat(",\"latitudeFirst\":false");
+            
+        }
+        tmp = tmp.concat("}");
         var val = Val.ofJson(tmp);
-        var res = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
-
-        assertEquals(exp, res);
+        var resultStream = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).map(Val::get).map(JsonNode::toPrettyString);//.blockFirst().get().toPrettyString();
+        StepVerifier.create(resultStream).expectNext(exp).thenCancel()
+        .verify();
+        
+        
+        
 
     }
-
-    @Test
-    void Test02GeoJson() throws Exception {
-
-        String exp = source.getJsonSource().get("ResponseGeoJsonSwitchedCoordinates").toPrettyString();
-
-        var tmp = template.concat(",\"responseFormat\":\"GEOJSON\",\"latitudeFirst\":false}");
-
-        var val = Val.ofJson(tmp);
-        var res = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
-
-        assertEquals(exp, res);
-    }
-
-    @Test
-    void Test03GML() throws Exception {
-
-        String exp = source.getJsonSource().get("ResponseGML").toPrettyString();
-
-        var tmp = template.concat(",\"responseFormat\":\"GML\"}");
-
-        var val = Val.ofJson(tmp);
-        var res = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
-
-        assertEquals(exp, res);
-
-    }
-
-    @Test
-    void Test04KML() throws Exception {
-
-        String exp = source.getJsonSource().get("ResponseKML").toPrettyString();
-
-        var tmp = template.concat(",\"responseFormat\":\"KML\"}");
-
-        var val = Val.ofJson(tmp);
-        var res = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
-
-        assertEquals(exp, res);
-
-    }
-
+        
 }

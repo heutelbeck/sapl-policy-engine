@@ -24,7 +24,6 @@ import org.geotools.api.geometry.MismatchedDimensionException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.MathTransform;
-import org.geotools.api.referencing.operation.NoninvertibleTransformException;
 import org.geotools.api.referencing.operation.TransformException;
 
 import io.sapl.api.interpreter.Val;
@@ -108,11 +107,10 @@ public class GeoProjector {
      * @param geometry a {@link Geometry} containing the settings
      * @return a transformed {@link Geometry}<{@link Val}
      * @throws TransformException
-     * @throws NoninvertibleTransformException
      * @throws MismatchedDimensionException
      */
     public Geometry reProject(Geometry geometry)
-            throws MismatchedDimensionException, NoninvertibleTransformException, TransformException {
+            throws MismatchedDimensionException, TransformException {
 
         return JTS.transform(geometry, mathTransform.inverse());
 
