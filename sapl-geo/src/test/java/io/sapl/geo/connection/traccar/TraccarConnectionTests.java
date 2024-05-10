@@ -17,7 +17,6 @@
  */
 package io.sapl.geo.connection.traccar;
 
-
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -69,21 +68,17 @@ public class TraccarConnectionTests {
         template = String.format(template, address);
 
     }
-  
+
     @ParameterizedTest
-    @CsvSource({
-        "WKT,ResponseWKT,true",
-        "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false",
-        "GML,ResponseGML,true",
-        "KML,ResponseKML,true"
-    })
+    @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
+            "KML,ResponseKML,true" })
     void testConnection(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
         String exp = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         String tmp = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
-        
+
         if (!latitudeFirst) {
-        	tmp = tmp.concat(",\"latitudeFirst\":false");
-            
+            tmp = tmp.concat(",\"latitudeFirst\":false");
+
         }
         tmp = tmp.concat("}");
         var val = Val.ofJson(tmp);
@@ -91,5 +86,5 @@ public class TraccarConnectionTests {
 
         assertEquals(exp, res);
     }
-    
+
 }

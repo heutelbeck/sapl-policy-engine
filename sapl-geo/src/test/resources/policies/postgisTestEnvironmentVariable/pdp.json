@@ -2,12 +2,12 @@
 "algorithm": "DENY_OVERRIDES",
 "variables":
 	{
-		"MYSQL_DEFAULT_CONFIG":
+		"POSTGIS_DEFAULT_CONFIG":
 		{
 			"user":"test",
 			"password":"test",
 			"server":"localhost",
-			"port": 60955,
+			"port": 57224,
 			"dataBase":"test"
 		}
 	}

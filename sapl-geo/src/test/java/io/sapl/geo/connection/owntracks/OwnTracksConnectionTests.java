@@ -66,29 +66,22 @@ public class OwnTracksConnectionTests {
     }
 
     @ParameterizedTest
-    @CsvSource({
-        "WKT,ResponseWKT,true",
-        "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false",
-        "GML,ResponseGML,true",
-        "KML,ResponseKML,true"
-    })
+    @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
+            "KML,ResponseKML,true" })
     void testConnection(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
-    	String exp = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        String exp = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         String tmp = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
-        
+
         if (!latitudeFirst) {
-        	tmp = tmp.concat(",\"latitudeFirst\":false");
-            
+            tmp = tmp.concat(",\"latitudeFirst\":false");
+
         }
         tmp = tmp.concat("}");
-        var val = Val.ofJson(tmp);
-        var resultStream = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).map(Val::get).map(JsonNode::toPrettyString);//.blockFirst().get().toPrettyString();
-        StepVerifier.create(resultStream).expectNext(exp).thenCancel()
-        .verify();
-        
-        
-        
+        var val          = Val.ofJson(tmp);
+        var resultStream = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).map(Val::get)
+                .map(JsonNode::toPrettyString);                                                        // .blockFirst().get().toPrettyString();
+        StepVerifier.create(resultStream).expectNext(exp).thenCancel().verify();
 
     }
-        
+
 }

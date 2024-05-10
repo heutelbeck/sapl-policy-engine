@@ -1,0 +1,5 @@
+policy "postgisTestEnvironmentVariable"
+permit
+where
+  var geometry= <postGis.geometry({"table":"geometries", "geoColumn":"geom", "responseFormat":"GEOJSON", "columns": ["name"], "singleResult": true, "where": "name = 'point'"})>;
+  geometry.name == 'point' ;

@@ -109,8 +109,7 @@ public class GeoProjector {
      * @throws TransformException
      * @throws MismatchedDimensionException
      */
-    public Geometry reProject(Geometry geometry)
-            throws MismatchedDimensionException, TransformException {
+    public Geometry reProject(Geometry geometry) throws MismatchedDimensionException, TransformException {
 
         return JTS.transform(geometry, mathTransform.inverse());
 

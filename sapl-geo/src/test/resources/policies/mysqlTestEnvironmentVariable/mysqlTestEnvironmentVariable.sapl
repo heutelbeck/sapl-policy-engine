@@ -1,7 +1,5 @@
-policy "mysqlTest"
+policy "mysqlTestEnvironmentVariable"
 permit
 where
   var geometry= <mySql.geometry({"table":"geometries", "geoColumn":"geom", "responseFormat":"GEOJSON", "columns": ["name"], "singleResult": true, "where": "name = 'point'"})>;
   geometry.name == 'point' ;
-  
-  
