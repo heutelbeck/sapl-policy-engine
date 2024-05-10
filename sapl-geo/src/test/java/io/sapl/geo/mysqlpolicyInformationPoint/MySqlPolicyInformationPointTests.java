@@ -25,14 +25,15 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import common.MySqlTestBase;
-import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.geo.connection.mysql.MySqlConnection;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointFactory;
 import io.sapl.server.MySqlPolicyInformationPoint;
 import reactor.test.StepVerifier;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.util.List;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -40,27 +41,50 @@ import java.util.List;
 class MySqlPolicyInformationPointTests extends MySqlTestBase {
 
     private EmbeddedPolicyDecisionPoint pdp;
-
+    private String path = "src/test/resources/policies/mysql";
     @BeforeAll
     void setUp() throws Exception {
 
         commonSetUp();
 
-        pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/policies",
+        String template = """
+                {
+        		"algorithm": "DENY_OVERRIDES",
+        		"variables": 
+        			{
+        				"MYSQL_DEFAULT_CONFIG": 
+        				{
+		        			"user":"%s",
+		        			"password":"%s",
+		        			"server":"%s",
+		        			"port": %s,
+		        			"dataBase":"%s"
+        				}  
+        			}
+        		}
+            """;
+        String json = String.format(template, mySqlContainer.getUsername(), 
+        			mySqlContainer.getPassword(), mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306),  mySqlContainer.getDatabaseName() );
+
+        BufferedWriter writer = new BufferedWriter(new FileWriter(path+"/pdp.json"));
+        writer.write(json);
+        
+        writer.close();
+        
+        pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path,
                 () -> List.of(new MySqlPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
 
     }
 
     @Test
-    void Test01MySqlConnection() throws JsonProcessingException {
+    void AuthenticationEnvironmentVariable() throws JsonProcessingException {
 
-//    	AuthorizationSubscription authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
-//
-//    	var pdpDecisionFlux = pdp.decide(authzSubscription);
-//
-//        StepVerifier.create(pdpDecisionFlux)
-//                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-//                .verify();
+    	AuthorizationSubscription authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
+    	var pdpDecisionFlux = pdp.decide(authzSubscription);
+    	
+        StepVerifier.create(pdpDecisionFlux)
+                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
+                .verify();
     }
 
 }

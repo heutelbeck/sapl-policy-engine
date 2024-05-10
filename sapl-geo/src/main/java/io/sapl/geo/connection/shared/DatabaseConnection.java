@@ -134,9 +134,9 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
         resultNode.put("srid", srid);
         resultNode.set("geo", geoNode);
-        for (String c : selectColumns) {
+        for (String column : selectColumns) {
 
-            resultNode.put(c, row.get(c, String.class));
+            resultNode.put(column, row.get(column, String.class));
         }
         return resultNode;
     }
