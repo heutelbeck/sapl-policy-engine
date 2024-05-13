@@ -11,7 +11,8 @@ To use the pip and the libraries, add them to the PDP:
 
 ```java
 EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, 
-						() -> List.of(new GeoPolicyInformationPoint(new ObjectMapper())),
+						() -> List.of(new GeoPolicyInformationPoint(new ObjectMapper()), new MySqlPolicyInformationPoint(new ObjectMapper()),
+						 new PostGisPolicyInformationPoint (new ObjectMapper()),
 						List::of, 
 						() -> List.of(new GeoFunctions(), new GeoConverter()), 
 						List::of);
@@ -122,37 +123,56 @@ As you can see OwnTracks delivers its coordinates in WGS84 (EPSG:4326). It provi
 
 ### PostGIS/MySQL
 
-
-#### Example policy
-```
-permit
-where
-  var p = <geo.postGIS({"user":"postgres", "password":"anotherPassword", "server":"localhost", "dataBase":"MyDatabase", "table":"position", "geoColumn":"geom", "defaultCRS": 3857, "responseFormat":"GEOJSON", "singleResult": true, "where": "name = 'position1'"})>;
-  var fences = <geo.postGIS({"user":"postgres", "password":"anotherPassword", "server":"localhost", "dataBase":"MyDatabase", "table":"fences", "geoColumn":"geom", "defaultCRS": 3857, "responseFormat":"GEOJSON", "columns": ["name", "text"]})>;
-  var pos = p.geo;
-  var fence = fences[0].geo;
-  var res = geoFunctions.within(pos, fence);
-  res == true;
-```
-To use MySQL instead replace geo.postGIs with geo.MySQL.
-
 #### Parameters
-
+Authentication:
 * "user": the PostGIS/MySQL user
 * "password": the password of the user (optional)
 * "server": name/ip of the database server
 * "port": the port of the database server (int, Default is 5432 for PostGIS and 3306 for MySQL)
 * "database": the name of the database
+  
+Query:
 * "table": the name of the table
 * "geoColumn": the name of the column containing the geometries
 * "defaultCRS": if you dont have a SRID specified in the database you can set the coordinate reference system for the response (int Default is 4326 for WGS84, EPSG:4326); otherwise the one from the database is used 
 * "responseFormat": Possible values: "GEOJSON", "WKT", "GML", "KML" (default is "GEOJSON" which is reccomended as the GeoFunction-library needs GeoJson as parameters)
-* "where": a where clause in sql
-* "columns": additional columns to select (Array, ["column_1", "column_2",..., "column_x"]
+* "where": a where clause in sql, optional
+* "columns": additional columns to select (Array, ["column_1", "column_2",..., "column_x"], optional
 * "singleResult": if you expect only one result, set it to true to get the result without beeing wrapped in an array (boolean, Default is false)
 * "latitudeFirst": true: latitude is first coordinate of geometries, false: longitude is first (Default is true)
 * "pollingIntervalMs": the interval to poll from the database in ms (Default is 1000)
 * "repetitions": the count of repetitions (Default is Long.MAX_VALUE)
+
+#### Example policy
+```
+policy "postgis"
+permit
+where
+  var position = <postGis.geometry({"user":"postgres", "password":"anotherPassword", "server":"localhost", "dataBase":"MyDatabase"}, {"table":"position", "geoColumn":"geom", "defaultCRS": 3857, "responseFormat":"GEOJSON", "singleResult": true, "where": "name = 'position1'"})>;
+  var geofences = <postGis.geometry({"user":"postgres", "password":"anotherPassword", "server":"localhost", "dataBase":"MyDatabase"}, "table":"geofences", "geoColumn":"geom", "defaultCRS": 3857, "responseFormat":"GEOJSON", "columns": ["name", "text"]})>;
+ geoFunctions.within(position.geo, geofences[0].geo);
+```
+
+To use MySQL replace postGis.geometry with mySql.geometry.
+
+The parameters used for the authentication can be stored in an environment variable called
+ "POSTGIS_DEFAULT_CONFIG"/"MYSQL_DEFAULT_CONFIG"
+```
+{
+  "algorithm": "DENY_OVERRIDES",
+  "variables":
+  {
+	"POSTGIS_DEFAULT_CONFIG": 
+	 {
+		"user":"postgres",
+		"password":"anotherPassword",
+		"server":"localhost",
+		"port": 5432,
+		"dataBase":"MyDatabase"
+	 }  
+  }
+```
+
 
 #### Response
 
