@@ -40,7 +40,7 @@ class GmlConverterTest extends TestBase {
     @BeforeAll
     void setup() throws TransformerException {
 
-        StringWriter sw  = new StringWriter();
+        var			 sw  = new StringWriter();
         var          pnt = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         var          plg = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
@@ -85,17 +85,17 @@ class GmlConverterTest extends TestBase {
         var res  = geoConverter.gmlToKml(point);
         var res1 = geoConverter.gmlToKml(polygon);
 
-        StringWriter sw = new StringWriter();
+        var stringWriter = new StringWriter();
 
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
         var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);
 
-        sw = new StringWriter();
-        source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
-        var expPoint = sw.toString();
-        sw = new StringWriter();
-        source.getTransform().transform(new DOMSource(plg1), new StreamResult(sw));
-        var expPolygon = sw.toString();
+        stringWriter = new StringWriter();
+        source.getTransform().transform(new DOMSource(pnt1), new StreamResult(stringWriter));
+        var expPoint = stringWriter.toString();
+        stringWriter = new StringWriter();
+        source.getTransform().transform(new DOMSource(plg1), new StreamResult(stringWriter));
+        var expPolygon = stringWriter.toString();
 
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));

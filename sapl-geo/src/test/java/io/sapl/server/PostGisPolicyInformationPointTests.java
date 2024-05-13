@@ -49,7 +49,7 @@ class PostGisPolicyInformationPointTests extends PostgisTestBase {
 
         commonSetUp();
 
-        String template = """
+        var template = """
                       {
                 "algorithm": "DENY_OVERRIDES",
                 "variables":
@@ -65,10 +65,10 @@ class PostGisPolicyInformationPointTests extends PostgisTestBase {
                 	}
                 }
                   """;
-        String json     = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(),
+        var json     = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(),
                 postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
 
-        BufferedWriter writer = new BufferedWriter(
+        var writer = new BufferedWriter(
                 new FileWriter(String.format(path, "/postgisTestEnvironmentVariable/pdp.json")));
         writer.write(json);
 
@@ -83,8 +83,8 @@ class PostGisPolicyInformationPointTests extends PostgisTestBase {
                 String.format(path, "postgisTestEnvironmentVariable"),
                 () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
 
-        AuthorizationSubscription authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var                       pdpDecisionFlux   = pdp.decide(authzSubscription);
+        var authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
+        var pdpDecisionFlux   = pdp.decide(authzSubscription);
 
         StepVerifier.create(pdpDecisionFlux)
                 .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()

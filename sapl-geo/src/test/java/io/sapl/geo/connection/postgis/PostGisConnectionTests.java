@@ -41,44 +41,44 @@ class PostGisConnectionTests extends PostgisTestBase {
     @Test
     void Test01PostGisConnectionGeometry() throws JsonProcessingException {
 
-        var str = String.format(tmpAll, "geometries", "geom");
+        var queryString = String.format(templateAll, "geometries", "geom");
 
-        var exp = Val.ofJson(expAll);
+        var expected = Val.ofJson(expectedAll);
 
-        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
-                .connect(Val.ofJson(str).get());
-        StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
+        var postgis = new PostGisConnection(Val.ofJson(authTemplate).get(), Val.ofJson(queryString).get(), new ObjectMapper())
+                .connect(Val.ofJson(queryString).get());
+        StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
     @Test
     void Test02PostGisConnectionGeometrySingleResult() throws JsonProcessingException {
 
-        var str = String.format(tmpPoint, "geometries", "geom");
+        var queryString = String.format(templatePoint, "geometries", "geom");
 
-        var exp     = Val.ofJson(expPt);
-        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
-                .connect(Val.ofJson(str).get());
-        StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
+        var expected     = Val.ofJson(expectedPoint);
+        var postgis = new PostGisConnection(Val.ofJson(authTemplate).get(), Val.ofJson(queryString).get(), new ObjectMapper())
+                .connect(Val.ofJson(queryString).get());
+        StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
     @Test
     void Test03PostGisConnectionGeography() throws JsonProcessingException {
 
-        var str = String.format(tmpAll, "geographies", "geog");
+        var queryString = String.format(templateAll, "geographies", "geog");
 
-        var exp     = Val.ofJson(expAll);
-        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
-                .connect(Val.ofJson(str).get());
-        StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
+        var expected     = Val.ofJson(expectedAll);
+        var postgis = new PostGisConnection(Val.ofJson(authTemplate).get(), Val.ofJson(queryString).get(), new ObjectMapper())
+                .connect(Val.ofJson(queryString).get());
+        StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
     @Test
     void Test04PostGisConnectionGeographySingleResult() throws JsonProcessingException {
 
-        var str = String.format(tmpPoint, "geographies", "geog");
+        var str = String.format(templatePoint, "geographies", "geog");
 
-        var exp     = Val.ofJson(expPt);
-        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
+        var exp     = Val.ofJson(expectedPoint);
+        var postgis = new PostGisConnection(Val.ofJson(authTemplate).get(), Val.ofJson(str).get(), new ObjectMapper())
                 .connect(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
     }
@@ -86,9 +86,9 @@ class PostGisConnectionTests extends PostgisTestBase {
     @Test
     void Test05Error() throws JsonProcessingException {
 
-        var str = String.format(tmpPoint, "nonExistant", "geog");
+        var str = String.format(templatePoint, "nonExistant", "geog");
 
-        var postgis = new PostGisConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
+        var postgis = new PostGisConnection(Val.ofJson(authTemplate).get(), Val.ofJson(str).get(), new ObjectMapper())
                 .connect(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectError();
     }

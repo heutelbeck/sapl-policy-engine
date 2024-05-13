@@ -73,18 +73,18 @@ public class TraccarConnectionTests {
     @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
             "KML,ResponseKML,true" })
     void testConnection(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
-        String exp = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        String tmp = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
+        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
 
         if (!latitudeFirst) {
-            tmp = tmp.concat(",\"latitudeFirst\":false");
+        	responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
 
         }
-        tmp = tmp.concat("}");
-        var val = Val.ofJson(tmp);
-        var res = new TraccarConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
+        responseTemplate = responseTemplate.concat("}");
+        var val = Val.ofJson(responseTemplate);
+        var result = new TraccarConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
 
-        assertEquals(exp, res);
+        assertEquals(expected, result);
     }
 
 }

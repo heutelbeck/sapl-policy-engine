@@ -22,22 +22,16 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.Getter;
 
 public class SourceProvider {
@@ -89,23 +83,10 @@ public class SourceProvider {
             DocumentBuilder builder = factory.newDocumentBuilder();
             xmlSource = builder.parse(f);
 
-        } catch (ParserConfigurationException e) {
+        } catch (Exception e) {
 
             e.printStackTrace();
-        } catch (SAXException e) {
-
-            e.printStackTrace();
-        } catch (IOException e) {
-
-            e.printStackTrace();
-        } catch (TransformerConfigurationException e) {
-
-            e.printStackTrace();
-        } catch (TransformerFactoryConfigurationError e) {
-
-            e.printStackTrace();
-        }
-
+        } 
         try {
             jsonSource = MAPPER.readTree(new File(resourceDirectory + "/jsonSource.json"));
 

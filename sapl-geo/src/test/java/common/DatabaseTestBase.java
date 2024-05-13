@@ -22,10 +22,10 @@ import reactor.core.publisher.Mono;
 
 public abstract class DatabaseTestBase {
 
-    protected String tmpAll;
-    protected String tmpPoint;
+    protected String templateAll;
+    protected String templatePoint;
     protected String template;
-    protected String authTemp;
+    protected String authTemplate;
 
     protected String authenticationTemplate = """
                 {
@@ -46,7 +46,7 @@ public abstract class DatabaseTestBase {
                 "repetitions":2
             """;
 
-    protected String tmpAll1 = ("""
+    protected String templateAll1 = ("""
                 ,
                 "table":"%s",
                 "geoColumn":"%s",
@@ -55,7 +55,7 @@ public abstract class DatabaseTestBase {
             }
             """);
 
-    protected String tmpPoint1 = ("""
+    protected String templatePoint1 = ("""
                 ,
                 "table":"%s",
                 "geoColumn":"%s",
@@ -66,8 +66,8 @@ public abstract class DatabaseTestBase {
             }
             """);
 
-    protected String expPt  = "{\"srid\":4326,\"geo\":{\"type\":\"Point\",\"coordinates\":[1,0.0],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"point\",\"text\":\"text point\"}";
-    protected String expAll = "[{\"srid\":4326,\"geo\":{\"type\":\"Point\",\"coordinates\":[0.0,1],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"point\"},{\"srid\":4326,\"geo\":{\"type\":\"Polygon\",\"coordinates\":[[[0.0,0.0],[0.0,1],[1,1],[1,0.0],[0.0,0.0]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"polygon\"}]";
+    protected String expectedPoint  = "{\"srid\":4326,\"geo\":{\"type\":\"Point\",\"coordinates\":[1,0.0],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"point\",\"text\":\"text point\"}";
+    protected String expectedAll = "[{\"srid\":4326,\"geo\":{\"type\":\"Point\",\"coordinates\":[0.0,1],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"point\"},{\"srid\":4326,\"geo\":{\"type\":\"Polygon\",\"coordinates\":[[[0.0,0.0],[0.0,1],[1,1],[1,0.0],[0.0,0.0]]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}},\"name\":\"polygon\"}]";
 
     protected void createTable(ConnectionFactory connectionFactory) {
         Mono.from(connectionFactory.create()).flatMap(connection -> {

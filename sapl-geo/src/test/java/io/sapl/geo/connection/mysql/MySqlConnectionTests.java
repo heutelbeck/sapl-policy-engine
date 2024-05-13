@@ -42,30 +42,30 @@ class MySqlConnectionTests extends MySqlTestBase {
     @Test
     void Test01MySqlConnection() throws JsonProcessingException {
 
-        var str = String.format(tmpAll, "geometries", "geom");
+        var queryString = String.format(templateAll, "geometries", "geom");
 
-        var exp   = Val.ofJson(expAll);
-        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
-                .connect(Val.ofJson(str).get());
-        StepVerifier.create(mysql).expectNext(exp).expectNext(exp).verifyComplete();
+        var expected   = Val.ofJson(expectedAll);
+        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), Val.ofJson(queryString).get(), new ObjectMapper())
+                .connect(Val.ofJson(queryString).get());
+        StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
     @Test
     void Test02MySqlConnectionSingleResult() throws JsonProcessingException {
 
-        var str = String.format(tmpPoint, "geometries", "geom");
+        var queryString = String.format(templatePoint, "geometries", "geom");
 
-        var exp = Val.ofJson(expPt);
+        var expected = Val.ofJson(expectedPoint);
 
-        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
-                .connect(Val.ofJson(str).get());
-        StepVerifier.create(mysql).expectNext(exp).expectNext(exp).verifyComplete();
+        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), Val.ofJson(queryString).get(), new ObjectMapper())
+                .connect(Val.ofJson(queryString).get());
+        StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
     @Test
     void Test03Error() throws JsonProcessingException {
 
-        var tmp = template.concat("""
+        var errorTemplate = template.concat("""
                     ,
                     "table":"%s",
                     "geoColumn":"%s",
@@ -74,11 +74,11 @@ class MySqlConnectionTests extends MySqlTestBase {
                 	"where": "name = 'point'"
                 }
                 """);
-        var str = String.format(tmp, "nonExistant", "geog");
+        var queryString = String.format(errorTemplate, "nonExistant", "geog");
 
-        var mysql = new MySqlConnection(Val.ofJson(authTemp).get(), Val.ofJson(str).get(), new ObjectMapper())
-                .connect(Val.ofJson(str).get());
-        StepVerifier.create(mysql).expectError();
+        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), Val.ofJson(queryString).get(), new ObjectMapper())
+                .connect(Val.ofJson(queryString).get());
+        StepVerifier.create(mysqlResponse).expectError();
     }
 
 }

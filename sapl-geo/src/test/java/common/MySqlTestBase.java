@@ -36,14 +36,14 @@ public abstract class MySqlTestBase extends DatabaseTestBase {
 
     protected void commonSetUp() throws Exception {
 
-        authTemp = String.format(authenticationTemplate, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
+        authTemplate = String.format(authenticationTemplate, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
         template = String.format(template1, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306));
 
-        tmpAll = template.concat(tmpAll1);
+        templateAll = template.concat(templateAll1);
 
-        tmpPoint = template.concat(tmpPoint1);
+        templatePoint = template.concat(templatePoint1);
 
         var connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
                 .username(mySqlContainer.getUsername()).password(mySqlContainer.getPassword())

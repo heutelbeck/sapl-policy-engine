@@ -69,18 +69,18 @@ public class OwnTracksConnectionTests {
     @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
             "KML,ResponseKML,true" })
     void testConnection(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
-        String exp = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        String tmp = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
+        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        var requestTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
 
         if (!latitudeFirst) {
-            tmp = tmp.concat(",\"latitudeFirst\":false");
+            requestTemplate = requestTemplate.concat(",\"latitudeFirst\":false");
 
         }
-        tmp = tmp.concat("}");
-        var val          = Val.ofJson(tmp);
+        requestTemplate = requestTemplate.concat("}");
+        var val          = Val.ofJson(requestTemplate);
         var resultStream = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).map(Val::get)
-                .map(JsonNode::toPrettyString);                                                        // .blockFirst().get().toPrettyString();
-        StepVerifier.create(resultStream).expectNext(exp).thenCancel().verify();
+                .map(JsonNode::toPrettyString);                                                   
+        StepVerifier.create(resultStream).expectNext(expected).thenCancel().verify();
 
     }
 

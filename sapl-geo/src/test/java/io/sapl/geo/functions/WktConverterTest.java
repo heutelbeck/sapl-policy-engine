@@ -45,73 +45,73 @@ class WktConverterTest extends TestBase {
     @Test
     void wktToKmlTest() throws TransformerException {
 
-        var res  = geoConverter.wktToKml(point);
-        var res1 = geoConverter.wktToKml(polygon);
+        var result  = geoConverter.wktToKml(point);
+        var result1 = geoConverter.wktToKml(polygon);
 
-        StringWriter sw = new StringWriter();
+        StringWriter stringWriter = new StringWriter();
 
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
         var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);
 
-        sw = new StringWriter();
-        source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
-        var expPoint = sw.toString();
-        sw = new StringWriter();
-        source.getTransform().transform(new DOMSource(plg1), new StreamResult(sw));
-        var expPolygon = sw.toString();
+        stringWriter = new StringWriter();
+        source.getTransform().transform(new DOMSource(pnt1), new StreamResult(stringWriter));
+        var expPoint = stringWriter.toString();
+        stringWriter = new StringWriter();
+        source.getTransform().transform(new DOMSource(plg1), new StreamResult(stringWriter));
+        var expPolygon = stringWriter.toString();
 
-        assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
-        assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));
+        assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
+        assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
     }
 
     @Test
     void wktToGeometryTest() throws ParseException {
 
-        var res  = (Point) WktConverter.wktToGeometry(point);
-        var res1 = (Polygon) WktConverter.wktToGeometry(polygon);
+        var result  = (Point) WktConverter.wktToGeometry(point);
+        var result1 = (Polygon) WktConverter.wktToGeometry(polygon);
 
         var expPoint   = source.getPoint();
         var expPolygon = source.getPolygon();
 
-        assertEquals(expPoint, res);
-        assertEquals(expPolygon, res1);
+        assertEquals(expPoint, result);
+        assertEquals(expPolygon, result1);
 
     }
 
     @Test
     void wktToGMLTest() throws TransformerException {
 
-        var res  = geoConverter.wktToGml(point);
-        var res1 = geoConverter.wktToGml(polygon);
+        var result  = geoConverter.wktToGml(point);
+        var result1 = geoConverter.wktToGml(polygon);
 
-        StringWriter sw = new StringWriter();
+        StringWriter stringWriter = new StringWriter();
 
         var pnt1 = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         var plg1 = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
-        sw = new StringWriter();
-        source.getTransform().transform(new DOMSource(pnt1), new StreamResult(sw));
-        var expPoint = sw.toString();
-        sw = new StringWriter();
-        source.getTransform().transform(new DOMSource(plg1), new StreamResult(sw));
-        var expPolygon = sw.toString();
+        stringWriter = new StringWriter();
+        source.getTransform().transform(new DOMSource(pnt1), new StreamResult(stringWriter));
+        var expPoint = stringWriter.toString();
+        stringWriter = new StringWriter();
+        source.getTransform().transform(new DOMSource(plg1), new StreamResult(stringWriter));
+        var expPolygon = stringWriter.toString();
 
-        assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
-        assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));
+        assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
+        assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
 
     }
 
     @Test
     void wktToGeoJsonTest() {
 
-        var res  = geoConverter.wktToGeoJson(point);
-        var res1 = geoConverter.wktToGeoJson(polygon);
+        var result  = geoConverter.wktToGeoJson(point);
+        var result1 = geoConverter.wktToGeoJson(polygon);
 
         var expPoint   = source.getJsonSource().get("Point").toPrettyString();
         var expPolygon = source.getJsonSource().get("Polygon").toPrettyString();
 
-        assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
-        assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));
+        assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
+        assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
     }
 
 }

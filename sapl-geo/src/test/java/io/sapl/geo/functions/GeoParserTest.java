@@ -65,7 +65,7 @@ class GeoParserTest {
         parser            = new GeoParser(mapper);
 
         var           reader        = new BufferedReader(new FileReader(path));
-        StringBuilder stringBuilder = new StringBuilder();
+        var 		  stringBuilder = new StringBuilder();
         String        line;
         while ((line = reader.readLine()) != null) {
             stringBuilder.append(line);
@@ -92,10 +92,10 @@ class GeoParserTest {
 
         mockBackEnd = new MockWebServer();
         mockBackEnd.start();
-        MockResponse response = new MockResponse().setBody(kml.getText()).addHeader("Content-Type",
+        MockResponse mockResponse = new MockResponse().setBody(kml.getText()).addHeader("Content-Type",
                 MediaType.APPLICATION_XML_VALUE);
-        mockBackEnd.enqueue(response);
-        mockBackEnd.enqueue(response);
+        mockBackEnd.enqueue(mockResponse);
+        mockBackEnd.enqueue(mockResponse);
 
         var baseUrl  = String.format("http://localhost:%s", mockBackEnd.getPort());
         var template = """
@@ -108,9 +108,9 @@ class GeoParserTest {
                 """;
         var request  = Val.ofJson(String.format(template, baseUrl, MediaType.APPLICATION_XML_VALUE));
 
-        HttpPolicyInformationPoint pip  = new HttpPolicyInformationPoint(new ReactiveWebClient(mapper));
-        var                        flux = pip.get(request);
-        StepVerifier.create(flux.map(x -> parser.parseKML(x))).expectNext(Val.ofJson(exp)).expectNext(Val.ofJson(exp))
+        var pip  = new HttpPolicyInformationPoint(new ReactiveWebClient(mapper));
+        var response = pip.get(request);
+        StepVerifier.create(response.map(x -> parser.parseKML(x))).expectNext(Val.ofJson(exp)).expectNext(Val.ofJson(exp))
                 .expectComplete().verify();
     }
 

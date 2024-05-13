@@ -48,7 +48,7 @@ class MySqlPolicyInformationPointTests extends MySqlTestBase {
 
         commonSetUp();
 
-        String template = """
+        var template = """
                       {
                 "algorithm": "DENY_OVERRIDES",
                 "variables":
@@ -64,10 +64,10 @@ class MySqlPolicyInformationPointTests extends MySqlTestBase {
                 	}
                 }
                   """;
-        String json     = String.format(template, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
+        var json     = String.format(template, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
 
-        BufferedWriter writer = new BufferedWriter(
+        var writer = new BufferedWriter(
                 new FileWriter(String.format(path, "/mysqlTestEnvironmentVariable/pdp.json")));
         writer.write(json);
 
@@ -82,7 +82,7 @@ class MySqlPolicyInformationPointTests extends MySqlTestBase {
                 String.format(path, "mysqlTestEnvironmentVariable"),
                 () -> List.of(new MySqlPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
 
-        AuthorizationSubscription authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
+        var authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
         var                       pdpDecisionFlux   = pdp.decide(authzSubscription);
 
         StepVerifier.create(pdpDecisionFlux)
@@ -99,8 +99,8 @@ class MySqlPolicyInformationPointTests extends MySqlTestBase {
         var subject = new Subject(mySqlContainer.getUsername(), mySqlContainer.getPassword(), mySqlContainer.getHost(),
                 mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
 
-        AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
-        var                       pdpDecisionFlux   = pdp.decide(authzSubscription);
+        var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
+        var pdpDecisionFlux   = pdp.decide(authzSubscription);
 
         StepVerifier.create(pdpDecisionFlux)
                 .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
