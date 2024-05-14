@@ -33,7 +33,7 @@ public class ApiKeyAuthenticationToken implements Authentication {
     private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private final String encodedApiKey;
-    private boolean      authenticated = false;
+    private boolean      authenticated = true;
 
     public ApiKeyAuthenticationToken(final String encodedApiKey) {
         this.encodedApiKey = encodedApiKey;

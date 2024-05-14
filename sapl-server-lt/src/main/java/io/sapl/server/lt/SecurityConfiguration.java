@@ -115,16 +115,17 @@ public class SecurityConfiguration {
             }
             http = http.oauth2ResourceServer(
                     oauth2 -> oauth2.bearerTokenConverter(new ServerBearerTokenAuthenticationConverter() {
-                        @Override
-                        public Mono<Authentication> convert(ServerWebExchange exchange) {
-                            var authorization = exchange.getRequest().getHeaders().getFirst("Authorization");
-                            if (authorization != null && authorization.startsWith("Bearer sapl_")) {
-                                // This Bearer token is used for sapl api key authentication
-                                return Mono.empty();
-                            }
-                            return super.convert(exchange);
-                        }
-                    }).jwt(Customizer.withDefaults()));
+                                @Override
+                                public Mono<Authentication> convert(ServerWebExchange exchange) {
+                                    if (ApiKeyService.getApiKeyToken(exchange).isPresent()){
+                                        // This Bearer token is used for sapl api key authentication
+                                        return Mono.empty();
+                                    } else {
+                                        return super.convert(exchange);
+                                    }
+                                }
+                            })
+                            .jwt(Customizer.withDefaults()));
         }
 
         return http.formLogin(FormLoginSpec::disable).build();

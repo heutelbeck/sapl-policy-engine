@@ -28,9 +28,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.rsocket.authentication.PayloadExchangeAuthenticationConverter;
 import org.springframework.security.web.server.authentication.ServerAuthenticationConverter;
 import org.springframework.stereotype.Service;
-import org.springframework.util.MimeType;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -38,8 +39,10 @@ import java.nio.charset.StandardCharsets;
 public class ApiKeyService {
     private final SAPLServerLTProperties pdpProperties;
     private final PasswordEncoder        passwordEncoder;
-    private final String                 rsocketApiKeyMimeTypeValue = String
-            .valueOf(MimeType.valueOf("messaging/Bearer"));
+    static final String HEADER                = "Authorization";
+    static final String HEADER_PREFIX         = "Bearer ";
+    static final String SAPL_TOKEN_PREFIX     = "sapl_";
+    private static final String RSOCKET_METADATA_MIME_TPYE = "messaging/Bearer";
     private final CacheManager           cacheManager;
 
     /**
@@ -49,29 +52,41 @@ public class ApiKeyService {
      */
     private Mono<Authentication> checkApiKey(final String apiKey) {
         var cache = cacheManager.getCache("ApiKeyCache");
+        // get authentication from cache of possible
         if (cache != null) {
             var cacheEntry = cache.get(apiKey);
             if (cacheEntry != null) {
                 return Mono.just(new ApiKeyAuthenticationToken((String) cacheEntry.get()));
-            } else {
-                for (var encodedApiKey : pdpProperties.getAllowedApiKeys()) {
-                    log.debug("checking ApiKey against encoded ApiKey: " + encodedApiKey);
-                    if (passwordEncoder.matches(apiKey, encodedApiKey)) {
-                        cache.put(apiKey, encodedApiKey);
-                        return Mono.just(new ApiKeyAuthenticationToken(encodedApiKey));
-                    }
-                }
             }
         }
+
+        // validate key and get authentication
+        for (var encodedApiKey : pdpProperties.getAllowedApiKeys()) {
+            log.debug("checking ApiKey against encoded ApiKey: " + encodedApiKey);
+            if (passwordEncoder.matches(apiKey, encodedApiKey)) {
+                if (cache != null) {
+                    cache.put(apiKey, encodedApiKey);
+                }
+                return Mono.just(new ApiKeyAuthenticationToken(encodedApiKey));
+            }
+        }
+
         return Mono.error(() -> new ApiKeyAuthenticationException("ApiKey not authorized"));
+    }
+
+    public static Optional<String> getApiKeyToken(ServerWebExchange exchange){
+        var authorization = exchange.getRequest().getHeaders().getFirst(HEADER);
+        if (authorization != null && authorization.startsWith(HEADER_PREFIX + SAPL_TOKEN_PREFIX)) {
+            return Optional.of(authorization.substring(HEADER_PREFIX.length()));
+        }
+        return Optional.empty();
     }
 
     public ServerAuthenticationConverter getHttpApiKeyAuthenticationConverter() {
         return exchange -> {
-            var authorization = exchange.getRequest().getHeaders().getFirst("Authorization");
-            if (authorization != null && authorization.startsWith("Bearer sapl_")) {
-                var apiKeyToken = authorization.replaceFirst("^Bearer ", "");
-                return checkApiKey(apiKeyToken);
+            var apiKeyToken = getApiKeyToken(exchange);
+            if ( apiKeyToken.isPresent() ) {
+                return checkApiKey(apiKeyToken.get());
             } else {
                 return Mono.empty();
             }
@@ -83,7 +98,7 @@ public class ApiKeyService {
             ByteBuf           metadata          = exchange.getPayload().metadata();
             CompositeMetadata compositeMetadata = new CompositeMetadata(metadata, false);
             for (CompositeMetadata.Entry entry : compositeMetadata) {
-                if (rsocketApiKeyMimeTypeValue.equals(entry.getMimeType())) {
+                if (RSOCKET_METADATA_MIME_TPYE.equalsIgnoreCase(entry.getMimeType())) {
                     String apikey = entry.getContent().toString(StandardCharsets.UTF_8);
                     return checkApiKey(apikey);
                 }
