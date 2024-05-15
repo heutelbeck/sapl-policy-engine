@@ -39,10 +39,10 @@ import java.util.Optional;
 public class ApiKeyService {
     private final SAPLServerLTProperties pdpProperties;
     private final PasswordEncoder        passwordEncoder;
-    static final String HEADER                = "Authorization";
-    static final String HEADER_PREFIX         = "Bearer ";
-    static final String SAPL_TOKEN_PREFIX     = "sapl_";
-    private static final String RSOCKET_METADATA_MIME_TPYE = "messaging/Bearer";
+    static final String                  HEADER                     = "Authorization";
+    static final String                  HEADER_PREFIX              = "Bearer ";
+    static final String                  SAPL_TOKEN_PREFIX          = "sapl_";
+    private static final String          RSOCKET_METADATA_MIME_TPYE = "messaging/Bearer";
     private final CacheManager           cacheManager;
 
     /**
@@ -74,7 +74,7 @@ public class ApiKeyService {
         return Mono.error(() -> new ApiKeyAuthenticationException("ApiKey not authorized"));
     }
 
-    public static Optional<String> getApiKeyToken(ServerWebExchange exchange){
+    public static Optional<String> getApiKeyToken(ServerWebExchange exchange) {
         var authorization = exchange.getRequest().getHeaders().getFirst(HEADER);
         if (authorization != null && authorization.startsWith(HEADER_PREFIX + SAPL_TOKEN_PREFIX)) {
             return Optional.of(authorization.substring(HEADER_PREFIX.length()));
@@ -85,7 +85,7 @@ public class ApiKeyService {
     public ServerAuthenticationConverter getHttpApiKeyAuthenticationConverter() {
         return exchange -> {
             var apiKeyToken = getApiKeyToken(exchange);
-            if ( apiKeyToken.isPresent() ) {
+            if (apiKeyToken.isPresent()) {
                 return checkApiKey(apiKeyToken.get());
             } else {
                 return Mono.empty();
