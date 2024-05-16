@@ -17,18 +17,20 @@
  */
 package io.sapl.server.lt;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 import org.junit.jupiter.api.Test;
 
 class SaplServerLTMainTests {
 
     @Test
     void whenExecutingMain_withApiKeyParameter_thenSuccessful() {
-        SAPLServerLTApplication.main(new String[] { "-apiKey" });
+        assertDoesNotThrow(() -> SAPLServerLTApplication.main(new String[] { "-apiKey" }));
     }
 
     @Test
     void whenExecutingMain_withBasicCredentialsParameter_thenSuccessful() {
-        SAPLServerLTApplication.main(new String[] { "-basicCredentials" });
+        assertDoesNotThrow(() -> SAPLServerLTApplication.main(new String[] { "-basicCredentials" }));
     }
 
 }

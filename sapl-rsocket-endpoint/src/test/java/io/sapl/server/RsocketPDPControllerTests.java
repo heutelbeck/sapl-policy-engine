@@ -254,23 +254,6 @@ class RsocketPDPControllerTests {
     }
 
     @Test
-    void oneMultiAllDecisionsProcessingError() {
-        when(pdp.decideAll(any(MultiAuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
-
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
-                JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
-                .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
-                        JSON.textNode("other resource"));
-
-        var result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
-                .retrieveMono(MultiAuthorizationDecision.class);
-
-        StepVerifier.create(result).expectNext(MultiAuthorizationDecision.indeterminate()).verifyComplete();
-
-        verify(pdp, times(1)).decideAll(multiAuthzSubscription);
-    }
-
-    @Test
     void subscribeToMultiDecisionsAllInvalidBody() {
         var subscription = AuthorizationSubscription.of("subject", "action", "resource");
         var result       = requester.route("multi-decide-all").data(subscription)

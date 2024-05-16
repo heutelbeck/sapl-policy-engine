@@ -173,17 +173,17 @@ class SaplServerLTAuthenticationTests {
                 MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + API_KEY + "XYZ"));
 
         var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
-        assertThatThrownBy(() -> apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block())
-                .isInstanceOf(ApiKeyAuthenticationException.class);
+        var action        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange);
+        assertThatThrownBy(() -> action.block()).isInstanceOf(ApiKeyAuthenticationException.class);
     }
 
     @Test
     void whenConnectingThoughtRSocket_withInvalidApiKey_thenAuthenticationIsProvided() {
-        var pdpProperties   = mock(SAPLServerLTProperties.class);
-        var passwordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
-        var cacheManager    = mock(CacheManager.class);
-        var cache           = mock(Cache.class);
-        var payloadExchange = mock(PayloadExchange.class);
+        var pdpProperties         = mock(SAPLServerLTProperties.class);
+        var argon2PasswordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+        var cacheManager          = mock(CacheManager.class);
+        var cache                 = mock(Cache.class);
+        var payloadExchange       = mock(PayloadExchange.class);
 
         // test with empty cache
         when(cacheManager.getCache("ApiKeyCache")).thenReturn(cache);
@@ -199,9 +199,8 @@ class SaplServerLTAuthenticationTests {
         when(payloadExchange.getPayload()).thenReturn(payload);
 
         // execute unit test
-        var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
-        assertThatThrownBy(
-                () -> apiKeyService.getRsocketApiKeyAuthenticationConverter().convert(payloadExchange).block())
-                .isInstanceOf(ApiKeyAuthenticationException.class);
+        var apiKeyService = new ApiKeyService(pdpProperties, argon2PasswordEncoder, cacheManager);
+        var action        = apiKeyService.getRsocketApiKeyAuthenticationConverter().convert(payloadExchange);
+        assertThatThrownBy(() -> action.block()).isInstanceOf(ApiKeyAuthenticationException.class);
     }
 }
