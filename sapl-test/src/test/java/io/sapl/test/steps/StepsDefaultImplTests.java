@@ -98,7 +98,7 @@ class StepsDefaultImplTests {
     @Test
     void test_mockFunction_Function_withTimesVerification() {
         var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
-        steps.givenFunction("time.dayOfWeek", (call) -> Val.of("SATURDAY"), times(1))
+        steps.givenFunction("time.dayOfWeek", call -> Val.of("SATURDAY"), times(1))
                 .when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
     }
 
@@ -294,7 +294,7 @@ class StepsDefaultImplTests {
         var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
         steps.givenFunction("time.dayOfWeek", Val.of("SATURDAY"))
                 .when(AuthorizationSubscription.of("will", "read", "something"))
-                .expectNext((authzDec) -> authzDec.getDecision() == Decision.PERMIT).verify();
+                .expectNext(authzDec -> authzDec.getDecision() == Decision.PERMIT).verify();
     }
 
 }

@@ -85,7 +85,8 @@ class DefaultExpectStepConstructorTests {
     void constructExpectStep_handlesScenarioAndNullWhenStep_throwsSaplTestException() {
         when(scenarioMock.getWhenStep()).thenReturn(null);
 
-        final var exception = assertThrows(SaplTestException.class, () -> defaultExpectStepConstructor.constructExpectStep(scenarioMock, whenStepMock));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> defaultExpectStepConstructor.constructExpectStep(scenarioMock, whenStepMock));
 
         assertEquals("Scenario does not contain a whenStep", exception.getMessage());
     }
@@ -115,11 +116,11 @@ class DefaultExpectStepConstructorTests {
         when(authorizationSubscriptionInterpreterMock.constructAuthorizationSubscription(authorizationSubscriptionMock))
                 .thenReturn(saplAuthorizationSubscriptionMock);
 
-        final var whenStepMock   = mock(WhenStep.class);
+        final var aWhenStepMock  = mock(WhenStep.class);
         final var expectStepMock = mock(ExpectStep.class);
-        when(whenStepMock.when(saplAuthorizationSubscriptionMock)).thenReturn(expectStepMock);
+        when(aWhenStepMock.when(saplAuthorizationSubscriptionMock)).thenReturn(expectStepMock);
 
-        final var result = defaultExpectStepConstructor.constructExpectStep(scenarioMock, whenStepMock);
+        final var result = defaultExpectStepConstructor.constructExpectStep(scenarioMock, aWhenStepMock);
         assertEquals(expectStepMock, result);
     }
 }

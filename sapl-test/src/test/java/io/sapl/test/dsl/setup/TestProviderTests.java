@@ -85,7 +85,8 @@ class TestProviderTests {
         void buildTests_calledWithSAPLTestWithNullRequirements_throwsSaplTestException() {
             when(saplTestMock.getRequirements()).thenReturn(null);
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock, null));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
 
             assertEquals("provided SAPLTest does not contain a Requirement", exception.getMessage());
         }
@@ -230,10 +231,8 @@ class TestProviderTests {
 
     @Test
     void of_buildsInstanceOfTestProviderUsingStepConstructor_returnsTestProviderInstance() {
-        final var stepConstructorMock = mock(StepConstructor.class);
-
-        final var result = TestProvider.of(stepConstructorMock);
-
+        final var aStepConstructorMock = mock(StepConstructor.class);
+        final var result               = TestProvider.of(aStepConstructorMock);
         assertNotNull(result);
     }
 }

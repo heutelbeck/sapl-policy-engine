@@ -70,7 +70,7 @@ class DefaultWhenStepConstructorTests {
     @Mock
     protected GivenOrWhenStep            initialTestCaseMock;
     @Mock
-    protected Expectation                expectationMock;
+    protected Expectation                defaultExpectationMock;
     @InjectMocks
     protected DefaultWhenStepConstructor defaultWhenStepConstructor;
 
@@ -80,7 +80,8 @@ class DefaultWhenStepConstructorTests {
 
     @Test
     void constructWhenStep_handlesNullGivenSteps_returnsInitialTestCase() {
-        final var result = defaultWhenStepConstructor.constructWhenStep(null, initialTestCaseMock, expectationMock);
+        final var result = defaultWhenStepConstructor.constructWhenStep(null, initialTestCaseMock,
+                defaultExpectationMock);
 
         assertEquals(initialTestCaseMock, result);
         verifyNoInteractions(initialTestCaseMock);
@@ -89,7 +90,7 @@ class DefaultWhenStepConstructorTests {
     @Test
     void constructWhenStep_handlesEmptyGivenSteps_returnsInitialTestCase() {
         final var result = defaultWhenStepConstructor.constructWhenStep(Collections.emptyList(), initialTestCaseMock,
-                expectationMock);
+                defaultExpectationMock);
 
         assertEquals(initialTestCaseMock, result);
         verifyNoInteractions(initialTestCaseMock);
@@ -100,7 +101,7 @@ class DefaultWhenStepConstructorTests {
         final var importMock = mock(Import.class);
 
         final var result = defaultWhenStepConstructor.constructWhenStep(List.of(importMock, importMock),
-                initialTestCaseMock, expectationMock);
+                initialTestCaseMock, defaultExpectationMock);
 
         assertEquals(initialTestCaseMock, result);
         verifyNoInteractions(initialTestCaseMock);
@@ -112,8 +113,8 @@ class DefaultWhenStepConstructorTests {
 
         final var givenSteps = List.<GivenStep>of(virtualTimeMock, virtualTimeMock);
 
-        final var exception = assertThrows(SaplTestException.class,
-                () -> defaultWhenStepConstructor.constructWhenStep(givenSteps, initialTestCaseMock, expectationMock));
+        final var exception = assertThrows(SaplTestException.class, () -> defaultWhenStepConstructor
+                .constructWhenStep(givenSteps, initialTestCaseMock, defaultExpectationMock));
 
         assertEquals("Scenario contains more than one virtual-time declaration", exception.getMessage());
     }
@@ -124,8 +125,8 @@ class DefaultWhenStepConstructorTests {
 
         final var givenSteps = List.<GivenStep>of(unknownMockDefinition);
 
-        final var exception = assertThrows(SaplTestException.class,
-                () -> defaultWhenStepConstructor.constructWhenStep(givenSteps, initialTestCaseMock, expectationMock));
+        final var exception = assertThrows(SaplTestException.class, () -> defaultWhenStepConstructor
+                .constructWhenStep(givenSteps, initialTestCaseMock, defaultExpectationMock));
 
         assertEquals("Unknown type of GivenStep", exception.getMessage());
     }
@@ -137,7 +138,7 @@ class DefaultWhenStepConstructorTests {
         when(functionInterpreterMock.interpretFunction(initialTestCaseMock, function)).thenReturn(initialTestCaseMock);
 
         final var result = defaultWhenStepConstructor.constructWhenStep(List.of(function), initialTestCaseMock,
-                expectationMock);
+                defaultExpectationMock);
 
         assertEquals(initialTestCaseMock, result);
     }
@@ -151,7 +152,7 @@ class DefaultWhenStepConstructorTests {
                 .thenReturn(initialTestCaseMock);
 
         final var result = defaultWhenStepConstructor.constructWhenStep(List.of(functionInvokedOnce),
-                initialTestCaseMock, expectationMock);
+                initialTestCaseMock, defaultExpectationMock);
 
         assertEquals(initialTestCaseMock, result);
     }
@@ -164,7 +165,7 @@ class DefaultWhenStepConstructorTests {
                 .thenReturn(initialTestCaseMock);
 
         final var result = defaultWhenStepConstructor.constructWhenStep(List.of(attribute), initialTestCaseMock,
-                expectationMock);
+                defaultExpectationMock);
 
         assertEquals(initialTestCaseMock, result);
     }
@@ -178,7 +179,7 @@ class DefaultWhenStepConstructorTests {
                 .thenReturn(initialTestCaseMock);
 
         final var result = defaultWhenStepConstructor.constructWhenStep(List.of(attributeWithParameters),
-                initialTestCaseMock, expectationMock);
+                initialTestCaseMock, defaultExpectationMock);
 
         assertEquals(initialTestCaseMock, result);
     }
@@ -190,7 +191,7 @@ class DefaultWhenStepConstructorTests {
         when(initialTestCaseMock.withVirtualTime()).thenReturn(initialTestCaseMock);
 
         final var result = defaultWhenStepConstructor.constructWhenStep(List.of(virtualTime), initialTestCaseMock,
-                expectationMock);
+                defaultExpectationMock);
 
         assertEquals(initialTestCaseMock, result);
     }
@@ -207,7 +208,7 @@ class DefaultWhenStepConstructorTests {
         when(initialTestCaseMock.withVirtualTime()).thenReturn(initialTestCaseMock);
 
         final var result = defaultWhenStepConstructor.constructWhenStep(List.of(virtualTime, function, attribute),
-                initialTestCaseMock, expectationMock);
+                initialTestCaseMock, defaultExpectationMock);
 
         assertEquals(initialTestCaseMock, result);
         verify(functionInterpreterMock, times(1)).interpretFunction(initialTestCaseMock, function);

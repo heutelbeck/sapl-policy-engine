@@ -78,7 +78,7 @@ class GPolicyWithComplexExpectStepTests {
         public String icd11Code     = "icd11Code";
     }
 
-    private final Object resource = new ResourceDTO();
+    private final Object defaultResource = new ResourceDTO();
 
     @BeforeEach
     public void setUp() throws InitializationException {
@@ -104,12 +104,11 @@ class GPolicyWithComplexExpectStepTests {
 
         fixture.constructTestCase().when(AuthorizationSubscription.of(subject, action, resource)).expect(decision)
                 .verify();
-
     }
 
     @Test
     void test_equalsPredicate() {
-        fixture.constructTestCase().when(AuthorizationSubscription.of(subject, action, resource))
+        fixture.constructTestCase().when(AuthorizationSubscription.of(subject, action, defaultResource))
                 .expect((AuthorizationDecision dec) -> {
 
                     if (dec.getDecision() != Decision.PERMIT) {
@@ -141,44 +140,22 @@ class GPolicyWithComplexExpectStepTests {
 
                     return containsExpectedObligation && containsExpectedResource;
                 }).verify();
-
     }
 
     @Test
     void test_equalsMatcher() {
-        fixture.constructTestCase().when(AuthorizationSubscription.of(subject, action, resource))
+        fixture.constructTestCase().when(AuthorizationSubscription.of(subject, action, defaultResource))
                 .expect(allOf(isPermit(),
-
-                        // check Obligations
-                        // via .equals()
-                        //// hasObligation(mapper.createObjectNode().put("foo", "bar")),
-                        // or Predicate
                         hasObligationMatching((JsonNode obligation) -> obligation.has("type")
                                 && "logAccess".equals(obligation.get("type").asText()) && obligation.has("message")
                                 && WILLI_HAS_ACCESSED_PATIENT_DATA.equals(obligation.get("message").asText())),
-
                         hasObligationContainingKeyValue("type", "logAccess"),
-
-                        // check Advice
-                        // via .equals()
-                        //// hasAdvice(mapper.createObjectNode().put("foo", "bar")),
-                        // or Predicate
-                        //// hasAdviceMatching((JsonNode advice) -> {
-                        //// return advice.has("sendEmail");
-                        //// }),
-
-                        // check Resource
-                        // via .equals()
-                        //// isResourceEquals(new
-                        // ObjectMapper().createObjectNode().put("foo", "bar")),
-                        // or Predicate
                         hasResourceMatching((JsonNode resource) -> resource.has("id")
                                 && "56".equals(resource.get("id").asText()) && resource.has("diagnosisText")
                                 && BLACKENED_DIAGNOSIS.equals(resource.get("diagnosisText").asText())
                                 && resource.has("icd11Code")
                                 && BLACKENED_ICD11.equals(resource.get("icd11Code").asText()))))
                 .verify();
-
     }
 
 }

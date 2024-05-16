@@ -93,9 +93,9 @@ class MockingFunctionContextTests {
 
     @Test
     void test_FunctionMockValueFromFunction_duplicateRegistration() {
-        this.ctx.loadFunctionMockValueFromFunction("foo.bar", (call) -> Val.of(1));
+        this.ctx.loadFunctionMockValueFromFunction("foo.bar", call -> Val.of(1));
         assertThatExceptionOfType(SaplTestException.class)
-                .isThrownBy(() -> this.ctx.loadFunctionMockValueFromFunction("foo.bar", (call) -> Val.of(1)));
+                .isThrownBy(() -> this.ctx.loadFunctionMockValueFromFunction("foo.bar", call -> Val.of(1)));
     }
 
     @Test
@@ -105,8 +105,8 @@ class MockingFunctionContextTests {
         when(unmockedCtx.providedFunctionsOfLibrary("xxx")).thenReturn(List.of());
         when(unmockedCtx.providedFunctionsOfLibrary("iii")).thenReturn(List.of("iii", "iiii"));
 
-        ctx.loadFunctionMockValueFromFunction("foo.bar", (call) -> Val.of("1"));
-        ctx.loadFunctionMockValueFromFunction("foo.abc", (call) -> Val.of("1"), times(1));
+        ctx.loadFunctionMockValueFromFunction("foo.bar", call -> Val.of("1"));
+        ctx.loadFunctionMockValueFromFunction("foo.abc", call -> Val.of("1"), times(1));
         ctx.loadFunctionMockAlwaysSameValue("xxx.xxx", Val.of(1));
         ctx.loadFunctionMockAlwaysSameValue("xxx.yyy", Val.of(1), times(1));
         ctx.loadFunctionMockAlwaysSameValueForParameters("foo.123", Val.of(1), whenFunctionParams());
@@ -158,7 +158,7 @@ class MockingFunctionContextTests {
 
     @Test
     void test_getAvailableLibraries_returnsAllAvailableLibraries() {
-        ctx.loadFunctionMockValueFromFunction("foo.bar", (call) -> Val.of("1"));
+        ctx.loadFunctionMockValueFromFunction("foo.bar", call -> Val.of("1"));
         assertThat(this.ctx.getAvailableLibraries()).containsOnly("foo.bar");
     }
 

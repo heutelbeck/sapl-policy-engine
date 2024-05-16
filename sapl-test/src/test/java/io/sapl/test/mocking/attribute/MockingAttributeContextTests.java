@@ -283,9 +283,9 @@ class MockingAttributeContextTests {
 
     @Test
     void test_mockEmit_UnmockedAttribute() {
-        var unmockedCtx = new AnnotationAttributeContext();
-        var ctx         = new MockingAttributeContext(unmockedCtx);
-        var valOne      = Val.of(1);
+        var anUnmockedCtx = new AnnotationAttributeContext();
+        var ctx           = new MockingAttributeContext(anUnmockedCtx);
+        var valOne        = Val.of(1);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.mockEmit("foo.bar", valOne));
     }
 
