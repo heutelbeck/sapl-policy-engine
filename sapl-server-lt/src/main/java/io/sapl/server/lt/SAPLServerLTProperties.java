@@ -41,8 +41,7 @@ public class SAPLServerLTProperties {
     private String secret = "";
 
     // API Key authentication
-    private String       apiKeyHeaderName = "API_KEY";
-    private List<String> allowedApiKeys   = List.of();
+    private List<String> allowedApiKeys = List.of();
 
     public List<String> getAllowedApiKeys() {
         return Collections.unmodifiableList(allowedApiKeys);
