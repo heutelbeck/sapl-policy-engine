@@ -73,7 +73,7 @@ class ImmutableFileIndexTests {
 
     @ParameterizedTest
     @MethodSource("provideFileSystem")
-    void whe_startingNonExistingDirectory_thenNoUpdates(FileSystem fileSystem) throws Exception {
+    void whe_startingNonExistingDirectory_thenNoUpdates(FileSystem fileSystem) {
         var policiesFolder = fileSystem.getPath(POLICIES_PATH);
         var sut            = new ImmutableFileIndex(policiesFolder, INTERPRETER);
         var actualUpdates  = sut.getUpdateEvent().getUpdates();

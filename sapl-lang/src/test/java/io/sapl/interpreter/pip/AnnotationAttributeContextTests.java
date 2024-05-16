@@ -981,13 +981,11 @@ class AnnotationAttributeContextTests {
         var expectedEnvironmentTemplates = new String[] { "test.a(a1, a2)>", "test.a(varArgsParams...)>",
                 "test.a2(a1, a2)>", "test.a2>" };
         var actualEnvironmentTemplates   = sut.getEnvironmentAttributeCodeTemplates();
-        actualEnvironmentTemplates = sut.getEnvironmentAttributeCodeTemplates();
         assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvironmentTemplates));
 
         var expectedNonEnvironmentTemplates = new String[] { "test.x2(a1, a2)>", "test.x(varArgsParams...)>",
                 "test.x(a1, a2)>" };
         var actualNonEnvironmentTemplates   = sut.getAttributeCodeTemplates();
-        actualNonEnvironmentTemplates = sut.getAttributeCodeTemplates();
         assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvironmentTemplates));
 
         assertThat(sut.getAvailableLibraries(), containsInAnyOrder("test"));
@@ -1050,10 +1048,7 @@ class AnnotationAttributeContextTests {
     @Test
     void when_nonJsonSchema_then_fail() {
 
-        final String pipName        = "test";
-        final String pipDescription = "description";
-
-        @PolicyInformationPoint(name = pipName, description = pipDescription)
+        @PolicyInformationPoint(name = "test", description = "description")
         class PIP {
 
             @EnvironmentAttribute(schema = "][")
@@ -1069,10 +1064,7 @@ class AnnotationAttributeContextTests {
     @Test
     void when_resourcesSchemaLoadError_then_fail() {
 
-        final String pipName        = "test";
-        final String pipDescription = "description";
-
-        @PolicyInformationPoint(name = pipName, description = pipDescription)
+        @PolicyInformationPoint(name = "test", description = "description")
         class PIP {
 
             @EnvironmentAttribute(pathToSchema = "/i_do_not_exist.json")
@@ -1088,10 +1080,7 @@ class AnnotationAttributeContextTests {
     @Test
     void when_multipleSchemaSources_then_fail() {
 
-        final String pipName        = "test";
-        final String pipDescription = "description";
-
-        @PolicyInformationPoint(name = pipName, description = pipDescription)
+        @PolicyInformationPoint(name = "test", description = "description")
         class PIP {
 
             @EnvironmentAttribute(schema = "{}", pathToSchema = "/i_do_not_exist.json")

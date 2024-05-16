@@ -52,7 +52,7 @@ class StandardFunctionLibraryTests {
             """;
 
     @Test
-    void xmlToJsonTest() throws Exception {
+    void xmlToJsonTest() {
         var html = StandardFunctionLibrary.xmlToJson(Val.of(HTML_DOCUMENT));
         assertThat(html.get().get("body").get("p").get(0).asText()).isEqualTo("First");
         var xml = StandardFunctionLibrary.xmlToJson(Val.of(XML_DOCUMENT));

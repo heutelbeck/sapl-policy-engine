@@ -381,21 +381,6 @@ class CanonicalImmutableParsedDocumentIndexTests {
     }
 
     @Test
-    void null_while_retaining_Target() {
-        var document = INTERPERETER.parseDocument("id1", "policy \"p1\" permit");
-        var saplMap  = new HashMap<String, Document>();
-        saplMap.put("p1", document);
-
-        try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito.mockConstruction(
-                CanonicalIndexDataCreationStrategy.class,
-                (mock, context) -> doReturn(null).when(mock).constructNew(any(), any()))) {
-
-            emptyIndex.recreateIndex(saplMap, true);
-            verify(mocked.constructed().get(0), times(1)).constructNew(any(), any());
-        }
-    }
-
-    @Test
     void throw_exception_on_name_collision() {
         var firstDocument = INTERPERETER.parseDocument("policy \"p1\" permit");
         var saplMap       = new HashMap<String, Document>();

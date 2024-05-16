@@ -157,7 +157,7 @@ class PolicySetImplCustomTests {
 			// obligationUndefined
 			Arguments.of("policy \"p\" permit obligation undefined", INDETERMINATE),
 
-			// adviceEvaluatesSuccessfully() throws JsonProcessingException, PolicyEvaluationException {
+			// adviceEvaluatesSuccessfully
 			Arguments.of("policy \"p\" permit advice true",
 					new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.of(Val.ofJson("[true]").getArrayNode()))),
 

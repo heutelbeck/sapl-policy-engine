@@ -158,7 +158,7 @@ class InputStreamHelperTests {
 
     @Test
     @Timeout(10)
-    void checkSize() throws IOException {
+    void checkSize() {
         var utf8     = StandardCharsets.UTF_8.name();
         var testCase = "*".repeat(10000000);
         assertDoesNotThrow(() -> IOUtils.toString(InputStreamHelper.convertToTrojanSourceSecureStream(

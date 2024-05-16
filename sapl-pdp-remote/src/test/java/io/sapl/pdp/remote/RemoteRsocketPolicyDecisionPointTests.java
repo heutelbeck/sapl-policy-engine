@@ -210,29 +210,29 @@ public class RemoteRsocketPolicyDecisionPointTests {
 
     @Test
     void construct() {
-        var pdp = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000).basicAuth("secret", "key")
-                .build();
-        assertThat(pdp, notNullValue());
+        var pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
+                .basicAuth("secret", "key").build();
+        assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void constructWithSslContext() throws SSLException {
-        var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-        var pdp        = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
+        var sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+        var pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
                 .basicAuth("secret", "key").secure(sslContext).build();
-        assertThat(pdp, notNullValue());
+        assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void settersAndGetters() {
-        var pdp = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000).basicAuth("secret", "key")
-                .build();
-        pdp.setBackoffFactor(999);
-        pdp.setFirstBackoffMillis(998);
-        pdp.setMaxBackOffMillis(1001);
-        assertAll(() -> assertThat(pdp.getBackoffFactor(), is(999)),
-                () -> assertThat(pdp.getFirstBackoffMillis(), is(998)),
-                () -> assertThat(pdp.getMaxBackOffMillis(), is(1001)));
+        var pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
+                .basicAuth("secret", "key").build();
+        pdpUnderTest.setBackoffFactor(999);
+        pdpUnderTest.setFirstBackoffMillis(998);
+        pdpUnderTest.setMaxBackOffMillis(1001);
+        assertAll(() -> assertThat(pdpUnderTest.getBackoffFactor(), is(999)),
+                () -> assertThat(pdpUnderTest.getFirstBackoffMillis(), is(998)),
+                () -> assertThat(pdpUnderTest.getMaxBackOffMillis(), is(1001)));
     }
 
 }

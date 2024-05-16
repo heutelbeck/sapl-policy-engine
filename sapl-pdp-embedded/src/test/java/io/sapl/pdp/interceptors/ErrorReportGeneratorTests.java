@@ -21,7 +21,6 @@ import static io.sapl.assertj.SaplAssertions.assertThatVal;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -54,7 +53,7 @@ class ErrorReportGeneratorTests {
     private static final String HTML_ERROR_OFF = "</span>";
 
     @Test
-    void whenError_then_characterAreEscapedForHTML() throws IOException, InitializationException {
+    void whenError_then_characterAreEscapedForHTML() throws InitializationException {
         var documents = List.of("""
                 policy "something&to escape"
                 permit where <unknown.pip> == "test";
@@ -74,7 +73,7 @@ class ErrorReportGeneratorTests {
     }
 
     @Test
-    void whenError_then_ansiReportMarksRegion() throws IOException, InitializationException {
+    void whenError_then_ansiReportMarksRegion() throws InitializationException {
         var documents = List.of("""
                 policy "some policy"
                 permit true == false
@@ -104,7 +103,7 @@ class ErrorReportGeneratorTests {
     }
 
     @Test
-    void whenError_then_htmlReportMarksRegion() throws IOException, InitializationException {
+    void whenError_then_htmlReportMarksRegion() throws InitializationException {
         var documents = List.of("""
                 policy "some policy"
                 permit true == false
@@ -131,7 +130,7 @@ class ErrorReportGeneratorTests {
     }
 
     @Test
-    void whenError_then_plainTextReportMarksRegion() throws IOException, InitializationException {
+    void whenError_then_plainTextReportMarksRegion() throws InitializationException {
         var documents = List.of("""
                 policy "some policy"
                 permit true == false

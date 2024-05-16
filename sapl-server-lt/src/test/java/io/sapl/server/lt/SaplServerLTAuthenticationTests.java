@@ -17,14 +17,14 @@
  */
 package io.sapl.server.lt;
 
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.CompositeByteBuf;
-import io.netty.buffer.Unpooled;
-import io.rsocket.metadata.CompositeMetadataCodec;
-import io.rsocket.util.DefaultPayload;
-import io.sapl.server.lt.apikey.ApiKeyAuthenticationException;
-import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
-import io.sapl.server.lt.apikey.ApiKeyService;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -34,17 +34,19 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.rsocket.api.PayloadExchange;
 
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.Unpooled;
+import io.rsocket.metadata.CompositeMetadataCodec;
+import io.rsocket.util.DefaultPayload;
+import io.sapl.server.lt.apikey.ApiKeyAuthenticationException;
+import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
+import io.sapl.server.lt.apikey.ApiKeyService;
 
 class SaplServerLTAuthenticationTests {
-    private final String          apiKey          = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
-    private final String          invalidApiKey   = "invalid-adpi-key";
-    private final String          encodedApiKey   = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
+    private static final String   API_KEY         = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
+    private static final String   INVALIC_API_KEY = "invalid-adpi-key";
+    private static final String   ENCODED_API_KEY = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
     private final PasswordEncoder passwordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
 
     @Test
@@ -53,9 +55,9 @@ class SaplServerLTAuthenticationTests {
         var cacheManager                        = mock(CacheManager.class);
         var apiKeyReactiveAuthenticationManager = new ApiKeyReactiveAuthenticationManager();
 
-        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(encodedApiKey));
+        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
         var exchange = MockServerWebExchange
-                .from(MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + apiKey));
+                .from(MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + API_KEY));
 
         var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
         var result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
@@ -82,14 +84,15 @@ class SaplServerLTAuthenticationTests {
         var payloadExchange = mock(PayloadExchange.class);
         // test with empty cache
         when(cacheManager.getCache("ApiKeyCache")).thenReturn(cache);
-        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(encodedApiKey));
+        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
 
         // build payload with metadata
         CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
         CompositeMetadataCodec.encodeAndAddMetadata(metadata, ByteBufAllocator.DEFAULT, "messaging/Bearer",
-                Unpooled.buffer().writeBytes(apiKey.getBytes()));
+                Unpooled.buffer().writeBytes(API_KEY.getBytes(StandardCharsets.UTF_8)));
 
-        var payload = DefaultPayload.create(Unpooled.buffer().writeBytes(apiKey.getBytes()), metadata);
+        var payload = DefaultPayload.create(Unpooled.buffer().writeBytes(API_KEY.getBytes(StandardCharsets.UTF_8)),
+                metadata);
         when(payloadExchange.getPayload()).thenReturn(payload);
 
         // execute unit test
@@ -108,12 +111,12 @@ class SaplServerLTAuthenticationTests {
 
         // mock cache manager
         when(cacheManager.getCache("ApiKeyCache")).thenReturn(cache);
-        when(cache.get(apiKey)).thenReturn(cacheEntry);
-        when(cacheEntry.get()).thenReturn(encodedApiKey);
+        when(cache.get(API_KEY)).thenReturn(cacheEntry);
+        when(cacheEntry.get()).thenReturn(ENCODED_API_KEY);
 
-        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(encodedApiKey));
+        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
         var exchange = MockServerWebExchange
-                .from(MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + apiKey));
+                .from(MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + API_KEY));
 
         var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
         var result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
@@ -126,9 +129,9 @@ class SaplServerLTAuthenticationTests {
         var pdpProperties = mock(SAPLServerLTProperties.class);
         var cacheManager  = mock(CacheManager.class);
 
-        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(encodedApiKey));
-        var exchange = MockServerWebExchange
-                .from(MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + invalidApiKey));
+        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
+        var exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + INVALIC_API_KEY));
 
         var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
         var result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
@@ -143,14 +146,15 @@ class SaplServerLTAuthenticationTests {
         var payloadExchange = mock(PayloadExchange.class);
         // test with empty cache
         when(cacheManager.getCache("ApiKeyCache")).thenReturn(cache);
-        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(encodedApiKey));
+        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
 
         // build payload with metadata
         CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
         CompositeMetadataCodec.encodeAndAddMetadata(metadata, ByteBufAllocator.DEFAULT, "messaging/unknown",
-                Unpooled.buffer().writeBytes(invalidApiKey.getBytes()));
+                Unpooled.buffer().writeBytes(INVALIC_API_KEY.getBytes(StandardCharsets.UTF_8)));
 
-        var payload = DefaultPayload.create(Unpooled.buffer().writeBytes(apiKey.getBytes()), metadata);
+        var payload = DefaultPayload.create(Unpooled.buffer().writeBytes(API_KEY.getBytes(StandardCharsets.UTF_8)),
+                metadata);
         when(payloadExchange.getPayload()).thenReturn(payload);
 
         // execute unit test
@@ -164,9 +168,9 @@ class SaplServerLTAuthenticationTests {
         var pdpProperties = mock(SAPLServerLTProperties.class);
         var cacheManager  = mock(CacheManager.class);
 
-        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(encodedApiKey));
-        var exchange = MockServerWebExchange
-                .from(MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + apiKey + "XYZ"));
+        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
+        var exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + API_KEY + "XYZ"));
 
         var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
         assertThatThrownBy(() -> apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block())
@@ -183,14 +187,15 @@ class SaplServerLTAuthenticationTests {
 
         // test with empty cache
         when(cacheManager.getCache("ApiKeyCache")).thenReturn(cache);
-        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(encodedApiKey));
+        when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
 
         // build payload with metadata
         CompositeByteBuf metadata = ByteBufAllocator.DEFAULT.compositeBuffer();
         CompositeMetadataCodec.encodeAndAddMetadata(metadata, ByteBufAllocator.DEFAULT, "messaging/Bearer",
-                Unpooled.buffer().writeBytes(invalidApiKey.getBytes()));
+                Unpooled.buffer().writeBytes(INVALIC_API_KEY.getBytes(StandardCharsets.UTF_8)));
 
-        var payload = DefaultPayload.create(Unpooled.buffer().writeBytes(invalidApiKey.getBytes()), metadata);
+        var payload = DefaultPayload
+                .create(Unpooled.buffer().writeBytes(INVALIC_API_KEY.getBytes(StandardCharsets.UTF_8)), metadata);
         when(payloadExchange.getPayload()).thenReturn(payload);
 
         // execute unit test

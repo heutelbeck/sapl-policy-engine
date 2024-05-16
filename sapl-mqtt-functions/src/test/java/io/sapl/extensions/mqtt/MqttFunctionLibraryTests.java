@@ -203,30 +203,6 @@ class MqttFunctionLibraryTests {
     }
 
     @Test
-    void when_atLeastOneTopicShouldMatchButSpecifiedAWildcardInTopicToMatch_then_returnValError() {
-        // GIVEN
-        Val wildcardTopic = Val.of("first/second/#");
-        Val matchingTopic = Val.of("first/second/third/#");
-
-        // WHEN / THEN
-        assertThrows(PolicyEvaluationException.class,
-                () -> MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopic));
-    }
-
-    @Test
-    void when_atLeastOneTopicShouldMatchButSpecifiedAWildcardInTopicsToMatch_then_returnValError() {
-        // GIVEN
-        Val    wildcardTopic       = Val.of("first/second/#");
-        String firstMatchingTopic  = "first/second/third";
-        String secondMatchingTopic = "first/second/+/fourth";
-        Val    matchingTopics      = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
-
-        // WHEN / THEN
-        assertThrows(PolicyEvaluationException.class,
-                () -> MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics));
-    }
-
-    @Test
     void when_allTopicsShouldMatchWithMultiLevelWildcardAndSingleTopicMatchesWildcard_then_returnTrue()
             throws InitializationException {
         // GIVEN

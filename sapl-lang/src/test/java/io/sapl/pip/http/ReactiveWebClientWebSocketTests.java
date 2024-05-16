@@ -53,7 +53,7 @@ class ReactiveWebClientWebSocketTests {
     private Integer port;
 
     @Test
-    void when_sendBodyToEcho_then_receiveEcho() throws JsonProcessingException, InterruptedException {
+    void when_sendBodyToEcho_then_receiveEcho() throws JsonProcessingException {
         var template        = """
                 {
                     "baseUrl" : "%s",
@@ -67,7 +67,7 @@ class ReactiveWebClientWebSocketTests {
     }
 
     @Test
-    void when_sendBodyNonJSONToEcho_then_receiveEchoButError() throws JsonProcessingException, InterruptedException {
+    void when_sendBodyNonJSONToEcho_then_receiveEchoButError() throws JsonProcessingException {
         var template        = """
                 {
                     "baseUrl" : "%s",
@@ -82,7 +82,7 @@ class ReactiveWebClientWebSocketTests {
     }
 
     @Test
-    void when_sendNoBodyToCounter_then_receiveStreamOfNumbers() throws JsonProcessingException, InterruptedException {
+    void when_sendNoBodyToCounter_then_receiveStreamOfNumbers() throws JsonProcessingException {
         var template        = """
                 {
                     "baseUrl" : "%s"

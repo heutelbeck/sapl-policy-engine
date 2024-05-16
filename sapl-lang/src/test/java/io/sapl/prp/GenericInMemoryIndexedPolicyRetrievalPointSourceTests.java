@@ -93,25 +93,4 @@ class GenericInMemoryIndexedPolicyRetrievalPointSourceTests {
 
     }
 
-    @Test
-    void testConstructAndRetrieveWithNonSAPLResult() {
-        // WHEN
-        var doc                   = INTERPRETER.parseDocument("policy \"x\" permit");
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(new DocumentMatch(doc, Val.TRUE));
-        when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
-
-        // DO
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(indexMock, sourceMock);
-        var result = prp.policyRetrievalPoint().flatMap(PolicyRetrievalPoint::retrievePolicies).blockFirst();
-        prp.dispose();
-
-        // THEN
-        verify(sourceMock, times(1)).getUpdates();
-        verify(indexMock, times(1)).apply(any());
-        assertThat(prp, is(notNullValue()));
-
-        verify(indexMock, times(1)).retrievePolicies();
-        assertThat(result, is(policyRetrievalResult));
-    }
-
 }

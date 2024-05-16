@@ -418,10 +418,10 @@ class GenericCoverageReporterTests {
         PolicyConditionHit       conditionHit3 = new PolicyConditionHit("", "policy1", 1, false);
         CoverageTargets          hits          = new CoverageTargets(List.of(), List.of(policyHit),
                 List.of(conditionHit1, conditionHit2, conditionHit3));
-        GenericCoverageReporter  reporter      = new GenericCoverageReporter();
+        GenericCoverageReporter  testReporter  = new GenericCoverageReporter();
 
         // act
-        List<SaplDocumentCoverageInformation> docs = reporter.calcDocumentCoverage(documents, hits);
+        List<SaplDocumentCoverageInformation> docs = testReporter.calcDocumentCoverage(documents, hits);
 
         // assert
         assertEquals(1, docs.size());
