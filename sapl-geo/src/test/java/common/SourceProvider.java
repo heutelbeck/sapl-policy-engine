@@ -86,7 +86,7 @@ public class SourceProvider {
         } catch (Exception e) {
 
             e.printStackTrace();
-        } 
+        }
         try {
             jsonSource = MAPPER.readTree(new File(resourceDirectory + "/jsonSource.json"));
 

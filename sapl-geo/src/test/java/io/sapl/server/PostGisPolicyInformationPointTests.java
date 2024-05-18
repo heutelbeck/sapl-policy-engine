@@ -108,6 +108,8 @@ class PostGisPolicyInformationPointTests extends PostgisTestBase {
                 .verify();
     }
 
+  
+    
     @Getter
     @RequiredArgsConstructor
     class Subject {

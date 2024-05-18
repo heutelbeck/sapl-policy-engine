@@ -69,7 +69,7 @@ public class OwnTracksConnectionTests {
     @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
             "KML,ResponseKML,true" })
     void testConnection(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
-        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        var expected        = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         var requestTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
 
         if (!latitudeFirst) {
@@ -79,7 +79,7 @@ public class OwnTracksConnectionTests {
         requestTemplate = requestTemplate.concat("}");
         var val          = Val.ofJson(requestTemplate);
         var resultStream = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).map(Val::get)
-                .map(JsonNode::toPrettyString);                                                   
+                .map(JsonNode::toPrettyString);
         StepVerifier.create(resultStream).expectNext(expected).thenCancel().verify();
 
     }

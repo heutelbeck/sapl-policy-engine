@@ -67,8 +67,7 @@ class MySqlPolicyInformationPointTests extends MySqlTestBase {
         var json     = String.format(template, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
 
-        var writer = new BufferedWriter(
-                new FileWriter(String.format(path, "/mysqlTestEnvironmentVariable/pdp.json")));
+        var writer = new BufferedWriter(new FileWriter(String.format(path, "/mysqlTestEnvironmentVariable/pdp.json")));
         writer.write(json);
 
         writer.close();
@@ -83,7 +82,7 @@ class MySqlPolicyInformationPointTests extends MySqlTestBase {
                 () -> List.of(new MySqlPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
 
         var authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var                       pdpDecisionFlux   = pdp.decide(authzSubscription);
+        var pdpDecisionFlux   = pdp.decide(authzSubscription);
 
         StepVerifier.create(pdpDecisionFlux)
                 .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()

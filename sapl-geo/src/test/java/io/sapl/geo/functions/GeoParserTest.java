@@ -64,9 +64,9 @@ class GeoParserTest {
         path              = resourceDirectory.concat("\\\\geoparser\\\\example.kml");
         parser            = new GeoParser(mapper);
 
-        var           reader        = new BufferedReader(new FileReader(path));
-        var 		  stringBuilder = new StringBuilder();
-        String        line;
+        var    reader        = new BufferedReader(new FileReader(path));
+        var    stringBuilder = new StringBuilder();
+        String line;
         while ((line = reader.readLine()) != null) {
             stringBuilder.append(line);
         }
@@ -108,10 +108,10 @@ class GeoParserTest {
                 """;
         var request  = Val.ofJson(String.format(template, baseUrl, MediaType.APPLICATION_XML_VALUE));
 
-        var pip  = new HttpPolicyInformationPoint(new ReactiveWebClient(mapper));
+        var pip      = new HttpPolicyInformationPoint(new ReactiveWebClient(mapper));
         var response = pip.get(request);
-        StepVerifier.create(response.map(x -> parser.parseKML(x))).expectNext(Val.ofJson(exp)).expectNext(Val.ofJson(exp))
-                .expectComplete().verify();
+        StepVerifier.create(response.map(x -> parser.parseKML(x))).expectNext(Val.ofJson(exp))
+                .expectNext(Val.ofJson(exp)).expectComplete().verify();
     }
 
     @Test

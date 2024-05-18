@@ -40,9 +40,9 @@ class GmlConverterTest extends TestBase {
     @BeforeAll
     void setup() throws TransformerException {
 
-        var			 sw  = new StringWriter();
-        var          pnt = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
-        var          plg = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
+        var sw  = new StringWriter();
+        var pnt = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
+        var plg = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
         source.getTransform().transform(new DOMSource(pnt), new StreamResult(sw));
         point = Val.of(sw.toString());

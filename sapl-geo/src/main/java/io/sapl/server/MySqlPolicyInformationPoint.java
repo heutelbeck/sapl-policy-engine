@@ -21,7 +21,6 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
@@ -42,33 +41,19 @@ public class MySqlPolicyInformationPoint {
 
     private static final String MYSQL_DEFAULT_CONFIG = "MYSQL_DEFAULT_CONFIG";
 
-    @Attribute(name = "geometry")
-    public Flux<Val> geometry(Val leftHandValue, Map<String, Val> auth, @JsonObject Val variables) {
-
-        return new MySqlConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(), variables.get(), mapper)
-                .connect(variables.get());
-
-    }
-
-    @Attribute(name = "geometry")
-    public Flux<Val> geometry(Val leftHandValue, @JsonObject Val auth, @JsonObject Val variables) {
-
-        return new MySqlConnection(auth.get(), variables.get(), mapper).connect(variables.get());
-
-    }
+    
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
 
-        return new MySqlConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(), variables.get(), mapper)
-                .connect(variables.get());
+        return new MySqlConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(), mapper).sendQuery(variables.get());
 
     }
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(@JsonObject Val auth, @JsonObject Val variables) {
 
-        return new MySqlConnection(auth.get(), variables.get(), mapper).connect(variables.get());
+        return new MySqlConnection(auth.get(), mapper).sendQuery(variables.get());
 
     }
 

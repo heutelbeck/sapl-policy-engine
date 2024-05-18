@@ -74,11 +74,11 @@ public abstract class DatabaseConnection extends ConnectionBase {
      * @param settings a {@link JsonNode} containing the settings
      * @return a {@link Flux}<{@link Val}
      */
-    public Flux<Val> connect(JsonNode settings) {
+    public Flux<Val> sendQuery(JsonNode settings) {
 
         try {
             selectColumns = getColumns(settings, mapper);
-            return getFlux(getResponseFormat(settings, mapper),
+            return createConnection(getResponseFormat(settings, mapper),
                     buildSql(getGeoColumn(settings), selectColumns, getTable(settings), getWhere(settings)),
                     getSingleResult(settings), getDefaultCRS(settings),
                     longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
@@ -91,10 +91,10 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     }
 
-    private Flux<JsonNode> getFlux(GeoPipResponseFormat format, String sql, boolean singleResult, int defaultCrs,
-            long repeatTimes, long pollingInterval, boolean latitudeFirst) {
+    private Flux<JsonNode> createConnection(GeoPipResponseFormat format, String sql, boolean singleResult,
+            int defaultCrs, long repeatTimes, long pollingInterval, boolean latitudeFirst) {
 
-        var connection = Mono.from(connectionFactory.create()).doOnNext(connectionReference::set);// createConnection();
+        var connection = Mono.from(connectionFactory.create()).doOnNext(connectionReference::set);
 
         logger.info("Database-Client connected.");
 
@@ -105,7 +105,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
                     pollingInterval);
         } else {
 
-            return poll(collectAndMapResults(getResults(connection, sql, format, defaultCrs, latitudeFirst)),
+            return poll(collectMultipleResults(getResults(connection, sql, format, defaultCrs, latitudeFirst)),
                     repeatTimes, pollingInterval);
         }
 
@@ -119,7 +119,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     }
 
-    private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
+    private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst)  {
         ObjectNode resultNode = mapper.createObjectNode();
         JsonNode   geoNode;
 
@@ -141,7 +141,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
         return resultNode;
     }
 
-    private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) {
+    private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst)  {
 
         JsonNode res = mapper.createObjectNode();
         var      crs = EPSG + srid;
@@ -185,12 +185,12 @@ public abstract class DatabaseConnection extends ConnectionBase {
             }
 
         } catch (Exception e) {
-            throw new PolicyEvaluationException(e.getMessage());
+            throw new PolicyEvaluationException(e);
         }
         return res;
     }
 
-    private Mono<JsonNode> collectAndMapResults(Flux<JsonNode> resultFlux) {
+    private Mono<JsonNode> collectMultipleResults(Flux<JsonNode> resultFlux) {
 
         return resultFlux.collect(ArrayList::new, List::add).map(results -> {
             ArrayNode arrayNode = mapper.createArrayNode();
@@ -210,7 +210,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     private void disconnect() {
 
-        if (connectionReference != null) {
+        if (connectionReference.get() != null) {
             connectionReference.get().close();
             logger.info("Database-Client disconnected.");
         }

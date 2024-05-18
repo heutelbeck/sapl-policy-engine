@@ -33,8 +33,9 @@ public abstract class PostgisTestBase extends DatabaseTestBase {
 
     protected void commonSetUp() throws Exception {
 
-        authTemplate = String.format(authenticationTemplate, postgisContainer.getUsername(), postgisContainer.getPassword(),
-                postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
+        authTemplate = String.format(authenticationTemplate, postgisContainer.getUsername(),
+                postgisContainer.getPassword(), postgisContainer.getHost(), postgisContainer.getMappedPort(5432),
+                postgisContainer.getDatabaseName());
 
         template = String.format(template1, postgisContainer.getUsername(), postgisContainer.getPassword(),
                 postgisContainer.getHost(), postgisContainer.getMappedPort(5432));

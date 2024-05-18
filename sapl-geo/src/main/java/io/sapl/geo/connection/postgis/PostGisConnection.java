@@ -31,7 +31,7 @@ public class PostGisConnection extends DatabaseConnection {
      * @param settings a {@link JsonNode} containing the settings
      * @param mapper   a {@link ObjectMapper}
      */
-    public PostGisConnection(JsonNode auth, JsonNode settings, ObjectMapper mapper) {
+    public PostGisConnection(JsonNode auth, ObjectMapper mapper) {
 
         super(mapper);
         connectionFactory = new PostgresqlConnectionFactory(

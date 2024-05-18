@@ -26,7 +26,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import common.MySqlTestBase;
 import io.sapl.api.interpreter.Val;
-
+import io.sapl.geo.connection.postgis.PostGisConnection;
 import reactor.test.StepVerifier;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -44,9 +44,9 @@ class MySqlConnectionTests extends MySqlTestBase {
 
         var queryString = String.format(templateAll, "geometries", "geom");
 
-        var expected   = Val.ofJson(expectedAll);
-        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), Val.ofJson(queryString).get(), new ObjectMapper())
-                .connect(Val.ofJson(queryString).get());
+        var expected      = Val.ofJson(expectedAll);
+        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), new ObjectMapper())
+                .sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
@@ -57,13 +57,13 @@ class MySqlConnectionTests extends MySqlTestBase {
 
         var expected = Val.ofJson(expectedPoint);
 
-        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), Val.ofJson(queryString).get(), new ObjectMapper())
-                .connect(Val.ofJson(queryString).get());
+        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), new ObjectMapper())
+                .sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
     @Test
-    void Test03Error() throws JsonProcessingException {
+    void Test03ErrorNonexistantTable() throws JsonProcessingException {
 
         var errorTemplate = template.concat("""
                     ,
@@ -74,11 +74,23 @@ class MySqlConnectionTests extends MySqlTestBase {
                 	"where": "name = 'point'"
                 }
                 """);
-        var queryString = String.format(errorTemplate, "nonExistant", "geog");
+        var queryString   = String.format(errorTemplate, "nonExistant", "geog");
 
-        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), Val.ofJson(queryString).get(), new ObjectMapper())
-                .connect(Val.ofJson(queryString).get());
+        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), new ObjectMapper())
+                .sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectError();
     }
 
+    @Test
+    void Test04ErrorInvalidTemplate() throws JsonProcessingException {
+
+        var str = "{\"invalid\":\"Template\"}";
+
+        var postgis = new PostGisConnection(Val.ofJson(authTemplate).get(), new ObjectMapper())
+                .sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
+        
+        StepVerifier.create(postgis).expectNext("No geoColumn-name found").verifyComplete();
+    }
+
+    
 }

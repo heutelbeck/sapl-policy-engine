@@ -34,7 +34,7 @@ public class MySqlConnection extends DatabaseConnection {
      * @param settings a {@link JsonNode} containing the settings
      * @param mapper   a {@link ObjectMapper}
      */
-    public MySqlConnection(JsonNode auth, JsonNode settings, ObjectMapper mapper) {
+    public MySqlConnection(JsonNode auth, ObjectMapper mapper) {
         super(mapper);
 
         connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))

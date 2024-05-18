@@ -38,13 +38,13 @@ class KmlConverterTest extends TestBase {
 
     @BeforeAll
     void setup() throws TransformerException {
-        var			 stringWriter  = new StringWriter();
-        var          pnt = source.getXmlSource().getElementsByTagName("Point").item(0);
-        var          plg = source.getXmlSource().getElementsByTagName("Polygon").item(0);
+        var stringWriter = new StringWriter();
+        var pnt          = source.getXmlSource().getElementsByTagName("Point").item(0);
+        var plg          = source.getXmlSource().getElementsByTagName("Polygon").item(0);
 
         source.getTransform().transform(new DOMSource(pnt), new StreamResult(stringWriter));
-        point = Val.of(stringWriter.toString());
-        stringWriter    = new StringWriter();
+        point        = Val.of(stringWriter.toString());
+        stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(plg), new StreamResult(stringWriter));
         polygon = Val.of(stringWriter.toString());
 
@@ -85,7 +85,7 @@ class KmlConverterTest extends TestBase {
 
         var stringWriter = new StringWriter();
 
-        var point = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
+        var point   = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         var polygon = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
         stringWriter = new StringWriter();

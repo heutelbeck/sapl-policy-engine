@@ -43,7 +43,7 @@ class GeometryConverterTest extends TestBase {
 
         var stringwriter = new StringWriter();
 
-        var point = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
+        var point   = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         var polygon = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
         source.getTransform().transform(new DOMSource(point), new StreamResult(stringwriter));
@@ -64,7 +64,7 @@ class GeometryConverterTest extends TestBase {
 
         StringWriter stringwriter = new StringWriter();
 
-        var point = source.getXmlSource().getElementsByTagName("Point").item(0);
+        var point   = source.getXmlSource().getElementsByTagName("Point").item(0);
         var polygon = source.getXmlSource().getElementsByTagName("Polygon").item(0);
 
         source.getTransform().transform(new DOMSource(point), new StreamResult(stringwriter));

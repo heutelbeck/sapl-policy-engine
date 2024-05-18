@@ -23,7 +23,6 @@ import io.sapl.geo.connection.mysql.MySqlConnection;
 import io.sapl.geo.connection.owntracks.OwnTracksConnection;
 import io.sapl.geo.connection.postgis.PostGisConnection;
 import io.sapl.geo.connection.traccar.TraccarConnection;
-import io.sapl.geo.fileimport.FileLoader;
 import io.sapl.geo.functionlibraries.GeoFunctions;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.pip.http.ReactiveWebClient;
@@ -157,7 +156,7 @@ public class Program {
         var node = Val.ofJson(pg).get();
         
         
-        var postgis = new PostGisConnection(Val.ofJson(pgauth).get(), Val.ofJson(pg).get(), mapper).connect(node);
+        var postgis = new PostGisConnection(Val.ofJson(pgauth).get(), mapper).sendQuery(node);
 //        var dis = postgis.subscribe(
 //	      		 content ->{ 
 //    			 

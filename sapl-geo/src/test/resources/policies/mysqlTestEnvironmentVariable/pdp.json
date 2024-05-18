@@ -7,7 +7,7 @@
 			"user":"test",
 			"password":"test",
 			"server":"localhost",
-			"port": 53937,
+			"port": 52545,
 			"dataBase":"test"
 		}
 	}

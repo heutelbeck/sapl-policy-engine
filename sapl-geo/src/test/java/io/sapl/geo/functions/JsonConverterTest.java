@@ -51,7 +51,7 @@ class JsonConverterTest extends TestBase {
 
         var stringWriter = new StringWriter();
 
-        var point 	= source.getXmlSource().getElementsByTagName("Point").item(0);
+        var point   = source.getXmlSource().getElementsByTagName("Point").item(0);
         var polygon = source.getXmlSource().getElementsByTagName("Polygon").item(0);
 
         stringWriter = new StringWriter();
@@ -87,7 +87,7 @@ class JsonConverterTest extends TestBase {
 
         var stringWriter = new StringWriter();
 
-        var point = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
+        var point   = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         var polygon = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
         stringWriter = new StringWriter();
