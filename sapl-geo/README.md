@@ -32,8 +32,7 @@ where
   var positionAndGeoFences = <geo.traccar({"user":"TraccarUser", "password":"123Secret", "server":"123.45.67.1:8082", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
   var position = positionAndGeoFences.position;
   var geofence = positionAndGeoFences.geoFences[0].area;
-  var positionIsInsideOfGeofence = geoFunctions.within(position, geofence);
-  positionIsInsideOfGeofence;
+  geoFunctions.within(position, geofence);
 ```
 
 #### Parameters
@@ -88,8 +87,7 @@ The PIP connects to the api of the OwnTracks-recorder and polls. As OwnTracks ha
 permit
 where
   var response = <geo.ownTracks({"httpUser":"httpUser", "password":"test123", "user":"deviceUser", "server":"owntracks.somewhere/owntracks", "protocol":"http", "responseFormat":"GEOJSON", "deviceId":1})>;
-  var res = "home" in response.geoFences..name;
-  res == true;
+  "home" in response.geoFences..name;
 ```
 
 #### Parameters
