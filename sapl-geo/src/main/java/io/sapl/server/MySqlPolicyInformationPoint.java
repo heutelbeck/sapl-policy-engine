@@ -41,8 +41,6 @@ public class MySqlPolicyInformationPoint {
 
     private static final String MYSQL_DEFAULT_CONFIG = "MYSQL_DEFAULT_CONFIG";
 
-    
-
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
 

@@ -40,26 +40,23 @@ public class PostGisPolicyInformationPoint {
     private final ObjectMapper mapper;
 
     private static final String POSTGIS_DEFAULT_CONFIG = "POSTGIS_DEFAULT_CONFIG";
-   
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
 
-
-    	return new PostGisConnection(auth.get(POSTGIS_DEFAULT_CONFIG).get(), mapper).sendQuery(variables.get());
-
+        return new PostGisConnection(auth.get(POSTGIS_DEFAULT_CONFIG).get(), mapper).sendQuery(variables.get());
 
     }
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(@JsonObject Val auth, @JsonObject Val variables) {
 
-    	try {
-    		return new PostGisConnection(auth.get(), mapper).sendQuery(variables.get());
+        try {
+            return new PostGisConnection(auth.get(), mapper).sendQuery(variables.get());
 
-    	} catch (Exception e) {
-    		return Flux.just(Val.error(e));
-    }
+        } catch (Exception e) {
+            return Flux.just(Val.error(e));
+        }
     }
 
 }

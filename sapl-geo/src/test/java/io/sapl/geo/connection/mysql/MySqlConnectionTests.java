@@ -88,9 +88,8 @@ class MySqlConnectionTests extends MySqlTestBase {
 
         var postgis = new PostGisConnection(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
-        
+
         StepVerifier.create(postgis).expectNext("No geoColumn-name found").verifyComplete();
     }
 
-    
 }

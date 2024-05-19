@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.geo.functionlibraries.GeoConverter;
 import io.sapl.geo.functionlibraries.GeoFunctions;
+import io.sapl.geo.functionlibraries.SqlFunctions;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointFactory;
@@ -80,7 +81,7 @@ public class Client implements ApplicationListener<ApplicationReadyEvent> {
 				pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new GeoPolicyInformationPoint(MAPPER),
 						new MySqlPolicyInformationPoint(MAPPER), new PostGisPolicyInformationPoint(MAPPER)),
 						List::of, 
-						() -> List.of(new GeoFunctions(), new GeoConverter()), 
+						() -> List.of(new GeoFunctions(), new GeoConverter(), new SqlFunctions()), 
 						List::of);
 			} catch (InitializationException e) {
 

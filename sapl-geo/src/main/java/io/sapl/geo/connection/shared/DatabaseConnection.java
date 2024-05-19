@@ -119,7 +119,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     }
 
-    private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst)  {
+    private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
         ObjectNode resultNode = mapper.createObjectNode();
         JsonNode   geoNode;
 
@@ -141,7 +141,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
         return resultNode;
     }
 
-    private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst)  {
+    private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) {
 
         JsonNode res = mapper.createObjectNode();
         var      crs = EPSG + srid;
