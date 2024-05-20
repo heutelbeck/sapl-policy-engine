@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.constraints;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -155,6 +156,22 @@ class ConstraintEnforcementServiceTests {
         var wrapped             = service.enforceConstraintsOfDecisionOnResourceAccessPoint(decision,
                 resourceAccessPoint, Integer.class);
         StepVerifier.create(wrapped).expectError(AccessDeniedException.class).verify();
+    }
+
+    @Test
+    void when_obligation_and_noHandler_then_bundleBuildThrowsAccessIsDenied() {
+        var service  = buildConstraintHandlerService();
+        var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        assertThatThrownBy(() -> service.reactiveTypeBundleFor(decision, Integer.class))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void when_obligation_and_noHandler_but_ignored_then_bundleBuildDoesNotThrow() {
+        var service  = buildConstraintHandlerService();
+        var decision = AuthorizationDecision.PERMIT.withObligations(ONE_CONSTRAINT);
+        assertThatCode(() -> service.reactiveTypeBundleFor(decision, Integer.class, CONSTRAINT))
+                .doesNotThrowAnyException();
     }
 
     @Test

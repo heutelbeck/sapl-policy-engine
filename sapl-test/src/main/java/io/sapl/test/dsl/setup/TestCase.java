@@ -18,14 +18,22 @@
 
 package io.sapl.test.dsl.setup;
 
-import org.assertj.core.api.Assertions;
-
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
-import io.sapl.test.grammar.sapltest.Object;
-import io.sapl.test.grammar.sapltest.TestException;
-import io.sapl.test.grammar.sapltest.TestSuite;
+import io.sapl.test.grammar.sapltest.Document;
+import io.sapl.test.grammar.sapltest.Environment;
+import io.sapl.test.grammar.sapltest.Given;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.ImportType;
+import io.sapl.test.grammar.sapltest.MockDefinition;
+import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
+import io.sapl.test.grammar.sapltest.PdpVariables;
+import io.sapl.test.grammar.sapltest.Requirement;
+import io.sapl.test.grammar.sapltest.Scenario;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -34,52 +42,101 @@ import lombok.RequiredArgsConstructor;
 public final class TestCase implements TestNode, Runnable {
 
     @Getter
-    private final String                                 identifier;
-    private final StepConstructor                        stepConstructor;
-    private final TestSuite                              testSuite;
-    private final io.sapl.test.grammar.sapltest.TestCase dslTestCase;
+    private final String                               identifier;
+    private final StepConstructor                      stepConstructor;
+    private final GivenBlock                           givenBlock;
+    private final Scenario                             scenario;
+    private final Map<ImportType, Map<String, Object>> fixtureRegistrations;
 
-    public static TestCase from(final StepConstructor stepConstructor, final TestSuite testSuite,
-            io.sapl.test.grammar.sapltest.TestCase testCase) {
-        if (stepConstructor == null || testSuite == null || testCase == null) {
-            throw new SaplTestException("StepConstructor or testSuite or testCase is null");
+    public static TestCase from(final StepConstructor stepConstructor, final Requirement requirement, Scenario scenario,
+            Map<ImportType, Map<String, Object>> fixtureRegistrations) {
+        if (stepConstructor == null || requirement == null || scenario == null) {
+            throw new SaplTestException("StepConstructor or Requirement or Scenario is null");
         }
 
-        final var name = testCase.getName();
+        final var name = scenario.getName();
 
         if (name == null) {
-            throw new SaplTestException("Name of the test case is null");
+            throw new SaplTestException("Name of the scenario is null");
         }
 
-        return new TestCase(name, stepConstructor, testSuite, testCase);
+        final var requirementGiven = requirement.getGiven();
+        final var scenarioGiven    = scenario.getGiven();
+
+        if (requirementGiven == null && scenarioGiven == null) {
+            throw new SaplTestException("Neither Requirement nor Scenario defines a GivenBlock");
+        }
+
+        final var givenBlock = getMergedGivenBlock(requirementGiven, scenarioGiven);
+
+        return new TestCase(name, stepConstructor, givenBlock, scenario, fixtureRegistrations);
+    }
+
+    private static GivenBlock getMergedGivenBlock(final Given requirementGiven, final Given scenarioGiven) {
+        Document              document              = null;
+        PdpVariables          pdpVariables          = null;
+        PdpCombiningAlgorithm pdpCombiningAlgorithm = null;
+        Environment           environment           = null;
+
+        if (requirementGiven != null) {
+            document              = requirementGiven.getDocument();
+            pdpVariables          = requirementGiven.getPdpVariables();
+            pdpCombiningAlgorithm = requirementGiven.getPdpCombiningAlgorithm();
+            environment           = requirementGiven.getEnvironment();
+        }
+
+        if (scenarioGiven != null) {
+            final var scenarioDocument              = scenarioGiven.getDocument();
+            final var scenarioPdpVariables          = scenarioGiven.getPdpVariables();
+            final var scenarioPdpCombiningAlgorithm = scenarioGiven.getPdpCombiningAlgorithm();
+            final var scenarioEnvironment           = scenarioGiven.getEnvironment();
+
+            if (scenarioDocument != null) {
+                document = scenarioDocument;
+            }
+            if (scenarioPdpVariables != null) {
+                pdpVariables = scenarioPdpVariables;
+            }
+            if (scenarioPdpCombiningAlgorithm != null) {
+                pdpCombiningAlgorithm = scenarioPdpCombiningAlgorithm;
+            }
+            if (scenarioEnvironment != null) {
+                environment = scenarioEnvironment;
+            }
+        }
+
+        final var givenSteps = new ArrayList<GivenStep>();
+        addGivenStepsFromGiven(givenSteps, requirementGiven);
+        addGivenStepsFromGiven(givenSteps, scenarioGiven);
+
+        return new GivenBlock(document, pdpVariables, pdpCombiningAlgorithm, environment, givenSteps);
+    }
+
+    private static void addGivenStepsFromGiven(final Collection<GivenStep> givenSteps, final Given given) {
+        if (given != null) {
+            final var steps = given.getGivenSteps();
+            if (steps != null) {
+                givenSteps.addAll(steps);
+            }
+        }
     }
 
     @Override
     public void run() {
-        final var environment = dslTestCase.getEnvironment();
+        final var givenSteps = givenBlock.givenSteps();
 
-        if (environment != null && !(environment instanceof io.sapl.test.grammar.sapltest.Object)) {
-            throw new SaplTestException("Environment needs to be an object");
-        }
+        final var saplTestFixture = stepConstructor.constructTestFixture(givenBlock.document(),
+                givenBlock.pdpVariables(), givenBlock.pdpConfiguration(), givenSteps, fixtureRegistrations);
 
-        final var fixtureRegistrations = dslTestCase.getRegistrations();
-        final var givenSteps           = dslTestCase.getGivenSteps();
+        final var needsMocks      = givenSteps.stream().anyMatch(MockDefinition.class::isInstance);
+        final var initialTestCase = stepConstructor.constructTestCase(saplTestFixture, givenBlock.environment(),
+                needsMocks);
+        final var expectation     = scenario.getExpectation();
 
-        final var needsMocks  = givenSteps != null && !givenSteps.isEmpty();
-        final var testFixture = stepConstructor.constructTestFixture(fixtureRegistrations, testSuite);
+        final var whenStep   = stepConstructor.constructWhenStep(givenSteps, initialTestCase, expectation);
+        final var expectStep = stepConstructor.constructExpectStep(scenario, whenStep);
+        final var verifyStep = stepConstructor.constructVerifyStep(scenario, expectStep);
 
-        final var initialTestCase = stepConstructor.constructTestCase(testFixture, (Object) environment, needsMocks);
-
-        if (dslTestCase.getExpectation() instanceof TestException) {
-            Assertions.assertThatExceptionOfType(SaplTestException.class)
-                    .isThrownBy(() -> stepConstructor.constructWhenStep(givenSteps, initialTestCase));
-        } else {
-
-            final var whenStep   = stepConstructor.constructWhenStep(givenSteps, initialTestCase);
-            final var expectStep = stepConstructor.constructExpectStep(dslTestCase, whenStep);
-            final var verifyStep = stepConstructor.constructVerifyStep(dslTestCase, expectStep);
-
-            verifyStep.verify();
-        }
+        verifyStep.verify();
     }
 }

@@ -33,7 +33,8 @@ class LoggingFunctionLibraryTests {
 
     @Test
     void debugSpyOfErrorIsIdentity() {
-        assertThat(LoggingFunctionLibrary.debugSpy(Val.of("message"), Val.error()), is(Val.error()));
+        assertThat(LoggingFunctionLibrary.debugSpy(Val.of("message"), Val.error((String) null)),
+                is(Val.error((String) null)));
     }
 
     @Test

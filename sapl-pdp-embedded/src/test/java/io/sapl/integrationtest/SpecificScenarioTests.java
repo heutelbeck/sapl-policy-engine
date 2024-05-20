@@ -19,39 +19,19 @@ package io.sapl.integrationtest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Clock;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.UnaryOperator;
 
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.DefaultSAPLInterpreter;
-import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
+import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.config.PDPConfiguration;
-import io.sapl.pdp.config.PDPConfigurationProvider;
-import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
-import io.sapl.pip.TimePolicyInformationPoint;
-import io.sapl.prp.PolicyRetrievalPoint;
-import io.sapl.prp.PolicyRetrievalResult;
-import lombok.SneakyThrows;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import io.sapl.pdp.PolicyDecisionPointFactory;
 
 class SpecificScenarioTests {
 
@@ -88,7 +68,7 @@ class SpecificScenarioTests {
             birthdayForAgeInYears(10), BOOK4);
 
     @Test
-    void tutorialAgeCheckScenario() throws JsonProcessingException {
+    void tutorialAgeCheckScenario() throws JsonProcessingException, InitializationException {
         var policySet = """
                 import time.*
                 import filter.*
@@ -120,11 +100,8 @@ class SpecificScenarioTests {
 
         var subBobBook3 = MAPPER.readValue(SUB_BOB_BOOK3, AuthorizationSubscription.class);
         var subBobBook4 = MAPPER.readValue(SUB_BOB_BOOK4, AuthorizationSubscription.class);
-
-        var pdpConfigurationProvider = new SimplePDPConfigurationProvider();
-        var policyRetrievalPoint     = new SimplePolicyRetrievalPoint();
-        policyRetrievalPoint.load(policySet);
-        var pdp = new EmbeddedPolicyDecisionPoint(pdpConfigurationProvider, policyRetrievalPoint);
+        var pdp         = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(List.of(policySet),
+                PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, Map.of());
 
         var decisionBook3 = pdp.decide(subBobBook3).blockFirst();
         assertThat(decisionBook3.getObligations()).isEmpty();
@@ -132,54 +109,8 @@ class SpecificScenarioTests {
         assertThat(decisionBook4.getObligations()).isNotEmpty();
     }
 
-    private static class SimplePDPConfigurationProvider implements PDPConfigurationProvider {
-
-        @Override
-        @SneakyThrows
-        public Flux<PDPConfiguration> pdpConfiguration() {
-            var attributeContext = new AnnotationAttributeContext();
-            var timePip          = new TimePolicyInformationPoint(Clock.systemDefaultZone());
-            attributeContext.loadPolicyInformationPoint(timePip);
-            var functionContext = new AnnotationFunctionContext();
-            functionContext.loadLibrary(FilterFunctionLibrary.class);
-            functionContext.loadLibrary(TemporalFunctionLibrary.class);
-            functionContext.loadLibrary(StandardFunctionLibrary.class);
-            var variables                    = Map.<String, Val>of();
-            var algorithm                    = CombiningAlgorithmFactory
-                    .getCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES);
-            var jsonReportingInterceptor     = new ReportingDecisionInterceptor(MAPPER, false, true, true, true);
-            var subscriptionInterceptorChain = UnaryOperator.<AuthorizationSubscription>identity();
-            var config                       = new PDPConfiguration(attributeContext, functionContext, variables,
-                    algorithm, jsonReportingInterceptor, subscriptionInterceptorChain);
-            return Flux.just(config);
-
-        }
-
-    }
-
     private static String birthdayForAgeInYears(int age) {
         return LocalDate.now().minusYears(age).minusDays(20).toString();
-    }
-
-    private static class SimplePolicyRetrievalPoint implements PolicyRetrievalPoint {
-
-        private final static DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-
-        private final List<SAPL> parsedDocuments = new ArrayList<>();
-
-        public void load(String document) {
-            parsedDocuments.add(INTERPRETER.parse(document));
-        }
-
-        @Override
-        public Flux<PolicyRetrievalResult> retrievePolicies() {
-            return Flux.fromIterable(parsedDocuments)
-                    .flatMap(sapl -> Mono.just(sapl)
-                            .filterWhen(s -> s.matches().map(match -> match.isBoolean() && match.getBoolean())))
-                    .collectList().map(matches -> new PolicyRetrievalResult(matches, false, true))
-                    .onErrorResume(err -> Mono.just(new PolicyRetrievalResult(List.of(), true, false))).flux();
-        }
-
     }
 
 }

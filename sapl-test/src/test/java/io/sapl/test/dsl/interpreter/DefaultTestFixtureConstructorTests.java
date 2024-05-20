@@ -20,65 +20,110 @@ package io.sapl.test.dsl.interpreter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.interpreter.InitializationException;
+import io.sapl.pip.TimePolicyInformationPoint;
+import io.sapl.test.SaplTestException;
+import io.sapl.test.SaplTestFixture;
+import io.sapl.test.dsl.ParserUtil;
+import io.sapl.test.grammar.sapltest.Attribute;
+import io.sapl.test.grammar.sapltest.Document;
+import io.sapl.test.grammar.sapltest.Function;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.Import;
+import io.sapl.test.grammar.sapltest.ImportType;
+import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
+import io.sapl.test.grammar.sapltest.PdpVariables;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
+import io.sapl.test.integration.SaplIntegrationTestFixture;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.functions.TemporalFunctionLibrary;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.test.SaplTestException;
-import io.sapl.test.SaplTestFixture;
-import io.sapl.test.grammar.sapltest.CustomFunctionLibrary;
-import io.sapl.test.grammar.sapltest.FixtureRegistration;
-import io.sapl.test.grammar.sapltest.FunctionLibrary;
-import io.sapl.test.grammar.sapltest.Pip;
-import io.sapl.test.grammar.sapltest.SaplFunctionLibrary;
-import io.sapl.test.grammar.sapltest.TestSuite;
-
 @ExtendWith(MockitoExtension.class)
 class DefaultTestFixtureConstructorTests {
     @Mock
-    protected TestSuiteInterpreter          testSuiteInterpreterMock;
+    protected DocumentInterpreter           documentInterpreterMock;
     @Mock
-    protected SaplTestFixture               testFixtureMock;
-    @Mock
-    protected TestSuite                     testSuiteMock;
+    PdpConfigurationHandler                 pdpConfigurationHandlerMock;
     @InjectMocks
     protected DefaultTestFixtureConstructor defaultTestFixtureConstructor;
-
     @Mock
-    protected FunctionLibraryInterpreter functionLibraryInterpreterMock;
-    @Mock
-    protected ReflectionHelper           reflectionHelperMock;
+    protected SaplTestFixture               testFixtureMock;
 
     @Test
-    void constructTestFixture_testSuiteInterpreterReturnsNull_throwsSaplTestException() {
-        when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(null);
+    void constructTestFixture_documentInterpreterReturnsNull_throwsSaplTestException() {
+        final var documentMock = mock(Document.class);
 
-        final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(null, testSuiteMock));
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(null);
+
+        final var exception = assertThrows(SaplTestException.class,
+                () -> defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null, null, null));
 
         assertEquals("TestFixture is null", exception.getMessage());
     }
 
     @Test
-    void constructTestFixture_handlesNullFixtureRegistrations_returnsFixture() {
-        when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+    void constructTestFixture_handlesNullImports_returnsFixture() {
+        final var documentMock = mock(Document.class);
 
-        final var result = defaultTestFixtureConstructor.constructTestFixture(null, testSuiteMock);
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
+
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null, null, null);
+
+        assertEquals(testFixtureMock, result);
+
+        verifyNoInteractions(pdpConfigurationHandlerMock);
+        verifyNoInteractions(testFixtureMock);
+    }
+
+    @Test
+    void constructTestFixture_handlesEmptyImports_returnsFixture() {
+        final var documentMock = mock(Document.class);
+
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
+
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                Collections.emptyList(), null);
+
+        assertEquals(testFixtureMock, result);
+
+        verifyNoInteractions(pdpConfigurationHandlerMock);
+        verifyNoInteractions(testFixtureMock);
+    }
+
+    @Test
+    void constructTestFixture_callsPdpConfigurationInterpreterWhenIntegrationTestFixtureIsReturned_returnsFixture() {
+        final var integrationTestFixture = mock(SaplIntegrationTestFixture.class);
+
+        final var documentMock              = mock(Document.class);
+        final var pdpVariablesMock          = mock(PdpVariables.class);
+        final var pdpCombiningAlgorithmMock = mock(PdpCombiningAlgorithm.class);
+
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(integrationTestFixture);
+
+        when(pdpConfigurationHandlerMock.applyPdpConfigurationToFixture(integrationTestFixture, pdpVariablesMock,
+                pdpCombiningAlgorithmMock)).thenReturn(testFixtureMock);
+
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, pdpVariablesMock,
+                pdpCombiningAlgorithmMock, Collections.emptyList(), null);
 
         assertEquals(testFixtureMock, result);
 
@@ -86,10 +131,45 @@ class DefaultTestFixtureConstructorTests {
     }
 
     @Test
-    void constructTestFixture_handlesEmptyFixtureRegistrations_returnsFixture() {
-        when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+    void constructTestFixture_doesNoRegistrationWhenGivenStepsIsNull_returnsFixture() {
+        final var documentMock = mock(Document.class);
 
-        final var result = defaultTestFixtureConstructor.constructTestFixture(Collections.emptyList(), testSuiteMock);
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
+
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null, null, null);
+
+        assertEquals(testFixtureMock, result);
+
+        verifyNoInteractions(testFixtureMock);
+    }
+
+    @Test
+    void constructTestFixture_doesNoRegistrationWhenGivenStepsIsEmpty_returnsFixture() {
+        final var documentMock = mock(Document.class);
+
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
+
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                Collections.emptyList(), null);
+
+        assertEquals(testFixtureMock, result);
+
+        verifyNoInteractions(testFixtureMock);
+    }
+
+    @Test
+    void constructTestFixture_doesNoRegistrationWhenGivenStepsOnlyContainsNonImportTypes_returnsFixture() {
+        final var documentMock = mock(Document.class);
+
+        when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
+
+        final var functionMock  = mock(Function.class);
+        final var attributeMock = mock(Attribute.class);
+
+        final var givenSteps = List.<GivenStep>of(functionMock, attributeMock);
+
+        final var result = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null, givenSteps,
+                null);
 
         assertEquals(testFixtureMock, result);
 
@@ -98,124 +178,351 @@ class DefaultTestFixtureConstructorTests {
 
     @Nested
     @DisplayName("fixture registration handling")
-    class FixtureRegistrationHandlingTests {
-        @Test
-        void constructTestFixture_handlesUnknownFixtureRegistration_throwsSaplTestException() {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+    class ImportHandlingTests {
 
-            final var unknownFixtureRegistrationMock = mock(FixtureRegistration.class);
+        @Mock
+        Document documentMock;
 
-            final var fixtureRegistration = List.of(unknownFixtureRegistrationMock);
-
-            final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistration, testSuiteMock));
-
-            assertEquals("Unknown type of FixtureRegistration", exception.getMessage());
+        private Import buildImport(final String input) {
+            return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getImportRule, Import.class);
         }
 
-        @Test
-        void constructTestFixture_whenRegisterFunctionLibraryThrowsForSaplFunctionLibrary_throwsInitializationException() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
-
-            final var saplFunctionLibraryMock = mock(SaplFunctionLibrary.class);
-            when(saplFunctionLibraryMock.getLibrary()).thenReturn(FunctionLibrary.TEMPORAL);
-
-            doReturn(TemporalFunctionLibrary.class).when(functionLibraryInterpreterMock).getFunctionLibrary(FunctionLibrary.TEMPORAL);
-
-            when(testFixtureMock.registerFunctionLibrary(TemporalFunctionLibrary.class)).thenThrow(new InitializationException("failed to register library"));
-
-            final var fixtureRegistrations = List.<FixtureRegistration>of(saplFunctionLibraryMock);
-
-            final var exception = assertThrows(InitializationException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
-
-            assertEquals("failed to register library", exception.getMessage());
+        @BeforeEach
+        void setUp() {
+            when(documentInterpreterMock.getFixtureFromDocument(documentMock)).thenReturn(testFixtureMock);
         }
 
-        @Test
-        void constructTestFixture_handlesSaplFunctionLibrary_returnsFixture() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+        @Nested
+        @DisplayName("Error cases")
+        class ErrorCases {
+            @Test
+            void constructTestFixture_handlesNullGivenStep_throwsSaplTestException() {
+                final var attributeMock = mock(Attribute.class);
 
-            final var saplFunctionLibraryMock = mock(SaplFunctionLibrary.class);
-            when(saplFunctionLibraryMock.getLibrary()).thenReturn(FunctionLibrary.TEMPORAL);
+                final var givenSteps = Arrays.<GivenStep>asList(attributeMock, null);
 
-            doReturn(TemporalFunctionLibrary.class).when(functionLibraryInterpreterMock).getFunctionLibrary(FunctionLibrary.TEMPORAL);
+                final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, null));
 
-            final var result = defaultTestFixtureConstructor.constructTestFixture(List.of(saplFunctionLibraryMock), testSuiteMock);
+                assertEquals("GivenStep is null", exception.getMessage());
 
-            assertEquals(testFixtureMock, result);
+                verifyNoInteractions(testFixtureMock);
+            }
 
-            verify(testFixtureMock, times(1)).registerFunctionLibrary(TemporalFunctionLibrary.class);
+            @Test
+            void constructTestFixture_handlesImportWithNullType_throwsSaplTestException() {
+                final var importWithNullType = mock(Import.class);
+
+                when(importWithNullType.getType()).thenReturn(null);
+
+                final var givenSteps = List.<GivenStep>of(importWithNullType);
+
+                final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, null));
+
+                assertEquals("Invalid Import", exception.getMessage());
+
+                verifyNoInteractions(testFixtureMock);
+            }
+
+            @Test
+            void constructTestFixture_handlesImportWithNullIdentifier_throwsSaplTestException() {
+                final var importWithNullIdentifier = mock(Import.class);
+
+                when(importWithNullIdentifier.getType()).thenReturn(ImportType.PIP);
+                when(importWithNullIdentifier.getIdentifier()).thenReturn(null);
+
+                final var givenSteps = List.<GivenStep>of(importWithNullIdentifier);
+
+                final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, null));
+
+                assertEquals("Invalid Import", exception.getMessage());
+
+                verifyNoInteractions(testFixtureMock);
+            }
+
+            @ParameterizedTest
+            @EnumSource(value = ImportType.class)
+            void constructTestFixture_handlesNullRegistrations_throwsSaplTestException(final ImportType importType) {
+                final var importMock = mock(Import.class);
+
+                when(importMock.getType()).thenReturn(importType);
+                when(importMock.getIdentifier()).thenReturn("foo");
+
+                final var givenSteps = List.<GivenStep>of(importMock);
+
+                final var exception = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, null));
+
+                assertEquals("No FixtureRegistrations present, please check your setup", exception.getMessage());
+
+                verifyNoInteractions(testFixtureMock);
+            }
+
+            @ParameterizedTest
+            @EnumSource(value = ImportType.class)
+            void constructTestFixture_handlesEmptyRegistrations_throwsSaplTestException(final ImportType importType) {
+                final var importMock = mock(Import.class);
+
+                when(importMock.getType()).thenReturn(importType);
+                when(importMock.getIdentifier()).thenReturn("foo");
+
+                final var givenSteps = List.<GivenStep>of(importMock);
+
+                final var registrations = Collections.<ImportType, Map<String, Object>>emptyMap();
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
+
+                assertEquals("No FixtureRegistrations present, please check your setup", exception.getMessage());
+
+                verifyNoInteractions(testFixtureMock);
+            }
+
+            @ParameterizedTest
+            @EnumSource(value = ImportType.class)
+            void constructTestFixture_handlesRegistrationsWithTypeSpecificRegistrationsBeingNull_throwsSaplTestException(
+                    final ImportType importType) {
+                final var importMock = mock(Import.class);
+
+                when(importMock.getType()).thenReturn(importType);
+                when(importMock.getIdentifier()).thenReturn("foo");
+
+                final var givenSteps = List.<GivenStep>of(importMock);
+
+                final var registrations = Collections.<ImportType, Map<String, Object>>singletonMap(null, null);
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
+
+                assertEquals("No registrations for type \"%s\" found".formatted(importType), exception.getMessage());
+
+                verifyNoInteractions(testFixtureMock);
+            }
+
+            @ParameterizedTest
+            @EnumSource(value = ImportType.class)
+            void constructTestFixture_handlesRegistrationsWithTypeSpecificRegistrationsBeingEmpty_throwsSaplTestException(
+                    final ImportType importType) {
+                final var importMock = mock(Import.class);
+
+                when(importMock.getType()).thenReturn(importType);
+                when(importMock.getIdentifier()).thenReturn("foo");
+
+                final var givenSteps = List.<GivenStep>of(importMock);
+
+                final var registrations = Collections.<ImportType, Map<String, Object>>singletonMap(importType,
+                        Collections.emptyMap());
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
+
+                assertEquals("No registrations for type \"%s\" found".formatted(importType), exception.getMessage());
+
+                verifyNoInteractions(testFixtureMock);
+            }
+
+            @ParameterizedTest
+            @EnumSource(value = ImportType.class)
+            void constructTestFixture_handlesRegistrationsWithTypeSpecificRegistrationsHavingNullRegistrationForIdentifier_throwsSaplTestException(
+                    final ImportType importType) {
+                final var importMock = mock(Import.class);
+
+                when(importMock.getType()).thenReturn(importType);
+                when(importMock.getIdentifier()).thenReturn("foo");
+
+                final var givenSteps = List.<GivenStep>of(importMock);
+
+                final var registrations = Collections.singletonMap(importType, Collections.singletonMap("foo", null));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
+
+                assertEquals("No \"%s\" registration for name \"foo\" found".formatted(importType),
+                        exception.getMessage());
+
+                verifyNoInteractions(testFixtureMock);
+            }
         }
 
-        @Test
-        void constructTestFixture_whenRegisterFunctionLibraryThrowsForCustomFunctionLibrary_throwsInitializationException() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+        @Nested
+        @DisplayName("PIP")
+        class PIP {
+            @Test
+            void constructTestFixture_handlesPipWithMissingAnnotation_throwsSaplTestException() {
+                final var pipImport = buildImport("pip \"foo\"");
 
-            final var customFunctionLibrary = mock(CustomFunctionLibrary.class);
-            when(customFunctionLibrary.getFqn()).thenReturn("io.my.classpath.ClassName");
+                final var givenSteps = List.<GivenStep>of(pipImport);
 
-            final var libraryMock = mock(java.lang.Object.class);
-            when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenReturn(libraryMock);
+                final var registrations = Collections.singletonMap(ImportType.PIP,
+                        Collections.<String, Object>singletonMap("foo", "abc"));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
-            when(testFixtureMock.registerFunctionLibrary(libraryMock)).thenThrow(new InitializationException("failed to register library"));
+                assertEquals("registration with name \"foo\" is missing the \"PolicyInformationPoint\" annotation",
+                        exception.getMessage());
 
-            final var fixtureRegistrations = List.<FixtureRegistration>of(customFunctionLibrary);
+                verifyNoInteractions(testFixtureMock);
+            }
 
-            final var exception = assertThrows(InitializationException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
+            @Test
+            void constructTestFixture_handlesValidPip_returnsFixture() throws InitializationException {
+                final var pipImport = buildImport("pip \"foo\"");
+                final var pipMock   = mock(TimePolicyInformationPoint.class);
 
-            assertEquals("failed to register library", exception.getMessage());
+                final var givenSteps = List.<GivenStep>of(pipImport);
+
+                final var registrations = Collections.singletonMap(ImportType.PIP,
+                        Collections.<String, Object>singletonMap("foo", pipMock));
+                final var result        = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                        givenSteps, registrations);
+
+                assertEquals(testFixtureMock, result);
+
+                verify(testFixtureMock, times(1)).registerPIP(pipMock);
+            }
         }
 
-        @Test
-        void constructTestFixture_handlesCustomFunctionLibrary_returnsFixture() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+        @Nested
+        @DisplayName("StaticPip")
+        class StaticPip {
+            @Test
+            void constructTestFixture_handlesStaticPipWithNonClassType_throwsSaplTestException() {
+                final var staticPipImport = buildImport("static-pip \"foo\"");
 
-            final var customFunctionLibrary = mock(CustomFunctionLibrary.class);
-            when(customFunctionLibrary.getFqn()).thenReturn("io.my.classpath.ClassName");
+                final var givenSteps = List.<GivenStep>of(staticPipImport);
 
-            final var libraryMock = mock(java.lang.Object.class);
-            when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenReturn(libraryMock);
+                final var registrations = Collections.singletonMap(ImportType.STATIC_PIP,
+                        Collections.<String, Object>singletonMap("foo", "abc"));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
-            final var result = defaultTestFixtureConstructor.constructTestFixture(List.of(customFunctionLibrary), testSuiteMock);
+                assertEquals("Static \"PolicyInformationPoint\" registration with name \"foo\" is not a class type",
+                        exception.getMessage());
 
-            assertEquals(testFixtureMock, result);
+                verifyNoInteractions(testFixtureMock);
+            }
 
-            verify(testFixtureMock, times(1)).registerFunctionLibrary(libraryMock);
+            @Test
+            void constructTestFixture_handlesStaticPipWithClassTypeAndMissingAnnotation_throwsSaplTestException() {
+                final var staticPipImport = buildImport("static-pip \"foo\"");
+
+                final var givenSteps = List.<GivenStep>of(staticPipImport);
+
+                final var registrations = Collections.singletonMap(ImportType.STATIC_PIP,
+                        Collections.<String, Object>singletonMap("foo", Object.class));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
+
+                assertEquals("Class is missing the \"PolicyInformationPoint\" annotation", exception.getMessage());
+
+                verifyNoInteractions(testFixtureMock);
+            }
+
+            @Test
+            void constructTestFixture_handlesValidStaticPip_returnsFixture() throws InitializationException {
+                final var staticPipImport = buildImport("static-pip \"foo\"");
+
+                final var givenSteps = List.<GivenStep>of(staticPipImport);
+
+                final var registrations = Collections.singletonMap(ImportType.STATIC_PIP,
+                        Collections.<String, Object>singletonMap("foo", TimePolicyInformationPoint.class));
+                final var result        = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                        givenSteps, registrations);
+
+                assertEquals(testFixtureMock, result);
+
+                verify(testFixtureMock, times(1)).registerPIP(TimePolicyInformationPoint.class);
+            }
         }
 
-        @Test
-        void constructTestFixture_whenRegisterPIPThrows_throwsInitializationException() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+        @Nested
+        @DisplayName("FunctionLibrary")
+        class FunctionLibrary {
+            @Test
+            void constructTestFixture_handlesPipWithMissingAnnotation_throwsSaplTestException() {
+                final var functionLibraryImport = buildImport("function-library \"foo\"");
 
-            final var pip = mock(Pip.class);
-            when(pip.getFqn()).thenReturn("io.my.classpath.ClassName");
+                final var givenSteps = List.<GivenStep>of(functionLibraryImport);
 
-            final var pipMock = mock(java.lang.Object.class);
-            when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenReturn(pipMock);
+                final var registrations = Collections.singletonMap(ImportType.FUNCTION_LIBRARY,
+                        Collections.<String, Object>singletonMap("foo", "abc"));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
-            when(testFixtureMock.registerPIP(pipMock)).thenThrow(new InitializationException("failed to register PIP"));
+                assertEquals("registration with name \"foo\" is missing the \"FunctionLibrary\" annotation",
+                        exception.getMessage());
 
-            final var fixtureRegistrations = List.<FixtureRegistration>of(pip);
+                verifyNoInteractions(testFixtureMock);
+            }
 
-            final var exception = assertThrows(InitializationException.class, () -> defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuiteMock));
+            @Test
+            void constructTestFixture_handlesValidPip_returnsFixture() throws InitializationException {
+                final var functionLibraryImport = buildImport("function-library \"foo\"");
+                final var functionLibraryMock   = mock(FilterFunctionLibrary.class);
 
-            assertEquals("failed to register PIP", exception.getMessage());
+                final var givenSteps = List.<GivenStep>of(functionLibraryImport);
+
+                final var registrations = Collections.singletonMap(ImportType.FUNCTION_LIBRARY,
+                        Collections.<String, Object>singletonMap("foo", functionLibraryMock));
+                final var result        = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                        givenSteps, registrations);
+
+                assertEquals(testFixtureMock, result);
+
+                verify(testFixtureMock, times(1)).registerFunctionLibrary(functionLibraryMock);
+            }
         }
 
-        @Test
-        void constructTestFixture_handlesPIP_returnsFixture() throws InitializationException {
-            when(testSuiteInterpreterMock.getFixtureFromTestSuite(testSuiteMock)).thenReturn(testFixtureMock);
+        @Nested
+        @DisplayName("StaticFunctionLibrary")
+        class StaticFunctionLibrary {
+            @Test
+            void constructTestFixture_handlesStaticFunctionLibraryWithNonClassType_throwsSaplTestException() {
+                final var staticFunctionLibraryImport = buildImport("static-function-library \"foo\"");
 
-            final var pip = mock(Pip.class);
-            when(pip.getFqn()).thenReturn("io.my.classpath.ClassName");
+                final var givenSteps = List.<GivenStep>of(staticFunctionLibraryImport);
 
-            final var pipMock = mock(java.lang.Object.class);
-            when(reflectionHelperMock.constructInstanceOfClass("io.my.classpath.ClassName")).thenReturn(pipMock);
+                final var registrations = Collections.singletonMap(ImportType.STATIC_FUNCTION_LIBRARY,
+                        Collections.<String, Object>singletonMap("foo", "abc"));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
 
-            final var result = defaultTestFixtureConstructor.constructTestFixture(List.of(pip), testSuiteMock);
+                assertEquals("Static \"FunctionLibrary\" registration with name \"foo\" is not a class type",
+                        exception.getMessage());
 
-            assertEquals(testFixtureMock, result);
+                verifyNoInteractions(testFixtureMock);
+            }
 
-            verify(testFixtureMock, times(1)).registerPIP(pipMock);
+            @Test
+            void constructTestFixture_handlesStaticFunctionLibraryWithClassTypeAndMissingAnnotation_throwsSaplTestException() {
+                final var staticFunctionLibraryImport = buildImport("static-function-library \"foo\"");
+
+                final var givenSteps = List.<GivenStep>of(staticFunctionLibraryImport);
+
+                final var registrations = Collections.singletonMap(ImportType.STATIC_FUNCTION_LIBRARY,
+                        Collections.<String, Object>singletonMap("foo", Object.class));
+                final var exception     = assertThrows(SaplTestException.class, () -> defaultTestFixtureConstructor
+                        .constructTestFixture(documentMock, null, null, givenSteps, registrations));
+
+                assertEquals("Class is missing the \"FunctionLibrary\" annotation", exception.getMessage());
+
+                verifyNoInteractions(testFixtureMock);
+            }
+
+            @Test
+            void constructTestFixture_handlesValidStaticFunctionLibrary_returnsFixture()
+                    throws InitializationException {
+                final var staticFunctionLibraryImport = buildImport("static-function-library \"foo\"");
+
+                final var givenSteps = List.<GivenStep>of(staticFunctionLibraryImport);
+
+                final var registrations = Collections.singletonMap(ImportType.STATIC_FUNCTION_LIBRARY,
+                        Collections.<String, Object>singletonMap("foo", FilterFunctionLibrary.class));
+                final var result        = defaultTestFixtureConstructor.constructTestFixture(documentMock, null, null,
+                        givenSteps, registrations);
+
+                assertEquals(testFixtureMock, result);
+
+                verify(testFixtureMock, times(1)).registerFunctionLibrary(FilterFunctionLibrary.class);
+            }
         }
     }
 }

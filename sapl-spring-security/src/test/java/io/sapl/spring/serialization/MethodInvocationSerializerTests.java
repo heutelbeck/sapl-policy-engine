@@ -37,6 +37,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 
+import io.sapl.api.SaplVersion;
+
 class MethodInvocationSerializerTests {
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -174,6 +176,8 @@ class MethodInvocationSerializerTests {
     }
 
     public static class TestClass extends AbstractTestClass implements Serializable {
+
+        private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
         public void publicVoid() {
         }

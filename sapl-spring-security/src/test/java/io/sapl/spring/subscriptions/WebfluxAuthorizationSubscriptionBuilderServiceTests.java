@@ -55,6 +55,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
@@ -138,8 +139,8 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
     @Test
     void when_multiArgumentsWithJsonProblem_then_DropsArguments() {
         var failMapper = spy(ObjectMapper.class);
-        when(failMapper.valueToTree(any())).thenAnswer((Answer<JsonNode>) invocation -> {
-            Object x = invocation.getArguments()[0];
+        when(failMapper.valueToTree(any())).thenAnswer((Answer<JsonNode>) anInvocation -> {
+            Object x = anInvocation.getArguments()[0];
             if ("X".equals(x)) {
                 throw new IllegalArgumentException("testfail");
             }
@@ -316,6 +317,8 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
     }
 
     static class MockSecurityContext implements SecurityContext {
+
+        private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
         private Authentication authentication;
 

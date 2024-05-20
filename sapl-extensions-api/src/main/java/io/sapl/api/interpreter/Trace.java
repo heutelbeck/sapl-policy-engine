@@ -17,6 +17,7 @@
  */
 package io.sapl.api.interpreter;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -26,13 +27,17 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.SaplVersion;
 import lombok.Value;
 
 /**
  * A policy evaluation trace.
  */
 @Value
-public class Trace {
+public class Trace implements Serializable {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+
     public static final String ADVICE                     = "advice";
     public static final String ARGUMENT                   = "argument";
     public static final String ARGUMENTS_KEY              = "arguments";
@@ -44,6 +49,8 @@ public class Trace {
     public static final String COMBINING_ALGORITHM        = "combiningAlgorithm";
     public static final String DIVIDEND                   = "dividend";
     public static final String DIVISOR                    = "divisor";
+    public static final String DOCUMENT_IDENTIFIER        = "documentId";
+    public static final String DOCUMENT_NAME              = "documentName";
     public static final String DOCUMENT_TYPE              = "documentType";
     public static final String ELEMENT_INDEX              = "elementIndex";
     public static final String ENTITLEMENT                = "entitlement";
@@ -61,18 +68,24 @@ public class Trace {
     public static final String MINUEND                    = "minuend";
     public static final String MODIFICATIONS              = "modifications";
     public static final String NEEDLE                     = "needle";
+    public static final String NON_MATCHING_DOCUMENTS     = "nonMatchingDocuments";
     public static final String PARENT_VALUE               = "parentValue";
     public static final String PREVIOUS_CONDITION_RESULT  = "previousConditionResult";
+    public static final String PRP_INCONSISTENT           = "policyRetrievalPointInconsistent";
     public static final String OBLIGATIONS                = "obligations";
     public static final String OPERATOR                   = "operator";
     public static final String POLICY_NAME                = "policyName";
     public static final String POLICY_SET                 = "policySet";
     public static final String POLICY_SET_NAME            = "policySetName";
     public static final String RESOURCE                   = "resource";
+    public static final String RETRIEVAL_ERROR_MESSAGE    = "retrievalErrorMessage";
+    public static final String RETRIEVAL_HAS_ERRORS       = "retrievalHasErrors";
     public static final String RIGHT                      = "right";
+    public static final String SCHEMA_VALIDATION          = "schemaValidationResult";
     public static final String SELECTED_INDEX             = "selectedIndex";
     public static final String SUBTRAHEND                 = "subtrahend";
     public static final String TARGET                     = "target";
+    public static final String TARGET_EXPRESSION_RESULT   = "targetExpressionResult";
     public static final String TIMESTAMP                  = "timestamp";
     public static final String TRACE_KEY                  = "trace";
     public static final String UNFILTERED_VALUE           = "unfilteredValue";
@@ -82,8 +95,8 @@ public class Trace {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    Class<?>                 operation;
-    List<ExpressionArgument> arguments = new LinkedList<>();
+    Class<?>                       operation;
+    LinkedList<ExpressionArgument> arguments = new LinkedList<>();
 
     /**
      * Creates a trace for an operation.
@@ -176,5 +189,14 @@ public class Trace {
      */
     public List<ExpressionArgument> getArguments() {
         return Collections.unmodifiableList(arguments);
+    }
+
+    public void collectErrors(List<Val> errors) {
+        for (var argument : arguments) {
+            var value = argument.value();
+            if (value != null) {
+                value.collectErrors(errors);
+            }
+        }
     }
 }

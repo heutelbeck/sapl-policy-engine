@@ -18,11 +18,11 @@
 package io.sapl.prp;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-import io.sapl.grammar.sapl.PolicyElement;
-import io.sapl.grammar.sapl.SAPL;
-import lombok.AllArgsConstructor;
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -31,37 +31,68 @@ import lombok.ToString;
 @ToString
 @EqualsAndHashCode
 @NoArgsConstructor
-@AllArgsConstructor
 public class PolicyRetrievalResult {
 
-    List<SAPL> matchingDocuments = new ArrayList<>();
-
+    List<DocumentMatch> matchingDocuments    = new ArrayList<>();
+    List<DocumentMatch> nonMatchingDocuments = new ArrayList<>();
     @Getter
-    boolean errorsInTarget = false;
-
+    private boolean     prpInconsistent      = false;
     @Getter
-    boolean prpValidState = true;
+    private boolean     retrievalWithErrors  = false;
+    @Getter
+    private String      errorMessage;
 
-    public List<SAPL> getMatchingDocuments() {
-        return new ArrayList<>(matchingDocuments);
+    public PolicyRetrievalResult(List<DocumentMatch> matches, boolean retrievalWithErrors) {
+        matches.forEach(this::withMatch);
+        this.retrievalWithErrors = retrievalWithErrors;
     }
 
-    public List<PolicyElement> getPolicyElements() {
-        return matchingDocuments.stream().map(SAPL::getPolicyElement).toList();
+    public PolicyRetrievalResult withMatch(DocumentMatch match) {
+        var targetExpressionResult = match.targetExpressionResult();
+        if (targetExpressionResult.isError()) {
+            retrievalWithErrors = true;
+            nonMatchingDocuments.add(match);
+        } else if (targetExpressionResult.getBoolean()) {
+            // Can never be non-Boolean because this is caught in MatchingUtl where
+            // non-Boolean is turned into an error already.
+            matchingDocuments.add(match);
+        } else {
+            nonMatchingDocuments.add(match);
+        }
+        return this;
     }
 
-    public PolicyRetrievalResult withMatch(SAPL match) {
-        var matches = new ArrayList<>(matchingDocuments);
-        matches.add(match);
-        return new PolicyRetrievalResult(matches, errorsInTarget, prpValidState);
+    public static PolicyRetrievalResult invalidPrpResult() {
+        var result = new PolicyRetrievalResult();
+        result.prpInconsistent     = true;
+        result.retrievalWithErrors = false;
+        return result;
     }
 
-    public PolicyRetrievalResult withError() {
-        return new PolicyRetrievalResult(new ArrayList<>(matchingDocuments), true, prpValidState);
+    public static PolicyRetrievalResult retrievalErrorResult(String errorMessage) {
+        var result = new PolicyRetrievalResult();
+        result.errorMessage        = errorMessage;
+        result.prpInconsistent     = false;
+        result.retrievalWithErrors = true;
+        return result;
     }
 
-    public PolicyRetrievalResult withInvalidState() {
-        return new PolicyRetrievalResult(new ArrayList<>(matchingDocuments), errorsInTarget, false);
+    public List<DocumentMatch> getMatchingDocuments() {
+        return Collections.unmodifiableList(matchingDocuments);
     }
 
+    public List<DocumentMatch> getNonMatchingDocuments() {
+        return Collections.unmodifiableList(nonMatchingDocuments);
+    }
+
+    public List<Val> getErrors() {
+        var errors = new ArrayList<Val>();
+        if (errorMessage != null) {
+            errors.add(ErrorFactory.error(errorMessage));
+        }
+        for (var match : nonMatchingDocuments) {
+            errors.addAll(match.targetExpressionResult().getErrorsFromTrace());
+        }
+        return errors;
+    }
 }

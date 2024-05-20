@@ -17,6 +17,7 @@
  */
 package io.sapl.interpreter;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -180,6 +181,17 @@ public class PolicyDecision implements DocumentEvaluationResult {
         var arrayNode = Val.JSON.arrayNode();
         values.forEach(val -> arrayNode.add(val.getTrace()));
         return arrayNode;
+    }
+
+    @Override
+    public Collection<Val> getErrorsFromTrace() {
+        var errors = new ArrayList<Val>();
+        targetResult.ifPresent(target -> errors.addAll(target.getErrorsFromTrace()));
+        whereResult.ifPresent(where -> errors.addAll(where.getErrorsFromTrace()));
+        resource.ifPresent(r -> errors.addAll(r.getErrorsFromTrace()));
+        obligations.forEach(o -> errors.addAll(o.getErrorsFromTrace()));
+        advice.forEach(a -> errors.addAll(a.getErrorsFromTrace()));
+        return errors;
     }
 
 }

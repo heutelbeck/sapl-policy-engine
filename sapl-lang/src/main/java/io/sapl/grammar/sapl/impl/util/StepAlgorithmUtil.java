@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.eclipse.emf.ecore.EObject;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
@@ -34,29 +36,30 @@ public class StepAlgorithmUtil {
     private static final String OBJECT_ACCESS_TYPE_MISMATCH = "Type mismatch. Expected an Object, but got: '%s'.";
     private static final String STEP_ACCESS_TYPE_MISMATCH   = "Type mismatch. Expected an Object or Array, but got: '%s'.";
 
-    public Flux<Val> apply(Val parentValue, Supplier<Flux<Val>> selector, String stepParameters,
-            Class<?> operationType) {
+    public Flux<Val> apply(Val parentValue, Supplier<Flux<Val>> selector, String stepParameters, Class<?> operationType,
+            EObject location) {
         if (parentValue.isError()) {
             return Flux.just(parentValue.withParentTrace(operationType, true, parentValue));
         }
         if (parentValue.isArray()) {
-            return applyOnArray(parentValue, selector, stepParameters, operationType);
+            return applyOnArray(parentValue, selector, stepParameters, operationType, location);
         }
         if (parentValue.isObject()) {
-            return applyOnObject(parentValue, selector, stepParameters, operationType);
+            return applyOnObject(parentValue, selector, stepParameters, operationType, location);
         }
-        return Flux.just(Val.error(STEP_ACCESS_TYPE_MISMATCH, parentValue).withTrace(operationType, true, parentValue));
+        return Flux.just(ErrorFactory.error(location, STEP_ACCESS_TYPE_MISMATCH, parentValue).withTrace(operationType,
+                true, parentValue));
     }
 
     public static Flux<Val> applyOnArray(Val parentValue, Supplier<Flux<Val>> selector, String stepParameters,
-            Class<?> operationType) {
+            Class<?> operationType, EObject location) {
         if (parentValue.isError()) {
             return Flux.just(parentValue.withParentTrace(operationType, true, parentValue));
         }
 
         if (!parentValue.isArray()) {
-            return Flux.just(Val.error(ARRAY_ACCESS_TYPE_MISMATCH, parentValue).withParentTrace(operationType, true,
-                    parentValue));
+            return Flux.just(ErrorFactory.error(location, ARRAY_ACCESS_TYPE_MISMATCH, parentValue)
+                    .withParentTrace(operationType, true, parentValue));
         }
 
         if (parentValue.isEmpty()) {
@@ -78,14 +81,14 @@ public class StepAlgorithmUtil {
     }
 
     public static Flux<Val> applyOnObject(Val parentValue, Supplier<Flux<Val>> selector, String stepParameters,
-            Class<?> operationType) {
+            Class<?> operationType, EObject location) {
         if (parentValue.isError()) {
             return Flux.just(parentValue.withParentTrace(operationType, true, parentValue));
         }
 
         if (!parentValue.isObject()) {
-            return Flux.just(Val.error(OBJECT_ACCESS_TYPE_MISMATCH, parentValue).withParentTrace(operationType, true,
-                    parentValue));
+            return Flux.just(ErrorFactory.error(location, OBJECT_ACCESS_TYPE_MISMATCH, parentValue)
+                    .withParentTrace(operationType, true, parentValue));
         }
 
         if (parentValue.isEmpty()) {

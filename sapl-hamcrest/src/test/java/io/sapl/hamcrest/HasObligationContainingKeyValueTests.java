@@ -110,8 +110,8 @@ class HasObligationContainingKeyValueTests {
         actualObligation.put("key", "value");
         ArrayNode actualObligations = mapper.createArrayNode();
         actualObligations.add(actualObligation);
-        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations),
-                null);
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+                Optional.of(actualObligations), Optional.empty());
 
         var sut = Matchers.hasObligationContainingKeyValue("key");
 
@@ -126,8 +126,8 @@ class HasObligationContainingKeyValueTests {
         actualObligation.put("key", "value");
         ArrayNode actualObligations = mapper.createArrayNode();
         actualObligations.add(actualObligation);
-        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations),
-                null);
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+                Optional.of(actualObligations), Optional.empty());
 
         var sut = Matchers.hasObligationContainingKeyValue("key", "value");
 
@@ -142,8 +142,8 @@ class HasObligationContainingKeyValueTests {
         actualObligation.put("key", "value");
         ArrayNode actualObligations = mapper.createArrayNode();
         actualObligations.add(actualObligation);
-        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, null, Optional.of(actualObligations),
-                null);
+        AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+                Optional.of(actualObligations), Optional.empty());
 
         var sut = Matchers.hasObligationContainingKeyValue("key", "xxx");
 

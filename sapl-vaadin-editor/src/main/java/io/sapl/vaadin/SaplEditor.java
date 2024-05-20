@@ -24,8 +24,10 @@ import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
+import com.vaadin.flow.dom.Element;
 
 import elemental.json.JsonArray;
+import io.sapl.api.SaplVersion;
 
 /**
  * An editor component for SAPL documents supporting code-completion,
@@ -36,6 +38,8 @@ import elemental.json.JsonArray;
 @NpmPackage(value = "jquery", version = "3.7.1")
 @NpmPackage(value = "codemirror", version = "5.65.16")
 public class SaplEditor extends BaseEditor {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private final List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
 
@@ -83,5 +87,15 @@ public class SaplEditor extends BaseEditor {
      */
     public void removeValidationFinishedListener(ValidationFinishedListener listener) {
         this.validationFinishedListeners.remove(listener);
+    }
+
+    /**
+     * Sets the configurationId for code completion.
+     *
+     * @param configurationId a configurationId
+     */
+    public void setConfigurationId(String configurationId) {
+        Element element = getElement();
+        element.setProperty("configurationId", configurationId);
     }
 }

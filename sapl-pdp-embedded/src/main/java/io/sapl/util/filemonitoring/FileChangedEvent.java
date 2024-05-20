@@ -17,7 +17,7 @@
  */
 package io.sapl.util.filemonitoring;
 
-import java.io.File;
+import java.nio.file.Path;
 
-public record FileChangedEvent(File file) implements FileEvent {
+public record FileChangedEvent(Path file) implements FileEvent {
 }

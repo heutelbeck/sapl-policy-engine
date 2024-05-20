@@ -18,6 +18,7 @@
 package io.sapl.extensions.mqtt;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -32,6 +33,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -109,11 +111,9 @@ class MqttFunctionLibraryTests {
         Val wildcardTopic = Val.of("first/second/#");
         Val matchingTopic = Val.of("first/second/third/#");
 
-        // WHEN
-        boolean isValError = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopic).isError();
-
-        // THEN
-        assertTrue(isValError);
+        // WHEN / THEN
+        assertThrows(PolicyEvaluationException.class,
+                () -> MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopic));
     }
 
     @Test
@@ -124,11 +124,9 @@ class MqttFunctionLibraryTests {
         String secondMatchingTopic = "first/second/+/fourth";
         Val    matchingTopics      = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
 
-        // WHEN
-        boolean isValError = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, matchingTopics).isError();
-
-        // THEN
-        assertTrue(isValError);
+        // WHEN / THEN
+        assertThrows(PolicyEvaluationException.class,
+                () -> MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics));
     }
 
     // Tests for matching at least one topic
@@ -202,34 +200,6 @@ class MqttFunctionLibraryTests {
 
         // THEN
         assertTrue(isMatching);
-    }
-
-    @Test
-    void when_atLeastOneTopicShouldMatchButSpecifiedAWildcardInTopicToMatch_then_returnValError() {
-        // GIVEN
-        Val wildcardTopic = Val.of("first/second/#");
-        Val matchingTopic = Val.of("first/second/third/#");
-
-        // WHEN
-        boolean isValError = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopic).isError();
-
-        // THEN
-        assertTrue(isValError);
-    }
-
-    @Test
-    void when_atLeastOneTopicShouldMatchButSpecifiedAWildcardInTopicsToMatch_then_returnValError() {
-        // GIVEN
-        Val    wildcardTopic       = Val.of("first/second/#");
-        String firstMatchingTopic  = "first/second/third";
-        String secondMatchingTopic = "first/second/+/fourth";
-        Val    matchingTopics      = Val.of(JSON.arrayNode().add(firstMatchingTopic).add(secondMatchingTopic));
-
-        // WHEN
-        boolean isValError = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics).isError();
-
-        // THEN
-        assertTrue(isValError);
     }
 
     @Test

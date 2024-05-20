@@ -17,6 +17,8 @@
  */
 package io.sapl.api.pdp;
 
+import java.io.Serializable;
+
 import lombok.NonNull;
 
 /**
@@ -29,5 +31,5 @@ import lombok.NonNull;
  * @see IdentifiableAuthorizationDecision
  */
 public record IdentifiableAuthorizationSubscription(@NonNull String authorizationSubscriptionId,
-        @NonNull AuthorizationSubscription authorizationSubscription) {
+        @NonNull AuthorizationSubscription authorizationSubscription) implements Serializable {
 }

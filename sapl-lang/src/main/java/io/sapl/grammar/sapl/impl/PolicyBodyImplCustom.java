@@ -27,6 +27,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.ValueDefinition;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
@@ -47,9 +48,16 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
     }
 
     protected Flux<Val> evaluateStatements(Val previousResult, int statementId) {
-        if (previousResult.isError() || !previousResult.getBoolean() || statementId == statements.size())
+        if (previousResult.isError()) {
+            // Errors short circuit evaluation. Do not add further traces duplicating error
+            // in trace.
+            return Flux.just(previousResult);
+        }
+
+        if (!previousResult.getBoolean() || statementId == statements.size()) {
             return Flux.just(previousResult.withTrace(PolicyBody.class, false,
                     Map.of(Trace.PREVIOUS_CONDITION_RESULT, previousResult)));
+        }
 
         var statement = statements.get(statementId);
 
@@ -80,7 +88,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
         if (conditionResult.isBoolean() || conditionResult.isError())
             return conditionResult;
 
-        return Val.error(STATEMENT_NOT_BOOLEAN_ERROR, conditionResult).withTrace(PolicyBody.class, false,
+        return ErrorFactory.error(this, STATEMENT_NOT_BOOLEAN_ERROR, conditionResult).withTrace(PolicyBody.class, false,
                 Map.of(Trace.PREVIOUS_CONDITION_RESULT, conditionResult));
     }
 

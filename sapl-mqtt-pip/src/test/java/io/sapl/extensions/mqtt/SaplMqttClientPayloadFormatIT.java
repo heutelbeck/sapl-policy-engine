@@ -92,7 +92,7 @@ class SaplMqttClientPayloadFormatIT {
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishJsonMessage(jsonMessage)))
-                .expectNextMatches((value) -> value.get().equals(jsonMessage)).thenCancel().verify();
+                .expectNextMatches(value -> value.get().equals(jsonMessage)).thenCancel().verify();
     }
 
     @Test
@@ -112,8 +112,8 @@ class SaplMqttClientPayloadFormatIT {
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
                 .then(() -> mqttClient.publish(mqttMessage))
-                .expectNextMatches((value) -> Objects.equals(value.getValType(), Val.error().getValType())).thenCancel()
-                .verify();
+                .expectNextMatches(value -> Objects.equals(value.getValType(), Val.error((String) null).getValType()))
+                .thenCancel().verify();
     }
 
     @Test
@@ -130,7 +130,7 @@ class SaplMqttClientPayloadFormatIT {
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(2 * DELAY_MS))
                 .then(() -> mqttClient.publish(buildMqttPublishByteArrayMessageWithIndicator(message)))
-                .expectNextMatches((valueArray) -> valueArray.get()
+                .expectNextMatches(valueArray -> valueArray.get()
                         .equals(convertBytesToArrayNode(message.getBytes(StandardCharsets.UTF_8))))
                 .thenCancel().verify();
     }
@@ -149,7 +149,7 @@ class SaplMqttClientPayloadFormatIT {
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1500))
                 .then(() -> mqttClient.publish(buildMqttPublishByteArrayMessageWithoutIndicator(message)))
-                .expectNextMatches((valueArray) -> valueArray.get().textValue().equals(message)).thenCancel().verify();
+                .expectNextMatches(valueArray -> valueArray.get().textValue().equals(message)).thenCancel().verify();
     }
 
     @Test
@@ -167,7 +167,7 @@ class SaplMqttClientPayloadFormatIT {
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1500))
                 .then(() -> mqttClient
                         .publish(buildMqttPublishByteArrayMessageWithoutIndicatorAndNoValidEncoding(message)))
-                .expectNextMatches((valueArray) -> valueArray.get()
+                .expectNextMatches(valueArray -> valueArray.get()
                         .equals(convertBytesToArrayNode(message.getBytes(StandardCharsets.UTF_16))))
                 .thenCancel().verify();
     }

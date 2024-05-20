@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.eclipse.emf.ecore.EObject;
 import org.reactivestreams.Publisher;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -46,6 +47,7 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.grammar.sapl.Arguments;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SchemaLoadingUtil;
 import io.sapl.interpreter.validation.ParameterTypeValidator;
@@ -122,20 +124,20 @@ public class AnnotationAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Flux<Val> evaluateAttribute(String attributeName, Val leftHandValue, Arguments arguments,
+    public Flux<Val> evaluateAttribute(EObject location, String attributeName, Val leftHandValue, Arguments arguments,
             Map<String, Val> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), false);
         if (attributeMetadata == null)
-            return Flux.just(Val.error(UNKNOWN_ATTRIBUTE_ERROR, attributeName));
+            return Flux.just(ErrorFactory.error(location, UNKNOWN_ATTRIBUTE_ERROR, attributeName));
         return evaluateAttribute(attributeName, attributeMetadata, leftHandValue, arguments, variables);
     }
 
     @Override
-    public Flux<Val> evaluateEnvironmentAttribute(String attributeName, Arguments arguments,
+    public Flux<Val> evaluateEnvironmentAttribute(EObject location, String attributeName, Arguments arguments,
             Map<String, Val> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), true);
         if (attributeMetadata == null)
-            return Flux.just(Val.error(UNKNOWN_ATTRIBUTE_ERROR, attributeName));
+            return Flux.just(ErrorFactory.error(location, UNKNOWN_ATTRIBUTE_ERROR, attributeName));
         return evaluateEnvironmentAttribute(attributeName, attributeMetadata, arguments, variables);
     }
 
@@ -144,7 +146,7 @@ public class AnnotationAttributeContext implements AttributeContext {
         var pip    = attributeMetadata.getPolicyInformationPoint();
         var method = attributeMetadata.getFunction();
         return attributeFinderArguments(attributeMetadata, arguments, variables)
-                .switchMap(invokeAttributeFinderMethod(attributeName, pip, method));
+                .switchMap(invokeAttributeFinderMethod(arguments, attributeName, pip, method));
     }
 
     private AttributeFinderMetadata lookupAttribute(String attributeName, int numberOfParameters,
@@ -171,12 +173,12 @@ public class AnnotationAttributeContext implements AttributeContext {
         var method = attributeMetadata.getFunction();
 
         return attributeFinderArguments(attributeMetadata, leftHandValue, arguments, variables)
-                .switchMap(invokeAttributeFinderMethod(attributeName, pip, method));
+                .switchMap(invokeAttributeFinderMethod(arguments, attributeName, pip, method));
     }
 
     @SuppressWarnings("unchecked")
-    private Function<Object[], Publisher<? extends Val>> invokeAttributeFinderMethod(String attributeName, Object pip,
-            Method method) {
+    private Function<Object[], Publisher<? extends Val>> invokeAttributeFinderMethod(EObject location,
+            String attributeName, Object pip, Method method) {
         return invocationParameters -> {
             try {
                 return ((Flux<Val>) method.invoke(pip, invocationParameters)).map(val -> {
@@ -193,7 +195,7 @@ public class AnnotationAttributeContext implements AttributeContext {
                     return val.withTrace(AttributeContext.class, false, trace);
                 });
             } catch (InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
-                return Flux.just(ErrorUtil.causeOrMessage(e));
+                return Flux.just(ErrorFactory.causeOrMessage(location, e));
             }
         };
     }
@@ -213,7 +215,7 @@ public class AnnotationAttributeContext implements AttributeContext {
             } else {
                 parameter = attributeMetadata.function.getParameters()[indexOfArgumentParameterOfMethod++];
             }
-            argumentFluxes.add(ParameterTypeValidator.validateType(argument.evaluate(), parameter));
+            argumentFluxes.add(ParameterTypeValidator.validateType(argument.evaluate(), parameter, argument));
         }
         return argumentFluxes;
     }

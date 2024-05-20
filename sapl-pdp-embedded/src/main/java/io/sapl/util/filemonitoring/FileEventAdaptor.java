@@ -31,17 +31,17 @@ public class FileEventAdaptor extends FileAlterationListenerAdaptor {
 
     @Override
     public void onFileCreate(File file) {
-        emitter.next(new FileCreatedEvent(file));
+        emitter.next(new FileCreatedEvent(file.toPath()));
     }
 
     @Override
     public void onFileDelete(File file) {
-        emitter.next(new FileDeletedEvent(file));
+        emitter.next(new FileDeletedEvent(file.toPath()));
     }
 
     @Override
     public void onFileChange(File file) {
-        emitter.next(new FileChangedEvent(file));
+        emitter.next(new FileChangedEvent(file.toPath()));
     }
 
 }

@@ -33,8 +33,8 @@ import org.springframework.security.oauth2.client.endpoint.WebClientReactiveClie
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
-import org.springframework.security.rsocket.metadata.SimpleAuthenticationEncoder;
-import org.springframework.security.rsocket.metadata.UsernamePasswordMetadata;
+import io.sapl.pdp.remote.metadata.SimpleAuthenticationEncoder;
+import io.sapl.pdp.remote.metadata.UsernamePasswordMetadata;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
@@ -219,12 +219,8 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
         }
 
         public RemoteRsocketPolicyDecisionPointBuilder apiKey(String apikey) {
-            return this.apiKey("API_KEY", apikey);
-        }
-
-        public RemoteRsocketPolicyDecisionPointBuilder apiKey(String headerName, String apikey) {
             return setApplyAuthenticationFunction(
-                    builder -> builder.setupMetadata(apikey, MimeType.valueOf("messaging/" + headerName)));
+                    builder -> builder.setupMetadata(apikey, MimeType.valueOf("messaging/Bearer")));
         }
 
         /**

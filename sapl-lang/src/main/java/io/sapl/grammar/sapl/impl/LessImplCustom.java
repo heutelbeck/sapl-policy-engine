@@ -36,7 +36,7 @@ public class LessImplCustom extends LessImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this::lessThan);
+        return arithmeticOperator(this, this, this::lessThan);
     }
 
     private Val lessThan(Val left, Val right) {

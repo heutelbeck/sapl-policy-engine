@@ -1,0 +1,471 @@
+
+# Copyright © 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+name: Testing and Deployment
+
+on:
+  workflow_dispatch:
+  create:
+    branches:
+      - '**'
+  push:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'sapl-documentation/**'
+      - '.github/workflows/**'
+      - '!.github/workflows/build.yml'
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - 'sapl-documentation/**'
+      - '.github/workflows/**'
+      - '!.github/workflows/build.yml'
+      - '**.md'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        java: [ '17', '21' ]
+        os: [ubuntu-latest, windows-latest ] #, macos-latest]
+      fail-fast: false
+    name: Build (JDK ${{ matrix.java }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      checks:  write # for scacap/action-surefire-report to publish result as PR check
+    timeout-minutes: 45
+    
+    env:
+      # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 17. All other platforms, just do quick unit tests.
+      RUN_ANALYSIS: ${{ (matrix.os == 'ubuntu-latest') && (matrix.java == '17') }}
+      # PRs from Dependabot are treated the same as those from forks since secrets are not accessible
+      # for both (see: https://github.com/dependabot/dependabot-core/issues/3253#issuecomment-852541544).
+      IS_FORK: ${{ github.event.pull_request.head.repo.fork || (github.actor == 'dependabot[bot]') }}
+      
+    steps:
+    - name: Harden Runner
+      # Currently not supported for windows and macos
+      # (see: https://github.com/step-security/harden-runner/discussions/121).
+      if: matrix.os == 'ubuntu-latest'
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+      with:
+        egress-policy: audit
+
+    - name: Check out
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      with:
+        lfs: true
+        fetch-depth: 0
+
+      # This Action will scan dependency manifest files that change as part of a Pull Request,
+      # surfacing known-vulnerable versions of the packages declared or updated in the PR.
+      # Once installed, if the workflow run is marked as required,
+      # PRs introducing known-vulnerable packages will be blocked from merging.
+    - name: Dependency Review
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (github.event_name == 'pull_request') }}
+      uses: actions/dependency-review-action@4901385134134e04cec5fbe5ddfe3b2c5bd5d976 # v4.0.0
+
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+      with:
+        distribution: 'temurin'
+        java-version: ${{ matrix.java }}
+        cache: 'maven'
+
+    - name: Setup Maven
+      uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
+      with:
+        maven-version: 3.9.6
+
+    - name: Set up Node.js
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      with:
+        node-version: '20'
+
+    - name: Add auth-host to /etc/hosts for OAuth Integration Tests
+      if: env.RUN_ANALYSIS == 'true'
+      run: sudo sh -c 'echo "127.0.0.1 auth-host" >> /etc/hosts'
+
+    - name: Build Dependencies of SAPL Server LT
+      if: env.RUN_ANALYSIS == 'true'
+      run: mvn -U -B install -pl sapl-server-lt -am -DskipTests 
+
+    - name: Build SAPL Server LT Image
+      if: env.RUN_ANALYSIS == 'true'
+      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
+
+    - name: Run Unit Tests Only
+      if: env.RUN_ANALYSIS == 'false'
+      run: mvn -B package -fae javadoc:jar
+
+      # Runs JaCoCo and Spotbugs analysis which are needed for the subsequent
+      # SonarCloud analysis. The SonarCloud analysis is run separately because a
+      # distinction has to be made between workflows triggered by pull requests from a
+      # fork and workflows triggered by other events.
+    - name: Run Unit Tests, Analysis, and Integration Tests
+      if: env.RUN_ANALYSIS == 'true'
+      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs
+        
+    - name: Cache Sonar Packages
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
+      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
+      # For the SonarCloud analysis to contain rules and issues from SpotBugs, the
+      # SpotBugs report path needs to be added as a parameter. Coverage information
+      # from JaCoCo is included automatically as long as the report is found at its
+      # usual place in target/site/jacoco/jacoco.xml.
+      # The analysis will fail if the quality gate defined on SonarCloud fails
+      # (sonar.qualitygate.wait=true).
+    - name: Run SonarCloud Analysis
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
+      env:
+        SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
+      run: >
+        mvn -B sonar:sonar
+        -pl '!sapl-bom,!sapl-code-style'
+        -Dsonar.organization=heutelbeck
+        -Dsonar.host.url=https://sonarcloud.io
+        -Dsonar.projectKey=heutelbeck_sapl-policy-engine
+        -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
+        -Dsonar.qualitygate.wait=true
+
+      # The two following steps "Save PR Number" and "Upload Artifact" are needed for a
+      # SonarCloud analysis for pull requests from forks. Workflows triggered by pull
+      # requests from forks cannot access repository secrets. And a SonarCloud analysis
+      # cannot be run without a secret SonarCloud token. The information and files
+      # needed for a SonarCloud analysis are thus uploaded as an artifact and used in a
+      # subsequent SonarCloud analysis workflow triggered by the conclusion of the
+      # current workflow.
+    - name: Save PR Number
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
+      run: echo "${{ github.event.number }}" > pr_data.txt
+
+      # See comment on previous step "Save PR Number".
+      # An artifact is uploaded for a subsequent SonarCloud analysis. For its standard
+      # analysis of Maven projects, SonarCloud needs the pom.xml, the java classes, the
+      # compiled classes as well as the scm information (.git).
+      # To include coverage information and spotbugs issues in the analysis, the
+      # respective reports are needed.
+      # To limit its analysis to the pull request that triggered this workflow, the pull
+      # request's number is needed.
+      # To run the analysis on the module sapl-eclipse-plugin, information from the
+      # remaining files below is needed.
+    - name: Upload Artifact
+      if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
+      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+      with:
+        name: pr_build
+        path: |
+          pom.xml
+          **/pom.xml
+          **/src
+          **/target/classes
+          **/target/test-classes
+          .git
+          **/target/site/jacoco/jacoco.xml
+          **/target/spotbugsXml.xml
+          pr_data.txt
+          **/META-INF
+          **/*.target
+          **/category.xml
+          **/feature.xml
+          **/plugin.xml
+        retention-days: 1
+
+      # This action currently contains a bug. If a commit triggers more than one workflow
+      # run all test reports are published on the first workflow run.
+      # See: https://github.com/ScaCap/action-surefire-report/issues/75
+    - name: Publish Test Report
+      if: ${{ (success() || failure()) && (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
+      uses: scacap/action-surefire-report@a2911bd1a4412ec18dde2d93b1758b3e56d2a880 # v1.8.0
+
+    - name: Clean up Local Repository before Caching
+      shell: bash # needed to run script on windows
+      run: rm -rf ~/.m2/repository/io/sapl
+
+  deploy:
+    if: ${{ github.ref == 'refs/heads/master' }} 
+    needs: [build]
+    name: Publish Project Assets
+    runs-on: ubuntu-latest
+    outputs:
+      sapl-server-lt-hashes: ${{ steps.get-server-lt-hash.outputs.hashes }}
+      artifact-version: ${{ steps.get-version.outputs.VERSION }}
+      sapl-server-lt-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }} 
+    permissions:
+      actions: write # for Mattraks/delete-workflow-runs
+    timeout-minutes: 35
+    
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+      with:
+        egress-policy: audit
+
+    - name: Check out
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      with:
+        lfs: true
+        fetch-depth: 0
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        cache: 'maven'
+
+    - name: Setup Maven
+      uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
+      with:
+        maven-version: 3.9.6
+
+    - name: Set up Node.js
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+      with:
+        node-version: '20'
+ 
+    - name: Configure Servers
+      uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
+      with:
+        githubServer: false
+        servers: |
+          [{
+              "id": "ossrh",
+              "username": "${{ secrets.OSSRH_USERNAME }}",
+              "password": "${{ secrets.OSSRH_PASSWORD }}"
+           }, {
+              "id": "github",
+              "username": "${{ secrets.GHUB_USERNAME }}",
+              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+           }]
+
+    - name: Install GPG Code Signing Key
+      run: |
+        cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+        gpg --list-secret-keys --keyid-format LONG
+
+    - name: Deploy Maven Artifacts
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !:sapl-server-lt,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui -Ppublish -DskipTests clean install deploy
+
+    - name: Build All for Server and Eclipse Plugin
+      run: mvn -U -B clean install -DskipTests -Psign -Dgpg.passphrase="${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}"
+
+    - name: Build SAPL Server LT Image
+      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests 
+    
+    - name: Log in to the Container Registry
+      uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHUB_ACCESS_TOKEN }}
+
+    - name: Get Version
+      id: get-version
+      run: |
+        VERSION=$( mvn help:evaluate -Dexpression=project.version -q -DforceStdout )
+        echo "version=$VERSION" >> $GITHUB_OUTPUT        
+        
+    - name: Push Server LT Image to ghcr.io
+      run: |
+        docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
+
+    - name: Get hashes of Server LT
+      id: get-server-lt-hash
+      env:
+        # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+        REGISTRY: ghcr.io
+        IMAGE: heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
+      run: |
+        # Save the location of the maven output files for easier reference
+        ARTIFACT_PATTERN=sapl-server-lt/target/sapl-server-lt-*.jar
+
+        echo "hashes=$(sha256sum $ARTIFACT_PATTERN | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+        # Save the digest of the Docker image for later use
+        IMAGE_DIGEST=$(docker inspect ${REGISTRY}/${IMAGE} --format '{{.RepoDigests}}' | sed -e 's/^.*@//' -e 's/]$//')
+        echo "Digest of container" + $IMAGE_DIGEST
+        echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
+
+    - name: Push Eclipse Plugin to Website
+      uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2
+      env:
+        GITHUB_ACCESS_TOKEN: ${{ secrets.GHUB_ACCESS_TOKEN }}
+        SRC_FOLDER: sapl-eclipse-plugin/sapl-eclipse-repository/target/repository
+        DEST_OWNER: heutelbeck
+        DEST_REPO: sapl-pages
+        DEST_BRANCH: master
+        DEST_FOLDER: sapl-eclipse-plugin
+        DEST_PREDEPLOY_CLEANUP: "rm -rf sapl-eclipse-plugin/*"
+
+    # Upload the sapl-server-lt artifact and additional files
+    - name: Upload artifact and signature
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3 
+      with:
+        if-no-files-found: error 
+        path: |
+          sapl-server-lt/target/sapl-server-lt-*.jar
+          sapl-server-lt/target/sapl-server-lt-*.jar.asc
+          sapl-server-lt/target/sapl-server-lt-*.jar.sha1
+          sapl-server-lt/target/sapl-server-lt-*.jar.md5
+          sapl-server-lt/target/site/io.*.spdx.json    
+    
+    - name: Trigger CI Build of Downstream Repositories
+      run: |
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server/dispatches --data '{"event_type": "build_application"}'
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
+
+    - name: Delete Workflow Runs
+      uses: Mattraks/delete-workflow-runs@39f0bbed25d76b34de5594dceab824811479e5de # v2.0.6
+      with:
+        token: ${{ github.token }}
+        repository: ${{ github.repository }}
+        retain_days: 1
+        keep_minimum_runs: 6
+
+    - name: Clean up Local Repository before Caching
+      run: rm -rf ~/.m2/repository/io/sapl
+  
+  # Create provenance for the artifact
+  sapl-server-lt-provenance:
+    needs: [ deploy ]
+    permissions:
+      actions: read # To read the workflow path
+      id-token: write # To sign the provenance
+      contents: write # To add assets to a release
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.10.0
+    with:
+      base64-subjects: ${{ needs.deploy.outputs.sapl-server-lt-hashes }}
+  
+  # Verify the provenance of artifact
+  sapl-server-lt-verify:
+    needs: [ sapl-server-lt-provenance ]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read # To read the workflow path
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        with:
+          egress-policy: audit
+
+      - uses: slsa-framework/slsa-verifier/actions/installer@eb7007070baa04976cb9e25a0d8034f8db030a86 # v2.5.1
+
+      - name: Download the artifact
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+
+      # SLSA provenance verification using slsa-verifier
+      - name: Verify SLSA Provenance (slsa-verifier)
+        run: |
+          slsa-verifier verify-artifact ./**/sapl-server-lt*.jar  --source-uri "github.com/$GITHUB_REPOSITORY" --provenance-path "./${{ needs.sapl-server-lt-provenance.outputs.provenance-name}}/${{ needs.sapl-server-lt-provenance.outputs.provenance-name}}"
+
+
+  # Generate provenance for docker image
+  docker-provenance:
+    needs: [ deploy ]
+    permissions:
+      actions: read # for detecting the Github Actions environment.
+      id-token: write # for creating OIDC tokens for signing.
+      packages: write # for uploading attestations.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v1.10.0
+    with:
+      image: ghcr.io/heutelbeck/sapl-server-lt
+      # The image digest is used to prevent TOCTOU issues.
+      # This is an output of the docker/build-push-action
+      # See: https://github.com/slsa-framework/slsa-verifier#toctou-attacks
+      digest: ${{ needs.deploy.outputs.sapl-server-lt-docker-digest }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GHUB_ACCESS_TOKEN }}
+
+  # Sign the docker image
+  docker-sign:
+    needs: [ deploy ]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      packages: write
+    steps:
+
+      # https://github.com/sigstore/cosign-installer
+      - name: Harden Runner
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        with:
+          egress-policy: audit
+
+      # Install the cosign tool 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4 # v3.4.0
+        with:
+          cosign-release: 'v2.2.3'
+      
+      # Login against a Docker registry
+      # https://github.com/docker/login-action
+      - name: Log in to the Container Registry
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHUB_ACCESS_TOKEN }}
+        
+      # TUTORIAL: https://dev.to/n3wt0n/sign-your-container-images-with-cosign-github-actions-and-github-container-registry-3mni
+      # Write the private key to disk to be accessible by the cosign tool
+      # Can be generated with `cosign generate-key-pair`
+      - name: Write signing cosign key to disk
+        env:
+          # Generate private key of cosign certificate
+          KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}    
+        run: echo "${KEY}" > cosign.key
+
+
+      # Sign the resulting Docker image digest.
+      # This will only write to the public Rekor transparency log when the Docker
+      # repository is public to avoid leaking data.  If you would like to publish
+      # transparency data even for private images, pass --force to cosign below.
+      # https://github.com/sigstore/cosign
+      - name: Sign the published Docker image
+        # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          # The image name and digest are passed from the build job
+          TAGS: ghcr.io/heutelbeck/sapl-server-lt:${{ needs.deploy.outputs.artifact-version }}
+        # This step uses the identity token to provision an ephemeral certificate
+        # against the sigstore community Fulcio instance.
+        run: cosign sign --key cosign.key --yes ${TAGS}
+
+
+      # Write the private key to disk to be accessible by the cosign tool
+      # Can be generated with `cosign generate-key-pair`
+      - name: Write public cosign key to disk
+        env:
+          # Generate private key of cosign certificate
+          KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
+        run: echo "${KEY}" > cosign.pub
+        
+
+      - name: Verify docker image signature
+        run: | 
+          cosign verify  ghcr.io/heutelbeck/sapl-server-lt:${{ needs.deploy.outputs.artifact-version }} \
+            --key cosign.pub

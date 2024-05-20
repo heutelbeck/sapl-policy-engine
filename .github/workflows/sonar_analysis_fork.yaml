@@ -14,10 +14,17 @@
 # limitations under the License.
 #
 
-name: Analyse Pull Request from Fork
+# This workflow allows for analyzing pull requests from forks with SonarCloud. Since
+# SonarCloud analysis requires a SonarCloud token in the form of a repository secret
+# and workflows triggered by pull requests from a fork do not have access to these
+# secrets, this workaround is needed. Information and files needed for a SonarCloud
+# analysis are downloaded as an artifact from a previous build workflow.
+# This workflow is always triggered by the conclusion of the build workflow but is skipped
+# if the previous workflow was not triggered by a fork or failed.
+name: SonarCloud Analysis for PRs from Fork
 on:
   workflow_run:
-    workflows: [Test Pull Request from Fork]
+    workflows: [Testing and Deployment]
     types:
       - completed
 
@@ -25,74 +32,61 @@ permissions:  # added using https://github.com/step-security/secure-repo
   contents: read
 
 jobs:
-  build:
-    permissions:
-      checks: write  # for scacap/action-surefire-report to publish result as PR check
-      contents: read  # for actions/checkout to fetch code
-    strategy:
-       matrix:
-         java: [ '17' ]
-         os: [ubuntu-latest]
+  analyze:
+    if: ${{ github.event.workflow_run.head_repository.fork && (github.event.workflow_run.conclusion == 'success') }}
     name: SonarCloud Analysis
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     timeout-minutes: 35
-    if: github.event.workflow_run.conclusion == 'success'
 
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
       with:
         egress-policy: audit
-        
-    
-    - name: 'Download Artifact'
-      uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6.4.1
-      with:
-        script: |
-          let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
-             owner: context.repo.owner,
-             repo: context.repo.repo,
-             run_id: context.payload.workflow_run.id,
-          });
-          let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
-            return artifact.name == "pr_build"
-          })[0];
-          let download = await github.rest.actions.downloadArtifact({
-             owner: context.repo.owner,
-             repo: context.repo.repo,
-             artifact_id: matchArtifact.id,
-             archive_format: 'zip',
-          });
-          let fs = require('fs');
-          fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/pr_build.zip`, Buffer.from(download.data));
 
-    - name: 'Unzip artifact'
-      run: unzip pr_build.zip
-
-    - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
+    - name: Download Artifact
+      uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe # v4.1.2
       with:
-        distribution: temurin
-        java-version: ${{ matrix.java }}
+        name: pr_build
+        github-token: ${{ secrets.GHUB_ACCESS_TOKEN }}
+        run-id: ${{ github.event.workflow_run.id }}
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+      with:
+        distribution: 'temurin'
+        java-version: 17
         cache: 'maven'
 
-    - name: Get PR Details
-      run: |
-        echo "PR=$(cut -d ',' -f 1 pr_data.csv)" >> $GITHUB_ENV
-        echo "BASE=$(cut -d ',' -f 2 pr_data.csv)" >> $GITHUB_ENV
-        
-    - name: Analyse with SonarCloud
+      # The artifact downloaded above contains a file pr_data.text with the number of
+      # the pull request that triggered the previous build workflow.
+    - name: Get PR Number
+      run: echo "PR=$(cat pr_data.txt)" >> $GITHUB_ENV
+
+      # For the SonarCloud analysis to contain rules and issues from SpotBugs, the
+      # SpotBugs report path needs to be added as a parameter. Coverage information
+      # from JaCoCo is included automatically as long as the report is found at its
+      # usual place in target/site/jacoco/jacoco.xml.
+      # In order for SonarCloud to restrict its analysis to the pull request that
+      # triggered the previous build workflow and for the sonarcloud bot to post the
+      # results to the pull request on GitHub, the parameter "sonar.pullrequest.key"
+      # with the number of the pull request is needed.
+      # To post the analysis result as a check to the pull request on GitHub and to the
+      # correct commit, the parameter "sonar.scm.revision" with the sha of the most
+      # recent commit of the pull request needs to be added.
+    - name: Analyze with SonarCloud
       env:
         SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
       run: >
-        mvn -U -B --fail-at-end sonar:sonar
+        mvn -B sonar:sonar
+        -pl '!sapl-bom'
         -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         -Dsonar.host.url=https://sonarcloud.io
         -Dsonar.organization=heutelbeck
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
         -Dsonar.pullrequest.key=${PR}
-        -Dsonar.pullrequest.base=${BASE}
+        -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}
 
-    - name: Clean up local repository before caching
+    - name: Clean up Local Repository before Caching
       run: rm -rf /.m2/repository/io/sapl

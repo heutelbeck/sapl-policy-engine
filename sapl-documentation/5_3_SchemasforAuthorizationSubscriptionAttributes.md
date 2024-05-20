@@ -25,29 +25,29 @@ A SAPL document defines a schema by stating the keyword of the subscription elem
 
 Example schema definition:
 
-```
+```python
 subject enforced schema 
-       {
-            "$id": "https://example.com/person.schema.json",
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "title": "Person",
-            "type": "object",
-            "properties": {
-                "firstName": {
-                    "type": "string",
-                    "description": "The person's first name."
-                },
-                "lastName": {
-                    "type": "string",
-                    "description": "The person's last name."
-                },
-                "age": {
-                    "description": "Age in years which must be equal to or greater than zero.",
-                    "type": "integer",
-                    "minimum": 0
-                }
-            }
+{
+    "$id": "https://example.com/person.schema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Person",
+    "type": "object",
+    "properties": {
+        "firstName": {
+            "type": "string",
+            "description": "The person's first name."
+        },
+        "lastName": {
+            "type": "string",
+            "description": "The person's last name."
+        },
+        "age": {
+            "description": "Age in years which must be equal to or greater than zero.",
+            "type": "integer",
+            "minimum": 0
         }
+    }
+}
 ```
 
 If the `schema` definition does not contain the keyword `enforced`, the only consequence of the schema definition is that the SAPL editors can make code completion suggestions based on the schema. If the `enforced` keyword is present, validation of the engine implicitly adds the schema validation to the target expression of the document (i.e., to the `for` expression of a policy set or the target expression following the entitlement in a simple policy). 

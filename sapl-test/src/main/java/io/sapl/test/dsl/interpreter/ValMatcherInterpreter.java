@@ -20,7 +20,6 @@ package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.hamcrest.Matchers.anyVal;
 import static io.sapl.hamcrest.Matchers.val;
-import static io.sapl.hamcrest.Matchers.valError;
 import static org.hamcrest.CoreMatchers.is;
 
 import org.hamcrest.Matcher;
@@ -28,10 +27,7 @@ import org.hamcrest.Matcher;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.AnyVal;
-import io.sapl.test.grammar.sapltest.PlainString;
-import io.sapl.test.grammar.sapltest.StringMatcher;
 import io.sapl.test.grammar.sapltest.ValMatcher;
-import io.sapl.test.grammar.sapltest.ValWithError;
 import io.sapl.test.grammar.sapltest.ValWithMatcher;
 import io.sapl.test.grammar.sapltest.ValWithValue;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +37,6 @@ class ValMatcherInterpreter {
 
     private final ValueInterpreter           valueInterpreter;
     private final JsonNodeMatcherInterpreter jsonNodeMatcherInterpreter;
-    private final StringMatcherInterpreter   stringMatcherInterpreter;
 
     Matcher<Val> getHamcrestValMatcher(final ValMatcher valMatcher) {
         if (valMatcher instanceof ValWithValue valWithValue) {
@@ -50,8 +45,6 @@ class ValMatcherInterpreter {
             return anyVal();
         } else if (valMatcher instanceof ValWithMatcher valWithMatcher) {
             return handleValWithMatcher(valWithMatcher);
-        } else if (valMatcher instanceof ValWithError valWithError) {
-            return handleValWithError(valWithError);
         }
 
         throw new SaplTestException("Unknown type of ValMatcher");
@@ -79,27 +72,5 @@ class ValMatcherInterpreter {
         }
 
         return val(jsonNodeMatcher);
-    }
-
-    private Matcher<Val> handleValWithError(final ValWithError valWithError) {
-        final var stringOrStringMatcher = valWithError.getError();
-
-        if (stringOrStringMatcher == null) {
-            return valError();
-        }
-
-        if (stringOrStringMatcher instanceof PlainString plainString) {
-            return valError(plainString.getText());
-        } else if (stringOrStringMatcher instanceof StringMatcher stringMatcher) {
-            final var hamcrestStringMatcher = stringMatcherInterpreter.getHamcrestStringMatcher(stringMatcher);
-
-            if (hamcrestStringMatcher == null) {
-                throw new SaplTestException("StringMatcher is null");
-            }
-
-            return valError(hamcrestStringMatcher);
-        }
-
-        throw new SaplTestException("Unknown type of StringOrStringMatcher");
     }
 }

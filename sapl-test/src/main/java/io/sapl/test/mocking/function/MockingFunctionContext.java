@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
+import org.eclipse.emf.ecore.EObject;
 import org.hamcrest.number.OrderingComparison;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -96,7 +97,7 @@ public class MockingFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Val evaluate(String function, Val... parameters) {
+    public Val evaluate(EObject location, String function, Val... parameters) {
         var functionTrace = new ExpressionArgument[parameters.length + 1];
         functionTrace[0] = new ExpressionArgument("functionName", Val.of(function));
         for (var parameter = 0; parameter < parameters.length; parameter++) {
@@ -108,7 +109,7 @@ public class MockingFunctionContext implements FunctionContext {
         if (mock != null) {
             return mock.evaluateFunctionCall(parameters).withTrace(MockingFunctionContext.class, false, functionTrace);
         } else {
-            return this.originalFunctionContext.evaluate(function, parameters);
+            return this.originalFunctionContext.evaluate(location, function, parameters);
         }
     }
 

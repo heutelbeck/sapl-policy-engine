@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.ide.contentassist.SchemaProposalGenerator;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.SneakyThrows;
 
 class SchemaProposalGeneratorTests {
@@ -870,7 +871,7 @@ class SchemaProposalGeneratorTests {
 
     @Test
     void when_undefinedSchema_then_proposalsEmpty() {
-        var proposals = SchemaProposalGenerator.getCodeTemplates("", Val.error(""), Map.of());
+        var proposals = SchemaProposalGenerator.getCodeTemplates("", ErrorFactory.error(""), Map.of());
         assertThat(proposals).isEmpty();
     }
 

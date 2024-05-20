@@ -20,7 +20,6 @@ package io.sapl.prp;
 import java.util.Arrays;
 import java.util.List;
 
-import io.sapl.grammar.sapl.SAPL;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 
@@ -57,22 +56,19 @@ public class PrpUpdateEvent {
         Type type;
 
         @EqualsAndHashCode.Exclude
-        SAPL document;
-
-        String rawDocument;
+        Document document;
 
         @Override
         public String toString() {
             return "Update(type=" + type + ", documentName="
-                    + (document != null ? "'" + document.getPolicyElement().getSaplName() + "'" : "NULL POLICY") + ")";
+                    + (document != null ? "'" + document.sapl().getPolicyElement().getSaplName() + "'" : "NULL POLICY")
+                    + ")";
         }
 
     }
 
     public enum Type {
-
         PUBLISH, WITHDRAW, INCONSISTENT, CONSISTENT
-
     }
 
 }

@@ -51,7 +51,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sapltest.Array;
+import io.sapl.test.grammar.sapltest.ErrorValue;
 import io.sapl.test.grammar.sapltest.FalseLiteral;
 import io.sapl.test.grammar.sapltest.NullLiteral;
 import io.sapl.test.grammar.sapltest.NumberLiteral;
@@ -59,6 +61,7 @@ import io.sapl.test.grammar.sapltest.StringLiteral;
 import io.sapl.test.grammar.sapltest.TrueLiteral;
 import io.sapl.test.grammar.sapltest.UndefinedLiteral;
 import io.sapl.test.grammar.sapltest.Value;
+import io.sapl.test.grammar.services.SAPLTestGrammarAccess;
 
 @ExtendWith(MockitoExtension.class)
 class ValueInterpreterTests {
@@ -79,6 +82,10 @@ class ValueInterpreterTests {
     @Nested
     @DisplayName("Get val from value")
     class getValFromValueTests {
+
+        private ErrorValue buildErrorValue(final String input) {
+            return ParserUtil.parseInputByRule(input, SAPLTestGrammarAccess::getErrorValueRule, ErrorValue.class);
+        }
 
         @Test
         void getValFromValue_handlesNull_throwsSaplTestException() {
@@ -181,6 +188,25 @@ class ValueInterpreterTests {
             final var result = valueInterpreter.getValFromValue(value);
 
             assertEquals(Val.UNDEFINED, result);
+        }
+
+        @Test
+        void getValFromValue_handlesErrorValueWithoutMessage_returnsErrorVal() {
+            final var value = ParserUtil.parseInputByRule("error", SAPLTestGrammarAccess::getErrorValueRule,
+                    ErrorValue.class);
+
+            final var result = valueInterpreter.getValFromValue(value);
+
+            assertEquals(Val.error((String) null), result);
+        }
+
+        @Test
+        void getValFromValue_handlesErrorValueWithMessage_returnsErrorValWithMessage() {
+            final var value = buildErrorValue("error (\"foo\")");
+
+            final var result = valueInterpreter.getValFromValue(value);
+
+            assertEquals(Val.error("foo"), result);
         }
 
         @Nested

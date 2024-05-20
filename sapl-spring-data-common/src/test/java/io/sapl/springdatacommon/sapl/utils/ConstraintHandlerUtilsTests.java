@@ -136,7 +136,8 @@ class ConstraintHandlerUtilsTests {
         // GIVEN
         var obligationsAsArrayNode = (ArrayNode) OBLIGATIONS;
         var optionalObligations    = Optional.of(obligationsAsArrayNode);
-        var authDec                = new AuthorizationDecision(Decision.PERMIT, null, optionalObligations, null);
+        var authDec                = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), optionalObligations,
+                Optional.empty());
 
         // WHEN
         var actual = ConstraintHandlerUtils.getObligations(authDec);
@@ -151,7 +152,8 @@ class ConstraintHandlerUtilsTests {
         var adviceAsArrayNode = (ArrayNode) ADVICE;
 
         var optionalAdvice = Optional.of(adviceAsArrayNode);
-        var authDec        = new AuthorizationDecision(Decision.PERMIT, null, null, optionalAdvice);
+        var authDec        = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+                optionalAdvice);
 
         // WHEN
         var actual = ConstraintHandlerUtils.getAdvice(authDec);

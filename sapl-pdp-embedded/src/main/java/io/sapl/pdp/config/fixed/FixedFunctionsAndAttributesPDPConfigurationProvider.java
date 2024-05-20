@@ -29,12 +29,14 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.AuthorizationSubscriptionInterceptor;
 import io.sapl.api.pdp.TracedDecision;
 import io.sapl.api.pdp.TracedDecisionInterceptor;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
+import io.sapl.prp.PolicyRetrievalPoint;
+import io.sapl.prp.PolicyRetrievalPointSource;
 import reactor.core.publisher.Flux;
 
 public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPConfigurationProvider {
@@ -43,8 +45,8 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 
     private final FunctionContext functionCtx;
 
-    private final VariablesAndCombinatorSource variablesAndCombinatorSource;
-
+    private final VariablesAndCombinatorSource               variablesAndCombinatorSource;
+    private PolicyRetrievalPointSource                       prpSource;
     private final List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors;
 
     private final List<TracedDecisionInterceptor> decisionInterceptors;
@@ -52,10 +54,11 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
     public FixedFunctionsAndAttributesPDPConfigurationProvider(AttributeContext attributeCtx,
             FunctionContext functionCtx, VariablesAndCombinatorSource variablesAndCombinatorSource,
             Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
-            Collection<TracedDecisionInterceptor> decisionInterceptors) {
+            Collection<TracedDecisionInterceptor> decisionInterceptors, PolicyRetrievalPointSource prpSource) {
         this.attributeCtx                 = attributeCtx;
         this.functionCtx                  = functionCtx;
         this.variablesAndCombinatorSource = variablesAndCombinatorSource;
+        this.prpSource                    = prpSource;
         this.subscriptionInterceptors     = subscriptionInterceptors.stream().sorted(Comparator.reverseOrder())
                 .toList();
         this.decisionInterceptors         = decisionInterceptors.stream().sorted(Comparator.reverseOrder()).toList();
@@ -64,13 +67,17 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
     @Override
     public Flux<PDPConfiguration> pdpConfiguration() {
         return Flux.combineLatest(variablesAndCombinatorSource.getCombiningAlgorithm(),
-                variablesAndCombinatorSource.getVariables(), this::createConfiguration);
+                variablesAndCombinatorSource.getVariables(), prpSource.policyRetrievalPoint(),
+                this::createConfiguration);
     }
 
-    private PDPConfiguration createConfiguration(Optional<CombiningAlgorithm> combinator,
-            Optional<Map<String, Val>> variables) {
-        return new PDPConfiguration(attributeCtx, functionCtx, variables.orElse(null), combinator.orElse(null),
-                decisionInterceptorChain(), subscriptionInterceptorChain());
+    @SuppressWarnings("unchecked")
+    private PDPConfiguration createConfiguration(Object[] values) {
+        var combiningAlgorithm = ((Optional<PolicyDocumentCombiningAlgorithm>) values[0]).orElse(null);
+        var variables          = ((Optional<Map<String, Val>>) values[1]).orElse(null);
+        var prp                = (PolicyRetrievalPoint) values[2];
+        return new PDPConfiguration("defaultConfiguration", attributeCtx, functionCtx, variables, combiningAlgorithm,
+                decisionInterceptorChain(), subscriptionInterceptorChain(), prp);
     }
 
     private UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain() {

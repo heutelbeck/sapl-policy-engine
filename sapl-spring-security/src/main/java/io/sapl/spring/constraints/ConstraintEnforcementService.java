@@ -18,6 +18,7 @@
 package io.sapl.spring.constraints;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -152,15 +153,20 @@ public class ConstraintEnforcementService {
     }
 
     /**
-     * @param <T>      event type
-     * @param decision a decision
-     * @param clazz    class of the event type
+     * @param <T>                event type
+     * @param decision           a decision
+     * @param clazz              class of the event type
+     * @param ignoredObligations if the client of this method already has taken care
+     *                           of specific obligations that have not to be handled
+     *                           by the bundle, these can be indicated here and will
+     *                           be ignored when checking for completeness of
+     *                           obligation handing by the bundle.
      * @return a ReactiveTypeConstraintHandlerBundle with handlers for all
      *         constraints in the decision, or throws AccessDeniedException, if
      *         bundle cannot be constructed.
      */
-    public <T> ReactiveConstraintHandlerBundle<T> reactiveTypeBundleFor(AuthorizationDecision decision,
-            Class<T> clazz) {
+    public <T> ReactiveConstraintHandlerBundle<T> reactiveTypeBundleFor(AuthorizationDecision decision, Class<T> clazz,
+            JsonNode... ignoredObligations) {
 
         var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
 
@@ -181,8 +187,14 @@ public class ConstraintEnforcementService {
 				methodInvocationHandlers(decision, unhandledObligations));
 		// @formatter:on
 
-        if (!unhandledObligations.isEmpty())
-            throw missingHandlerError(unhandledObligations);
+        if (!unhandledObligations.isEmpty()) {
+            for (var unhandledObligation : unhandledObligations) {
+                if (Arrays.stream(ignoredObligations).filter(ignored -> ignored.equals(unhandledObligation)).findFirst()
+                        .isEmpty()) {
+                    throw missingHandlerError(unhandledObligations);
+                }
+            }
+        }
 
         return bundle;
     }
@@ -740,8 +752,7 @@ public class ConstraintEnforcementService {
      * @throws JsonProcessingException  on JSON marshaling error
      * @throws IllegalArgumentException on JSON marshaling error
      */
-    public <T> T unmarshallResource(JsonNode resource, Class<T> clazz)
-            throws JsonProcessingException, IllegalArgumentException {
+    public <T> T unmarshallResource(JsonNode resource, Class<T> clazz) throws JsonProcessingException {
         return mapper.treeToValue(resource, clazz);
     }
 

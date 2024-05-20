@@ -19,9 +19,12 @@ package io.sapl.extension.jwt;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.text.ParseException;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,9 +51,9 @@ class JWTFunctionLibraryTests {
 
     @Test
     void malformedTokenIsNotParsed() {
-        var sut    = new JWTFunctionLibrary(MAPPER);
-        var actual = sut.parseJwt(Val.of(MALFORMED_TOKEN));
-        assertThat(actual.isError(), is(true));
+        var sut       = new JWTFunctionLibrary(MAPPER);
+        var malformed = Val.of(MALFORMED_TOKEN);
+        assertThrows(ParseException.class, () -> sut.parseJwt(malformed));
     }
 
     @Test

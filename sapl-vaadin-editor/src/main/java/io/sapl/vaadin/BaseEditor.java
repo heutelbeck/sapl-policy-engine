@@ -25,12 +25,15 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.ElementConstants;
 
+import io.sapl.api.SaplVersion;
 import lombok.Getter;
 
 /**
  * Base class for SAPL and JSON editors.
  */
 public class BaseEditor extends Component {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private static final String IS_LINT             = "isLint";
     private static final String TEXT_UPDATE_DELAY   = "textUpdateDelay";

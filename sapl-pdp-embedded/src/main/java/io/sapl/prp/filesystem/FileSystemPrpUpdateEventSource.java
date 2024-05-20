@@ -19,6 +19,7 @@ package io.sapl.prp.filesystem;
 
 import static io.sapl.util.filemonitoring.FileMonitorUtil.resolveHomeFolderIfPresent;
 
+import java.nio.file.Path;
 import java.util.Optional;
 
 import io.sapl.interpreter.SAPLInterpreter;
@@ -39,7 +40,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
     private final SAPLInterpreter interpreter;
 
-    private final String watchDir;
+    private final Path watchDir;
 
     public FileSystemPrpUpdateEventSource(String policyPath, SAPLInterpreter interpreter) {
         this.interpreter = interpreter;
@@ -62,7 +63,7 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
         // issue.
         var monitoringFlux = FileMonitorUtil.monitorDirectory(watchDir, file -> true)
                 .filter(event -> event.file() != null)
-                .filter(event -> event.file().getAbsolutePath().endsWith(SAPL_SUFFIX));
+                .filter(event -> event.file().toAbsolutePath().toString().endsWith(SAPL_SUFFIX));
         log.debug("Initial event: {}", initialEvent);
         return Mono.just(initialEvent).concatWith(directoryMonitor(monitoringFlux, seedIndex));
     }

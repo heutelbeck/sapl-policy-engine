@@ -35,7 +35,7 @@ public class WildcardStepImplCustom extends WildcardStepImpl {
 
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
-        return StepAlgorithmUtil.apply(parentValue, WildcardStepImplCustom::wildcard, "*", WildcardStep.class);
+        return StepAlgorithmUtil.apply(parentValue, WildcardStepImplCustom::wildcard, "*", WildcardStep.class, this);
     }
 
     @Override

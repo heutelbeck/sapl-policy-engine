@@ -17,7 +17,6 @@
  */
 package io.sapl.test.utils;
 
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
@@ -25,8 +24,8 @@ import java.nio.file.Paths;
 
 import io.sapl.test.SaplTestException;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
-import reactor.core.Exceptions;
 
 @UtilityClass
 public class ClasspathHelper {
@@ -64,19 +63,13 @@ public class ClasspathHelper {
 
     }
 
+    @SneakyThrows
     private static Path getResourcePath(URL url) {
         if ("jar".equals(url.getProtocol())) {
             throw new SaplTestException("Not supporting reading files from jar during test execution!");
         }
 
-        Path configDirectoryPath;
-        try {
-            configDirectoryPath = Paths.get(url.toURI());
-        } catch (URISyntaxException e) {
-            throw Exceptions.propagate(e);
-        }
-
-        return configDirectoryPath;
+        return Paths.get(url.toURI());
     }
 
 }

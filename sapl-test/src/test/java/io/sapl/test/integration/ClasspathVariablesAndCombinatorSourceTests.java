@@ -30,7 +30,7 @@ import org.mockito.Mockito;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.grammar.sapl.impl.DenyUnlessPermitCombiningAlgorithmImplCustom;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.PolicyDecisionPointConfiguration;
 import reactor.core.publisher.SignalType;
 
@@ -39,8 +39,8 @@ class ClasspathVariablesAndCombinatorSourceTests {
     @Test
     void doTest() {
         var configProvider = new ClasspathVariablesAndCombinatorSource("policiesIT", new ObjectMapper(), null, null);
-        assertThat(configProvider.getCombiningAlgorithm().blockFirst().get())
-                .isInstanceOf(DenyUnlessPermitCombiningAlgorithmImplCustom.class);
+        assertThat(configProvider.getCombiningAlgorithm().blockFirst())
+                .contains(PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT);
         assertThat(configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst().get().keySet())
                 .isEmpty();
         configProvider.destroy();
@@ -63,9 +63,8 @@ class ClasspathVariablesAndCombinatorSourceTests {
         var mapper = Mockito.mock(ObjectMapper.class);
         Mockito.when(mapper.readValue((File) Mockito.any(), Mockito.<Class<PolicyDecisionPointConfiguration>>any()))
                 .thenThrow(new IOException());
-        assertThatExceptionOfType(RuntimeException.class)
-                .isThrownBy(() -> new ClasspathVariablesAndCombinatorSource("policiesIT", mapper, null, null))
-                .withCauseInstanceOf(IOException.class);
+        assertThatExceptionOfType(IOException.class)
+                .isThrownBy(() -> new ClasspathVariablesAndCombinatorSource("policiesIT", mapper, null, null));
     }
 
 }

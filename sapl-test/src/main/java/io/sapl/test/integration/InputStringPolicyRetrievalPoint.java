@@ -19,24 +19,22 @@ package io.sapl.test.integration;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.prp.Document;
+import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.utils.DocumentHelper;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Slf4j
 public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
-    private final Map<String, SAPL> documents;
+    private final Map<String, Document> documents;
 
     private final SAPLInterpreter saplInterpreter;
 
@@ -45,7 +43,7 @@ public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
         this.documents       = readPoliciesFromSaplDocumentNames(documentStrings);
     }
 
-    private Map<String, SAPL> readPoliciesFromSaplDocumentNames(final Collection<String> documentStrings) {
+    private Map<String, Document> readPoliciesFromSaplDocumentNames(final Collection<String> documentStrings) {
         if (documentStrings == null || documentStrings.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -53,39 +51,34 @@ public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
         if (documentStrings.stream().anyMatch(documentString -> documentString == null || documentString.isEmpty())) {
             throw new SaplTestException("Encountered invalid policy input");
         }
-
-        return documentStrings.stream()
-                .map(documentString -> DocumentHelper.readSaplDocumentFromInputString(documentString, saplInterpreter))
-                .collect(Collectors.toMap(sapl -> sapl.getPolicyElement().getSaplName(), Function.identity(),
-                        (oldKey, newKey) -> newKey));
+        var docs = new HashMap<String, Document>();
+        for (var documentString : documentStrings) {
+            var document = DocumentHelper.readSaplDocumentFromInputString(documentString, saplInterpreter);
+            var previous = docs.put(document.name(), document);
+            if (previous != null) {
+                throw new SaplTestException("Encountered policy name duplication '" + document.name() + "'.");
+            }
+        }
+        return docs;
     }
 
     @Override
-    public Flux<PolicyRetrievalResult> retrievePolicies() {
-        var retrieval = Mono.just(new PolicyRetrievalResult());
-        for (SAPL document : documents.values()) {
-            retrieval = retrieval.flatMap(retrievalResult -> document.matches().map(match -> {
-                if (match.isError()) {
-                    return retrievalResult.withError();
-                }
-                if (match.getBoolean()) {
-                    return retrievalResult.withMatch(document);
-                }
-                return retrievalResult;
-            }));
-        }
-
-        return Flux.from(retrieval).doOnNext(this::logMatching);
+    public Mono<PolicyRetrievalResult> retrievePolicies() {
+        var documentMatches = Flux
+                .merge(documents.values().stream()
+                        .map(document -> document.sapl().matches()
+                                .map(targetExpressionResult -> new DocumentMatch(document, targetExpressionResult)))
+                        .toList());
+        return documentMatches.reduce(new PolicyRetrievalResult(), PolicyRetrievalResult::withMatch);
     }
 
-    private void logMatching(PolicyRetrievalResult result) {
-        if (result.getMatchingDocuments().isEmpty()) {
-            log.trace("|-- Matching documents: NONE");
-        } else {
-            log.trace("|-- Matching documents:");
-            for (SAPL doc : result.getMatchingDocuments())
-                log.trace("| |-- * {} ", doc);
-        }
-        log.trace("|");
+    @Override
+    public Collection<Document> allDocuments() {
+        return documents.values();
+    }
+
+    @Override
+    public boolean isConsistent() {
+        return true;
     }
 }

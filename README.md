@@ -74,6 +74,22 @@ Want to see integration examples? View our dedicated [demos](#want-to-integrate-
 
 Feeling experimental? Use our [snapshots](#snapshots) for the newest development state!
 
+## IDE-Support
+
+<!-- Eclipse -->
+### SAPL Eclipse Plug-in
+
+Get code editing support in Eclipse by installing the SAPL Plug-in: [![Drag to your running Eclipse* workspace. *Requires Eclipse Marketplace Client](https://marketplace.eclipse.org/modules/custom/eclipsefdn/eclipsefdn_marketplace/images/btn-install.svg)](/marketplace-client-intro?mpc_install=5795798"Drag to your running Eclipse* workspace. *Requires Eclipse Marketplace Client")
+
+### IntelliJ IDEA Plug-in
+
+Get code editing support by installing the [SAPL Plug-in for IntelliJ IDEA](https://github.com/heutelbeck/sapl-intellij-plugin).
+
+### Other IDEs
+
+SAPL provides a language server for the integration into other IDEs which support the language server protocol.
+For details see [sapl-language-server](sapl-language-server/README.md).
+
 <!-- DEMOS -->
 ## Want to integrate SAPL?
 
@@ -167,8 +183,8 @@ Distributed under the Apache 2.0 License. See [LICENSE.md](./LICENSE.md) for mor
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[build-status-shield]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build_master.yml/badge.svg
-[build-status-url]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build_master.yml
+[build-status-shield]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build.yml/badge.svg?branch=master
+[build-status-url]: https://github.com/heutelbeck/sapl-policy-engine/actions/workflows/build.yml?branch=master
 [sonarcloud-status-shield]: https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=alert_status
 [sonarcloud-status-url]: https://sonarcloud.io/dashboard?id=heutelbeck_sapl-policy-engine
 [security-rating-shield]: https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=security_rating

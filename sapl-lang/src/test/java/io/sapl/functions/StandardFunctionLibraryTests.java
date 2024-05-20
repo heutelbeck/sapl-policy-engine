@@ -17,6 +17,7 @@
  */
 package io.sapl.functions;
 
+import static io.sapl.assertj.SaplAssertions.assertThatVal;
 import static io.sapl.hamcrest.Matchers.val;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,6 +27,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.api.interpreter.Val;
 
@@ -50,7 +52,7 @@ class StandardFunctionLibraryTests {
             """;
 
     @Test
-    void xmlToJsonTest() throws Exception {
+    void xmlToJsonTest() {
         var html = StandardFunctionLibrary.xmlToJson(Val.of(HTML_DOCUMENT));
         assertThat(html.get().get("body").get("p").get(0).asText()).isEqualTo("First");
         var xml = StandardFunctionLibrary.xmlToJson(Val.of(XML_DOCUMENT));
@@ -118,7 +120,93 @@ class StandardFunctionLibraryTests {
 
     @Test
     void when_error_then_valueIsReplaced() {
-        assertThat(StandardFunctionLibrary.onErrorMap(Val.error(), Val.of("REPLACED")), is(val("REPLACED")));
+        assertThat(StandardFunctionLibrary.onErrorMap(Val.error((String) null), Val.of("REPLACED")),
+                is(val("REPLACED")));
     }
 
+    @Test
+    void when_concatenateNoParameters_then_returnsEmptyArray() {
+        assertThatVal(StandardFunctionLibrary.concatenate()).hasValue().isArray().isEmpty();
+    }
+
+    @Test
+    void when_concatenate_then_concatenatesCorrectly() throws JsonProcessingException {
+        assertThatVal(StandardFunctionLibrary.concatenate(Val.ofJson("[ 1,2 ]"), Val.ofJson("[ ]"),
+                Val.ofJson("[ 3,4 ]"), Val.ofJson("[ 5,6 ]"))).hasValue().isArray()
+                .isEqualTo(Val.ofJson("[1,2,3,4,5,6]").getArrayNode());
+    }
+
+    @Test
+    void when_intersectNoParameters_then_returnsEmptyArray() {
+        assertThatVal(StandardFunctionLibrary.intersect()).hasValue().isArray().isEmpty();
+    }
+
+    @Test
+    void when_intersect_then_returnsIntersection() throws JsonProcessingException {
+        var actual = StandardFunctionLibrary.intersect(Val.ofJson("[ 1,2,3,4 ]"), Val.ofJson("[ 3,4 ]"),
+                Val.ofJson("[ 4,1,3 ]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).hasSize(2);
+        assertThat(actual.getArrayNode()).containsExactlyInAnyOrder(Val.of(4).getJsonNode(), Val.of(3).getJsonNode());
+    }
+
+    @Test
+    void when_intersectWithOneEmptySet_then_returnsEmptyArray() throws JsonProcessingException {
+        assertThatVal(StandardFunctionLibrary.intersect(Val.ofJson("[ 1,2,3,4 ]"), Val.ofJson("[ ]"),
+                Val.ofJson("[ 3,4 ]"), Val.ofJson("[ 4,1,3 ]"))).hasValue().isArray().isEmpty();
+    }
+
+    @Test
+    void when_unionNoParameters_then_returnsEmptyArray() {
+        assertThatVal(StandardFunctionLibrary.union()).hasValue().isArray().isEmpty();
+    }
+
+    @Test
+    void when_union_then_returnsUnion() throws JsonProcessingException {
+        var actual = StandardFunctionLibrary.union(Val.ofJson("[ 1,2,3 ]"), Val.ofJson("[ ]"), Val.ofJson("[ 3,4 ]"),
+                Val.ofJson("[ 4,1,3 ]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).hasSize(4);
+        assertThat(actual.getArrayNode()).containsExactlyInAnyOrder(Val.of(4).getJsonNode(), Val.of(3).getJsonNode(),
+                Val.of(1).getJsonNode(), Val.of(2).getJsonNode());
+    }
+
+    @Test
+    void when_toSet_then_returnsSet() throws JsonProcessingException {
+        var actual = StandardFunctionLibrary.toSet(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).hasSize(6);
+        assertThat(actual.getArrayNode()).containsExactlyInAnyOrder(Val.of(1).getJsonNode(), Val.of(2).getJsonNode(),
+                Val.of(3).getJsonNode(), Val.of(5).getJsonNode(), Val.of(8).getJsonNode(), Val.of(10).getJsonNode());
+    }
+
+    @Test
+    void when_differenceWithEmptySet_then_returnsOriginalArrayAsSet() throws JsonProcessingException {
+        var actual = StandardFunctionLibrary.difference(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"),
+                Val.ofJson("[]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).hasSize(6);
+        assertThat(actual.getArrayNode()).containsExactlyInAnyOrder(Val.of(1).getJsonNode(), Val.of(2).getJsonNode(),
+                Val.of(3).getJsonNode(), Val.of(5).getJsonNode(), Val.of(8).getJsonNode(), Val.of(10).getJsonNode());
+    }
+
+    @Test
+    void when_differenceWithNoIntersection_then_returnsOriginalArrayAsSet() throws JsonProcessingException {
+        var actual = StandardFunctionLibrary.difference(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"),
+                Val.ofJson("[20,22,\"abc\"]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).hasSize(6);
+        assertThat(actual.getArrayNode()).containsExactlyInAnyOrder(Val.of(1).getJsonNode(), Val.of(2).getJsonNode(),
+                Val.of(3).getJsonNode(), Val.of(5).getJsonNode(), Val.of(8).getJsonNode(), Val.of(10).getJsonNode());
+    }
+
+    @Test
+    void when_differenceWithIntersection_then_returnsCorrectDifferecrAsSet() throws JsonProcessingException {
+        var actual = StandardFunctionLibrary.difference(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"),
+                Val.ofJson("[10,2]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).hasSize(4);
+        assertThat(actual.getArrayNode()).containsExactlyInAnyOrder(Val.of(1).getJsonNode(), Val.of(3).getJsonNode(),
+                Val.of(5).getJsonNode(), Val.of(8).getJsonNode());
+    }
 }

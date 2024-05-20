@@ -62,6 +62,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.serialization.HttpServletRequestSerializer;
@@ -391,6 +392,8 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
     }
 
     static class MockSecurityContext implements SecurityContext {
+
+        private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
         private Authentication authentication;
 

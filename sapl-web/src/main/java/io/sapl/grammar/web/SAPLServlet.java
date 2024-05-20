@@ -22,6 +22,7 @@ import org.eclipse.xtext.web.servlet.XtextServlet;
 
 import com.google.inject.Injector;
 
+import io.sapl.api.SaplVersion;
 import jakarta.servlet.annotation.WebServlet;
 import lombok.SneakyThrows;
 
@@ -30,6 +31,8 @@ import lombok.SneakyThrows;
  */
 @WebServlet(name = "XtextServices", urlPatterns = "/xtext-service/*")
 public class SAPLServlet extends XtextServlet {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private transient DisposableRegistry disposableRegistry;
 

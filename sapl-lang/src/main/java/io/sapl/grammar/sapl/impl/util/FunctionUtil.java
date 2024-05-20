@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import org.eclipse.emf.ecore.EObject;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
@@ -49,22 +51,22 @@ public class FunctionUtil {
         return imports.getOrDefault(unresolvedFunctionName, unresolvedFunctionName);
     }
 
-    public Mono<Val> evaluateFunctionMono(Iterable<String> fsteps, Val... parameters) {
-        return evaluateFunctionMono(mergeStepsToName(fsteps), parameters);
+    public Mono<Val> evaluateFunctionMono(EObject location, Iterable<String> fsteps, Val... parameters) {
+        return evaluateFunctionMono(location, mergeStepsToName(fsteps), parameters);
     }
 
-    public Mono<Val> evaluateFunctionMono(String unresolvedFunctionName, Val... parameters) {
-        return Mono.deferContextual(ctx -> Mono.just(AuthorizationContext.functionContext(ctx).evaluate(
+    public Mono<Val> evaluateFunctionMono(EObject location, String unresolvedFunctionName, Val... parameters) {
+        return Mono.deferContextual(ctx -> Mono.just(AuthorizationContext.functionContext(ctx).evaluate(location,
                 resolveAbsoluteFunctionName(unresolvedFunctionName, AuthorizationContext.getImports(ctx)),
                 parameters)));
     }
 
-    public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(Iterable<String> fsteps, Val leftHandArgument,
-            Val... parameters) {
+    public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(EObject location, Iterable<String> fsteps,
+            Val leftHandArgument, Val... parameters) {
         Val[] mergedParameters = new Val[parameters.length + 1];
         mergedParameters[0] = leftHandArgument;
         System.arraycopy(parameters, 0, mergedParameters, 1, parameters.length);
-        return evaluateFunctionMono(fsteps, mergedParameters);
+        return evaluateFunctionMono(location, fsteps, mergedParameters);
     }
 
     private Stream<Flux<Val>> argumentFluxes(Arguments arguments) {

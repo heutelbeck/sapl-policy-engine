@@ -24,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.grammar.sapltest.Scenario;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +35,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.AuthorizationSubscription;
-import io.sapl.test.grammar.sapltest.TestCase;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.WhenStep;
 
@@ -45,7 +45,7 @@ class DefaultExpectStepConstructorTests {
     @InjectMocks
     protected DefaultExpectStepConstructor         defaultExpectStepConstructor;
     @Mock
-    protected TestCase                             testCaseMock;
+    protected Scenario                             scenarioMock;
     @Mock
     protected WhenStep                             whenStepMock;
 
@@ -58,47 +58,48 @@ class DefaultExpectStepConstructorTests {
     }
 
     @Test
-    void constructExpectStep_handlesNullTestCase_throwsSaplTestException() {
+    void constructExpectStep_handlesNullScenario_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
                 () -> defaultExpectStepConstructor.constructExpectStep(null, whenStepMock));
 
-        assertEquals("TestCase or whenStep is null", exception.getMessage());
+        assertEquals("Scenario or whenStep is null", exception.getMessage());
     }
 
     @Test
     void constructExpectStep_handlesNullWhenStep_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
-                () -> defaultExpectStepConstructor.constructExpectStep(testCaseMock, null));
+                () -> defaultExpectStepConstructor.constructExpectStep(scenarioMock, null));
 
-        assertEquals("TestCase or whenStep is null", exception.getMessage());
+        assertEquals("Scenario or whenStep is null", exception.getMessage());
     }
 
     @Test
-    void constructExpectStep_handlesNullTestCaseAndNullWhenStep_throwsSaplTestException() {
+    void constructExpectStep_handlesNullScenarioAndNullWhenStep_throwsSaplTestException() {
         final var exception = assertThrows(SaplTestException.class,
                 () -> defaultExpectStepConstructor.constructExpectStep(null, null));
 
-        assertEquals("TestCase or whenStep is null", exception.getMessage());
+        assertEquals("Scenario or whenStep is null", exception.getMessage());
     }
 
     @Test
-    void constructExpectStep_handlesNullTestCaseWhenStep_throwsSaplTestException() {
-        when(testCaseMock.getWhenStep()).thenReturn(null);
+    void constructExpectStep_handlesScenarioAndNullWhenStep_throwsSaplTestException() {
+        when(scenarioMock.getWhenStep()).thenReturn(null);
 
-        final var exception = assertThrows(SaplTestException.class, () -> defaultExpectStepConstructor.constructExpectStep(testCaseMock, whenStepMock));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> defaultExpectStepConstructor.constructExpectStep(scenarioMock, whenStepMock));
 
-        assertEquals("TestCase does not contain a whenStep", exception.getMessage());
+        assertEquals("Scenario does not contain a whenStep", exception.getMessage());
     }
 
     @Test
     void constructExpectStep_handlesNullAuthorizationSubscription_throwsSaplTestException() {
         final var saplTestWhenStepMock = mock(io.sapl.test.grammar.sapltest.WhenStep.class);
-        when(testCaseMock.getWhenStep()).thenReturn(saplTestWhenStepMock);
+        when(scenarioMock.getWhenStep()).thenReturn(saplTestWhenStepMock);
 
         when(saplTestWhenStepMock.getAuthorizationSubscription()).thenReturn(null);
 
         final var exception = assertThrows(SaplTestException.class,
-                () -> defaultExpectStepConstructor.constructExpectStep(testCaseMock, whenStepMock));
+                () -> defaultExpectStepConstructor.constructExpectStep(scenarioMock, whenStepMock));
 
         assertEquals("AuthorizationSubscription is null", exception.getMessage());
     }
@@ -106,7 +107,7 @@ class DefaultExpectStepConstructorTests {
     @Test
     void constructExpectStep_returnsCorrectExpectStep() {
         final var saplTestWhenStepMock = mock(io.sapl.test.grammar.sapltest.WhenStep.class);
-        when(testCaseMock.getWhenStep()).thenReturn(saplTestWhenStepMock);
+        when(scenarioMock.getWhenStep()).thenReturn(saplTestWhenStepMock);
 
         final var authorizationSubscriptionMock = mock(AuthorizationSubscription.class);
         when(saplTestWhenStepMock.getAuthorizationSubscription()).thenReturn(authorizationSubscriptionMock);
@@ -115,11 +116,11 @@ class DefaultExpectStepConstructorTests {
         when(authorizationSubscriptionInterpreterMock.constructAuthorizationSubscription(authorizationSubscriptionMock))
                 .thenReturn(saplAuthorizationSubscriptionMock);
 
-        final var whenStepMock   = mock(WhenStep.class);
+        final var aWhenStepMock  = mock(WhenStep.class);
         final var expectStepMock = mock(ExpectStep.class);
-        when(whenStepMock.when(saplAuthorizationSubscriptionMock)).thenReturn(expectStepMock);
+        when(aWhenStepMock.when(saplAuthorizationSubscriptionMock)).thenReturn(expectStepMock);
 
-        final var result = defaultExpectStepConstructor.constructExpectStep(testCaseMock, whenStepMock);
+        final var result = defaultExpectStepConstructor.constructExpectStep(scenarioMock, aWhenStepMock);
         assertEquals(expectStepMock, result);
     }
 }

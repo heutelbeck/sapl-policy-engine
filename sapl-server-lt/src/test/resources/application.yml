@@ -227,3 +227,25 @@ spring.rsocket.server:
       key-store-password: changeme
       key-password: changeme
       key-alias: netty
+
+spring:
+  cache:
+    type: infinispan
+infinispan:
+  embedded:
+    config-xml: infinispan.xml
+bucket4j:
+  enabled: false
+  filters:
+    - id: filter1
+      cache-name: buckets
+      filter-method: webflux
+      url: .*
+      http-content-type: application/json;charset=UTF-8
+      filter-order: 1
+      rate-limits:
+        - bandwidths:
+            - capacity: 10000
+              time: 1
+              unit: seconds
+  cache-to-use: none # supported values: none, infinispan

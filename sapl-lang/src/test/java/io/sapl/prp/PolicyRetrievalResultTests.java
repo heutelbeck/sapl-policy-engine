@@ -19,14 +19,14 @@ package io.sapl.prp;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 
 class PolicyRetrievalResultTests {
@@ -35,45 +35,60 @@ class PolicyRetrievalResultTests {
     @Test
     void whenNoArgsConstructorUsedThenHasExpectedState() {
         var sut = new PolicyRetrievalResult();
-        assertThat(sut.getPolicyElements(), is(empty()));
         assertThat(sut.getMatchingDocuments(), is(empty()));
-        assertThat(sut.isPrpValidState(), is(true));
-        assertThat(sut.isErrorsInTarget(), is(false));
+        assertThat(sut.isPrpInconsistent(), is(false));
+        assertThat(sut.isRetrievalWithErrors(), is(false));
     }
 
     @Test
     void whenAllArgsConstructorUsedThenHasProvidedState() {
-        var docs = new ArrayList<SAPL>();
-        var doc  = INTERPRETER.parse("policy \"x\" permit");
-        docs.add(doc);
-        var sut = new PolicyRetrievalResult(docs, true, false);
-        assertThat(sut.getPolicyElements().get(0), is(equalTo(doc.getPolicyElement())));
-        assertThat(sut.getMatchingDocuments().get(0).getPolicyElement(), is(doc.getPolicyElement()));
-        assertThat(sut.isPrpValidState(), is(false));
-        assertThat(sut.isErrorsInTarget(), is(true));
+        var docs = new ArrayList<DocumentMatch>();
+        var doc  = INTERPRETER.parseDocument("policy \"x\" permit");
+        docs.add(new DocumentMatch(doc, Val.TRUE));
+        var sut = new PolicyRetrievalResult(docs, true);
+        assertThat(sut.getMatchingDocuments().get(0).document(), is(doc));
+        assertThat(sut.isPrpInconsistent(), is(false));
+        assertThat(sut.isRetrievalWithErrors(), is(true));
     }
 
     @Test
     void whenNoArgsConstructorUsedThenWithMatchAddsDocument() {
         var sut = new PolicyRetrievalResult();
-        var doc = INTERPRETER.parse("policy \"x\" permit");
-        sut = sut.withMatch(doc);
-        assertThat(sut.getPolicyElements().get(0), is(equalTo(doc.getPolicyElement())));
-        assertThat(sut.getMatchingDocuments().get(0).getPolicyElement(), is(doc.getPolicyElement()));
+        var doc = INTERPRETER.parseDocument("policy \"x\" permit");
+        sut = sut.withMatch(new DocumentMatch(doc, Val.TRUE));
+        assertThat(sut.getMatchingDocuments().get(0).document(), is(doc));
     }
 
     @Test
-    void whenNoArgsConstructorUsedThenWithErrorTurnsOnErrorState() {
+    void whenNoArgsConstructorUsedThenWithMatchAddsDocumentWithError() {
         var sut = new PolicyRetrievalResult();
-        sut = sut.withError();
-        assertThat(sut.isErrorsInTarget(), is(true));
+        var doc = INTERPRETER.parseDocument("policy \"x\" permit");
+        sut = sut.withMatch(new DocumentMatch(doc, ErrorFactory.error("")));
+        assertThat(sut.getNonMatchingDocuments().get(0).document(), is(doc));
+        assertThat(sut.getMatchingDocuments(), empty());
+        assertThat(sut.isRetrievalWithErrors(), is(true));
     }
 
     @Test
-    void whenNoArgsConstructorUsedThenWithInvalidStateTurnsOnInvalidState() {
+    void whenNoArgsConstructorUsedThenWithMatchAddsDocumentWithFalse() {
         var sut = new PolicyRetrievalResult();
-        sut = sut.withInvalidState();
-        assertThat(sut.isPrpValidState(), is(false));
+        var doc = INTERPRETER.parseDocument("policy \"x\" permit");
+        sut = sut.withMatch(new DocumentMatch(doc, Val.FALSE));
+        assertThat(sut.getNonMatchingDocuments().get(0).document(), is(doc));
+        assertThat(sut.getMatchingDocuments(), empty());
+        assertThat(sut.isRetrievalWithErrors(), is(false));
     }
 
+    @Test
+    void invalidPrpResult() {
+        var sut = PolicyRetrievalResult.invalidPrpResult();
+        assertThat(sut.isPrpInconsistent(), is(true));
+    }
+
+    @Test
+    void retrievalErrorResult() {
+        var sut = PolicyRetrievalResult.retrievalErrorResult("error");
+        assertThat(sut.isPrpInconsistent(), is(false));
+        assertThat(sut.isRetrievalWithErrors(), is(true));
+    }
 }

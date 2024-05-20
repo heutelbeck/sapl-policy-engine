@@ -44,7 +44,7 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
     @Override
     public Flux<Val> apply(@NonNull Val parentValue) {
         return StepAlgorithmUtil.applyOnObject(parentValue, toObjectFieldSelector(this::hasKey), parameters(),
-                AttributeUnionStep.class);
+                AttributeUnionStep.class, this);
     }
 
     @Override

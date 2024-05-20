@@ -23,6 +23,7 @@ import static io.sapl.test.Imports.parentValue;
 import static io.sapl.test.Imports.whenAttributeParams;
 import static io.sapl.test.Imports.whenParentValue;
 
+import io.sapl.test.SaplTestException;
 import org.hamcrest.Matcher;
 
 import io.sapl.api.interpreter.Val;
@@ -43,7 +44,7 @@ class AttributeInterpreter {
         final var returnValue = attribute.getReturnValue();
 
         if (returnValue == null || returnValue.isEmpty()) {
-            return givenOrWhenStep.givenAttribute(importName);
+            throw new SaplTestException("Attribute has no return value");
         } else {
             final var values = returnValue.stream().map(valueInterpreter::getValFromValue).toArray(Val[]::new);
 

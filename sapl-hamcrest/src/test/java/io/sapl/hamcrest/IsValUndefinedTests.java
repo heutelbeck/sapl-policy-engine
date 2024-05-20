@@ -32,7 +32,7 @@ class IsValUndefinedTests {
     @Test
     void testTypeFalseError() {
         var sut = valUndefined();
-        assertThat(Val.error(), not(is(sut)));
+        assertThat(Val.error((String) null), not(is(sut)));
     }
 
     @Test

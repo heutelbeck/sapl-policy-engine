@@ -42,7 +42,8 @@ class HasResourceTests {
     void test() {
         var resource = MAPPER.createObjectNode();
         resource.put("foo", "bar");
-        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), Optional.empty(),
+                Optional.empty());
         var matcherUnderTest = hasResource(resource);
         assertThat(decision, is(matcherUnderTest));
     }
@@ -51,7 +52,8 @@ class HasResourceTests {
     void testEmptyMatcher() {
         var resource = MAPPER.createObjectNode();
         resource.put("foo", "bar");
-        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), null, null);
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), Optional.empty(),
+                Optional.empty());
         var matcherUnderTest = hasResource();
         assertThat(decision, is(matcherUnderTest));
     }
@@ -62,7 +64,8 @@ class HasResourceTests {
         expectedResource.put("foo", "bar");
         var actualResource = MAPPER.createObjectNode();
         actualResource.put("xxx", "yyy");
-        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(actualResource), null, null);
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(actualResource), Optional.empty(),
+                Optional.empty());
         var matcherUnderTest = hasResource(expectedResource);
         assertThat(decision, not(is(matcherUnderTest)));
     }
@@ -79,7 +82,8 @@ class HasResourceTests {
     void test_emptyResource() {
         var resource = MAPPER.createObjectNode();
         resource.put("foo", "bar");
-        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), null, null);
+        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+                Optional.empty());
         var matcherUnderTest = hasResource(resource);
         assertThat(decision, not(is(matcherUnderTest)));
     }

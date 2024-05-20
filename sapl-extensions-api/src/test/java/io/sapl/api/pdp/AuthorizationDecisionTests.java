@@ -24,11 +24,25 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 class AuthorizationDecisionTests {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
+    @Test
+    void mapperIgnoresNullAndDoesNotUseGetter() throws JsonProcessingException {
+        var mapper   = new ObjectMapper();
+        var decision = AuthorizationDecision.INDETERMINATE;
+        var mapped   = mapper.writeValueAsString(decision);
+        var sa       = new SoftAssertions();
+        sa.assertThat(mapped).doesNotContain("obligations");
+        sa.assertThat(mapped).doesNotContain("advice");
+        sa.assertThat(mapped).doesNotContain("resource");
+        sa.assertAll();
+    }
 
     @Test
     void defaultConstructorResultsInNoEntriesAndIndeterminate() {

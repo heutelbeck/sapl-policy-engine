@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
@@ -103,7 +105,8 @@ public class MockingAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Flux<Val> evaluateAttribute(String attribute, Val value, Arguments arguments, Map<String, Val> variables) {
+    public Flux<Val> evaluateAttribute(EObject location, String attribute, Val value, Arguments arguments,
+            Map<String, Val> variables) {
         AttributeMock mock = this.registeredMocks.get(attribute);
         if (mock != null) {
             List<Flux<Val>> args = new LinkedList<>();
@@ -114,12 +117,13 @@ public class MockingAttributeContext implements AttributeContext {
             }
             return mock.evaluate(attribute, value, variables, args);
         } else {
-            return this.originalAttributeContext.evaluateAttribute(attribute, value, arguments, variables);
+            return this.originalAttributeContext.evaluateAttribute(location, attribute, value, arguments, variables);
         }
     }
 
     @Override
-    public Flux<Val> evaluateEnvironmentAttribute(String attribute, Arguments arguments, Map<String, Val> variables) {
+    public Flux<Val> evaluateEnvironmentAttribute(EObject location, String attribute, Arguments arguments,
+            Map<String, Val> variables) {
         AttributeMock mock = this.registeredMocks.get(attribute);
         if (mock != null) {
             List<Flux<Val>> args = new LinkedList<>();
@@ -130,7 +134,8 @@ public class MockingAttributeContext implements AttributeContext {
             }
             return mock.evaluate(attribute, Val.UNDEFINED, variables, args);
         } else {
-            return this.originalAttributeContext.evaluateEnvironmentAttribute(attribute, arguments, variables);
+            return this.originalAttributeContext.evaluateEnvironmentAttribute(location, attribute, arguments,
+                    variables);
         }
     }
 

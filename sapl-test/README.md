@@ -76,7 +76,7 @@ The Step-Builder-Pattern is used for defining the concrete test case. It consist
 * Expect-Step: Define expectations for generated AuthorizationDecision
 * Verify-Step: Verify the generated AuthorizationDecision
 
-![TestCase Structure](https://sapl.io/docs/3.0.0-SNAPSHOT/images/StepBuilderPatternForSaplTest_English.svg)
+![TestCase Structure](https://sapl.io/docs/latest/assets/sapl_reference_images/StepBuilderPatternForSaplTest_English.svg)
 
 Starting with constructTestCaseWithMocks() or constructTestCase() called on the fixture, the test case definition
 process is started at the Given-Step or the When-Step.
@@ -431,8 +431,11 @@ the [SAPL Demo Testing DSL Module](https://github.com/heutelbeck/sapl-demos/tree
 
 Since JUnit is the default choice for most java based projects a dedicated Framework adapter is provided by
 the [SAPL Test JUnit Module](../sapl-test-junit). In this case no custom Extension of the BaseTestAdapter is required,
-and you can just include sapl-test-junit in the dependency section of your pom and instruct the surefire plugin to also
-scan this dependency for tests.
+and you can just include sapl-test-junit in the dependency section and create an otherwise empty TestAdapter that
+extends the [JUnitTestAdapter](../sapl-test-junit/src/main/java/io/sapl/test/junit/JUnitTestAdapter.java) like shown in
+the [TestAdapter](https://github.com/heutelbeck/sapl-demos/blob/master/sapl-demo-testing-dsl/junit/src/test/java/io/sapl/demo/testing/dsl/junit/TestAdapter.java)
+in the sapl-demos repository.
+
 A minimal setup would look like this:
 
 ```xml
@@ -457,30 +460,21 @@ A minimal setup would look like this:
         </executions>
         <configuration>
             <argLine>-Dfile.encoding=UTF-8</argLine>
-            <dependenciesToScan>
-                <dependency>io.sapl:sapl-test-junit</dependency>
-            </dependenciesToScan>
         </configuration>
     </plugin>
 </plugins>
 </build>
 ```
 
-> [!WARNING]  
-> The `<dependenciesToScan>` is important so that surefire can detect and execute the Testcases in the normal maven test
-> goal, otherwise they will be ignored.
+> create a TestAdapter instance in `src/test/java` that extends the [JUnitTestAdapter](../sapl-test-junit/src/main/java/io/sapl/test/junit/JUnitTestAdapter.java).
+> the minimal setup is also shown in the [corresponding subfolder](https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-testing-dsl/junit) of the sapl-demos project.
 
 afterward any file located in `src/test/resources` (and all nested folders) ending with the SAPLTest file
 extension `.sapltest` will be automatically discovered, executed and reported in the test result report.
 
-### IntelliJ IDEA Run Configuration
-
-Create a JUnit run configuration, use the classpath of your module and select `Class`
-and `io.sapl.test.junit.JUnitTests` as a target and make sure to set `Search for tests` to `Across module dependencies`
-
 ### Advanced Configuration
 
-The [BaseTestAdapter](src/main/java/io/sapl/test/dsl/setup/BaseTestAdapter.java) also allows you to provide custom logic
+A concrete implementation of the abstract [BaseTestAdapter](src/main/java/io/sapl/test/dsl/setup/BaseTestAdapter.java) also allows you to provide custom logic
 to resolve Policies via an identifier (which is then used in the test definition instead of a filename) by implementing
 [UnitTestPolicyResolver](src/main/java/io/sapl/test/dsl/interfaces/UnitTestPolicyResolver.java)
 and [IntegrationTestPolicyResolver](src/main/java/io/sapl/test/dsl/interfaces/IntegrationTestPolicyResolver.java) and
@@ -518,116 +512,74 @@ e.g.
   group that is expected 0 - n times
 * `keyword1 keyword2 keyword3 keyword4` -> invalid since [String] is not contained in group
 
-#### TestSuite
+> A extensive set of example test definitions can be found in the sapl-demos repository in the corresponding 
+> [Test Definition Subfolder](https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-testing-dsl/junit/src/test/resources).
+> It contains various definitions showcasing different usecases for unit and integration tests. It also contains a lot 
+> of comments to explain the different definitions, so it is a good starting point to learn the SAPLTest DSL.
 
-A SAPLTest Definition has to contain 1:n Definitions of Type [TestSuite](#TestSuite). There are two types
-of [TestSuite](#TestSuite)
+#### Requirement
 
-* `UnitTestSuite`
-  > test "[POLICY_IDENTIFIER]" { [TestCase](#TestCase)+ }
-    ```
-    test "policySimpleWithNestedObligation" {
-      [TestCase]+
-    }
-    ```
-* `IntegrationTestSuite`
-  > test policies [PolicyResolverConfig]() (using variables [Object])? (with
-  combining-algorithm [CombiningAlgorithm](#CombiningAlgorithm))? { [TestCase](#TestCase)+ }
+A SAPLTest Definition has to contain 1:n Definitions of Type [Requirement](#Requirement).
+Within the [Requirement](#Requirement) there can be 1:n [Scenario](#Scenario) Definitions. It may also contain a central
+[Given](#Given) Definition, that is then merged with the [Given](#Given) Definition within the [Scenario](#Scenario).
+If they are identical the Scenario [Given](#Given) Definition can be omitted, to avoid redundant definitions.
 
-  available Types of PolicyResolverConfig are:
+> requirement "[REQUIREMENT_IDENTIFIER]" { [Given](#Given)? [Scenario](#Scenario)+ }
 
-    * `PoliciesByIdentifier` uses a single identifier to resolve the policies and pdp configuration (usually a file
-      path,
-      can be customized
-      with [IntegrationTestPolicyResolver](src/main/java/io/sapl/test/dsl/interfaces/IntegrationTestPolicyResolver.java))
-      > with identifier "[IDENTIFIER]"
-        ```
-        test policies with identifier "policiesIT" {
-            [TestCase]+
-        }
-        ```
-    * `PoliciesByInputString` uses a set of policy paths and an optional path to a pdp config (usually file paths, can
-      be
-      customized
-      with [IntegrationTestPolicyResolver](src/main/java/io/sapl/test/dsl/interfaces/IntegrationTestPolicyResolver.java))
-      > (- "[POLICY1]")+ (with pdp configuration "[PDP_CONFIG_PATH]")
-        ```
-        test policies
-        - "policy_A"
-        - "policy_B"
-        with pdp configuration "policiesIT/pdp.json" {
-            [TestCase]+
-        }
-        ```
+#### Given
 
-  furthermore it is possible to define PDP Variables as a Json Object and specify the PDPCombiningAlgorithm that should
-  be
-  used. Both of them overwrite values in the used pdp config json if defined.
+Contains all the information, that is necessary to do the initial setup for the test including which Policy document(s) to
+test, the PDP configuration, the Environment setup and also mocking information.
 
-  To define PDP Variables use:
-  > using variables { "[String]": [Value] }
+> given
+> [Document](#Document)?
+> [PdpVariables](#PdpVariables)?
+> [PdpCombiningAlgorithm](#PdpCombiningAlgorithm)?
+> [Environment](#Environment)?
+> [GivenStep](#GivenStep)*
 
-  To set the CombiningAlgorithm use:
+#### Document
 
-  > with combining-algorithm [CombiningAlgorithm](#CombiningAlgorithm)
+Allows to select the Policy document(s) that should be used for the test. This definition is mandatory in either
+[Requirement](#Requirement) or [Scenario](#Scenario). If none is given an error will occur. When both are defined the
+[Scenario](#Scenario) overwrites the one in the [Requirement](#Requirement). There are 3 different types of Document
+definitions depending on the use case.
 
-    ```
-    test policies
-    - "policy_A"
-    - "policy_B"
-    with pdp configuration "policiesIT/pdp.json"
-    using variables { "foo": "bar", "value": 5 }
-    with combining-algorithm permit-overrides {
-        [TestCase]+
-    }
-    ```
+* Use a single policy definition for testing
+  > policy "[POLICY_IDENTIFIER]"
+* Use a single identifier to refer to a number of policy documents and a pdp configuration, which is then resolved
+depending on your overall configuration
+  > set "[IDENTIFIER]"
+* Use a set of identifiers for policies and an additional optional identifier for the pdp configuration
+  > 'policies' "[POLICY_IDENTIFIER]" (, "[POLICY_IDENTIFIER]")+ ("with pdp configuration" [PDP_IDENTIFIER])?
 
-#### TestCase
+#### PdpVariables
 
-inside the curly braces then follows the Definition of the actual [TestCase](#TestCase). Each [TestSuite](#TestSuite)
-can contain 1:
-n [TestCase](#TestCase) Definitions. The [TestCase](#TestCase) Definition allows (in order):
+Allows to pass an JSON object that defines the environment Variables for the PDP. This overwrites the one that might be
+loaded from a PDP configuration file.
 
-* A name for the case/scenario to be tested (will be displayed in the test result report)
-  > scenario "[NAME]"
-* (Optional) an environment to use for the test
-  > with environment [Object]
-* (Optional) a set of fixture registrations to apply on the fixture
-  > register (- [FixtureRegistration](#FixtureRegistration))+
-* (Optional) a set of GivenStep to define mocking
-  > given (- [GivenStep](#GivenStep))+
-* a WhenStep to define the AuthorizationSubscription used
-  > when subject [Value] attempts action [Value] on resource [Value] (with environment [Object])?
-* The expectation that is tested
-  > then expect [Expectation](#Expectation)
+> 'pdp variables [Object]'
 
-### Available Types for Test Definition
+#### PdpCombiningAlgorithm
 
-#### CombiningAlgorithm
+Allows to set the [CombiningAlgorithm](#CombiningAlgorithm) to use for the test. This overwrites the one that might be
+loaded from a PDP configuration file.
 
-* `deny-overrides`
-* `permit-overrides`
-* `only-one-applicable`
-* `deny-unless-permit`
-* `permit-unless-deny`
+> 'pdp combining-algorithm [CombiningAlgorithm](#CombiningAlgorithm)'
 
-#### FixtureRegistration
+#### Environment
 
-* register a PIP by its FQN (Fully qualified name)
-  > PIP "[PIP_FQN]"
-* Register a custom (self defined) FunctionLibrary by its FQN
-  > custom library "[LIBRARY_FQN]"
-* Register a predefined Function Library
-  > library [FunctionLibrary](#FunctionLibrary)
+Defines additional environment variables that should be available in the evaluation context. Given as an JSON object as
+well
 
-#### FunctionLibrary
-
-* `FilterFunctionLibrary`
-* `LoggingFunctionLibrary`
-* `StandardFunctionLibrary`
-* `TemporalFunctionLibrary`
+> 'environment [Object]'
 
 #### GivenStep
+
+Defines mocking information for attributes and functions via [MockDefinition](#MockDefinition) and PIP and
+FunctionLibrary Imports via the [Import](#Import) Definition.
+
+#### MockDefinition
 
 * Mocking of a function optionally matching parameters and a timesCalledVerification
   > function "[NAME]" (parameters matching [FunctionParameters](#FunctionParameters)) returns [Value] (
@@ -643,6 +595,52 @@ n [TestCase](#TestCase) Definitions. The [TestCase](#TestCase) Definition allows
 * Specify that virtual-time should be used
   see [Project Reactor Reference Guide](https://projectreactor.io/docs/core/release/reference/#_manipulating_time)
   > virtual-time
+
+#### Import
+
+allows to reference programmatically defined Imports in the concrete Implementation of the
+[BaseTestAdapter](src/main/java/io/sapl/test/dsl/setup/BaseTestAdapter.java) via a name and the 
+[ImportType](#ImportType). Those Imports are then registered in the PDP. For an example how to register imports in the
+test adapter see the 
+[TestAdapter](https://github.com/heutelbeck/sapl-demos/blob/master/sapl-demo-testing-dsl/junit/src/test/java/io/sapl/demo/testing/dsl/junit/TestAdapter.java)
+in the sapl-demos repository.
+
+> '[#ImportType] "[IMPORT_IDENTIFIER]"'
+
+#### ImportType
+
+Define the Type of Import you want to use. The following ones are supported:
+
+* Import a pip given by an object instance
+  > 'pip'
+* Import a pip given by its class type (all methods need to be static)
+  > 'static-pip'
+* Import a FunctionLibrary given by an object instance
+  > 'function-library'
+* Import a FunctionLibrary given by its class type (all methods need to be static)
+  > 'static-function-library'
+
+#### Scenario
+
+Defines one actual TestCase in a [Requirement](#Requirement). The Name of the TestCase has to be unique within a
+[Requirement](#Requirement).
+
+* A name for the case/scenario to be tested (will be displayed in the test result report)
+  > scenario "[NAME]"
+* (Optional) [Given](#Given) Definition (can be omitted when it is defined in the surrounding [Requirement](#Requirement))
+* a WhenStep to define the AuthorizationSubscription to use
+  > when subject [Value] attempts action [Value] on resource [Value] (with environment [Object])?
+* The expectation that is tested using an [Expectation](#Expectation) Definition.
+
+### Available Types for Test Definition
+
+#### CombiningAlgorithm
+
+* `deny-overrides`
+* `permit-overrides`
+* `only-one-applicable`
+* `deny-unless-permit`
+* `permit-unless-deny`
 
 #### FunctionParameters
 
@@ -739,14 +737,21 @@ allows for an exact match with a string or using a matcher
 #### Expectation
 
 * expect a single AuthorizationDecision
-  > [AuthorizationDecision](#AuthorizationDecision)
+  > expect [AuthorizationDecision](#AuthorizationDecision)
 * expect a single AuthorizationDecision that matches a set of matchers
-  >
-  decision [AuthorizationDecisionMatcher](#AuthorizationDecisionMatcher) (, [AuthorizationDecisionMatcher](#AuthorizationDecisionMatcher))*
-* expect that the test setup leads to an exception
-  > exception
-* build a chain of expects and adjustments to verify behavior (applied in order)
-  > (- [ExpectOrAdjustmentStep])+
+  > expect decision [AuthorizationDecisionMatcher](#AuthorizationDecisionMatcher) (, [AuthorizationDecisionMatcher](#AuthorizationDecisionMatcher))*
+* build a chain of alternating expects and adjustments to verify behavior (applied in order)
+  > [ExpectOrAdjustBlock](#ExpectOrAdjustBlock)+
+
+#### ExpectOrAdjustBlock
+
+Defines a Block that either contains a number of expect steps or adjustment steps. The blocks need to alternate and
+the chain has to end with a expect block.
+
+* ExpectBlock
+  > expect (- [ExpectStep](#ExpectStep))+
+* AdjustBlock
+  > then (- [AdjustStep](#AdjustStep))+
 
 #### AuthorizationDecisionType
 
@@ -768,8 +773,7 @@ allows for an exact match with a string or using a matcher
 * matches a specific type of the AuthorizationDecision
   > is [AuthorizationDecisionType](#AuthorizationDecisionType)
 * checks for an obligation or advice in the AuthorizationDecision (optionally with a specific matcher)
-  >
-  with [AuthorizationDecisionMatcherType](#AuthorizationDecisionMatcherType) [ExtendedObjectMatcher](#ExtendedObjectMatcher)?
+  > with [AuthorizationDecisionMatcherType](#AuthorizationDecisionMatcherType) [ExtendedObjectMatcher](#ExtendedObjectMatcher)?
 * checks for a resource in the AuthorizationDecision (optionally with a specific matcher)
   > with resource [DefaultObjectMatcher](#DefaultObjectMatcher)?
 
@@ -792,18 +796,24 @@ allows for an exact match with a string or using a matcher
 * checks if a key is present (optionally with a specific value matcher)
   > containing key (with value matching [JsonNodeMatcher](#JsonNodeMatcher))?
 
-#### ExpectOrAdjustmentStep
+#### ExpectStep
+
+Defines the current expect step to be used for evaluating the current [AuthorizationDecision](#AuthorizationDecision).
 
 * expect a AuthorizationDecision with a specific type and how often it is emitted in sequence
   > [AuthorizationDecisionType](#AuthorizationDecisionType) [NumericAmount](#NumericAmount)
 * expect a specific AuthorizationDecision
   > [AuthorizationDecision](#AuthorizationDecision)
 * expect a decision matching a matcher
-  >
-  decision [AuthorizationDecisionMatcher](#AuthorizationDecisionMatcher) (, [AuthorizationDecisionMatcher](#AuthorizationDecisionMatcher))*
+  > decision [AuthorizationDecisionMatcher](#AuthorizationDecisionMatcher) (, [AuthorizationDecisionMatcher](#AuthorizationDecisionMatcher))*
 * expect no event for a specific duration
   > no-event for [Duration](#Duration)
-* adjust the return value of a previously mocked attribute (via [GivenStep](#GivenStep))
+
+#### AdjustStep
+
+Used for the Adjustment of a mocked attribute in between expect steps.
+
+* adjust the return value of a previously mocked attribute (via [MockDefinition](#MockDefinition))
   > let "[NAME]" return [Value]
 * wait for a specific duration
   > wait [Duration]
@@ -812,7 +822,7 @@ allows for an exact match with a string or using a matcher
 
 **dsl**
 Contains all the code necessary for interpreting the SAPLTest DSL defined in [sapl-test-lang](../sapl-test-lang) and
-provides functionality to execute the generated tests
+provides functionality to execute the generated tests.
 
 **integration**:
 Contains the code for constructing a `SaplIntegrationTestFixture` for policy integration tests.

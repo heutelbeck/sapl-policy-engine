@@ -31,13 +31,11 @@ import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.TracedDecision;
-import io.sapl.grammar.sapl.CombiningAlgorithm;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.CombinedDecision;
+import io.sapl.interpreter.combinators.CombiningAlgorithmFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
-import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -47,7 +45,6 @@ import reactor.util.context.Context;
 public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
     private final PDPConfigurationProvider configurationProvider;
-    private final PolicyRetrievalPoint     policyRetrievalPoint;
 
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription) {
@@ -62,18 +59,10 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
     private Function<? super PDPConfiguration, Publisher<? extends TracedDecision>> decideSubscription(
             AuthorizationSubscription authorizationSubscription) {
         return pdpConfiguration -> {
-            var combiningAlgorithm = pdpConfiguration.documentsCombinator();
-            if (pdpConfiguration.isValid()) {
-                var subscription = pdpConfiguration.subscriptionInterceptorChain().apply(authorizationSubscription);
-                return retrieveAndCombineDocuments(pdpConfiguration.documentsCombinator(), subscription)
-                        .map(pdpConfiguration.decisionInterceptorChain())
-                        .contextWrite(buildSubscriptionScopedContext(pdpConfiguration, authorizationSubscription));
-            } else {
-                var decision = CombinedDecision.error(
-                        combiningAlgorithm == null ? "Misconfigured PDP." : combiningAlgorithm.getName(),
-                        "PDP In Invalid State.");
-                return Flux.just(PDPDecision.of(authorizationSubscription, decision));
-            }
+            var subscription = pdpConfiguration.subscriptionInterceptorChain().apply(authorizationSubscription);
+            return retrieveAndCombineDocuments(pdpConfiguration, subscription)
+                    .map(pdpConfiguration.decisionInterceptorChain())
+                    .contextWrite(buildSubscriptionScopedContext(pdpConfiguration, authorizationSubscription));
         };
     }
 
@@ -88,25 +77,32 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
         };
     }
 
-    private Flux<PDPDecision> retrieveAndCombineDocuments(CombiningAlgorithm documentsCombinator,
+    private Flux<PDPDecision> retrieveAndCombineDocuments(PDPConfiguration pdpConfiguration,
             AuthorizationSubscription authorizationSubscription) {
-        return policyRetrievalPoint.retrievePolicies()
-                .switchMap(combineDocuments(documentsCombinator, authorizationSubscription));
+        if (pdpConfiguration.policyRetrievalPoint().isConsistent()) {
+            return pdpConfiguration.policyRetrievalPoint().retrievePolicies()
+                    .flatMapMany(combineDocuments(pdpConfiguration, authorizationSubscription));
+        }
+        return Flux
+                .just(PDPDecision.of(authorizationSubscription,
+                        CombinedDecision.error(pdpConfiguration.documentsCombinator(),
+                                "Policy Retrieval Point in inconsistent state."),
+                        PolicyRetrievalResult.invalidPrpResult()));
     }
 
-    private Function<? super PolicyRetrievalResult, Publisher<? extends PDPDecision>> combineDocuments(
-            CombiningAlgorithm documentsCombinator, AuthorizationSubscription authorizationSubscription) {
+    private Function<PolicyRetrievalResult, Flux<PDPDecision>> combineDocuments(PDPConfiguration pdpConfiguration,
+            AuthorizationSubscription authorizationSubscription) {
         return policyRetrievalResult -> {
-            if (!policyRetrievalResult.isPrpValidState() || policyRetrievalResult.isErrorsInTarget()) {
+            if (policyRetrievalResult.isPrpInconsistent() || policyRetrievalResult.isRetrievalWithErrors()) {
                 var combinedDecision = CombinedDecision.of(AuthorizationDecision.INDETERMINATE,
-                        "PRP Detected Error in Targets");
-                return Flux.just(PDPDecision.of(authorizationSubscription, combinedDecision,
-                        policyRetrievalResult.getMatchingDocuments()));
+                        pdpConfiguration.documentsCombinator());
+                return Flux.just(PDPDecision.of(authorizationSubscription, combinedDecision, policyRetrievalResult));
             }
-            var policyElements = policyRetrievalResult.getMatchingDocuments().stream().map(SAPL::getPolicyElement)
-                    .toList();
-            return documentsCombinator.combinePolicies(policyElements).map(combinedDecision -> PDPDecision
-                    .of(authorizationSubscription, combinedDecision, policyRetrievalResult.getMatchingDocuments()));
+            var matchingDocuments  = policyRetrievalResult.getMatchingDocuments();
+            var combiningAlgorithm = CombiningAlgorithmFactory
+                    .documentsCombiningAlgorithm(pdpConfiguration.documentsCombinator());
+            return combiningAlgorithm.combinePreMatchedDocuments(matchingDocuments).map(combinedDecision -> PDPDecision
+                    .of(authorizationSubscription, combinedDecision, policyRetrievalResult));
         };
     }
 
@@ -160,7 +156,5 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
 
     public void destroy() {
         configurationProvider.destroy();
-        policyRetrievalPoint.destroy();
     }
-
 }

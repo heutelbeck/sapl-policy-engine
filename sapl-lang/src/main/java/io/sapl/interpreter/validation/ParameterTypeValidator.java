@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.eclipse.emf.ecore.EObject;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -37,6 +39,7 @@ import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
 import io.sapl.functions.SchemaValidationLibrary;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
@@ -64,18 +67,18 @@ public class ParameterTypeValidator {
         validateJsonNodeType(parameterValue.get(), parameterType);
     }
 
-    public static Flux<Val> validateType(Flux<Val> parameterFlux, Parameter parameterType) {
+    public static Flux<Val> validateType(Flux<Val> parameterFlux, Parameter parameterType, EObject location) {
         if (hasNoValidationAnnotations(parameterType))
             return parameterFlux;
-        return parameterFlux.map(mapInvalidToError(parameterType));
+        return parameterFlux.map(mapInvalidToError(parameterType, location));
     }
 
-    private static Function<Val, Val> mapInvalidToError(Parameter parameterType) {
+    private static Function<Val, Val> mapInvalidToError(Parameter parameterType, EObject location) {
         return val -> {
             try {
                 validateType(val, parameterType);
             } catch (IllegalParameterType e) {
-                return Val.error(e);
+                return ErrorFactory.error(location, e);
             }
             return val;
         };

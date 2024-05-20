@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchemaException;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.SneakyThrows;
 
 class SchemaValidationLibraryTests {
@@ -197,7 +198,7 @@ class SchemaValidationLibraryTests {
 
     @Test
     void when_subjectIsError_then_errorPropagates() throws JsonProcessingException {
-        var result = isCompliant(Val.error("test"), Val.ofJson(VALID_SCHEMA));
+        var result = isCompliant(ErrorFactory.error("test"), Val.ofJson(VALID_SCHEMA));
         assertThat(result, is(valError("test")));
     }
 

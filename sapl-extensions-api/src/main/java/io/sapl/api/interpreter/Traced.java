@@ -17,6 +17,8 @@
  */
 package io.sapl.api.interpreter;
 
+import java.util.Collection;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
@@ -28,4 +30,10 @@ public interface Traced {
      * @return a JSON representation of the trace.
      */
     JsonNode getTrace();
+
+    /**
+     * @return a collection of errors encountered in the evaluation of the traced
+     *         element.
+     */
+    Collection<Val> getErrorsFromTrace();
 }

@@ -36,6 +36,7 @@ import org.mockito.MockedStatic;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import reactor.core.publisher.Flux;
 
 class BoolTests {
@@ -100,7 +101,7 @@ class BoolTests {
     void evaluating_bool_with_error_expression_should_return_error() {
 
         var expressionMock = mock(Expression.class);
-        when(expressionMock.evaluate()).thenReturn(Flux.just(Val.error("error")));
+        when(expressionMock.evaluate()).thenReturn(Flux.just(ErrorFactory.error("error")));
 
         var bool   = new Bool(expressionMock, Collections.emptyMap());
         var result = bool.evaluateExpression().block();

@@ -18,22 +18,27 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import io.sapl.test.SaplTestFixture;
+import io.sapl.test.grammar.sapltest.Document;
+import io.sapl.test.grammar.sapltest.Environment;
+import io.sapl.test.grammar.sapltest.Expectation;
+import io.sapl.test.grammar.sapltest.GivenStep;
+import io.sapl.test.grammar.sapltest.ImportType;
+import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
+import io.sapl.test.grammar.sapltest.PdpVariables;
+import io.sapl.test.grammar.sapltest.Scenario;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
-import io.sapl.test.grammar.sapltest.FixtureRegistration;
-import io.sapl.test.grammar.sapltest.GivenStep;
-import io.sapl.test.grammar.sapltest.TestCase;
-import io.sapl.test.grammar.sapltest.TestSuite;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
 import io.sapl.test.steps.WhenStep;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
@@ -47,30 +52,33 @@ public final class DefaultStepConstructor implements StepConstructor {
     private final DefaultVerifyStepConstructor  defaultVerifyStepConstructor;
 
     @Override
-    public SaplTestFixture constructTestFixture(final List<FixtureRegistration> fixtureRegistrations,
-            final TestSuite testSuite) {
-        return defaultTestFixtureConstructor.constructTestFixture(fixtureRegistrations, testSuite);
+    public SaplTestFixture constructTestFixture(final Document document, final PdpVariables pdpVariables,
+            final PdpCombiningAlgorithm pdpCombiningAlgorithm, final List<GivenStep> givenSteps,
+            final Map<ImportType, Map<String, Object>> fixtureRegistrations) {
+        return defaultTestFixtureConstructor.constructTestFixture(document, pdpVariables, pdpCombiningAlgorithm,
+                givenSteps, fixtureRegistrations);
     }
 
     @Override
-    public GivenOrWhenStep constructTestCase(final SaplTestFixture saplTestFixture,
-            final io.sapl.test.grammar.sapltest.Object environment, final boolean needsMocks) {
+    public GivenOrWhenStep constructTestCase(final SaplTestFixture saplTestFixture, final Environment environment,
+            final boolean needsMocks) {
         return defaultTestCaseConstructor.constructTestCase(saplTestFixture, environment, needsMocks);
     }
 
     @Override
-    public WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep initialTestCase) {
-        return defaultWhenStepConstructor.constructWhenStep(givenSteps, initialTestCase);
+    public WhenStep constructWhenStep(final List<GivenStep> givenSteps, final GivenOrWhenStep initialTestCase,
+            final Expectation expectation) {
+        return defaultWhenStepConstructor.constructWhenStep(givenSteps, initialTestCase, expectation);
     }
 
     @Override
-    public ExpectStep constructExpectStep(final TestCase testCase, final WhenStep whenStep) {
-        return defaultExpectStepConstructor.constructExpectStep(testCase, whenStep);
+    public ExpectStep constructExpectStep(final Scenario scenario, final WhenStep whenStep) {
+        return defaultExpectStepConstructor.constructExpectStep(scenario, whenStep);
     }
 
     @Override
-    public VerifyStep constructVerifyStep(final TestCase testCase, final ExpectStep expectStep) {
-        return defaultVerifyStepConstructor.constructVerifyStep(testCase, expectStep);
+    public VerifyStep constructVerifyStep(final Scenario scenario, final ExpectStep expectStep) {
+        return defaultVerifyStepConstructor.constructVerifyStep(scenario, expectStep);
     }
 
     public static StepConstructor of(final UnitTestPolicyResolver customUnitTestPolicyResolver,
@@ -81,8 +89,7 @@ public final class DefaultStepConstructor implements StepConstructor {
         final var stringMatcherInterpreter   = new StringMatcherInterpreter();
         final var jsonNodeMatcherInterpreter = new JsonNodeMatcherInterpreter(stringMatcherInterpreter);
 
-        final var matcherInterpreter = new ValMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter,
-                stringMatcherInterpreter);
+        final var matcherInterpreter = new ValMatcherInterpreter(valInterpreter, jsonNodeMatcherInterpreter);
 
         final var durationInterpreter                     = new DurationInterpreter();
         final var attributeInterpreter                    = new AttributeInterpreter(valInterpreter, matcherInterpreter,
@@ -116,14 +123,13 @@ public final class DefaultStepConstructor implements StepConstructor {
     private static DefaultTestFixtureConstructor getTestFixtureConstructor(final ValueInterpreter valueInterpreter,
             final UnitTestPolicyResolver customUnitTestPolicyResolver,
             final IntegrationTestPolicyResolver customIntegrationTestPolicyResolver) {
-        final var pdpCombiningAlgorithmInterpreter = new CombiningAlgorithmInterpreter();
+        final var combiningAlgorithmInterpreter = new CombiningAlgorithmInterpreter();
 
-        final var testSuiteInterpreter = new TestSuiteInterpreter(valueInterpreter, pdpCombiningAlgorithmInterpreter,
-                customUnitTestPolicyResolver, customIntegrationTestPolicyResolver);
+        final var documentInterpreter     = new DocumentInterpreter(customUnitTestPolicyResolver,
+                customIntegrationTestPolicyResolver);
+        final var pdpConfigurationHandler = new PdpConfigurationHandler(valueInterpreter,
+                combiningAlgorithmInterpreter);
 
-        final var functionLibraryInterpreter = new FunctionLibraryInterpreter();
-        final var reflectionHelper           = new ReflectionHelper();
-
-        return new DefaultTestFixtureConstructor(testSuiteInterpreter, functionLibraryInterpreter, reflectionHelper);
+        return new DefaultTestFixtureConstructor(documentInterpreter, pdpConfigurationHandler);
     }
 }

@@ -45,6 +45,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.test.publisher.TestPublisher;
 
+@SuppressWarnings("resource")
 class SaplMqttClientConnectionIT {
 
     private static final ObjectMapper MAPPER   = new ObjectMapper();
@@ -103,8 +104,8 @@ class SaplMqttClientConnectionIT {
                 Val.ofJson(mqttPipConfigForUndefinedVal), "resource", Val.NULL, "subject", Val.NULL);
 
         // WHEN
-        var saplMqttClient      = new SaplMqttClient();
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
+        var testSaplMqttClient  = new SaplMqttClient();
+        var saplMqttMessageFlux = testSaplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNextMatches(Val::isError)
@@ -116,8 +117,8 @@ class SaplMqttClientConnectionIT {
     void when_noConfigIsSpecified_then_returnValOfError() {
         // WHEN
         var emptyPdpConfig      = Map.<String, Val>of();
-        var saplMqttClient      = new SaplMqttClient();
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, emptyPdpConfig);
+        var testSaplMqttClient  = new SaplMqttClient();
+        var saplMqttMessageFlux = testSaplMqttClient.buildSaplMqttMessageFlux(TOPIC, emptyPdpConfig);
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNextMatches(Val::isError)

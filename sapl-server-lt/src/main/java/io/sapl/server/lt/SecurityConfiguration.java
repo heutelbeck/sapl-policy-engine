@@ -17,8 +17,10 @@
  */
 package io.sapl.server.lt;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
+import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
+import io.sapl.server.lt.apikey.ApiKeyService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -37,26 +39,25 @@ import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpec;
 import org.springframework.security.config.web.server.ServerHttpSecurity.FormLoginSpec;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.messaging.handler.invocation.reactive.AuthenticationPrincipalArgumentResolver;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders;
 import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtReactiveAuthenticationManager;
+import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
 import org.springframework.security.rsocket.authentication.AuthenticationPayloadExchangeConverter;
 import org.springframework.security.rsocket.authentication.AuthenticationPayloadInterceptor;
 import org.springframework.security.rsocket.core.PayloadSocketAcceptorInterceptor;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
-import io.sapl.server.lt.apikey.ApiKeyAuthenticationConverter;
-import io.sapl.server.lt.apikey.ApiKeyPayloadExchangeAuthenticationConverter;
-import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Slf4j
 @Configuration
@@ -65,9 +66,11 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
+    private final ApiKeyService          apiKeyService;
     private final SAPLServerLTProperties pdpProperties;
+    private final PasswordEncoder        passwordEncoder;
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}")
+    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:#{null}}")
     private String jwtIssuerURI;
 
     @Bean
@@ -95,7 +98,7 @@ public class SecurityConfiguration {
             }
             var customAuthenticationWebFilter = new AuthenticationWebFilter(new ApiKeyReactiveAuthenticationManager());
             customAuthenticationWebFilter
-                    .setServerAuthenticationConverter(new ApiKeyAuthenticationConverter(pdpProperties));
+                    .setServerAuthenticationConverter(apiKeyService.getHttpApiKeyAuthenticationConverter());
             http = http.addFilterAt(customAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);
         }
 
@@ -110,7 +113,18 @@ public class SecurityConfiguration {
                 throw new IllegalStateException(
                         "If JWT authentication is active, a token issuer must be supplied. Please set: 'spring.security.oauth2.resourceserver.jwt.issuer-uri'.");
             }
-            http = http.oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+            http = http.oauth2ResourceServer(
+                    oauth2 -> oauth2.bearerTokenConverter(new ServerBearerTokenAuthenticationConverter() {
+                        @Override
+                        public Mono<Authentication> convert(ServerWebExchange exchange) {
+                            if (ApiKeyService.getApiKeyToken(exchange).isPresent()) {
+                                // This Bearer token is used for sapl api key authentication
+                                return Mono.empty();
+                            } else {
+                                return super.convert(exchange);
+                            }
+                        }
+                    }).jwt(Customizer.withDefaults()));
         }
 
         return http.formLogin(FormLoginSpec::disable).build();
@@ -138,11 +152,6 @@ public class SecurityConfiguration {
         }
         var client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
         return new MapReactiveUserDetailsService(client);
-    }
-
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     }
 
     /**
@@ -192,7 +201,7 @@ public class SecurityConfiguration {
         UserDetailsRepositoryReactiveAuthenticationManager simpleManager = null;
         if (pdpProperties.isAllowBasicAuth()) {
             simpleManager = new UserDetailsRepositoryReactiveAuthenticationManager(this.userDetailsServiceLocal());
-            simpleManager.setPasswordEncoder(this.passwordEncoder());
+            simpleManager.setPasswordEncoder(passwordEncoder);
         }
 
         JwtReactiveAuthenticationManager jwtManager = null;
@@ -220,8 +229,7 @@ public class SecurityConfiguration {
         if (pdpProperties.isAllowApiKeyAuth()) {
             ReactiveAuthenticationManager    manager           = new ApiKeyReactiveAuthenticationManager();
             AuthenticationPayloadInterceptor apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
-            apikeyInterceptor
-                    .setAuthenticationConverter(new ApiKeyPayloadExchangeAuthenticationConverter(pdpProperties));
+            apikeyInterceptor.setAuthenticationConverter(apiKeyService.getRsocketApiKeyAuthenticationConverter());
             apikeyInterceptor.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
             security.addPayloadInterceptor(apikeyInterceptor);
         }

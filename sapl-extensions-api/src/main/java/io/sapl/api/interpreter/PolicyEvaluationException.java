@@ -17,10 +17,14 @@
  */
 package io.sapl.api.interpreter;
 
+import io.sapl.api.SaplVersion;
+
 /**
  * Exception indicating a problem during policy evaluation
  */
 public class PolicyEvaluationException extends RuntimeException {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     /**
      * Create a new PolicyEvaluationException

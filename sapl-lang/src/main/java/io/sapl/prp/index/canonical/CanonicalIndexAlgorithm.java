@@ -17,15 +17,16 @@
  */
 package io.sapl.prp.index.canonical;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.SAPL;
+import io.sapl.prp.Document;
+import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -57,12 +58,15 @@ public class CanonicalIndexAlgorithm {
                 ).flatMap(Function.identity()); // mono of mono is flattened
 
         return matchingCtxMono.map(matchingCtx -> {
-            var matching = matchingCtx.getMatchingCandidatesMask();
-            var formulas = fetchFormulas(matching, dataContainer);
-            var policies = fetchPolicies(formulas, dataContainer);
-
-            return new PolicyRetrievalResult(policies, matchingCtx.isErrorsInTargets(), true);
-        }).onErrorReturn(new PolicyRetrievalResult(Collections.emptyList(), true, true));
+            var matching  = matchingCtx.getMatchingCandidatesMask();
+            var formulas  = fetchFormulas(matching, dataContainer);
+            var documents = fetchDocuments(formulas, dataContainer);
+            var results   = new ArrayList<DocumentMatch>();
+            for (var document : documents) {
+                results.add(new DocumentMatch(document, Val.TRUE.withTrace(CanonicalIndexAlgorithm.class)));
+            }
+            return new PolicyRetrievalResult(results, matchingCtx.isErrorsInTargets());
+        }).onErrorResume(error -> Mono.just(PolicyRetrievalResult.retrievalErrorResult(error.getMessage())));
     }
 
     Mono<CanonicalIndexMatchingContext> skipPredicate(CanonicalIndexMatchingContext previousCtx) {
@@ -167,7 +171,7 @@ public class CanonicalIndexAlgorithm {
         return result;
     }
 
-    private List<SAPL> fetchPolicies(final Set<DisjunctiveFormula> formulas,
+    private List<Document> fetchDocuments(final Set<DisjunctiveFormula> formulas,
             CanonicalIndexDataContainer dataContainer) {
         return formulas.parallelStream().map(dataContainer::getPoliciesIncludingFormula)
                 .flatMap(Collection::parallelStream).distinct().toList();

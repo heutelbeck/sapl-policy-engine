@@ -129,7 +129,7 @@ class AuthorizationSubscriptionInterpreterTests {
     @Test
     void constructAuthorizationSubscription_correctlyInterpretsAuthorizationSubscriptionWithNullMappedEnvironment_throwsSaplTestException() {
         final var authorizationSubscription = buildAuthorizationSubscription(
-                "subject \"subject\" attempts action \"action\" on resource \"resource\" with environment { }");
+                "subject \"subject\" attempts action \"action\" on resource \"resource\" in environment { }");
 
         final var subject  = Val.of("subject");
         final var action   = Val.of("action");
@@ -146,7 +146,7 @@ class AuthorizationSubscriptionInterpreterTests {
     @Test
     void constructAuthorizationSubscription_correctlyInterpretsAuthorizationSubscription_returnsSAPLAuthorizationSubscription() {
         final var authorizationSubscription = buildAuthorizationSubscription(
-                "subject \"foo\" attempts action \"action\" on resource \"resource\" with environment { }");
+                "subject \"foo\" attempts \"action\" on \"resource\" in environment { }");
 
         final var subject     = Val.of("subject");
         final var action      = Val.of("action");

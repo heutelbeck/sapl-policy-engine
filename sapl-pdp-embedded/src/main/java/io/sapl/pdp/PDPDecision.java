@@ -18,6 +18,8 @@
 package io.sapl.pdp;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -30,8 +32,9 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.TracedDecision;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.CombinedDecision;
+import io.sapl.prp.DocumentMatch;
+import io.sapl.prp.PolicyRetrievalResult;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -46,32 +49,31 @@ public class PDPDecision implements TracedDecision {
     }
 
     AuthorizationSubscription authorizationSubscription;
-    List<SAPL>                matchingDocuments = new LinkedList<>();
+    PolicyRetrievalResult     prpResult;
     CombinedDecision          combinedDecision;
     Instant                   timestamp;
-    LinkedList<Modification>  modifications     = new LinkedList<>();
+    LinkedList<Modification>  modifications = new LinkedList<>();
 
     private record Modification(AuthorizationDecision authorizationDecision, String explanation) {
     }
 
-    private PDPDecision(AuthorizationSubscription authorizationSubscription, List<SAPL> matchingDocuments,
+    private PDPDecision(AuthorizationSubscription authorizationSubscription, PolicyRetrievalResult prpResult,
             CombinedDecision combinedDecision, Instant timestamp, List<Modification> modifications) {
         this.authorizationSubscription = authorizationSubscription;
         this.combinedDecision          = combinedDecision;
         this.timestamp                 = timestamp;
-        this.matchingDocuments.addAll(matchingDocuments);
+        this.prpResult                 = prpResult;
         this.modifications.addAll(modifications);
     }
 
     public static PDPDecision of(AuthorizationSubscription authorizationSubscription, CombinedDecision combinedDecision,
-            List<SAPL> matchingDocuments) {
-        return new PDPDecision(authorizationSubscription, matchingDocuments, combinedDecision, Instant.now(),
-                List.of());
+            PolicyRetrievalResult prpResult) {
+        return new PDPDecision(authorizationSubscription, prpResult, combinedDecision, Instant.now(), List.of());
     }
 
     public static PDPDecision of(AuthorizationSubscription authorizationSubscription,
             CombinedDecision combinedDecision) {
-        return new PDPDecision(authorizationSubscription, List.of(), combinedDecision, Instant.now(), List.of());
+        return new PDPDecision(authorizationSubscription, null, combinedDecision, Instant.now(), List.of());
     }
 
     @Override
@@ -83,7 +85,7 @@ public class PDPDecision implements TracedDecision {
 
     @Override
     public TracedDecision modified(AuthorizationDecision authzDecision, String explanation) {
-        var modified = new PDPDecision(authorizationSubscription, matchingDocuments, combinedDecision, timestamp,
+        var modified = new PDPDecision(authorizationSubscription, prpResult, combinedDecision, timestamp,
                 modifications);
         modified.modifications.add(new Modification(authzDecision, explanation));
         return modified;
@@ -96,13 +98,30 @@ public class PDPDecision implements TracedDecision {
         trace.set(Trace.AUTHORIZATION_SUBSCRIPTION, MAPPER.valueToTree(authorizationSubscription));
         trace.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
         var matches = Val.JSON.arrayNode();
-        matchingDocuments.forEach(doc -> matches.add(Val.JSON.textNode(doc.getPolicyElement().getSaplName())));
+        prpResult.getMatchingDocuments().forEach(doc -> matches.add(matchTrace(doc)));
         trace.set(Trace.MATCHING_DOCUMENTS, matches);
+        var nonMatches = Val.JSON.arrayNode();
+        prpResult.getNonMatchingDocuments().forEach(doc -> nonMatches.add(matchTrace(doc)));
+        trace.set(Trace.NON_MATCHING_DOCUMENTS, nonMatches);
+        trace.set(Trace.PRP_INCONSISTENT, Val.JSON.booleanNode(prpResult.isPrpInconsistent()));
+        trace.set(Trace.RETRIEVAL_HAS_ERRORS, Val.JSON.booleanNode(prpResult.isRetrievalWithErrors()));
+        if (prpResult.getErrorMessage() != null) {
+            trace.set(Trace.RETRIEVAL_ERROR_MESSAGE, Val.JSON.textNode(prpResult.getErrorMessage()));
+        }
         trace.set(Trace.COMBINED_DECISION, combinedDecision.getTrace());
         trace.set(Trace.TIMESTAMP, Val.JSON.textNode(timestamp.toString()));
         if (!modifications.isEmpty()) {
             trace.set(Trace.MODIFICATIONS, getModificationsTrace());
         }
+        return trace;
+    }
+
+    private JsonNode matchTrace(DocumentMatch matchingDocument) {
+        var trace = Val.JSON.objectNode();
+        trace.set(Trace.DOCUMENT_IDENTIFIER, Val.JSON.textNode(matchingDocument.document().id()));
+        trace.set(Trace.DOCUMENT_NAME,
+                Val.JSON.textNode(matchingDocument.document().sapl().getPolicyElement().getSaplName()));
+        trace.set(Trace.TARGET, matchingDocument.targetExpressionResult().getTrace());
         return trace;
     }
 
@@ -115,5 +134,13 @@ public class PDPDecision implements TracedDecision {
             modificationTrace.add(modJson);
         }
         return modificationTrace;
+    }
+
+    @Override
+    public Collection<Val> getErrorsFromTrace() {
+        var all = new ArrayList<Val>();
+        all.addAll(combinedDecision.getErrorsFromTrace());
+        all.addAll(prpResult.getErrors());
+        return all;
     }
 }

@@ -24,12 +24,14 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.Decision;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 
 class PolicyDecisionTests {
 
     @Test
     void fromWhereResult() {
-        var decision = PolicyDecision.fromWhereResult("doc", Decision.INDETERMINATE, Val.error("error message"));
+        var decision = PolicyDecision.fromWhereResult("doc", Decision.INDETERMINATE,
+                ErrorFactory.error("error message"));
         assertThat(decision.getEntitlement()).isEqualTo(Decision.INDETERMINATE);
         assertThat(decision.getTrace().get(Trace.ENTITLEMENT).textValue()).isEqualTo("INDETERMINATE");
         assertThat(decision.getTrace().get(Trace.WHERE).get(Trace.VALUE).textValue())

@@ -17,6 +17,7 @@
  */
 package io.sapl.test.coverage.api;
 
+import io.sapl.api.SaplVersion;
 import lombok.experimental.StandardException;
 
 /**
@@ -24,5 +25,5 @@ import lombok.experimental.StandardException;
  */
 @StandardException
 public class SaplTestException extends RuntimeException {
-
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 }

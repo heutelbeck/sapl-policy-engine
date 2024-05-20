@@ -82,7 +82,8 @@ class RemoteRsocketDecisionPointServerIT {
         return baseContainer.withImagePullPolicy(PullPolicy.neverPull())
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                 .withClasspathResourceMapping("keystore.p12", "/pdp/data/keystore.p12", BindMode.READ_ONLY)
-                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT).waitingFor(Wait.forListeningPort())
+                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
+                .waitingFor(Wait.forLogMessage(".*Started SAPLServerLTApplication.*\\n", 1))
                 .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data")
                 .withEnv("spring_rsocket_server_address", "0.0.0.0")
                 .withEnv("spring_rsocket_server_ssl_key-store-type", "PKCS12")
@@ -103,7 +104,8 @@ class RemoteRsocketDecisionPointServerIT {
         return baseContainer.withImagePullPolicy(PullPolicy.neverPull())
                 .withClasspathResourceMapping("test_policies.sapl", "/pdp/data/test_policies.sapl", BindMode.READ_ONLY)
                 .withClasspathResourceMapping("keystore.p12", "/pdp/data/keystore.p12", BindMode.READ_ONLY)
-                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT).waitingFor(Wait.forListeningPort())
+                .withExposedPorts(SAPL_SERVER_RSOCKET_PORT)
+                .waitingFor(Wait.forLogMessage(".*Started SAPLServerLTApplication.*\\n", 1))
                 .withEnv("io_sapl_pdp_embedded_policies-path", "/pdp/data")
                 .withEnv("server_ssl_enabled", "false")
                 .withEnv("spring_rsocket_server_ssl_enabled", "false")
@@ -143,15 +145,35 @@ class RemoteRsocketDecisionPointServerIT {
     }
 
     @Test
+    void whenRequestingDecisionFromRsocketPdp_withInvalidBasicAuth_thenIndeterminateDecisionIsProvided() {
+        var key           = "mpI3KjU7n1";
+        var secret        = "invalidSecret";
+        var encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
+        try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
+                var container = saplServerWithRSocketNoTls(baseContainer)
+                        .withEnv("io_sapl_server-lt_allowNoAuth", "true")
+                        .withEnv("io_sapl_server-lt_allowBasicAuth", "true").withEnv("io_sapl_server-lt_key", key)
+                        .withEnv("io_sapl_server-lt_secret", encodedSecret)) {
+            container.start();
+            var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+                    .port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT)).basicAuth(key, secret).build();
+            StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.INDETERMINATE)
+                    .thenCancel().verify();
+            container.stop();
+        }
+    }
+
+    @Test
     void whenRequestingDecisionFromRsocketPdp_withApiKeyAuth_thenDecisionIsProvided() {
-        var SAPL_API_KEY = "abD12344cdefDuwg8721abD12344cdefDuwg8721";
+        var apiKey        = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
+        var encodedApiKey = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
                 var container = saplServerWithRSocketNoTls(baseContainer)
                         .withEnv("io_sapl_server-lt_allowApiKeyAuth", "true")
-                        .withEnv("io_sapl_server-lt_allowedApiKeys", SAPL_API_KEY)) {
+                        .withEnv("io_sapl_server-lt_allowedApiKeys[0]", encodedApiKey)) {
             container.start();
             var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
-                    .port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT)).apiKey(SAPL_API_KEY).build();
+                    .port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT)).apiKey(apiKey).build();
             requestDecision(pdp);
             container.stop();
         }

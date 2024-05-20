@@ -19,6 +19,7 @@ package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.BasicRelative;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 import reactor.util.context.ContextView;
@@ -41,7 +42,7 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
         var relativeNode = AuthorizationContext.getRelativeNode(ctx);
 
         if (relativeNode.isUndefined())
-            return Flux.just(Val.error(NO_RELATIVE_NODE_ERROR).withTrace(BasicRelative.class));
+            return Flux.just(ErrorFactory.error(this, NO_RELATIVE_NODE_ERROR).withTrace(BasicRelative.class));
 
         return Flux.just(relativeNode.withTrace(BasicRelative.class, true, relativeNode))
                 .switchMap(v -> resolveStepsFiltersAndSubTemplates(steps).apply(v));

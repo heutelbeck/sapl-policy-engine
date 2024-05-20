@@ -38,15 +38,17 @@ import org.junit.jupiter.params.provider.MethodSource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
+import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.grammar.sapl.impl.OnlyOneApplicableCombiningAlgorithmImplCustom;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
 import reactor.test.StepVerifier;
 
@@ -59,8 +61,6 @@ class OnlyOneApplicableTests {
     private static final AuthorizationSubscription AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE = new AuthorizationSubscription(
             null, null, JSON.booleanNode(true), null);
 
-    private final OnlyOneApplicableCombiningAlgorithmImplCustom combinator = new OnlyOneApplicableCombiningAlgorithmImplCustom();
-
     @Test
     void combineDocumentsOneDeny() {
         var given    = mockPolicyRetrievalResult(false, denyPolicy(""));
@@ -70,9 +70,10 @@ class OnlyOneApplicableTests {
 
     @Test
     void noDecisionsIsNotApplicable() {
-        var algorithm = new OnlyOneApplicableCombiningAlgorithmImplCustom();
-        StepVerifier.create(algorithm.combinePolicies(List.of())).expectNextMatches(combinedDecision -> combinedDecision
-                .getAuthorizationDecision().getDecision() == Decision.NOT_APPLICABLE).verifyComplete();
+        StepVerifier.create(OnlyOneApplicable.onlyOneApplicable(List.of()))
+                .expectNextMatches(combinedDecision -> combinedDecision.getAuthorizationDecision()
+                        .getDecision() == Decision.NOT_APPLICABLE)
+                .verifyComplete();
     }
 
     @Test
@@ -104,9 +105,17 @@ class OnlyOneApplicableTests {
     }
 
     @Test
-    void combineDocumentsMoreDocsWithError() {
+    void combineDocumentsMoreDocsAllWithError() {
         var given    = mockPolicyRetrievalResult(true, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
-        var expected = AuthorizationDecision.INDETERMINATE;
+        var expected = AuthorizationDecision.NOT_APPLICABLE;
+        verifyDocumentsCombinator(given, expected);
+    }
+
+    @Test
+    void combineDocumentsMoreDocsWithError() {
+        var given    = mockPolicyRetrievalResultErrorOnlyOne(true, denyPolicy(""), notApplicablePolicy(""),
+                permitPolicy(""));
+        var expected = AuthorizationDecision.PERMIT;
         verifyDocumentsCombinator(given, expected);
     }
 
@@ -134,18 +143,35 @@ class OnlyOneApplicableTests {
     }
 
     private PolicyRetrievalResult mockPolicyRetrievalResult(boolean errorsInTarget, String... policies) {
-        var result = new PolicyRetrievalResult();
+        var result       = new PolicyRetrievalResult();
+        Val targetResult = Val.TRUE;
         if (errorsInTarget)
-            result = result.withError();
+            targetResult = ErrorFactory.error("ERROR FROM MOCK");
         for (var policy : policies) {
-            result = result.withMatch(INTERPRETER.parse(policy));
+            var document = INTERPRETER.parseDocument(policy);
+            result = result.withMatch(new DocumentMatch(document, targetResult));
+        }
+        return result;
+    }
+
+    private PolicyRetrievalResult mockPolicyRetrievalResultErrorOnlyOne(boolean errorsInTarget, String... policies) {
+        var     result    = new PolicyRetrievalResult();
+        boolean errorUsed = false;
+        for (var policy : policies) {
+            var document = INTERPRETER.parseDocument(policy);
+            if (errorsInTarget && !errorUsed) {
+                errorUsed = true;
+                result    = result.withMatch(new DocumentMatch(document, ErrorFactory.error("ERROR FROM MOCK")));
+            } else {
+                result = result.withMatch(new DocumentMatch(document, Val.TRUE));
+            }
         }
         return result;
     }
 
     private void verifyDocumentsCombinator(PolicyRetrievalResult given, AuthorizationDecision expected) {
         StepVerifier
-                .create(combinator.combinePolicies(given.getPolicyElements())
+                .create(OnlyOneApplicable.onlyOneApplicable(given.getMatchingDocuments())
                         .map(CombinedDecision::getAuthorizationDecision)
                         .contextWrite(
                                 ctx -> AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext()))

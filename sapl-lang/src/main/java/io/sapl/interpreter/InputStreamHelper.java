@@ -74,7 +74,11 @@ public class InputStreamHelper {
         return new ReaderInputStream(origin, StandardCharsets.UTF_8);
     }
 
-    public static class TrojanSourceGuardInputStream extends InputStream {
+    public static InputStream convertToTrojanSourceSecureStream(InputStream source) {
+        return new TrojanSourceGuardInputStream(source);
+    }
+
+    private static class TrojanSourceGuardInputStream extends InputStream {
         private static final int  EOF = -1;
         private final InputStream source;
 
@@ -111,34 +115,34 @@ public class InputStreamHelper {
                 throw new PolicyEvaluationException(PARSING_ERRORS, message);
             }
         }
-    }
 
-    @NoArgsConstructor
-    public static class ByteSequenceValidationBuffer {
-        static final int BUFFER_SIZE = 3;
+        @NoArgsConstructor
+        private static class ByteSequenceValidationBuffer {
+            static final int BUFFER_SIZE = 3;
 
-        private int[] buffer       = new int[BUFFER_SIZE];
-        private int   currentIndex = 0;
+            private int[] buffer       = new int[BUFFER_SIZE];
+            private int   currentIndex = 0;
 
-        public void addByte(int b) {
-            buffer[currentIndex] = b;
-            currentIndex         = (currentIndex + 1) % BUFFER_SIZE;
-        }
+            public void addByte(int b) {
+                buffer[currentIndex] = b;
+                currentIndex         = (currentIndex + 1) % BUFFER_SIZE;
+            }
 
-        // LRI: 0xE2, 0x81, 0xA6
-        // RLI: 0xE2, 0x81, 0xA7
-        // PDI: 0xE2, 0x81, 0xA9
-        // RLO: 0xE2, 0x80, 0xAE
-        public boolean illegalCharacterDetected() {
-            if (buffer[currentIndex] != 0xE2)
-                return false;
+            // LRI: 0xE2, 0x81, 0xA6
+            // RLI: 0xE2, 0x81, 0xA7
+            // PDI: 0xE2, 0x81, 0xA9
+            // RLO: 0xE2, 0x80, 0xAE
+            public boolean illegalCharacterDetected() {
+                if (buffer[currentIndex] != 0xE2)
+                    return false;
 
-            var second = buffer[(currentIndex + 1) % BUFFER_SIZE];
-            if (second != 0x81 && second != 0x80)
-                return false;
+                var second = buffer[(currentIndex + 1) % BUFFER_SIZE];
+                if (second != 0x81 && second != 0x80)
+                    return false;
 
-            var third = buffer[(currentIndex + 2) % BUFFER_SIZE];
-            return third == 0xA6 || third == 0xA7 || third == 0xA9 || third == 0xAE;
+                var third = buffer[(currentIndex + 2) % BUFFER_SIZE];
+                return third == 0xA6 || third == 0xA7 || third == 0xA9 || third == 0xAE;
+            }
         }
     }
 }

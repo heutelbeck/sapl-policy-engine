@@ -37,6 +37,7 @@ import org.springframework.http.MediaType;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import io.netty.handler.ssl.SslContextBuilder;
@@ -61,7 +62,8 @@ class RemoteHttpPolicyDecisionPointTests {
 
     private static final String SUBJECT = "subject";
 
-    private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+    private static final ObjectMapper    MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
 
     private MockWebServer server;
 
@@ -124,8 +126,8 @@ class RemoteHttpPolicyDecisionPointTests {
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
 
-        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
-                RESOURCE);
+        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
+                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decideAll(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
@@ -140,8 +142,8 @@ class RemoteHttpPolicyDecisionPointTests {
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
 
-        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
-                RESOURCE);
+        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
+                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
@@ -165,29 +167,29 @@ class RemoteHttpPolicyDecisionPointTests {
 
     @Test
     void construct() {
-        var pdp = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost").basicAuth("secret", "key")
-                .build();
-        assertThat(pdp, notNullValue());
+        var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+                .basicAuth("secret", "key").build();
+        assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void constructWithSslContext() throws SSLException {
-        var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-        var pdp        = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        var sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+        var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").secure(sslContext).build();
-        assertThat(pdp, notNullValue());
+        assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void settersAndGetters() {
-        var pdp = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost").basicAuth("secret", "key")
-                .build();
-        pdp.setBackoffFactor(999);
-        pdp.setFirstBackoffMillis(998);
-        pdp.setMaxBackOffMillis(1001);
-        assertAll(() -> assertThat(pdp.getBackoffFactor(), is(999)),
-                () -> assertThat(pdp.getFirstBackoffMillis(), is(998)),
-                () -> assertThat(pdp.getMaxBackOffMillis(), is(1001)));
+        var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+                .basicAuth("secret", "key").build();
+        pdpUnderTest.setBackoffFactor(999);
+        pdpUnderTest.setFirstBackoffMillis(998);
+        pdpUnderTest.setMaxBackOffMillis(1001);
+        assertAll(() -> assertThat(pdpUnderTest.getBackoffFactor(), is(999)),
+                () -> assertThat(pdpUnderTest.getFirstBackoffMillis(), is(998)),
+                () -> assertThat(pdpUnderTest.getMaxBackOffMillis(), is(1001)));
     }
 
 }

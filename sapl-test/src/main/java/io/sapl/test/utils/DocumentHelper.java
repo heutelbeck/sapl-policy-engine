@@ -19,29 +19,28 @@ package io.sapl.test.utils;
 
 import java.nio.file.Files;
 
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.prp.Document;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class DocumentHelper {
-    public static SAPL readSaplDocument(final String saplDocumentName, final SAPLInterpreter saplInterpreter) {
+    public static Document readSaplDocument(final String saplDocumentName, final SAPLInterpreter saplInterpreter) {
         if (saplDocumentName == null || saplDocumentName.isEmpty()) {
             return null;
         }
 
         final var filename = constructFileEnding(saplDocumentName);
-
-        return saplInterpreter.parse(findFileOnClasspath(filename));
+        return saplInterpreter.parseDocument(findFileOnClasspath(filename));
     }
 
-    public static SAPL readSaplDocumentFromInputString(final String input, final SAPLInterpreter saplInterpreter) {
+    public static Document readSaplDocumentFromInputString(final String input, final SAPLInterpreter saplInterpreter) {
         if (input == null || input.isEmpty()) {
             return null;
         }
 
-        return saplInterpreter.parse(input);
+        return saplInterpreter.parseDocument(input);
     }
 
     private static String constructFileEnding(final String filename) {

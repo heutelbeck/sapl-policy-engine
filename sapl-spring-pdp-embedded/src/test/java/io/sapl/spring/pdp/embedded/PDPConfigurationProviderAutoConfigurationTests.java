@@ -29,11 +29,13 @@ import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
+import io.sapl.prp.PolicyRetrievalPointSource;
 
 class PDPConfigurationProviderAutoConfigurationTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withBean(VariablesAndCombinatorSource.class, () -> mock(VariablesAndCombinatorSource.class))
+            .withBean(PolicyRetrievalPointSource.class, () -> mock(PolicyRetrievalPointSource.class))
             .withBean(FunctionContext.class, () -> mock(FunctionContext.class))
             .withBean(AttributeContext.class, () -> mock(AttributeContext.class))
             .withConfiguration(AutoConfigurations.of(PDPConfigurationProviderAutoConfiguration.class));

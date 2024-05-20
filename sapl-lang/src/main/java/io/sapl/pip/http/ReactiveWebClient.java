@@ -47,6 +47,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -77,11 +78,13 @@ public class ReactiveWebClient {
 
     /**
      * <p>
-     * Connects to an HTTP service and produces a Flux<Val>
+     * Connects to an HTTP service and produces a Flux&lt;Val&gt;
      * </p>
      *
-     * @param the @see HttpMethod to execute and a @see Val containing the settings
-     * @return a @see Flux<@see Val>
+     * @param method          the @see HttpMethod to execute and a @see Val
+     *                        containing the settings
+     * @param requestSettings contains the HTTP parameters for the request.
+     * @return a @see Flux&lt;@see Val&gt;
      */
     public Flux<Val> httpRequest(HttpMethod method, Val requestSettings) {
         var baseUrl            = baseUrl(requestSettings);
@@ -211,9 +214,9 @@ public class ReactiveWebClient {
 
     private Mono<Val> mapError(Throwable e) {
         if (e instanceof WebClientResponseException clientException) {
-            return Mono.just(Val.error(clientException.getRootCause()));
+            return Mono.just(ErrorFactory.error(null, clientException.getRootCause()));
         }
-        return Mono.just(Val.error(e));
+        return Mono.just(ErrorFactory.error(null, e));
     }
 
     private Mono<Void> sendAndListen(WebSocketSession session, JsonNode body, Many<Val> receiveBuffer) {
@@ -232,7 +235,7 @@ public class ReactiveWebClient {
             try {
                 receiveBuffer.tryEmitNext(Val.ofJson(payload));
             } catch (JsonProcessingException e) {
-                receiveBuffer.tryEmitNext(Val.error(e.getMessage()));
+                receiveBuffer.tryEmitNext(ErrorFactory.error(e.getMessage()));
             }
         }).then();
     }

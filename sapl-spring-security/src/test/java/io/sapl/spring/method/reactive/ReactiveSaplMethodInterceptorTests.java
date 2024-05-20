@@ -35,7 +35,10 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PostFilter;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.prepost.PreFilter;
 import org.springframework.security.util.MethodInvocationUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -253,6 +256,63 @@ class ReactiveSaplMethodInterceptorTests {
     }
 
     @Test
+    void when_saplAndSpringAnnotationsPreFilterPresent_then_failsIfBothAreReturnedByMetadataSource() {
+
+        class TestClass {
+
+            @PreEnforce
+            @PreFilter(value = "")
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1);
+            }
+
+        }
+        var testInstance = new TestClass();
+        var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
+        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
+    }
+
+    @Test
+    void when_saplAndSpringAnnotationsPostFilterPresent_then_failsIfBothAreReturnedByMetadataSource() {
+
+        class TestClass {
+
+            @PreEnforce
+            @PostFilter(value = "")
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1);
+            }
+
+        }
+        var testInstance = new TestClass();
+        var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
+        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
+    }
+
+    @Test
+    void when_saplAndSpringAnnotationsPostAuthorizePresent_then_failsIfBothAreReturnedByMetadataSource() {
+
+        class TestClass {
+
+            @PreEnforce
+            @PostAuthorize(value = "")
+            public Flux<Integer> fluxInteger() {
+                return Flux.just(1);
+            }
+
+        }
+        var testInstance = new TestClass();
+        var invocation   = MockMethodInvocation.of(testInstance, TestClass.class, "fluxInteger",
+                testInstance::fluxInteger, null, null);
+        assertThrows(IllegalStateException.class, () -> defaultSut.invoke(invocation));
+        verify(preEnforcePolicyEnforcementPoint, times(0)).enforce(any(), any(), any());
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void when_onlyPostEnforce_then_postEnforcePepIsCalled() {
         class TestClass {
@@ -268,7 +328,7 @@ class ReactiveSaplMethodInterceptorTests {
                 testInstance::monoInteger, null, null);
         Mono<?> expected     = Mono.just(4);
         when(postEnforcePolicyEnforcementPoint.postEnforceOneDecisionOnResourceAccessPoint(any(), any(), any()))
-                .thenAnswer(__ -> expected);
+                .thenAnswer(x -> expected);
         var actual = defaultSut.invoke(invocation);
         assertThat(actual, is(expected));
         StepVerifier.create((Mono<Integer>) actual).expectNext(4).verifyComplete();

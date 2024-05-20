@@ -308,7 +308,7 @@ class CanonicalIndexAlgorithmTests {
 
     @Test
     void testOrphanedCandidates() {
-        var satisfiableCandidates = new Bitmask(); // mock(Bitmask.class);
+        var satisfiableCandidates = new Bitmask();
         satisfiableCandidates.set(0, 1);
 
         var c1 = mock(CTuple.class);

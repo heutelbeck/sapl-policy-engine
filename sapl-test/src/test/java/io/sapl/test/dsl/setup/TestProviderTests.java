@@ -27,11 +27,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import io.sapl.test.SaplTestException;
+import io.sapl.test.TestHelper;
+import io.sapl.test.dsl.interfaces.StepConstructor;
+import io.sapl.test.dsl.interfaces.TestNode;
+import io.sapl.test.grammar.sapltest.Requirement;
+import io.sapl.test.grammar.sapltest.SAPLTest;
+import io.sapl.test.grammar.sapltest.Scenario;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -42,31 +48,14 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import io.sapl.test.SaplTestException;
-import io.sapl.test.TestHelper;
-import io.sapl.test.dsl.interfaces.StepConstructor;
-import io.sapl.test.dsl.interfaces.TestNode;
-import io.sapl.test.grammar.sapltest.IntegrationTestSuite;
-import io.sapl.test.grammar.sapltest.PoliciesByIdentifier;
-import io.sapl.test.grammar.sapltest.PoliciesByInputString;
-import io.sapl.test.grammar.sapltest.PolicyResolverConfig;
-import io.sapl.test.grammar.sapltest.SAPLTest;
-import io.sapl.test.grammar.sapltest.TestCase;
-import io.sapl.test.grammar.sapltest.TestSuite;
-import io.sapl.test.grammar.sapltest.UnitTestSuite;
-
 @ExtendWith(MockitoExtension.class)
 class TestProviderTests {
-    @Mock
-    protected StepConstructor stepConstructorMock;
     @InjectMocks
     protected TestProvider    testProvider;
     @Mock
+    protected StepConstructor stepConstructorMock;
+    @Mock
     protected SAPLTest        saplTestMock;
-    @Mock
-    protected UnitTestSuite   unitTestSuiteMock;
-    @Mock
-    protected TestCase        testCaseMock;
 
     protected final MockedStatic<TestContainer>                   testContainerMockedStatic = mockStatic(
             TestContainer.class);
@@ -82,50 +71,90 @@ class TestProviderTests {
     @Nested
     @DisplayName("Early return cases")
     class EarlyReturnCasesTests {
+        @Mock
+        protected Requirement requirementMock;
+
         @Test
         void buildTests_calledWithNullSAPLTest_throwsSaplTestException() {
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(null));
+            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(null, null));
 
             assertEquals("provided SAPLTest is null", exception.getMessage());
         }
 
         @Test
-        void buildTests_calledWithSAPLTestWithNullTestSuites_throwsSaplTestException() {
-            when(saplTestMock.getTestSuites()).thenReturn(null);
+        void buildTests_calledWithSAPLTestWithNullRequirements_throwsSaplTestException() {
+            when(saplTestMock.getRequirements()).thenReturn(null);
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
 
-            assertEquals("provided SAPLTest does not contain a TestSuite", exception.getMessage());
+            assertEquals("provided SAPLTest does not contain a Requirement", exception.getMessage());
         }
 
         @Test
-        void buildTests_calledWithSAPLTestWithEmptyTestSuites_throwsSaplTestException() {
-            TestHelper.mockEListResult(saplTestMock::getTestSuites, Collections.emptyList());
+        void buildTests_calledWithSAPLTestWithEmptyRequirements_throwsSaplTestException() {
+            TestHelper.mockEListResult(saplTestMock::getRequirements, Collections.emptyList());
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
 
-            assertEquals("provided SAPLTest does not contain a TestSuite", exception.getMessage());
+            assertEquals("provided SAPLTest does not contain a Requirement", exception.getMessage());
         }
 
         @Test
-        void buildTests_calledWithSAPLTestWithNullTestCases_throwsSaplTestException() {
-            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(unitTestSuiteMock));
+        void buildTests_calledWithSAPLTestWithRequirementsWithDuplicateName_throwsSaplTestException() {
+            final var requirement1Mock = mock(Requirement.class);
+            final var requirement2Mock = mock(Requirement.class);
 
-            when(unitTestSuiteMock.getTestCases()).thenReturn(null);
+            when(requirement1Mock.getName()).thenReturn("nonUniqueName");
+            when(requirement2Mock.getName()).thenReturn("nonUniqueName");
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+            TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirement1Mock, requirement2Mock));
 
-            assertEquals("provided TestSuite does not contain a Test", exception.getMessage());
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
+
+            assertEquals("Requirement name needs to be unique", exception.getMessage());
         }
 
         @Test
-        void buildTests_calledWithSAPLTestWithEmptyTestCases_throwsSaplTestException() {
-            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(unitTestSuiteMock));
-            TestHelper.mockEListResult(unitTestSuiteMock::getTestCases, Collections.emptyList());
+        void buildTests_calledWithSAPLTestWithNullScenarios_throwsSaplTestException() {
+            TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirementMock));
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+            when(requirementMock.getScenarios()).thenReturn(null);
 
-            assertEquals("provided TestSuite does not contain a Test", exception.getMessage());
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
+
+            assertEquals("provided Requirement does not contain a Scenario", exception.getMessage());
+        }
+
+        @Test
+        void buildTests_calledWithSAPLTestWithEmptyScenarios_throwsSaplTestException() {
+            TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirementMock));
+            TestHelper.mockEListResult(requirementMock::getScenarios, Collections.emptyList());
+
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
+
+            assertEquals("provided Requirement does not contain a Scenario", exception.getMessage());
+        }
+
+        @Test
+        void buildTests_calledWithSAPLTestWithScenariosWithDuplicateName_throwsSaplTestException() {
+            final var scenario1Mock = mock(Scenario.class);
+            final var scenario2Mock = mock(Scenario.class);
+
+            when(scenario1Mock.getName()).thenReturn("nonUniqueName");
+            when(scenario2Mock.getName()).thenReturn("nonUniqueName");
+
+            TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirementMock));
+            TestHelper.mockEListResult(requirementMock::getScenarios, List.of(scenario1Mock, scenario2Mock));
+
+            final var exception = assertThrows(SaplTestException.class,
+                    () -> testProvider.buildTests(saplTestMock, null));
+
+            assertEquals("Scenario name needs to be unique within one Requirement", exception.getMessage());
         }
     }
 
@@ -145,183 +174,65 @@ class TestProviderTests {
             return dynamicTestCases;
         }
 
-        @Test
-        void buildTests_handlesUnknownTestSuite_throwsSaplTestException() {
-            final var unknownTestSuiteMock = mock(TestSuite.class);
-
-            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(unknownTestSuiteMock));
-            TestHelper.mockEListResult(unknownTestSuiteMock::getTestCases, List.of(testCaseMock));
-
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
-
-            assertEquals("Unknown type of TestSuite", exception.getMessage());
+        private TestCase mockTestCaseCreation(final Requirement requirement, final Scenario scenario) {
+            final var testCaseMock = mock(TestCase.class);
+            testMockedStatic.when(() -> TestCase.from(stepConstructorMock, requirement, scenario, null))
+                    .thenReturn(testCaseMock);
+            return testCaseMock;
         }
 
         @Test
-        void buildTests_usingUnitTestSuite_returnsDynamicContainerWithPolicyName() {
-            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(unitTestSuiteMock));
-            TestHelper.mockEListResult(unitTestSuiteMock::getTestCases, List.of(testCaseMock));
+        void buildTests_usingMultipleRequirementsWithMultipleScenarios_returnsDynamicContainer() {
+            final var requirement1Mock = mock(Requirement.class);
+            final var requirement2Mock = mock(Requirement.class);
 
-            when(unitTestSuiteMock.getPolicyName()).thenReturn("policyName");
+            final var scenario1Mock = mock(Scenario.class);
+            final var scenario2Mock = mock(Scenario.class);
 
-            final var unitTestSuiteTestContainer = mock(TestContainer.class);
-            final var testNodes                  = mockTestContainerForName("policyName", unitTestSuiteTestContainer);
+            when(scenario1Mock.getName()).thenReturn("scenario1");
+            when(scenario2Mock.getName()).thenReturn("scenario2");
 
-            final var testMock = mock(io.sapl.test.dsl.setup.TestCase.class);
-            testMockedStatic.when(
-                    () -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, unitTestSuiteMock, testCaseMock))
-                    .thenReturn(testMock);
+            final var scenario3Mock = mock(Scenario.class);
+            final var scenario4Mock = mock(Scenario.class);
 
-            final var result = testProvider.buildTests(saplTestMock);
+            // duplicate names are intended here to test the name duplication in 2 different
+            // requirements is allowed
+            when(scenario3Mock.getName()).thenReturn("scenario1");
+            when(scenario4Mock.getName()).thenReturn("scenario2");
 
-            assertEquals(unitTestSuiteTestContainer, result.get(0));
-            assertEquals(testMock, testNodes.get(0));
-        }
+            TestHelper.mockEListResult(saplTestMock::getRequirements, List.of(requirement1Mock, requirement2Mock));
+            TestHelper.mockEListResult(requirement1Mock::getScenarios, List.of(scenario1Mock, scenario2Mock));
+            TestHelper.mockEListResult(requirement2Mock::getScenarios, List.of(scenario3Mock, scenario4Mock));
 
-        @Test
-        void buildTests_usingIntegrationTestSuiteWithUnknownTypeOfPolicyResolverConfig_throwsSaplTestException() {
-            final var integrationTestSuite = mock(IntegrationTestSuite.class);
+            when(requirement1Mock.getName()).thenReturn("requirement1");
+            when(requirement2Mock.getName()).thenReturn("requirement2");
 
-            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(integrationTestSuite));
-            TestHelper.mockEListResult(integrationTestSuite::getTestCases, List.of(testCaseMock));
+            final var requirement1TestContainer = mock(TestContainer.class);
+            final var requirement2TestContainer = mock(TestContainer.class);
 
-            final var unknownPolicyResolverConfigMock = mock(PolicyResolverConfig.class);
-            when(integrationTestSuite.getConfiguration()).thenReturn(unknownPolicyResolverConfigMock);
+            final var requirement1TestNodes = mockTestContainerForName("requirement1", requirement1TestContainer);
+            final var requirement2TestNodes = mockTestContainerForName("requirement2", requirement2TestContainer);
 
-            final var exception = assertThrows(SaplTestException.class, () -> testProvider.buildTests(saplTestMock));
+            final var scenario1TestCase = mockTestCaseCreation(requirement1Mock, scenario1Mock);
+            final var scenario2TestCase = mockTestCaseCreation(requirement1Mock, scenario2Mock);
 
-            assertEquals("Unknown type of PolicyResolverConfig", exception.getMessage());
-        }
+            final var scenario3TestCase = mockTestCaseCreation(requirement2Mock, scenario3Mock);
+            final var scenario4TestCase = mockTestCaseCreation(requirement2Mock, scenario4Mock);
 
-        @Test
-        void buildTests_usingIntegrationTestSuiteWithPolicyFolder_returnsDynamicContainerWithPolicyFolderName() {
-            final var integrationTestSuite = mock(IntegrationTestSuite.class);
+            final var result = testProvider.buildTests(saplTestMock, null);
 
-            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(integrationTestSuite));
-            TestHelper.mockEListResult(integrationTestSuite::getTestCases, List.of(testCaseMock));
+            assertEquals(requirement1TestContainer, result.get(0));
+            assertEquals(requirement2TestContainer, result.get(1));
 
-            final var policiesByIdentifierMock = mock(PoliciesByIdentifier.class);
-            when(integrationTestSuite.getConfiguration()).thenReturn(policiesByIdentifierMock);
-
-            when(policiesByIdentifierMock.getIdentifier()).thenReturn("policyFolder");
-
-            final var integrationTestSuiteTestContainer = mock(TestContainer.class);
-            final var testNodes                         = mockTestContainerForName("policyFolder",
-                    integrationTestSuiteTestContainer);
-
-            final var testMock = mock(io.sapl.test.dsl.setup.TestCase.class);
-            testMockedStatic.when(
-                    () -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, integrationTestSuite, testCaseMock))
-                    .thenReturn(testMock);
-
-            final var result = testProvider.buildTests(saplTestMock);
-
-            assertEquals(integrationTestSuiteTestContainer, result.get(0));
-            assertEquals(testMock, testNodes.get(0));
-        }
-
-        @Test
-        void buildTests_usingIntegrationTestSuiteWithPolicySet_returnsDynamicContainerWithJoinedPolicyNames() {
-            final var integrationTestSuite = mock(IntegrationTestSuite.class);
-
-            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(integrationTestSuite));
-            TestHelper.mockEListResult(integrationTestSuite::getTestCases, List.of(testCaseMock));
-
-            final var policiesByInputStringMock = mock(PoliciesByInputString.class);
-            when(integrationTestSuite.getConfiguration()).thenReturn(policiesByInputStringMock);
-
-            TestHelper.mockEListResult(policiesByInputStringMock::getPolicies,
-                    List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));
-
-            final var integrationTestSuiteTestContainer = mock(TestContainer.class);
-            final var testNodes                         = mockTestContainerForName(
-                    "name1,foo/name2,foo/subfoo/nested/policy3.sapl", integrationTestSuiteTestContainer);
-
-            final var testMock = mock(io.sapl.test.dsl.setup.TestCase.class);
-            testMockedStatic.when(
-                    () -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, integrationTestSuite, testCaseMock))
-                    .thenReturn(testMock);
-
-            final var result = testProvider.buildTests(saplTestMock);
-
-            assertEquals(integrationTestSuiteTestContainer, result.get(0));
-            assertEquals(testMock, testNodes.get(0));
-        }
-
-        @Test
-        void buildTests_usingUnitAndIntegrationTestSuitesWithMultipleTestCasesEach_returnsDynamicContainers() {
-            final var integrationTestSuite = mock(IntegrationTestSuite.class);
-            final var unitTestSuiteMock    = mock(UnitTestSuite.class);
-
-            TestHelper.mockEListResult(saplTestMock::getTestSuites, List.of(integrationTestSuite, unitTestSuiteMock));
-
-            final var integrationTestCase1Mock = mock(TestCase.class);
-            final var integrationTestCase2Mock = mock(TestCase.class);
-
-            TestHelper.mockEListResult(integrationTestSuite::getTestCases,
-                    List.of(integrationTestCase1Mock, integrationTestCase2Mock));
-
-            final var unitTestCase1Mock = mock(TestCase.class);
-            final var unitTestCase2Mock = mock(TestCase.class);
-            final var unitTestCase3Mock = mock(TestCase.class);
-
-            TestHelper.mockEListResult(unitTestSuiteMock::getTestCases,
-                    List.of(unitTestCase1Mock, unitTestCase2Mock, unitTestCase3Mock));
-
-            final var policiesByInputStringMock = mock(PoliciesByInputString.class);
-            when(integrationTestSuite.getConfiguration()).thenReturn(policiesByInputStringMock);
-
-            TestHelper.mockEListResult(policiesByInputStringMock::getPolicies,
-                    List.of("name1", "foo/name2", "foo/subfoo/nested/policy3.sapl"));
-
-            final var integrationTestSuiteTestContainer = mock(TestContainer.class);
-            final var actualIntegrationTestCases        = mockTestContainerForName(
-                    "name1,foo/name2,foo/subfoo/nested/policy3.sapl", integrationTestSuiteTestContainer);
-
-            when(unitTestSuiteMock.getPolicyName()).thenReturn("fooPolicy");
-
-            final var unitTestSuiteTestContainer = mock(TestContainer.class);
-            final var actualUnitTestCases        = mockTestContainerForName("fooPolicy", unitTestSuiteTestContainer);
-
-            final var integrationTest1Mock = mock(io.sapl.test.dsl.setup.TestCase.class);
-            final var integrationTest2Mock = mock(io.sapl.test.dsl.setup.TestCase.class);
-
-            testMockedStatic.when(() -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, integrationTestSuite,
-                    integrationTestCase1Mock)).thenReturn(integrationTest1Mock);
-            testMockedStatic.when(() -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, integrationTestSuite,
-                    integrationTestCase2Mock)).thenReturn(integrationTest2Mock);
-
-            final var unitTest1Mock = mock(io.sapl.test.dsl.setup.TestCase.class);
-            final var unitTest2Mock = mock(io.sapl.test.dsl.setup.TestCase.class);
-            final var unitTest3Mock = mock(io.sapl.test.dsl.setup.TestCase.class);
-
-            testMockedStatic.when(() -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, unitTestSuiteMock,
-                    unitTestCase1Mock)).thenReturn(unitTest1Mock);
-            testMockedStatic.when(() -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, unitTestSuiteMock,
-                    unitTestCase2Mock)).thenReturn(unitTest2Mock);
-            testMockedStatic.when(() -> io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, unitTestSuiteMock,
-                    unitTestCase3Mock)).thenReturn(unitTest3Mock);
-
-            final var result = testProvider.buildTests(saplTestMock);
-
-            assertEquals(integrationTestSuiteTestContainer, result.get(0));
-            assertEquals(unitTestSuiteTestContainer, result.get(1));
-
-            assertEquals(integrationTest1Mock, actualIntegrationTestCases.get(0));
-            assertEquals(integrationTest2Mock, actualIntegrationTestCases.get(1));
-
-            assertEquals(unitTest1Mock, actualUnitTestCases.get(0));
-            assertEquals(unitTest2Mock, actualUnitTestCases.get(1));
-            assertEquals(unitTest3Mock, actualUnitTestCases.get(2));
+            assertEquals(requirement1TestNodes, List.of(scenario1TestCase, scenario2TestCase));
+            assertEquals(requirement2TestNodes, List.of(scenario3TestCase, scenario4TestCase));
         }
     }
 
     @Test
     void of_buildsInstanceOfTestProviderUsingStepConstructor_returnsTestProviderInstance() {
-        final var stepConstructorMock = mock(StepConstructor.class);
-
-        final var result = TestProvider.of(stepConstructorMock);
-
+        final var aStepConstructorMock = mock(StepConstructor.class);
+        final var result               = TestProvider.of(aStepConstructorMock);
         assertNotNull(result);
     }
 }

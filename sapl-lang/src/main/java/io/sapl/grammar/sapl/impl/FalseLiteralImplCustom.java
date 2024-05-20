@@ -18,7 +18,6 @@
 package io.sapl.grammar.sapl.impl;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.FalseLiteral;
 import reactor.core.publisher.Flux;
 
 /**
@@ -34,7 +33,7 @@ public class FalseLiteralImplCustom extends FalseLiteralImpl {
      */
     @Override
     public Flux<Val> evaluate() {
-        return Flux.just(Val.FALSE.withTrace(FalseLiteral.class));
+        return Flux.just(Val.FALSE);
     }
 
 }

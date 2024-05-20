@@ -29,20 +29,20 @@ class RepackageUtilTests {
     @Test
     void testObjectCombiningOnErrors1() {
         var t1     = Tuples.of("key1", Val.of("value1"));
-        var t2     = Tuples.of("key2", Val.error("error1"));
+        var t2     = Tuples.of("key2", ErrorFactory.error("error1"));
         var t3     = Tuples.of("key3", Val.of("value3"));
         var t4     = Tuples.of("key4", Val.of("value4"));
         var actual = RepackageUtil.recombineObject(new Object[] { t1, t2, t3, t4 });
-        assertThat(actual).isEqualTo(Val.error("error1"));
+        assertThat(actual).isEqualTo(ErrorFactory.error("error1"));
     }
 
     @Test
     void testObjectCombiningOnErrors2() {
         var t1     = Tuples.of("key1", Val.of("value1"));
-        var t2     = Tuples.of("key2", Val.error("error1"));
-        var t3     = Tuples.of("key3", Val.error("error2"));
+        var t2     = Tuples.of("key2", ErrorFactory.error("error1"));
+        var t3     = Tuples.of("key3", ErrorFactory.error("error2"));
         var t4     = Tuples.of("key4", Val.of("value4"));
         var actual = RepackageUtil.recombineObject(new Object[] { t1, t2, t3, t4 });
-        assertThat(actual).isEqualTo(Val.error("error1"));
+        assertThat(actual).isEqualTo(ErrorFactory.error("error1"));
     }
 }

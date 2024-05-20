@@ -17,14 +17,19 @@
  */
 package io.sapl.api.pdp;
 
+import java.io.Serializable;
 import java.util.Optional;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.BaseJsonNode;
 
-import jakarta.validation.constraints.NotNull;
+import io.sapl.api.SaplVersion;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -35,12 +40,15 @@ import lombok.ToString;
 /**
  * Container for a decision
  */
-@Getter
 @ToString
 @EqualsAndHashCode
 @NoArgsConstructor
-@AllArgsConstructor
-public class AuthorizationDecision {
+@JsonInclude(Include.NON_NULL)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@JsonAutoDetect(isGetterVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, fieldVisibility = Visibility.ANY)
+public class AuthorizationDecision implements Serializable {
+
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     /**
      * A simple PERMIT decision.
@@ -62,17 +70,11 @@ public class AuthorizationDecision {
      */
     public static final AuthorizationDecision NOT_APPLICABLE = new AuthorizationDecision(Decision.NOT_APPLICABLE);
 
-    @NotNull
-    Decision decision = Decision.INDETERMINATE;
-
-    @JsonInclude(Include.NON_ABSENT)
-    Optional<JsonNode> resource = Optional.empty();
-
-    @JsonInclude(Include.NON_ABSENT)
-    Optional<ArrayNode> obligations = Optional.empty();
-
-    @JsonInclude(Include.NON_ABSENT)
-    Optional<ArrayNode> advice = Optional.empty();
+    @Getter
+    Decision     decision    = Decision.INDETERMINATE;
+    BaseJsonNode resource    = null;
+    ArrayNode    obligations = null;
+    ArrayNode    advice      = null;
 
     /**
      * @param decision Creates an immutable authorization decision with 'decision'
@@ -84,14 +86,57 @@ public class AuthorizationDecision {
     }
 
     /**
+     * Creates an immutable authorization decision.
+     *
+     * @param decision         the Decision
+     * @param maybeResource    Optional Resource
+     * @param maybeObligations Optional Obligations
+     * @param maybeAdvice      Optional Advice
+     */
+    public AuthorizationDecision(@NonNull Decision decision, @NonNull Optional<JsonNode> maybeResource,
+            @NonNull Optional<ArrayNode> maybeObligations, @NonNull Optional<ArrayNode> maybeAdvice) {
+        this.decision = decision;
+        maybeResource.ifPresent(aResource -> this.resource = (BaseJsonNode) aResource);
+        maybeObligations
+                .ifPresent(someObligations -> this.obligations = someObligations.isEmpty() ? null : someObligations);
+        maybeAdvice.ifPresent(someAdvice -> this.advice = someAdvice.isEmpty() ? null : someAdvice);
+    }
+
+    /**
+     * Get the Resource
+     *
+     * @return an Optional JsonNode containing a resource object if present.
+     */
+    public Optional<JsonNode> getResource() {
+        return Optional.ofNullable(resource);
+    }
+
+    /**
+     * Get the Obligations
+     *
+     * @return an Optional ArrayNode containing obligations if present.
+     */
+    public Optional<ArrayNode> getObligations() {
+        return Optional.ofNullable(obligations);
+    }
+
+    /**
+     * Get the Advice
+     *
+     * @return an Optional ArrayNode containing advice if present.
+     */
+    public Optional<ArrayNode> getAdvice() {
+        return Optional.ofNullable(advice);
+    }
+
+    /**
      * @param newObligations a JSON array containing obligations.
      * @return new immutable decision object, replacing the obligations of the
      *         original object with newObligations. If the array is empty, no
      *         obligations will be present, not even an empty array.
      */
     public AuthorizationDecision withObligations(@NonNull ArrayNode newObligations) {
-        return new AuthorizationDecision(decision, resource,
-                newObligations.isEmpty() ? Optional.empty() : Optional.of(newObligations), advice);
+        return new AuthorizationDecision(decision, resource, newObligations.isEmpty() ? null : newObligations, advice);
     }
 
     /**
@@ -101,8 +146,7 @@ public class AuthorizationDecision {
      *         present, not even an empty array.
      */
     public AuthorizationDecision withAdvice(@NonNull ArrayNode newAdvice) {
-        return new AuthorizationDecision(decision, resource, obligations,
-                newAdvice.isEmpty() ? Optional.empty() : Optional.of(newAdvice));
+        return new AuthorizationDecision(decision, resource, obligations, newAdvice.isEmpty() ? null : newAdvice);
     }
 
     /**
@@ -111,7 +155,7 @@ public class AuthorizationDecision {
      *         newResource.
      */
     public AuthorizationDecision withResource(@NonNull JsonNode newResource) {
-        return new AuthorizationDecision(decision, Optional.of(newResource), obligations, advice);
+        return new AuthorizationDecision(decision, (BaseJsonNode) newResource, obligations, advice);
     }
 
     /**

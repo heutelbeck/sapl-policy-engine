@@ -17,6 +17,8 @@
  */
 package io.sapl.interpreter;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Optional;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.grammar.sapl.CombiningAlgorithm;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -54,18 +57,20 @@ public class PolicySetDecision implements DocumentEvaluationResult {
         return new PolicySetDecision(null, document, Optional.empty(), Optional.ofNullable(errorMessage));
     }
 
-    public static PolicySetDecision ofTargetError(String document, Val targetValue, String combiningAlgorithm) {
+    public static PolicySetDecision ofTargetError(String document, Val targetValue,
+            CombiningAlgorithm combiningAlgorithm) {
         return new PolicySetDecision(CombinedDecision.of(AuthorizationDecision.INDETERMINATE, combiningAlgorithm),
                 document, Optional.ofNullable(targetValue), Optional.empty());
     }
 
-    public static PolicySetDecision notApplicable(String document, Val targetValue, String combiningAlgorithm) {
+    public static PolicySetDecision notApplicable(String document, Val targetValue,
+            CombiningAlgorithm combiningAlgorithm) {
         return new PolicySetDecision(CombinedDecision.of(AuthorizationDecision.NOT_APPLICABLE, combiningAlgorithm),
                 document, Optional.ofNullable(targetValue), Optional.empty());
     }
 
     public static DocumentEvaluationResult ofImportError(String document, String errorMessage,
-            String combiningAlgorithm) {
+            CombiningAlgorithm combiningAlgorithm) {
         return new PolicySetDecision(CombinedDecision.of(AuthorizationDecision.INDETERMINATE, combiningAlgorithm),
                 document, Optional.empty(), Optional.ofNullable(errorMessage));
     }
@@ -93,6 +98,14 @@ public class PolicySetDecision implements DocumentEvaluationResult {
         errorMessage.ifPresent(error -> trace.set(Trace.ERROR_MESSAGE, Val.JSON.textNode(errorMessage.get())));
         targetResult.ifPresent(target -> trace.set(Trace.TARGET, target.getTrace()));
         return trace;
+    }
+
+    @Override
+    public Collection<Val> getErrorsFromTrace() {
+        var errors = new ArrayList<Val>();
+        targetResult.ifPresent(target -> errors.addAll(target.getErrorsFromTrace()));
+        errors.addAll(combinedDecision.getErrorsFromTrace());
+        return errors;
     }
 
 }

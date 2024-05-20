@@ -29,7 +29,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -54,7 +53,7 @@ class ReactiveWebClientWebSocketTests {
     private Integer port;
 
     @Test
-    void when_sendBodyToEcho_then_receiveEcho() throws JsonProcessingException, InterruptedException {
+    void when_sendBodyToEcho_then_receiveEcho() throws JsonProcessingException {
         var template        = """
                 {
                     "baseUrl" : "%s",
@@ -68,7 +67,7 @@ class ReactiveWebClientWebSocketTests {
     }
 
     @Test
-    void when_sendBodyNonJSONToEcho_then_receiveEchoButError() throws JsonProcessingException, InterruptedException {
+    void when_sendBodyNonJSONToEcho_then_receiveEchoButError() throws JsonProcessingException {
         var template        = """
                 {
                     "baseUrl" : "%s",
@@ -83,7 +82,7 @@ class ReactiveWebClientWebSocketTests {
     }
 
     @Test
-    void when_sendNoBodyToCounter_then_receiveStreamOfNumbers() throws JsonProcessingException, InterruptedException {
+    void when_sendNoBodyToCounter_then_receiveStreamOfNumbers() throws JsonProcessingException {
         var template        = """
                 {
                     "baseUrl" : "%s"
@@ -95,7 +94,6 @@ class ReactiveWebClientWebSocketTests {
                 .expectComplete().verify(Duration.ofSeconds(5L));
     }
 
-    @Component
     public static class EchoHandler implements WebSocketHandler {
         @Override
         public Mono<Void> handle(WebSocketSession webSocketSession) {
@@ -104,7 +102,6 @@ class ReactiveWebClientWebSocketTests {
         }
     }
 
-    @Component
     public static class CounterHandler implements WebSocketHandler {
         @Override
         public Mono<Void> handle(WebSocketSession webSocketSession) {

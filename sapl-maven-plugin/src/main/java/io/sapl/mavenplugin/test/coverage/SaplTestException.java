@@ -17,8 +17,10 @@
  */
 package io.sapl.mavenplugin.test.coverage;
 
+import io.sapl.api.SaplVersion;
 import lombok.experimental.StandardException;
 
 @StandardException
 public class SaplTestException extends RuntimeException {
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 }

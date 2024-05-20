@@ -233,7 +233,7 @@ class ReactiveWebClientTests {
     }
 
     @Test
-    void when_noBaseUrl_thenError() throws JsonProcessingException {
+    void when_noBaseUrl_thenError() {
         var httpTestRequest = Val.ofEmptyObject();
         assertThatThrownBy(() -> clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest))
                 .hasMessage(ReactiveWebClient.NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR);

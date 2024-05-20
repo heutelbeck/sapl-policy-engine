@@ -27,6 +27,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
 import io.sapl.grammar.sapl.RecursiveWildcardStep;
 import io.sapl.grammar.sapl.WildcardStep;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.grammar.sapl.impl.util.FilterAlgorithmUtil;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
@@ -52,7 +53,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
             return parentValue;
         }
         if (parentValue.isUndefined()) {
-            return Val.error(CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE_ERROR);
+            return ErrorFactory.error(this, CANNOT_DESCENT_ON_AN_UNDEFINED_VALUE_ERROR);
         }
         if (!parentValue.isArray() && !parentValue.isObject()) {
             return Val.ofEmptyArray();

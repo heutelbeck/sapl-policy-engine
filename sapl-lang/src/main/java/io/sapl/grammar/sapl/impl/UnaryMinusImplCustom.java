@@ -27,7 +27,7 @@ public class UnaryMinusImplCustom extends UnaryMinusImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this::negate);
+        return arithmeticOperator(this, this, this::negate);
     }
 
     private Val negate(Val value) {

@@ -19,13 +19,20 @@ package io.sapl.pdp;
 
 import java.time.Clock;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.UnaryOperator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.FunctionLibrarySupplier;
 import io.sapl.api.functions.StaticFunctionLibrarySupplier;
+import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.AuthorizationSubscriptionInterceptor;
+import io.sapl.api.pdp.TracedDecision;
 import io.sapl.api.pdp.TracedDecisionInterceptor;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
@@ -36,10 +43,13 @@ import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
+import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
@@ -48,13 +58,15 @@ import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
 import io.sapl.pip.TimePolicyInformationPoint;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.pip.http.ReactiveWebClient;
-import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPoint;
-import io.sapl.prp.PolicyRetrievalPoint;
+import io.sapl.prp.Document;
+import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
+import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
-import io.sapl.prp.index.ImmutableParsedDocumentIndex;
+import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
 import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class PolicyDecisionPointFactory {
@@ -69,6 +81,55 @@ public class PolicyDecisionPointFactory {
     public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(String path)
             throws InitializationException {
         return filesystemPolicyDecisionPoint(path, List::of, List::of, List::of, List::of);
+    }
+
+    public static EmbeddedPolicyDecisionPoint fixedInRamPolicyDecisionPoint(Collection<String> documents,
+            PolicyDocumentCombiningAlgorithm documentsCombinator, Map<String, Val> variables)
+            throws InitializationException {
+        var functionContext  = constructFunctionContext(List::of, List::of);
+        var attributeContext = constructAttributeContext(List::of, List::of);
+        return fixedInRamPolicyDecisionPoint(new DefaultSAPLInterpreter(), documents, documentsCombinator, variables,
+                attributeContext, functionContext, UnaryOperator.identity(), UnaryOperator.identity());
+    }
+
+    public static EmbeddedPolicyDecisionPoint fixedInRamPolicyDecisionPoint(SAPLInterpreter parser,
+            Collection<String> documents, PolicyDocumentCombiningAlgorithm documentsCombinator,
+            Map<String, Val> variables, FunctionLibrarySupplier functionLibraries,
+            StaticFunctionLibrarySupplier staticFunctionLibraries, PolicyInformationPointSupplier pips,
+            StaticPolicyInformationPointSupplier staticPips, UnaryOperator<TracedDecision> decisionInterceptorChain,
+            UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) throws InitializationException {
+        var functionContext  = constructFunctionContext(functionLibraries, staticFunctionLibraries);
+        var attributeContext = constructAttributeContext(pips, staticPips);
+        return fixedInRamPolicyDecisionPoint(parser, documents, documentsCombinator, variables, attributeContext,
+                functionContext, decisionInterceptorChain, subscriptionInterceptorChain);
+    }
+
+    public static EmbeddedPolicyDecisionPoint fixedInRamPolicyDecisionPoint(SAPLInterpreter parser,
+            Collection<String> documents, PolicyDocumentCombiningAlgorithm documentsCombinator,
+            Map<String, Val> variables, AttributeContext attributeContext, FunctionContext functionContext,
+            UnaryOperator<TracedDecision> decisionInterceptorChain,
+            UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) {
+        var documentsById = new HashMap<String, Document>();
+        var consistent    = true;
+        for (var source : documents) {
+            var document = parser.parseDocument(source);
+            if (document.isInvalid()) {
+                consistent = false;
+                documentsById.put(UUID.randomUUID().toString(), parser.parseDocument(source));
+            } else {
+                var original = documentsById.put(document.name(), document);
+                if (original != null) {
+                    consistent = false;
+                }
+            }
+        }
+        var policyRetrievalPoint = new NaiveImmutableParsedDocumentIndex(documentsById, consistent);
+
+        var pdpConfiguration = new PDPConfiguration(UUID.randomUUID().toString(), attributeContext, functionContext,
+                variables, documentsCombinator, decisionInterceptorChain, subscriptionInterceptorChain,
+                policyRetrievalPoint);
+
+        return new EmbeddedPolicyDecisionPoint(() -> Flux.just(pdpConfiguration));
     }
 
     public static EmbeddedPolicyDecisionPoint filesystemPolicyDecisionPoint(PolicyInformationPointSupplier pips,
@@ -93,10 +154,10 @@ public class PolicyDecisionPointFactory {
             Collection<TracedDecisionInterceptor> authorizationSubscriptionInterceptors)
             throws InitializationException {
         var fileSource            = new FileSystemVariablesAndCombinatorSource(path);
-        var configurationProvider = constructConfigurationProvider(fileSource, pips, staticPips, functionLibraries,
-                staticFunctionLibraries, subscriptionInterceptors, authorizationSubscriptionInterceptors);
-        var policyRetrievalPoint  = constructFilesystemPolicyRetrievalPoint(path);
-        return new EmbeddedPolicyDecisionPoint(configurationProvider, policyRetrievalPoint);
+        var configurationProvider = constructFilesystemConfigurationProvider(path, fileSource, pips, staticPips,
+                functionLibraries, staticFunctionLibraries, subscriptionInterceptors,
+                authorizationSubscriptionInterceptors);
+        return new EmbeddedPolicyDecisionPoint(configurationProvider);
     }
 
     public static EmbeddedPolicyDecisionPoint resourcesPolicyDecisionPoint() throws InitializationException {
@@ -121,23 +182,38 @@ public class PolicyDecisionPointFactory {
             Collection<TracedDecisionInterceptor> authorizationSubscriptionInterceptors)
             throws InitializationException {
         var resourcesSource       = new ResourcesVariablesAndCombinatorSource(path, new ObjectMapper());
-        var configurationProvider = constructConfigurationProvider(resourcesSource, pips, staticPips, functionLibraries,
-                staticFunctionLibraries, subscriptionInterceptors, authorizationSubscriptionInterceptors);
-        var policyRetrievalPoint  = constructResourcesPolicyRetrievalPoint(path);
-        return new EmbeddedPolicyDecisionPoint(configurationProvider, policyRetrievalPoint);
+        var configurationProvider = constructResourcesConfigurationProvider(path, resourcesSource, pips, staticPips,
+                functionLibraries, staticFunctionLibraries, subscriptionInterceptors,
+                authorizationSubscriptionInterceptors);
+        return new EmbeddedPolicyDecisionPoint(configurationProvider);
     }
 
-    private static PDPConfigurationProvider constructConfigurationProvider(
+    private static PDPConfigurationProvider constructResourcesConfigurationProvider(String path,
             VariablesAndCombinatorSource combinatorProvider, PolicyInformationPointSupplier pips,
             StaticPolicyInformationPointSupplier staticPips, FunctionLibrarySupplier functionLibraries,
             StaticFunctionLibrarySupplier staticFunctionLibraries,
             Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
             Collection<TracedDecisionInterceptor> authorizationSubscriptionInterceptors)
             throws InitializationException {
-        var functionCtx  = constructFunctionContext(functionLibraries, staticFunctionLibraries);
-        var attributeCtx = constructAttributeContext(pips, staticPips);
+        var                        functionCtx  = constructFunctionContext(functionLibraries, staticFunctionLibraries);
+        var                        attributeCtx = constructAttributeContext(pips, staticPips);
+        PolicyRetrievalPointSource prpSource    = constructResourcesPolicyRetrievalPointSource(path);
         return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider,
-                subscriptionInterceptors, authorizationSubscriptionInterceptors);
+                subscriptionInterceptors, authorizationSubscriptionInterceptors, prpSource);
+    }
+
+    private static PDPConfigurationProvider constructFilesystemConfigurationProvider(String path,
+            VariablesAndCombinatorSource combinatorProvider, PolicyInformationPointSupplier pips,
+            StaticPolicyInformationPointSupplier staticPips, FunctionLibrarySupplier functionLibraries,
+            StaticFunctionLibrarySupplier staticFunctionLibraries,
+            Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
+            Collection<TracedDecisionInterceptor> authorizationSubscriptionInterceptors)
+            throws InitializationException {
+        var                        functionCtx  = constructFunctionContext(functionLibraries, staticFunctionLibraries);
+        var                        attributeCtx = constructAttributeContext(pips, staticPips);
+        PolicyRetrievalPointSource prpSource    = constructFilesystemPolicyRetrievalPointSource(path);
+        return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider,
+                subscriptionInterceptors, authorizationSubscriptionInterceptors, prpSource);
     }
 
     private static FunctionContext constructFunctionContext(FunctionLibrarySupplier functionLibraries,
@@ -162,19 +238,19 @@ public class PolicyDecisionPointFactory {
         return attributeCtx;
     }
 
-    private static PolicyRetrievalPoint constructResourcesPolicyRetrievalPoint(String resourcePath) {
+    private static PolicyRetrievalPointSource constructResourcesPolicyRetrievalPointSource(String resourcePath) {
         var seedIndex = constructDocumentIndex();
         var source    = new ResourcesPrpUpdateEventSource(resourcePath, new DefaultSAPLInterpreter());
-        return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+        return new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
     }
 
-    private static PolicyRetrievalPoint constructFilesystemPolicyRetrievalPoint(String policiesFolder) {
+    private static PolicyRetrievalPointSource constructFilesystemPolicyRetrievalPointSource(String policiesFolder) {
         var seedIndex = constructDocumentIndex();
         var source    = new FileSystemPrpUpdateEventSource(policiesFolder, new DefaultSAPLInterpreter());
-        return new GenericInMemoryIndexedPolicyRetrievalPoint(seedIndex, source);
+        return new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
     }
 
-    private static ImmutableParsedDocumentIndex constructDocumentIndex() {
+    private static UpdateEventDrivenPolicyRetrievalPoint constructDocumentIndex() {
         return new NaiveImmutableParsedDocumentIndex();
     }
 

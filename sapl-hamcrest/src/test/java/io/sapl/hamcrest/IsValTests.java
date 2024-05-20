@@ -43,7 +43,7 @@ class IsValTests {
     @Test
     void testTypeError() {
         var sut = val();
-        assertThat(Val.error(), not(is(sut)));
+        assertThat(Val.error((String) null), not(is(sut)));
     }
 
     @Test
@@ -142,7 +142,7 @@ class IsValTests {
         assertThat(Val.NULL, is(sut));
         assertThat(Val.of(1), is(sut));
         assertThat(Val.FALSE, is(sut));
-        assertThat(Val.error(), not(is(sut)));
+        assertThat(Val.error((String) null), not(is(sut)));
         assertThat(Val.UNDEFINED, not(is(sut)));
     }
 

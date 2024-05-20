@@ -41,12 +41,11 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.grammar.SAPLStandaloneSetup;
-import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.interpreter.InputStreamHelper.TrojanSourceGuardInputStream;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.prp.Document;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -56,42 +55,85 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
-    private static final String DUMMY_RESOURCE_URI = "policy:/aPolicy.sapl";
+    public static final String INVALID_BYTE_SEQUENCE = "Invalid byte sequence in InputStream.";
 
-    private static final String PARSING_ERRORS = "Parsing errors: %s";
+    private static final String   DUMMY_RESOURCE_URI = "policy:/aPolicy.sapl";
+    private static final String   PARSING_ERRORS     = "Parsing errors: %s";
+    private static final Injector INJECTOR           = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
 
-    private static final Injector INJECTOR = new SAPLStandaloneSetup().createInjectorAndDoEMFRegistration();
+    @Override
+    public Document parseDocument(final String id, final InputStream saplInputStream) {
+        InputStream convertedAndSecuredInputStream;
+        try {
+            convertedAndSecuredInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(saplInputStream);
+            convertedAndSecuredInputStream = InputStreamHelper
+                    .convertToTrojanSourceSecureStream(convertedAndSecuredInputStream);
+        } catch (IOException e) {
+            return new Document(id, null, null, null, INVALID_BYTE_SEQUENCE);
+        }
+        return loadAsResource(id, convertedAndSecuredInputStream);
+    }
+
+    private static Document loadAsResource(String id, InputStream policyInputStream) {
+        final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+        final Resource         resource    = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
+
+        try {
+            resource.load(policyInputStream, resourceSet.getLoadOptions());
+        } catch (IOException | WrappedException e) {
+            var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
+            log.debug(errorMessage, e);
+            return new Document(id, null, null, null, errorMessage);
+        }
+
+        if (!resource.getErrors().isEmpty()) {
+            var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
+            log.debug(errorMessage);
+            return new Document(id, null, null, null, errorMessage);
+        }
+
+        var    sapl = (SAPL) resource.getContents().get(0);
+        String name = null;
+        if (sapl != null && sapl.getPolicyElement() != null)
+            name = sapl.getPolicyElement().getSaplName();
+        var diagnostic = Diagnostician.INSTANCE.validate(sapl);
+        var actualId   = id == null ? name : null;
+        return new Document(actualId, name, sapl, diagnostic, composeErrorMessage(diagnostic));
+    }
+
+    @Override
+    public SAPL parse(InputStream saplInputStream) {
+        var document = parseDocument(saplInputStream);
+        if (document.isInvalid()) {
+            throw new PolicyEvaluationException(document.errorMessage());
+        }
+        return document.sapl();
+    }
+
+    @Override
+    public Document parseDocument(String saplDefinition) {
+        return parseDocument(new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Override
+    public Document parseDocument(InputStream saplInputStream) {
+        return parseDocument(null, saplInputStream);
+    }
+
+    @Override
+    public Document parseDocument(final String id, final String saplDefinition) {
+        return parseDocument(id, new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8)));
+    }
 
     @Override
     public SAPL parse(String saplDefinition) {
         return parse(new ByteArrayInputStream(saplDefinition.getBytes(StandardCharsets.UTF_8)));
     }
 
-    @Override
-    public SAPL parse(InputStream saplInputStream) {
-
-        try {
-            saplInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(saplInputStream);
-            saplInputStream = new TrojanSourceGuardInputStream(saplInputStream);
-        } catch (IOException e) {
-            var errorMessage = "Invalid byte sequence in InputStream.";
-            log.error(errorMessage, e);
-            throw new PolicyEvaluationException(composeReason(errorMessage), e);
+    private static String composeErrorMessage(Diagnostic diagnostic) {
+        if (diagnostic.getSeverity() == Diagnostic.OK) {
+            return "OK";
         }
-
-        var sapl       = loadAsResource(saplInputStream);
-        var diagnostic = Diagnostician.INSTANCE.validate(sapl);
-        if (diagnostic.getSeverity() == Diagnostic.OK)
-            return sapl;
-
-        throw new PolicyEvaluationException(composeReason(diagnostic));
-    }
-
-    private String composeReason(String s) {
-        return String.format("SAPL Validation Error: [%s]", s);
-    }
-
-    private String composeReason(Diagnostic diagnostic) {
         var sb = new StringBuilder().append("SAPL Validation Error: [");
         for (Diagnostic d : diagnostic.getChildren()) {
             sb.append('[').append(NodeModelUtils.findActualNodeFor((EObject) d.getData().get(0)).getText()).append(": ")
@@ -104,13 +146,11 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
     public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authorizationSubscription,
             String saplDocumentSource, AttributeContext attributeContext, FunctionContext functionContext,
             Map<String, Val> environmentVariables) {
-        final SAPL saplDocument;
-        try {
-            saplDocument = parse(saplDocumentSource);
-        } catch (PolicyEvaluationException e) {
-            log.info("parsing error: {}", e.getMessage(), e);
+        var document = parseDocument(saplDocumentSource);
+        if (document.isInvalid()) {
             return Flux.just(AuthorizationDecision.INDETERMINATE);
         }
+        var saplDocument = document.sapl();
         return saplDocument.matches().flux().switchMap(evaluateBodyIfMatching(saplDocument))
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, environmentVariables))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authorizationSubscription))
@@ -129,38 +169,6 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
             }
             return Flux.just(AuthorizationDecision.NOT_APPLICABLE);
         };
-    }
-
-    @Override
-    public DocumentAnalysisResult analyze(String policyDefinition) {
-        SAPL saplDocument;
-        try {
-            saplDocument = parse(policyDefinition);
-        } catch (PolicyEvaluationException e) {
-            return new DocumentAnalysisResult(false, "", null, e.getMessage());
-        }
-        return new DocumentAnalysisResult(true, saplDocument.getPolicyElement().getSaplName(),
-                typeOfDocument(saplDocument), "");
-    }
-
-    private DocumentType typeOfDocument(SAPL saplDocument) {
-        return saplDocument.getPolicyElement() instanceof PolicySet ? DocumentType.POLICY_SET : DocumentType.POLICY;
-    }
-
-    private static SAPL loadAsResource(InputStream policyInputStream) {
-        final XtextResourceSet resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-        final Resource         resource    = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
-
-        try {
-            resource.load(policyInputStream, resourceSet.getLoadOptions());
-        } catch (IOException | WrappedException e) {
-            throw new PolicyEvaluationException(e, PARSING_ERRORS, resource.getErrors());
-        }
-
-        if (!resource.getErrors().isEmpty()) {
-            throw new PolicyEvaluationException(PARSING_ERRORS, resource.getErrors());
-        }
-        return (SAPL) resource.getContents().get(0);
     }
 
 }

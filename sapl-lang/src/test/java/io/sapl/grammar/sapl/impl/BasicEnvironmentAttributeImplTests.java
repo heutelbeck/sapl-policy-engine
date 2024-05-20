@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
 import io.sapl.grammar.sapl.SaplFactory;
+import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.testutil.MockUtil;
@@ -43,12 +44,12 @@ class BasicEnvironmentAttributeImplTests {
     private static final SaplFactory FACTORY                   = SaplFactoryImpl.eINSTANCE;
     private static final String      ATTRIBUTE                 = "attribute";
     private static final String      FULLY_QUALIFIED_ATTRIBUTE = "mock." + ATTRIBUTE;
+    private static final String[]    ZERO_TO_FIVE              = new String[] { "0", "1", "2", "3", "4", "5" };
 
     @Test
     void evaluateBasicAttributeFlux() {
         var expression = "<test.numbers>";
-        var expected   = new String[] { "0", "1", "2", "3", "4", "5" };
-        assertExpressionEvaluatesTo(expression, expected);
+        assertExpressionEvaluatesTo(expression, ZERO_TO_FIVE);
     }
 
     @Test
@@ -69,13 +70,13 @@ class BasicEnvironmentAttributeImplTests {
     void exceptionDuringEvaluation() {
         var step = attributeFinderStep();
         var sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
-                mockAttributeContextWithStream(Flux.just(Val.error("ERROR")))));
+                mockAttributeContextWithStream(Flux.just(ErrorFactory.error("ERROR")))));
         StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
     }
 
     @Test
     void applyWithSomeStreamData() {
-        Val[] data = { Val.FALSE, Val.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
+        Val[] data = { Val.FALSE, ErrorFactory.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
         var   step = attributeFinderStep();
         var   sut  = step.evaluate().contextWrite(
                 ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContextWithStream(Flux.just(data))));
@@ -84,8 +85,10 @@ class BasicEnvironmentAttributeImplTests {
 
     private static AttributeContext mockAttributeContextWithStream(Flux<Val> stream) {
         var attributeCtx = mock(AttributeContext.class);
-        when(attributeCtx.evaluateAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any())).thenReturn(stream);
-        when(attributeCtx.evaluateEnvironmentAttribute(eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any())).thenReturn(stream);
+        when(attributeCtx.evaluateAttribute(any(), eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any()))
+                .thenReturn(stream);
+        when(attributeCtx.evaluateEnvironmentAttribute(any(), eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any()))
+                .thenReturn(stream);
         return attributeCtx;
     }
 

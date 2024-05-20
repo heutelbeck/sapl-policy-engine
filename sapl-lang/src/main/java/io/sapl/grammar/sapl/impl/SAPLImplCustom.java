@@ -26,10 +26,12 @@ import java.util.function.Supplier;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
+import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.grammar.sapl.BinaryOperator;
 import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.Schema;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
@@ -45,7 +47,13 @@ public class SAPLImplCustom extends SAPLImpl {
     public Mono<Val> matches() {
         // this does not use the implicit expression to not disrupt hit recording with
         // the test tools
-        return Mono.zip(this.policyElement.matches(), schemasMatch()).map(this::and);
+
+        if (this.schemas == null) {
+            return this.policyElement.matches();
+        } else {
+            return Mono.zip(this.policyElement.matches(), schemasMatch()).map(this::and);
+        }
+
     }
 
     private Mono<Val> schemasMatch() {
@@ -55,16 +63,16 @@ public class SAPLImplCustom extends SAPLImpl {
     private Val and(Tuple2<Val, Val> matches) {
         var elementMatch = matches.getT1();
         var schemaMatch  = matches.getT2();
-
+        Val result;
         if (schemaMatch.isError()) {
-            return schemaMatch;
+            result = schemaMatch;
+        } else if (elementMatch.isError()) {
+            result = elementMatch;
+        } else {
+            result = Val.of(elementMatch.getBoolean() && schemaMatch.getBoolean()).withTrace(SAPL.class, true,
+                    Map.of(Trace.TARGET_EXPRESSION_RESULT, elementMatch, Trace.SCHEMA_VALIDATION, schemaMatch));
         }
-
-        if (elementMatch.isError()) {
-            return elementMatch;
-        }
-
-        return Val.of(elementMatch.getBoolean() && schemaMatch.getBoolean());
+        return result;
     }
 
     @Override
@@ -132,7 +140,7 @@ public class SAPLImplCustom extends SAPLImpl {
     private static Map<String, List<Expression>> collectEnforcedSchemaExpressionsByKeyword(EList<Schema> schemas) {
         Map<String, List<Expression>> schemasByKeyword = new HashMap<>();
         for (var schema : schemas) {
-            if ("enforced".equals(schema.getEnforced())) {
+            if (schema.isEnforced()) {
                 var expression = schemaPredicateExpression(schema);
                 schemasByKeyword.computeIfAbsent(schema.getSubscriptionElement(), k -> new ArrayList<>(1))
                         .add(expression);
