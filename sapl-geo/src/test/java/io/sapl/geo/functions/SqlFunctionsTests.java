@@ -26,24 +26,23 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functionlibraries.SqlFunctions;
 import io.sapl.interpreter.InitializationException;
 
-
 class SqlFunctionsTests {
 
-	private SqlFunctions sqlFunctions = new SqlFunctions();
-	
+    private SqlFunctions sqlFunctions = new SqlFunctions();
+
     @Test
     void CheckSqlSanityPass() throws InitializationException {
-        
-    	var sql = Val.of("Select * from table where name = 'test'");
-        var checkedSql =  sqlFunctions.checkSqlSanity(sql);
+
+        var sql        = Val.of("Select * from table where name = 'test'");
+        var checkedSql = sqlFunctions.checkSqlSanity(sql);
         Assert.equals(sql, checkedSql);
     }
-    
+
     @Test
     void CheckSqlSanityException() throws InitializationException {
-        
-    	var sql = Val.of("Select * from table where name = 'test';drop table");
+
+        var sql = Val.of("Select * from table where name = 'test';drop table");
         Assertions.assertThrows(PolicyEvaluationException.class, () -> sqlFunctions.checkSqlSanity(sql));
     }
-    
+
 }

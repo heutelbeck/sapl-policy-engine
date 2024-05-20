@@ -60,10 +60,10 @@ public class TraccarConnection extends ConnectionBase {
 
         try {
             return getFlux(url, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of)
-                    .onErrorResume(e -> Flux.just(Val.error(e))).doFinally(s -> disconnect());
+                    .onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
 
         } catch (Exception e) {
-            return Flux.just(Val.error(e));
+            return Flux.just(Val.error(e.getMessage()));
         }
 
     }
@@ -85,17 +85,19 @@ public class TraccarConnection extends ConnectionBase {
         Val request;
         try {
             request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, getSessionCookie()));
+
+            var flux = client.consumeWebSocket(request).map(Val::get)
+                    .flatMap(msg -> handler.mapPosition(msg, format, latitudeFirst))
+                    .flatMap(res -> handler.getGeofences(res, format, latitudeFirst))
+                    .map(res -> mapper.convertValue(res, ObjectNode.class));
+
+            logger.info("Traccar-Client connected.");
+            return flux;
+
         } catch (Exception e) {
             throw new PolicyEvaluationException(e);
         }
 
-        var flux = client.consumeWebSocket(request).map(Val::get)
-                .flatMap(msg -> handler.mapPosition(msg, format, latitudeFirst))
-                .flatMap(res -> handler.getGeofences(res, format, latitudeFirst))
-                .map(res -> mapper.convertValue(res, ObjectNode.class));
-
-        logger.info("Traccar-Client connected.");
-        return flux;
     }
 
     private void disconnect() throws PolicyEvaluationException {

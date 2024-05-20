@@ -24,6 +24,7 @@ import org.locationtech.jts.io.gml2.GMLWriter;
 import org.locationtech.jts.io.kml.KMLWriter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -43,13 +44,8 @@ public final class GeometryConverter {
     public static Val geometryToGML(Geometry geo) {
 
         String s = EMPTY;
-        try {
-            s = (new GMLWriter()).write(geo);
+        s = (new GMLWriter()).write(geo);
 
-        } catch (Exception e) {
-
-            return Val.error(e);
-        }
         return Val.of(s);
 
     }
@@ -60,13 +56,8 @@ public final class GeometryConverter {
      */
     public static Val geometryToKML(Geometry geo) {
         String s = EMPTY;
-        try {
-            s = (new KMLWriter().write(geo));
+        s = (new KMLWriter().write(geo));
 
-        } catch (Exception e) {
-
-            return Val.error(e);
-        }
         return Val.of(s);
     }
 
@@ -76,27 +67,24 @@ public final class GeometryConverter {
      */
     public static Val geometryToWKT(Geometry geo) {
         String s = EMPTY;
-        try {
-            s = (new WKTWriter().write(geo));
-        } catch (Exception e) {
-            return Val.error(e);
-        }
+        s = (new WKTWriter().write(geo));
+
         return Val.of(s);
     }
 
     /**
      * @param geo a {@link Geometry}
      * @return a {@link Val} containing the GeoJSON-string}
+     * @throws JsonProcessingException
+     * @throws JsonMappingException
      */
-    public static Val geometryToGeoJsonNode(Geometry geo) {
-        JsonNode json = null;
-        try {
-            ObjectMapper  mapper        = new ObjectMapper();
-            GeoJsonWriter geoJsonWriter = new GeoJsonWriter();
-            json = mapper.readTree(geoJsonWriter.write(geo));
-        } catch (JsonProcessingException e) {
-            return Val.error(e);
-        }
+    public static Val geometryToGeoJsonNode(Geometry geo) throws JsonProcessingException {
+
+        JsonNode      json          = null;
+        ObjectMapper  mapper        = new ObjectMapper();
+        GeoJsonWriter geoJsonWriter = new GeoJsonWriter();
+        json = mapper.readTree(geoJsonWriter.write(geo));
+
         return Val.of(json);
     }
 

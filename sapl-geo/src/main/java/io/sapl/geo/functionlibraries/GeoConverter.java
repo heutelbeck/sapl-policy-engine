@@ -25,6 +25,9 @@ import org.locationtech.jts.io.ParseException;
 import org.springframework.stereotype.Component;
 import org.xml.sax.SAXException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
@@ -57,124 +60,87 @@ public class GeoConverter {
     private static final String WKT_TO_KML     = "converts WKT to KML";
 
     @Function(name = "gmlToKml", docs = GML_TO_KML)
-    public Val gmlToKml(Val gml) {
+    public Val gmlToKml(Val gml) throws SAXException, IOException, ParserConfigurationException {
 
-        try {
-            return GeometryConverter.geometryToKML(GmlConverter.gmlToGeometry(gml));
-        } catch (SAXException | IOException | ParserConfigurationException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToKML(GmlConverter.gmlToGeometry(gml));
+
     }
 
     @Function(name = "gmlToGeoJson", docs = GML_TO_GEOJSON)
-    public Val gmlToGeoJson(Val gml) {
+    public Val gmlToGeoJson(Val gml) throws SAXException, IOException, ParserConfigurationException {
 
-        try {
-            return GeometryConverter.geometryToGeoJsonNode(GmlConverter.gmlToGeometry(gml));
-        } catch (SAXException | IOException | ParserConfigurationException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToGeoJsonNode(GmlConverter.gmlToGeometry(gml));
+
     }
 
     @Function(name = "gmlToWkt", docs = GML_TO_WKT)
-    public Val gmlToWkt(Val gml) {
+    public Val gmlToWkt(Val gml) throws SAXException, IOException, ParserConfigurationException {
 
-        try {
-            return GeometryConverter.geometryToWKT(GmlConverter.gmlToGeometry(gml));
-        } catch (SAXException | IOException | ParserConfigurationException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToWKT(GmlConverter.gmlToGeometry(gml));
+
     }
 
     @Function(name = "geoJsonToKml", docs = GEOJSON_TO_KML)
-    public Val geoJsonToKml(Val geoJson) {
+    public Val geoJsonToKml(Val geoJson) throws ParseException {
 
-        try { // geoJsonToGeometry
-//            return GeometryConverter.geometryToKML((new GeoJsonReader()).read(geoJson.getText()));
-            return GeometryConverter.geometryToKML(JsonConverter.geoJsonToGeometry(geoJson));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToKML(JsonConverter.geoJsonToGeometry(geoJson));
+
     }
 
     @Function(name = "geoJsonToGml", docs = GEOJSON_TO_GML)
-    public Val geoJsonToGml(Val geoJson) {
+    public Val geoJsonToGml(Val geoJson) throws ParseException {
 
-        try {
-            return GeometryConverter.geometryToGML(JsonConverter.geoJsonToGeometry(geoJson));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToGML(JsonConverter.geoJsonToGeometry(geoJson));
+
     }
 
     @Function(name = "geoJsonToWkt", docs = GEOJSON_TO_WKT)
-    public Val geoJsonToWkt(Val geoJson) {
+    public Val geoJsonToWkt(Val geoJson) throws ParseException {
 
-        try {
-            return GeometryConverter.geometryToWKT(JsonConverter.geoJsonToGeometry(geoJson));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToWKT(JsonConverter.geoJsonToGeometry(geoJson));
+
     }
 
     @Function(name = "kmlToGml", docs = KML_TO_GML)
-    public Val kmlToGml(Val kml) {
+    public Val kmlToGml(Val kml) throws ParseException {
 
-        try {
-            return GeometryConverter.geometryToGML(KmlConverter.kmlToGeometry(kml));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToGML(KmlConverter.kmlToGeometry(kml));
+
     }
 
     @Function(name = "kmlToGeoJson", docs = KML_TO_GEOJSON)
-    public Val kmlToGeoJson(Val kml) {
+    public Val kmlToGeoJson(Val kml) throws ParseException, JsonMappingException, JsonProcessingException {
 
-        try {
-            return GeometryConverter.geometryToGeoJsonNode(KmlConverter.kmlToGeometry(kml));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToGeoJsonNode(KmlConverter.kmlToGeometry(kml));
+
     }
 
     @Function(name = "kmlToWkt", docs = KML_TO_WKT)
-    public Val kmlToWkt(Val kml) {
+    public Val kmlToWkt(Val kml) throws ParseException {
 
-        try {
-            return GeometryConverter.geometryToWKT(KmlConverter.kmlToGeometry(kml));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToWKT(KmlConverter.kmlToGeometry(kml));
+
     }
 
     @Function(name = "wktToGml", docs = WKT_TO_GML)
-    public Val wktToGml(Val wkt) {
+    public Val wktToGml(Val wkt) throws ParseException {
 
-        try {
-            return GeometryConverter.geometryToGML(WktConverter.wktToGeometry(wkt));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToGML(WktConverter.wktToGeometry(wkt));
+
     }
 
     @Function(name = "wktToKml", docs = WKT_TO_KML)
-    public Val wktToKml(Val wkt) {
+    public Val wktToKml(Val wkt) throws ParseException {
 
-        try {
-            return GeometryConverter.geometryToKML(WktConverter.wktToGeometry(wkt));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToKML(WktConverter.wktToGeometry(wkt));
+
     }
 
     @Function(name = "wktToGeoJson", docs = WKT_TO_GEOJSON)
-    public Val wktToGeoJson(Val wkt) {
+    public Val wktToGeoJson(Val wkt) throws ParseException, JsonMappingException, JsonProcessingException {
 
-        try {
-            return GeometryConverter.geometryToGeoJsonNode(WktConverter.wktToGeometry(wkt));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+        return GeometryConverter.geometryToGeoJsonNode(WktConverter.wktToGeometry(wkt));
+
     }
 
 }

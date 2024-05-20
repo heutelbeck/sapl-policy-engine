@@ -56,11 +56,8 @@ public class GeoParser {
     @Function(name = "parseKml", docs = PARSE_KML)
     public Val parseKML(Val kml) {
 
-        try {
-            return Val.of(parseKML(kml.getText()));
-        } catch (Exception e) {
-            return Val.error(e);
-        }
+        return Val.of(parseKML(kml.getText()));
+
     }
 
     public ArrayNode parseKML(String kmlString) {

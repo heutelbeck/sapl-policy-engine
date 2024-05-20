@@ -26,6 +26,8 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -63,6 +65,8 @@ public class GeoMapper {
      * @param format        a {@link GeoPipResponseFormat}
      * @param latitudeFirst a {@link Boolean} to set latitude/longitude as first
      *                      coordinate
+     * @throws JsonProcessingException
+     * @throws JsonMappingException
      */
     public GeoPipResponse mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst) {
 
@@ -80,29 +84,30 @@ public class GeoMapper {
         }
 
         JsonNode posRes = mapper.createObjectNode();
-        switch (format) {
-        case GEOJSON:
+        try {
+            switch (format) {
+            case GEOJSON:
+                posRes = GeometryConverter.geometryToGeoJsonNode(position).get();
+                break;
 
-            posRes = GeometryConverter.geometryToGeoJsonNode(position).get();
-            break;
+            case WKT:
+                posRes = GeometryConverter.geometryToWKT(position).get();
+                break;
 
-        case WKT:
-            posRes = GeometryConverter.geometryToWKT(position).get();
-            break;
+            case GML:
+                posRes = GeometryConverter.geometryToGML(position).get();
+                break;
 
-        case GML:
-            posRes = GeometryConverter.geometryToGML(position).get();
-            break;
+            case KML:
+                posRes = GeometryConverter.geometryToKML(position).get();
+                break;
 
-        case KML:
-            posRes = GeometryConverter.geometryToKML(position).get();
-            break;
-
-        default:
-
-            break;
+            default:
+                break;
+            }
+        } catch (Exception e) {
+            throw new PolicyEvaluationException(e);
         }
-
         return GeoPipResponse.builder().deviceId(deviceId).position(posRes).altitude(in.findValue(altitude).asDouble())
                 .lastUpdate(in.findValue(lastUpdate).asText()).accuracy(in.findValue(accuracy).asDouble()).build();
     }

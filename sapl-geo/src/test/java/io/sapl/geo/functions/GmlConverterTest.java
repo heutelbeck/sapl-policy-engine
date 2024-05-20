@@ -53,7 +53,7 @@ class GmlConverterTest extends TestBase {
     }
 
     @Test
-    void gmlToGeoJsonTest() {
+    void gmlToGeoJsonTest() throws SAXException, IOException, ParserConfigurationException {
 
         var res  = geoConverter.gmlToGeoJson(point);
         var res1 = geoConverter.gmlToGeoJson(polygon);
@@ -80,7 +80,7 @@ class GmlConverterTest extends TestBase {
     }
 
     @Test
-    void gmlToKmlTest() throws TransformerException {
+    void gmlToKmlTest() throws TransformerException, SAXException, IOException, ParserConfigurationException {
 
         var res  = geoConverter.gmlToKml(point);
         var res1 = geoConverter.gmlToKml(polygon);
@@ -103,7 +103,7 @@ class GmlConverterTest extends TestBase {
     }
 
     @Test
-    void gmlToWktTest() {
+    void gmlToWktTest() throws SAXException, IOException, ParserConfigurationException {
 
         var res  = geoConverter.gmlToWkt(point);
         var res1 = geoConverter.gmlToWkt(polygon);

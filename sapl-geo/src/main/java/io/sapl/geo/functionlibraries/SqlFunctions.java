@@ -38,20 +38,19 @@ public class SqlFunctions {
             Checks if a SQL-string contains dangerous operations to prevent SQL-injection.
             Returns the string in case its "sane", throws PolicyEvaluationException otherwise""";
 
-
     @Function(docs = CHECK_SQL_SANITY_DOC)
     public Val checkSqlSanity(@Text Val sqlString) {
 
-    	var sql = sqlString.getText();
-    	
+        var sql = sqlString.getText();
+
         var configuration = getConfiguration();
-        if(Arrays.stream(configuration).noneMatch(sql::contains)) {
-        	return sqlString;
-        }else {
-        	
-        	throw new PolicyEvaluationException(String.format("Sql string %s ist not safe.", sql));
+        if (Arrays.stream(configuration).noneMatch(sql::contains)) {
+            return sqlString;
+        } else {
+
+            throw new PolicyEvaluationException(String.format("Sql string %s ist not safe.", sql));
         }
-    
+
     }
 
     private String[] getConfiguration() {

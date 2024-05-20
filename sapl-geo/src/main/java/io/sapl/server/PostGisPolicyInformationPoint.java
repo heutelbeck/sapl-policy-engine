@@ -55,7 +55,7 @@ public class PostGisPolicyInformationPoint {
             return new PostGisConnection(auth.get(), mapper).sendQuery(variables.get());
 
         } catch (Exception e) {
-            return Flux.just(Val.error(e));
+            return Flux.just(Val.error(e.getMessage()));
         }
     }
 

@@ -83,10 +83,10 @@ public abstract class DatabaseConnection extends ConnectionBase {
                     getSingleResult(settings), getDefaultCRS(settings),
                     longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
                     longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), getLatitudeFirst(settings))
-                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e)));
+                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage())));
 
         } catch (Exception e) {
-            return Flux.just(Val.error(e));
+            return Flux.just(Val.error(e.getMessage()));
         }
 
     }

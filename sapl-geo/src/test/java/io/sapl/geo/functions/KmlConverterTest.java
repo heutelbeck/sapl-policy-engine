@@ -31,6 +31,10 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+
 import io.sapl.api.interpreter.Val;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -51,7 +55,7 @@ class KmlConverterTest extends TestBase {
     }
 
     @Test
-    void kmlToGeoJsonTest() {
+    void kmlToGeoJsonTest() throws ParseException, JsonMappingException, JsonProcessingException {
 
         var result  = geoConverter.kmlToGeoJson(point);
         var result1 = geoConverter.kmlToGeoJson(polygon);
@@ -78,7 +82,7 @@ class KmlConverterTest extends TestBase {
     }
 
     @Test
-    void kmlToGMLTest() throws TransformerException {
+    void kmlToGMLTest() throws TransformerException, ParseException {
 
         var res  = geoConverter.kmlToGml(point);
         var res1 = geoConverter.kmlToGml(polygon);
@@ -101,7 +105,7 @@ class KmlConverterTest extends TestBase {
     }
 
     @Test
-    void kmlToWKTTest() {
+    void kmlToWKTTest() throws ParseException {
 
         var result  = geoConverter.kmlToWkt(point);
         var result1 = geoConverter.kmlToWkt(polygon);

@@ -44,7 +44,7 @@ class JsonConverterTest extends TestBase {
     }
 
     @Test
-    void geoJsonToKmlTest() throws TransformerException {
+    void geoJsonToKmlTest() throws TransformerException, ParseException {
 
         var result  = geoConverter.geoJsonToKml(point);
         var result1 = geoConverter.geoJsonToKml(polygon);
@@ -80,7 +80,7 @@ class JsonConverterTest extends TestBase {
     }
 
     @Test
-    void geoJsonToGMLTest() throws TransformerException {
+    void geoJsonToGMLTest() throws TransformerException, ParseException {
 
         var result  = geoConverter.geoJsonToGml(point);
         var result1 = geoConverter.geoJsonToGml(polygon);
@@ -103,7 +103,7 @@ class JsonConverterTest extends TestBase {
     }
 
     @Test
-    void geoJsonToWktTest() {
+    void geoJsonToWktTest() throws ParseException {
 
         var result  = geoConverter.geoJsonToWkt(point);
         var result1 = geoConverter.geoJsonToWkt(polygon);

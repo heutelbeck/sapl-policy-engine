@@ -293,7 +293,7 @@ public class Program {
      			 try {
 					var res = func.within(Val.of(pos), Val.ofJson("{\"type\":\"LineString\",\"coordinates\":[[48.63060132,12.8515458],[48.63035176,12.85150088],[48.63033986,12.85188421],[48.63060174,12.85189762],[48.63060058,12.85154645]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}"));
 					var x = 1;
-     			 } catch (JsonProcessingException e) {
+     			 } catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}

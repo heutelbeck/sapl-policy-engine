@@ -23,11 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.connection.shared.ConnectionBase;
@@ -71,7 +69,7 @@ public class OwnTracksConnection extends ConnectionBase {
                     getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of);
 
         } catch (Exception e) {
-            return Flux.just(Val.error(e));
+            return Flux.just(Val.error(e.getMessage()));
         }
 
     }

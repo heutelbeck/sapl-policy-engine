@@ -36,6 +36,7 @@ import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.TransformException;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -107,13 +108,10 @@ public class GeoFunctions {
     private static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM = "Input must be a GeometryCollection containing only one Geometry.";
 
     @Function(name = "equalsExact", docs = EQUALS_DOC)
-    public Val geometryEquals(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return Val.of(geometryEquals(geoJsonThis.get(), geoJsonThat.get()));
-        } catch (ParseException e) {
+    public Val geometryEquals(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
 
-            return Val.error(e);
-        }
+        return Val.of(geometryEquals(geoJsonThis.get(), geoJsonThat.get()));
+
     }
 
     public Boolean geometryEquals(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat)
@@ -123,12 +121,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = DISJOINT_DOC)
-    public Val disjoint(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return Val.of(disjoint(geoJsonThis.get(), geoJsonThat.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val disjoint(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
+
+        return Val.of(disjoint(geoJsonThis.get(), geoJsonThat.get()));
+
     }
 
     public Boolean disjoint(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -137,12 +133,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = TOUCHES_DOC)
-    public Val touches(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return Val.of(touches(geoJsonThis.get(), geoJsonThat.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val touches(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
+
+        return Val.of(touches(geoJsonThis.get(), geoJsonThat.get()));
+
     }
 
     public Boolean touches(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -151,12 +145,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = CROSSES_DOC)
-    public Val crosses(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return Val.of(crosses(geoJsonThis.get(), geoJsonThat.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val crosses(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
+
+        return Val.of(crosses(geoJsonThis.get(), geoJsonThat.get()));
+
     }
 
     public Boolean crosses(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -165,12 +157,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = WITHIN_DOC)
-    public Val within(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return Val.of(within(geoJsonThis.get(), geoJsonThat.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val within(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
+
+        return Val.of(within(geoJsonThis.get(), geoJsonThat.get()));
+
     }
 
     public Boolean within(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -181,12 +171,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = CONTAINS_DOC)
-    public Val contains(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return Val.of(contains(geoJsonThis.get(), geoJsonThat.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val contains(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
+
+        return Val.of(contains(geoJsonThis.get(), geoJsonThat.get()));
+
     }
 
     public Boolean contains(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -197,12 +185,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = OVERLAPS_DOC)
-    public Val overlaps(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return Val.of(overlaps(geoJsonThis.get(), geoJsonThat.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val overlaps(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
+
+        return Val.of(overlaps(geoJsonThis.get(), geoJsonThat.get()));
+
     }
 
     public Boolean overlaps(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -211,12 +197,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = INTERSECTS_DOC)
-    public Val intersects(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return Val.of(intersects(geoJsonThis.get(), geoJsonThat.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val intersects(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
+
+        return Val.of(intersects(geoJsonThis.get(), geoJsonThat.get()));
+
     }
 
     public Boolean intersects(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat)
@@ -226,77 +210,67 @@ public class GeoFunctions {
     }
 
     @Function(docs = BUFFER_DOC)
-    public Val buffer(@JsonObject Val jsonGeometry, @Number Val buffer) {
-        try {
-            return buffer(jsonGeometry.get(), buffer.get().asDouble());
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val buffer(@JsonObject Val jsonGeometry, @Number Val buffer) throws ParseException, JsonProcessingException {
+
+        return buffer(jsonGeometry.get(), buffer.get().asDouble());
+
     }
 
-    public Val buffer(@JsonObject JsonNode jsonGeometry, @Number Double buffer) throws ParseException {
+    public Val buffer(@JsonObject JsonNode jsonGeometry, @Number Double buffer)
+            throws ParseException, JsonProcessingException {
 
         return GeometryConverter
                 .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString()).buffer(buffer));
     }
 
     @Function(docs = BOUNDARY_DOC)
-    public Val boundary(@JsonObject Val jsonGeometry) {
-        try {
-            return boundary(jsonGeometry.get());
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val boundary(@JsonObject Val jsonGeometry) throws ParseException, JsonProcessingException {
+
+        return boundary(jsonGeometry.get());
+
     }
 
-    public Val boundary(@JsonObject JsonNode jsonGeometry) throws ParseException {
+    public Val boundary(@JsonObject JsonNode jsonGeometry) throws ParseException, JsonProcessingException {
         return GeometryConverter
                 .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString()).getBoundary());
     }
 
     @Function(docs = CENTROID_DOC)
-    public Val centroid(@JsonObject Val jsonGeometry) {
-        try {
-            return centroid(jsonGeometry.get());
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val centroid(@JsonObject Val jsonGeometry) throws ParseException, JsonProcessingException {
+
+        return centroid(jsonGeometry.get());
+
     }
 
-    public Val centroid(@JsonObject JsonNode jsonGeometry) throws ParseException {
+    public Val centroid(@JsonObject JsonNode jsonGeometry) throws ParseException, JsonProcessingException {
         return GeometryConverter
                 .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString()).getCentroid());
     }
 
     @Function(docs = CONVEX_HULL_GEOMETRY_RETURNS_THE_CONVEX_HULL_SMALLEST_CONVEX_POLYGON_THAT_CONTAINS_ALL_POINTS_OF_THE_GEOMETRY_OF_THE_GEOMETRY)
-    public Val convexHull(@JsonObject Val jsonGeometry) {
-        try {
-            return convexHull(jsonGeometry.get());
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val convexHull(@JsonObject Val jsonGeometry) throws ParseException, JsonProcessingException {
+
+        return convexHull(jsonGeometry.get());
+
     }
 
-    public Val convexHull(@JsonObject JsonNode jsonGeometry) throws ParseException {
+    public Val convexHull(@JsonObject JsonNode jsonGeometry) throws ParseException, JsonProcessingException {
         return GeometryConverter
                 .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString()).convexHull());
     }
 
     @Function(docs = UNION_DOC)
-    public Val union(@JsonObject Val... jsonGeometries) {
+    public Val union(@JsonObject Val... jsonGeometries) throws ParseException, JsonProcessingException {
 
-        try {
-            JsonNode[] geometries = new JsonNode[jsonGeometries.length];
-            for (int i = 0; i < jsonGeometries.length; i++) {
-                geometries[i] = jsonGeometries[i].get();
-            }
-            return union(geometries);
-        } catch (ParseException e) {
-            return Val.error(e);
+        JsonNode[] geometries = new JsonNode[jsonGeometries.length];
+        for (int i = 0; i < jsonGeometries.length; i++) {
+            geometries[i] = jsonGeometries[i].get();
         }
+        return union(geometries);
+
     }
 
-    public Val union(@JsonObject JsonNode... jsonGeometries) throws ParseException {
+    public Val union(@JsonObject JsonNode... jsonGeometries) throws ParseException, JsonProcessingException {
         if (jsonGeometries.length == 1) {
             return Val.of(jsonGeometries[0]);
         }
@@ -309,54 +283,51 @@ public class GeoFunctions {
     }
 
     @Function(docs = INTERSECTION_DOC)
-    public Val intersection(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return intersection(geoJsonThis.get(), geoJsonThat.get());
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val intersection(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat)
+            throws ParseException, JsonProcessingException {
+
+        return intersection(geoJsonThis.get(), geoJsonThat.get());
+
     }
 
-    public Val intersection(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
+    public Val intersection(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat)
+            throws ParseException, JsonProcessingException {
         return GeometryConverter.geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(geoJsonThis.toPrettyString())
                 .intersection(JsonConverter.geoJsonToGeometry(geoJsonThat.toPrettyString())));
     }
 
     @Function(docs = DIFFERENCE_DOC)
-    public Val difference(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return difference(geoJsonThis.get(), geoJsonThat.get());
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val difference(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat)
+            throws ParseException, JsonProcessingException {
+
+        return difference(geoJsonThis.get(), geoJsonThat.get());
+
     }
 
-    public Val difference(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
+    public Val difference(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat)
+            throws ParseException, JsonProcessingException {
         return GeometryConverter.geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(geoJsonThis.toPrettyString())
                 .difference(JsonConverter.geoJsonToGeometry(geoJsonThat.toPrettyString())));
     }
 
     @Function(docs = BETWEEN_TWO_GEOMETRIES)
-    public Val symDifference(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return symDifference(geoJsonThis.get(), geoJsonThat.get());
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val symDifference(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat)
+            throws ParseException, JsonProcessingException {
+
+        return symDifference(geoJsonThis.get(), geoJsonThat.get());
     }
 
-    public Val symDifference(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
+    public Val symDifference(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat)
+            throws ParseException, JsonProcessingException {
         return GeometryConverter.geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(geoJsonThis.toPrettyString())
                 .symDifference(JsonConverter.geoJsonToGeometry(geoJsonThat.toPrettyString())));
     }
 
     @Function(docs = DISTANCE_DOC)
-    public Val distance(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) {
-        try {
-            return Val.of(distance(geoJsonThis.get(), geoJsonThat.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val distance(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
+
+        return Val.of(distance(geoJsonThis.get(), geoJsonThat.get()));
+
     }
 
     public double distance(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -365,12 +336,11 @@ public class GeoFunctions {
     }
 
     @Function(docs = IS_WITHIN_DISTANCE_DOC)
-    public Val isWithinDistance(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat, @Number Val distInput) {
-        try {
-            return Val.of(isWithinDistance(geoJsonThis.get(), geoJsonThat.get(), distInput.get().asDouble()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val isWithinDistance(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat, @Number Val distInput)
+            throws ParseException {
+
+        return Val.of(isWithinDistance(geoJsonThis.get(), geoJsonThat.get(), distInput.get().asDouble()));
+
     }
 
     public Boolean isWithinDistance(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat,
@@ -381,23 +351,18 @@ public class GeoFunctions {
 
     @Function(docs = GEO_DISTANCE_DOC)
     public Val geoDistance(@JsonObject Val jsonGeometryThis, @JsonObject Val jsonGeometryThat)
-            throws FactoryException, TransformException {
-        try {
-            return Val.of(geoDistance(jsonGeometryThis.get(), jsonGeometryThat.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+            throws FactoryException, TransformException, ParseException {
+
+        return Val.of(geoDistance(jsonGeometryThis.get(), jsonGeometryThat.get()));
+
     }
 
     @Function(docs = GEO_DISTANCE_DOC)
     public Val geoDistance(@JsonObject Val jsonGeometryThis, @JsonObject Val jsonGeometryThat,
-            Val coordinateReferenceSystem) {
-        try {
-            return Val.of(
-                    geoDistance(jsonGeometryThis.get(), jsonGeometryThat.get(), coordinateReferenceSystem.getText()));
-        } catch (Exception e) {
-            return Val.error(e);
-        }
+            Val coordinateReferenceSystem) throws ParseException, FactoryException, TransformException {
+
+        return Val.of(geoDistance(jsonGeometryThis.get(), jsonGeometryThat.get(), coordinateReferenceSystem.getText()));
+
     }
 
     public double geoDistance(JsonNode jsonGeometryThis, JsonNode jsonGeometryThat)
@@ -428,13 +393,10 @@ public class GeoFunctions {
 
     @Function(docs = IS_WITHIN_GEO_DISTANCE_DOC)
     public Val isWithinGeoDistance(@JsonObject Val jsonGeometryThis, @JsonObject Val jsonGeometryThat,
-            @Number Val distance) {
-        try {
-            return Val
-                    .of(isWithinGeoDistance(jsonGeometryThis.get(), jsonGeometryThat.get(), distance.get().asDouble()));
-        } catch (TransformException | FactoryException | ParseException e) {
-            return Val.error(e);
-        }
+            @Number Val distance) throws TransformException, FactoryException, ParseException {
+
+        return Val.of(isWithinGeoDistance(jsonGeometryThis.get(), jsonGeometryThat.get(), distance.get().asDouble()));
+
     }
 
     public Boolean isWithinGeoDistance(@JsonObject JsonNode jsonGeometryThis, @JsonObject JsonNode jsonGeometryThat,
@@ -443,12 +405,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = LENGTH_DOC)
-    public Val length(@JsonObject Val jsonGeometry) {
-        try {
-            return Val.of(length(jsonGeometry.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val length(@JsonObject Val jsonGeometry) throws ParseException {
+
+        return Val.of(length(jsonGeometry.get()));
+
     }
 
     public Double length(@JsonObject JsonNode jsonGeometry) throws ParseException {
@@ -456,12 +416,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = AREA_DOC)
-    public Val area(@JsonObject Val jsonGeometry) {
-        try {
-            return Val.of(area(jsonGeometry.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val area(@JsonObject Val jsonGeometry) throws ParseException {
+
+        return Val.of(area(jsonGeometry.get()));
+
     }
 
     public Double area(@JsonObject JsonNode jsonGeometry) throws ParseException {
@@ -469,12 +427,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = IS_SIMPLE_DOC)
-    public Val isSimple(@JsonObject Val jsonGeometry) {
-        try {
-            return Val.of(isSimple(jsonGeometry.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val isSimple(@JsonObject Val jsonGeometry) throws ParseException {
+
+        return Val.of(isSimple(jsonGeometry.get()));
+
     }
 
     public Boolean isSimple(@JsonObject JsonNode jsonGeometry) throws ParseException {
@@ -482,12 +438,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = IS_VALID_DOC)
-    public Val isValid(@JsonObject Val jsonGeometry) {
-        try {
-            return Val.of(isValid(jsonGeometry.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val isValid(@JsonObject Val jsonGeometry) throws ParseException {
+
+        return Val.of(isValid(jsonGeometry.get()));
+
     }
 
     public Boolean isValid(@JsonObject JsonNode jsonGeometry) throws ParseException {
@@ -495,12 +449,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = IS_CLOSED_DOC)
-    public Val isClosed(@JsonObject Val jsonGeometry) {
-        try {
-            return Val.of(isClosed(jsonGeometry.get()));
-        } catch (OperationNotSupportedException | ParseException e) {
-            return Val.error(e);
-        }
+    public Val isClosed(@JsonObject Val jsonGeometry) throws OperationNotSupportedException, ParseException {
+
+        return Val.of(isClosed(jsonGeometry.get()));
+
     }
 
     public Boolean isClosed(@JsonObject JsonNode jsonGeometry) throws ParseException, OperationNotSupportedException {
@@ -526,11 +478,8 @@ public class GeoFunctions {
 
     @Function(docs = MILES_TOMETER_DOC)
     public Val milesToMeter(@Number Val jsonValue) {
-        try {
-            return Val.of(milesToMeter(jsonValue.get()));
-        } catch (IllegalArgumentException e) {
-            return Val.error(e);
-        }
+
+        return Val.of(milesToMeter(jsonValue.get()));
     }
 
     public JsonNode milesToMeter(@Number JsonNode jsonValue) throws IllegalArgumentException {
@@ -544,11 +493,9 @@ public class GeoFunctions {
 
     @Function(docs = YARDS_TOMETER_DOC)
     public Val yardToMeter(@Number Val jsonValue) {
-        try {
-            return Val.of(yardToMeter(jsonValue.get()));
-        } catch (IllegalArgumentException e) {
-            return Val.error(e);
-        }
+
+        return Val.of(yardToMeter(jsonValue.get()));
+
     }
 
     public JsonNode yardToMeter(@Number JsonNode jsonValue) throws IllegalArgumentException {
@@ -558,11 +505,9 @@ public class GeoFunctions {
 
     @Function(docs = DEGREE_TOMETER_DOC)
     public Val degreeToMeter(@Number Val jsonValue) {
-        try {
-            return Val.of(degreeToMeter(jsonValue.get()));
-        } catch (IllegalArgumentException e) {
-            return Val.error(e);
-        }
+
+        return Val.of(degreeToMeter(jsonValue.get()));
+
     }
 
     public JsonNode degreeToMeter(@Number JsonNode jsonValue) throws IllegalArgumentException {
@@ -575,12 +520,10 @@ public class GeoFunctions {
     }
 
     @Function(docs = BAG_SIZE_DOC)
-    public Val bagSize(@JsonObject Val jsonGeometry) {
-        try {
-            return Val.of(bagSize(jsonGeometry.get()));
-        } catch (ParseException e) {
-            return Val.error(e);
-        }
+    public Val bagSize(@JsonObject Val jsonGeometry) throws ParseException {
+
+        return Val.of(bagSize(jsonGeometry.get()));
+
     }
 
     public int bagSize(@JsonObject JsonNode jsonGeometry) throws ParseException {
@@ -588,16 +531,15 @@ public class GeoFunctions {
     }
 
     @Function(docs = ONE_AND_ONLY_DOC)
-    public Val oneAndOnly(@JsonObject Val jsonGeometryCollection) {
-        try {
-            return oneAndOnly(jsonGeometryCollection.get());
-        } catch (OperationNotSupportedException | ClassCastException | ParseException e) {
-            return Val.error(e);
-        }
+    public Val oneAndOnly(@JsonObject Val jsonGeometryCollection)
+            throws OperationNotSupportedException, ClassCastException, ParseException, JsonProcessingException {
+
+        return oneAndOnly(jsonGeometryCollection.get());
+
     }
 
     public Val oneAndOnly(@JsonObject JsonNode jsonGeometryCollection)
-            throws ParseException, OperationNotSupportedException, ClassCastException {
+            throws ParseException, OperationNotSupportedException, ClassCastException, JsonProcessingException {
         GeometryCollection geometryCollection = (GeometryCollection) JsonConverter
                 .geoJsonToGeometry(jsonGeometryCollection.toPrettyString());
         if (geometryCollection.getNumGeometries() == 1) {
@@ -608,13 +550,11 @@ public class GeoFunctions {
     }
 
     @Function(docs = GEOMETRY_IS_IN_DOC)
-    public Val geometryIsIn(@JsonObject Val jsonGeometry, @JsonObject Val jsonGeometryCollection) {
+    public Val geometryIsIn(@JsonObject Val jsonGeometry, @JsonObject Val jsonGeometryCollection)
+            throws ClassCastException, ParseException {
 
-        try {
-            return Val.of(geometryIsIn(jsonGeometry.get(), jsonGeometryCollection.get()));
-        } catch (ClassCastException | ParseException e) {
-            return Val.error(e);
-        }
+        return Val.of(geometryIsIn(jsonGeometry.get(), jsonGeometryCollection.get()));
+
     }
 
     public Boolean geometryIsIn(@JsonObject JsonNode jsonGeometry, @JsonObject JsonNode jsonGeometryCollection)
@@ -632,21 +572,18 @@ public class GeoFunctions {
     }
 
     @Function(docs = GEOMETRY_BAG_DOC)
-    public Val geometryBag(@JsonObject Val... geometryJsonInput) {
+    public Val geometryBag(@JsonObject Val... geometryJsonInput) throws ParseException, JsonProcessingException {
 
-        try {
-            JsonNode[] geometries = new JsonNode[geometryJsonInput.length];
-            for (int i = 0; i < geometryJsonInput.length; i++) {
-                geometries[i] = geometryJsonInput[i].get();
-            }
-
-            return geometryBag(geometries);
-        } catch (ParseException e) {
-            return Val.error(e);
+        JsonNode[] geometries = new JsonNode[geometryJsonInput.length];
+        for (int i = 0; i < geometryJsonInput.length; i++) {
+            geometries[i] = geometryJsonInput[i].get();
         }
+
+        return geometryBag(geometries);
+
     }
 
-    public Val geometryBag(@JsonObject JsonNode... geometryJsonInput) throws ParseException {
+    public Val geometryBag(@JsonObject JsonNode... geometryJsonInput) throws ParseException, JsonProcessingException {
         Geometry[] geometries = new Geometry[geometryJsonInput.length];
         for (int i = 0; i < geometryJsonInput.length; i++) {
             geometries[i] = JsonConverter.geoJsonToGeometry(geometryJsonInput[i].toPrettyString());
@@ -657,7 +594,7 @@ public class GeoFunctions {
     }
 
     @Function(docs = RES_TO_GEOMETRY_BAG_DOC)
-    public Val resToGeometryBag(@Array Val resourceArray) {
+    public Val resToGeometryBag(@Array Val resourceArray) throws ParseException, JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode[]   nodes  = mapper.convertValue(resourceArray.get(), JsonNode[].class);
 
@@ -674,7 +611,7 @@ public class GeoFunctions {
         try {
             return Val.of(atLeastOneMemberOf(jsonGeometryCollectionThis.get(), jsonGeometryCollectionThat.get()));
         } catch (ParseException e) {
-            return Val.error(e);
+            return Val.error(e.getMessage());
         }
     }
 
@@ -701,7 +638,7 @@ public class GeoFunctions {
         try {
             return Val.of(subset(jsonGeometryCollectionThis.get(), jsonGeometryCollectionThat.get()));
         } catch (ParseException e) {
-            return Val.error(e);
+            return Val.error(e.getMessage());
         }
     }
 
