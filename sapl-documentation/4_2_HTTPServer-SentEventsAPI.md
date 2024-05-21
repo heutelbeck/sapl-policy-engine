@@ -24,6 +24,13 @@ Upon subscription, the PDP server will respond with an unbound stream of decisio
 - Body: A valid JSON authorization subscription
 - Produces: A SSE stream of authorization decisions
 
+### Decide Once
+
+- URL: `{baseURL}/decide-once`
+- Method: `POST`
+- Body: A valid JSON authorization subscription
+- Produces: A single authorization decisions
+
 ### Multi Decide
 
 - URL: `{baseURL}/multi-decide`
