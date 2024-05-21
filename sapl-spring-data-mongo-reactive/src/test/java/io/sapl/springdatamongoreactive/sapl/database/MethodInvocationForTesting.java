@@ -25,8 +25,6 @@ import org.aopalliance.intercept.MethodInvocation;
 
 import lombok.AllArgsConstructor;
 
-import javax.annotation.Nonnull;
-
 @AllArgsConstructor
 public class MethodInvocationForTesting implements MethodInvocation {
 
@@ -35,18 +33,16 @@ public class MethodInvocationForTesting implements MethodInvocation {
     ArrayList<Object>   argumentValues;
     Object              proceedObject;
 
-    @Nonnull
     @Override
     public Method getMethod() {
         try {
-            return ReactiveMongoTestUserRepository.class.getMethod(methodName,
+            return UserReactiveMongoRepository.class.getMethod(methodName,
                     argumentClasses.toArray(new Class[argumentClasses.size()]));
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
     }
 
-    @Nonnull
     @Override
     public Object[] getArguments() {
         return argumentValues.toArray(new Object[argumentValues.size()]);
@@ -62,9 +58,8 @@ public class MethodInvocationForTesting implements MethodInvocation {
         return this;
     }
 
-    @Nonnull
     @Override
     public AccessibleObject getStaticPart() {
-        throw new InternalError();
+        return getMethod();
     }
 }

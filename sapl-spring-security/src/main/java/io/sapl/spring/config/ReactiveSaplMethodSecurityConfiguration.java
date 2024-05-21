@@ -21,6 +21,7 @@ import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -114,6 +115,7 @@ public class ReactiveSaplMethodSecurityConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
         var handler = new DefaultMethodSecurityExpressionHandler();

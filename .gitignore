@@ -7,6 +7,7 @@ target/
 .apt_generated/
 .settings/
 .metadata/
+.sonarlint/
 events/
 .factorypath
 **/xtend-gen/

@@ -30,4 +30,5 @@ public class TestUser {
     ObjectId id;
     String   firstname;
     int      age;
+    boolean  admin;
 }
