@@ -111,7 +111,7 @@ class MethodSecurityExpressionEvaluatorTests {
                     .thenThrow(NullPointerException.class);
 
             var errorMessage = """
-                    		Expressiondetectedbutcouldnotbeparsed:Test.Stacktrace:java.lang.NullPointerException
+                    		Expressiondetectedbutcouldnotbeparsed:Test
                     """;
 
             // THEN
@@ -120,7 +120,7 @@ class MethodSecurityExpressionEvaluatorTests {
             });
             assertEquals(TestUtils.removeWhitespace(errorMessage),
                     TestUtils.removeWhitespace(accessDeniedException.getMessage()));
-
+            assertEquals(NullPointerException.class, accessDeniedException.getCause().getClass());
         }
     }
 

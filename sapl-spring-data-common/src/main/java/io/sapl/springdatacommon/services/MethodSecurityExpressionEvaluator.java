@@ -19,11 +19,14 @@ package io.sapl.springdatacommon.services;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.expression.EvaluationException;
 import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.core.context.SecurityContextHolder;
+
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
@@ -37,9 +40,8 @@ public class MethodSecurityExpressionEvaluator {
         try {
             return parser.parseExpression(expression)
                     .getValue(handler.getObject().createEvaluationContext(authentication, invocation), Boolean.class);
-        } catch (Exception e) {
-            throw new AccessDeniedException("Expression detected but could not be parsed: " + expression
-                    + ". Stacktrace: " + e.fillInStackTrace());
+        } catch (NullPointerException | EvaluationException | ParseException e) {
+            throw new AccessDeniedException("Expression detected but could not be parsed: " + expression, e);
         }
     }
 }
