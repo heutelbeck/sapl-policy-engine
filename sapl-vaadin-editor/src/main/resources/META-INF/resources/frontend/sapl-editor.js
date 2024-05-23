@@ -1,7 +1,7 @@
 import { LitElement, html } from 'lit';
 import { CodeMirrorStyles, CodeMirrorLintStyles, CodeMirrorHintStyles, XTextAnnotationsStyles, AutocompleteWidgetStyle, ReadOnlyStyle, HeightFix, DarkStyle } from './shared-styles.js';
 import "./sapl-mode";
-import { exports } from "./xtext-codemirror";
+import { exports } from "./xtext-codemirror_sapl";
 
 class SAPLEditor extends LitElement {
 
@@ -23,7 +23,8 @@ class SAPLEditor extends LitElement {
       xtextLang: { type: String },
       isLint: { type: Boolean },
       configurationId: { type: String },     
-      isDarkTheme: { type: Boolean }
+      isDarkTheme: { type: Boolean },
+      getConfigurationId: () => configurationId
     }
   }
 
