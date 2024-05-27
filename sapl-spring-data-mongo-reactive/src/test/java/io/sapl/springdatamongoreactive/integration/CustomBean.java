@@ -15,8 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatar2dbc.database;
+package io.sapl.springdatamongoreactive.integration;
 
-public enum Role {
-    ADMIN, USER
+import org.springframework.stereotype.Service;
+
+@Service
+public class CustomBean {
+	
+	public int getAge() {
+		return 20;
+	}
+
 }

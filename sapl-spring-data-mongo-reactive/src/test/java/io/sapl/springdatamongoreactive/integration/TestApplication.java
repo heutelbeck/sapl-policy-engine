@@ -15,22 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.database;
+package io.sapl.springdatamongoreactive.integration;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
-@Getter
-@Document
-@NoArgsConstructor
-@AllArgsConstructor
-public class TestUser {
-    ObjectId id;
-    String   firstname;
-    int      age;
-    boolean  admin;
+@SpringBootApplication
+public class TestApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(TestApplication.class, args);
+    }
 }
