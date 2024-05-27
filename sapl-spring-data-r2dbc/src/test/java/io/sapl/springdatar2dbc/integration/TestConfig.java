@@ -15,22 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.database;
+package io.sapl.springdatar2dbc.integration;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+@TestConfiguration
+@EnableR2dbcRepositories(basePackages = "io.sapl.springdatar2dbc.integration")
+@EntityScan(basePackages = "io.sapl.springdatar2dbc.sapl.database")
+public class TestConfig {
 
-@Getter
-@Document
-@NoArgsConstructor
-@AllArgsConstructor
-public class TestUser {
-    ObjectId id;
-    String   firstname;
-    int      age;
-    boolean  admin;
 }
