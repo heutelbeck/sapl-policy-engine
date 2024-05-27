@@ -37,13 +37,6 @@
 	</properties>
 
 	<repositories>
-		<!--repository>
-			<id>geo</id>
-			<url> https://nexus.terrestris.de/repository/public/</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository-->
  		<repository>
 			<id>geo</id>
 			<url> https://repo.osgeo.org/repository/release/</url>
@@ -121,7 +114,6 @@
 			<version>${geotools.version}</version>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/org.locationtech.spatial4j/spatial4j -->
 		<dependency>
 		    <groupId>org.locationtech.spatial4j</groupId>
 		    <artifactId>spatial4j</artifactId>

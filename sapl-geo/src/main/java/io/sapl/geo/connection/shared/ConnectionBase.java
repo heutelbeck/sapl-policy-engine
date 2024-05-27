@@ -42,8 +42,11 @@ public abstract class ConnectionBase {
 
     protected static String getUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(USER)) {
+
             return requestSettings.findValue(USER).asText();
         } else {
+
+            System.out.println("---------" + requestSettings.toString());
             throw new PolicyEvaluationException("No User found");
 
         }

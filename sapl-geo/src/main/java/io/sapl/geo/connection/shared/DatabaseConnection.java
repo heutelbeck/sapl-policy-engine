@@ -64,11 +64,11 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    protected ConnectionFactory         connectionFactory;
     private AtomicReference<Connection> connectionReference = new AtomicReference<>();
     private String[]                    selectColumns;
 
-    private final ObjectMapper mapper;
+    private final ObjectMapper        mapper;
+    protected final ConnectionFactory connectionFactory;
 
     /**
      * @param settings a {@link JsonNode} containing the settings
@@ -230,7 +230,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
         return String.format(str, frmt, geoColumn, geoColumn, clms, table, where);
     }
 
-    protected String getDataBase(JsonNode requestSettings) throws PolicyEvaluationException {
+    protected static String getDataBase(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(DATABASE)) {
             return requestSettings.findValue(DATABASE).asText();
         } else {
@@ -240,7 +240,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     }
 
-    private String getTable(JsonNode requestSettings) throws PolicyEvaluationException {
+    private static String getTable(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(TABLE)) {
             return requestSettings.findValue(TABLE).asText();
         } else {
@@ -254,6 +254,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
         if (requestSettings.has(GEOCOLUMN)) {
             return requestSettings.findValue(GEOCOLUMN).asText();
         } else {
+            System.out.println("######" + requestSettings.toString());
             throw new PolicyEvaluationException("No geoColumn-name found");
 
         }

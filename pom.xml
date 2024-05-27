@@ -145,6 +145,7 @@
 		<module>sapl-eclipse-plugin/sapl-eclipse-thirdparty</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-feature</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-repository</module>
+		<module>sapl-geo</module>
 	</modules>
 	<dependencyManagement>
 		<dependencies>

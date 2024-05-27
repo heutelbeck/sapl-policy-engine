@@ -35,15 +35,18 @@ public class MySqlConnection extends DatabaseConnection {
      * @param mapper   a {@link ObjectMapper}
      */
     public MySqlConnection(JsonNode auth, ObjectMapper mapper) {
-        super(mapper);
+        super(mapper,
+                MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))
+                        .password(getPassword(auth)).host(getServer(auth)).port(getPort(auth))
+                        .database(getDataBase(auth)).serverZoneId(ZoneId.of("UTC")).build()));
 
-        connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))
-                .password(getPassword(auth)).host(getServer(auth)).port(getPort(auth)).database(getDataBase(auth))
-                .serverZoneId(ZoneId.of("UTC")).build());
+//        connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))
+//                .password(getPassword(auth)).host(getServer(auth)).port(getPort(auth)).database(getDataBase(auth))
+//                .serverZoneId(ZoneId.of("UTC")).build());
 
     }
 
-    protected int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
+    protected static int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(PORT)) {
             return requestSettings.findValue(PORT).asInt();
         } else {
