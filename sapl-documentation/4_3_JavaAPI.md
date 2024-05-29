@@ -19,7 +19,7 @@ The Java API is based on the reactive libraries of Project Reactor (<https://pro
    </dependency>
 ```
 
-The key interface is the `PolicyDecisionPoint` exposing methods matching the PDP server HTTP SSE API:
+The key interface is the `PolicyDecisionPoint` exposing methods matching the PDP server API:
 
 ```java
 /**
@@ -47,6 +47,17 @@ public interface PolicyDecisionPoint {
      */
     Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription);
 
+    /**
+     * Takes an authorization subscription object and returns a {@link Mono}
+     * emitting the first matching authorization decision.
+     *
+     * @param authzSubscription the SAPL authorization subscription object
+     * @return an authorization decisions for the given authorization subscription.
+     */
+    default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
+        return Mono.from(decide(authzSubscription));
+    }
+    
     /**
      * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
      *

@@ -15,22 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.springdatamongoreactive.sapl.database;
+package io.sapl.springdatamongoreactive.integration.config;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 
-@Getter
-@Document
-@NoArgsConstructor
-@AllArgsConstructor
-public class TestUser {
-    ObjectId id;
-    String   firstname;
-    int      age;
-    boolean  admin;
+@TestConfiguration
+@EnableReactiveMongoRepositories(basePackages = "io.sapl.springdatamongoreactive.integration")
+@EntityScan(basePackages = "io.sapl.springdatamongoreactive.sapl.database")
+public class TestConfig {
+
 }
