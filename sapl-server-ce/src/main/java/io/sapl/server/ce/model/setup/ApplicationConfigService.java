@@ -250,17 +250,15 @@ public final class ApplicationConfigService {
         }
 
         if (this.getAtAsBoolean(rsocketEndpoint.sslEnabledPath, false)) {
-            if (this.getAt(rsocketEndpoint.sslEnabledProtocolsPath) != null) {
-                if (this.getAt(rsocketEndpoint.sslEnabledProtocolsPath) instanceof List) {
-                    this.rsocketEndpoint
-                            .setEnabledSslProtocols(((List<String>) this.getAt(rsocketEndpoint.sslEnabledProtocolsPath))
-                                    .stream().map(SupportedSslVersions::getByDisplayName).filter(Objects::nonNull)
-                                    .collect(Collectors.toSet()));
-                } else if (this.getAt(rsocketEndpoint.sslEnabledProtocolsPath) instanceof String string) {
-                    this.rsocketEndpoint.setEnabledSslProtocols(
-                            Arrays.stream(string.split(",")).map(SupportedSslVersions::getByDisplayName)
-                                    .filter(Objects::nonNull).collect(Collectors.toSet()));
-                }
+            var getAtSslEnabledProtocolsPath = this.getAt(rsocketEndpoint.sslEnabledProtocolsPath);
+            if (getAtSslEnabledProtocolsPath instanceof List) {
+                this.rsocketEndpoint.setEnabledSslProtocols(((List<String>) getAtSslEnabledProtocolsPath).stream()
+                        .map(SupportedSslVersions::getByDisplayName).filter(Objects::nonNull)
+                        .collect(Collectors.toSet()));
+            } else if (this.getAt(rsocketEndpoint.sslEnabledProtocolsPath) instanceof String string) {
+                this.rsocketEndpoint.setEnabledSslProtocols(
+                        Arrays.stream(string.split(",")).map(SupportedSslVersions::getByDisplayName)
+                                .filter(Objects::nonNull).collect(Collectors.toSet()));
             }
 
             this.rsocketEndpoint.setKeyStoreType(ObjectUtils.firstNonNull(
