@@ -205,14 +205,13 @@ public final class ApplicationConfigService {
             this.httpEndpoint.setKeyStorePassword(this.getAt(httpEndpoint.sslKeyStorePasswordPath, "").toString());
             this.httpEndpoint.setKeyAlias(this.getAt(httpEndpoint.sslKeyAliasPath, "").toString());
 
-            if (this.getAt(httpEndpoint.sslCiphersPath) != null) {
-                if (this.getAt(httpEndpoint.sslCiphersPath) instanceof List) {
-                    this.httpEndpoint.setCiphers(((List<String>) this.getAt(httpEndpoint.sslCiphersPath)).stream()
-                            .map(SupportedCiphers::getByName).filter(Objects::nonNull).collect(Collectors.toSet()));
-                } else if (this.getAt(httpEndpoint.sslCiphersPath) instanceof String string) {
-                    this.httpEndpoint.setCiphers(Arrays.stream(string.split(",")).map(SupportedCiphers::getByName)
-                            .filter(Objects::nonNull).collect(Collectors.toSet()));
-                }
+            var sslCiphersPath = this.getAt(httpEndpoint.sslCiphersPath);
+            if (sslCiphersPath instanceof List) {
+                this.httpEndpoint.setCiphers(((List<String>) sslCiphersPath).stream().map(SupportedCiphers::getByName)
+                        .filter(Objects::nonNull).collect(Collectors.toSet()));
+            } else if (this.getAt(httpEndpoint.sslCiphersPath) instanceof String string) {
+                this.httpEndpoint.setCiphers(Arrays.stream(string.split(",")).map(SupportedCiphers::getByName)
+                        .filter(Objects::nonNull).collect(Collectors.toSet()));
             }
         }
     }
