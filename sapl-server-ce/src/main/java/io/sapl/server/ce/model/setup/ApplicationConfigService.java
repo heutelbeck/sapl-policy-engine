@@ -269,14 +269,13 @@ public final class ApplicationConfigService {
             this.rsocketEndpoint
                     .setKeyStorePassword(this.getAt(rsocketEndpoint.sslKeyStorePasswordPath, "").toString());
             this.rsocketEndpoint.setKeyAlias(this.getAt(rsocketEndpoint.sslKeyAliasPath, "").toString());
-            if (this.getAt(rsocketEndpoint.sslCiphersPath) != null) {
-                if (this.getAt(rsocketEndpoint.sslCiphersPath) instanceof List) {
-                    this.rsocketEndpoint.setCiphers(((List<String>) this.getAt(rsocketEndpoint.sslCiphersPath)).stream()
-                            .map(SupportedCiphers::getByName).filter(Objects::nonNull).collect(Collectors.toSet()));
-                } else if (this.getAt(rsocketEndpoint.sslCiphersPath) instanceof String string) {
-                    this.rsocketEndpoint.setCiphers(Arrays.stream(string.split(",")).map(SupportedCiphers::getByName)
-                            .filter(Objects::nonNull).collect(Collectors.toSet()));
-                }
+            var sslCiphersPath = this.getAt(rsocketEndpoint.sslCiphersPath);
+            if (sslCiphersPath instanceof List) {
+                this.rsocketEndpoint.setCiphers(((List<String>) sslCiphersPath).stream()
+                        .map(SupportedCiphers::getByName).filter(Objects::nonNull).collect(Collectors.toSet()));
+            } else if (this.getAt(rsocketEndpoint.sslCiphersPath) instanceof String string) {
+                this.rsocketEndpoint.setCiphers(Arrays.stream(string.split(",")).map(SupportedCiphers::getByName)
+                        .filter(Objects::nonNull).collect(Collectors.toSet()));
             }
         }
     }
