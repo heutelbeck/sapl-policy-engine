@@ -25,7 +25,8 @@ import org.testcontainers.utility.MountableFile;
 public class TestContainerBase {
 
     static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:12")
-            .withCopyFileToContainer(MountableFile.forClasspathResource("testing_init_scripts/testing_schema.sql"), "/docker-entrypoint-initdb.d/testing_schema.sql");
+            .withCopyFileToContainer(MountableFile.forClasspathResource("testing_init_scripts/testing_schema.sql"),
+                    "/docker-entrypoint-initdb.d/testing_schema.sql");
 
     static {
         postgreSQLContainer.start();
@@ -33,9 +34,9 @@ public class TestContainerBase {
 
     @DynamicPropertySource
     static void registerDynamicProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.r2dbc.url", () -> "r2dbc:postgresql://" + postgreSQLContainer.getHost() + ":" + postgreSQLContainer.getFirstMappedPort() + "/" + postgreSQLContainer.getDatabaseName());
+        registry.add("spring.r2dbc.url", () -> "r2dbc:postgresql://" + postgreSQLContainer.getHost() + ":"
+                + postgreSQLContainer.getFirstMappedPort() + "/" + postgreSQLContainer.getDatabaseName());
         registry.add("spring.r2dbc.username", () -> postgreSQLContainer.getUsername());
         registry.add("spring.r2dbc.password", () -> postgreSQLContainer.getPassword());
     }
 }
-

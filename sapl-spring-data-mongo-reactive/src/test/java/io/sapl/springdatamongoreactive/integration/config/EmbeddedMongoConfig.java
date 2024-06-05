@@ -81,4 +81,3 @@ public class EmbeddedMongoConfig extends AbstractReactiveMongoConfiguration {
     }
 
 }
-

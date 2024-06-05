@@ -1,0 +1,42 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  mustache.check-template-location: false
+  output.ansi.enabled: DETECT
+  profiles.active: @spring.profile.from.maven@
+  h2:
+    console.enabled: false
+  jpa:
+    hibernate.ddl-auto: update
+    open-in-view: false
+  cache:
+    jcache:
+      provider: com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider
+    cache-names:
+      - buckets
+    caffeine:
+      spec: maximumSize=1000000,expireAfterAccess=3600s
+bucket4j:
+  enabled: false
+  filters:
+    - id: filter1
+      cache-name: buckets
+      url: .*
+      rate-limits:
+        - bandwidths:
+            - capacity: 10000
+              time: 1
+              unit: seconds
+  cache-to-use: none # supported values: none, jcache
+
+vaadin:
+  allowed-packages:
+    - com.vaadin
+    - org.vaadin
+    - dev.hilla
+    - io.sapl
+
+logging.level:
+  "[org.atmosphere]": WARN
+  web: INFO

@@ -21,9 +21,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class CustomBean {
-	
-	public int getAge() {
-		return 20;
-	}
+
+    public int getAge() {
+        return 20;
+    }
 
 }

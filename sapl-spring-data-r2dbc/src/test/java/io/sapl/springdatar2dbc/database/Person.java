@@ -29,7 +29,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Person {
-	@Id
+    @Id
     int     id;
     String  firstname;
     int     age;
