@@ -186,17 +186,15 @@ public final class ApplicationConfigService {
         }
 
         if (this.getAtAsBoolean(httpEndpoint.sslEnabledPath, false)) {
-            if (this.getAt(httpEndpoint.sslEnabledProtocolsPath) != null) {
-                if (this.getAt(httpEndpoint.sslEnabledProtocolsPath) instanceof List) {
-                    this.httpEndpoint
-                            .setEnabledSslProtocols(((List<String>) this.getAt(httpEndpoint.sslEnabledProtocolsPath))
-                                    .stream().map(SupportedSslVersions::getByDisplayName).filter(Objects::nonNull)
-                                    .collect(Collectors.toSet()));
-                } else if (this.getAt(httpEndpoint.sslEnabledProtocolsPath) instanceof String string) {
-                    this.httpEndpoint.setEnabledSslProtocols(
-                            Arrays.stream(string.split(",")).map(SupportedSslVersions::getByDisplayName)
-                                    .filter(Objects::nonNull).collect(Collectors.toSet()));
-                }
+            var getAtSslEnabledProtocolsPath = this.getAt(httpEndpoint.sslEnabledProtocolsPath);
+            if (getAtSslEnabledProtocolsPath instanceof List) {
+                this.httpEndpoint.setEnabledSslProtocols(((List<String>) getAtSslEnabledProtocolsPath).stream()
+                        .map(SupportedSslVersions::getByDisplayName).filter(Objects::nonNull)
+                        .collect(Collectors.toSet()));
+            } else if (getAtSslEnabledProtocolsPath instanceof String string) {
+                this.httpEndpoint.setEnabledSslProtocols(
+                        Arrays.stream(string.split(",")).map(SupportedSslVersions::getByDisplayName)
+                                .filter(Objects::nonNull).collect(Collectors.toSet()));
             }
             this.httpEndpoint.setKeyStoreType(ObjectUtils.firstNonNull(
                     SupportedKeystoreTypes.getByName(this.getAt(httpEndpoint.sslKeyStoreTypePath, "").toString()),
