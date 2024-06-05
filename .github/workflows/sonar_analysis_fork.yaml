@@ -87,6 +87,7 @@ jobs:
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
         -Dsonar.pullrequest.key=${PR}
         -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}
+        -Pproduction
 
     - name: Clean up Local Repository before Caching
       run: rm -rf /.m2/repository/io/sapl

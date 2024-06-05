@@ -30,17 +30,16 @@ import reactor.core.publisher.Flux;
 @Repository
 public interface PersonIntegrationTestsRepository extends R2dbcRepository<Person, Integer> {
 
+    @QueryEnforce(action = "findAll", subject = "{\"age\": @customBean.getAge()}")
+    Flux<Person> findAll();
 
-	@QueryEnforce(action = "findAll", subject = "{\"age\": @customBean.getAge()}")
-	Flux<Person> findAll();
+    @QueryEnforce(action = "findAllByAgeAfter", resource = "{\"age\": #age}")
+    Flux<Person> findAllByAgeAfter(Integer age, Sort page);
 
-	@QueryEnforce(action = "findAllByAgeAfter", resource = "{\"age\": #age}")
-	Flux<Person> findAllByAgeAfter(Integer age, Sort page);
+    @QueryEnforce(action = "fetchingByQueryMethod", subject = "{\"age\": @customBean.getAge()}")
+    @Query("SELECT * FROM Person WHERE firstname LIKE CONCAT('%', (:firstname), '%')")
+    Flux<Person> fetchingByQueryMethod(String firstname, Pageable sort);
 
-	@QueryEnforce(action = "fetchingByQueryMethod", subject = "{\"age\": @customBean.getAge()}")
-	@Query("SELECT * FROM Person WHERE firstname LIKE CONCAT('%', (:firstname), '%')")
-	Flux<Person> fetchingByQueryMethod(String firstname, Pageable sort);
-
-	@QueryEnforce(action = "accessDenied")
-	Flux<Person> findAllByAgeBefore(int age);
+    @QueryEnforce(action = "accessDenied")
+    Flux<Person> findAllByAgeBefore(int age);
 }
