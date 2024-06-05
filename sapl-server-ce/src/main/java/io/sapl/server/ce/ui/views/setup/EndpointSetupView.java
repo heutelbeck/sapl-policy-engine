@@ -44,6 +44,7 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.setup.ApplicationConfigService;
 import io.sapl.server.ce.model.setup.EndpointConfig;
 import io.sapl.server.ce.model.setup.SupportedCiphers;
@@ -60,7 +61,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public abstract class EndpointSetupView extends VerticalLayout {
 
-    private static final long serialVersionUID = -6440212401598454078L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final String  ROUTE         = "/setup/rsocket";
     private static final String SUCCESS_COLOR = "var(--lumo-success-color)";

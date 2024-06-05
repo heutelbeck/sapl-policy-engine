@@ -31,6 +31,7 @@ import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.server.ce.model.pdpconfiguration.CombiningAlgorithmService;
 import io.sapl.server.ce.model.pdpconfiguration.DuplicatedVariableNameException;
@@ -41,20 +42,17 @@ import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.utils.ConfirmUtils;
 import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
 import io.sapl.server.ce.ui.views.MainLayout;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.security.RolesAllowed;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RolesAllowed("ADMIN")
-@RequiredArgsConstructor
 @PageTitle("PDP Configuration")
 @Route(value = PDPConfigView.ROUTE, layout = MainLayout.class)
 @Conditional(SetupFinishedCondition.class)
 public class PDPConfigView extends VerticalLayout {
 
-    private static final long serialVersionUID = -3376954897137500810L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final String ROUTE = "pdp-config";
 
@@ -67,8 +65,10 @@ public class PDPConfigView extends VerticalLayout {
 
     private boolean isIgnoringNextCombiningAlgorithmComboBoxChange;
 
-    @PostConstruct
-    private void init() {
+    public PDPConfigView(VariablesService variablesService, CombiningAlgorithmService combiningAlgorithmService) {
+        this.combiningAlgorithmService = combiningAlgorithmService;
+        this.variablesService          = variablesService;
+
         add(comboBoxCombAlgo, createVariableButton, variablesGrid);
 
         initUiForCombiningAlgorithm();

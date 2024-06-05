@@ -33,6 +33,7 @@ import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.sapldocument.PublishedDocumentNameCollisionException;
 import io.sapl.server.ce.model.sapldocument.SaplDocument;
 import io.sapl.server.ce.model.sapldocument.SaplDocumentService;
@@ -59,7 +60,7 @@ import lombok.extern.slf4j.Slf4j;
 @Conditional(SetupFinishedCondition.class)
 public class EditSaplDocumentView extends VerticalLayout implements HasUrlParameter<Long> {
 
-    private static final long serialVersionUID = 8805787089243106341L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final String  ROUTE                       = "documents";
     private static final String NEW_VERSION_SELECTION_ENTRY = "New Version";

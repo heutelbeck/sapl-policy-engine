@@ -40,6 +40,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.setup.ApplicationConfigService;
 import io.sapl.server.ce.model.setup.SupportedDatasourceTypes;
 import io.sapl.server.ce.model.setup.condition.SetupNotFinishedCondition;
@@ -56,7 +57,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @Conditional(SetupNotFinishedCondition.class)
 public class DbmsSetupView extends VerticalLayout {
 
-    private static final long serialVersionUID = 3999561555230814522L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final String                 ROUTE = "/setup/dbms";
     private transient ApplicationConfigService applicationConfigService;

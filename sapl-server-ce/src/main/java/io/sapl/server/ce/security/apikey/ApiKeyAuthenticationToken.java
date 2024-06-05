@@ -22,6 +22,7 @@ import java.util.List;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.security.ClientDetailsService;
 
 /**
@@ -29,7 +30,7 @@ import io.sapl.server.ce.security.ClientDetailsService;
  */
 public class ApiKeyAuthenticationToken extends AbstractAuthenticationToken {
 
-    private static final long serialVersionUID = 6833321566051922105L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public ApiKeyAuthenticationToken() {
         super(List.of(new SimpleGrantedAuthority(ClientDetailsService.CLIENT)));

@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.interpreter.DocumentType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -53,7 +54,7 @@ import lombok.experimental.Accessors;
 @Table(name = "SaplDocument")
 public class SaplDocument implements Serializable {
 
-    private static final long serialVersionUID = -8255925525238378923L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     /**
      * The unique identifier of the SAPL document.

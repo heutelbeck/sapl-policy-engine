@@ -29,6 +29,7 @@ import com.vaadin.flow.router.internal.RouteUtil;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.security.AuthenticatedUser;
 import jakarta.annotation.PostConstruct;
@@ -41,7 +42,7 @@ import lombok.RequiredArgsConstructor;
 @Conditional(SetupFinishedCondition.class)
 public class LoginView extends LoginOverlay implements BeforeEnterObserver {
 
-    private static final long serialVersionUID = 1055410515181586609L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private final AuthenticatedUser authenticatedUser;
 

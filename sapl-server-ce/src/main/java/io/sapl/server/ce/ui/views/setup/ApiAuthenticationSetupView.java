@@ -39,6 +39,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.setup.ApplicationConfigService;
 import io.sapl.server.ce.model.setup.condition.SetupNotFinishedCondition;
 import io.sapl.server.ce.ui.utils.ConfirmUtils;
@@ -53,7 +54,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @Conditional(SetupNotFinishedCondition.class)
 public class ApiAuthenticationSetupView extends VerticalLayout {
 
-    private static final long serialVersionUID = -8630199389314611354L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final String ROUTE = "/setup/apiauthentication";
 

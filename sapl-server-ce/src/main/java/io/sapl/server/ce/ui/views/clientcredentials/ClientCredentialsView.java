@@ -39,6 +39,7 @@ import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.clients.ClientCredentials;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.security.ClientDetailsService;
@@ -58,7 +59,7 @@ import reactor.util.function.Tuple2;
 @Conditional(SetupFinishedCondition.class)
 public class ClientCredentialsView extends VerticalLayout {
 
-    private static final long serialVersionUID = 2715557908972556275L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final String ROUTE = "clients";
 

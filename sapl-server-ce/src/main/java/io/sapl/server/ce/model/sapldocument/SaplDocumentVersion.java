@@ -19,6 +19,7 @@ package io.sapl.server.ce.model.sapldocument;
 
 import java.io.Serializable;
 
+import io.sapl.api.SaplVersion;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -48,7 +49,7 @@ import lombok.experimental.Accessors;
 @Table(name = "SaplDocumentVersion")
 public class SaplDocumentVersion implements Serializable {
 
-    private static final long serialVersionUID = -1486363140560030675L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final int MAX_DOCUMENT_SIZE = 64000;
 

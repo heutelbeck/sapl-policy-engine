@@ -27,6 +27,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.setup.ApplicationConfigService;
 import io.sapl.server.ce.model.setup.condition.SetupNotFinishedCondition;
 import io.sapl.server.ce.ui.views.SetupLayout;
@@ -38,7 +39,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @Conditional(SetupNotFinishedCondition.class)
 public class RSocketEndpointSetupView extends EndpointSetupView {
 
-    private static final long serialVersionUID = 8384051875459830774L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final String ROUTE = "/setup/rsocket";
 

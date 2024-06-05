@@ -19,6 +19,7 @@ package io.sapl.server.ce.model.pdpconfiguration;
 
 import java.io.Serializable;
 
+import io.sapl.api.SaplVersion;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -44,7 +45,7 @@ import lombok.experimental.Accessors;
 @Table(name = "Variable")
 public class Variable implements Serializable {
 
-    private static final long serialVersionUID = -7015650366442894676L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     /**
      * The unique identifier of the variable.

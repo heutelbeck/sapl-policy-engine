@@ -36,6 +36,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.vaadin.flow.server.VaadinServletRequest;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 @Conditional(SetupFinishedCondition.class)
 public class AuthenticatedUser implements Serializable {
 
-    private static final long serialVersionUID = 1074340640694624737L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     // In a multi-provider scenario this parameter has to be replaced by a more
     // generic
@@ -60,7 +61,7 @@ public class AuthenticatedUser implements Serializable {
         if (authentication.getPrincipal() instanceof OAuth2User oauth2User) {
             return Optional.of(new UserDetails() {
 
-                private static final long serialVersionUID = 172015643654124086L;
+                private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
                 @Override
                 public Collection<? extends GrantedAuthority> getAuthorities() {

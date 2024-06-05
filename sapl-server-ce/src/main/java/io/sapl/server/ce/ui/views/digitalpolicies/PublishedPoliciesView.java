@@ -34,6 +34,7 @@ import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.sapldocument.PublishedSaplDocument;
 import io.sapl.server.ce.model.sapldocument.SaplDocumentService;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
@@ -55,7 +56,7 @@ import lombok.extern.slf4j.Slf4j;
 @Conditional(SetupFinishedCondition.class)
 public class PublishedPoliciesView extends VerticalLayout {
 
-    private static final long serialVersionUID = -7636099929196676322L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final String ROUTE = "published";
 

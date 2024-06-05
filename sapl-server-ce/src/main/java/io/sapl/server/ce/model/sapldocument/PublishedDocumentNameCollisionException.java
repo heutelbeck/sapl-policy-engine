@@ -17,6 +17,7 @@
  */
 package io.sapl.server.ce.model.sapldocument;
 
+import io.sapl.api.SaplVersion;
 import lombok.NonNull;
 
 /**
@@ -25,7 +26,7 @@ import lombok.NonNull;
  */
 public class PublishedDocumentNameCollisionException extends Exception {
 
-    private static final long serialVersionUID = 370622817678646752L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     /**
      * Creates a new instance of the {@link PublishedDocumentNameCollisionException}

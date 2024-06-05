@@ -22,11 +22,12 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 
+import io.sapl.api.SaplVersion;
 import lombok.Setter;
 
 public class CreateVariable extends VerticalLayout {
 
-    private static final long serialVersionUID = 4767283310383265152L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private final TextField nameTextField = new TextField("Variable Name");
     private final Button    createButton  = new Button("Create");

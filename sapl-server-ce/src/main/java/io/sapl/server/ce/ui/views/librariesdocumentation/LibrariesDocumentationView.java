@@ -37,29 +37,27 @@ import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.views.MainLayout;
 import io.sapl.spring.pdp.embedded.FunctionLibrariesDocumentation;
 import io.sapl.spring.pdp.embedded.PolicyInformationPointsDocumentation;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.security.RolesAllowed;
-import lombok.RequiredArgsConstructor;
 
 @RolesAllowed("ADMIN")
-@RequiredArgsConstructor
 @PageTitle("Libraries Documentation")
 @Route(value = LibrariesDocumentationView.ROUTE, layout = MainLayout.class)
 @Conditional(SetupFinishedCondition.class)
 public class LibrariesDocumentationView extends VerticalLayout {
 
-    private static final long serialVersionUID = 2722499676161796727L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final String ROUTE = "libraries";
 
-    private final transient FunctionLibrariesDocumentation       functionLibrariesDocumentation;
-    private final transient PolicyInformationPointsDocumentation policyInformationPointsDocumentation;
+    private transient FunctionLibrariesDocumentation       functionLibrariesDocumentation;
+    private transient PolicyInformationPointsDocumentation policyInformationPointsDocumentation;
 
     private final Grid<LibraryDocumentation>                functionLibsGrid                   = new Grid<>();
     private final VerticalLayout                            showCurrentFunctionLibLayout       = new VerticalLayout();
@@ -70,8 +68,11 @@ public class LibrariesDocumentationView extends VerticalLayout {
     private final Div                                       descriptionOfCurrentPipDiv         = new Div();
     private final Grid<Entry<String, String>>               functionsOfCurrentPipGrid          = new Grid<>();
 
-    @PostConstruct
-    private void init() {
+    public LibrariesDocumentationView(FunctionLibrariesDocumentation functionLibrariesDocumentation,
+            PolicyInformationPointsDocumentation policyInformationPointsDocumentation) {
+        this.functionLibrariesDocumentation       = functionLibrariesDocumentation;
+        this.policyInformationPointsDocumentation = policyInformationPointsDocumentation;
+
         add(new H1("Function Libraries"));
         functionLibsGrid.setWidthFull();
         functionLibsGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);

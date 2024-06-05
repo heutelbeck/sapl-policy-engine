@@ -30,12 +30,14 @@ import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 
+import io.sapl.api.SaplVersion;
+
 @EnableCaching
 @Theme(value = "sapl", variant = Lumo.DARK)
 @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
 public class SaplServerCeApplication implements AppShellConfigurator {
 
-    private static final long serialVersionUID = 938505458991453526L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static void main(String[] args) {
         context = SpringApplication.run(SaplServerCeApplication.class, args);

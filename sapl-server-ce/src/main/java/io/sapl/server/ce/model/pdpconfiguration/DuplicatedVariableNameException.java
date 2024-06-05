@@ -17,6 +17,7 @@
  */
 package io.sapl.server.ce.model.pdpconfiguration;
 
+import io.sapl.api.SaplVersion;
 import lombok.NonNull;
 
 /**
@@ -24,7 +25,7 @@ import lombok.NonNull;
  */
 public class DuplicatedVariableNameException extends Exception {
 
-    private static final long serialVersionUID = 4483473752685553343L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public DuplicatedVariableNameException(@NonNull String duplicatedName) {
         super(String.format("variable name \"%s\" is already used by another variable", duplicatedName));

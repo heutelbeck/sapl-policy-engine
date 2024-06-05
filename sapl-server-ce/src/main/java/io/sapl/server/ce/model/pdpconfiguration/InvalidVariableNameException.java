@@ -17,6 +17,7 @@
  */
 package io.sapl.server.ce.model.pdpconfiguration;
 
+import io.sapl.api.SaplVersion;
 import lombok.NonNull;
 
 /**
@@ -24,7 +25,7 @@ import lombok.NonNull;
  */
 public class InvalidVariableNameException extends Exception {
 
-    private static final long serialVersionUID = 4733185767503324801L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public InvalidVariableNameException(@NonNull String invalidName) {
         super(String.format("variable name \"%s\" is invalid", invalidName));

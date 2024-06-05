@@ -30,6 +30,7 @@ import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.pdpconfiguration.DuplicatedVariableNameException;
 import io.sapl.server.ce.model.pdpconfiguration.InvalidJsonException;
 import io.sapl.server.ce.model.pdpconfiguration.InvalidVariableNameException;
@@ -40,24 +41,21 @@ import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
 import io.sapl.server.ce.ui.views.MainLayout;
 import io.sapl.vaadin.JsonEditor;
 import io.sapl.vaadin.JsonEditorConfiguration;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.security.RolesAllowed;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RolesAllowed("ADMIN")
-@RequiredArgsConstructor
 @PageTitle("Edit Variable")
 @Route(value = EditVariableView.ROUTE, layout = MainLayout.class)
 @Conditional(SetupFinishedCondition.class)
 public class EditVariableView extends VerticalLayout implements HasUrlParameter<Long> {
 
-    private static final long serialVersionUID = -577412733944392951L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final String ROUTE = "pdp-config/edit-variable";
 
-    private final transient VariablesService variableService;
+    private transient VariablesService variableService;
 
     private long variableId;
 
@@ -72,8 +70,9 @@ public class EditVariableView extends VerticalLayout implements HasUrlParameter<
      */
     private Variable variable;
 
-    @PostConstruct
-    private void init() {
+    public EditVariableView(VariablesService variableService) {
+        this.variableService = variableService;
+
         var jsonEditorConfig = new JsonEditorConfiguration();
         jsonEditorConfig.setHasLineNumbers(true);
         jsonEditorConfig.setTextUpdateDelay(500);

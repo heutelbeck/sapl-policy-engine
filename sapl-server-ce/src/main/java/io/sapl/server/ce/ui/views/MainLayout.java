@@ -42,6 +42,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.server.auth.AccessAnnotationChecker;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.security.AuthenticatedUser;
 import io.sapl.server.ce.ui.views.clientcredentials.ClientCredentialsView;
@@ -59,7 +60,7 @@ import lombok.RequiredArgsConstructor;
 @Conditional(SetupFinishedCondition.class)
 public class MainLayout extends AppLayout {
 
-    private static final long serialVersionUID = -6896572653514109258L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private H2 viewTitle;
 

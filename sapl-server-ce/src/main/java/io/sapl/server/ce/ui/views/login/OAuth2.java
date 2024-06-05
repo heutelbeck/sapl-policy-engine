@@ -32,6 +32,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.oauth2.OAuth2Provider;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.security.AuthenticatedUser;
@@ -45,7 +46,7 @@ import lombok.RequiredArgsConstructor;
 @Conditional(SetupFinishedCondition.class)
 public class OAuth2 extends VerticalLayout implements BeforeEnterObserver {
 
-    private static final long serialVersionUID = -591060236244969651L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private final AuthenticatedUser authenticatedUser;
 

@@ -29,6 +29,7 @@ import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.sapldocument.SaplDocument;
 import io.sapl.server.ce.model.sapldocument.SaplDocumentService;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
@@ -48,7 +49,7 @@ import lombok.RequiredArgsConstructor;
 @Conditional(SetupFinishedCondition.class)
 public class DigitalPoliciesView extends VerticalLayout {
 
-    private static final long serialVersionUID = -7823981099018485902L;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     public static final String ROUTE = "";
 
