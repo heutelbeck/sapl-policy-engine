@@ -41,7 +41,7 @@ import lombok.Getter;
 
 @Service
 @Conditional(SetupNotFinishedCondition.class)
-public class ApplicationConfigService {
+public final class ApplicationConfigService {
 
     private static final String           PORT_PREFIX             = "${PORT:";
     private final ApplicationYml[]        appYmls;
