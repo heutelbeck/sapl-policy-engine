@@ -43,14 +43,11 @@ import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
 import io.sapl.server.ce.ui.views.MainLayout;
 import io.sapl.vaadin.SaplEditor;
 import io.sapl.vaadin.SaplEditorConfiguration;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.security.RolesAllowed;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RolesAllowed("ADMIN")
-@RequiredArgsConstructor
 @PageTitle("Published Policies")
 @Route(value = PublishedPoliciesView.ROUTE, layout = MainLayout.class)
 @Conditional(SetupFinishedCondition.class)
@@ -60,7 +57,7 @@ public class PublishedPoliciesView extends VerticalLayout {
 
     public static final String ROUTE = "published";
 
-    private final transient SaplDocumentService saplDocumentService;
+    private transient SaplDocumentService saplDocumentService;
 
     private final Grid<PublishedSaplDocument> grid                               = new Grid<>();
     private final VerticalLayout              layoutForSelectedPublishedDocument = new VerticalLayout();
@@ -69,8 +66,9 @@ public class PublishedPoliciesView extends VerticalLayout {
     private final Button                      openEditPageForPolicyButton        = new Button("Manage Policy");
     private SaplEditor                        saplEditor;
 
-    @PostConstruct
-    private void initUI() {
+    public PublishedPoliciesView(SaplDocumentService saplDocumentService) {
+        this.saplDocumentService = saplDocumentService;
+
         var editorConfig = new SaplEditorConfiguration();
         editorConfig.setDarkTheme(true);
         saplEditor = new SaplEditor(editorConfig);

@@ -44,9 +44,7 @@ import io.sapl.server.ce.ui.views.MainLayout;
 import io.sapl.vaadin.Issue;
 import io.sapl.vaadin.SaplEditor;
 import io.sapl.vaadin.SaplEditorConfiguration;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.security.RolesAllowed;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -54,7 +52,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @RolesAllowed("ADMIN")
-@RequiredArgsConstructor
 @PageTitle("Edit SAPL document")
 @Route(value = EditSaplDocumentView.ROUTE, layout = MainLayout.class)
 @Conditional(SetupFinishedCondition.class)
@@ -65,7 +62,7 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
     public static final String  ROUTE                       = "documents";
     private static final String NEW_VERSION_SELECTION_ENTRY = "New Version";
 
-    private final transient SaplDocumentService saplDocumentService;
+    private transient SaplDocumentService saplDocumentService;
 
     private transient SaplDocumentVersion selectedSaplDocumentVersion;
     private boolean                       isSelectedVersionRestoredViaEditedDocument;
@@ -86,8 +83,8 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
     private long         saplDocumentId;
     private boolean      isFirstDocumentValueValidation;
 
-    @PostConstruct
-    private void init() {
+    public EditSaplDocumentView(SaplDocumentService saplDocumentService) {
+        this.saplDocumentService = saplDocumentService;
         var saplConfig = new SaplEditorConfiguration();
         saplConfig.setHasLineNumbers(true);
         saplConfig.setTextUpdateDelay(500);

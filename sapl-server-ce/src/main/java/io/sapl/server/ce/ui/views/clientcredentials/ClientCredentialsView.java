@@ -46,14 +46,11 @@ import io.sapl.server.ce.security.ClientDetailsService;
 import io.sapl.server.ce.ui.utils.ConfirmUtils;
 import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
 import io.sapl.server.ce.ui.views.MainLayout;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import reactor.util.function.Tuple2;
 
 @RolesAllowed("ADMIN")
-@RequiredArgsConstructor
 @PageTitle("Client Credentials")
 @Route(value = ClientCredentialsView.ROUTE, layout = MainLayout.class)
 @Conditional(SetupFinishedCondition.class)
@@ -63,14 +60,14 @@ public class ClientCredentialsView extends VerticalLayout {
 
     public static final String ROUTE = "clients";
 
-    private final transient ClientDetailsService clientCredentialsService;
+    private transient ClientDetailsService clientCredentialsService;
 
     private final Grid<ClientCredentials> clientCredentialsGrid = new Grid<>();
     private final Button                  newBasicClientButton  = new Button("New Basic Client");
     private final Button                  newApiKeyClientButton = new Button("New ApiKey Client");
 
-    @PostConstruct
-    private void init() {
+    public ClientCredentialsView(ClientDetailsService clientCredentialsService) {
+        this.clientCredentialsService = clientCredentialsService;
         var createButtons = new HorizontalLayout();
         createButtons.add(newBasicClientButton, newApiKeyClientButton);
         add(createButtons, clientCredentialsGrid);

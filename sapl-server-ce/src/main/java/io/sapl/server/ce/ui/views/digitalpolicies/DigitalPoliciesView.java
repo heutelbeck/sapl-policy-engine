@@ -34,16 +34,13 @@ import io.sapl.server.ce.model.sapldocument.SaplDocument;
 import io.sapl.server.ce.model.sapldocument.SaplDocumentService;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.views.MainLayout;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.security.RolesAllowed;
-import lombok.RequiredArgsConstructor;
 
 /**
  * View for listening and managing SAPL documents. A Designer generated
  * component for the list-sapl-documents template.
  */
 @RolesAllowed("ADMIN")
-@RequiredArgsConstructor
 @PageTitle("Digital Policies")
 @Route(value = DigitalPoliciesView.ROUTE, layout = MainLayout.class)
 @Conditional(SetupFinishedCondition.class)
@@ -58,8 +55,9 @@ public class DigitalPoliciesView extends VerticalLayout {
     private final Grid<SaplDocument> saplDocumentGrid = new Grid<>();
     private final Button             createButton     = new Button("Create");
 
-    @PostConstruct
-    private void init() {
+    public DigitalPoliciesView(SaplDocumentService saplDocumentService) {
+        this.saplDocumentService = saplDocumentService;
+
         add(createButton, saplDocumentGrid);
 
         initSaplDocumentGrid();
