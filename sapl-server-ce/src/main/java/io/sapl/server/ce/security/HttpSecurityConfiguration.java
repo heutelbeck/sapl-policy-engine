@@ -17,21 +17,21 @@
  */
 package io.sapl.server.ce.security;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.vaadin.flow.spring.security.VaadinWebSecurity;
+import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
+import io.sapl.server.ce.security.apikey.ApiKeyHeaderAuthFilterService;
+import io.sapl.server.ce.security.apikey.ApiKeyService;
+import io.sapl.server.ce.ui.views.login.LoginView;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -46,18 +46,16 @@ import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.HeaderWriterFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import com.vaadin.flow.spring.security.VaadinWebSecurity;
+import java.util.*;
 
-import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
-import io.sapl.server.ce.security.apikey.ApiKeaderHeaderAuthFilterService;
-import io.sapl.server.ce.ui.views.login.LoginView;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Slf4j
 @Configuration
@@ -80,7 +78,7 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
     @Value("${io.sapl.server.allowOAuth2Login:#{false}}")
     private boolean allowOAuth2Login;
 
-    private final ApiKeaderHeaderAuthFilterService apiKeyAuthenticationFilterService;
+    private final ApiKeyHeaderAuthFilterService apiKeyAuthenticationFilterService;
 
     private static final String GROUPS             = "groups";
     private static final String REALM_ACCESS_CLAIM = "realm_access";
@@ -141,9 +139,21 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
 
 		if (allowOauth2Auth) {
 			log.info("configuring Oauth2 authentication with jwtIssuerURI: " + jwtIssuerURI);
-			http.oauth2ResourceServer(oauth2 -> oauth2.jwt(
-					jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter())
-			));
+			http.oauth2ResourceServer(
+                    oauth2 -> oauth2
+                            .jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                            .bearerTokenResolver(new BearerTokenResolver() {
+                                final BearerTokenResolver defaultResolver = new DefaultBearerTokenResolver();
+                                @Override
+                                public String resolve(HttpServletRequest request) {
+                                    if (ApiKeyService.getApiKeyToken(request) != null) {
+                                        // This Bearer token is used for sapl api key authentication
+                                        return null;
+                                    } else {
+                                        return defaultResolver.resolve(request);
+                                    }
+                                }
+                    }).jwt(Customizer.withDefaults()));
 		}
 
         if (allowBasicAuth){

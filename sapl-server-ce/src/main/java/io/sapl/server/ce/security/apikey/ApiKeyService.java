@@ -19,7 +19,7 @@ package io.sapl.server.ce.security.apikey;
 
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.caffeine.CaffeineCache;
@@ -33,7 +33,7 @@ import org.springframework.stereotype.Service;
 import io.sapl.server.ce.model.clients.AuthType;
 import io.sapl.server.ce.model.clients.ClientCredentialsRepository;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
-import lombok.Getter;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,23 +45,35 @@ public class ApiKeyService {
     private final PasswordEncoder             passwordEncoder;
     private final ClientCredentialsRepository clientCredentialsRepository;
     private final CacheManager                apiKeyCacheManager;
+    static final String                       HEADER                     = "Authorization";
+    static final String                       HEADER_PREFIX              = "Bearer ";
+    static final String                       SAPL_TOKEN_PREFIX          = "sapl_";
+    static final String                       RSOCKET_METADATA_MIME_TPYE = "messaging/Bearer";
 
-    @Getter
-    @Value("${io.sapl.server.apiKeyHeaderName:API_KEY}")
-    private String apiKeyHeaderName;
-
-    @Cacheable(cacheManager = "apiKeyCacheManager", value = "ApiKeyCache", unless = "#result == false")
-    public boolean isValidApiKey(String apiKey) throws AuthenticationException {
-        // extract client key from apiKey
-        var apiKeyComponents = apiKey.split("\\.");
-        if (apiKeyComponents.length == 2) {
-            var key = apiKeyComponents[0];
-            var c   = clientCredentialsRepository.findByKey(key)
+    @Cacheable(cacheManager = "apiKeyCacheManager", value = "ApiKeyCache", unless = "#result == null")
+    public ApiKeyAuthenticationToken checkApiKey(String apiKey) throws AuthenticationException {
+        if (apiKey.startsWith(SAPL_TOKEN_PREFIX)) {
+            var key = apiKey.split("_")[1];
+            // get record matching key part of the apikey token
+            var c = clientCredentialsRepository.findByKey(key)
                     .orElseThrow(() -> new UsernameNotFoundException("Provided apiKey client credentials not found"));
-            return c.getAuthType().equals(AuthType.APIKEY) && passwordEncoder.matches(apiKey, c.getEncodedSecret());
+            // check type and encoded passwortd of the token entry
+            if (c.getAuthType().equals(AuthType.APIKEY) && passwordEncoder.matches(apiKey, c.getEncodedSecret())) {
+                return new ApiKeyAuthenticationToken(key);
+            } else {
+                throw new ApiKeyAuthenticationException("ApiKey not authorized");
+            }
         } else {
             throw new AuthenticationServiceException("Invalid apiKey");
         }
+    }
+
+    public static String getApiKeyToken(HttpServletRequest request) {
+        var authorization = request.getHeader(HEADER);
+        if (StringUtils.isNotEmpty(authorization) && authorization.startsWith(HEADER_PREFIX + SAPL_TOKEN_PREFIX)) {
+            return authorization.substring(HEADER_PREFIX.length());
+        }
+        return null;
     }
 
     public void removeFromCache(String cacheKey) {

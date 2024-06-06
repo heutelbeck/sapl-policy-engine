@@ -21,7 +21,6 @@ package io.sapl.server.ce.ui.views.setup;
 import java.io.IOException;
 import java.util.EnumSet;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Conditional;
 
 import com.vaadin.flow.component.Component;
@@ -62,8 +61,7 @@ public class LoggingSetupView extends VerticalLayout {
     private transient ApplicationConfigService applicationConfigService;
     private transient HttpServletRequest       httpServletRequest;
 
-    public LoggingSetupView(@Autowired ApplicationConfigService applicationConfigService,
-            @Autowired HttpServletRequest httpServletRequest) {
+    public LoggingSetupView(ApplicationConfigService applicationConfigService, HttpServletRequest httpServletRequest) {
         this.applicationConfigService = applicationConfigService;
         this.httpServletRequest       = httpServletRequest;
     }

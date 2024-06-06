@@ -18,7 +18,6 @@
 
 package io.sapl.server.ce.ui.views.setup;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Conditional;
 
 import com.vaadin.flow.component.Component;
@@ -60,8 +59,7 @@ public class FinishSetupView extends VerticalLayout {
     private transient ApplicationConfigService applicationConfigService;
     private transient HttpServletRequest       httpServletRequest;
 
-    public FinishSetupView(@Autowired ApplicationConfigService applicationConfigService,
-            @Autowired HttpServletRequest httpServletRequest) {
+    public FinishSetupView(ApplicationConfigService applicationConfigService, HttpServletRequest httpServletRequest) {
         this.applicationConfigService = applicationConfigService;
         this.httpServletRequest       = httpServletRequest;
     }

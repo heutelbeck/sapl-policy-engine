@@ -17,7 +17,6 @@
  */
 package io.sapl.server.ce.ui.views.setup;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Conditional;
 
 import com.vaadin.flow.component.html.Anchor;
@@ -48,7 +47,7 @@ public class SetupView extends VerticalLayout {
     public static final String           ROUTE = "";
     private transient HttpServletRequest httpServletRequest;
 
-    public SetupView(@Autowired HttpServletRequest httpServletRequest) {
+    public SetupView(HttpServletRequest httpServletRequest) {
         this.httpServletRequest = httpServletRequest;
     }
 

@@ -20,7 +20,6 @@ package io.sapl.server.ce.ui.views.setup;
 
 import java.io.IOException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Conditional;
 
 import com.vaadin.flow.component.Component;
@@ -73,8 +72,8 @@ public class AdminUserSetupView extends VerticalLayout {
     private final Span          passwordStrengthText = new Span();
     private final Span          passwordEqualText    = new Span();
 
-    public AdminUserSetupView(@Autowired ApplicationConfigService applicationConfigService,
-            @Autowired HttpServletRequest httpServletRequest) {
+    public AdminUserSetupView(ApplicationConfigService applicationConfigService,
+            HttpServletRequest httpServletRequest) {
         this.applicationConfigService = applicationConfigService;
         this.httpServletRequest       = httpServletRequest;
     }

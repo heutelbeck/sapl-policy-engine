@@ -20,7 +20,6 @@ package io.sapl.server.ce.ui.views.setup;
 
 import java.io.IOException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Conditional;
 
 import com.vaadin.flow.component.Component;
@@ -39,13 +38,11 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
-import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.setup.ApplicationConfigService;
 import io.sapl.server.ce.model.setup.condition.SetupNotFinishedCondition;
 import io.sapl.server.ce.ui.utils.ConfirmUtils;
 import io.sapl.server.ce.ui.utils.ErrorComponentUtils;
 import io.sapl.server.ce.ui.views.SetupLayout;
-import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 
 @AnonymousAllowed
@@ -54,16 +51,14 @@ import jakarta.servlet.http.HttpServletRequest;
 @Conditional(SetupNotFinishedCondition.class)
 public class ApiAuthenticationSetupView extends VerticalLayout {
 
-    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+    private static final long serialVersionUID = -8630199389314611354L;
 
     public static final String ROUTE = "/setup/apiauthentication";
 
     private transient ApplicationConfigService applicationConfigService;
-    private transient HttpServletRequest       httpServletRequest;
 
     private final Checkbox     allowBasicAuth        = new Checkbox("Basic Auth");
     private final Checkbox     allowApiKeyAuth       = new Checkbox("API Key Auth");
-    private final TextField    apiKeyHeader          = new TextField("API Key Header");
     private final Checkbox     allowApiKeyCaching    = new Checkbox("API Key Caching");
     private final IntegerField apiKeyCacheExpires    = new IntegerField("Cache expires (seconds)");
     private final IntegerField apiKeyCacheMaxSize    = new IntegerField("Max Size");
@@ -73,14 +68,10 @@ public class ApiAuthenticationSetupView extends VerticalLayout {
 
     private final Button saveConfig = new Button("Save API Authentication Settings");
 
-    public ApiAuthenticationSetupView(@Autowired ApplicationConfigService applicationConfigService,
-            @Autowired HttpServletRequest httpServletRequest) {
+    public ApiAuthenticationSetupView(ApplicationConfigService applicationConfigService,
+            HttpServletRequest httpServletRequest) {
         this.applicationConfigService = applicationConfigService;
-        this.httpServletRequest       = httpServletRequest;
-    }
 
-    @PostConstruct
-    private void init() {
         if (!httpServletRequest.isSecure()) {
             add(ErrorComponentUtils.getErrorDiv(SetupLayout.INSECURE_CONNECTION_MESSAGE));
         }
@@ -96,12 +87,6 @@ public class ApiAuthenticationSetupView extends VerticalLayout {
 
         allowApiKeyAuth.setValue(applicationConfigService.getApiAuthenticationConfig().isApiKeyAuthEnabled());
         allowApiKeyAuth.getStyle().setAlignItems(Style.AlignItems.START);
-
-        apiKeyHeader.setValueChangeMode(ValueChangeMode.EAGER);
-        apiKeyHeader.setRequiredIndicatorVisible(true);
-        apiKeyHeader.setRequired(true);
-        apiKeyHeader.setValue(applicationConfigService.getApiAuthenticationConfig().getApiKeyHeaderName());
-        apiKeyHeader.getStyle().setAlignItems(Style.AlignItems.START);
 
         allowApiKeyCaching.setValue(applicationConfigService.getApiAuthenticationConfig().isApiKeyCachingEnabled());
 
@@ -122,7 +107,7 @@ public class ApiAuthenticationSetupView extends VerticalLayout {
         var apiKeyLayout = new VerticalLayout();
         apiKeyLayout.setAlignItems(FlexComponent.Alignment.STRETCH);
         apiKeyLayout.setPadding(false);
-        apiKeyLayout.add(allowApiKeyAuth, apiKeyHeader, allowApiKeyCaching, apiKeyCacheExpires, apiKeyCacheMaxSize);
+        apiKeyLayout.add(allowApiKeyAuth, allowApiKeyCaching, apiKeyCacheExpires, apiKeyCacheMaxSize);
 
         allowOAuth2Auth.setValue(applicationConfigService.getApiAuthenticationConfig().isOAuth2AuthEnabled());
 
@@ -141,7 +126,6 @@ public class ApiAuthenticationSetupView extends VerticalLayout {
 
         allowBasicAuth.addValueChangeListener(e -> updateApiAuthenticationConfig());
         allowApiKeyAuth.addValueChangeListener(e -> updateApiAuthenticationConfig());
-        apiKeyHeader.addValueChangeListener(e -> updateApiAuthenticationConfig());
         allowApiKeyCaching.addValueChangeListener(e -> updateApiAuthenticationConfig());
         apiKeyCacheExpires.addValueChangeListener(e -> updateApiAuthenticationConfig());
         apiKeyCacheMaxSize.addValueChangeListener(e -> updateApiAuthenticationConfig());
@@ -161,7 +145,6 @@ public class ApiAuthenticationSetupView extends VerticalLayout {
     }
 
     private void setVisibility() {
-        apiKeyHeader.setVisible(applicationConfigService.getApiAuthenticationConfig().isApiKeyAuthEnabled());
         allowApiKeyCaching.setVisible(applicationConfigService.getApiAuthenticationConfig().isApiKeyAuthEnabled());
         apiKeyCacheExpires.setVisible(applicationConfigService.getApiAuthenticationConfig().isApiKeyAuthEnabled()
                 && applicationConfigService.getApiAuthenticationConfig().isApiKeyCachingEnabled());
@@ -186,7 +169,6 @@ public class ApiAuthenticationSetupView extends VerticalLayout {
     private void updateApiAuthenticationConfig() {
         applicationConfigService.getApiAuthenticationConfig().setBasicAuthEnabled(allowBasicAuth.getValue());
         applicationConfigService.getApiAuthenticationConfig().setApiKeyAuthEnabled(allowApiKeyAuth.getValue());
-        applicationConfigService.getApiAuthenticationConfig().setApiKeyHeaderName(apiKeyHeader.getValue());
         applicationConfigService.getApiAuthenticationConfig().setApiKeyCachingEnabled(allowApiKeyCaching.getValue());
         if (apiKeyCacheExpires.getValue() == null) {
             applicationConfigService.getApiAuthenticationConfig().setApiKeyCachingExpires(0);

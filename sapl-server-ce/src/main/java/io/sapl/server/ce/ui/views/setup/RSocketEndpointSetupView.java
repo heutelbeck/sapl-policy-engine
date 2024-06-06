@@ -20,7 +20,6 @@ package io.sapl.server.ce.ui.views.setup;
 
 import java.io.IOException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Conditional;
 
 import com.vaadin.flow.router.PageTitle;
@@ -43,8 +42,8 @@ public class RSocketEndpointSetupView extends EndpointSetupView {
 
     public static final String ROUTE = "/setup/rsocket";
 
-    public RSocketEndpointSetupView(@Autowired ApplicationConfigService applicationConfigService,
-            @Autowired HttpServletRequest httpServletRequest) {
+    public RSocketEndpointSetupView(ApplicationConfigService applicationConfigService,
+            HttpServletRequest httpServletRequest) {
         super(applicationConfigService, applicationConfigService.getRsocketEndpoint(), httpServletRequest);
     }
 

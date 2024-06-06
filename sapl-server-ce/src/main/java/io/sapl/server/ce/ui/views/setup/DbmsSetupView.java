@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.stream.Stream;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Conditional;
 
 import com.vaadin.flow.component.Component;
@@ -70,8 +69,7 @@ public class DbmsSetupView extends VerticalLayout {
     private final Button                   dbmsTest       = new Button("Test connection");
     private final Button                   dbmsSaveConfig = new Button("Save DBMS-Configuration");
 
-    public DbmsSetupView(@Autowired ApplicationConfigService applicationConfigService,
-            @Autowired HttpServletRequest httpServletRequest) {
+    public DbmsSetupView(ApplicationConfigService applicationConfigService, HttpServletRequest httpServletRequest) {
         this.applicationConfigService = applicationConfigService;
         this.httpServletRequest       = httpServletRequest;
     }
