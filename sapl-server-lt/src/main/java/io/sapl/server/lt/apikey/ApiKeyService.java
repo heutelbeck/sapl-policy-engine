@@ -17,11 +17,9 @@
  */
 package io.sapl.server.lt.apikey;
 
-import io.netty.buffer.ByteBuf;
-import io.rsocket.metadata.CompositeMetadata;
-import io.sapl.server.lt.SAPLServerLTProperties;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+
 import org.springframework.cache.CacheManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,9 +27,13 @@ import org.springframework.security.rsocket.authentication.PayloadExchangeAuthen
 import org.springframework.security.web.server.authentication.ServerAuthenticationConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ServerWebExchange;
+
+import io.netty.buffer.ByteBuf;
+import io.rsocket.metadata.CompositeMetadata;
+import io.sapl.server.lt.SAPLServerLTProperties;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
-import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 
 @Slf4j
 @Service

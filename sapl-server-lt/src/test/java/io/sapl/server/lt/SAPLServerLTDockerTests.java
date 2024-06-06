@@ -25,7 +25,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles(profiles = { "docker", "quiet" })
+@ActiveProfiles(profiles = { "docker" })
 class SAPLServerLTDockerTests {
 
     @Test

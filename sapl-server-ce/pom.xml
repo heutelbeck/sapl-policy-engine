@@ -40,6 +40,7 @@
 		<jacoco.version>0.8.11</jacoco.version>
 		<spotbugs.version>4.8.5.0</spotbugs.version>
 		<sbcontrib.version>7.6.0</sbcontrib.version>
+		<maven.javadoc.skip>true</maven.javadoc.skip>
 	</properties>
 
 	<dependencyManagement>

@@ -249,3 +249,8 @@ bucket4j:
               time: 1
               unit: seconds
   cache-to-use: none # supported values: none, infinispan
+spring.main.banner-mode: OFF
+logging.level:
+  root: OFF
+  org.springframework: OFF
+  io.sapl: OFF
