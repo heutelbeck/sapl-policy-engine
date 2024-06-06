@@ -63,7 +63,6 @@ public class PublishedPoliciesView extends VerticalLayout {
     private final VerticalLayout              layoutForSelectedPublishedDocument = new VerticalLayout();
     private final TextField                   policyIdTextField                  = new TextField("Policy Identifier");
     private final TextField                   publishedVersionTextField          = new TextField("Published Version");
-    private final Button                      openEditPageForPolicyButton        = new Button("Manage Policy");
     private SaplEditor                        saplEditor;
 
     public PublishedPoliciesView(SaplDocumentService saplDocumentService) {
@@ -72,7 +71,9 @@ public class PublishedPoliciesView extends VerticalLayout {
         var editorConfig = new SaplEditorConfiguration();
         editorConfig.setDarkTheme(true);
         saplEditor = new SaplEditor(editorConfig);
-        var metadataLayout = new HorizontalLayout(policyIdTextField, publishedVersionTextField);
+        var metadataLayout              = new HorizontalLayout(policyIdTextField, publishedVersionTextField);
+        var openEditPageForPolicyButton = new Button("Manage Policy");
+
         layoutForSelectedPublishedDocument.add(metadataLayout, openEditPageForPolicyButton, saplEditor);
         layoutForSelectedPublishedDocument.setSizeFull();
         var mainLayout = new SplitLayout(grid, layoutForSelectedPublishedDocument);

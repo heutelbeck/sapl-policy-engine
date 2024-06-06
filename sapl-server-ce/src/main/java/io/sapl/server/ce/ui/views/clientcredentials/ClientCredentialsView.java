@@ -63,12 +63,12 @@ public class ClientCredentialsView extends VerticalLayout {
     private transient ClientDetailsService clientCredentialsService;
 
     private final Grid<ClientCredentials> clientCredentialsGrid = new Grid<>();
-    private final Button                  newBasicClientButton  = new Button("New Basic Client");
-    private final Button                  newApiKeyClientButton = new Button("New ApiKey Client");
 
     public ClientCredentialsView(ClientDetailsService clientCredentialsService) {
         this.clientCredentialsService = clientCredentialsService;
-        var createButtons = new HorizontalLayout();
+        var createButtons         = new HorizontalLayout();
+        var newBasicClientButton  = new Button("New Basic Client");
+        var newApiKeyClientButton = new Button("New ApiKey Client");
         createButtons.add(newBasicClientButton, newApiKeyClientButton);
         add(createButtons, clientCredentialsGrid);
         clientCredentialsGrid.getStyle().set("font-family", "\"Courier\", monospace");

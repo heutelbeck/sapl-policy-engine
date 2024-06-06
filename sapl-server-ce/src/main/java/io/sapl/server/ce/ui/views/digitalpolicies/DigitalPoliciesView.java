@@ -50,14 +50,14 @@ public class DigitalPoliciesView extends VerticalLayout {
 
     public static final String ROUTE = "";
 
-    private final transient SaplDocumentService saplDocumentService;
+    private transient SaplDocumentService saplDocumentService;
 
     private final Grid<SaplDocument> saplDocumentGrid = new Grid<>();
-    private final Button             createButton     = new Button("Create");
 
     public DigitalPoliciesView(SaplDocumentService saplDocumentService) {
         this.saplDocumentService = saplDocumentService;
 
+        var createButton = new Button("Create");
         add(createButton, saplDocumentGrid);
 
         initSaplDocumentGrid();
