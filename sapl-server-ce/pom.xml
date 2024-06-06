@@ -249,7 +249,6 @@
 		</repository>
 	</repositories>
 	<build>
-		<defaultGoal>spring-boot:run</defaultGoal>
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
