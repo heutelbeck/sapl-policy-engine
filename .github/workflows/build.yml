@@ -49,7 +49,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       checks:  write # for scacap/action-surefire-report to publish result as PR check
-    timeout-minutes: 45
+    timeout-minutes: 60
     
     env:
       # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 17. All other platforms, just do quick unit tests.
