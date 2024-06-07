@@ -173,7 +173,7 @@ jobs:
       # remaining files below is needed.
     - name: Upload Artifact
       if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'true') }}
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
       with:
         name: pr_build
         path: |
@@ -382,7 +382,7 @@ jobs:
       - uses: slsa-framework/slsa-verifier/actions/installer@eb7007070baa04976cb9e25a0d8034f8db030a86 # v2.5.1
 
       - name: Download the artifact
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
 
       # SLSA provenance verification using slsa-verifier
       - name: Verify SLSA Provenance (slsa-verifier)
