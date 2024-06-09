@@ -72,7 +72,7 @@ public class ReportTextRenderUtil {
         if (metadata != null) {
             report.append("Metadata    : ").append(
                     prettyPrintJson(jsonReport.get(ReportBuilderUtil.AUTHORIZATION_SUBSCRIPTION), prettyPrint, mapper))
-                    .append("\n");
+                    .append('\n');
             return report.toString();
         }
         return report.toString();
