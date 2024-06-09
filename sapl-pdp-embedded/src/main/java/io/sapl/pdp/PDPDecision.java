@@ -25,6 +25,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
 import io.sapl.api.interpreter.Trace;
@@ -53,27 +54,41 @@ public class PDPDecision implements TracedDecision {
     CombinedDecision          combinedDecision;
     Instant                   timestamp;
     LinkedList<Modification>  modifications = new LinkedList<>();
+    BaseJsonNode              metadata      = null;
 
     private record Modification(AuthorizationDecision authorizationDecision, String explanation) {
     }
 
     private PDPDecision(AuthorizationSubscription authorizationSubscription, PolicyRetrievalResult prpResult,
-            CombinedDecision combinedDecision, Instant timestamp, List<Modification> modifications) {
+            CombinedDecision combinedDecision, Instant timestamp, List<Modification> modifications,
+            BaseJsonNode metadata) {
         this.authorizationSubscription = authorizationSubscription;
         this.combinedDecision          = combinedDecision;
         this.timestamp                 = timestamp;
         this.prpResult                 = prpResult;
+        this.metadata                  = metadata;
         this.modifications.addAll(modifications);
     }
 
     public static PDPDecision of(AuthorizationSubscription authorizationSubscription, CombinedDecision combinedDecision,
             PolicyRetrievalResult prpResult) {
-        return new PDPDecision(authorizationSubscription, prpResult, combinedDecision, Instant.now(), List.of());
+        return new PDPDecision(authorizationSubscription, prpResult, combinedDecision, Instant.now(), List.of(), null);
     }
 
     public static PDPDecision of(AuthorizationSubscription authorizationSubscription,
             CombinedDecision combinedDecision) {
-        return new PDPDecision(authorizationSubscription, null, combinedDecision, Instant.now(), List.of());
+        return new PDPDecision(authorizationSubscription, null, combinedDecision, Instant.now(), List.of(), null);
+    }
+
+    public static PDPDecision of(AuthorizationSubscription authorizationSubscription, CombinedDecision combinedDecision,
+            PolicyRetrievalResult prpResult, BaseJsonNode metadata) {
+        return new PDPDecision(authorizationSubscription, prpResult, combinedDecision, Instant.now(), List.of(),
+                metadata);
+    }
+
+    public static PDPDecision of(AuthorizationSubscription authorizationSubscription, CombinedDecision combinedDecision,
+            BaseJsonNode metadata) {
+        return new PDPDecision(authorizationSubscription, null, combinedDecision, Instant.now(), List.of(), metadata);
     }
 
     @Override
@@ -85,8 +100,8 @@ public class PDPDecision implements TracedDecision {
 
     @Override
     public TracedDecision modified(AuthorizationDecision authzDecision, String explanation) {
-        var modified = new PDPDecision(authorizationSubscription, prpResult, combinedDecision, timestamp,
-                modifications);
+        var modified = new PDPDecision(authorizationSubscription, prpResult, combinedDecision, timestamp, modifications,
+                metadata);
         modified.modifications.add(new Modification(authzDecision, explanation));
         return modified;
     }
@@ -113,6 +128,7 @@ public class PDPDecision implements TracedDecision {
         if (!modifications.isEmpty()) {
             trace.set(Trace.MODIFICATIONS, getModificationsTrace());
         }
+        trace.set(Trace.METADATA, this.metadata);
         return trace;
     }
 
