@@ -88,7 +88,7 @@
 		<reactornetty.version>1.1.19</reactornetty.version>
 		<rsocket.version>1.1.4</rsocket.version>
 		<assertj.version>3.25.3</assertj.version>
-		<license-maven-plugin.version>4.2</license-maven-plugin.version>
+		<license-maven-plugin.version>4.5</license-maven-plugin.version>
 		<jacoco.version>0.8.11</jacoco.version>
 		<spdx-maven-plugin.version>0.7.3</spdx-maven-plugin.version>
 		<sonar.version>3.9.1.2184</sonar.version>
