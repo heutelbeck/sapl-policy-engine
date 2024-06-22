@@ -67,6 +67,14 @@ public class ReportTextRenderUtil {
         for (var documentReport : documentReports) {
             report.append(documentReport(documentReport));
         }
+
+        var metadata = jsonReport.get(ReportBuilderUtil.METADATA);
+        if (metadata != null) {
+            report.append("Metadata    : ").append(
+                    prettyPrintJson(jsonReport.get(ReportBuilderUtil.AUTHORIZATION_SUBSCRIPTION), prettyPrint, mapper))
+                    .append('\n');
+            return report.toString();
+        }
         return report.toString();
     }
 

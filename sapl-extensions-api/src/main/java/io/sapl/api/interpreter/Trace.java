@@ -65,6 +65,7 @@ public class Trace implements Serializable {
     public static final String LEFT                       = "left";
     public static final String LEFT_HAND_VALUE            = "leftHandValue";
     public static final String MATCHING_DOCUMENTS         = "matchingDocuments";
+    public static final String METADATA                   = "metadata";
     public static final String MINUEND                    = "minuend";
     public static final String MODIFICATIONS              = "modifications";
     public static final String NEEDLE                     = "needle";

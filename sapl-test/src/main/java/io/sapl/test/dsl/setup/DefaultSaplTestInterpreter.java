@@ -32,7 +32,7 @@ import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.grammar.SAPLTestStandaloneSetup;
 import io.sapl.test.grammar.sapltest.SAPLTest;
 
-class DefaultSaplTestInterpreter implements SaplTestInterpreter {
+public class DefaultSaplTestInterpreter implements SaplTestInterpreter {
     private static final String DUMMY_RESOURCE_URI = "test:/test1.sapltest";
 
     @Override

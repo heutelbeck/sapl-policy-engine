@@ -45,6 +45,7 @@ public class ReportBuilderUtil {
     public static final String ERROR_MESSAGE              = "errorMessage";
     public static final String EVALUATED_POLICIES         = "evaluatedPolicies";
     public static final String MATCHING_DOCUMENTS         = "matchingDocuments";
+    public static final String METADATA                   = "metadata";
     public static final String MODIFICATIONS              = "modifications";
     public static final String PDP_COMBINING_ALGORITHM    = "pdpCombiningAlgorithm";
     public static final String POLICY                     = "policy";
@@ -81,6 +82,9 @@ public class ReportBuilderUtil {
         var evaluatedPolices = combinedDecision.get(Trace.EVALUATED_POLICIES);
         if (evaluatedPolices != null && evaluatedPolices.isArray() && !evaluatedPolices.isEmpty()) {
             report.set(DOCUMENT_REPORTS, documentReports(evaluatedPolices));
+        }
+        if (trace.get(Trace.METADATA) != null) {
+            report.set(METADATA, trace.get(Trace.METADATA));
         }
         return report;
     }

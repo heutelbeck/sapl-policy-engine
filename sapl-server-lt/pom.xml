@@ -39,6 +39,11 @@
 			<url>https://www.apache.org/licenses/LICENSE-2.0</url>
 		</license>
 	</licenses>
+
+	<properties>
+		<maven.javadoc.skip>true</maven.javadoc.skip>
+	</properties>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -167,17 +172,17 @@
 			<artifactId>mockito-junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
-        <dependency>
-            <groupId>io.sapl</groupId>
-            <artifactId>sapl-pdp-remote</artifactId>
-            <scope>test</scope>
-        </dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-pdp-remote</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-    </dependencies>
+	</dependencies>
 
 	<build>
 		<plugins>
@@ -208,10 +213,12 @@
 					</excludes>
 					<image>
 						<builder>paketobuildpacks/builder-jammy-tiny</builder>
-						<name>${docker-registry-url}/${project.artifactId}:${project.version}</name>
+						<name>
+							${docker-registry-url}/${project.artifactId}:${project.version}</name>
 						<createdDate>now</createdDate>
 						<tags>
-							<tag>${docker-registry-url}/${project.artifactId}:${project.version}</tag>
+							<tag>
+								${docker-registry-url}/${project.artifactId}:${project.version}</tag>
 						</tags>
 						<buildCache>
 							<volume>
@@ -226,7 +233,8 @@
 						<applicationDirectory>/pdp</applicationDirectory>
 						<env>
 							<BPE_SPRING_PROFILES_ACTIVE>docker</BPE_SPRING_PROFILES_ACTIVE>
-							<BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>file:/pdp/data/</BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>
+							<BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>
+								file:/pdp/data/</BPE_SPRING_CONFIG_ADDITIONAL_LOCATION>
 							<BPE_LOADER_PATH>file:/pdp/data/lib/</BPE_LOADER_PATH>
 							<BPE_JAVA_SECURITY_EGD>file:/dev/./urandom/</BPE_JAVA_SECURITY_EGD>
 						</env>

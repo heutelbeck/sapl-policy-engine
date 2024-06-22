@@ -17,25 +17,21 @@
  */
 package io.sapl.springdatar2dbc.database;
 
+import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
 @Data
 @Table("person")
 @AllArgsConstructor
 @NoArgsConstructor
 public class Person {
+    @Id
     int     id;
     String  firstname;
-    String  lastname;
     int     age;
-    Role    role;
     boolean active;
 }

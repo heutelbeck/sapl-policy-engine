@@ -18,16 +18,19 @@
 package io.sapl.springdatamongoreactive.sapl.database;
 
 import org.bson.types.ObjectId;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
+@Document
 @NoArgsConstructor
 @AllArgsConstructor
 public class TestUser {
     ObjectId id;
     String   firstname;
     int      age;
+    boolean  admin;
 }

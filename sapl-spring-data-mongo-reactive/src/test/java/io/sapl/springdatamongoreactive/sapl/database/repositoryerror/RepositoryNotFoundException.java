@@ -20,11 +20,9 @@ package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
 import org.bson.types.ObjectId;
 
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-import io.sapl.springdatamongoreactive.sapl.utils.annotation.SaplProtectedMongoReactive;
 import reactor.core.publisher.Flux;
 
-@SaplProtectedMongoReactive
-public interface RepositoryNotFoundException extends ReactiveMongoRepositoryNotFoundException<TestUser, ObjectId> {
+public interface RepositoryNotFoundException extends R2dbcRepositoryNotFoundExceptionTests<TestUser, ObjectId> {
 
     Flux<TestUser> findAllByFirstname(String firstname);
 

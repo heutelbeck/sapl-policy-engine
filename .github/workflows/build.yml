@@ -49,7 +49,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       checks:  write # for scacap/action-surefire-report to publish result as PR check
-    timeout-minutes: 45
+    timeout-minutes: 60
     
     env:
       # Run Sonar, Integration Tests, and JaCoCo only for Ubuntu JDK 17. All other platforms, just do quick unit tests.
@@ -148,6 +148,7 @@ jobs:
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
         -Dsonar.qualitygate.wait=true
+        -Pproduction
 
       # The two following steps "Save PR Number" and "Upload Artifact" are needed for a
       # SonarCloud analysis for pull requests from forks. Workflows triggered by pull
@@ -238,7 +239,7 @@ jobs:
     - name: Setup Maven
       uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
       with:
-        maven-version: 3.9.6
+        maven-version: 3.9.7
 
     - name: Set up Node.js
       uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
@@ -266,13 +267,16 @@ jobs:
         gpg --list-secret-keys --keyid-format LONG
 
     - name: Deploy Maven Artifacts
-      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !:sapl-server-lt,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui -Ppublish -DskipTests clean install deploy
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !:sapl-server-lt,!:sapl-server-ce,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui -Ppublish -DskipTests clean install deploy
 
     - name: Build All for Server and Eclipse Plugin
-      run: mvn -U -B clean install -DskipTests -Psign -Dgpg.passphrase="${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}"
+      run: mvn -U -B clean install -DskipTests -Psign -Pproduction -Dgpg.passphrase="${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}"
 
     - name: Build SAPL Server LT Image
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests 
+
+    - name: Build SAPL Server CE Image
+      run: mvn -B spring-boot:build-image -pl sapl-server-ce -DskipTests -Pproduction 
     
     - name: Log in to the Container Registry
       uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
@@ -290,6 +294,10 @@ jobs:
     - name: Push Server LT Image to ghcr.io
       run: |
         docker push ghcr.io/heutelbeck/sapl-server-lt:${{ steps.get-version.outputs.VERSION }}
+    
+    - name: Push Server CE Image to ghcr.io
+      run: |
+        docker push ghcr.io/heutelbeck/sapl-server-ce:${{ steps.get-version.outputs.VERSION }}
 
     - name: Get hashes of Server LT
       id: get-server-lt-hash
@@ -439,13 +447,12 @@ jobs:
           KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}    
         run: echo "${KEY}" > cosign.key
 
-
       # Sign the resulting Docker image digest.
       # This will only write to the public Rekor transparency log when the Docker
       # repository is public to avoid leaking data.  If you would like to publish
       # transparency data even for private images, pass --force to cosign below.
       # https://github.com/sigstore/cosign
-      - name: Sign the published Docker image
+      - name: Sign the published Server LT Docker image
         # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
@@ -455,6 +462,15 @@ jobs:
         # against the sigstore community Fulcio instance.
         run: cosign sign --key cosign.key --yes ${TAGS}
 
+      - name: Sign the published Server LT Docker image
+        # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          # The image name and digest are passed from the build job
+          TAGS: ghcr.io/heutelbeck/sapl-server-ce:${{ needs.deploy.outputs.artifact-version }}
+        # This step uses the identity token to provision an ephemeral certificate
+        # against the sigstore community Fulcio instance.
+        run: cosign sign --key cosign.key --yes ${TAGS}
 
       # Write the private key to disk to be accessible by the cosign tool
       # Can be generated with `cosign generate-key-pair`
