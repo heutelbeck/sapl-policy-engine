@@ -17,6 +17,8 @@
  */
 package io.sapl.geo.functions;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.util.Assert;
@@ -29,20 +31,69 @@ import io.sapl.interpreter.InitializationException;
 class SqlFunctionsTests {
 
     private SqlFunctions sqlFunctions = new SqlFunctions();
-
+    private Val errorVal = Val.error("Error validating input.");
+    
+    
     @Test
-    void CheckSqlSanityPass() throws InitializationException {
+    void CheckForControlCharactersPass(){
 
-        var sql        = Val.of("Select * from table where name = 'test'");
-        var checkedSql = sqlFunctions.checkSqlSanity(sql);
+        var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
+        var checkedSql = sqlFunctions.checkForControlCharacters(sql);
         Assert.equals(sql, checkedSql);
     }
 
+    
     @Test
-    void CheckSqlSanityException() throws InitializationException {
+    void CheckForControlCharacters2() {
 
-        var sql = Val.of("Select * from table where name = 'test';drop table");
-        Assertions.assertThrows(PolicyEvaluationException.class, () -> sqlFunctions.checkSqlSanity(sql));
+        var exp = Val.of("SELECT id, value FROM table WHERE name IN (SELECT name, someField FROM table2 WHERE id = 'someNumber')");
+        var result = sqlFunctions.checkForControlCharacters(exp);
+        assertEquals(exp, result);
+        
+    }
+    
+    @Test
+    void CheckForControlCharactersError(){
+
+        var sql = sqlFunctions.checkForControlCharacters(Val.of("Select * from table where name = 'test;drop table'"));
+        
+        assertEquals(errorVal, sql);
+        
     }
 
+    @Test
+    void CheckForControlCharactersError2(){
+
+        var sql = sqlFunctions.checkForControlCharacters(Val.of("Select * from table where name = @setvalue = 1"));
+        
+        assertEquals(errorVal, sql);
+        
+    }
+
+    @Test
+    void CheckForKeywordsPass(){
+
+        var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
+        var checkedSql = sqlFunctions.checkForKeywords(sql);
+        Assert.equals(sql, checkedSql);
+    }
+    
+    @Test
+    void CheckForKeywordsError(){
+
+        var sql = sqlFunctions.checkForKeywords(Val.of("Select (drop table table1) from table where name = 'test'"));
+        
+        assertEquals(errorVal, sql);
+        
+    }
+ 
+    @Test
+    void CheckForKeywordsError2(){
+
+        var sql = sqlFunctions.checkForKeywords(Val.of("Select * from table where name in (truncate table table1)"));
+        
+        assertEquals(errorVal, sql);
+        
+    }
+    
 }
