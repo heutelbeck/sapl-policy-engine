@@ -31,9 +31,12 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
+import reactor.test.StepVerifier;
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
@@ -82,9 +85,9 @@ public class TraccarConnectionTests {
         }
         responseTemplate = responseTemplate.concat("}");
         var val    = Val.ofJson(responseTemplate);
-        var result = new TraccarConnection(new ObjectMapper()).connect(val.get()).blockFirst().get().toPrettyString();
-
-        assertEquals(expected, result);
+        var result = new TraccarConnection(new ObjectMapper()).connect(val.get()).map(Val::get).map(JsonNode::toPrettyString);
+        StepVerifier.create(result).expectNext(expected).thenCancel().verify();
+        //assertEquals(expected, result);
     }
 
 }

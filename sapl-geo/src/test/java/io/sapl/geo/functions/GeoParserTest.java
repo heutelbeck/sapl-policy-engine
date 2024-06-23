@@ -61,7 +61,7 @@ class GeoParserTest {
     void setup() throws JsonProcessingException, IOException {
         mapper            = new ObjectMapper();
         resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
-        path              = resourceDirectory.concat("\\\\geoparser\\\\example.kml");
+        path              = resourceDirectory.concat("/geoparser/example.kml");
         parser            = new GeoParser(mapper);
 
         var    reader        = new BufferedReader(new FileReader(path));
