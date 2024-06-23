@@ -47,6 +47,30 @@ public class TraccarConnection extends ConnectionBase {
      * @param settings a {@link JsonNode} containing the settings
      * @return a {@link Flux}<{@link Val}
      */
+//    public Flux<Val> connect(JsonNode settings) {
+//
+//        var server   = getServer(settings);
+//        var protocol = getProtocol(settings);
+//        var url      = "ws://" + server + "/api/socket";
+//
+//        this.sessionManager = new TraccarSessionManager(getUser(settings), getPassword(settings), server, protocol,
+//                mapper);
+//
+//
+//
+//        this.handler        = new TraccarSessionHandler(getDeviceId(settings), sessionManager.getSessionCookie(),
+//                server, protocol, mapper);
+//
+//        try {
+//            return getFlux(url, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of)
+//                    .onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
+//
+//        } catch (Exception e) {
+//            return Flux.just(Val.error(e.getMessage()));
+//        }
+//
+//    }
+
     public Flux<Val> connect(JsonNode settings) {
 
         var server   = getServer(settings);
@@ -55,20 +79,25 @@ public class TraccarConnection extends ConnectionBase {
 
         this.sessionManager = new TraccarSessionManager(getUser(settings), getPassword(settings), server, protocol,
                 mapper);
-        this.handler        = new TraccarSessionHandler(getDeviceId(settings), sessionManager.getSessionCookie(),
-                server, protocol, mapper);
 
-        try {
-            return getFlux(url, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of)
-                    .onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
+        return this.sessionManager.establishSession(server, protocol).flatMapMany(cookie -> {
 
-        } catch (Exception e) {
-            return Flux.just(Val.error(e.getMessage()));
-        }
+            this.handler = new TraccarSessionHandler(getDeviceId(settings), cookie, server, protocol, mapper);
+
+            return getFlux(url, cookie, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings))
+                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
+        }).doFinally(s -> {
+            try {
+                disconnect();
+            } catch (PolicyEvaluationException e) {
+
+                logger.error("Error disconnecting Traccar session", e);
+            }
+        });
 
     }
 
-    private Flux<ObjectNode> getFlux(String url, GeoPipResponseFormat format, ObjectMapper mapper,
+    private Flux<ObjectNode> getFlux(String url, String cookie, GeoPipResponseFormat format, ObjectMapper mapper,
             boolean latitudeFirst) throws PolicyEvaluationException {
 
         var client = new ReactiveWebClient(mapper);
@@ -84,7 +113,7 @@ public class TraccarConnection extends ConnectionBase {
                 """;
         Val request;
         try {
-            request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, getSessionCookie()));
+            request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
 
             var flux = client.consumeWebSocket(request).map(Val::get)
                     .flatMap(msg -> handler.mapPosition(msg, format, latitudeFirst))
@@ -102,26 +131,39 @@ public class TraccarConnection extends ConnectionBase {
 
     private void disconnect() throws PolicyEvaluationException {
 
-        try {
-            if (this.sessionManager.closeTraccarSession()) {
-
+        this.sessionManager.closeTraccarSession().subscribe(result -> {
+            if (result) {
                 logger.info("Traccar-Client disconnected.");
             } else {
-                throw new PolicyEvaluationException();
+                throw new PolicyEvaluationException("Traccar-Client could not be disconnected");
             }
-        } catch (Exception e) {
-            throw new PolicyEvaluationException("Traccar-Client could not be disconnected");
-        }
+        }, error -> {
+            throw new PolicyEvaluationException("Traccar-Client could not be disconnected", error);
+        });
     }
+
+//    private void disconnect() throws PolicyEvaluationException {
+//
+//        try {
+//            if (this.sessionManager.closeTraccarSession()) {
+//
+//                logger.info("Traccar-Client disconnected.");
+//            } else {
+//                throw new PolicyEvaluationException();
+//            }
+//        } catch (Exception e) {
+//            throw new PolicyEvaluationException("Traccar-Client could not be disconnected");
+//        }
+//    }
 
 //    public Optional<WebSocketSession> getSession() {
 //        return Optional.ofNullable(session);
 //    }
 
-    public String getSessionCookie() {
-
-        return sessionManager.getSessionCookie();
-
-    }
+//    public String getSessionCookie() {
+//
+//        return sessionManager.getSessionCookie();
+//
+//    }
 
 }

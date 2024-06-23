@@ -22,8 +22,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import static org.junit.Assert.assertEquals;
-
 import java.nio.file.Paths;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.BindMode;
@@ -85,9 +83,10 @@ public class TraccarConnectionTests {
         }
         responseTemplate = responseTemplate.concat("}");
         var val    = Val.ofJson(responseTemplate);
-        var result = new TraccarConnection(new ObjectMapper()).connect(val.get()).map(Val::get).map(JsonNode::toPrettyString);
+        var result = new TraccarConnection(new ObjectMapper()).connect(val.get()).map(Val::get)
+                .map(JsonNode::toPrettyString);
         StepVerifier.create(result).expectNext(expected).thenCancel().verify();
-        //assertEquals(expected, result);
+
     }
 
 }

@@ -19,22 +19,19 @@ package io.sapl.geo.connection.traccar;
 
 import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import reactor.core.publisher.Mono;
 
 public class TraccarSessionManager {
 
@@ -60,13 +57,111 @@ public class TraccarSessionManager {
         this.user     = user;
         this.password = password;
         this.mapper   = mapper;
-        establishSession(server, protocol);
 
     }
 
-    private void establishSession(String serverName, String protocol) throws PolicyEvaluationException {
+//    private void establishSession(String serverName, String protocol) throws PolicyEvaluationException {
+//
+//        HttpResponse<String> res;
+//
+//        try {
+//            uri = new URI(String.format("%s://%s/api/session", protocol, serverName));
+//
+//            Map<String, String> bodyProperties = new HashMap<String, String>() {
+//                private static final long serialVersionUID = 1L;
+//
+//            };
+//
+//            bodyProperties.put("email", user);
+//            bodyProperties.put("password", password);
+//
+//            String form = bodyProperties.entrySet().stream()
+//                    .map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
+//                    .collect(Collectors.joining("&"));
+//
+//            HttpRequest req = null;
+//
+//            req = HttpRequest.newBuilder().uri(uri).headers("Content-Type", "application/x-www-form-urlencoded")
+//                    .POST(HttpRequest.BodyPublishers.ofString(form)).build();
+//
+//            var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+//
+//            res = client.send(req, BodyHandlers.ofString());
+//
+//        } catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//            throw new PolicyEvaluationException(e);
+//        } catch (Exception e) {
+//            throw new PolicyEvaluationException(e);
+//        }
+//
+//        if (res.statusCode() == 200) {
+//
+//            res.headers().firstValue("set-cookie").ifPresent(v -> sessionCookie = v);
+//            session = createTraccarSession(res.body());
+//            var msg = String.format("Traccar Session %s established", session.getId());
+//            logger.info(msg);
+//        } else {
+//            throw new PolicyEvaluationException(
+//                    "Session could not be established. Server respondet with " + res.statusCode());
+//        }
+//
+//    }
 
-        HttpResponse<String> res;
+//    public Mono<Void> establishSession(String serverName, String protocol) throws PolicyEvaluationException {
+//
+//        try {
+//            uri = new URI(String.format("%s://%s/api/session", protocol, serverName));
+//
+//            Map<String, String> bodyProperties = new HashMap<String, String>() {
+//                private static final long serialVersionUID = 1L;
+//
+//            };
+//
+//            bodyProperties.put("email", user);
+//            bodyProperties.put("password", password);
+//
+//            String form = bodyProperties.entrySet().stream()
+//                    .map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
+//                    .collect(Collectors.joining("&"));
+//
+//            WebClient client = WebClient.builder()
+//                    //.baseUrl(uri.toString())
+//                    .build();
+//
+//            return client.post()
+//                    .uri(uri)
+//                    .header("Content-Type", "application/x-www-form-urlencoded")
+//                    .bodyValue(form)
+//                    .retrieve()
+//                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
+//                        return Mono.error(new PolicyEvaluationException("Session could not be established. Server responded with " + response.statusCode().value()));
+//                    })
+//                    .toEntity(String.class)
+//                    .doOnNext(x->{
+//                    	var a = x;
+//                    })
+//                    .flatMap(response -> {
+//                        if (response.getStatusCode().is2xxSuccessful()) {
+//                            String setCookieHeader = response.getHeaders().getFirst("set-cookie");
+//                            if (setCookieHeader != null) {
+//                                sessionCookie = setCookieHeader;
+//                            }
+//                            session = createTraccarSession(response.getBody());
+//                            String msg = String.format("Traccar Session %s established", session.getId());
+//                            logger.info(msg);
+//                            return Mono.empty();
+//                        } else {
+//                            return Mono.error(new PolicyEvaluationException("Session could not be established. Server responded with " + response.getStatusCode().value()));
+//                        }
+//                    });
+//        } catch (Exception e) {
+//            throw new PolicyEvaluationException(e);
+//        }
+//
+//    }
+
+    public Mono<String> establishSession(String serverName, String protocol) throws PolicyEvaluationException {
 
         try {
             uri = new URI(String.format("%s://%s/api/session", protocol, serverName));
@@ -83,31 +178,32 @@ public class TraccarSessionManager {
                     .map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
                     .collect(Collectors.joining("&"));
 
-            HttpRequest req = null;
+            WebClient client = WebClient.builder().build();
 
-            req = HttpRequest.newBuilder().uri(uri).headers("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString(form)).build();
-
-            var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-
-            res = client.send(req, BodyHandlers.ofString());
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new PolicyEvaluationException(e);
+            return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
+                    .retrieve().onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
+                        return Mono.error(
+                                new PolicyEvaluationException("Session could not be established. Server responded with "
+                                        + response.statusCode().value()));
+                    }).toEntity(String.class).flatMap(response -> {
+                        if (response.getStatusCode().is2xxSuccessful()) {
+                            String setCookieHeader = response.getHeaders().getFirst("set-cookie");
+                            if (setCookieHeader != null) {
+                                sessionCookie = setCookieHeader;
+                                session = createTraccarSession(response.getBody());
+                                return Mono.just(setCookieHeader);
+                            } else {
+                                return Mono.error(
+                                        new PolicyEvaluationException("No session cookie found in the response."));
+                            }
+                        } else {
+                            return Mono.error(new PolicyEvaluationException(
+                                    "Session could not be established. Server responded with "
+                                            + response.getStatusCode().value()));
+                        }
+                    });
         } catch (Exception e) {
             throw new PolicyEvaluationException(e);
-        }
-
-        if (res.statusCode() == 200) {
-
-            res.headers().firstValue("set-cookie").ifPresent(v -> sessionCookie = v);
-            session = createTraccarSession(res.body());
-            var msg = String.format("Traccar Session %s established", session.getId());
-            logger.info(msg);
-        } else {
-            throw new PolicyEvaluationException(
-                    "Session could not be established. Server respondet with " + res.statusCode());
         }
 
     }
@@ -121,30 +217,45 @@ public class TraccarSessionManager {
         }
     }
 
-    Boolean closeTraccarSession() throws PolicyEvaluationException {
+    public Mono<Boolean> closeTraccarSession() throws PolicyEvaluationException {
 
-        HttpRequest req = null;
-        req = HttpRequest.newBuilder().uri(uri).header("cookie", sessionCookie).DELETE().build();
+        WebClient client = WebClient.builder().defaultHeader("cookie", sessionCookie).build();
 
-        HttpResponse<String> res;
-        var                  client = HttpClient.newHttpClient();
-        try {
-            res = client.send(req, BodyHandlers.ofString());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new PolicyEvaluationException(e);
-        } catch (Exception e) {
-            throw new PolicyEvaluationException(e);
-        }
-        if (res.statusCode() == 204) {
-            var msg = String.format("Traccar Session %s closed", session.getId());
-            logger.info(msg);
-            return true;
-        }
-        var msg = String.format("Traccar Session %s could not be closed", session.getId());
-        logger.info(msg);
-        return false;
+        return client.delete().uri(uri).retrieve().toBodilessEntity().flatMap(response -> {
+            if (response.getStatusCode().is2xxSuccessful()) {
+                logger.info("Traccar Session closed successfully.");
+                return Mono.just(true);
+            } else {
+                logger.error("Failed to close Traccar Session. Status code: {}", response.getStatusCode());
+                return Mono.just(false);
+            }
+        });
 
     }
+//    Boolean closeTraccarSession() throws PolicyEvaluationException {
+//
+//        HttpRequest req = null;
+//        req = HttpRequest.newBuilder().uri(uri).header("cookie", sessionCookie).DELETE().build();
+//
+//        HttpResponse<String> res;
+//        var                  client = HttpClient.newHttpClient();
+//        try {
+//            res = client.send(req, BodyHandlers.ofString());
+//        } catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//            throw new PolicyEvaluationException(e);
+//        } catch (Exception e) {
+//            throw new PolicyEvaluationException(e);
+//        }
+//        if (res.statusCode() == 204) {
+//            var msg = String.format("Traccar Session %s closed", session.getId());
+//            logger.info(msg);
+//            return true;
+//        }
+//        var msg = String.format("Traccar Session %s could not be closed", session.getId());
+//        logger.info(msg);
+//        return false;
+//
+//    }
 
 }

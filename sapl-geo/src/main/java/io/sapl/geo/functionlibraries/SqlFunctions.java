@@ -43,11 +43,11 @@ public class SqlFunctions {
     // true if sql contains sth. except numbers, letters, less and greater than,
     // star, equal, prime, whitespace, brackets, comma, minus
     private static final String REGEX_CONTROL_CHARS = "^(?![0-9a-zA-Z<>*='\s(),-]*$).*$";
-   
+
     // true if sql contains update, delete...
     private static final String REGEX_KEYWORDS = """
-    		(?i).*\\b(UPDATE|DELETE|TRUNCATE|DROP|ALTER|CREATE|
-    		INSERT|MERGE|CALL|EXEC|RENAME|SET|BEGIN|COMMIT|ROLLBACK|GRANT)\\b.*""";
+            (?i).*\\b(UPDATE|DELETE|TRUNCATE|DROP|ALTER|CREATE|
+            INSERT|MERGE|CALL|EXEC|RENAME|SET|BEGIN|COMMIT|ROLLBACK|GRANT)\\b.*""";
 
     private static final String VALIDATION_ERROR = "Error validating input.";
     private final Pattern       patternControlChars;
