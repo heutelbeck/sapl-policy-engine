@@ -26,11 +26,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import common.MySqlTestBase;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.connection.postgis.PostGisConnection;
 import reactor.test.StepVerifier;
 
-@TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
+@TestInstance(Lifecycle.PER_CLASS)
 class MySqlConnectionTests extends MySqlTestBase {
 
     @BeforeAll
@@ -84,12 +83,12 @@ class MySqlConnectionTests extends MySqlTestBase {
     @Test
     void Test04ErrorInvalidTemplate() throws JsonProcessingException {
 
-        var str = "{\"invalid\":\"Template\"}";
+        var queryString = "{\"invalid\":\"Template\"}";
 
-        var postgis = new PostGisConnection(Val.ofJson(authTemplate).get(), new ObjectMapper())
-                .sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
-
-        StepVerifier.create(postgis).expectNext("No geoColumn-name found").verifyComplete();
+        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), new ObjectMapper())
+                .sendQuery(Val.ofJson(queryString).get()).map(Val::getMessage);
+        
+        StepVerifier.create(mysqlResponse).expectNext("No geoColumn-name found").verifyComplete();
     }
 
 }

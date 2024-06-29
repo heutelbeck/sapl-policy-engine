@@ -130,15 +130,15 @@ public class TraccarConnection extends ConnectionBase {
     }
 
     private void disconnect() throws PolicyEvaluationException {
-
+        var errorMsg = "Traccar-Client could not be disconnected";
         this.sessionManager.closeTraccarSession().subscribe(result -> {
             if (result) {
                 logger.info("Traccar-Client disconnected.");
             } else {
-                throw new PolicyEvaluationException("Traccar-Client could not be disconnected");
+                throw new PolicyEvaluationException(errorMsg);
             }
         }, error -> {
-            throw new PolicyEvaluationException("Traccar-Client could not be disconnected", error);
+            throw new PolicyEvaluationException(errorMsg, error);
         });
     }
 

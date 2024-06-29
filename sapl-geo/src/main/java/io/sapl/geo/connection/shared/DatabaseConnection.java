@@ -254,7 +254,6 @@ public abstract class DatabaseConnection extends ConnectionBase {
         if (requestSettings.has(GEOCOLUMN)) {
             return requestSettings.findValue(GEOCOLUMN).asText();
         } else {
-            System.out.println("######" + requestSettings.toString());
             throw new PolicyEvaluationException("No geoColumn-name found");
 
         }
