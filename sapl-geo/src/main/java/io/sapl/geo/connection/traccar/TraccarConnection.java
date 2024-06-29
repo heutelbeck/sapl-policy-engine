@@ -87,12 +87,12 @@ public class TraccarConnection extends ConnectionBase {
             return getFlux(url, cookie, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings))
                     .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
         }).doFinally(s -> {
-            try {
-                disconnect();
-            } catch (PolicyEvaluationException e) {
-
-                logger.error("Error disconnecting Traccar session", e);
-            }
+//            try {
+//                disconnect();
+//            } catch (PolicyEvaluationException e) {
+//
+//                logger.error("Error disconnecting Traccar session", e);
+//            }
         });
 
     }

@@ -3056,3 +3056,509 @@ Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-
 2024-05-18 12:10:50  INFO: user: 1, action: logout, from: 172.17.0.1
 2024-05-18 12:10:50  INFO: user: 1, action: login, from: 172.17.0.1
 2024-05-18 12:10:50  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-23 18:49:43  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-06-23 18:49:43  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-06-23 18:49:43  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-06-23 18:49:43  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-06-23 18:49:43  INFO: Version: 5.8
+2024-06-23 18:49:43  INFO: Starting server...
+2024-06-23 18:49:43  INFO: HikariPool-1 - Starting...
+2024-06-23 18:49:44  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-06-23 18:49:44  INFO: HikariPool-1 - Start completed.
+2024-06-23 18:49:44  INFO: Set default schema name to PUBLIC
+2024-06-23 18:49:44  INFO: Clearing database change log checksums
+2024-06-23 18:49:44  INFO: Successfully acquired change log lock
+2024-06-23 18:49:44  INFO: Successfully released change log lock
+2024-06-23 18:49:44  INFO: Successfully acquired change log lock
+2024-06-23 18:49:45  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-23 18:49:45  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-23 18:49:45  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-23 18:49:45  INFO: UPDATE SUMMARY
+2024-06-23 18:49:45  INFO: Run:                          0
+2024-06-23 18:49:45  INFO: Previously run:              43
+2024-06-23 18:49:45  INFO: Filtered out:                 0
+2024-06-23 18:49:45  INFO: -------------------------------
+2024-06-23 18:49:45  INFO: Total change sets:           43
+
+2024-06-23 18:49:45  INFO: Update summary generated
+2024-06-23 18:49:45  INFO: Successfully released change log lock
+2024-06-23 18:49:45  INFO: Successfully released change log lock
+2024-06-23 18:49:45  INFO: Command execution complete
+2024-06-23 18:49:47  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-06-23 18:49:47  INFO: Started o.t.w.@48368a08{/,null,AVAILABLE}
+2024-06-23 18:49:47  INFO: Session workerName=node0
+2024-06-23 18:49:48  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-06-23 18:49:49  INFO: Started o.e.j.s.ServletContextHandler@2524d07a{/,null,AVAILABLE}
+2024-06-23 18:49:49  INFO: Started ServerConnector@63e4484d{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-06-23 18:49:49  INFO: Started Server@542c65d9{STARTING}[10.0.15,sto=0] @7046ms
+2024-06-23 18:49:49  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-06-23 18:49:49  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-23 18:49:49  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-23 18:49:50  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-23 18:49:50  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-23 18:49:50  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-23 18:49:50  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-23 18:49:50  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-23 18:49:50  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-23 18:49:50  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-23 18:50:28  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-06-23 18:50:28  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-06-23 18:50:28  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-06-23 18:50:28  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-06-23 18:50:28  INFO: Version: 5.8
+2024-06-23 18:50:28  INFO: Starting server...
+2024-06-23 18:50:28  INFO: HikariPool-1 - Starting...
+2024-06-23 18:50:29  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-06-23 18:50:29  INFO: HikariPool-1 - Start completed.
+2024-06-23 18:50:29  INFO: Set default schema name to PUBLIC
+2024-06-23 18:50:29  INFO: Clearing database change log checksums
+2024-06-23 18:50:29  INFO: Successfully acquired change log lock
+2024-06-23 18:50:29  INFO: Successfully released change log lock
+2024-06-23 18:50:29  INFO: Successfully acquired change log lock
+2024-06-23 18:50:30  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-23 18:50:31  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-23 18:50:31  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-23 18:50:31  INFO: UPDATE SUMMARY
+2024-06-23 18:50:31  INFO: Run:                          0
+2024-06-23 18:50:31  INFO: Previously run:              43
+2024-06-23 18:50:31  INFO: Filtered out:                 0
+2024-06-23 18:50:31  INFO: -------------------------------
+2024-06-23 18:50:31  INFO: Total change sets:           43
+
+2024-06-23 18:50:31  INFO: Update summary generated
+2024-06-23 18:50:31  INFO: Successfully released change log lock
+2024-06-23 18:50:31  INFO: Successfully released change log lock
+2024-06-23 18:50:31  INFO: Command execution complete
+2024-06-23 18:50:32  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-06-23 18:50:32  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-06-23 18:50:32  INFO: Session workerName=node0
+2024-06-23 18:50:33  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-06-23 18:50:35  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-06-23 18:50:35  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-06-23 18:50:35  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @8007ms
+2024-06-23 18:50:35  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-06-23 18:50:35  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-23 18:50:44  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-23 18:50:44  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-23 18:50:46  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 07:59:08  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-06-29 07:59:08  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-06-29 07:59:08  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-06-29 07:59:08  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-06-29 07:59:08  INFO: Version: 5.8
+2024-06-29 07:59:08  INFO: Starting server...
+2024-06-29 07:59:08  INFO: HikariPool-1 - Starting...
+2024-06-29 07:59:09  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-06-29 07:59:09  INFO: HikariPool-1 - Start completed.
+2024-06-29 07:59:09  INFO: Set default schema name to PUBLIC
+2024-06-29 07:59:09  INFO: Clearing database change log checksums
+2024-06-29 07:59:09  INFO: Successfully acquired change log lock
+2024-06-29 07:59:09  INFO: Successfully released change log lock
+2024-06-29 07:59:09  INFO: Successfully acquired change log lock
+2024-06-29 07:59:10  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 07:59:11  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 07:59:11  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 07:59:11  INFO: UPDATE SUMMARY
+2024-06-29 07:59:11  INFO: Run:                          0
+2024-06-29 07:59:11  INFO: Previously run:              43
+2024-06-29 07:59:11  INFO: Filtered out:                 0
+2024-06-29 07:59:11  INFO: -------------------------------
+2024-06-29 07:59:11  INFO: Total change sets:           43
+
+2024-06-29 07:59:11  INFO: Update summary generated
+2024-06-29 07:59:11  INFO: Successfully released change log lock
+2024-06-29 07:59:11  INFO: Successfully released change log lock
+2024-06-29 07:59:11  INFO: Command execution complete
+2024-06-29 07:59:13  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-06-29 07:59:13  INFO: Started o.t.w.@592a1882{/,null,AVAILABLE}
+2024-06-29 07:59:13  INFO: Session workerName=node0
+2024-06-29 07:59:14  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-06-29 07:59:15  INFO: Started o.e.j.s.ServletContextHandler@30eb55c9{/,null,AVAILABLE}
+2024-06-29 07:59:15  INFO: Started ServerConnector@6e00837f{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-06-29 07:59:15  INFO: Started Server@5d92e8e2{STARTING}[10.0.15,sto=0] @8868ms
+2024-06-29 07:59:15  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-06-29 07:59:16  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 07:59:16  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 07:59:16  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 07:59:16  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 07:59:16  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 07:59:16  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 07:59:16  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 07:59:17  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 07:59:17  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 07:59:17  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 07:59:45  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-06-29 07:59:45  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-06-29 07:59:45  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-06-29 07:59:45  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-06-29 07:59:45  INFO: Version: 5.8
+2024-06-29 07:59:45  INFO: Starting server...
+2024-06-29 07:59:45  INFO: HikariPool-1 - Starting...
+2024-06-29 07:59:46  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-06-29 07:59:46  INFO: HikariPool-1 - Start completed.
+2024-06-29 07:59:46  INFO: Set default schema name to PUBLIC
+2024-06-29 07:59:46  INFO: Clearing database change log checksums
+2024-06-29 07:59:46  INFO: Successfully acquired change log lock
+2024-06-29 07:59:46  INFO: Successfully released change log lock
+2024-06-29 07:59:46  INFO: Successfully acquired change log lock
+2024-06-29 07:59:47  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 07:59:47  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 07:59:47  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 07:59:47  INFO: UPDATE SUMMARY
+2024-06-29 07:59:47  INFO: Run:                          0
+2024-06-29 07:59:47  INFO: Previously run:              43
+2024-06-29 07:59:47  INFO: Filtered out:                 0
+2024-06-29 07:59:47  INFO: -------------------------------
+2024-06-29 07:59:47  INFO: Total change sets:           43
+
+2024-06-29 07:59:47  INFO: Update summary generated
+2024-06-29 07:59:47  INFO: Successfully released change log lock
+2024-06-29 07:59:47  INFO: Successfully released change log lock
+2024-06-29 07:59:47  INFO: Command execution complete
+2024-06-29 07:59:49  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-06-29 07:59:49  INFO: Started o.t.w.@41a23470{/,null,AVAILABLE}
+2024-06-29 07:59:49  INFO: Session workerName=node0
+2024-06-29 07:59:50  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-06-29 07:59:51  INFO: Started o.e.j.s.ServletContextHandler@309e3f34{/,null,AVAILABLE}
+2024-06-29 07:59:51  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-06-29 07:59:51  INFO: Started Server@cdbe995{STARTING}[10.0.15,sto=0] @7110ms
+2024-06-29 07:59:51  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-06-29 07:59:51  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 07:59:51  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:01:05  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-06-29 08:01:05  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-06-29 08:01:05  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-06-29 08:01:05  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-06-29 08:01:05  INFO: Version: 5.8
+2024-06-29 08:01:05  INFO: Starting server...
+2024-06-29 08:01:05  INFO: HikariPool-1 - Starting...
+2024-06-29 08:01:06  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-06-29 08:01:06  INFO: HikariPool-1 - Start completed.
+2024-06-29 08:01:06  INFO: Set default schema name to PUBLIC
+2024-06-29 08:01:06  INFO: Clearing database change log checksums
+2024-06-29 08:01:06  INFO: Successfully acquired change log lock
+2024-06-29 08:01:06  INFO: Successfully released change log lock
+2024-06-29 08:01:06  INFO: Successfully acquired change log lock
+2024-06-29 08:01:07  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:01:08  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:01:08  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:01:08  INFO: UPDATE SUMMARY
+2024-06-29 08:01:08  INFO: Run:                          0
+2024-06-29 08:01:08  INFO: Previously run:              43
+2024-06-29 08:01:08  INFO: Filtered out:                 0
+2024-06-29 08:01:08  INFO: -------------------------------
+2024-06-29 08:01:08  INFO: Total change sets:           43
+
+2024-06-29 08:01:08  INFO: Update summary generated
+2024-06-29 08:01:08  INFO: Successfully released change log lock
+2024-06-29 08:01:08  INFO: Successfully released change log lock
+2024-06-29 08:01:08  INFO: Command execution complete
+2024-06-29 08:01:09  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-06-29 08:01:09  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-06-29 08:01:09  INFO: Session workerName=node0
+2024-06-29 08:01:11  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-06-29 08:01:12  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-06-29 08:01:12  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-06-29 08:01:12  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @7883ms
+2024-06-29 08:01:12  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-06-29 08:01:13  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:01:34  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:01:34  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:01:56  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-06-29 08:01:56  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-06-29 08:01:56  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-06-29 08:01:56  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-06-29 08:01:56  INFO: Version: 5.8
+2024-06-29 08:01:56  INFO: Starting server...
+2024-06-29 08:01:57  INFO: HikariPool-1 - Starting...
+2024-06-29 08:01:57  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-06-29 08:01:57  INFO: HikariPool-1 - Start completed.
+2024-06-29 08:01:57  INFO: Set default schema name to PUBLIC
+2024-06-29 08:01:57  INFO: Clearing database change log checksums
+2024-06-29 08:01:57  INFO: Successfully acquired change log lock
+2024-06-29 08:01:58  INFO: Successfully released change log lock
+2024-06-29 08:01:58  INFO: Successfully acquired change log lock
+2024-06-29 08:01:59  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:01:59  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:01:59  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:01:59  INFO: UPDATE SUMMARY
+2024-06-29 08:01:59  INFO: Run:                          0
+2024-06-29 08:01:59  INFO: Previously run:              43
+2024-06-29 08:01:59  INFO: Filtered out:                 0
+2024-06-29 08:01:59  INFO: -------------------------------
+2024-06-29 08:01:59  INFO: Total change sets:           43
+
+2024-06-29 08:01:59  INFO: Update summary generated
+2024-06-29 08:01:59  INFO: Successfully released change log lock
+2024-06-29 08:01:59  INFO: Successfully released change log lock
+2024-06-29 08:01:59  INFO: Command execution complete
+2024-06-29 08:02:01  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-06-29 08:02:01  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-06-29 08:02:01  INFO: Session workerName=node0
+2024-06-29 08:02:02  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-06-29 08:02:02  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-06-29 08:02:02  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-06-29 08:02:02  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @7317ms
+2024-06-29 08:02:03  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-06-29 08:02:03  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:02:03  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:02:50  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-06-29 08:02:50  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-06-29 08:02:50  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-06-29 08:02:50  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-06-29 08:02:50  INFO: Version: 5.8
+2024-06-29 08:02:50  INFO: Starting server...
+2024-06-29 08:02:50  INFO: HikariPool-1 - Starting...
+2024-06-29 08:02:51  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-06-29 08:02:51  INFO: HikariPool-1 - Start completed.
+2024-06-29 08:02:51  INFO: Set default schema name to PUBLIC
+2024-06-29 08:02:51  INFO: Clearing database change log checksums
+2024-06-29 08:02:51  INFO: Successfully acquired change log lock
+2024-06-29 08:02:51  INFO: Successfully released change log lock
+2024-06-29 08:02:51  INFO: Successfully acquired change log lock
+2024-06-29 08:02:52  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:02:53  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:02:53  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:02:53  INFO: UPDATE SUMMARY
+2024-06-29 08:02:53  INFO: Run:                          0
+2024-06-29 08:02:53  INFO: Previously run:              43
+2024-06-29 08:02:53  INFO: Filtered out:                 0
+2024-06-29 08:02:53  INFO: -------------------------------
+2024-06-29 08:02:53  INFO: Total change sets:           43
+
+2024-06-29 08:02:53  INFO: Update summary generated
+2024-06-29 08:02:53  INFO: Successfully released change log lock
+2024-06-29 08:02:53  INFO: Successfully released change log lock
+2024-06-29 08:02:53  INFO: Command execution complete
+2024-06-29 08:02:54  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-06-29 08:02:54  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-06-29 08:02:55  INFO: Session workerName=node0
+2024-06-29 08:02:56  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-06-29 08:02:57  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-06-29 08:02:57  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-06-29 08:02:57  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @8212ms
+2024-06-29 08:02:57  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-06-29 08:02:58  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:02:58  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:02:58  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:02:58  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:03:14  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:03:19  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:03:19  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:03:19  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:05:22  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-06-29 08:05:22  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-06-29 08:05:22  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-06-29 08:05:22  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-06-29 08:05:22  INFO: Version: 5.8
+2024-06-29 08:05:22  INFO: Starting server...
+2024-06-29 08:05:22  INFO: HikariPool-1 - Starting...
+2024-06-29 08:05:23  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-06-29 08:05:23  INFO: HikariPool-1 - Start completed.
+2024-06-29 08:05:23  INFO: Set default schema name to PUBLIC
+2024-06-29 08:05:23  INFO: Clearing database change log checksums
+2024-06-29 08:05:23  INFO: Successfully acquired change log lock
+2024-06-29 08:05:23  INFO: Successfully released change log lock
+2024-06-29 08:05:23  INFO: Successfully acquired change log lock
+2024-06-29 08:05:24  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:05:25  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:05:25  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:05:25  INFO: UPDATE SUMMARY
+2024-06-29 08:05:25  INFO: Run:                          0
+2024-06-29 08:05:25  INFO: Previously run:              43
+2024-06-29 08:05:25  INFO: Filtered out:                 0
+2024-06-29 08:05:25  INFO: -------------------------------
+2024-06-29 08:05:25  INFO: Total change sets:           43
+
+2024-06-29 08:05:25  INFO: Update summary generated
+2024-06-29 08:05:25  INFO: Successfully released change log lock
+2024-06-29 08:05:25  INFO: Successfully released change log lock
+2024-06-29 08:05:25  INFO: Command execution complete
+2024-06-29 08:05:26  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-06-29 08:05:26  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-06-29 08:05:27  INFO: Session workerName=node0
+2024-06-29 08:05:27  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-06-29 08:05:28  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-06-29 08:05:28  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-06-29 08:05:28  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @7471ms
+2024-06-29 08:05:28  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-06-29 08:05:28  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:05:29  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:05:29  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:05:29  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:05:29  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:05:29  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:05:29  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:05:29  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:05:29  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:05:42  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-06-29 08:05:42  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-06-29 08:05:42  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-06-29 08:05:42  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-06-29 08:05:42  INFO: Version: 5.8
+2024-06-29 08:05:42  INFO: Starting server...
+2024-06-29 08:05:43  INFO: HikariPool-1 - Starting...
+2024-06-29 08:05:43  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-06-29 08:05:43  INFO: HikariPool-1 - Start completed.
+2024-06-29 08:05:43  INFO: Set default schema name to PUBLIC
+2024-06-29 08:05:43  INFO: Clearing database change log checksums
+2024-06-29 08:05:44  INFO: Successfully acquired change log lock
+2024-06-29 08:05:44  INFO: Successfully released change log lock
+2024-06-29 08:05:44  INFO: Successfully acquired change log lock
+2024-06-29 08:05:45  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:05:45  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:05:45  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:05:45  INFO: UPDATE SUMMARY
+2024-06-29 08:05:45  INFO: Run:                          0
+2024-06-29 08:05:45  INFO: Previously run:              43
+2024-06-29 08:05:45  INFO: Filtered out:                 0
+2024-06-29 08:05:45  INFO: -------------------------------
+2024-06-29 08:05:45  INFO: Total change sets:           43
+
+2024-06-29 08:05:45  INFO: Update summary generated
+2024-06-29 08:05:45  INFO: Successfully released change log lock
+2024-06-29 08:05:45  INFO: Successfully released change log lock
+2024-06-29 08:05:45  INFO: Command execution complete
+2024-06-29 08:05:47  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-06-29 08:05:47  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-06-29 08:05:47  INFO: Session workerName=node0
+2024-06-29 08:05:48  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-06-29 08:05:49  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-06-29 08:05:49  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-06-29 08:05:49  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @8142ms
+2024-06-29 08:05:49  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-06-29 08:05:50  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:05:50  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:05:50  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:05:50  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:05:50  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:05:50  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:06:20  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:06:20  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:06:20  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:06:20  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:10:29  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-06-29 08:10:29  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-06-29 08:10:29  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-06-29 08:10:29  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-06-29 08:10:29  INFO: Version: 5.8
+2024-06-29 08:10:29  INFO: Starting server...
+2024-06-29 08:10:29  INFO: HikariPool-1 - Starting...
+2024-06-29 08:10:30  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-06-29 08:10:30  INFO: HikariPool-1 - Start completed.
+2024-06-29 08:10:30  INFO: Set default schema name to PUBLIC
+2024-06-29 08:10:30  INFO: Clearing database change log checksums
+2024-06-29 08:10:30  INFO: Successfully acquired change log lock
+2024-06-29 08:10:30  INFO: Successfully released change log lock
+2024-06-29 08:10:30  INFO: Successfully acquired change log lock
+2024-06-29 08:10:31  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:10:31  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:10:32  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:10:32  INFO: UPDATE SUMMARY
+2024-06-29 08:10:32  INFO: Run:                          0
+2024-06-29 08:10:32  INFO: Previously run:              43
+2024-06-29 08:10:32  INFO: Filtered out:                 0
+2024-06-29 08:10:32  INFO: -------------------------------
+2024-06-29 08:10:32  INFO: Total change sets:           43
+
+2024-06-29 08:10:32  INFO: Update summary generated
+2024-06-29 08:10:32  INFO: Successfully released change log lock
+2024-06-29 08:10:32  INFO: Successfully released change log lock
+2024-06-29 08:10:32  INFO: Command execution complete
+2024-06-29 08:10:33  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-06-29 08:10:33  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-06-29 08:10:33  INFO: Session workerName=node0
+2024-06-29 08:10:34  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-06-29 08:10:35  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-06-29 08:10:35  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-06-29 08:10:35  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @7364ms
+2024-06-29 08:10:35  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-06-29 08:10:36  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:10:36  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:10:36  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:10:36  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:10:36  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:10:36  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:10:36  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:10:36  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:10:36  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:10:36  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:10:37  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:10:37  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:12:23  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-06-29 08:12:23  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-06-29 08:12:23  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-06-29 08:12:23  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-06-29 08:12:23  INFO: Version: 5.8
+2024-06-29 08:12:23  INFO: Starting server...
+2024-06-29 08:12:23  INFO: HikariPool-1 - Starting...
+2024-06-29 08:12:24  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-06-29 08:12:24  INFO: HikariPool-1 - Start completed.
+2024-06-29 08:12:24  INFO: Set default schema name to PUBLIC
+2024-06-29 08:12:24  INFO: Clearing database change log checksums
+2024-06-29 08:12:24  INFO: Successfully acquired change log lock
+2024-06-29 08:12:24  INFO: Successfully released change log lock
+2024-06-29 08:12:24  INFO: Successfully acquired change log lock
+2024-06-29 08:12:25  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:12:25  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:12:25  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-06-29 08:12:25  INFO: UPDATE SUMMARY
+2024-06-29 08:12:25  INFO: Run:                          0
+2024-06-29 08:12:25  INFO: Previously run:              43
+2024-06-29 08:12:25  INFO: Filtered out:                 0
+2024-06-29 08:12:25  INFO: -------------------------------
+2024-06-29 08:12:25  INFO: Total change sets:           43
+
+2024-06-29 08:12:25  INFO: Update summary generated
+2024-06-29 08:12:25  INFO: Successfully released change log lock
+2024-06-29 08:12:25  INFO: Successfully released change log lock
+2024-06-29 08:12:25  INFO: Command execution complete
+2024-06-29 08:12:27  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-06-29 08:12:27  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-06-29 08:12:27  INFO: Session workerName=node0
+2024-06-29 08:12:28  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-06-29 08:12:29  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-06-29 08:12:29  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-06-29 08:12:29  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @7419ms
+2024-06-29 08:12:29  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-06-29 08:12:29  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:12:30  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:12:30  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:12:30  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:12:30  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:12:30  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-06-29 08:12:30  INFO: user: 1, action: login, from: 172.17.0.1
+2024-06-29 08:12:30  INFO: user: 1, action: logout, from: 172.17.0.1

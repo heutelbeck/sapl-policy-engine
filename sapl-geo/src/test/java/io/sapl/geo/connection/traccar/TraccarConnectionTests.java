@@ -19,8 +19,11 @@ package io.sapl.geo.connection.traccar;
 
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.runner.RunWith;
 
 import java.nio.file.Paths;
 import org.junit.jupiter.api.BeforeAll;
@@ -71,6 +74,7 @@ public class TraccarConnectionTests {
     }
 
     @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
     @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
             "KML,ResponseKML,true" })
     void testConnection(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
