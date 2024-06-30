@@ -18,8 +18,10 @@
 package io.sapl.geo.connection.postgis;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -28,8 +30,10 @@ import common.PostgisTestBase;
 import io.sapl.api.interpreter.Val;
 import reactor.test.StepVerifier;
 
-@TestInstance(Lifecycle.PER_CLASS)
+
 @Testcontainers
+@TestInstance(Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.DisplayName.class)
 class PostGisConnectionTests extends PostgisTestBase {
 
     @BeforeAll

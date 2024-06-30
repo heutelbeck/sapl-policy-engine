@@ -66,7 +66,7 @@ class TraccarSessionHandler {
     private JsonNode getPositionFromMessage(JsonNode in, int deviceId) {
 
         if (in.has(POSITIONS)) {
-            ArrayNode pos1 = (ArrayNode) in.findValue(POSITIONS);
+            var pos1 = (ArrayNode) in.findValue(POSITIONS);
             for (var p : pos1) {
                 if (p.findValue(DEVICE_ID).toPrettyString().equals(Integer.toString(deviceId))) {
                     return p;

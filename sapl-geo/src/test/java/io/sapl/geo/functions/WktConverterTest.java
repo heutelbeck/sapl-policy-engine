@@ -52,7 +52,7 @@ class WktConverterTest extends TestBase {
         var result  = geoConverter.wktToKml(point);
         var result1 = geoConverter.wktToKml(polygon);
 
-        StringWriter stringWriter = new StringWriter();
+        var stringWriter = new StringWriter();
 
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
         var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);

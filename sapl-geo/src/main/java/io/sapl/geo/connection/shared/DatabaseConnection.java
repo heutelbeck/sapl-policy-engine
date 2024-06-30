@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.slf4j.Logger;
@@ -31,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
@@ -47,6 +45,7 @@ import io.sapl.geo.pip.GeoPipResponseFormat;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.retry.Repeat;
 
 @RequiredArgsConstructor
@@ -95,7 +94,8 @@ public abstract class DatabaseConnection extends ConnectionBase {
             int defaultCrs, long repeatTimes, long pollingInterval, boolean latitudeFirst) {
 
         var connection = Mono.from(connectionFactory.create()).doOnNext(connectionReference::set);
-
+        
+        logger.info("connection: " + connectionReference.hashCode());
         logger.info("Database-Client connected.");
 
         if (singleResult) {
@@ -120,13 +120,13 @@ public abstract class DatabaseConnection extends ConnectionBase {
     }
 
     private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
-        ObjectNode resultNode = mapper.createObjectNode();
+        var resultNode = mapper.createObjectNode();
         JsonNode   geoNode;
 
-        String  resValue = row.get("res", String.class);
-        Integer srid     = row.get("srid", Integer.class);
+        var  resValue = row.get("res", String.class);
+        var srid     = row.get("srid", Integer.class);
 
-        if (srid != 0) {
+        if (srid != null && srid != 0) {
             geoNode = convertResponse(resValue, format, srid, latitudeFirst);
         } else {
             geoNode = convertResponse(resValue, format, defaultCrs, latitudeFirst);
@@ -143,12 +143,12 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) {
 
-        JsonNode res = mapper.createObjectNode();
+        var res = (JsonNode)mapper.createObjectNode();
         var      crs = EPSG + srid;
 
         try {
 
-            Geometry geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
+            var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
 
             if (this.getClass() == MySqlConnection.class && !latitudeFirst) {
                 var geoProjector = new GeoProjector(crs, false, crs, true);
@@ -193,7 +193,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
     private Mono<JsonNode> collectMultipleResults(Flux<JsonNode> resultFlux) {
 
         return resultFlux.collect(ArrayList::new, List::add).map(results -> {
-            ArrayNode arrayNode = mapper.createArrayNode();
+            var arrayNode = mapper.createArrayNode();
             for (var node : results) {
                 arrayNode.add((JsonNode) node);
             }
@@ -203,29 +203,40 @@ public abstract class DatabaseConnection extends ConnectionBase {
     }
 
     private Flux<JsonNode> poll(Mono<JsonNode> mono, long repeatTimes, long pollingInterval) {
-        return mono.onErrorResume(Mono::error)
+        return mono //.onErrorResume(Mono::error)
                 .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
-                .doFinally(s -> disconnect());
+                .doFinally(this::disconnect);
     }
 
-    private void disconnect() {
+    private void disconnect(SignalType s) {
 
-        if (connectionReference.get() != null) {
-            connectionReference.get().close();
-            logger.info("Database-Client disconnected.");
+//        if (connectionReference.get() != null) {
+//            connectionReference.get().close();
+//            logger.info("Database-Client disconnected.");
+//        }
+
+    	logger.info("disconnect() "+ s);
+    	
+    	var conn = connectionReference.get();
+    	logger.info("disconnect() reference " + connectionReference.hashCode());
+    	if (conn != null) {
+            Mono.from(conn.close())
+                .doOnError(err -> logger.error("Error closing connection: ", err))
+                .doOnSuccess(aVoid -> logger.info("Database-Client disconnected."))
+                .subscribe(null, err -> logger.error("Error during close subscription: ", err));
         }
-
+    	
     }
 
     private String buildSql(String geoColumn, String[] columns, String table, String where) {
-        String frmt = "ST_AsGeoJSON";
+        var frmt = "ST_AsGeoJSON";
 
-        StringBuilder builder = new StringBuilder();
+        var builder = new StringBuilder();
         for (String c : columns) {
             builder.append(String.format(", %s AS %s", c, c));
         }
-        String clms = builder.toString();
-        String str  = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid%s FROM %s %s";
+        var clms = builder.toString();
+        var str  = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid%s FROM %s %s";
 
         return String.format(str, frmt, geoColumn, geoColumn, clms, table, where);
     }

@@ -43,7 +43,7 @@ public final class GeometryConverter {
      */
     public static Val geometryToGML(Geometry geo) {
 
-        String s = EMPTY;
+        var s = EMPTY;
         s = (new GMLWriter()).write(geo);
 
         return Val.of(s);
@@ -55,7 +55,7 @@ public final class GeometryConverter {
      * @return a {@link Val} containing the KML-string}
      */
     public static Val geometryToKML(Geometry geo) {
-        String s = EMPTY;
+        var s = EMPTY;
         s = (new KMLWriter().write(geo));
 
         return Val.of(s);
@@ -66,7 +66,7 @@ public final class GeometryConverter {
      * @return a {@link Val} containing the WKT-string}
      */
     public static Val geometryToWKT(Geometry geo) {
-        String s = EMPTY;
+        var s = EMPTY;
         s = (new WKTWriter().write(geo));
 
         return Val.of(s);
@@ -81,8 +81,8 @@ public final class GeometryConverter {
     public static Val geometryToGeoJsonNode(Geometry geo) throws JsonProcessingException {
 
         JsonNode      json          = null;
-        ObjectMapper  mapper        = new ObjectMapper();
-        GeoJsonWriter geoJsonWriter = new GeoJsonWriter();
+        var  mapper        = new ObjectMapper();
+        var geoJsonWriter = new GeoJsonWriter();
         json = mapper.readTree(geoJsonWriter.write(geo));
 
         return Val.of(json);

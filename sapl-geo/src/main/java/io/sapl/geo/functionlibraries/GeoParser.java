@@ -30,7 +30,6 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
 import io.sapl.api.functions.Function;
@@ -66,7 +65,7 @@ public class GeoParser {
         try {
             var           stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
             var           config = new KMLConfiguration();
-            PullParser    parser = new PullParser(config, stream, KML.Placemark);
+            var    parser = new PullParser(config, stream, KML.Placemark);
             SimpleFeature f      = null;
 
             while ((f = (SimpleFeature) parser.parse()) != null) {
@@ -82,20 +81,20 @@ public class GeoParser {
     }
 
     protected ArrayNode convertToObjects(Collection<?> placeMarks) {
-        ArrayNode arrayNode = mapper.createArrayNode();
+        var arrayNode = mapper.createArrayNode();
 
         for (Object obj : placeMarks) {
 
             if (!(obj instanceof SimpleFeature feature)) {
                 throw new PolicyEvaluationException(ERROR);
             } else {
-                String name         = "unnamed geometry";
+                var name         = "unnamed geometry";
                 var    nameProperty = feature.getAttribute(NAME);
                 if (nameProperty != null) {
                     name = nameProperty.toString();
                 }
-                Geometry   geom = (Geometry) feature.getAttribute(GEOM);
-                ObjectNode geo  = JSON.objectNode();
+                var   geom = (Geometry) feature.getAttribute(GEOM);
+                var geo  = JSON.objectNode();
 
                 if (geom != null) {
                     geo.set(NAME, new TextNode(name));

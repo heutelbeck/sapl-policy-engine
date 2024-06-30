@@ -19,14 +19,11 @@ package io.sapl.geo.functions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.util.Assert;
 
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functionlibraries.SqlFunctions;
-import io.sapl.interpreter.InitializationException;
 
 class SqlFunctionsTests {
 

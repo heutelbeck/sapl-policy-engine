@@ -77,8 +77,7 @@ public class TraccarConnection extends ConnectionBase {
         var protocol = getProtocol(settings);
         var url      = "ws://" + server + "/api/socket";
 
-        this.sessionManager = new TraccarSessionManager(getUser(settings), getPassword(settings), server, protocol,
-                mapper);
+        this.sessionManager = new TraccarSessionManager(getUser(settings), getPassword(settings), mapper);
 
         return this.sessionManager.establishSession(server, protocol).flatMapMany(cookie -> {
 
@@ -111,9 +110,9 @@ public class TraccarConnection extends ConnectionBase {
                     }
                 }
                 """;
-        Val request;
+        
         try {
-            request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
+            var request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
 
             var flux = client.consumeWebSocket(request).map(Val::get)
                     .flatMap(msg -> handler.mapPosition(msg, format, latitudeFirst))

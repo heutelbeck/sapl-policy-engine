@@ -17,7 +17,6 @@
  */
 package io.sapl.geo.functionlibraries;
 
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 import io.sapl.api.functions.Function;
@@ -74,7 +73,7 @@ public class SqlFunctions {
 
     private Val validate(Val input, Pattern pattern) {
 
-        Matcher matcher = pattern.matcher(input.getText());
+        var matcher = pattern.matcher(input.getText());
 
         if (matcher.matches()) {
 

@@ -90,13 +90,22 @@ public class OwnTracksConnection extends ConnectionBase {
             var valueToEncode   = String.format("%s:%s", httpBasicAuthUser, password);
             var basicAuthHeader = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
 
-            var html2 = """
-                    	,
-                        "headers" : {
-                        	"Authorization": "%s"
-                    	}
-                    }
-                    """;
+            var html2="""
+                ,
+                "headers" : {
+                   Authorization": "%s"
+                }
+              }
+            """;
+
+
+//            var html2 = """
+//            			,
+//            			"headers" : {
+//            				"Authorization": "%s"
+//            			}
+//                    }
+//                    """;
             html2 = String.format(html2, basicAuthHeader);
             html1 = html1.concat(html2);
         } else {

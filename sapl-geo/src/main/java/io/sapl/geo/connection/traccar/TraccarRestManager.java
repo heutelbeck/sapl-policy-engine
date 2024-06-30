@@ -25,6 +25,7 @@ import org.springframework.http.MediaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.pip.http.ReactiveWebClient;
 import reactor.core.publisher.Mono;
@@ -69,8 +70,7 @@ public class TraccarRestManager {
             request = Val.ofJson(String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE,
                     sessionCookie, deviceId));
         } catch (Exception e) {
-            System.out.println("getGeofences");
-            e.printStackTrace();
+        	throw new PolicyEvaluationException(e);
         }
 
         return webClient.httpRequest(HttpMethod.GET, request).next().map(Val::get);

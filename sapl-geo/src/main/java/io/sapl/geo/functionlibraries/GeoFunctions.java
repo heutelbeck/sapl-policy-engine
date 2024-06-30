@@ -31,7 +31,6 @@ import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.spatial4j.distance.DistanceUtils;
-import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.TransformException;
 import org.springframework.stereotype.Component;
@@ -164,8 +163,8 @@ public class GeoFunctions {
     }
 
     public Boolean within(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
-        Geometry geometryThis = JsonConverter.geoJsonToGeometry(geoJsonThis.toPrettyString());
-        Geometry geometryThat = JsonConverter.geoJsonToGeometry(geoJsonThat.toPrettyString());
+        var geometryThis = JsonConverter.geoJsonToGeometry(geoJsonThis.toPrettyString());
+        var geometryThat = JsonConverter.geoJsonToGeometry(geoJsonThat.toPrettyString());
         return (geometryThat instanceof GeometryCollection) ? geometryThis.within(geometryThat.union())
                 : geometryThis.within(geometryThat);
     }
@@ -178,8 +177,8 @@ public class GeoFunctions {
     }
 
     public Boolean contains(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
-        Geometry geometryThis = JsonConverter.geoJsonToGeometry(geoJsonThis.toPrettyString());
-        Geometry geometryThat = JsonConverter.geoJsonToGeometry(geoJsonThat.toPrettyString());
+        var geometryThis = JsonConverter.geoJsonToGeometry(geoJsonThis.toPrettyString());
+        var geometryThat = JsonConverter.geoJsonToGeometry(geoJsonThat.toPrettyString());
         return (geometryThis instanceof GeometryCollection) ? geometryThis.union().contains(geometryThat)
                 : geometryThis.contains(geometryThat);
     }
@@ -262,7 +261,7 @@ public class GeoFunctions {
     @Function(docs = UNION_DOC)
     public Val union(@JsonObject Val... jsonGeometries) throws ParseException, JsonProcessingException {
 
-        JsonNode[] geometries = new JsonNode[jsonGeometries.length];
+        var geometries = new JsonNode[jsonGeometries.length];
         for (int i = 0; i < jsonGeometries.length; i++) {
             geometries[i] = jsonGeometries[i].get();
         }
@@ -274,9 +273,9 @@ public class GeoFunctions {
         if (jsonGeometries.length == 1) {
             return Val.of(jsonGeometries[0]);
         }
-        Geometry geomUnion = JsonConverter.geoJsonToGeometry(jsonGeometries[0].toPrettyString());
+        var geomUnion = JsonConverter.geoJsonToGeometry(jsonGeometries[0].toPrettyString());
         for (int i = 1; i < jsonGeometries.length; i++) {
-            Geometry additionalGeom = JsonConverter.geoJsonToGeometry(jsonGeometries[i].toPrettyString());
+            var additionalGeom = JsonConverter.geoJsonToGeometry(jsonGeometries[i].toPrettyString());
             geomUnion = geomUnion.union(additionalGeom);
         }
         return GeometryConverter.geometryToGeoJsonNode(geomUnion);
@@ -378,12 +377,12 @@ public class GeoFunctions {
 
     private double geodesicDistance(JsonNode jsonGeometryThis, JsonNode jsonGeometryThat,
             String coordinateReferenceSystem) throws ParseException, FactoryException, TransformException {
-        Geometry geometryThis = JsonConverter.geoJsonToGeometry(jsonGeometryThis.toPrettyString());
-        Geometry geometryThat = JsonConverter.geoJsonToGeometry(jsonGeometryThat.toPrettyString());
+        var geometryThis = JsonConverter.geoJsonToGeometry(jsonGeometryThis.toPrettyString());
+        var geometryThat = JsonConverter.geoJsonToGeometry(jsonGeometryThat.toPrettyString());
 
-        CoordinateReferenceSystem crs    = CRS.decode(coordinateReferenceSystem);
-        DistanceOp                distOp = new DistanceOp(geometryThis, geometryThat);
-        GeodeticCalculator        gc     = new GeodeticCalculator(crs);
+        var crs    = CRS.decode(coordinateReferenceSystem);
+        var                distOp = new DistanceOp(geometryThis, geometryThat);
+        var        gc     = new GeodeticCalculator(crs);
 
         gc.setStartingPosition(JTS.toDirectPosition(distOp.nearestPoints()[0], crs));
         gc.setDestinationPosition(JTS.toDirectPosition(distOp.nearestPoints()[1], crs));
@@ -456,7 +455,7 @@ public class GeoFunctions {
     }
 
     public Boolean isClosed(@JsonObject JsonNode jsonGeometry) throws ParseException, OperationNotSupportedException {
-        Geometry geometry = JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString());
+        var geometry = JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString());
 
         if (geometry.isEmpty() || (geometry.getGeometryType().equals(Geometry.TYPENAME_POINT))
                 || (geometry.getGeometryType().equals(Geometry.TYPENAME_MULTIPOINT))) {
@@ -483,7 +482,7 @@ public class GeoFunctions {
     }
 
     public JsonNode milesToMeter(@Number JsonNode jsonValue) throws IllegalArgumentException {
-        ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        var mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         return mapper.convertValue(milesToMeter(jsonValue.asDouble()), JsonNode.class);
     }
 
@@ -499,7 +498,7 @@ public class GeoFunctions {
     }
 
     public JsonNode yardToMeter(@Number JsonNode jsonValue) throws IllegalArgumentException {
-        ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        var mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         return mapper.convertValue(milesToMeter(jsonValue.asDouble() / 1760), JsonNode.class);
     }
 
@@ -511,7 +510,7 @@ public class GeoFunctions {
     }
 
     public JsonNode degreeToMeter(@Number JsonNode jsonValue) throws IllegalArgumentException {
-        ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        var mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         return mapper.convertValue(degreeToMeter(jsonValue.asDouble()), JsonNode.class);
     }
 
@@ -540,7 +539,7 @@ public class GeoFunctions {
 
     public Val oneAndOnly(@JsonObject JsonNode jsonGeometryCollection)
             throws ParseException, OperationNotSupportedException, ClassCastException, JsonProcessingException {
-        GeometryCollection geometryCollection = (GeometryCollection) JsonConverter
+        var geometryCollection = (GeometryCollection) JsonConverter
                 .geoJsonToGeometry(jsonGeometryCollection.toPrettyString());
         if (geometryCollection.getNumGeometries() == 1) {
             return GeometryConverter.geometryToGeoJsonNode(geometryCollection.getGeometryN(0));
@@ -559,8 +558,8 @@ public class GeoFunctions {
 
     public Boolean geometryIsIn(@JsonObject JsonNode jsonGeometry, @JsonObject JsonNode jsonGeometryCollection)
             throws ParseException, ClassCastException {
-        Geometry           geometry           = JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString());
-        GeometryCollection geometryCollection = (GeometryCollection) JsonConverter
+        var           geometry           = JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString());
+        var geometryCollection = (GeometryCollection) JsonConverter
                 .geoJsonToGeometry(jsonGeometryCollection.toPrettyString());
 
         for (int i = 0; i < geometryCollection.getNumGeometries(); i++) {
@@ -574,7 +573,7 @@ public class GeoFunctions {
     @Function(docs = GEOMETRY_BAG_DOC)
     public Val geometryBag(@JsonObject Val... geometryJsonInput) throws ParseException, JsonProcessingException {
 
-        JsonNode[] geometries = new JsonNode[geometryJsonInput.length];
+        var geometries = new JsonNode[geometryJsonInput.length];
         for (int i = 0; i < geometryJsonInput.length; i++) {
             geometries[i] = geometryJsonInput[i].get();
         }
@@ -584,21 +583,21 @@ public class GeoFunctions {
     }
 
     public Val geometryBag(@JsonObject JsonNode... geometryJsonInput) throws ParseException, JsonProcessingException {
-        Geometry[] geometries = new Geometry[geometryJsonInput.length];
+        var geometries = new Geometry[geometryJsonInput.length];
         for (int i = 0; i < geometryJsonInput.length; i++) {
             geometries[i] = JsonConverter.geoJsonToGeometry(geometryJsonInput[i].toPrettyString());
         }
 
-        GeometryFactory geomFactory = new GeometryFactory();
+        var geomFactory = new GeometryFactory();
         return GeometryConverter.geometryToGeoJsonNode(geomFactory.createGeometryCollection(geometries));
     }
 
     @Function(docs = RES_TO_GEOMETRY_BAG_DOC)
     public Val resToGeometryBag(@Array Val resourceArray) throws ParseException, JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode[]   nodes  = mapper.convertValue(resourceArray.get(), JsonNode[].class);
+        var mapper = new ObjectMapper();
+        var   nodes  = mapper.convertValue(resourceArray.get(), JsonNode[].class);
 
-        Val[] vals = new Val[nodes.length];
+        var vals = new Val[nodes.length];
         for (int i = 0; i < nodes.length; i++) {
             vals[i] = Val.of(nodes[i]);
         }
@@ -617,9 +616,9 @@ public class GeoFunctions {
 
     public Boolean atLeastOneMemberOf(@JsonObject JsonNode jsonGeometryCollectionThis,
             @JsonObject JsonNode jsonGeometryCollectionThat) throws ParseException {
-        GeometryCollection geometryCollectionThis = (GeometryCollection) JsonConverter
+        var geometryCollectionThis = (GeometryCollection) JsonConverter
                 .geoJsonToGeometry(jsonGeometryCollectionThis.toPrettyString());
-        GeometryCollection geometryCollectionThat = (GeometryCollection) JsonConverter
+        var geometryCollectionThat = (GeometryCollection) JsonConverter
                 .geoJsonToGeometry(jsonGeometryCollectionThat.toPrettyString());
 
         for (int i = 0; i < geometryCollectionThis.getNumGeometries(); i++) {
@@ -644,16 +643,16 @@ public class GeoFunctions {
 
     public Boolean subset(@JsonObject JsonNode jsonGeometryCollectionThis,
             @JsonObject JsonNode jsonGeometryCollectionThat) throws ParseException {
-        GeometryCollection geometryCollectionThis = (GeometryCollection) JsonConverter
+        var geometryCollectionThis = (GeometryCollection) JsonConverter
                 .geoJsonToGeometry(jsonGeometryCollectionThis.toPrettyString());
-        GeometryCollection geometryCollectionThat = (GeometryCollection) JsonConverter
+        var geometryCollectionThat = (GeometryCollection) JsonConverter
                 .geoJsonToGeometry(jsonGeometryCollectionThat.toPrettyString());
         if (geometryCollectionThis.getNumGeometries() > geometryCollectionThat.getNumGeometries()) {
             return false;
         }
 
         // Use BitSet as more efficient replacement for boolean array
-        BitSet resultSet = new BitSet(geometryCollectionThis.getNumGeometries());
+        var resultSet = new BitSet(geometryCollectionThis.getNumGeometries());
 
         for (int i = 0; i < geometryCollectionThis.getNumGeometries(); i++) {
             for (int j = 0; j < geometryCollectionThat.getNumGeometries(); j++) {
