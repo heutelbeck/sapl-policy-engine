@@ -34,7 +34,7 @@ class SqlFunctionsTests {
     void CheckForControlCharactersPass() {
 
         var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
-        var checkedSql = sqlFunctions.checkForControlCharacters(sql);
+        var checkedSql = sqlFunctions.assertNoSqlControlChars(sql);
         Assert.equals(sql, checkedSql);
     }
 
@@ -43,7 +43,7 @@ class SqlFunctionsTests {
 
         var exp    = Val.of(
                 "SELECT id, value FROM table WHERE name IN (SELECT name, someField FROM table2 WHERE id = 'someNumber')");
-        var result = sqlFunctions.checkForControlCharacters(exp);
+        var result = sqlFunctions.assertNoSqlControlChars(exp);
         assertEquals(exp, result);
 
     }
@@ -51,7 +51,7 @@ class SqlFunctionsTests {
     @Test
     void CheckForControlCharactersError() {
 
-        var sql = sqlFunctions.checkForControlCharacters(Val.of("Select * from table where name = 'test;drop table'"));
+        var sql = sqlFunctions.assertNoSqlControlChars(Val.of("Select * from table where name = 'test;drop table'"));
 
         assertEquals(errorVal, sql);
 
@@ -60,7 +60,7 @@ class SqlFunctionsTests {
     @Test
     void CheckForControlCharactersError2() {
 
-        var sql = sqlFunctions.checkForControlCharacters(Val.of("Select * from table where name = @setvalue = 1"));
+        var sql = sqlFunctions.assertNoSqlControlChars(Val.of("Select * from table where name = @setvalue = 1"));
 
         assertEquals(errorVal, sql);
 
@@ -70,14 +70,14 @@ class SqlFunctionsTests {
     void CheckForKeywordsPass() {
 
         var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
-        var checkedSql = sqlFunctions.checkForKeywords(sql);
+        var checkedSql = sqlFunctions.assertNoSqlKeywords(sql);
         Assert.equals(sql, checkedSql);
     }
 
     @Test
     void CheckForKeywordsError() {
 
-        var sql = sqlFunctions.checkForKeywords(Val.of("Select (drop table table1) from table where name = 'test'"));
+        var sql = sqlFunctions.assertNoSqlKeywords(Val.of("Select (drop table table1) from table where name = 'test'"));
 
         assertEquals(errorVal, sql);
 
@@ -86,7 +86,7 @@ class SqlFunctionsTests {
     @Test
     void CheckForKeywordsError2() {
 
-        var sql = sqlFunctions.checkForKeywords(Val.of("Select * from table where name in (truncate table table1)"));
+        var sql = sqlFunctions.assertNoSqlKeywords(Val.of("Select * from table where name in (truncate table table1)"));
 
         assertEquals(errorVal, sql);
 

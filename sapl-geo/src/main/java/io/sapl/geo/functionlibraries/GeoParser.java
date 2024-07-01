@@ -65,7 +65,7 @@ public class GeoParser {
         try {
             var           stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
             var           config = new KMLConfiguration();
-            var    parser = new PullParser(config, stream, KML.Placemark);
+            var           parser = new PullParser(config, stream, KML.Placemark);
             SimpleFeature f      = null;
 
             while ((f = (SimpleFeature) parser.parse()) != null) {
@@ -89,11 +89,11 @@ public class GeoParser {
                 throw new PolicyEvaluationException(ERROR);
             } else {
                 var name         = "unnamed geometry";
-                var    nameProperty = feature.getAttribute(NAME);
+                var nameProperty = feature.getAttribute(NAME);
                 if (nameProperty != null) {
                     name = nameProperty.toString();
                 }
-                var   geom = (Geometry) feature.getAttribute(GEOM);
+                var geom = (Geometry) feature.getAttribute(GEOM);
                 var geo  = JSON.objectNode();
 
                 if (geom != null) {

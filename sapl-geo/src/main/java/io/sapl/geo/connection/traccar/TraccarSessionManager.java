@@ -40,23 +40,22 @@ public class TraccarSessionManager {
     private URI          uri;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private ObjectMapper mapper;
-    
-    private int			 sessionId;
+
+    private int    sessionId;
     @Getter
-    private String       sessionCookie;
-    
+    private String sessionCookie;
+
 //    String getSessionCookie() {
 //        return sessionCookie;
 //    }
 
-    //private TraccarSession session;
+    // private TraccarSession session;
 
 //    TraccarSession getSession() {
 //        return session;
 //    }
 
-    TraccarSessionManager(String user, String password, ObjectMapper mapper)
-            throws PolicyEvaluationException {
+    TraccarSessionManager(String user, String password, ObjectMapper mapper) throws PolicyEvaluationException {
         this.user     = user;
         this.password = password;
         this.mapper   = mapper;
@@ -184,16 +183,17 @@ public class TraccarSessionManager {
             var client = WebClient.builder().build();
 
             return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
-                    .retrieve().onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> 
-                         Mono.error(
-                                new PolicyEvaluationException("Session could not be established. Server responded with "
-                                        + response.statusCode().value()))
-                    ).toEntity(String.class).flatMap(response -> {
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            response -> Mono.error(new PolicyEvaluationException(
+                                    "Session could not be established. Server responded with "
+                                            + response.statusCode().value())))
+                    .toEntity(String.class).flatMap(response -> {
                         if (response.getStatusCode().is2xxSuccessful()) {
                             String setCookieHeader = response.getHeaders().getFirst("set-cookie");
                             if (setCookieHeader != null) {
                                 sessionCookie = setCookieHeader;
-                                //session = createTraccarSession(response.getBody());
+                                // session = createTraccarSession(response.getBody());
                                 setSessionId(response.getBody());
                                 logger.info("Traccar Session {} established.", sessionId);
                                 return Mono.just(setCookieHeader);
@@ -214,17 +214,17 @@ public class TraccarSessionManager {
     }
 
     private void setSessionId(String json) {
-    	try {
-    		var sessionJson = mapper.readTree(json);
-    		if (sessionJson.has("id")) {
-    			this.sessionId = sessionJson.get("id").asInt();
-    		}
-    	}catch (Exception e) {
-    		
-    		throw new PolicyEvaluationException(e);
-    	}
+        try {
+            var sessionJson = mapper.readTree(json);
+            if (sessionJson.has("id")) {
+                this.sessionId = sessionJson.get("id").asInt();
+            }
+        } catch (Exception e) {
+
+            throw new PolicyEvaluationException(e);
+        }
     }
-    
+
 //    private TraccarSession createTraccarSession(String json) throws PolicyEvaluationException {
 //
 //        try {      
@@ -243,7 +243,8 @@ public class TraccarSessionManager {
                 logger.info("Traccar Session {} closed successfully.", sessionId);
                 return Mono.just(true);
             } else {
-                logger.error(String.format("Failed to close Traccar Session %s. Status code: %s",sessionId, response.getStatusCode()));
+                logger.error(String.format("Failed to close Traccar Session %s. Status code: %s", sessionId,
+                        response.getStatusCode()));
                 return Mono.just(false);
             }
         });

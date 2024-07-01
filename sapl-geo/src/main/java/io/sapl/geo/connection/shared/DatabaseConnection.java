@@ -94,7 +94,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
             int defaultCrs, long repeatTimes, long pollingInterval, boolean latitudeFirst) {
 
         var connection = Mono.from(connectionFactory.create()).doOnNext(connectionReference::set);
-        
+
         logger.info("connection: " + connectionReference.hashCode());
         logger.info("Database-Client connected.");
 
@@ -120,10 +120,10 @@ public abstract class DatabaseConnection extends ConnectionBase {
     }
 
     private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
-        var resultNode = mapper.createObjectNode();
-        JsonNode   geoNode;
+        var      resultNode = mapper.createObjectNode();
+        JsonNode geoNode;
 
-        var  resValue = row.get("res", String.class);
+        var resValue = row.get("res", String.class);
         var srid     = row.get("srid", Integer.class);
 
         if (srid != null && srid != 0) {
@@ -143,8 +143,8 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) {
 
-        var res = (JsonNode)mapper.createObjectNode();
-        var      crs = EPSG + srid;
+        var res = (JsonNode) mapper.createObjectNode();
+        var crs = EPSG + srid;
 
         try {
 
@@ -203,7 +203,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
     }
 
     private Flux<JsonNode> poll(Mono<JsonNode> mono, long repeatTimes, long pollingInterval) {
-        return mono //.onErrorResume(Mono::error)
+        return mono // .onErrorResume(Mono::error)
                 .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
                 .doFinally(this::disconnect);
     }
@@ -215,17 +215,16 @@ public abstract class DatabaseConnection extends ConnectionBase {
 //            logger.info("Database-Client disconnected.");
 //        }
 
-    	logger.info("disconnect() "+ s);
-    	
-    	var conn = connectionReference.get();
-    	logger.info("disconnect() reference " + connectionReference.hashCode());
-    	if (conn != null) {
-            Mono.from(conn.close())
-                .doOnError(err -> logger.error("Error closing connection: ", err))
-                .doOnSuccess(aVoid -> logger.info("Database-Client disconnected."))
-                .subscribe(null, err -> logger.error("Error during close subscription: ", err));
+        logger.info("disconnect() " + s);
+
+        var conn = connectionReference.get();
+        logger.info("disconnect() reference " + connectionReference.hashCode());
+        if (conn != null) {
+            Mono.from(conn.close()).doOnError(err -> logger.error("Error closing connection: ", err))
+                    .doOnSuccess(aVoid -> logger.info("Database-Client disconnected."))
+                    .subscribe(null, err -> logger.error("Error during close subscription: ", err));
         }
-    	
+
     }
 
     private String buildSql(String geoColumn, String[] columns, String table, String where) {

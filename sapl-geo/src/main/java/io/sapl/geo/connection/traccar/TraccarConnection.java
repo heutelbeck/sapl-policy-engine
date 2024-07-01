@@ -110,7 +110,7 @@ public class TraccarConnection extends ConnectionBase {
                     }
                 }
                 """;
-        
+
         try {
             var request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
 

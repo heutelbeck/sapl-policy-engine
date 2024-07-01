@@ -70,7 +70,7 @@ public class TraccarRestManager {
             request = Val.ofJson(String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE,
                     sessionCookie, deviceId));
         } catch (Exception e) {
-        	throw new PolicyEvaluationException(e);
+            throw new PolicyEvaluationException(e);
         }
 
         return webClient.httpRequest(HttpMethod.GET, request).next().map(Val::get);

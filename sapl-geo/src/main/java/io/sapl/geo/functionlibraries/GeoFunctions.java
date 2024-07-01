@@ -381,8 +381,8 @@ public class GeoFunctions {
         var geometryThat = JsonConverter.geoJsonToGeometry(jsonGeometryThat.toPrettyString());
 
         var crs    = CRS.decode(coordinateReferenceSystem);
-        var                distOp = new DistanceOp(geometryThis, geometryThat);
-        var        gc     = new GeodeticCalculator(crs);
+        var distOp = new DistanceOp(geometryThis, geometryThat);
+        var gc     = new GeodeticCalculator(crs);
 
         gc.setStartingPosition(JTS.toDirectPosition(distOp.nearestPoints()[0], crs));
         gc.setDestinationPosition(JTS.toDirectPosition(distOp.nearestPoints()[1], crs));
@@ -558,7 +558,7 @@ public class GeoFunctions {
 
     public Boolean geometryIsIn(@JsonObject JsonNode jsonGeometry, @JsonObject JsonNode jsonGeometryCollection)
             throws ParseException, ClassCastException {
-        var           geometry           = JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString());
+        var geometry           = JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString());
         var geometryCollection = (GeometryCollection) JsonConverter
                 .geoJsonToGeometry(jsonGeometryCollection.toPrettyString());
 
@@ -595,7 +595,7 @@ public class GeoFunctions {
     @Function(docs = RES_TO_GEOMETRY_BAG_DOC)
     public Val resToGeometryBag(@Array Val resourceArray) throws ParseException, JsonProcessingException {
         var mapper = new ObjectMapper();
-        var   nodes  = mapper.convertValue(resourceArray.get(), JsonNode[].class);
+        var nodes  = mapper.convertValue(resourceArray.get(), JsonNode[].class);
 
         var vals = new Val[nodes.length];
         for (int i = 0; i < nodes.length; i++) {

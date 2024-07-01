@@ -80,9 +80,9 @@ public final class GeometryConverter {
      */
     public static Val geometryToGeoJsonNode(Geometry geo) throws JsonProcessingException {
 
-        JsonNode      json          = null;
-        var  mapper        = new ObjectMapper();
-        var geoJsonWriter = new GeoJsonWriter();
+        JsonNode json          = null;
+        var      mapper        = new ObjectMapper();
+        var      geoJsonWriter = new GeoJsonWriter();
         json = mapper.readTree(geoJsonWriter.write(geo));
 
         return Val.of(json);

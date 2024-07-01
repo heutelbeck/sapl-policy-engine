@@ -70,8 +70,8 @@ public class GeoMapper {
      */
     public GeoPipResponse mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst) {
 
-        var geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
-        Point           position;
+        var   geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+        Point position;
 
         var lat = in.findValue(latitude).asDouble();
         var lon = in.findValue(longitude).asDouble();
@@ -83,7 +83,7 @@ public class GeoMapper {
             position = geometryFactory.createPoint(new Coordinate(lat, lon));
         }
 
-        var posRes = (JsonNode)mapper.createObjectNode();
+        var posRes = (JsonNode) mapper.createObjectNode();
         try {
             switch (format) {
             case GEOJSON:
