@@ -28,23 +28,23 @@ import io.sapl.geo.functionlibraries.SqlFunctions;
 class SqlFunctionsTests {
 
     private SqlFunctions sqlFunctions = new SqlFunctions();
-    private Val          errorVal     = Val.error("Error validating input.");
+    private Val          errorVal     = Val.error("Error validating input. Input-string failed sanitization");
 
     @Test
     void CheckForControlCharactersPass() {
 
         var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
         var checkedSql = sqlFunctions.assertNoSqlControlChars(sql);
-        Assert.equals(sql, checkedSql);
+        Assert.equals(Val.TRUE, checkedSql);
     }
 
     @Test
     void CheckForControlCharacters2() {
 
-        var exp    = Val.of(
+        var sql    = Val.of(
                 "SELECT id, value FROM table WHERE name IN (SELECT name, someField FROM table2 WHERE id = 'someNumber')");
-        var result = sqlFunctions.assertNoSqlControlChars(exp);
-        assertEquals(exp, result);
+        var result = sqlFunctions.assertNoSqlControlChars(sql);
+        assertEquals(Val.TRUE, result);
 
     }
 
@@ -71,7 +71,7 @@ class SqlFunctionsTests {
 
         var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
         var checkedSql = sqlFunctions.assertNoSqlKeywords(sql);
-        Assert.equals(sql, checkedSql);
+        Assert.equals(Val.TRUE, checkedSql);
     }
 
     @Test

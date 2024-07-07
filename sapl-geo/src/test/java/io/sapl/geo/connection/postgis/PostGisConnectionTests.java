@@ -30,7 +30,6 @@ import common.PostgisTestBase;
 import io.sapl.api.interpreter.Val;
 import reactor.test.StepVerifier;
 
-
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.DisplayName.class)

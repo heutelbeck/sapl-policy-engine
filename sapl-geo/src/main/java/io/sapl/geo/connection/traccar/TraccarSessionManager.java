@@ -182,15 +182,43 @@ public class TraccarSessionManager {
 
             var client = WebClient.builder().build();
 
+//            return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
+//                    .retrieve()
+//                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+//                            response -> Mono.error(new PolicyEvaluationException(
+//                                    "Session could not be established. Server responded with "
+//                                            + response.statusCode().value())))
+//                    .toEntity(String.class).flatMap(response -> {
+//                        if (response.getStatusCode().is2xxSuccessful()) {
+//                            var setCookieHeader = response.getHeaders().getFirst("set-cookie");
+//                            if (setCookieHeader != null) {
+//                                sessionCookie = setCookieHeader;
+//                                // session = createTraccarSession(response.getBody());
+//                                setSessionId(response.getBody());
+//                                logger.info("Traccar Session {} established.", sessionId);
+//                                return Mono.just(setCookieHeader);
+//                            } else {
+//                                return Mono.error(
+//                                        new PolicyEvaluationException("No session cookie found in the response."));
+//                            }
+//                        } else {
+//                            return Mono.error(new PolicyEvaluationException(
+//                                    "Session could not be established. Server responded with "
+//                                            + response.getStatusCode().value()));
+//                        }
+//                    });
+            
             return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
                     .retrieve()
                     .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
-                            response -> Mono.error(new PolicyEvaluationException(
+                            response -> { 
+                                logger.info("---- onstatus 4 5: {} {} ", response.statusCode().is4xxClientError(), response.statusCode().is5xxServerError());
+                                return Mono.error(new PolicyEvaluationException(
                                     "Session could not be established. Server responded with "
-                                            + response.statusCode().value())))
+                                            + response.statusCode().value()));})
                     .toEntity(String.class).flatMap(response -> {
                         if (response.getStatusCode().is2xxSuccessful()) {
-                            String setCookieHeader = response.getHeaders().getFirst("set-cookie");
+                            var setCookieHeader = response.getHeaders().getFirst("set-cookie");
                             if (setCookieHeader != null) {
                                 sessionCookie = setCookieHeader;
                                 // session = createTraccarSession(response.getBody());
@@ -202,11 +230,13 @@ public class TraccarSessionManager {
                                         new PolicyEvaluationException("No session cookie found in the response."));
                             }
                         } else {
+                            logger.info("---- not 4 5: {} {}", response.getStatusCode().isError());
                             return Mono.error(new PolicyEvaluationException(
                                     "Session could not be established. Server responded with "
                                             + response.getStatusCode().value()));
                         }
                     });
+            
         } catch (Exception e) {
             throw new PolicyEvaluationException(e);
         }
@@ -227,7 +257,7 @@ public class TraccarSessionManager {
 
 //    private TraccarSession createTraccarSession(String json) throws PolicyEvaluationException {
 //
-//        try {      
+//        try {
 //            return mapper.convertValue(mapper.readTree(json), TraccarSession.class);
 //        } catch (Exception e) {
 //            throw new PolicyEvaluationException(e);
