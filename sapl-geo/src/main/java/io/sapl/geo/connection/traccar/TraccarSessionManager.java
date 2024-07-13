@@ -210,7 +210,7 @@ public class TraccarSessionManager {
             
             return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
                     .retrieve()
-                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                    .onStatus(status -> status.isError() || status.is4xxClientError() || status.is5xxServerError(),
                             response -> { 
                                 logger.info("---- onstatus 4 5: {} {} ", response.statusCode().is4xxClientError(), response.statusCode().is5xxServerError());
                                 return Mono.error(new PolicyEvaluationException(
@@ -238,6 +238,7 @@ public class TraccarSessionManager {
                     });
             
         } catch (Exception e) {
+            logger.info("exception");
             throw new PolicyEvaluationException(e);
         }
 

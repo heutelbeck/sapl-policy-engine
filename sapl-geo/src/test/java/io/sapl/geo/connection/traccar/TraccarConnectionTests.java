@@ -36,6 +36,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.traccar.TraccarGeofences;
+import io.sapl.geo.traccar.TraccarPositions;
 import reactor.test.StepVerifier;
 
 @Testcontainers
@@ -92,4 +94,70 @@ public class TraccarConnectionTests {
 
     }
 
+    
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
+    "KML,ResponseKML,true" })
+    void testTraccarPositions(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
+    var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+    var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
+    
+    if (!latitudeFirst) {
+        responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
+    
+    }
+    responseTemplate = responseTemplate.concat("}");
+    var val    = Val.ofJson(responseTemplate);
+    var result = new TraccarPositions(new ObjectMapper()).getPositions(val.get()).map(Val::get)
+            .map(JsonNode::toPrettyString);
+    
+//    result.doOnNext(x -> {
+        
+//        var a = x;
+//        System.out.println(a);
+//    }).subscribe();
+//    
+//    try {
+//        Thread.sleep(10000);
+//    } catch (InterruptedException e) {
+//        // TODO Auto-generated catch block
+//        e.printStackTrace();
+//    }
+    StepVerifier.create(result).expectNext(expected).thenCancel().verify();
+    
+    }
+    
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
+    "KML,ResponseKML,true" })
+    void testTraccarGeofences(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
+    var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+    var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
+    
+    if (!latitudeFirst) {
+        responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
+    
+    }
+    responseTemplate = responseTemplate.concat("}");
+    var val    = Val.ofJson(responseTemplate);
+    var result = new TraccarGeofences(new ObjectMapper()).getGeofences(val.get()).map(Val::get)
+            .map(JsonNode::toPrettyString);
+    
+    result.doOnNext(x -> {       
+        var a = x;
+        System.out.println(a);
+    }).subscribe();
+    
+    try {
+        Thread.sleep(100000);
+    } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+    }
+    //StepVerifier.create(result).expectNext(expected).thenCancel().verify();
+    var a = 1;
+    }
+    
 }
