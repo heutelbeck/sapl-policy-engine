@@ -37,7 +37,7 @@ public class TraccarPositions extends TraccarBase{
      */
     public Flux<Val> getPositions(JsonNode settings) {
     
-        geoMapper     = new GeoMapper(getDeviceId(settings), LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
+        geoMapper     = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
     
         var server   = getServer(settings);
         var url      = "ws://" + server + "/api/socket";
@@ -86,7 +86,7 @@ public class TraccarPositions extends TraccarBase{
 
         if (pos.has(DEVICE_ID)) {
 
-            return Flux.just(geoMapper.mapPosition(pos, format, latitudeFirst));
+            return Flux.just(geoMapper.mapPosition(deviceId, pos, format, latitudeFirst));
         }
 
         return Flux.just();

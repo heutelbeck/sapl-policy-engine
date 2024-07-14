@@ -52,15 +52,16 @@ public class OwnTracksConnection extends ConnectionBase {
     private final ObjectMapper mapper;
     private final Logger       logger = LoggerFactory.getLogger(getClass());
 
+    private int deviceId;
     /**
      * @param settings a {@link JsonNode} containing the settings
      * @return a {@link Flux}<{@link Val}
      */
     public Flux<Val> connect(JsonNode settings) {
 
-        var deviceId = getDeviceId(settings);
+        deviceId = getDeviceId(settings);
         client    = new ReactiveWebClient(mapper);
-        geoMapper = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
+        geoMapper = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
         var url = String.format("%s://%s/api/0/last?user=%s&device=%s", getProtocol(settings), getServer(settings),
                 getUser(settings), deviceId);
 
@@ -130,7 +131,7 @@ public class OwnTracksConnection extends ConnectionBase {
     public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
             boolean latitudeFirst) {
 
-        var response = geoMapper.mapPosition(in.get(0), format, latitudeFirst);
+        var response = geoMapper.mapPosition(deviceId, in.get(0), format, latitudeFirst);
         var res      = in.findValue("inregions");
 
         response.setGeoFences(geoMapper.mapOwnTracksInRegions(res, mapper));

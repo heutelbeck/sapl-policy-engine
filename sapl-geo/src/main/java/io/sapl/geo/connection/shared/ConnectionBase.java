@@ -111,7 +111,7 @@ public abstract class ConnectionBase {
 
     }
 
-    protected static int getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
+    protected static Integer getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(DEVICEID_CONST)) {
             return requestSettings.findValue(DEVICEID_CONST).asInt();
         } else {

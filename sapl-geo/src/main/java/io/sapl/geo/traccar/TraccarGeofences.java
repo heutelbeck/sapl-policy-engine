@@ -36,22 +36,23 @@ private GeoMapper geoMapper;
      */
     public Flux<Val> getGeofences(JsonNode settings) {
         
-        geoMapper     = new GeoMapper(getDeviceId(settings), LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
-    
+
+        var deviceId = getDeviceId(settings);
+        geoMapper     = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
+        
         var server   = getServer(settings);
-        var url      = "ws://" + server + "/api/socket";
         var protocol = getProtocol(settings);
         return establishSession(getUser(settings), getPassword(settings), server, protocol).flatMapMany(cookie -> { 
 
-            return getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings), protocol, server,  getLatitudeFirst(settings))
+            return getFlux(cookie, getResponseFormat(settings, mapper), deviceId, protocol, server,  getLatitudeFirst(settings))
                     .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
         });
 
    }
     
 
-    private Flux<JsonNode> getFlux(String url, String cookie, GeoPipResponseFormat format,
-            int deviceId, String protocol, String server, boolean latitudeFirst) throws PolicyEvaluationException {
+    private Flux<JsonNode> getFlux(String cookie, GeoPipResponseFormat format,
+            Integer deviceId, String protocol, String server, boolean latitudeFirst) throws PolicyEvaluationException {
 
         try {
            
@@ -70,7 +71,7 @@ private GeoMapper geoMapper;
     
     
     
-   private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, int deviceId, String protocol, String server, boolean latitudeFirst) {
+   private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, Integer deviceId, String protocol, String server, boolean latitudeFirst) {
 
 
         return getGeofences(deviceId, protocol, server)
@@ -79,13 +80,12 @@ private GeoMapper geoMapper;
     }
  
     
-   private Flux<JsonNode> getGeofences(int deviceId, String protocol, String server) {
+   private Flux<JsonNode> getGeofences(Integer deviceId, String protocol, String server) {
 
         var webClient = new ReactiveWebClient(mapper);
         var baseURL            = protocol + "://" + server;
         var params = new HashMap<String, String>();
-        params.put("deviceId", Integer.toString(deviceId));
-
+                
         var template = """
                 {
                     "baseUrl" : "%s",
@@ -94,12 +94,21 @@ private GeoMapper geoMapper;
                     "repetitions" : 1,
                     "headers" : {
                         "cookie" : "%s"
-                    },
+                    }
+                """;
+        
+        if(deviceId != null) {
+            params.put("deviceId", Integer.toString(deviceId));
+            template = template.concat("""
+                    ,
                     "urlParameters" : {
                         "deviceId":"%s"
                     }
-                }
-                """;
+                    """
+                );
+        }
+        template = template.concat("}");
+        
         Val request  = Val.of("");
         try {
 
@@ -114,7 +123,7 @@ private GeoMapper geoMapper;
                 .map(Val::get);
     }
 
-    Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in,
+    private Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in,
             boolean latitudeFirst) {
         List<Geofence> fenceRes = new ArrayList<>();
 
@@ -130,4 +139,13 @@ private GeoMapper geoMapper;
 
     }
     
+
+    protected static Integer getDeviceId(JsonNode requestSettings) {
+        if (requestSettings.has(DEVICEID_CONST)) {
+            return requestSettings.findValue(DEVICEID_CONST).asInt();
+        } else {
+
+            return null;
+        }
+    }
 }

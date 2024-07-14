@@ -210,15 +210,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     private void disconnect(SignalType s) {
 
-//        if (connectionReference.get() != null) {
-//            connectionReference.get().close();
-//            logger.info("Database-Client disconnected.");
-//        }
-
-        logger.info("disconnect() " + s);
-
         var conn = connectionReference.get();
-        logger.info("disconnect() reference " + connectionReference.hashCode());
         if (conn != null) {
             Mono.from(conn.close()).doOnError(err -> logger.error("Error closing connection: ", err))
                     .doOnSuccess(aVoid -> logger.info("Database-Client disconnected."))

@@ -48,7 +48,7 @@ class TraccarSessionHandler {
     TraccarSessionHandler(int deviceId, String sessionCookie, String serverName, String protocol, ObjectMapper mapper) {
         this.deviceId = deviceId;
         this.mapper   = mapper;
-        geoMapper     = new GeoMapper(deviceId, LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
+        geoMapper     = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
         this.rest     = new TraccarRestManager(sessionCookie, serverName, protocol, mapper);
     }
 
@@ -57,7 +57,7 @@ class TraccarSessionHandler {
 
         if (pos.has(DEVICE_ID)) {
 
-            return Flux.just(geoMapper.mapPosition(pos, format, latitudeFirst));
+            return Flux.just(geoMapper.mapPosition(deviceId, pos, format, latitudeFirst));
         }
 
         return Flux.just();

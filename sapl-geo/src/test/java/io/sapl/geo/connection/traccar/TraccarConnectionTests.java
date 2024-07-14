@@ -51,8 +51,7 @@ public class TraccarConnectionTests {
                 "user":"test@fake.de",
                 "password":"1234",
             	"server":"%s",
-            	"protocol":"http",
-            	"deviceId":1
+            	"protocol":"http"
 
             """;
 
@@ -74,35 +73,15 @@ public class TraccarConnectionTests {
 
     }
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
-            "KML,ResponseKML,true" })
-    void testConnection(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
-        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
-
-        if (!latitudeFirst) {
-            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
-
-        }
-        responseTemplate = responseTemplate.concat("}");
-        var val    = Val.ofJson(responseTemplate);
-        var result = new TraccarConnection(new ObjectMapper()).connect(val.get()).map(Val::get)
-                .map(JsonNode::toPrettyString);
-        StepVerifier.create(result).expectNext(expected).thenCancel().verify();
-
-    }
-
     
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
-    "KML,ResponseKML,true" })
+    @CsvSource({ "WKT,PositionWKT,true", "GEOJSON,PositionGeoJsonSwitchedCoordinates,false", "GML,PositionGML,true",
+    "KML,PositionKML,true" })
     void testTraccarPositions(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
     var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
     var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
-    
+    responseTemplate = responseTemplate.concat(",\"deviceId\":1");
     if (!latitudeFirst) {
         responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
     
@@ -118,34 +97,41 @@ public class TraccarConnectionTests {
     
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
-    "KML,ResponseKML,true" })
-    void testTraccarGeofences(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
-    var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-    var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
-    
-    if (!latitudeFirst) {
-        responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
-    
-    }
-    responseTemplate = responseTemplate.concat("}");
-    var val    = Val.ofJson(responseTemplate);
-    var result = new TraccarGeofences(new ObjectMapper()).getGeofences(val.get()).map(Val::get)
-            .map(JsonNode::toPrettyString);
-    
-    result.doOnNext(x -> {       
-        var a = x;
-        System.out.println(a);
-    }).subscribe();
-    
-    try {
-        Thread.sleep(100000);
-    } catch (InterruptedException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-    }
-    //StepVerifier.create(result).expectNext(expected).thenCancel().verify();
-    var a = 1;
+    @CsvSource({ "WKT,TraccarGeofencesDeviceWKT,true", "GEOJSON,TraccarGeofencesDeviceGeoJsonSwitchedCoordinates,false", "GML,TraccarGeofencesDeviceGML,true",
+    "KML,TraccarGeofencesDeviceKML,true" })
+    void testTraccarGeofencesWithDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
+        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
+        responseTemplate = responseTemplate.concat(",\"deviceId\":1");
+        if (!latitudeFirst) {
+            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
+        
+        }
+        responseTemplate = responseTemplate.concat("}");
+        var val    = Val.ofJson(responseTemplate);
+        var result = new TraccarGeofences(new ObjectMapper()).getGeofences(val.get()).map(Val::get)
+                .map(JsonNode::toPrettyString);
+        
+        StepVerifier.create(result).expectNext(expected).thenCancel().verify();
     }
     
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "WKT,TraccarGeofencesWKT,true", "GEOJSON,TraccarGeofencesGeoJsonSwitchedCoordinates,false", "GML,TraccarGeofencesGML,true",
+    "KML,TraccarGeofencesKML,true" })
+    void testTraccarGeofencesWithoutDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
+        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
+        
+        if (!latitudeFirst) {
+            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
+        
+        }
+        responseTemplate = responseTemplate.concat("}");
+        var val    = Val.ofJson(responseTemplate);
+        var result = new TraccarGeofences(new ObjectMapper()).getGeofences(val.get()).map(Val::get)
+                .map(JsonNode::toPrettyString);
+             
+        StepVerifier.create(result).expectNext(expected).thenCancel().verify();
+    }
 }

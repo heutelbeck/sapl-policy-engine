@@ -44,7 +44,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class GeoMapper {
 
-    private int          deviceId;
+    //private int          deviceId;
     private String       latitude;
     private String       longitude;
     private String       altitude;
@@ -68,7 +68,7 @@ public class GeoMapper {
      * @throws JsonProcessingException
      * @throws JsonMappingException
      */
-    public GeoPipResponse mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst) {
+    public GeoPipResponse mapPosition(int deviceId, JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst) {
 
         var   geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
         Point position;
