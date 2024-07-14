@@ -47,7 +47,7 @@ import reactor.test.StepVerifier;
 public class TraccarConnectionTests {
     String         address;
     Integer        port;
-    SourceProvider source   = SourceProvider.getInstance();
+    SourceProvider source = SourceProvider.getInstance();
     JsonNode       authTemplate;
 
     final static String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
@@ -63,20 +63,17 @@ public class TraccarConnectionTests {
     @BeforeAll
     void setup() throws JsonProcessingException {
 
-        
-        
-        address  = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
-        
+        address = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
+
         var tmp = """
-                {
-                "user":"test@fake.de",
-                "password":"1234",
-                "server":"%s",
-                "protocol":"http"
-                }
-            """;
-        
-        
+                    {
+                    "user":"test@fake.de",
+                    "password":"1234",
+                    "server":"%s",
+                    "protocol":"http"
+                    }
+                """;
+
         authTemplate = Val.ofJson(String.format(tmp, address)).get();
 
     }
@@ -86,17 +83,16 @@ public class TraccarConnectionTests {
     @CsvSource({ "WKT,PositionWKT,true", "GEOJSON,PositionGeoJsonSwitchedCoordinates,false", "GML,PositionGML,true",
             "KML,PositionKML,true" })
     void testTraccarPositions(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
-        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        
-        //var responseTemplate = String.format(authTemplate + ",\"responseFormat\":\"%s\"", responseFormat);
+        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+
         var str = """
-             {
-                "responseFormat":"%s",
-                "deviceId":"1"
-                """;
-        
+                {
+                   "responseFormat":"%s",
+                   "deviceId":"1"
+                   """;
+
         var responseTemplate = String.format(str, responseFormat);
-        
+
         if (!latitudeFirst) {
             responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
 
@@ -116,15 +112,14 @@ public class TraccarConnectionTests {
             "GML,TraccarGeofencesDeviceGML,true", "KML,TraccarGeofencesDeviceKML,true" })
     void testTraccarGeofencesWithDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
             throws Exception {
-        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        //var responseTemplate = String.format(authTemplate + ",\"responseFormat\":\"%s\"", responseFormat);
-        var str = """
-             {
-                "responseFormat":"%s",
-                "deviceId":"1"
-                """;
+        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        ;
+        var str              = """
+                {
+                   "responseFormat":"%s",
+                   "deviceId":"1"
+                   """;
         var responseTemplate = String.format(str, responseFormat);
-        //responseTemplate = responseTemplate.concat(",\"deviceId\":1");
         if (!latitudeFirst) {
             responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
 
@@ -143,16 +138,14 @@ public class TraccarConnectionTests {
             "GML,TraccarGeofencesGML,true", "KML,TraccarGeofencesKML,true" })
     void testTraccarGeofencesWithoutDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
             throws Exception {
-        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        //var responseTemplate = String.format(authTemplate + ",\"responseFormat\":\"%s\"", responseFormat);
+        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
 
         var str = """
-             {
-                "responseFormat":"%s"
-                """;
-        
-        var responseTemplate = String.format(str, responseFormat);
+                {
+                   "responseFormat":"%s"
+                   """;
 
+        var responseTemplate = String.format(str, responseFormat);
 
         if (!latitudeFirst) {
             responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
@@ -168,13 +161,12 @@ public class TraccarConnectionTests {
 
     @Test
     void testTraccarGeofencesRepetitionsAndPollingInterval() throws Exception {
-        var expected         = source.getJsonSource().get("TraccarGeofencesWKT").toPrettyString();
-        
+        var expected = source.getJsonSource().get("TraccarGeofencesWKT").toPrettyString();
+
         var str = """
                 {
                    "responseFormat":"WKT"
                    """;
-//        var responseTemplate = String.format(authTemplate + ",\"responseFormat\":\"%s\"", "WKT");
 
         var responseTemplate = str.concat("""
 
@@ -182,9 +174,9 @@ public class TraccarConnectionTests {
                    ,"pollingIntervalMs" : 1000
                 }
                 """);
-        var val    = Val.ofJson(responseTemplate);
-        var result = new TraccarGeofences(authTemplate, new ObjectMapper()).getGeofences(val.get()).map(Val::get)
-                .map(JsonNode::toPrettyString);
+        var val              = Val.ofJson(responseTemplate);
+        var result           = new TraccarGeofences(authTemplate, new ObjectMapper()).getGeofences(val.get())
+                .map(Val::get).map(JsonNode::toPrettyString);
 
         StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
                 .verify();
