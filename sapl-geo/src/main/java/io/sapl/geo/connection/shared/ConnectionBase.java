@@ -46,7 +46,6 @@ public abstract class ConnectionBase {
             return requestSettings.findValue(USER).asText();
         } else {
 
-            System.out.println("---------" + requestSettings.toString());
             throw new PolicyEvaluationException("No User found");
 
         }

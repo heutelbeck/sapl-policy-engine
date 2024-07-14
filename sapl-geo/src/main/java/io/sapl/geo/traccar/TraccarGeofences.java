@@ -9,7 +9,6 @@ import org.springframework.http.MediaType;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
@@ -30,6 +29,11 @@ private GeoMapper geoMapper;
         super(mapper);
     }
 
+    
+    /**
+     * @param settings a {@link JsonNode} containing the settings
+     * @return a {@link Flux}<{@link Val}
+     */
     public Flux<Val> getGeofences(JsonNode settings) {
         
         geoMapper     = new GeoMapper(getDeviceId(settings), LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
@@ -46,13 +50,13 @@ private GeoMapper geoMapper;
    }
     
 
-    private Flux<ObjectNode> getFlux(String url, String cookie, GeoPipResponseFormat format,
+    private Flux<JsonNode> getFlux(String url, String cookie, GeoPipResponseFormat format,
             int deviceId, String protocol, String server, boolean latitudeFirst) throws PolicyEvaluationException {
 
         try {
            
             var flux = getGeofences1(format, deviceId, protocol, server, latitudeFirst)
-                    .map(res -> mapper.convertValue(res, ObjectNode.class));
+                    .map(res -> mapper.convertValue(res, JsonNode.class));
 
             logger.info("Traccar-Client connected.");
             return flux;
@@ -69,21 +73,11 @@ private GeoMapper geoMapper;
    private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, int deviceId, String protocol, String server, boolean latitudeFirst) {
 
 
-            return getGeofences(deviceId, protocol, server)
-                    .doOnNext(x -> {
-                        
-                        var a = x;
-                    })
-                    .flatMap(fences -> mapGeofences(format, fences, latitudeFirst))
-                    .doOnNext(x -> {
-                        
-                        var a = x;
-                    })
-                    ;
+        return getGeofences(deviceId, protocol, server)
+                .flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
 
     }
-
-    
+ 
     
    private Flux<JsonNode> getGeofences(int deviceId, String protocol, String server) {
 
@@ -116,7 +110,8 @@ private GeoMapper geoMapper;
         }
 
         
-        return webClient.httpRequest(HttpMethod.GET, request).map(Val::get);
+        return webClient.httpRequest(HttpMethod.GET, request)   
+                .map(Val::get);
     }
 
     Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in,

@@ -70,7 +70,6 @@ abstract class TraccarBase extends ConnectionBase{
                             var setCookieHeader = response.getHeaders().getFirst("set-cookie");
                             if (setCookieHeader != null) {
                                 sessionCookie = setCookieHeader;
-                                // session = createTraccarSession(response.getBody());
                                 setSessionId(response.getBody());
                                 logger.info("Traccar Session {} established.", sessionId);
                                 return Mono.just(setCookieHeader);

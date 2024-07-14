@@ -25,6 +25,7 @@ import io.sapl.geo.connection.postgis.PostGisConnection;
 import io.sapl.geo.connection.traccar.TraccarConnection;
 import io.sapl.geo.functionlibraries.GeoFunctions;
 import io.sapl.geo.pip.GeoPipResponse;
+import io.sapl.geo.traccar.TraccarGeofences;
 import io.sapl.pip.http.ReactiveWebClient;
 import io.sapl.server.GeoPolicyInformationPoint;
 
@@ -156,7 +157,7 @@ public class Program {
         var node = Val.ofJson(pg).get();
         
         
-        var postgis = new PostGisConnection(Val.ofJson(pgauth).get(), mapper).sendQuery(node);
+//        var postgis = new PostGisConnection(Val.ofJson(pgauth).get(), mapper).sendQuery(node);
 //        var dis = postgis.subscribe(
 //	      		 content ->{ 
 //    			 
@@ -283,7 +284,8 @@ public class Program {
        
         var node1 = Val.ofJson(st).get();
 
-        var trc = new TraccarConnection(mapper).connect(node1);  
+        //var trc = new TraccarConnection(mapper).connect(node1);  
+        var trc = new TraccarGeofences(mapper).getGeofences(node1);
         var func = new GeoFunctions();
 		var dis = trc.subscribe(
 	      		 content ->{ 
@@ -291,8 +293,8 @@ public class Program {
      			 var pos = content.get().findValue("position");
      			 
      			 try {
-					var res = func.within(Val.of(pos), Val.ofJson("{\"type\":\"LineString\",\"coordinates\":[[48.63060132,12.8515458],[48.63035176,12.85150088],[48.63033986,12.85188421],[48.63060174,12.85189762],[48.63060058,12.85154645]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}"));
-					var x = 1;
+					//var res = func.within(Val.of(pos), Val.ofJson("{\"type\":\"LineString\",\"coordinates\":[[48.63060132,12.8515458],[48.63035176,12.85150088],[48.63033986,12.85188421],[48.63060174,12.85189762],[48.63060058,12.85154645]],\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}}}"));
+					//var x = 1;
      			 } catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -412,7 +414,7 @@ public class Program {
 
 			
 		try {
-			Thread.sleep(10000);
+			Thread.sleep(100000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -421,7 +423,7 @@ public class Program {
 		//dis.dispose();
 		
 		try {
-			Thread.sleep(10000);
+			Thread.sleep(100000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

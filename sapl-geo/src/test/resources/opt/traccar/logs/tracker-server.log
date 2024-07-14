@@ -3603,3 +3603,95 @@ Error loading shared library libsystemd.so: No such file or directory
 Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
 2024-07-07 12:12:02  INFO: user: 1, action: login, from: 172.17.0.1
 2024-07-07 12:12:03  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-14 11:29:26  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-07-14 11:29:26  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-07-14 11:29:26  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-07-14 11:29:26  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-07-14 11:29:26  INFO: Version: 5.8
+2024-07-14 11:29:26  INFO: Starting server...
+2024-07-14 11:29:26  INFO: HikariPool-1 - Starting...
+2024-07-14 11:29:27  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-07-14 11:29:27  INFO: HikariPool-1 - Start completed.
+2024-07-14 11:29:27  INFO: Set default schema name to PUBLIC
+2024-07-14 11:29:27  INFO: Clearing database change log checksums
+2024-07-14 11:29:27  INFO: Successfully acquired change log lock
+2024-07-14 11:29:27  INFO: Successfully released change log lock
+2024-07-14 11:29:28  INFO: Successfully acquired change log lock
+2024-07-14 11:29:29  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-14 11:29:29  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-14 11:29:29  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-14 11:29:29  INFO: UPDATE SUMMARY
+2024-07-14 11:29:29  INFO: Run:                          0
+2024-07-14 11:29:29  INFO: Previously run:              43
+2024-07-14 11:29:29  INFO: Filtered out:                 0
+2024-07-14 11:29:29  INFO: -------------------------------
+2024-07-14 11:29:29  INFO: Total change sets:           43
+
+2024-07-14 11:29:29  INFO: Update summary generated
+2024-07-14 11:29:29  INFO: Successfully released change log lock
+2024-07-14 11:29:29  INFO: Successfully released change log lock
+2024-07-14 11:29:29  INFO: Command execution complete
+2024-07-14 11:29:31  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-07-14 11:29:31  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-07-14 11:29:31  INFO: Session workerName=node0
+2024-07-14 11:29:32  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-07-14 11:29:32  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-07-14 11:29:32  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-07-14 11:29:32  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @8052ms
+2024-07-14 11:29:32  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-07-14 11:29:42  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-07-14 11:29:42  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-07-14 11:29:42  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-07-14 11:29:42  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-07-14 11:29:42  INFO: Version: 5.8
+2024-07-14 11:29:42  INFO: Starting server...
+2024-07-14 11:29:42  INFO: HikariPool-1 - Starting...
+2024-07-14 11:29:43  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-07-14 11:29:43  INFO: HikariPool-1 - Start completed.
+2024-07-14 11:29:43  INFO: Set default schema name to PUBLIC
+2024-07-14 11:29:43  INFO: Clearing database change log checksums
+2024-07-14 11:29:43  INFO: Successfully acquired change log lock
+2024-07-14 11:29:43  INFO: Successfully released change log lock
+2024-07-14 11:29:44  INFO: Successfully acquired change log lock
+2024-07-14 11:29:45  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-14 11:29:45  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-14 11:29:45  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-14 11:29:45  INFO: UPDATE SUMMARY
+2024-07-14 11:29:45  INFO: Run:                          0
+2024-07-14 11:29:45  INFO: Previously run:              43
+2024-07-14 11:29:45  INFO: Filtered out:                 0
+2024-07-14 11:29:45  INFO: -------------------------------
+2024-07-14 11:29:45  INFO: Total change sets:           43
+
+2024-07-14 11:29:45  INFO: Update summary generated
+2024-07-14 11:29:45  INFO: Successfully released change log lock
+2024-07-14 11:29:45  INFO: Successfully released change log lock
+2024-07-14 11:29:45  INFO: Command execution complete
+2024-07-14 11:29:47  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-07-14 11:29:47  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-07-14 11:29:47  INFO: Session workerName=node0
+2024-07-14 11:29:48  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-07-14 11:29:48  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-07-14 11:29:48  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-07-14 11:29:48  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @7371ms
+2024-07-14 11:29:48  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-07-14 11:30:05  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-14 11:30:23  INFO: user: 1, action: create, object: geofence, id: 1
+2024-07-14 11:30:23  INFO: user: 1, action: link, owner: user, id: 1, property: geofence, id: 1
+2024-07-14 11:30:42  INFO: user: 1, action: edit, object: geofence, id: 1
+2024-07-14 11:31:34  INFO: user: 1, action: link, owner: device, id: 1, property: geofence, id: 1
+2024-07-14 11:32:18  INFO: user: 1, action: create, object: geofence, id: 2
+2024-07-14 11:32:18  INFO: user: 1, action: link, owner: user, id: 1, property: geofence, id: 2
+2024-07-14 11:32:30  INFO: user: 1, action: edit, object: geofence, id: 2
+2024-07-14 11:32:39  INFO: user: 1, action: link, owner: device, id: 1, property: geofence, id: 2
+2024-07-14 11:32:50  INFO: user: 1, action: create, object: geofence, id: 3
+2024-07-14 11:32:51  INFO: user: 1, action: link, owner: user, id: 1, property: geofence, id: 3
+2024-07-14 11:33:02  INFO: user: 1, action: edit, object: geofence, id: 3
+2024-07-14 11:33:22  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-14 11:33:35  INFO: user: 1, action: logout, from: 172.17.0.1

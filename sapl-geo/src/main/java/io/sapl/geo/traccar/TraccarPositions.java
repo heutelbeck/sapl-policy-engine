@@ -31,7 +31,10 @@ public class TraccarPositions extends TraccarBase{
     }
 
 
-    
+    /**
+     * @param settings a {@link JsonNode} containing the settings
+     * @return a {@link Flux}<{@link Val}
+     */
     public Flux<Val> getPositions(JsonNode settings) {
     
         geoMapper     = new GeoMapper(getDeviceId(settings), LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
