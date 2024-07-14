@@ -73,84 +73,86 @@ public class TraccarConnectionTests {
 
     }
 
-    
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
     @CsvSource({ "WKT,PositionWKT,true", "GEOJSON,PositionGeoJsonSwitchedCoordinates,false", "GML,PositionGML,true",
-    "KML,PositionKML,true" })
+            "KML,PositionKML,true" })
     void testTraccarPositions(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
-    var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-    var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
-    responseTemplate = responseTemplate.concat(",\"deviceId\":1");
-    if (!latitudeFirst) {
-        responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
-    
-    }
-    responseTemplate = responseTemplate.concat("}");
-    var val    = Val.ofJson(responseTemplate);
-    var result = new TraccarPositions(new ObjectMapper()).getPositions(val.get()).map(Val::get)
-            .map(JsonNode::toPrettyString);
-    
-    StepVerifier.create(result).expectNext(expected).thenCancel().verify();
-    
-    }
-    
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,TraccarGeofencesDeviceWKT,true", "GEOJSON,TraccarGeofencesDeviceGeoJsonSwitchedCoordinates,false", "GML,TraccarGeofencesDeviceGML,true",
-    "KML,TraccarGeofencesDeviceKML,true" })
-    void testTraccarGeofencesWithDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
         var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
         responseTemplate = responseTemplate.concat(",\"deviceId\":1");
         if (!latitudeFirst) {
             responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
-        
+
         }
         responseTemplate = responseTemplate.concat("}");
         var val    = Val.ofJson(responseTemplate);
-        var result = new TraccarGeofences(new ObjectMapper()).getGeofences(val.get()).map(Val::get)
+        var result = new TraccarPositions(new ObjectMapper()).getPositions(val.get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
-        
-        StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
+
+        StepVerifier.create(result).expectNext(expected).thenCancel().verify();
+
     }
-    
+
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,TraccarGeofencesWKT,true", "GEOJSON,TraccarGeofencesGeoJsonSwitchedCoordinates,false", "GML,TraccarGeofencesGML,true",
-    "KML,TraccarGeofencesKML,true" })
-    void testTraccarGeofencesWithoutDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
+    @CsvSource({ "WKT,TraccarGeofencesDeviceWKT,true", "GEOJSON,TraccarGeofencesDeviceGeoJsonSwitchedCoordinates,false",
+            "GML,TraccarGeofencesDeviceGML,true", "KML,TraccarGeofencesDeviceKML,true" })
+    void testTraccarGeofencesWithDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
+            throws Exception {
         var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
-        
+        responseTemplate = responseTemplate.concat(",\"deviceId\":1");
         if (!latitudeFirst) {
             responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
-        
+
         }
         responseTemplate = responseTemplate.concat("}");
         var val    = Val.ofJson(responseTemplate);
         var result = new TraccarGeofences(new ObjectMapper()).getGeofences(val.get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
-             
+
         StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
     }
-    
-    @Test  
+
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "WKT,TraccarGeofencesWKT,true", "GEOJSON,TraccarGeofencesGeoJsonSwitchedCoordinates,false",
+            "GML,TraccarGeofencesGML,true", "KML,TraccarGeofencesKML,true" })
+    void testTraccarGeofencesWithoutDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
+            throws Exception {
+        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
+
+        if (!latitudeFirst) {
+            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
+
+        }
+        responseTemplate = responseTemplate.concat("}");
+        var val    = Val.ofJson(responseTemplate);
+        var result = new TraccarGeofences(new ObjectMapper()).getGeofences(val.get()).map(Val::get)
+                .map(JsonNode::toPrettyString);
+
+        StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
+    }
+
+    @Test
     void testTraccarGeofencesRepetitionsAndPollingInterval() throws Exception {
         var expected         = source.getJsonSource().get("TraccarGeofencesWKT").toPrettyString();
         var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", "WKT");
-        
+
         responseTemplate = responseTemplate.concat("""
-                
-                ,"repetitions" : 3
-                ,"pollingIntervalMs" : 1000
-             }
-             """);
+
+                   ,"repetitions" : 3
+                   ,"pollingIntervalMs" : 1000
+                }
+                """);
         var val    = Val.ofJson(responseTemplate);
         var result = new TraccarGeofences(new ObjectMapper()).getGeofences(val.get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
-             
-        StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete().verify();
+
+        StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
+                .verify();
     }
-    
+
 }

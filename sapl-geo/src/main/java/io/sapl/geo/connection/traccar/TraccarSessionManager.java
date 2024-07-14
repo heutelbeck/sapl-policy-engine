@@ -207,15 +207,17 @@ public class TraccarSessionManager {
 //                                            + response.getStatusCode().value()));
 //                        }
 //                    });
-            
+
             return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
                     .retrieve()
                     .onStatus(status -> status.isError() || status.is4xxClientError() || status.is5xxServerError(),
-                            response -> { 
-                                logger.info("---- onstatus 4 5: {} {} ", response.statusCode().is4xxClientError(), response.statusCode().is5xxServerError());
+                            response -> {
+                                logger.info("---- onstatus 4 5: {} {} ", response.statusCode().is4xxClientError(),
+                                        response.statusCode().is5xxServerError());
                                 return Mono.error(new PolicyEvaluationException(
-                                    "Session could not be established. Server responded with "
-                                            + response.statusCode().value()));})
+                                        "Session could not be established. Server responded with "
+                                                + response.statusCode().value()));
+                            })
                     .toEntity(String.class).flatMap(response -> {
                         if (response.getStatusCode().is2xxSuccessful()) {
                             var setCookieHeader = response.getHeaders().getFirst("set-cookie");
@@ -236,7 +238,7 @@ public class TraccarSessionManager {
                                             + response.getStatusCode().value()));
                         }
                     });
-            
+
         } catch (Exception e) {
             logger.info("exception");
             throw new PolicyEvaluationException(e);

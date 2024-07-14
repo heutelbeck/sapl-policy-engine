@@ -44,7 +44,6 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class GeoMapper {
 
-    //private int          deviceId;
     private String       latitude;
     private String       longitude;
     private String       altitude;

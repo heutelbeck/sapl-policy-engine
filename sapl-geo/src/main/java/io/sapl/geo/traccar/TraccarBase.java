@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.geo.traccar;
 
 import java.net.URI;
@@ -18,17 +35,17 @@ import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
-abstract class TraccarBase extends ConnectionBase{
+abstract class TraccarBase extends ConnectionBase {
 
-    final Logger       logger = LoggerFactory.getLogger(getClass());
-    
+    final Logger logger = LoggerFactory.getLogger(getClass());
+
     protected final ObjectMapper mapper;
-    
-    private int    sessionId;
-    protected  String sessionCookie;
-   
+
+    private int      sessionId;
+    protected String sessionCookie;
+
     private URI uri;
-    
+
     protected static final String DEVICE_ID  = "deviceId";
     protected static final String POSITIONS  = "positions";
     protected static final String ALTITUDE   = "altitude";
@@ -36,10 +53,10 @@ abstract class TraccarBase extends ConnectionBase{
     protected static final String ACCURACY   = "accuracy";
     protected static final String LATITUDE   = "latitude";
     protected static final String LONGITUDE  = "longitude";
-    
-    protected Mono<String> establishSession(String user, String password, String serverName, String protocol) throws PolicyEvaluationException {
-              
-        
+
+    protected Mono<String> establishSession(String user, String password, String serverName, String protocol)
+            throws PolicyEvaluationException {
+
         try {
             uri = new URI(String.format("%s://%s/api/session", protocol, serverName));
 
@@ -60,11 +77,13 @@ abstract class TraccarBase extends ConnectionBase{
             return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
                     .retrieve()
                     .onStatus(status -> status.isError() || status.is4xxClientError() || status.is5xxServerError(),
-                            response -> { 
-                                logger.info("---- onstatus 4 5: {} {} ", response.statusCode().is4xxClientError(), response.statusCode().is5xxServerError());
+                            response -> {
+                                logger.info("---- onstatus 4 5: {} {} ", response.statusCode().is4xxClientError(),
+                                        response.statusCode().is5xxServerError());
                                 return Mono.error(new PolicyEvaluationException(
-                                    "Session could not be established. Server responded with "
-                                            + response.statusCode().value()));})
+                                        "Session could not be established. Server responded with "
+                                                + response.statusCode().value()));
+                            })
                     .toEntity(String.class).flatMap(response -> {
                         if (response.getStatusCode().is2xxSuccessful()) {
                             var setCookieHeader = response.getHeaders().getFirst("set-cookie");
@@ -83,7 +102,7 @@ abstract class TraccarBase extends ConnectionBase{
                                             + response.getStatusCode().value()));
                         }
                     });
-            
+
         } catch (Exception e) {
             logger.info("exception");
             throw new PolicyEvaluationException(e);
@@ -102,8 +121,7 @@ abstract class TraccarBase extends ConnectionBase{
             throw new PolicyEvaluationException(e);
         }
     }
-    
-    
+
     protected void disconnect() throws PolicyEvaluationException {
         var errorMsg = "Traccar-Client could not be disconnected";
         this.closeTraccarSession().subscribe(result -> {
@@ -116,7 +134,7 @@ abstract class TraccarBase extends ConnectionBase{
             throw new PolicyEvaluationException(errorMsg, error);
         });
     }
-    
+
     private Mono<Boolean> closeTraccarSession() throws PolicyEvaluationException {
 
         var client = WebClient.builder().defaultHeader("cookie", sessionCookie).build();

@@ -1,5 +1,21 @@
+/*
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.geo.traccar;
-
 
 import org.springframework.http.MediaType;
 
@@ -17,41 +33,37 @@ import io.sapl.pip.http.ReactiveWebClient;
 
 import reactor.core.publisher.Flux;
 
+public class TraccarPositions extends TraccarBase {
 
-public class TraccarPositions extends TraccarBase{
-
-
-    
     private GeoMapper geoMapper;
-    
-    
+
     public TraccarPositions(ObjectMapper mapper) {
-        
+
         super(mapper);
     }
-
 
     /**
      * @param settings a {@link JsonNode} containing the settings
      * @return a {@link Flux}<{@link Val}
      */
     public Flux<Val> getPositions(JsonNode settings) {
-    
-        geoMapper     = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
-    
-        var server   = getServer(settings);
-        var url      = "ws://" + server + "/api/socket";
-    
-        return establishSession(getUser(settings), getPassword(settings), server,getProtocol(settings)).flatMapMany(cookie ->  
 
-             getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings), getLatitudeFirst(settings))
-                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect())
-        );
+        geoMapper = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
 
-   }
-    
-    private Flux<ObjectNode> getFlux(String url, String cookie, GeoPipResponseFormat format,
-            int deviceId, boolean latitudeFirst) throws PolicyEvaluationException {
+        var server = getServer(settings);
+        var url    = "ws://" + server + "/api/socket";
+
+        return establishSession(getUser(settings), getPassword(settings), server, getProtocol(settings))
+                .flatMapMany(cookie ->
+
+                getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
+                        getLatitudeFirst(settings)).map(Val::of)
+                        .onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect()));
+
+    }
+
+    private Flux<ObjectNode> getFlux(String url, String cookie, GeoPipResponseFormat format, int deviceId,
+            boolean latitudeFirst) throws PolicyEvaluationException {
 
         var client = new ReactiveWebClient(mapper);
 
@@ -80,7 +92,7 @@ public class TraccarPositions extends TraccarBase{
         }
 
     }
-    
+
     Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, int deviceId) {
         JsonNode pos = getPositionFromMessage(in, deviceId);
 
@@ -92,9 +104,6 @@ public class TraccarPositions extends TraccarBase{
         return Flux.just();
     }
 
-    
-    
-    
     private JsonNode getPositionFromMessage(JsonNode in, int deviceId) {
 
         if (in.has(POSITIONS)) {
@@ -108,6 +117,6 @@ public class TraccarPositions extends TraccarBase{
 
         return mapper.createObjectNode();
 
-    }    
-    
+    }
+
 }

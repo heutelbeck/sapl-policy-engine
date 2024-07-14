@@ -81,8 +81,8 @@ public abstract class DatabaseConnection extends ConnectionBase {
                     buildSql(getGeoColumn(settings), selectColumns, getTable(settings), getWhere(settings)),
                     getSingleResult(settings), getDefaultCRS(settings),
                     longOrDefault(settings, REPEAT_TIMES_CONST, DEFAULT_REPETITIONS_CONST),
-                    longOrDefault(settings, POLLING_INTERVAL_CONST, DEFAULT_POLLING_INTERVALL_MS_CONST), getLatitudeFirst(settings))
-                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage())));
+                    longOrDefault(settings, POLLING_INTERVAL_CONST, DEFAULT_POLLING_INTERVALL_MS_CONST),
+                    getLatitudeFirst(settings)).map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage())));
 
         } catch (Exception e) {
             return Flux.just(Val.error(e.getMessage()));
