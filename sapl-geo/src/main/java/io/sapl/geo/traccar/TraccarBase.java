@@ -42,10 +42,14 @@ abstract class TraccarBase extends ConnectionBase {
     protected final ObjectMapper mapper;
 
     private int      sessionId;
-    protected String sessionCookie;
-
     private URI uri;
-
+    
+    protected String sessionCookie;
+    protected String user;
+    protected String password;
+    protected String server;
+    protected String protocol;
+    
     protected static final String DEVICE_ID  = "deviceId";
     protected static final String POSITIONS  = "positions";
     protected static final String ALTITUDE   = "altitude";

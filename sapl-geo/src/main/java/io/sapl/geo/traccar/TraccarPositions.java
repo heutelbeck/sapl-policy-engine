@@ -37,9 +37,13 @@ public class TraccarPositions extends TraccarBase {
 
     private GeoMapper geoMapper;
 
-    public TraccarPositions(ObjectMapper mapper) {
+    public TraccarPositions(JsonNode auth, ObjectMapper mapper) {
 
         super(mapper);
+        user = getUser(auth);
+        password = getPassword(auth);
+        server = getServer(auth);
+        protocol = getProtocol(auth);
     }
 
     /**
@@ -50,10 +54,9 @@ public class TraccarPositions extends TraccarBase {
 
         geoMapper = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
 
-        var server = getServer(settings);
         var url    = "ws://" + server + "/api/socket";
 
-        return establishSession(getUser(settings), getPassword(settings), server, getProtocol(settings))
+        return establishSession(user, password, server, protocol)
                 .flatMapMany(cookie ->
 
                 getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),

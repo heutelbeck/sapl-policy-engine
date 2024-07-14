@@ -39,9 +39,13 @@ public class TraccarGeofences extends TraccarBase {
 
     private GeoMapper geoMapper;
 
-    public TraccarGeofences(ObjectMapper mapper) {
+    public TraccarGeofences(JsonNode auth, ObjectMapper mapper) {
 
         super(mapper);
+        user = getUser(auth);
+        password = getPassword(auth);
+        server = getServer(auth);
+        protocol = getProtocol(auth);
     }
 
     /**
@@ -53,9 +57,7 @@ public class TraccarGeofences extends TraccarBase {
         var deviceId = getDeviceId(settings);
         geoMapper = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
 
-        var server   = getServer(settings);
-        var protocol = getProtocol(settings);
-        return establishSession(getUser(settings), getPassword(settings), server, protocol).flatMapMany(cookie ->
+        return establishSession(user, password, server, protocol).flatMapMany(cookie ->
 
         getFlux(getResponseFormat(settings, mapper), deviceId, protocol, server, getPollingInterval(settings),
                 getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
