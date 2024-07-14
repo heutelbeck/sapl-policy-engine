@@ -112,18 +112,6 @@ public class TraccarConnectionTests {
     var result = new TraccarPositions(new ObjectMapper()).getPositions(val.get()).map(Val::get)
             .map(JsonNode::toPrettyString);
     
-//    result.doOnNext(x -> {
-        
-//        var a = x;
-//        System.out.println(a);
-//    }).subscribe();
-//    
-//    try {
-//        Thread.sleep(10000);
-//    } catch (InterruptedException e) {
-//        // TODO Auto-generated catch block
-//        e.printStackTrace();
-//    }
     StepVerifier.create(result).expectNext(expected).thenCancel().verify();
     
     }
