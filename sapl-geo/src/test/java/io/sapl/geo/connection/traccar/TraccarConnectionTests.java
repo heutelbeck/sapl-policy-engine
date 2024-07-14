@@ -26,6 +26,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import java.nio.file.Paths;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -52,7 +53,6 @@ public class TraccarConnectionTests {
                 "password":"1234",
             	"server":"%s",
             	"protocol":"http"
-
             """;
 
     final static String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
@@ -112,7 +112,7 @@ public class TraccarConnectionTests {
         var result = new TraccarGeofences(new ObjectMapper()).getGeofences(val.get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
         
-        StepVerifier.create(result).expectNext(expected).thenCancel().verify();
+        StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
     }
     
     @ParameterizedTest
@@ -132,6 +132,25 @@ public class TraccarConnectionTests {
         var result = new TraccarGeofences(new ObjectMapper()).getGeofences(val.get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
              
-        StepVerifier.create(result).expectNext(expected).thenCancel().verify();
+        StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
     }
+    
+    @Test  
+    void testTraccarGeofencesRepetitionsAndPollingInterval() throws Exception {
+        var expected         = source.getJsonSource().get("TraccarGeofencesWKT").toPrettyString();
+        var responseTemplate = String.format(template + ",\"responseFormat\":\"%s\"", "WKT");
+        
+        responseTemplate = responseTemplate.concat("""
+                
+                ,"repetitions" : 3
+                ,"pollingIntervalMs" : 1000
+             }
+             """);
+        var val    = Val.ofJson(responseTemplate);
+        var result = new TraccarGeofences(new ObjectMapper()).getGeofences(val.get()).map(Val::get)
+                .map(JsonNode::toPrettyString);
+             
+        StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete().verify();
+    }
+    
 }

@@ -42,11 +42,11 @@ public class TraccarPositions extends TraccarBase{
         var server   = getServer(settings);
         var url      = "ws://" + server + "/api/socket";
     
-        return establishSession(getUser(settings), getPassword(settings), server,getProtocol(settings)).flatMapMany(cookie -> { 
+        return establishSession(getUser(settings), getPassword(settings), server,getProtocol(settings)).flatMapMany(cookie ->  
 
-            return getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings), getLatitudeFirst(settings))
-                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
-        });
+             getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings), getLatitudeFirst(settings))
+                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect())
+        );
 
    }
     
@@ -108,8 +108,6 @@ public class TraccarPositions extends TraccarBase{
 
         return mapper.createObjectNode();
 
-    }
-    
-    
+    }    
     
 }

@@ -98,14 +98,6 @@ public class OwnTracksConnection extends ConnectionBase {
                         }
                       }
                     """;
-
-//            var html2 = """
-//            			,
-//            			"headers" : {
-//            				"Authorization": "%s"
-//            			}
-//                    }
-//                    """;
             html2 = String.format(html2, basicAuthHeader);
             html1 = html1.concat(html2);
         } else {
@@ -151,8 +143,8 @@ public class OwnTracksConnection extends ConnectionBase {
     }
 
     protected static String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(PASSWORD)) {
-            return requestSettings.findValue(PASSWORD).asText();
+        if (requestSettings.has(PASSWORD_CONST)) {
+            return requestSettings.findValue(PASSWORD_CONST).asText();
         } else {
 
             return "none";

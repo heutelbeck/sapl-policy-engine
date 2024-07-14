@@ -80,8 +80,8 @@ public abstract class DatabaseConnection extends ConnectionBase {
             return createConnection(getResponseFormat(settings, mapper),
                     buildSql(getGeoColumn(settings), selectColumns, getTable(settings), getWhere(settings)),
                     getSingleResult(settings), getDefaultCRS(settings),
-                    longOrDefault(settings, REPEAT_TIMES, DEFAULT_REPETITIONS),
-                    longOrDefault(settings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS), getLatitudeFirst(settings))
+                    longOrDefault(settings, REPEAT_TIMES_CONST, DEFAULT_REPETITIONS_CONST),
+                    longOrDefault(settings, POLLING_INTERVAL_CONST, DEFAULT_POLLING_INTERVALL_MS_CONST), getLatitudeFirst(settings))
                     .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage())));
 
         } catch (Exception e) {
@@ -95,7 +95,6 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
         var connection = Mono.from(connectionFactory.create()).doOnNext(connectionReference::set);
 
-        logger.info("connection: " + connectionReference.hashCode());
         logger.info("Database-Client connected.");
 
         if (singleResult) {

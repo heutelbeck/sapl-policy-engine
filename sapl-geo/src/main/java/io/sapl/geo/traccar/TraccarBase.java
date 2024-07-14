@@ -78,7 +78,6 @@ abstract class TraccarBase extends ConnectionBase{
                                         new PolicyEvaluationException("No session cookie found in the response."));
                             }
                         } else {
-                            logger.info("---- not 4 5: {} {}", response.getStatusCode().isError());
                             return Mono.error(new PolicyEvaluationException(
                                     "Session could not be established. Server responded with "
                                             + response.getStatusCode().value()));

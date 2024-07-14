@@ -1,7 +1,6 @@
 package io.sapl.geo.traccar;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import org.springframework.http.HttpMethod;
@@ -23,7 +22,6 @@ public class TraccarGeofences extends TraccarBase {
     
 private GeoMapper geoMapper;
     
-    
     public TraccarGeofences(ObjectMapper mapper) {
         
         super(mapper);
@@ -42,21 +40,21 @@ private GeoMapper geoMapper;
         
         var server   = getServer(settings);
         var protocol = getProtocol(settings);
-        return establishSession(getUser(settings), getPassword(settings), server, protocol).flatMapMany(cookie -> { 
+        return establishSession(getUser(settings), getPassword(settings), server, protocol).flatMapMany(cookie ->  
 
-            return getFlux(cookie, getResponseFormat(settings, mapper), deviceId, protocol, server,  getLatitudeFirst(settings))
-                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
-        });
+             getFlux(getResponseFormat(settings, mapper), deviceId, protocol, server, getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings))
+                    .map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect())
+        );
 
    }
     
 
-    private Flux<JsonNode> getFlux(String cookie, GeoPipResponseFormat format,
-            Integer deviceId, String protocol, String server, boolean latitudeFirst) throws PolicyEvaluationException {
+    private Flux<JsonNode> getFlux(GeoPipResponseFormat format,
+            Integer deviceId, String protocol, String server, Long pollingInterval, Long repetitions, boolean latitudeFirst) throws PolicyEvaluationException {
 
         try {
            
-            var flux = getGeofences1(format, deviceId, protocol, server, latitudeFirst)
+            var flux = getGeofences1(format, deviceId, protocol, server, pollingInterval, repetitions, latitudeFirst)
                     .map(res -> mapper.convertValue(res, JsonNode.class));
 
             logger.info("Traccar-Client connected.");
@@ -71,49 +69,61 @@ private GeoMapper geoMapper;
     
     
     
-   private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, Integer deviceId, String protocol, String server, boolean latitudeFirst) {
+   private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, Integer deviceId, String protocol, String server, Long pollingInterval, Long repetitions, boolean latitudeFirst) {
 
 
-        return getGeofences(deviceId, protocol, server)
+        return getGeofences(deviceId, protocol, server, pollingInterval, repetitions)
                 .flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
 
     }
  
     
-   private Flux<JsonNode> getGeofences(Integer deviceId, String protocol, String server) {
+   private Flux<JsonNode> getGeofences(Integer deviceId, String protocol, String server, Long pollingInterval, Long repetitions) {
 
         var webClient = new ReactiveWebClient(mapper);
         var baseURL            = protocol + "://" + server;
-        var params = new HashMap<String, String>();
-                
+        
         var template = """
-                {
-                    "baseUrl" : "%s",
-                    "path" : "%s",
-                    "accept" : "%s",
-                    "repetitions" : 1,
-                    "headers" : {
-                        "cookie" : "%s"
-                    }
-                """;
+            {
+                "baseUrl" : "%s",
+                "path" : "%s",
+                "accept" : "%s",
+                "headers" : {
+                    "cookie" : "%s"
+                }
+            """;
+        template = String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE, sessionCookie);
+        if(pollingInterval != null) {
+            template = template.concat("""
+                    ,"pollingIntervalMs" : %s
+                    """);
+            template = String.format(template, pollingInterval);
+        }
+        
+        if(repetitions != null) {
+            template = template.concat("""
+                    ,"repetitions" : %s
+                    """);
+            template = String.format(template, repetitions);
+        }
         
         if(deviceId != null) {
-            params.put("deviceId", Integer.toString(deviceId));
             template = template.concat("""
                     ,
                     "urlParameters" : {
-                        "deviceId":"%s"
+                        "deviceId":%s
                     }
                     """
                 );
+            template = String.format(template, deviceId);
         }
+        
         template = template.concat("}");
         
         Val request  = Val.of("");
         try {
 
-            request = Val.ofJson(String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE,
-                    sessionCookie, deviceId));
+            request = Val.ofJson(template);
         } catch (Exception e) {
             throw new PolicyEvaluationException(e);
         }
@@ -148,4 +158,23 @@ private GeoMapper geoMapper;
             return null;
         }
     }
+    
+    protected static Long getPollingInterval(JsonNode requestSettings) {
+        if (requestSettings.has(POLLING_INTERVAL_CONST)) {
+            return requestSettings.findValue(POLLING_INTERVAL_CONST).asLong();
+        } else {
+
+            return null;
+        }
+    }
+ 
+    protected static Long getRepetitions(JsonNode requestSettings) {
+        if (requestSettings.has(REPEAT_TIMES_CONST)) {
+            return requestSettings.findValue(REPEAT_TIMES_CONST).asLong();
+        } else {
+
+            return null;
+        }
+    }
+    
 }
