@@ -24,7 +24,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
-import io.sapl.geo.connection.postgis.PostGisConnection;
+import io.sapl.geo.postgis.PostGisConnection;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 

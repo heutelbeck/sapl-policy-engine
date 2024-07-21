@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.connection.owntracks;
+package io.sapl.geo.owntracks;
 
 import java.util.Base64;
 
@@ -28,10 +28,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.connection.shared.ConnectionBase;
-import io.sapl.geo.connection.shared.GeoMapper;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
+import io.sapl.geo.shared.ConnectionBase;
+import io.sapl.geo.shared.GeoMapper;
 import io.sapl.pip.http.ReactiveWebClient;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;

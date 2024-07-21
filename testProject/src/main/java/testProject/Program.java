@@ -19,16 +19,15 @@ package testProject;
 
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.connection.mysql.MySqlConnection;
-import io.sapl.geo.connection.owntracks.OwnTracksConnection;
-import io.sapl.geo.connection.postgis.PostGisConnection;
-import io.sapl.geo.connection.traccar.TraccarConnection;
 import io.sapl.geo.functionlibraries.GeoFunctions;
+import io.sapl.geo.mysql.MySqlConnection;
+import io.sapl.geo.owntracks.OwnTracksConnection;
 import io.sapl.geo.pip.GeoPipResponse;
+import io.sapl.geo.postgis.PostGisConnection;
 import io.sapl.geo.traccar.TraccarGeofences;
 import io.sapl.geo.traccar.TraccarPositions;
 import io.sapl.pip.http.ReactiveWebClient;
-import io.sapl.server.GeoPolicyInformationPoint;
+import io.sapl.server.OwnTracksPolicyInformationPoint;
 
 
 import java.net.Authenticator;

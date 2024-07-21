@@ -29,7 +29,7 @@ import io.sapl.geo.functionlibraries.SqlFunctions;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointFactory;
-import io.sapl.server.GeoPolicyInformationPoint;
+import io.sapl.server.OwnTracksPolicyInformationPoint;
 import io.sapl.server.MySqlPolicyInformationPoint;
 import io.sapl.server.PostGisPolicyInformationPoint;
 import io.sapl.server.TraccarPolicyInformationPoint;
@@ -79,7 +79,7 @@ public class Client implements ApplicationListener<ApplicationReadyEvent> {
 //			pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new HttpPolicyInformationPointFluxComplete(new ObjectMapper())), List::of, 
 //                    List::of,  List::of);
 			try {
-				pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new GeoPolicyInformationPoint(MAPPER),
+				pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(path, () -> List.of(new OwnTracksPolicyInformationPoint(MAPPER),
 						new MySqlPolicyInformationPoint(MAPPER), new PostGisPolicyInformationPoint(MAPPER), new TraccarPolicyInformationPoint(MAPPER)),
 						List::of, 
 						() -> List.of(new GeoFunctions(), new GeoConverter(), new SqlFunctions()), 

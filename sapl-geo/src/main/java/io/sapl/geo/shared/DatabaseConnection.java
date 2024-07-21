@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.connection.shared;
+package io.sapl.geo.shared;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -36,12 +36,12 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.Row;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.connection.mysql.MySqlConnection;
-import io.sapl.geo.connection.postgis.PostGisConnection;
 import io.sapl.geo.functions.GeoProjector;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.JsonConverter;
+import io.sapl.geo.mysql.MySqlConnection;
 import io.sapl.geo.pip.GeoPipResponseFormat;
+import io.sapl.geo.postgis.PostGisConnection;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

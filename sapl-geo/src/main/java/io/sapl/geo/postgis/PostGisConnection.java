@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.connection.postgis;
+package io.sapl.geo.postgis;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.geo.connection.shared.DatabaseConnection;
+import io.sapl.geo.shared.DatabaseConnection;
 
 public class PostGisConnection extends DatabaseConnection {
 

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.connection.owntracks;
+package io.sapl.geo.owntracks;
 
 import java.nio.file.Paths;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,11 +34,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.owntracks.OwnTracksConnection;
 import reactor.test.StepVerifier;
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
-public class OwnTracksConnectionTests {
+public class OwnTracksTests {
     String         address;
     Integer        port;
     SourceProvider source = SourceProvider.getInstance();

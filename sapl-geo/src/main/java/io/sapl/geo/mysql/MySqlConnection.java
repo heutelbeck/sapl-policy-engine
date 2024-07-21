@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.connection.mysql;
+package io.sapl.geo.mysql;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.geo.connection.shared.DatabaseConnection;
+import io.sapl.geo.shared.DatabaseConnection;
 
 import java.time.ZoneId;
 

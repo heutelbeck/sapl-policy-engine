@@ -3695,3 +3695,115 @@ Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-
 2024-07-14 11:33:02  INFO: user: 1, action: edit, object: geofence, id: 3
 2024-07-14 11:33:22  INFO: user: 1, action: login, from: 172.17.0.1
 2024-07-14 11:33:35  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:15  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-07-21 13:31:15  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-07-21 13:31:15  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-07-21 13:31:15  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-07-21 13:31:15  INFO: Version: 5.8
+2024-07-21 13:31:15  INFO: Starting server...
+2024-07-21 13:31:16  INFO: HikariPool-1 - Starting...
+2024-07-21 13:31:16  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-07-21 13:31:16  INFO: HikariPool-1 - Start completed.
+2024-07-21 13:31:17  INFO: Set default schema name to PUBLIC
+2024-07-21 13:31:17  INFO: Clearing database change log checksums
+2024-07-21 13:31:17  INFO: Successfully acquired change log lock
+2024-07-21 13:31:17  INFO: Successfully released change log lock
+2024-07-21 13:31:17  INFO: Successfully acquired change log lock
+2024-07-21 13:31:18  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-21 13:31:19  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-21 13:31:19  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-21 13:31:19  INFO: UPDATE SUMMARY
+2024-07-21 13:31:19  INFO: Run:                          0
+2024-07-21 13:31:19  INFO: Previously run:              43
+2024-07-21 13:31:19  INFO: Filtered out:                 0
+2024-07-21 13:31:19  INFO: -------------------------------
+2024-07-21 13:31:19  INFO: Total change sets:           43
+
+2024-07-21 13:31:19  INFO: Update summary generated
+2024-07-21 13:31:19  INFO: Successfully released change log lock
+2024-07-21 13:31:19  INFO: Successfully released change log lock
+2024-07-21 13:31:19  INFO: Command execution complete
+2024-07-21 13:31:23  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-07-21 13:31:23  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-07-21 13:31:23  INFO: Session workerName=node0
+2024-07-21 13:31:24  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-07-21 13:31:25  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-07-21 13:31:25  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-07-21 13:31:25  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @12012ms
+2024-07-21 13:31:25  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-07-21 13:31:26  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:27  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:27  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:28  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:28  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:29  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:29  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:30  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:30  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:30  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:30  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:30  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:30  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:30  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:30  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:30  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:30  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:32  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:32  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:33  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:33  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:34  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:34  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:35  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:31:35  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:31:37  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:32:07  INFO: Operating system name: Linux version: 5.15.153.1-microsoft-standard-WSL2 architecture: amd64
+2024-07-21 13:32:07  INFO: Java runtime name: OpenJDK 64-Bit Server VM vendor: Alpine version: 11.0.19+7-alpine-r1
+2024-07-21 13:32:07  INFO: Memory limit heap: 1024mb non-heap: 0mb
+2024-07-21 13:32:07  INFO: Character encoding: UTF-8 charset: UTF-8
+2024-07-21 13:32:07  INFO: Version: 5.8
+2024-07-21 13:32:07  INFO: Starting server...
+2024-07-21 13:32:07  INFO: HikariPool-1 - Starting...
+2024-07-21 13:32:08  INFO: HikariPool-1 - Added connection conn0: url=jdbc:h2:./data/database user=SA
+2024-07-21 13:32:08  INFO: HikariPool-1 - Start completed.
+2024-07-21 13:32:08  INFO: Set default schema name to PUBLIC
+2024-07-21 13:32:08  INFO: Clearing database change log checksums
+2024-07-21 13:32:08  INFO: Successfully acquired change log lock
+2024-07-21 13:32:08  INFO: Successfully released change log lock
+2024-07-21 13:32:08  INFO: Successfully acquired change log lock
+2024-07-21 13:32:09  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-21 13:32:10  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-21 13:32:10  INFO: Reading from PUBLIC.DATABASECHANGELOG
+2024-07-21 13:32:10  INFO: UPDATE SUMMARY
+2024-07-21 13:32:10  INFO: Run:                          0
+2024-07-21 13:32:10  INFO: Previously run:              43
+2024-07-21 13:32:10  INFO: Filtered out:                 0
+2024-07-21 13:32:10  INFO: -------------------------------
+2024-07-21 13:32:10  INFO: Total change sets:           43
+
+2024-07-21 13:32:10  INFO: Update summary generated
+2024-07-21 13:32:10  INFO: Successfully released change log lock
+2024-07-21 13:32:10  INFO: Successfully released change log lock
+2024-07-21 13:32:10  INFO: Command execution complete
+2024-07-21 13:32:12  INFO: jetty-10.0.15; built: 2023-04-11T17:25:14.480Z; git: 68017dbd00236bb7e187330d7585a059610f661d; jvm 11.0.19+7-alpine-r1
+2024-07-21 13:32:12  INFO: Started o.t.w.@3c09a350{/,null,AVAILABLE}
+2024-07-21 13:32:12  INFO: Session workerName=node0
+2024-07-21 13:32:12  WARN: JAXBContext implementation could not be found. WADL feature is disabled.
+2024-07-21 13:32:13  INFO: Started o.e.j.s.ServletContextHandler@3d2b13b1{/,null,AVAILABLE}
+2024-07-21 13:32:13  INFO: Started ServerConnector@799c8758{HTTP/1.1, (http/1.1)}{0.0.0.0:8082}
+2024-07-21 13:32:13  INFO: Started Server@166ce247{STARTING}[10.0.15,sto=0] @7186ms
+2024-07-21 13:32:13  WARN: No systemd support - Unable to load library 'systemd':
+Error loading shared library libsystemd.so: No such file or directory
+Error loading shared library libsystemd.so: No such file or directory
+Native library (linux-x86-64/libsystemd.so) not found in resource path (tracker-server.jar) - UnsatisfiedLinkError (... < TaskHealthCheck:49 < <gener:-1 < *:-1 < ... < ScheduleManager:46 < ...)
+2024-07-21 13:32:13  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:32:13  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:32:13  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:32:13  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:32:13  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:32:13  INFO: user: 1, action: logout, from: 172.17.0.1
+2024-07-21 13:32:13  INFO: user: 1, action: login, from: 172.17.0.1
+2024-07-21 13:32:14  INFO: user: 1, action: logout, from: 172.17.0.1

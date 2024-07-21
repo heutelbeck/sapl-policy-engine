@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.connection.postgis;
+package io.sapl.geo.postgis;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -28,12 +28,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import common.PostgisTestBase;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.postgis.PostGisConnection;
 import reactor.test.StepVerifier;
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.DisplayName.class)
-class PostGisConnectionTests extends PostgisTestBase {
+class PostGisTests extends PostgisTestBase {
 
     @BeforeAll
     void setUp() throws Exception {

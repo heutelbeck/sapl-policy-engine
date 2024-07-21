@@ -31,8 +31,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-
-import io.sapl.geo.connection.shared.ConnectionBase;
+import io.sapl.geo.shared.ConnectionBase;
 import lombok.RequiredArgsConstructor;
 
 import reactor.core.publisher.Mono;

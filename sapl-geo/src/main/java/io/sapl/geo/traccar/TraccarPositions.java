@@ -26,9 +26,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.connection.shared.GeoMapper;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
+import io.sapl.geo.shared.GeoMapper;
 import io.sapl.pip.http.ReactiveWebClient;
 
 import reactor.core.publisher.Flux;

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.connection.traccar;
+package io.sapl.geo.traccar;
 
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -44,7 +44,7 @@ import reactor.test.StepVerifier;
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
-public class TraccarConnectionTests {
+public class TraccarTests {
     String         address;
     Integer        port;
     SourceProvider source = SourceProvider.getInstance();

@@ -25,35 +25,20 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.geo.connection.owntracks.OwnTracksConnection;
-import io.sapl.geo.connection.traccar.TraccarConnection;
+import io.sapl.geo.owntracks.OwnTracksConnection;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
 @Component
 @RequiredArgsConstructor
-@PolicyInformationPoint(name = GeoPolicyInformationPoint.NAME, description = GeoPolicyInformationPoint.DESCRIPTION)
-public class GeoPolicyInformationPoint {
+@PolicyInformationPoint(name = OwnTracksPolicyInformationPoint.NAME, description = OwnTracksPolicyInformationPoint.DESCRIPTION)
+public class OwnTracksPolicyInformationPoint {
 
     public static final String NAME = "geo";
 
     public static final String DESCRIPTION = "PIP for geographical data.";
 
     private final ObjectMapper mapper;
-
-    @Attribute(name = "traccar")
-    public Flux<Val> connectToTraccar(Val leftHandValue, Val variables) {
-
-        return new TraccarConnection(mapper).connect(variables.get());
-
-    }
-
-    @EnvironmentAttribute(name = "traccar")
-    public Flux<Val> connectToTraccar(Val variables) {
-
-        return new TraccarConnection(mapper).connect(variables.get());
-
-    }
 
     @Attribute(name = "ownTracks")
     public Flux<Val> connectToOwnTracks(Val leftHandValue, Val variables) {
@@ -68,32 +53,5 @@ public class GeoPolicyInformationPoint {
         return new OwnTracksConnection(mapper).connect(variables.get());
 
     }
-
-//    @Attribute(name = "postGIS")
-//    public Flux<Val> connectToPostGIS(Val leftHandValue, Val variables) {
-//        return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
-//
-//    }
-//
-//    @EnvironmentAttribute(name = "postGIS")
-//    public Flux<Val> connectToPostGIS(Val variables) {
-//
-//        return new PostGisConnection(variables.get(), new ObjectMapper()).connect(variables.get());
-//
-//    }
-
-//    @Attribute(name = "mySQL")
-//    public Flux<Val> connectToMySQL(Val leftHandValue, Val variables) {
-//
-//        return new MySqlConnection(variables.get(), new ObjectMapper()).connect(variables.get());
-//
-//    }
-//
-//    @EnvironmentAttribute(name = "mySQL")
-//    public Flux<Val> connectToMySQL(Val variables) {
-//
-//        return new MySqlConnection(variables.get(), new ObjectMapper()).connect(variables.get());
-//
-//    }
 
 }
