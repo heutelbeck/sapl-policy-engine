@@ -25,13 +25,16 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+
 import io.sapl.geo.connection.shared.ConnectionBase;
 import lombok.RequiredArgsConstructor;
+
 import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
@@ -41,15 +44,15 @@ abstract class TraccarBase extends ConnectionBase {
 
     protected final ObjectMapper mapper;
 
-    private int      sessionId;
+    private int sessionId;
     private URI uri;
-    
+
     protected String sessionCookie;
     protected String user;
     protected String password;
     protected String server;
     protected String protocol;
-    
+
     protected static final String DEVICE_ID  = "deviceId";
     protected static final String POSITIONS  = "positions";
     protected static final String ALTITUDE   = "altitude";
@@ -72,22 +75,18 @@ abstract class TraccarBase extends ConnectionBase {
             bodyProperties.put("email", user);
             bodyProperties.put("password", password);
 
-            var form = bodyProperties.entrySet().stream()
-                    .map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
+            var form = bodyProperties.entrySet().stream().map(
+                    e -> String.format("%s=%s", e.getKey(), URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8)))
                     .collect(Collectors.joining("&"));
 
             var client = WebClient.builder().build();
 
             return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
                     .retrieve()
-                    .onStatus(status -> status.isError() || status.is4xxClientError() || status.is5xxServerError(),
-                            response -> {
-                                logger.info("---- onstatus 4 5: {} {} ", response.statusCode().is4xxClientError(),
-                                        response.statusCode().is5xxServerError());
-                                return Mono.error(new PolicyEvaluationException(
-                                        "Session could not be established. Server responded with "
-                                                + response.statusCode().value()));
-                            })
+                    .onStatus(HttpStatusCode::isError,
+                            response -> Mono.error(new PolicyEvaluationException(
+                                    "Session could not be established. Server responded with "
+                                            + response.statusCode().value())))
                     .toEntity(String.class).flatMap(response -> {
                         if (response.getStatusCode().is2xxSuccessful()) {
                             var setCookieHeader = response.getHeaders().getFirst("set-cookie");
@@ -127,32 +126,25 @@ abstract class TraccarBase extends ConnectionBase {
     }
 
     protected void disconnect() throws PolicyEvaluationException {
-        var errorMsg = "Traccar-Client could not be disconnected";
-        this.closeTraccarSession().subscribe(result -> {
-            if (result) {
-                logger.info("Traccar-Client disconnected.");
-            } else {
-                throw new PolicyEvaluationException(errorMsg);
-            }
-        }, error -> {
-            throw new PolicyEvaluationException(errorMsg, error);
-        });
-    }
 
-    private Mono<Boolean> closeTraccarSession() throws PolicyEvaluationException {
-
-        var client = WebClient.builder().defaultHeader("cookie", sessionCookie).build();
-
-        return client.delete().uri(uri).retrieve().toBodilessEntity().flatMap(response -> {
+        WebClient client = WebClient.builder().defaultHeader("cookie", sessionCookie).build();
+        client.delete().uri(uri).retrieve().toBodilessEntity().flatMap(response -> {
             if (response.getStatusCode().is2xxSuccessful()) {
                 logger.info("Traccar Session {} closed successfully.", sessionId);
-                return Mono.just(true);
+                return Mono.empty();
             } else {
-                logger.error(String.format("Failed to close Traccar Session %s. Status code: %s", sessionId,
-                        response.getStatusCode()));
-                return Mono.just(false);
+                var errorMsg2 = String.format("Failed to close Traccar Session %s. Status code: %s", sessionId,
+                        response.getStatusCode());
+                logger.error(errorMsg2);
+                throw (new PolicyEvaluationException(errorMsg2));
             }
-        });
+        }).onErrorResume(error -> {
+            var errorMsg1 = String.format("Failed to close Traccar Session %s", sessionId);
+            logger.error(errorMsg1);
+            return Mono.just(error);
+        })
 
+                .subscribe();
     }
+
 }

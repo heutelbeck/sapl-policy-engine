@@ -40,9 +40,9 @@ public class TraccarPositions extends TraccarBase {
     public TraccarPositions(JsonNode auth, ObjectMapper mapper) {
 
         super(mapper);
-        user = getUser(auth);
+        user     = getUser(auth);
         password = getPassword(auth);
-        server = getServer(auth);
+        server   = getServer(auth);
         protocol = getProtocol(auth);
     }
 
@@ -54,14 +54,15 @@ public class TraccarPositions extends TraccarBase {
 
         geoMapper = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
 
-        var url    = "ws://" + server + "/api/socket";
+        var url = (String.format("ws://%s/api/socket", server));
+        return establishSession(user, password, server, protocol).flatMapMany(cookie ->
 
-        return establishSession(user, password, server, protocol)
-                .flatMapMany(cookie ->
+        getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings), getLatitudeFirst(settings))
+                .map(Val::of)
 
-                getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
-                        getLatitudeFirst(settings)).map(Val::of)
-                        .onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect()));
+                .doFinally(s -> disconnect()))
+
+        ;
 
     }
 

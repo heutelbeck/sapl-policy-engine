@@ -26,7 +26,6 @@ import org.springframework.stereotype.Component;
 import org.xml.sax.SAXException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
@@ -109,7 +108,7 @@ public class GeoConverter {
     }
 
     @Function(name = "kmlToGeoJson", docs = KML_TO_GEOJSON)
-    public Val kmlToGeoJson(Val kml) throws ParseException, JsonMappingException, JsonProcessingException {
+    public Val kmlToGeoJson(Val kml) throws ParseException, JsonProcessingException {
 
         return GeometryConverter.geometryToGeoJsonNode(KmlConverter.kmlToGeometry(kml));
 
@@ -137,7 +136,7 @@ public class GeoConverter {
     }
 
     @Function(name = "wktToGeoJson", docs = WKT_TO_GEOJSON)
-    public Val wktToGeoJson(Val wkt) throws ParseException, JsonMappingException, JsonProcessingException {
+    public Val wktToGeoJson(Val wkt) throws ParseException, JsonProcessingException {
 
         return GeometryConverter.geometryToGeoJsonNode(WktConverter.wktToGeometry(wkt));
 

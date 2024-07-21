@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.sapl.server;
 
 import java.util.Map;
@@ -17,7 +34,7 @@ import reactor.core.publisher.Flux;
 
 @Component
 @RequiredArgsConstructor
-@PolicyInformationPoint(name = PostGisPolicyInformationPoint.NAME, description = PostGisPolicyInformationPoint.DESCRIPTION)
+@PolicyInformationPoint(name = TraccarPolicyInformationPoint.NAME, description = TraccarPolicyInformationPoint.DESCRIPTION)
 public class TraccarPolicyInformationPoint {
 
     public static final String NAME = "traccar";
@@ -25,7 +42,7 @@ public class TraccarPolicyInformationPoint {
     public static final String DESCRIPTION = "PIP for geographical data from traccar.";
 
     private final ObjectMapper mapper;
-    
+
     private static final String TRACCAR_DEFAULT_CONFIG = "TRACCAR_DEFAULT_CONFIG";
 
     @EnvironmentAttribute(name = "position")
@@ -38,30 +55,22 @@ public class TraccarPolicyInformationPoint {
     @EnvironmentAttribute(name = "position")
     public Flux<Val> position(@JsonObject Val auth, @JsonObject Val variables) {
 
-        try {
-            return new TraccarPositions(auth.get(), mapper).getPositions(variables.get());
+        return new TraccarPositions(auth.get(), mapper).getPositions(variables.get());
 
-        } catch (Exception e) {
-            return Flux.just(Val.error(e.getMessage()));
-        }
     }
-    
-    @EnvironmentAttribute(name = "position")
+
+    @EnvironmentAttribute(name = "geofences")
     public Flux<Val> geofences(Map<String, Val> auth, @JsonObject Val variables) {
 
         return new TraccarGeofences(auth.get(TRACCAR_DEFAULT_CONFIG).get(), mapper).getGeofences(variables.get());
 
     }
 
-    @EnvironmentAttribute(name = "position")
+    @EnvironmentAttribute(name = "geofences")
     public Flux<Val> geofences(@JsonObject Val auth, @JsonObject Val variables) {
 
-        try {
-            return new TraccarGeofences(auth.get(), mapper).getGeofences(variables.get());
+        return new TraccarGeofences(auth.get(), mapper).getGeofences(variables.get());
 
-        } catch (Exception e) {
-            return Flux.just(Val.error(e.getMessage()));
-        }
     }
-    
+
 }
