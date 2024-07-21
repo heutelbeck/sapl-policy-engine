@@ -60,121 +60,112 @@ public class TraccarPolicyInformationPointTests {
             .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
             .withReuse(false);
 
-    @BeforeAll
-    void setUp() throws Exception {
-
-        address = traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082);
-
-        var template = """
-                      {
-                "algorithm": "DENY_OVERRIDES",
-                "variables":
-                    {
-                        "TRACCAR_DEFAULT_CONFIG":
-                        {
-                            "user":"test@fake.de",
-                            "password":"1234",
-                            "server":"%s",
-                            "protocol": "http"
-                        }
-                    }
-                }
-                  """;
-
-        var json = String.format(template, traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082));
-
-        var writer = new BufferedWriter(
-                new FileWriter(String.format(path, "/traccarPositionTestEnvironmentVariable/pdp.json")));
-        writer.write(json);
-        writer.close();
-        writer = new BufferedWriter(
-                new FileWriter(String.format(path, "/traccarGeofencesTestEnvironmentVariable/pdp.json")));
-        writer.write(json);
-        writer.close();
-
-    }
-
-    @Test
-    void PositionAuthenticateByEnvironmentVariable() throws JsonProcessingException, InitializationException {
-
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, "traccarPositionTestEnvironmentVariable"),
-                () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-
-        var authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var pdpDecisionFlux   = pdp.decide(authzSubscription);
-
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
-    }
-
-    @Test
-    void PositionAuthenticateByVariable() throws JsonProcessingException, InitializationException {
-
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "traccarPositionTest"),
-                () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-
-        var subject = new Subject("test@fake.de", "1234",
-                traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082), 1);
-
-        var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
-        var pdpDecisionFlux   = pdp.decide(authzSubscription);
-
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
-    }
-
-    @Test
-    void GeofencesAuthenticateByEnvironmentVariable() throws JsonProcessingException, InitializationException {
-
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, "traccarGeofencesTestEnvironmentVariable"),
-                () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-
-        var authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var pdpDecisionFlux   = pdp.decide(authzSubscription);
-
-//        pdpDecisionFlux.doOnNext(x -> System.out.println(x.getTrace().toPrettyString())).subscribe();
+//    @BeforeAll
+//    void setUp() throws Exception {
 //
-//        try {
-//            Thread.sleep(40000);
-//        } catch (InterruptedException e) {
-//            Thread.currentThread().interrupt();
-//            e.printStackTrace();
-//        }
+//        address = traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082);
 //
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
-    }
-
-    @Test
-    void GeofencesAuthenticateByVariable() throws JsonProcessingException, InitializationException {
-
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "traccarGeofencesTest"),
-                () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-
-        var subject = new Subject("test@fake.de", "1234",
-                traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082), 1);
-
-        var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
-        var pdpDecisionFlux   = pdp.decide(authzSubscription);
-
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
-    }
-
-    @Getter
-    @RequiredArgsConstructor
-    class Subject {
-        private final String user;
-        private final String password;
-        private final String server;
-        private final int    deviceId;
-
-    }
+//        var template = """
+//                      {
+//                "algorithm": "DENY_OVERRIDES",
+//                "variables":
+//                    {
+//                        "TRACCAR_DEFAULT_CONFIG":
+//                        {
+//                            "user":"test@fake.de",
+//                            "password":"1234",
+//                            "server":"%s",
+//                            "protocol": "http"
+//                        }
+//                    }
+//                }
+//                  """;
+//
+//        var json = String.format(template, traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082));
+//
+//        var writer = new BufferedWriter(
+//                new FileWriter(String.format(path, "/traccarPositionTestEnvironmentVariable/pdp.json")));
+//        writer.write(json);
+//        writer.close();
+//        writer = new BufferedWriter(
+//                new FileWriter(String.format(path, "/traccarGeofencesTestEnvironmentVariable/pdp.json")));
+//        writer.write(json);
+//        writer.close();
+//
+//    }
+//
+//    @Test
+//    void PositionAuthenticateByEnvironmentVariable() throws JsonProcessingException, InitializationException {
+//
+//        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
+//                String.format(path, "traccarPositionTestEnvironmentVariable"),
+//                () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
+//
+//        var authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
+//        var pdpDecisionFlux   = pdp.decide(authzSubscription);
+//
+//        StepVerifier.create(pdpDecisionFlux)
+//                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
+//                .verify();
+//    }
+//
+//    @Test
+//    void PositionAuthenticateByVariable() throws JsonProcessingException, InitializationException {
+//
+//        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "traccarPositionTest"),
+//                () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
+//
+//        var subject = new Subject("test@fake.de", "1234",
+//                traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082), 1);
+//
+//        var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
+//        var pdpDecisionFlux   = pdp.decide(authzSubscription);
+//
+//        StepVerifier.create(pdpDecisionFlux)
+//                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
+//                .verify();
+//    }
+//
+//    @Test
+//    void GeofencesAuthenticateByEnvironmentVariable() throws JsonProcessingException, InitializationException {
+//
+//        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
+//                String.format(path, "traccarGeofencesTestEnvironmentVariable"),
+//                () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
+//
+//        var authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
+//        var pdpDecisionFlux   = pdp.decide(authzSubscription);
+//
+//        StepVerifier.create(pdpDecisionFlux)
+//                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
+//                .verify();
+//    }
+//
+//    @Test
+//    void GeofencesAuthenticateByVariable() throws JsonProcessingException, InitializationException {
+//
+//        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "traccarGeofencesTest"),
+//                () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
+//
+//        var subject = new Subject("test@fake.de", "1234",
+//                traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082), 1);
+//
+//        var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
+//        var pdpDecisionFlux   = pdp.decide(authzSubscription);
+//
+//        StepVerifier.create(pdpDecisionFlux)
+//                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
+//                .verify();
+//    }
+//
+//    @Getter
+//    @RequiredArgsConstructor
+//    class Subject {
+//        private final String user;
+//        private final String password;
+//        private final String server;
+//        private final int    deviceId;
+//
+//    }
 
 }

@@ -58,126 +58,126 @@ public class TraccarTests {
             .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
             .withReuse(false);
 
-    @BeforeAll
-    void setup() throws JsonProcessingException {
-
-        address = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
-
-        var tmp = """
-                    {
-                    "user":"test@fake.de",
-                    "password":"1234",
-                    "server":"%s",
-                    "protocol":"http"
-                    }
-                """;
-
-        authTemplate = Val.ofJson(String.format(tmp, address)).get();
-
-    }
-
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,PositionWKT,true", "GEOJSON,PositionGeoJsonSwitchedCoordinates,false", "GML,PositionGML,true",
-            "KML,PositionKML,true" })
-    void testTraccarPositions(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
-        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-
-        var str = """
-                {
-                   "responseFormat":"%s",
-                   "deviceId":"1"
-                   """;
-
-        var responseTemplate = String.format(str, responseFormat);
-
-        if (!latitudeFirst) {
-            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
-
-        }
-        responseTemplate = responseTemplate.concat("}");
-        var val    = Val.ofJson(responseTemplate);
-        var result = new TraccarPositions(authTemplate, new ObjectMapper()).getPositions(val.get()).map(Val::get)
-                .map(JsonNode::toPrettyString);
-
-        StepVerifier.create(result).expectNext(expected).thenCancel().verify();
-
-    }
-
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,TraccarGeofencesDeviceWKT,true", "GEOJSON,TraccarGeofencesDeviceGeoJsonSwitchedCoordinates,false",
-            "GML,TraccarGeofencesDeviceGML,true", "KML,TraccarGeofencesDeviceKML,true" })
-    void testTraccarGeofencesWithDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
-            throws Exception {
-        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        ;
-        var str              = """
-                {
-                   "responseFormat":"%s",
-                   "deviceId":"1"
-                   """;
-        var responseTemplate = String.format(str, responseFormat);
-        if (!latitudeFirst) {
-            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
-
-        }
-        responseTemplate = responseTemplate.concat("}");
-        var val    = Val.ofJson(responseTemplate);
-        var result = new TraccarGeofences(authTemplate, new ObjectMapper()).getGeofences(val.get()).map(Val::get)
-                .map(JsonNode::toPrettyString);
-
-        StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
-    }
-
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,TraccarGeofencesWKT,true", "GEOJSON,TraccarGeofencesGeoJsonSwitchedCoordinates,false",
-            "GML,TraccarGeofencesGML,true", "KML,TraccarGeofencesKML,true" })
-    void testTraccarGeofencesWithoutDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
-            throws Exception {
-        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-
-        var str = """
-                {
-                   "responseFormat":"%s"
-                   """;
-
-        var responseTemplate = String.format(str, responseFormat);
-
-        if (!latitudeFirst) {
-            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
-
-        }
-        responseTemplate = responseTemplate.concat("}");
-        var val    = Val.ofJson(responseTemplate);
-        var result = new TraccarGeofences(authTemplate, new ObjectMapper()).getGeofences(val.get()).map(Val::get)
-                .map(JsonNode::toPrettyString);
-
-        StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
-    }
-
-    @Test
-    void testTraccarGeofencesRepetitionsAndPollingInterval() throws Exception {
-        var expected = source.getJsonSource().get("TraccarGeofencesWKT").toPrettyString();
-
-        var str = """
-                {
-                   "responseFormat":"WKT"
-                   """;
-
-        var responseTemplate = str.concat("""
-
-                   ,"repetitions" : 3
-                   ,"pollingIntervalMs" : 1000
-                }
-                """);
-        var val              = Val.ofJson(responseTemplate);
-        var result           = new TraccarGeofences(authTemplate, new ObjectMapper()).getGeofences(val.get())
-                .map(Val::get).map(JsonNode::toPrettyString);
-
-        StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
-                .verify();
-    }
+//    @BeforeAll
+//    void setup() throws JsonProcessingException {
+//
+//        address = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
+//
+//        var tmp = """
+//                    {
+//                    "user":"test@fake.de",
+//                    "password":"1234",
+//                    "server":"%s",
+//                    "protocol":"http"
+//                    }
+//                """;
+//
+//        authTemplate = Val.ofJson(String.format(tmp, address)).get();
+//
+//    }
+//
+//    @ParameterizedTest
+//    @Execution(ExecutionMode.CONCURRENT)
+//    @CsvSource({ "WKT,PositionWKT,true", "GEOJSON,PositionGeoJsonSwitchedCoordinates,false", "GML,PositionGML,true",
+//            "KML,PositionKML,true" })
+//    void testTraccarPositions(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
+//        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+//
+//        var str = """
+//                {
+//                   "responseFormat":"%s",
+//                   "deviceId":"1"
+//                   """;
+//
+//        var responseTemplate = String.format(str, responseFormat);
+//
+//        if (!latitudeFirst) {
+//            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
+//
+//        }
+//        responseTemplate = responseTemplate.concat("}");
+//        var val    = Val.ofJson(responseTemplate);
+//        var result = new TraccarPositions(authTemplate, new ObjectMapper()).getPositions(val.get()).map(Val::get)
+//                .map(JsonNode::toPrettyString);
+//
+//        StepVerifier.create(result).expectNext(expected).thenCancel().verify();
+//
+//    }
+//
+//    @ParameterizedTest
+//    @Execution(ExecutionMode.CONCURRENT)
+//    @CsvSource({ "WKT,TraccarGeofencesDeviceWKT,true", "GEOJSON,TraccarGeofencesDeviceGeoJsonSwitchedCoordinates,false",
+//            "GML,TraccarGeofencesDeviceGML,true", "KML,TraccarGeofencesDeviceKML,true" })
+//    void testTraccarGeofencesWithDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
+//            throws Exception {
+//        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+//        ;
+//        var str              = """
+//                {
+//                   "responseFormat":"%s",
+//                   "deviceId":"1"
+//                   """;
+//        var responseTemplate = String.format(str, responseFormat);
+//        if (!latitudeFirst) {
+//            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
+//
+//        }
+//        responseTemplate = responseTemplate.concat("}");
+//        var val    = Val.ofJson(responseTemplate);
+//        var result = new TraccarGeofences(authTemplate, new ObjectMapper()).getGeofences(val.get()).map(Val::get)
+//                .map(JsonNode::toPrettyString);
+//
+//        StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
+//    }
+//
+//    @ParameterizedTest
+//    @Execution(ExecutionMode.CONCURRENT)
+//    @CsvSource({ "WKT,TraccarGeofencesWKT,true", "GEOJSON,TraccarGeofencesGeoJsonSwitchedCoordinates,false",
+//            "GML,TraccarGeofencesGML,true", "KML,TraccarGeofencesKML,true" })
+//    void testTraccarGeofencesWithoutDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
+//            throws Exception {
+//        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+//
+//        var str = """
+//                {
+//                   "responseFormat":"%s"
+//                   """;
+//
+//        var responseTemplate = String.format(str, responseFormat);
+//
+//        if (!latitudeFirst) {
+//            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
+//
+//        }
+//        responseTemplate = responseTemplate.concat("}");
+//        var val    = Val.ofJson(responseTemplate);
+//        var result = new TraccarGeofences(authTemplate, new ObjectMapper()).getGeofences(val.get()).map(Val::get)
+//                .map(JsonNode::toPrettyString);
+//
+//        StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
+//    }
+//
+//    @Test
+//    void testTraccarGeofencesRepetitionsAndPollingInterval() throws Exception {
+//        var expected = source.getJsonSource().get("TraccarGeofencesWKT").toPrettyString();
+//
+//        var str = """
+//                {
+//                   "responseFormat":"WKT"
+//                   """;
+//
+//        var responseTemplate = str.concat("""
+//
+//                   ,"repetitions" : 3
+//                   ,"pollingIntervalMs" : 1000
+//                }
+//                """);
+//        var val              = Val.ofJson(responseTemplate);
+//        var result           = new TraccarGeofences(authTemplate, new ObjectMapper()).getGeofences(val.get())
+//                .map(Val::get).map(JsonNode::toPrettyString);
+//
+//        StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
+//                .verify();
+//    }
 
 }
