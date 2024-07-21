@@ -36,10 +36,8 @@ import org.testcontainers.utility.DockerImageName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.traccar.TraccarGeofences;
-import io.sapl.geo.traccar.TraccarPositions;
+import io.sapl.geo.common.SourceProvider;
 import reactor.test.StepVerifier;
 
 @Testcontainers

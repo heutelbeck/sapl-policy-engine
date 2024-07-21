@@ -15,21 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.functions;
+package io.sapl.geo.common;
 
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functionlibraries.GeoConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
-abstract class TestBase {
+public abstract class TestBase {
 
-    Val          point;
-    Val          polygon;
-    GeoConverter geoConverter = new GeoConverter();
+    protected Val          point;
+    protected Val          polygon;
+    protected GeoConverter geoConverter = new GeoConverter();
 
-    SourceProvider source = SourceProvider.getInstance();
+    protected SourceProvider source = SourceProvider.getInstance();
 }

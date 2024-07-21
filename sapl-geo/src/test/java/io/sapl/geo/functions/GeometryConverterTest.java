@@ -36,6 +36,8 @@ import org.springframework.util.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
+import io.sapl.geo.common.TestBase;
+
 //import org.hamcrest.MatcherAssert.assertThat;
 
 @TestInstance(Lifecycle.PER_CLASS)

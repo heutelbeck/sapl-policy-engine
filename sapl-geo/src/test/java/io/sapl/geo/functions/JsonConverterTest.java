@@ -32,6 +32,7 @@ import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.common.TestBase;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class JsonConverterTest extends TestBase {

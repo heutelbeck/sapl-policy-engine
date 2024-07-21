@@ -26,9 +26,8 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import common.PostgisTestBase;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.postgis.PostGisConnection;
+import io.sapl.geo.common.PostgisTestBase;
 import reactor.test.StepVerifier;
 
 @Testcontainers

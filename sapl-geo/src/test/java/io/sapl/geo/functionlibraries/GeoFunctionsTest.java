@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.functions;
+package io.sapl.geo.functionlibraries;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import javax.naming.OperationNotSupportedException;
-
+import io.sapl.geo.common.*;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.TransformException;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,8 +38,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.common.TestBase;
 import io.sapl.geo.functionlibraries.GeoFunctions;
+import io.sapl.geo.functions.GeometryConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GeoFunctionsTest extends TestBase {

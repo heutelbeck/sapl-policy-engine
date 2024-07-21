@@ -32,9 +32,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import common.SourceProvider;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.owntracks.OwnTracksConnection;
+import io.sapl.geo.common.SourceProvider;
 import reactor.test.StepVerifier;
 
 @Testcontainers

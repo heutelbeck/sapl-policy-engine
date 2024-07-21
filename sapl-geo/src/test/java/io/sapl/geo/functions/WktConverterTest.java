@@ -36,6 +36,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.common.TestBase;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class WktConverterTest extends TestBase {

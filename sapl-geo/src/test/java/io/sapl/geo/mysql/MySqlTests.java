@@ -26,9 +26,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import common.MySqlTestBase;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.mysql.MySqlConnection;
+import io.sapl.geo.common.MySqlTestBase;
 import reactor.test.StepVerifier;
 
 @Testcontainers
