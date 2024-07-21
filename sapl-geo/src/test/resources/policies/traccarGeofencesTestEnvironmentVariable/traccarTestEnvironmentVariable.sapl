@@ -1,0 +1,5 @@
+policy "traccarTestEnvironmentVariable"
+permit
+where
+  var fences= <traccar.geofences({"responseFormat": "WKT", "deviceId":"1"})>;
+   fences[0].id == 1;

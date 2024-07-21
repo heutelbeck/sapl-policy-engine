@@ -167,7 +167,7 @@ public class GeoMapper {
 
     private Geofence mapFence(JsonNode geoFence, JsonNode area) {
 
-        return Geofence.builder().id(geoFence.findValue(ID).asText()).attributes(geoFence.findValue(ATTRIBUTES))
+        return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
                 .calendarId(geoFence.findValue(CALENDARID).asText()).name(geoFence.findValue(FENCENAME).asText())
                 .description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
     }

@@ -37,8 +37,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.List;
 
-@TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
+@TestInstance(Lifecycle.PER_CLASS)
 class MySqlPolicyInformationPointTests extends MySqlTestBase {
 
     private String path = "src/test/resources/policies/%s";

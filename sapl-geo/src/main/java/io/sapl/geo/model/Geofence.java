@@ -33,7 +33,7 @@ import lombok.NoArgsConstructor;
 
 public class Geofence {
 
-    private String id;
+    private int id;
 
     private JsonNode attributes;
 
