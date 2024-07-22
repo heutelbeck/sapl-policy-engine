@@ -42,7 +42,7 @@ package io.sapl.geo.traccar;
 //
 //@Testcontainers
 //@TestInstance(Lifecycle.PER_CLASS)
-public class TraccarTests {
+//public class TraccarTests {
 //    String         address;
 //    Integer        port;
 //    SourceProvider source = SourceProvider.getInstance();
@@ -180,4 +180,4 @@ public class TraccarTests {
 //                .verify();
 //    }
 //
-}
+//}

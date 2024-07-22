@@ -88,8 +88,8 @@ public class OwnTracks extends ConnectionBase {
 
         html1 = String.format(html1, url, MediaType.APPLICATION_JSON_VALUE);
 
-        if (!httpBasicAuthUser.equals("none") && !password.equals("none")) {
-
+//        if (!httpBasicAuthUser.equals("none") && !password.equals("none")) {
+        if (!"none".equals(httpBasicAuthUser) && !"none".equals(password)) {
             var valueToEncode   = String.format("%s:%s", httpBasicAuthUser, password);
             var basicAuthHeader = "Basic "
                     + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));

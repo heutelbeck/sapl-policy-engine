@@ -37,9 +37,6 @@ public abstract class PostgisTestBase extends DatabaseTestBase {
                 postgisContainer.getPassword(), postgisContainer.getHost(), postgisContainer.getMappedPort(5432),
                 postgisContainer.getDatabaseName());
 
-//        template = String.format(template1, postgisContainer.getUsername(), postgisContainer.getPassword(),
-//                postgisContainer.getHost(), postgisContainer.getMappedPort(5432));
-
         templateAll = template.concat(templateAll1);
 
         templatePoint = template.concat(templatePoint1);

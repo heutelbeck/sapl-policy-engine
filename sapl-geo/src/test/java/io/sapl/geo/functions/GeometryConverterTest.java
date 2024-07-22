@@ -24,9 +24,6 @@ import java.io.StringWriter;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-
-//import static org.junit.Assert.assertThat;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -36,8 +33,6 @@ import org.springframework.util.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.geo.common.TestBase;
-
-//import org.hamcrest.MatcherAssert.assertThat;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GeometryConverterTest extends TestBase {

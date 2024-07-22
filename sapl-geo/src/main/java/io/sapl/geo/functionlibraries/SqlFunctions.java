@@ -18,13 +18,11 @@
 package io.sapl.geo.functionlibraries;
 
 import java.util.regex.Pattern;
-import org.springframework.stereotype.Component;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
 
-@Component
 @FunctionLibrary(name = SqlFunctions.NAME, description = SqlFunctions.DESCRIPTION)
 public class SqlFunctions {
 

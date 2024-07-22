@@ -35,15 +35,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GeometryConverter {
 
-    //private static final String EMPTY = "";
-
     /**
      * @param geo a {@link Geometry}
      * @return a {@link Val} containing the GML-string}
      */
     public static Val geometryToGML(Geometry geo) {
 
-        //var s = EMPTY;
         String s = (new GMLWriter()).write(geo);
 
         return Val.of(s);
@@ -55,7 +52,7 @@ public final class GeometryConverter {
      * @return a {@link Val} containing the KML-string}
      */
     public static Val geometryToKML(Geometry geo) {
-        //var s = EMPTY;
+
         String s = (new KMLWriter().write(geo));
 
         return Val.of(s);
@@ -66,7 +63,7 @@ public final class GeometryConverter {
      * @return a {@link Val} containing the WKT-string}
      */
     public static Val geometryToWKT(Geometry geo) {
-        //var s = EMPTY;
+
         String s = (new WKTWriter().write(geo));
 
         return Val.of(s);

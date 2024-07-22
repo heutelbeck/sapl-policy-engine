@@ -42,8 +42,6 @@ import io.sapl.geo.functions.GeometryConverter;
 @TestInstance(Lifecycle.PER_CLASS)
 class GeoFunctionsTest extends TestBase {
 
-    Val             point;
-    Val             polygon;
     Val             point1;
     Val             point2;
     Val             point3;
@@ -303,7 +301,7 @@ class GeoFunctionsTest extends TestBase {
     }
 
     @Test
-    void geometryIsInTest() throws ParseException, OperationNotSupportedException, JsonProcessingException {
+    void geometryIsInTest() throws ParseException {
 
         assertTrue(func.geometryIsIn(polygon1, coll).getBoolean());
         assertFalse(func.geometryIsIn(polygon2, coll).getBoolean());
@@ -318,7 +316,7 @@ class GeoFunctionsTest extends TestBase {
     }
 
     @Test
-    void atLeastOneMemberOfTest() throws ParseException {
+    void atLeastOneMemberOfTest() {
 
         assertTrue(func.atLeastOneMemberOf(coll, coll1).getBoolean());
         assertFalse(func.atLeastOneMemberOf(coll, coll2).getBoolean());
@@ -326,7 +324,7 @@ class GeoFunctionsTest extends TestBase {
     }
 
     @Test
-    void subsetTest() throws ParseException {
+    void subsetTest() {
 
         assertTrue(func.subset(coll1, coll).getBoolean());
         assertFalse(func.subset(coll, coll2).getBoolean());

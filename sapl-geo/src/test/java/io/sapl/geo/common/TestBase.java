@@ -18,7 +18,6 @@
 package io.sapl.geo.common;
 
 import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -39,7 +38,8 @@ public abstract class TestBase {
 
     protected SourceProvider source = SourceProvider.getInstance();
 
-    protected void writePdp(String json, String path) throws IOException, FileNotFoundException {
+    protected void writePdp(String json, String path) throws IOException {
+
         try (BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(new FileOutputStream(path), StandardCharsets.UTF_8))) {
             writer.write(json);

@@ -114,30 +114,23 @@ public abstract class DatabaseConnection extends ConnectionBase {
         }
 
     }
-    
+
     private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, GeoPipResponseFormat format,
             int defaultCrs, boolean latitudeFirst) {
 
-        return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute()).flatMap(result -> {
-            return result.map((row, rowMetadata) -> {
-                try {
-                    return mapResult(row, format, defaultCrs, latitudeFirst);
-                } catch (Exception e) {
-                    throw new PolicyEvaluationException(e);
-                }
-            });
-        }));
+        return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute())
+                .flatMap(result -> result.map((row, rowMetadata) -> {
+                    try {
+                        return mapResult(row, format, defaultCrs, latitudeFirst);
+                    } catch (Exception e) {
+                        throw new PolicyEvaluationException(e);
+                    }
+                })));
     }
 
-//    private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, GeoPipResponseFormat format,
-//            int defaultCrs, boolean latitudeFirst) {
-//
-//        return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute()).flatMap(
-//                result -> result.map((row, rowMetadata) -> mapResult(row, format, defaultCrs, latitudeFirst))));
-//
-//    }
-
-    private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) throws MismatchedDimensionException, JsonProcessingException, ParseException, FactoryException, TransformException {
+    private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst)
+            throws MismatchedDimensionException, JsonProcessingException, ParseException, FactoryException,
+            TransformException {
         var      resultNode = mapper.createObjectNode();
         JsonNode geoNode;
 
@@ -159,49 +152,48 @@ public abstract class DatabaseConnection extends ConnectionBase {
         return resultNode;
     }
 
-    private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) throws ParseException, FactoryException, MismatchedDimensionException, TransformException, JsonProcessingException {
+    private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst)
+            throws ParseException, FactoryException, MismatchedDimensionException, TransformException,
+            JsonProcessingException {
 
         var res = (JsonNode) mapper.createObjectNode();
         var crs = EPSG + srid;
 
+        var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
 
+        if (this.getClass() == MySql.class && !latitudeFirst) {
+            var geoProjector = new GeoProjector(crs, false, crs, true);
+            geo = geoProjector.project(geo);
+        } else if (this.getClass() == PostGis.class && latitudeFirst) {
 
-            var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
+            var geoProjector = new GeoProjector(crs, true, crs, false);
+            geo = geoProjector.project(geo);
+        }
 
-            if (this.getClass() == MySql.class && !latitudeFirst) {
-                var geoProjector = new GeoProjector(crs, false, crs, true);
-                geo = geoProjector.project(geo);
-            } else if (this.getClass() == PostGis.class && latitudeFirst) {
+        switch (format) {
+        case GEOJSON:
 
-                var geoProjector = new GeoProjector(crs, true, crs, false);
-                geo = geoProjector.project(geo);
-            }
+            res = GeometryConverter.geometryToGeoJsonNode(geo).get();
+            break;
 
-            switch (format) {
-            case GEOJSON:
+        case WKT:
 
-                res = GeometryConverter.geometryToGeoJsonNode(geo).get();
-                break;
+            res = GeometryConverter.geometryToWKT(geo).get();
+            break;
 
-            case WKT:
+        case GML:
 
-                res = GeometryConverter.geometryToWKT(geo).get();
-                break;
+            res = GeometryConverter.geometryToGML(geo).get();
+            break;
 
-            case GML:
+        case KML:
 
-                res = GeometryConverter.geometryToGML(geo).get();
-                break;
+            res = GeometryConverter.geometryToKML(geo).get();
+            break;
 
-            case KML:
-
-                res = GeometryConverter.geometryToKML(geo).get();
-                break;
-
-            default:
-                break;
-            }
-
+        default:
+            break;
+        }
 
         return res;
     }
@@ -228,7 +220,8 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
         var conn = connectionReference.get();
         if (conn != null) {
-            Mono.from(conn.close()).doOnError(err -> logger.error(String.format("Error closing connection %s ", s), err))
+            Mono.from(conn.close())
+                    .doOnError(err -> logger.error(String.format("Error closing connection %s ", s), err))
                     .doOnSuccess(aVoid -> logger.info("Database-Client disconnected."))
                     .subscribe(null, err -> logger.error(String.format("Error during close subscription %s ", s), err));
         }

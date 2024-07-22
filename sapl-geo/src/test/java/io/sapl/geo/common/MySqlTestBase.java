@@ -38,8 +38,6 @@ public abstract class MySqlTestBase extends DatabaseTestBase {
 
         authTemplate = String.format(authenticationTemplate, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
-//        template     = String.format(template1, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
-//                mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306));
 
         templateAll = template.concat(templateAll1);
 

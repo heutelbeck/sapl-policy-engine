@@ -36,13 +36,13 @@ import reactor.test.StepVerifier;
 class MySqlTests extends MySqlTestBase {
 
     @BeforeAll
-    void setUp() throws Exception {
+    void setUp() {
 
         commonSetUp();
     }
 
     @Test
-    void Test01MySqlConnection() throws JsonProcessingException, InterruptedException {
+    void Test01MySqlConnection() throws JsonProcessingException {
         var queryString = String.format(templateAll, "geometries", "geom");
 
         var expected      = Val.ofJson(expectedAll);
@@ -52,7 +52,7 @@ class MySqlTests extends MySqlTestBase {
     }
 
     @Test
-    void Test02MySqlConnectionSingleResult() throws JsonProcessingException, InterruptedException {
+    void Test02MySqlConnectionSingleResult() throws JsonProcessingException {
         var queryString = String.format(templatePoint, "geometries", "geom");
 
         var expected = Val.ofJson(expectedPoint);
@@ -64,7 +64,7 @@ class MySqlTests extends MySqlTestBase {
     }
 
     @Test
-    void Test03ErrorNonexistantTable() throws JsonProcessingException, InterruptedException {
+    void Test03ErrorNonexistantTable() throws JsonProcessingException {
         var errorTemplate = template.concat("""
                     ,
                     "table":"%s",
@@ -82,7 +82,7 @@ class MySqlTests extends MySqlTestBase {
     }
 
     @Test
-    void Test04ErrorInvalidTemplate() throws JsonProcessingException, InterruptedException {
+    void Test04ErrorInvalidTemplate() throws JsonProcessingException {
         var queryString = "{\"invalid\":\"Template\"}";
 
         var mysqlResponse = new MySql(Val.ofJson(authTemplate).get(), new ObjectMapper())

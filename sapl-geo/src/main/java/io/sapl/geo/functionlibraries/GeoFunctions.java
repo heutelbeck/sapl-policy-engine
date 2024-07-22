@@ -513,7 +513,7 @@ public class GeoFunctions {
 
     }
 
-    public JsonNode degreeToMeter(@Number JsonNode jsonValue) throws IllegalArgumentException {
+    public JsonNode degreeToMeter(@Number JsonNode jsonValue) {
         var mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         return mapper.convertValue(degreeToMeter(jsonValue.asDouble()), JsonNode.class);
     }
@@ -555,7 +555,7 @@ public class GeoFunctions {
 
     @Function(docs = GEOMETRY_IS_IN_DOC)
     public Val geometryIsIn(@JsonObject Val jsonGeometry, @JsonObject Val jsonGeometryCollection)
-            throws ClassCastException, ParseException {
+            throws ParseException {
 
         return Val.of(geometryIsIn(jsonGeometry.get(), jsonGeometryCollection.get()));
 

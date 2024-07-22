@@ -40,7 +40,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -86,7 +85,7 @@ class PostGisPolicyInformationPointTests extends PostgisTestBase {
     }
 
     @Test
-    void AuthenticateByEnvironmentVariable() throws JsonProcessingException, InitializationException {
+    void AuthenticateByEnvironmentVariable() throws InitializationException {
 
         var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
                 String.format(path, "postgisTestEnvironmentVariable"),
@@ -101,7 +100,7 @@ class PostGisPolicyInformationPointTests extends PostgisTestBase {
     }
 
     @Test
-    void AuthenticateByVariable() throws JsonProcessingException, InitializationException {
+    void AuthenticateByVariable() throws InitializationException {
 
         var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "postgisTest"),
                 () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);

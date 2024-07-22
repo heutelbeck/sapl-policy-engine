@@ -24,9 +24,7 @@ public abstract class DatabaseTestBase extends TestBase {
 
     protected String templateAll;
     protected String templatePoint;
-    // protected String template;
     protected String authTemplate;
-
     protected String authenticationTemplate = """
                 {
                 "user":"%s",

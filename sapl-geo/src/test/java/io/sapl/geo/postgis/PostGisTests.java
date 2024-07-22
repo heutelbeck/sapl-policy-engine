@@ -36,7 +36,7 @@ import reactor.test.StepVerifier;
 class PostGisTests extends PostgisTestBase {
 
     @BeforeAll
-    void setUp() throws Exception {
+    void setUp() {
 
         commonSetUp();
     }

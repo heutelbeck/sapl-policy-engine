@@ -50,7 +50,7 @@ public class OwnTracksTests {
             	"deviceId":1
             """;
 
-    final static String RESOURCE_DIRECTORY = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
+    static final String RESOURCE_DIRECTORY = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
 
     @Container
 
@@ -72,7 +72,8 @@ public class OwnTracksTests {
             "KML,ResponseKML,true" })
     void testConnection(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
         var expected        = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var requestTemplate = String.format(template + ",\"responseFormat\":\"%s\"", responseFormat);
+        var requestTemplate =(template.concat(",\"responseFormat\":\"%s\""));
+        requestTemplate = String.format(requestTemplate, responseFormat);
 
         if (!latitudeFirst) {
             requestTemplate = requestTemplate.concat(",\"latitudeFirst\":false");

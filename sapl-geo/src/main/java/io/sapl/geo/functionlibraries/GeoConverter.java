@@ -22,7 +22,6 @@ import java.io.IOException;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.locationtech.jts.io.ParseException;
-import org.springframework.stereotype.Component;
 import org.xml.sax.SAXException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -37,7 +36,6 @@ import io.sapl.geo.functions.KmlConverter;
 import io.sapl.geo.functions.WktConverter;
 import lombok.NoArgsConstructor;
 
-@Component
 @NoArgsConstructor
 @FunctionLibrary(name = "geoConverter", description = "")
 public class GeoConverter {

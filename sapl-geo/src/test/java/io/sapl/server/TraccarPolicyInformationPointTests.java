@@ -17,13 +17,11 @@
  */
 package io.sapl.server;
 
-import io.sapl.geo.common.TestBase;
-
+//import io.sapl.geo.common.TestBase;
 //import java.io.BufferedWriter;
 //import java.io.FileWriter;
 //import java.nio.file.Paths;
 //import java.util.List;
-
 //import org.junit.jupiter.api.BeforeAll;
 //import org.junit.jupiter.api.Test;
 //import org.junit.jupiter.api.TestInstance;
@@ -48,8 +46,8 @@ import io.sapl.geo.common.TestBase;
 
 //@Testcontainers
 //@TestInstance(Lifecycle.PER_CLASS)
-public class TraccarPolicyInformationPointTests extends TestBase {
-
+//public class TraccarPolicyInformationPointTests extends TestBase {
+//
 //    String                            address;
 //    JsonNode                          authTemplate;
 //    private String                    path              = "src/test/resources/policies/%s";
@@ -163,5 +161,5 @@ public class TraccarPolicyInformationPointTests extends TestBase {
 //        private final int    deviceId;
 //
 //    }
-
-}
+//
+//}

@@ -30,7 +30,6 @@ import org.geotools.kml.v22.KML;
 import org.geotools.kml.v22.KMLConfiguration;
 import org.geotools.xsd.PullParser;
 import org.locationtech.jts.geom.Geometry;
-import org.springframework.stereotype.Component;
 import org.xml.sax.SAXException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,7 +44,6 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functions.GeometryConverter;
 import lombok.RequiredArgsConstructor;
 
-@Component
 @RequiredArgsConstructor
 @FunctionLibrary(name = "geoParser", description = "")
 public class GeoParser {
