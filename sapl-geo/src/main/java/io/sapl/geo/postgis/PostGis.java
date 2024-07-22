@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
+import io.r2dbc.spi.ConnectionFactory;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.shared.DatabaseConnection;
 
@@ -33,10 +34,7 @@ public class PostGis extends DatabaseConnection {
      */
     public PostGis(JsonNode auth, ObjectMapper mapper) {
 
-        super(mapper,
-                new PostgresqlConnectionFactory(
-                        PostgresqlConnectionConfiguration.builder().username(getUser(auth)).password(getPassword(auth))
-                                .host(getServer(auth)).port(getPort(auth)).database(getDataBase(auth)).build()));
+        super(mapper, createConnectionFactory(auth));
 
     }
 
@@ -47,6 +45,12 @@ public class PostGis extends DatabaseConnection {
 
             return 5432;
         }
+    }
+
+    private static ConnectionFactory createConnectionFactory(JsonNode auth) {
+        return new PostgresqlConnectionFactory(
+                PostgresqlConnectionConfiguration.builder().username(getUser(auth)).password(getPassword(auth))
+                        .host(getServer(auth)).port(getPort(auth)).database(getDataBase(auth)).build());
     }
 
 }

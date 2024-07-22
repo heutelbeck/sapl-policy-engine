@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
 import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
+import io.r2dbc.spi.ConnectionFactory;
 
 public class MySql extends DatabaseConnection {
 
@@ -35,10 +36,7 @@ public class MySql extends DatabaseConnection {
      * @param mapper a {@link ObjectMapper}
      */
     public MySql(JsonNode auth, ObjectMapper mapper) {
-        super(mapper,
-                MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))
-                        .password(getPassword(auth)).host(getServer(auth)).port(getPort(auth))
-                        .database(getDataBase(auth)).serverZoneId(ZoneId.of("UTC")).build()));
+        super(mapper, createConnectionFactory(auth));
 
     }
 
@@ -51,4 +49,15 @@ public class MySql extends DatabaseConnection {
         }
     }
 
+    private static ConnectionFactory createConnectionFactory(JsonNode auth) {
+        return MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
+                .username(getUser(auth))
+                .password(getPassword(auth))
+                .host(getServer(auth))
+                .port(getPort(auth))
+                .database(getDataBase(auth))
+                .serverZoneId(ZoneId.of("UTC"))
+                .build());
+    }
+    
 }
