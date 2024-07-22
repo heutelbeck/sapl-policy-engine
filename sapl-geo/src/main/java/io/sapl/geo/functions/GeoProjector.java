@@ -26,8 +26,6 @@ import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.MathTransform;
 import org.geotools.api.referencing.operation.TransformException;
 
-import io.sapl.api.interpreter.Val;
-
 public class GeoProjector {
 
     private final MathTransform mathTransform;
@@ -41,7 +39,7 @@ public class GeoProjector {
      * @param srcCrs             a {@link CrsConst} to set the coordinate reference
      *                           system for the source geometry. see
      *                           {@link #project(Geometry)}
-     * @param srcLatitudeFirst   a {@link Boolean} to set latitude/longitude as
+     * @param srcLongitudeFirst  a {@link Boolean} to set latitude/longitude as
      *                           first coordinate
      * @param destCrs            a {@link CrsConst} to set the coordinate reference
      *                           system for the destination geometry. see
@@ -57,14 +55,14 @@ public class GeoProjector {
     /**
      * @param srcCrs             sets the coordinate reference system for the source
      *                           geometry, e. g. "EPSG:4326". see
-     *                           {@link #project(Geometry)} and @see <a
-     *                           href=https://epsg.io/?q=>epsg.io</a>
-     * @param srcLatitudeFirst   a {@link Boolean} to set latitude/longitude as
+     *                           {@link #project(Geometry)} and
+     *                           <a href="https://epsg.io/?q=">epsg.io</a>
+     * @param srcLongitudeFirst  a {@link Boolean} to set latitude/longitude as
      *                           first coordinate
      * @param destCrs            sets the coordinate reference system for the
      *                           destination geometry,e. g. "EPSG:4326". see
-     *                           {@link #project(Geometry)} and @see <a
-     *                           href=https://epsg.io/?q=>epsg.io</a>
+     *                           {@link #project(Geometry)} and
+     *                           <a href="https://epsg.io/?q=">epsg.io</a>
      * @param destLongitudeFirst a {@link Boolean} to set latitude/longitude as
      *                           first coordinate
      */
@@ -75,16 +73,12 @@ public class GeoProjector {
     }
 
     /**
-     * @param srcCrs             a {@link CoordinateReferenceSystem} to set the
-     *                           coordinate reference system for the source
-     *                           geometry. see {@link #project(Geometry)}
-     * @param srcLatitudeFirst   a {@link Boolean} to set latitude/longitude as
-     *                           first coordinate
-     * @param destCrs            a {@link CoordinateReferenceSystem} to set the
-     *                           coordinate reference system for the destination
-     *                           geometry. see {@link #project(Geometry)}
-     * @param destLongitudeFirst a {@link Boolean} to set latitude/longitude as
-     *                           first coordinate
+     * @param srcCrs  a {@link CoordinateReferenceSystem} to set the coordinate
+     *                reference system for the source geometry. see
+     *                {@link #project(Geometry)}
+     * @param destCrs a {@link CoordinateReferenceSystem} to set the coordinate
+     *                reference system for the destination geometry. see
+     *                {@link #project(Geometry)}
      */
     public GeoProjector(CoordinateReferenceSystem srcCrs, CoordinateReferenceSystem destCrs) throws FactoryException {
 
@@ -93,7 +87,7 @@ public class GeoProjector {
 
     /**
      * @param geometry a {@link Geometry} containing the settings
-     * @return a transformed {@link Geometry}<{@link Val}
+     * @return a transformed {@link Geometry}
      * @throws TransformException
      * @throws MismatchedDimensionException
      */
@@ -105,7 +99,7 @@ public class GeoProjector {
 
     /**
      * @param geometry a {@link Geometry} containing the settings
-     * @return a transformed {@link Geometry}<{@link Val}
+     * @return a transformed {@link Geometry}
      * @throws TransformException
      * @throws MismatchedDimensionException
      */

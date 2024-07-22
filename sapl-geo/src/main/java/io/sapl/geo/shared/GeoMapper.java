@@ -26,8 +26,6 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -64,8 +62,6 @@ public class GeoMapper {
      * @param format        a {@link GeoPipResponseFormat}
      * @param latitudeFirst a {@link Boolean} to set latitude/longitude as first
      *                      coordinate
-     * @throws JsonProcessingException
-     * @throws JsonMappingException
      */
     public GeoPipResponse mapPosition(int deviceId, JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst) {
 
@@ -112,10 +108,11 @@ public class GeoMapper {
     }
 
     /**
-     * @param a {@link JsonNode} containing the traccar geofences
-     * @param a {@link GeoPipResponseFormat}
-     * @param a {@link ObjectMapper}
-     * @param a {@link Boolean} to set latitude/longitude as first coordinate
+     * @param in            a {@link JsonNode} containing the traccar geofences
+     * @param format        a {@link GeoPipResponseFormat}
+     * @param mapper        a {@link ObjectMapper}
+     * @param latitudeFirst a {@link Boolean} to set latitude/longitude as first
+     *                      coordinate
      */
     public List<Geofence> mapTraccarGeoFences(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
             boolean latitudeFirst) throws PolicyEvaluationException {
@@ -173,8 +170,8 @@ public class GeoMapper {
     }
 
     /**
-     * @param a {@link JsonNode} containing the owntracks in-regions
-     * @param a {@link ObjectMapper}
+     * @param in     a {@link JsonNode} containing the owntracks in-regions
+     * @param mapper a {@link ObjectMapper}
      */
     public List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws PolicyEvaluationException {
         JsonNode       fences   = mapper.createArrayNode();

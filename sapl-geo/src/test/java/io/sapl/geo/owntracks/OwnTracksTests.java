@@ -81,7 +81,7 @@ public class OwnTracksTests {
         }
         requestTemplate = requestTemplate.concat("}");
         var val          = Val.ofJson(requestTemplate);
-        var resultStream = new OwnTracksConnection(new ObjectMapper()).connect(val.get()).map(Val::get)
+        var resultStream = new OwnTracks(new ObjectMapper()).connect(val.get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
         StepVerifier.create(resultStream).expectNext(expected).thenCancel().verify();
 

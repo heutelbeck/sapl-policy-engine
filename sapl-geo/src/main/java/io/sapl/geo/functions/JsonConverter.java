@@ -49,6 +49,7 @@ public final class JsonConverter {
 
     /**
      * @param geoJson a GeoJson-String
+     * @param factory a {@link GeometryFactory}
      * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(String geoJson, GeometryFactory factory) throws ParseException {
@@ -58,7 +59,6 @@ public final class JsonConverter {
 
     /**
      * @param geoJson a GeoJson-String
-     * @param factory a {@link GeometryFactory}
      * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(String geoJson) throws ParseException {

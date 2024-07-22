@@ -25,13 +25,13 @@ import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.shared.DatabaseConnection;
 
-public class PostGisConnection extends DatabaseConnection {
+public class PostGis extends DatabaseConnection {
 
     /**
-     * @param settings a {@link JsonNode} containing the settings
-     * @param mapper   a {@link ObjectMapper}
+     * @param auth   a {@link JsonNode} containing the settings for authorization
+     * @param mapper a {@link ObjectMapper}
      */
-    public PostGisConnection(JsonNode auth, ObjectMapper mapper) {
+    public PostGis(JsonNode auth, ObjectMapper mapper) {
 
         super(mapper,
                 new PostgresqlConnectionFactory(

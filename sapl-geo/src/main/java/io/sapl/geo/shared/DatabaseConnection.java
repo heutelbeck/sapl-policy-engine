@@ -39,9 +39,9 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functions.GeoProjector;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.JsonConverter;
-import io.sapl.geo.mysql.MySqlConnection;
+import io.sapl.geo.mysql.MySql;
 import io.sapl.geo.pip.GeoPipResponseFormat;
-import io.sapl.geo.postgis.PostGisConnection;
+import io.sapl.geo.postgis.PostGis;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -71,7 +71,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     /**
      * @param settings a {@link JsonNode} containing the settings
-     * @return a {@link Flux}<{@link Val}
+     * @return a {@link Flux} of {@link Val}
      */
     public Flux<Val> sendQuery(JsonNode settings) {
 
@@ -149,10 +149,10 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
             var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
 
-            if (this.getClass() == MySqlConnection.class && !latitudeFirst) {
+            if (this.getClass() == MySql.class && !latitudeFirst) {
                 var geoProjector = new GeoProjector(crs, false, crs, true);
                 geo = geoProjector.project(geo);
-            } else if (this.getClass() == PostGisConnection.class && latitudeFirst) {
+            } else if (this.getClass() == PostGis.class && latitudeFirst) {
 
                 var geoProjector = new GeoProjector(crs, true, crs, false);
                 geo = geoProjector.project(geo);

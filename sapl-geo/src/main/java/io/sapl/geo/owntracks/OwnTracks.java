@@ -37,7 +37,7 @@ import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
-public class OwnTracksConnection extends ConnectionBase {
+public class OwnTracks extends ConnectionBase {
 
     private static final String ALTITUDE   = "alt";
     private static final String LASTUPDATE = "created_at";
@@ -56,7 +56,7 @@ public class OwnTracksConnection extends ConnectionBase {
 
     /**
      * @param settings a {@link JsonNode} containing the settings
-     * @return a {@link Flux}<{@link Val}
+     * @return a {@link Flux} of {@link Val}
      */
     public Flux<Val> connect(JsonNode settings) {
 

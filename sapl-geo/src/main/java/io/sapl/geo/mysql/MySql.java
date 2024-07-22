@@ -28,21 +28,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
 import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
 
-public class MySqlConnection extends DatabaseConnection {
+public class MySql extends DatabaseConnection {
 
     /**
-     * @param settings a {@link JsonNode} containing the settings
-     * @param mapper   a {@link ObjectMapper}
+     * @param auth   a {@link JsonNode} containing the settings for authorization
+     * @param mapper a {@link ObjectMapper}
      */
-    public MySqlConnection(JsonNode auth, ObjectMapper mapper) {
+    public MySql(JsonNode auth, ObjectMapper mapper) {
         super(mapper,
                 MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))
                         .password(getPassword(auth)).host(getServer(auth)).port(getPort(auth))
                         .database(getDataBase(auth)).serverZoneId(ZoneId.of("UTC")).build()));
-
-//        connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))
-//                .password(getPassword(auth)).host(getServer(auth)).port(getPort(auth)).database(getDataBase(auth))
-//                .serverZoneId(ZoneId.of("UTC")).build());
 
     }
 

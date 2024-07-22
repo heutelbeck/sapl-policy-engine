@@ -39,6 +39,9 @@ public class TraccarGeofences extends TraccarBase {
 
     private GeoMapper geoMapper;
 
+    /**
+     * @param auth a {@link JsonNode} containing the settings for authorization
+     */
     public TraccarGeofences(JsonNode auth, ObjectMapper mapper) {
 
         super(mapper);
@@ -50,7 +53,7 @@ public class TraccarGeofences extends TraccarBase {
 
     /**
      * @param settings a {@link JsonNode} containing the settings
-     * @return a {@link Flux}<{@link Val}
+     * @return a {@link Flux} of {@link Val}
      */
     public Flux<Val> getGeofences(JsonNode settings) {
 

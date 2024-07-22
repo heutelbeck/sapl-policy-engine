@@ -47,7 +47,7 @@ class MySqlTests extends MySqlTestBase {
         var queryString = String.format(templateAll, "geometries", "geom");
 
         var expected      = Val.ofJson(expectedAll);
-        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), new ObjectMapper())
+        var mysqlResponse = new MySql(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
         System.out.println("Test01");
@@ -60,7 +60,7 @@ class MySqlTests extends MySqlTestBase {
 
         var expected = Val.ofJson(expectedPoint);
 
-        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), new ObjectMapper())
+        var mysqlResponse = new MySql(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
         System.out.println("Test02");
@@ -80,7 +80,7 @@ class MySqlTests extends MySqlTestBase {
                 """);
         var queryString   = String.format(errorTemplate, "nonExistant", "geog");
 
-        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), new ObjectMapper())
+        var mysqlResponse = new MySql(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectError();
         System.out.println("Test03");
@@ -91,7 +91,7 @@ class MySqlTests extends MySqlTestBase {
         System.out.println("Test04");
         var queryString = "{\"invalid\":\"Template\"}";
 
-        var mysqlResponse = new MySqlConnection(Val.ofJson(authTemplate).get(), new ObjectMapper())
+        var mysqlResponse = new MySql(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .sendQuery(Val.ofJson(queryString).get()).map(Val::getMessage);
 
         StepVerifier.create(mysqlResponse).expectNext("No geoColumn-name found").verifyComplete();

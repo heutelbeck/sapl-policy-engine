@@ -25,7 +25,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.geo.owntracks.OwnTracksConnection;
+import io.sapl.geo.owntracks.OwnTracks;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
@@ -43,14 +43,14 @@ public class OwnTracksPolicyInformationPoint {
     @Attribute(name = "ownTracks")
     public Flux<Val> connectToOwnTracks(Val leftHandValue, Val variables) {
 
-        return new OwnTracksConnection(mapper).connect(variables.get());
+        return new OwnTracks(mapper).connect(variables.get());
 
     }
 
     @EnvironmentAttribute(name = "ownTracks")
     public Flux<Val> connectToOwnTracks(Val variables) {
 
-        return new OwnTracksConnection(mapper).connect(variables.get());
+        return new OwnTracks(mapper).connect(variables.get());
 
     }
 

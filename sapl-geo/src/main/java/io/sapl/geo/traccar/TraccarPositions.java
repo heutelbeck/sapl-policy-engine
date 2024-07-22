@@ -37,6 +37,9 @@ public class TraccarPositions extends TraccarBase {
 
     private GeoMapper geoMapper;
 
+    /**
+     * @param auth a {@link JsonNode} containing the settings for authorization
+     */
     public TraccarPositions(JsonNode auth, ObjectMapper mapper) {
 
         super(mapper);
@@ -48,7 +51,6 @@ public class TraccarPositions extends TraccarBase {
 
     /**
      * @param settings a {@link JsonNode} containing the settings
-     * @return a {@link Flux}<{@link Val}
      */
     public Flux<Val> getPositions(JsonNode settings) {
 
