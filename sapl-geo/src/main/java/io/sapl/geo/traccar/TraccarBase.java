@@ -22,14 +22,12 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.shared.ConnectionBase;
 import lombok.RequiredArgsConstructor;
@@ -91,7 +89,11 @@ abstract class TraccarBase extends ConnectionBase {
                             var setCookieHeader = response.getHeaders().getFirst("set-cookie");
                             if (setCookieHeader != null) {
                                 sessionCookie = setCookieHeader;
-                                setSessionId(response.getBody());
+                                try {
+                                    setSessionId(response.getBody());
+                                }catch (Exception e) {
+                                    return Mono.error(e);
+                                }
                                 logger.info("Traccar Session {} established.", sessionId);
                                 return Mono.just(setCookieHeader);
                             } else {
@@ -106,22 +108,18 @@ abstract class TraccarBase extends ConnectionBase {
                     });
 
         } catch (Exception e) {
-            logger.info("exception");
-            throw new PolicyEvaluationException(e);
+            return Mono.error(e);
         }
 
     }
 
-    private void setSessionId(String json) {
-        try {
+    private void setSessionId(String json) throws  JsonProcessingException {
+
             var sessionJson = mapper.readTree(json);
             if (sessionJson.has("id")) {
                 this.sessionId = sessionJson.get("id").asInt();
             }
-        } catch (Exception e) {
 
-            throw new PolicyEvaluationException(e);
-        }
     }
 
     protected void disconnect() throws PolicyEvaluationException {

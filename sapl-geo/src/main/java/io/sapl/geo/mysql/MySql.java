@@ -19,15 +19,9 @@ package io.sapl.geo.mysql;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.shared.DatabaseConnection;
-
-import java.time.ZoneId;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
-import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
-import io.r2dbc.spi.ConnectionFactory;
 
 public class MySql extends DatabaseConnection {
 
@@ -36,8 +30,8 @@ public class MySql extends DatabaseConnection {
      * @param mapper a {@link ObjectMapper}
      */
     public MySql(JsonNode auth, ObjectMapper mapper) {
-        super(mapper, createConnectionFactory(auth));
-
+        super(mapper);
+        createMySqlConnectionFactory(auth, getPort(auth));
     }
 
     protected static int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
@@ -49,15 +43,4 @@ public class MySql extends DatabaseConnection {
         }
     }
 
-    private static ConnectionFactory createConnectionFactory(JsonNode auth) {
-        return MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
-                .username(getUser(auth))
-                .password(getPassword(auth))
-                .host(getServer(auth))
-                .port(getPort(auth))
-                .database(getDataBase(auth))
-                .serverZoneId(ZoneId.of("UTC"))
-                .build());
-    }
-    
 }

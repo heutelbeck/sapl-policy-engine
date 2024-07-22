@@ -18,6 +18,7 @@
 package io.sapl.geo.shared;
 
 import java.time.Duration;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,6 +37,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
+import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
+import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
+import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.Row;
@@ -70,9 +75,9 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     private AtomicReference<Connection> connectionReference = new AtomicReference<>();
     private String[]                    selectColumns;
-
-    private final ObjectMapper        mapper;
-    protected final ConnectionFactory connectionFactory;
+    private static ConnectionFactory           connectionFactory;
+    private final ObjectMapper          mapper;
+    
 
     /**
      * @param settings a {@link JsonNode} containing the settings
@@ -228,6 +233,23 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
     }
 
+    protected static void createPostgresqlConnectionFactory(JsonNode auth, int port) {
+        connectionFactory = new PostgresqlConnectionFactory(
+                PostgresqlConnectionConfiguration.builder().username(getUser(auth)).password(getPassword(auth))
+                        .host(getServer(auth)).port(port).database(getDataBase(auth)).build());
+    }
+    
+    protected static void createMySqlConnectionFactory(JsonNode auth, int port) {
+        connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
+                .username(getUser(auth))
+                .password(getPassword(auth))
+                .host(getServer(auth))
+                .port(port)
+                .database(getDataBase(auth))
+                .serverZoneId(ZoneId.of("UTC"))
+                .build());
+    }
+    
     private String buildSql(String geoColumn, String[] columns, String table, String where) {
         var frmt = "ST_AsGeoJSON";
 

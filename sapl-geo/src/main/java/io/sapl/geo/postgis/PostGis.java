@@ -19,10 +19,6 @@ package io.sapl.geo.postgis;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
-import io.r2dbc.postgresql.PostgresqlConnectionFactory;
-import io.r2dbc.spi.ConnectionFactory;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.shared.DatabaseConnection;
 
@@ -34,7 +30,8 @@ public class PostGis extends DatabaseConnection {
      */
     public PostGis(JsonNode auth, ObjectMapper mapper) {
 
-        super(mapper, createConnectionFactory(auth));
+        super(mapper);
+        createPostgresqlConnectionFactory(auth, getPort(auth));
 
     }
 
@@ -47,10 +44,6 @@ public class PostGis extends DatabaseConnection {
         }
     }
 
-    private static ConnectionFactory createConnectionFactory(JsonNode auth) {
-        return new PostgresqlConnectionFactory(
-                PostgresqlConnectionConfiguration.builder().username(getUser(auth)).password(getPassword(auth))
-                        .host(getServer(auth)).port(getPort(auth)).database(getDataBase(auth)).build());
-    }
+    
 
 }
