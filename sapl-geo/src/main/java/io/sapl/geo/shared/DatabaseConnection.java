@@ -22,11 +22,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.geotools.api.geometry.MismatchedDimensionException;
+import org.geotools.api.referencing.FactoryException;
+import org.geotools.api.referencing.operation.TransformException;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.io.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -109,16 +114,30 @@ public abstract class DatabaseConnection extends ConnectionBase {
         }
 
     }
-
+    
     private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, GeoPipResponseFormat format,
             int defaultCrs, boolean latitudeFirst) {
 
-        return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute()).flatMap(
-                result -> result.map((row, rowMetadata) -> mapResult(row, format, defaultCrs, latitudeFirst))));
-
+        return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute()).flatMap(result -> {
+            return result.map((row, rowMetadata) -> {
+                try {
+                    return mapResult(row, format, defaultCrs, latitudeFirst);
+                } catch (Exception e) {
+                    throw new PolicyEvaluationException(e);
+                }
+            });
+        }));
     }
 
-    private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
+//    private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, GeoPipResponseFormat format,
+//            int defaultCrs, boolean latitudeFirst) {
+//
+//        return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute()).flatMap(
+//                result -> result.map((row, rowMetadata) -> mapResult(row, format, defaultCrs, latitudeFirst))));
+//
+//    }
+
+    private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) throws MismatchedDimensionException, JsonProcessingException, ParseException, FactoryException, TransformException {
         var      resultNode = mapper.createObjectNode();
         JsonNode geoNode;
 
@@ -140,12 +159,12 @@ public abstract class DatabaseConnection extends ConnectionBase {
         return resultNode;
     }
 
-    private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) {
+    private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) throws ParseException, FactoryException, MismatchedDimensionException, TransformException, JsonProcessingException {
 
         var res = (JsonNode) mapper.createObjectNode();
         var crs = EPSG + srid;
 
-        try {
+
 
             var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
 
@@ -183,9 +202,7 @@ public abstract class DatabaseConnection extends ConnectionBase {
                 break;
             }
 
-        } catch (Exception e) {
-            throw new PolicyEvaluationException(e);
-        }
+
         return res;
     }
 

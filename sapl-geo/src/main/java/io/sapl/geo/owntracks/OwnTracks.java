@@ -113,7 +113,7 @@ public class OwnTracks extends ConnectionBase {
             request = Val.ofJson(html1);
 
         } catch (Exception e) {
-            throw new PolicyEvaluationException(e);
+            return Flux.error(e);
         }
 
         var flux = client.httpRequest(HttpMethod.GET, request)

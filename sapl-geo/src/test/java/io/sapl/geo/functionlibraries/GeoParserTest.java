@@ -34,16 +34,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.MediaType;
 import org.xml.sax.SAXException;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.pip.http.ReactiveWebClient;
-
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import reactor.test.StepVerifier;
@@ -130,7 +126,7 @@ class GeoParserTest {
 
     @Test
     void errorTest() {
-
-        assertThrows(PolicyEvaluationException.class, () -> parser.parseKML("invalid KML string"));
+        
+        assertThrows(XMLStreamException.class, () -> parser.parseKML("invalid KML string"));
     }
 }
