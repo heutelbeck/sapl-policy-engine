@@ -19,6 +19,7 @@ package io.sapl.geo.traccar;
 
 import org.springframework.http.MediaType;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -59,17 +60,21 @@ public class TraccarPositions extends TraccarBase {
         var url = (String.format("ws://%s/api/socket", server));
         return establishSession(user, password, server, protocol).flatMapMany(cookie ->
 
-        getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings), getLatitudeFirst(settings))
-                .map(Val::of)
+        {
+            try {
+                return getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings), getLatitudeFirst(settings))
+                        .map(Val::of)
 
-                .doFinally(s -> disconnect()))
-
-        ;
+                        .doFinally(s -> disconnect());
+            } catch (JsonProcessingException | PolicyEvaluationException e) {
+                return Flux.error(e);
+            }
+        });
 
     }
 
     private Flux<ObjectNode> getFlux(String url, String cookie, GeoPipResponseFormat format, int deviceId,
-            boolean latitudeFirst) throws PolicyEvaluationException {
+            boolean latitudeFirst) throws  JsonProcessingException {
 
         var client = new ReactiveWebClient(mapper);
 
@@ -83,23 +88,25 @@ public class TraccarPositions extends TraccarBase {
                 }
                 """;
 
-        try {
-            var request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
+        var request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
 
-            var flux = client.consumeWebSocket(request).map(Val::get)
-                    .flatMap(msg -> mapPosition(msg, format, latitudeFirst, deviceId))
-                    .map(res -> mapper.convertValue(res, ObjectNode.class));
+        var flux = client.consumeWebSocket(request).map(Val::get).flatMap(msg -> {
+            try {
+                return mapPosition(msg, format, latitudeFirst, deviceId);
+            } catch (JsonProcessingException e) {
+                return Flux.error(e);
+            }
+        }).map(res -> mapper.convertValue(res, ObjectNode.class));
 
-            logger.info("Traccar-Client connected.");
-            return flux;
+        logger.info("Traccar-Client connected.");
+        return flux;
 
-        } catch (Exception e) {
-            throw new PolicyEvaluationException(e);
-        }
+        
 
     }
 
-    Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, int deviceId) {
+    Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, int deviceId)
+            throws JsonProcessingException {
         JsonNode pos = getPositionFromMessage(in, deviceId);
 
         if (pos.has(DEVICE_ID)) {

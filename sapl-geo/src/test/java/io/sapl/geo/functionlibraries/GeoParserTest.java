@@ -20,11 +20,11 @@ package io.sapl.geo.functionlibraries;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import javax.xml.stream.XMLStreamException;
@@ -63,16 +63,12 @@ class GeoParserTest {
         path              = resourceDirectory.concat("/geoparser/example.kml");
         parser            = new GeoParser(mapper);
 
-        try (var reader = new BufferedReader(
-                new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8))) {
-
+        try (var reader = Files.newBufferedReader(Path.of(path), StandardCharsets.UTF_8)) {
             var    stringBuilder = new StringBuilder();
             String line;
-
             while ((line = reader.readLine()) != null) {
                 stringBuilder.append(line);
             }
-
             kml = Val.of(stringBuilder.toString());
         }
 
@@ -113,20 +109,19 @@ class GeoParserTest {
 
         var pip      = new HttpPolicyInformationPoint(new ReactiveWebClient(mapper));
         var response = pip.get(request);
-         
+
         StepVerifier.create(response.map(x -> {
             try {
                 return parser.parseKML(x);
             } catch (XMLStreamException | IOException | SAXException e) {
                 return Val.ofEmptyObject();
             }
-        })).expectNext(Val.ofJson(exp))
-                .expectNext(Val.ofJson(exp)).expectComplete().verify();
+        })).expectNext(Val.ofJson(exp)).expectNext(Val.ofJson(exp)).expectComplete().verify();
     }
 
     @Test
     void errorTest() {
-        
+
         assertThrows(XMLStreamException.class, () -> parser.parseKML("invalid KML string"));
     }
 }

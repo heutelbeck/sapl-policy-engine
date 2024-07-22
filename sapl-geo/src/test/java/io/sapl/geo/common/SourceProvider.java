@@ -67,7 +67,7 @@ public class SourceProvider {
         try {
             setUp();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize SourceProvider");
+            throw new RuntimeException("Failed to initialize SourceProvider", e);
         }
     }
 

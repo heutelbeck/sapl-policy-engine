@@ -20,16 +20,19 @@ package io.sapl.geo.shared;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.geotools.api.geometry.MismatchedDimensionException;
+import org.geotools.api.referencing.FactoryException;
+import org.geotools.api.referencing.operation.TransformException;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
-
+import org.locationtech.jts.io.ParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functions.GeoProjector;
 import io.sapl.geo.functions.GeometryConverter;
@@ -62,8 +65,10 @@ public class GeoMapper {
      * @param format        a {@link GeoPipResponseFormat}
      * @param latitudeFirst a {@link Boolean} to set latitude/longitude as first
      *                      coordinate
+     * @throws JsonProcessingException
      */
-    public GeoPipResponse mapPosition(int deviceId, JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst) {
+    public GeoPipResponse mapPosition(int deviceId, JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst)
+            throws JsonProcessingException {
 
         var   geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
         Point position;
@@ -79,30 +84,28 @@ public class GeoMapper {
         }
 
         var posRes = (JsonNode) mapper.createObjectNode();
-        try {
-            switch (format) {
-            case GEOJSON:
-                posRes = GeometryConverter.geometryToGeoJsonNode(position).get();
-                break;
 
-            case WKT:
-                posRes = GeometryConverter.geometryToWKT(position).get();
-                break;
+        switch (format) {
+        case GEOJSON:
+            posRes = GeometryConverter.geometryToGeoJsonNode(position).get();
+            break;
 
-            case GML:
-                posRes = GeometryConverter.geometryToGML(position).get();
-                break;
+        case WKT:
+            posRes = GeometryConverter.geometryToWKT(position).get();
+            break;
 
-            case KML:
-                posRes = GeometryConverter.geometryToKML(position).get();
-                break;
+        case GML:
+            posRes = GeometryConverter.geometryToGML(position).get();
+            break;
 
-            default:
-                break;
-            }
-        } catch (Exception e) {
-            throw new PolicyEvaluationException(e);
+        case KML:
+            posRes = GeometryConverter.geometryToKML(position).get();
+            break;
+
+        default:
+            break;
         }
+
         return GeoPipResponse.builder().deviceId(deviceId).position(posRes).altitude(in.findValue(altitude).asDouble())
                 .lastUpdate(in.findValue(lastUpdate).asText()).accuracy(in.findValue(accuracy).asDouble()).build();
     }
@@ -113,49 +116,52 @@ public class GeoMapper {
      * @param mapper        a {@link ObjectMapper}
      * @param latitudeFirst a {@link Boolean} to set latitude/longitude as first
      *                      coordinate
+     * @throws JsonProcessingException
+     * @throws JsonMappingException
+     * @throws ParseException
+     * @throws FactoryException
+     * @throws TransformException
+     * @throws MismatchedDimensionException
      */
     public List<Geofence> mapTraccarGeoFences(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
-            boolean latitudeFirst) throws PolicyEvaluationException {
+            boolean latitudeFirst) throws JsonProcessingException, ParseException, FactoryException,
+            MismatchedDimensionException, TransformException {
         JsonNode       fences   = mapper.createArrayNode();
         List<Geofence> fenceRes = new ArrayList<>();
 
-        try {
-            fences = mapper.readTree(in.toString());
+        fences = mapper.readTree(in.toString());
 
-            for (JsonNode geoFence : fences) {
-                var      factory = new GeometryFactory(new PrecisionModel(), 4326);
-                Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
+        for (JsonNode geoFence : fences) {
+            var      factory = new GeometryFactory(new PrecisionModel(), 4326);
+            Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
 
-                if (!latitudeFirst) {
-                    var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
-                    geo = geoProjector.project(geo);
-                }
-
-                switch (format) {
-
-                case GEOJSON:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
-                    break;
-
-                case WKT:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
-                    break;
-
-                case GML:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
-                    break;
-
-                case KML:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
-                    break;
-                default:
-
-                    break;
-                }
-
+            if (!latitudeFirst) {
+                var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
+                geo = geoProjector.project(geo);
             }
-        } catch (Exception e) {
-            throw new PolicyEvaluationException(e);
+
+            switch (format) {
+
+            case GEOJSON:
+                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
+                break;
+
+            case WKT:
+                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
+                break;
+
+            case GML:
+                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
+                break;
+
+            case KML:
+                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
+                break;
+            default:
+
+                break;
+            }
+
         }
 
         return fenceRes;
@@ -172,21 +178,18 @@ public class GeoMapper {
     /**
      * @param in     a {@link JsonNode} containing the owntracks in-regions
      * @param mapper a {@link ObjectMapper}
+     * @throws JsonProcessingException
      */
-    public List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws PolicyEvaluationException {
+    public List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws JsonProcessingException {
         JsonNode       fences   = mapper.createArrayNode();
         List<Geofence> fenceRes = new ArrayList<>();
 
-        try {
-            fences = mapper.readTree(in.toString());
+        fences = mapper.readTree(in.toString());
 
-            for (var geoFence : fences) {
+        for (var geoFence : fences) {
 
-                fenceRes.add(Geofence.builder().name(geoFence.asText()).build());
+            fenceRes.add(Geofence.builder().name(geoFence.asText()).build());
 
-            }
-        } catch (Exception e) {
-            throw new PolicyEvaluationException(e);
         }
 
         return fenceRes;

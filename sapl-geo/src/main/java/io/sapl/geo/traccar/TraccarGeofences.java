@@ -20,9 +20,9 @@ package io.sapl.geo.traccar;
 import java.util.List;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.model.Geofence;
 import io.sapl.geo.pip.GeoPipResponseFormat;
@@ -58,31 +58,32 @@ public class TraccarGeofences extends TraccarBase {
 
         return establishSession(user, password, server, protocol).flatMapMany(cookie ->
 
-        getFlux(getResponseFormat(settings, mapper), deviceId, protocol, server, getPollingInterval(settings),
-                getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
-                .onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect()));
+        {
+            try {
+                return getFlux(getResponseFormat(settings, mapper), deviceId, protocol, server,
+                        getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
+                        .onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
+            } catch (JsonProcessingException e) {
+                return Flux.error(e);
+            }
+        });
 
     }
 
     private Flux<JsonNode> getFlux(GeoPipResponseFormat format, Integer deviceId, String protocol, String server,
-            Long pollingInterval, Long repetitions, boolean latitudeFirst) throws PolicyEvaluationException {
+            Long pollingInterval, Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
 
-        try {
+        var flux = getGeofences1(format, deviceId, protocol, server, pollingInterval, repetitions, latitudeFirst)
+                .map(res -> mapper.convertValue(res, JsonNode.class));
 
-            var flux = getGeofences1(format, deviceId, protocol, server, pollingInterval, repetitions, latitudeFirst)
-                    .map(res -> mapper.convertValue(res, JsonNode.class));
-
-            logger.info("Traccar-Client connected.");
-            return flux;
-
-        } catch (Exception e) {
-            throw new PolicyEvaluationException(e);
-        }
+        logger.info("Traccar-Client connected.");
+        return flux;
 
     }
 
     private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, Integer deviceId, String protocol,
-            String server, Long pollingInterval, Long repetitions, boolean latitudeFirst) {
+            String server, Long pollingInterval, Long repetitions, boolean latitudeFirst)
+            throws JsonProcessingException {
 
         return getGeofences(deviceId, protocol, server, pollingInterval, repetitions)
                 .flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
@@ -90,7 +91,7 @@ public class TraccarGeofences extends TraccarBase {
     }
 
     private Flux<JsonNode> getGeofences(Integer deviceId, String protocol, String server, Long pollingInterval,
-            Long repetitions) {
+            Long repetitions) throws JsonProcessingException {
 
         var webClient = new ReactiveWebClient(mapper);
         var baseURL   = protocol + "://" + server;
@@ -132,12 +133,8 @@ public class TraccarGeofences extends TraccarBase {
         template = template.concat("}");
 
         Val request = Val.of("");
-        try {
 
-            request = Val.ofJson(template);
-        } catch (Exception e) {
-            throw new PolicyEvaluationException(e);
-        }
+        request = Val.ofJson(template);
 
         return webClient.httpRequest(HttpMethod.GET, request).map(Val::get);
     }

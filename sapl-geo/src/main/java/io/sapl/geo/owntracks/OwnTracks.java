@@ -24,6 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -116,14 +118,20 @@ public class OwnTracks extends ConnectionBase {
         }
 
         var flux = client.httpRequest(HttpMethod.GET, request)
-                .flatMap(v -> mapPosition(v.get(), format, mapper, latitudeFirst))
+                .flatMap(v -> {
+                    try {
+                        return mapPosition(v.get(), format, mapper, latitudeFirst);
+                    } catch (JsonProcessingException e) {
+                        return Flux.error(e);
+                    }
+                })
                 .map(res -> mapper.convertValue(res, ObjectNode.class));
         logger.info("OwnTracks-Client connected.");
         return flux;
     }
 
     public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
-            boolean latitudeFirst) {
+            boolean latitudeFirst) throws JsonProcessingException {
 
         var response = geoMapper.mapPosition(deviceId, in.get(0), format, latitudeFirst);
         var res      = in.findValue("inregions");

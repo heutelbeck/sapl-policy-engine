@@ -17,15 +17,13 @@
  */
 package io.sapl.geo.common;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functionlibraries.GeoConverter;
 
@@ -40,8 +38,8 @@ public abstract class TestBase {
 
     protected void writePdp(String json, String path) throws IOException {
 
-        try (BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(new FileOutputStream(path), StandardCharsets.UTF_8))) {
+        Path filePath = Paths.get(path);
+        try (var writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
             writer.write(json);
         }
     }
