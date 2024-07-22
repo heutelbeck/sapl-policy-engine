@@ -27,15 +27,17 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 
+import javax.xml.stream.XMLStreamException;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.MediaType;
+import org.xml.sax.SAXException;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
@@ -59,7 +61,7 @@ class GeoParserTest {
     Val    kml;
 
     @BeforeAll
-    void setup() throws JsonProcessingException, IOException {
+    void setup() throws IOException {
         mapper            = new ObjectMapper();
         resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
         path              = resourceDirectory.concat("/geoparser/example.kml");
@@ -86,7 +88,7 @@ class GeoParserTest {
     }
 
     @Test
-    void kmlTest() {
+    void kmlTest() throws XMLStreamException, IOException, SAXException {
         var res       = parser.parseKML(kml);
         var parsedKml = res.getText();
         assertEquals(exp, parsedKml);
@@ -115,7 +117,14 @@ class GeoParserTest {
 
         var pip      = new HttpPolicyInformationPoint(new ReactiveWebClient(mapper));
         var response = pip.get(request);
-        StepVerifier.create(response.map(x -> parser.parseKML(x))).expectNext(Val.ofJson(exp))
+         
+        StepVerifier.create(response.map(x -> {
+            try {
+                return parser.parseKML(x);
+            } catch (XMLStreamException | IOException | SAXException e) {
+                return Val.ofEmptyObject();
+            }
+        })).expectNext(Val.ofJson(exp))
                 .expectNext(Val.ofJson(exp)).expectComplete().verify();
     }
 

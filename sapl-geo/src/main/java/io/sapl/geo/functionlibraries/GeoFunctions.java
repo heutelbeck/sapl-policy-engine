@@ -33,7 +33,6 @@ import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.TransformException;
-import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -53,7 +52,7 @@ import lombok.NoArgsConstructor;
 /*
  * Format always [Lat(y), Long(x)]
  */
-@Component
+
 @NoArgsConstructor
 @FunctionLibrary(name = GeoFunctions.NAME, description = GeoFunctions.DESCRIPTION)
 public class GeoFunctions {
@@ -92,11 +91,9 @@ public class GeoFunctions {
     private static final String IS_VALID_DOC                                                                                                                  = "isValid(GEOMETRY): Returns true if the geometry is topologically valid according to OGC specifications.";
     private static final String IS_CLOSED_DOC                                                                                                                 = "isClosed(GEOMETRY): Returns true if the geometry is either empty or from type (Multi)Point or a closed (Multi)LineString.";
 
-    private static final String MILES_TOMETER_DOC  = "toMeter(VALUE, UNIT): Converts the given VALUE from MILES to [m].";
-    private static final String YARDS_TOMETER_DOC  = "toMeter(VALUE, UNIT): Converts the given VALUE from YARDS to [m].";
-    private static final String DEGREE_TOMETER_DOC = "toMeter(VALUE, UNIT): Converts the given VALUE from DEGREES to [m].";
-    // private static final String TOSQUAREMETER_DOC = "toSquareMeter(VALUE, UNIT):
-    // Converts the given VALUE from [UNIT] to [m].";
+    private static final String MILES_TOMETER_DOC                           = "toMeter(VALUE, UNIT): Converts the given VALUE from MILES to [m].";
+    private static final String YARDS_TOMETER_DOC                           = "toMeter(VALUE, UNIT): Converts the given VALUE from YARDS to [m].";
+    private static final String DEGREE_TOMETER_DOC                          = "toMeter(VALUE, UNIT): Converts the given VALUE from DEGREES to [m].";
     private static final String ONE_AND_ONLY_DOC                            = "oneAndOnly(GEOMETRYCOLLECTION): If GEOMETRYCOLLECTION only contains one element, this element will be returned. In all other cases an error will be thrown.";
     private static final String BAG_SIZE_DOC                                = "bagSize(GOEMETRYCOLLECTION): Returns the number of elements in the GEOMETRYCOLLECTION.";
     private static final String GEOMETRY_IS_IN_DOC                          = "geometryIsIn(GEOMETRY, GEOMETRYCOLLECTION): Tests if GEOMETRY is included in GEOMETRYCOLLECTION.";
@@ -105,12 +102,6 @@ public class GeoFunctions {
     private static final String AT_LEAST_ONE_MEMBER_OF_DOC                  = "atLeastOneMemberOf(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns TRUE if at least one member of GEOMETRYCOLLECTIONTHIS is contained in GEOMETRYCOLLECTIONTHAT.";
     private static final String SUBSET_DOC                                  = "subset(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns true, if GEOMETRYCOLLECTIONTHIS is a subset of GEOMETRYCOLLECTIONTHAT.";
     private static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM = "Input must be a GeometryCollection containing only one Geometry.";
-
-    private static final String TYPENAME_POINT           = Geometry.TYPENAME_POINT;
-    private static final String TYPENAME_MULTIPOINT      = Geometry.TYPENAME_MULTIPOINT;
-    private static final String TYPENAME_LINESTRING      = Geometry.TYPENAME_LINESTRING;
-    private static final String TYPENAME_MULTILINESTRING = Geometry.TYPENAME_MULTILINESTRING;
-    private static final String TYPENAME_LINEARRING      = Geometry.TYPENAME_LINEARRING;
 
     @Function(name = "equalsExact", docs = EQUALS_DOC)
     public Val geometryEquals(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
@@ -468,16 +459,18 @@ public class GeoFunctions {
     public Boolean isClosed(@JsonObject JsonNode jsonGeometry) throws ParseException, OperationNotSupportedException {
         var geometry = JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString());
 
-        if (geometry.isEmpty() || (geometry.getGeometryType().equals(TYPENAME_POINT))
-                || (geometry.getGeometryType().equals(TYPENAME_MULTIPOINT))) {
+        if (geometry.isEmpty() || Geometry.TYPENAME_POINT.equals(geometry.getGeometryType())
+                || Geometry.TYPENAME_MULTIPOINT.equals(geometry.getGeometryType())) {
+
             return true;
         }
+
         switch (geometry.getGeometryType()) {
-        case TYPENAME_LINESTRING:
+        case Geometry.TYPENAME_LINESTRING:
             return ((LineString) geometry).isClosed();
-        case TYPENAME_MULTILINESTRING:
+        case Geometry.TYPENAME_MULTILINESTRING:
             return ((MultiLineString) geometry).isClosed();
-        case TYPENAME_LINEARRING:
+        case Geometry.TYPENAME_LINEARRING:
             return ((LinearRing) geometry).isClosed();
         default:
             throw new OperationNotSupportedException(
@@ -508,7 +501,7 @@ public class GeoFunctions {
 
     }
 
-    public JsonNode yardToMeter(@Number JsonNode jsonValue) throws IllegalArgumentException {
+    public JsonNode yardToMeter(@Number JsonNode jsonValue) {
         var mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         return mapper.convertValue(milesToMeter(jsonValue.asDouble() / 1760), JsonNode.class);
     }
@@ -569,7 +562,7 @@ public class GeoFunctions {
     }
 
     public Boolean geometryIsIn(@JsonObject JsonNode jsonGeometry, @JsonObject JsonNode jsonGeometryCollection)
-            throws ParseException, ClassCastException {
+            throws ParseException {
         var geometry           = JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString());
         var geometryCollection = (GeometryCollection) JsonConverter
                 .geoJsonToGeometry(jsonGeometryCollection.toPrettyString());

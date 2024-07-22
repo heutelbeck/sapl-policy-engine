@@ -211,9 +211,9 @@ public abstract class DatabaseConnection extends ConnectionBase {
 
         var conn = connectionReference.get();
         if (conn != null) {
-            Mono.from(conn.close()).doOnError(err -> logger.error("Error closing connection: ", err))
+            Mono.from(conn.close()).doOnError(err -> logger.error(String.format("Error closing connection %s ", s), err))
                     .doOnSuccess(aVoid -> logger.info("Database-Client disconnected."))
-                    .subscribe(null, err -> logger.error("Error during close subscription: ", err));
+                    .subscribe(null, err -> logger.error(String.format("Error during close subscription %s ", s), err));
         }
 
     }

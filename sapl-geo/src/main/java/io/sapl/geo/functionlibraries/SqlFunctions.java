@@ -71,7 +71,6 @@ public class SqlFunctions {
             return Val.error(VALIDATION_ERROR);
         } else {
             return Val.TRUE;
-            // return input;
         }
     }
 

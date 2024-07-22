@@ -72,14 +72,11 @@ public abstract class ConnectionBase {
 
     }
 
-    protected static GeoPipResponseFormat getResponseFormat(JsonNode requestSettings, ObjectMapper mapper)
-            throws PolicyEvaluationException {
+    protected static GeoPipResponseFormat getResponseFormat(JsonNode requestSettings, ObjectMapper mapper) {
         if (requestSettings.has(RESPONSEFORMAT_CONST)) {
-            try {
-                return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT_CONST), GeoPipResponseFormat.class);
-            } catch (Exception e) {
-                throw new PolicyEvaluationException(e);
-            }
+
+            return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT_CONST), GeoPipResponseFormat.class);
+
         } else {
 
             return GeoPipResponseFormat.GEOJSON;

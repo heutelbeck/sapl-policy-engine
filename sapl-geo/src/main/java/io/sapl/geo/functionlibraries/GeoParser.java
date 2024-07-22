@@ -22,12 +22,17 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+
+import javax.xml.stream.XMLStreamException;
+
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.kml.v22.KML;
 import org.geotools.kml.v22.KMLConfiguration;
 import org.geotools.xsd.PullParser;
 import org.locationtech.jts.geom.Geometry;
 import org.springframework.stereotype.Component;
+import org.xml.sax.SAXException;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -54,49 +59,28 @@ public class GeoParser {
     private final ObjectMapper mapper;
 
     @Function(name = "parseKml", docs = PARSE_KML)
-    public Val parseKML(Val kml) {
+    public Val parseKML(Val kml) throws XMLStreamException, IOException, SAXException {
 
         return Val.of(parseKML(kml.getText()));
 
     }
 
-    public ArrayNode parseKML(String kmlString) {
-
-//        var features = new ArrayList<SimpleFeature>();
-//        try {
-//            var           stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
-//            var           config = new KMLConfiguration();
-//            var           parser = new PullParser(config, stream, KML.Placemark);
-//            SimpleFeature f      = null;
-//
-//            while ((f = (SimpleFeature) parser.parse()) != null) {
-//
-//                features.add(f);
-//            }
-//
-//        } catch (Exception e) {
-//
-//            throw new PolicyEvaluationException(ERROR, e);
-//        }
-//        return convertToObjects(features);
+    public ArrayNode parseKML(String kmlString) throws XMLStreamException, IOException, SAXException {
 
         var features = new ArrayList<SimpleFeature>();
 
-        try (var stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8))) {
-            var           config = new KMLConfiguration();
-            var           parser = new PullParser(config, stream, KML.Placemark);
-            SimpleFeature f;
+        var           stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
+        var           config = new KMLConfiguration();
+        var           parser = new PullParser(config, stream, KML.Placemark);
+        SimpleFeature f      = null;
 
-            while ((f = (SimpleFeature) parser.parse()) != null) {
-                features.add(f);
-            }
-        } catch (IOException | IllegalStateException | ClassCastException e) {
-            throw new PolicyEvaluationException(ERROR, e);
-        } catch (Exception e) {
-            throw new PolicyEvaluationException("Unexpected error while parsing KML", e);
+        while ((f = (SimpleFeature) parser.parse()) != null) {
+
+            features.add(f);
         }
 
         return convertToObjects(features);
+
     }
 
     protected ArrayNode convertToObjects(Collection<?> placeMarks) {
