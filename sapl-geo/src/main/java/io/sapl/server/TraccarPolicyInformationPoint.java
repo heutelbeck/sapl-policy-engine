@@ -19,8 +19,6 @@ package io.sapl.server;
 
 import java.util.Map;
 
-import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
@@ -32,7 +30,6 @@ import io.sapl.geo.traccar.TraccarPositions;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
-@Component
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = TraccarPolicyInformationPoint.NAME, description = TraccarPolicyInformationPoint.DESCRIPTION)
 public class TraccarPolicyInformationPoint {

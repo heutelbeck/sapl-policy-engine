@@ -17,49 +17,51 @@
  */
 package io.sapl.server;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.nio.file.Paths;
-import java.util.List;
+import io.sapl.geo.common.TestBase;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.testcontainers.containers.BindMode;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
+//import java.io.BufferedWriter;
+//import java.io.FileWriter;
+//import java.nio.file.Paths;
+//import java.util.List;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+//import org.junit.jupiter.api.BeforeAll;
+//import org.junit.jupiter.api.Test;
+//import org.junit.jupiter.api.TestInstance;
+//import org.junit.jupiter.api.TestInstance.Lifecycle;
+//import org.testcontainers.containers.BindMode;
+//import org.testcontainers.containers.GenericContainer;
+//import org.testcontainers.junit.jupiter.Container;
+//import org.testcontainers.junit.jupiter.Testcontainers;
+//import org.testcontainers.utility.DockerImageName;
+//
+//import com.fasterxml.jackson.core.JsonProcessingException;
+//import com.fasterxml.jackson.databind.JsonNode;
+//import com.fasterxml.jackson.databind.ObjectMapper;
+//
+//import io.sapl.api.pdp.AuthorizationSubscription;
+//import io.sapl.api.pdp.Decision;
+//import io.sapl.interpreter.InitializationException;
+//import io.sapl.pdp.PolicyDecisionPointFactory;
+//import lombok.Getter;
+//import lombok.RequiredArgsConstructor;
+//import reactor.test.StepVerifier;
 
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.pdp.PolicyDecisionPointFactory;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import reactor.test.StepVerifier;
+//@Testcontainers
+//@TestInstance(Lifecycle.PER_CLASS)
+public class TraccarPolicyInformationPointTests extends TestBase {
 
-@Testcontainers
-@TestInstance(Lifecycle.PER_CLASS)
-public class TraccarPolicyInformationPointTests {
-
-    String                            address;
-    JsonNode                          authTemplate;
-    private String                    path              = "src/test/resources/policies/%s";
-    final static String               resourceDirectory = Paths.get("src", "test", "resources").toFile()
-            .getAbsolutePath();
-    @Container
-    public static GenericContainer<?> traccarContainer  = new GenericContainer<>(
-            DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082)
-            .withFileSystemBind(resourceDirectory + "/opt/traccar/logs", "/opt/traccar/logs", BindMode.READ_WRITE)
-            .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
-            .withReuse(false);
-
+//    String                            address;
+//    JsonNode                          authTemplate;
+//    private String                    path              = "src/test/resources/policies/%s";
+//    final static String               RESOURCE_DIRECTORY = Paths.get("src", "test", "resources").toFile()
+//            .getAbsolutePath();
+//    @Container
+//    public static GenericContainer<?> traccarContainer  = new GenericContainer<>(
+//            DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082)
+//            .withFileSystemBind(RESOURCE_DIRECTORY + "/opt/traccar/logs", "/opt/traccar/logs", BindMode.READ_WRITE)
+//            .withFileSystemBind(RESOURCE_DIRECTORY + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
+//            .withReuse(false);
+//
 //    @BeforeAll
 //    void setUp() throws Exception {
 //
@@ -83,14 +85,8 @@ public class TraccarPolicyInformationPointTests {
 //
 //        var json = String.format(template, traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082));
 //
-//        var writer = new BufferedWriter(
-//                new FileWriter(String.format(path, "/traccarPositionTestEnvironmentVariable/pdp.json")));
-//        writer.write(json);
-//        writer.close();
-//        writer = new BufferedWriter(
-//                new FileWriter(String.format(path, "/traccarGeofencesTestEnvironmentVariable/pdp.json")));
-//        writer.write(json);
-//        writer.close();
+//        writePdp(json, String.format(path, "/traccarPositionTestEnvironmentVariable/pdp.json"));
+//        writePdp(json, String.format(path, "/traccarGeofencesTestEnvironmentVariable/pdp.json"));
 //
 //    }
 //

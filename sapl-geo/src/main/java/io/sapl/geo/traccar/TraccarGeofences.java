@@ -17,15 +17,11 @@
  */
 package io.sapl.geo.traccar;
 
-import java.util.ArrayList;
 import java.util.List;
-
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.model.Geofence;
@@ -147,17 +143,14 @@ public class TraccarGeofences extends TraccarBase {
     }
 
     private Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
-        List<Geofence> fenceRes = new ArrayList<>();
 
         try {
 
-            fenceRes = geoMapper.mapTraccarGeoFences(in, format, mapper, latitudeFirst);
-
+            var fenceRes = geoMapper.mapTraccarGeoFences(in, format, mapper, latitudeFirst);
+            return Mono.just(fenceRes);
         } catch (Exception e) {
             return Mono.error(e);
         }
-
-        return Mono.just(fenceRes);
 
     }
 

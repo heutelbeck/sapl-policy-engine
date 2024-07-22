@@ -17,6 +17,7 @@
  */
 package io.sapl.geo.owntracks;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import org.slf4j.Logger;
@@ -90,7 +91,8 @@ public class OwnTracks extends ConnectionBase {
         if (!httpBasicAuthUser.equals("none") && !password.equals("none")) {
 
             var valueToEncode   = String.format("%s:%s", httpBasicAuthUser, password);
-            var basicAuthHeader = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
+            var basicAuthHeader = "Basic "
+                    + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
 
             var html2 = """
                         ,

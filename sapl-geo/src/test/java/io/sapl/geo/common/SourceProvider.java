@@ -22,14 +22,20 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
@@ -55,15 +61,17 @@ public class SourceProvider {
     @Getter
     Transformer transform;
 
-    ObjectMapper MAPPER = new ObjectMapper();
-
     final String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
 
     private SourceProvider() {
-        setUp();
+        try {
+            setUp();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialize SourceProvider");
+        }
     }
 
-    public static SourceProvider getInstance() {
+    public static synchronized SourceProvider getInstance() {
 
         if (instance == null) {
             instance = new SourceProvider();
@@ -71,29 +79,21 @@ public class SourceProvider {
         return instance;
     }
 
-    public void setUp() {
+    public final void setUp() throws TransformerConfigurationException, TransformerFactoryConfigurationError,
+            ParserConfigurationException, SAXException, IOException {
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        try {
 
-            transform = TransformerFactory.newInstance().newTransformer();
-            transform.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+        transform = TransformerFactory.newInstance().newTransformer();
+        transform.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 
-            File            f       = new File(resourceDirectory + "/xmlSource.xml");
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            xmlSource = builder.parse(f);
+        File            f       = new File(resourceDirectory + "/xmlSource.xml");
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        xmlSource = builder.parse(f);
 
-        } catch (Exception e) {
+        var mapper = new ObjectMapper();
+        jsonSource = mapper.readTree(new File(resourceDirectory + "/jsonSource.json"));
 
-            e.printStackTrace();
-        }
-        try {
-            jsonSource = MAPPER.readTree(new File(resourceDirectory + "/jsonSource.json"));
-
-        } catch (IOException e) {
-
-            e.printStackTrace();
-        }
     }
 
 }

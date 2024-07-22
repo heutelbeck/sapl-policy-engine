@@ -17,8 +17,6 @@
  */
 package io.sapl.server;
 
-import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
@@ -29,7 +27,6 @@ import io.sapl.geo.owntracks.OwnTracks;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
-@Component
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = OwnTracksPolicyInformationPoint.NAME, description = OwnTracksPolicyInformationPoint.DESCRIPTION)
 public class OwnTracksPolicyInformationPoint {

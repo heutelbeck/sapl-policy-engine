@@ -18,6 +18,7 @@
 package io.sapl.geo.functionlibraries;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -61,22 +62,40 @@ public class GeoParser {
 
     public ArrayNode parseKML(String kmlString) {
 
+//        var features = new ArrayList<SimpleFeature>();
+//        try {
+//            var           stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
+//            var           config = new KMLConfiguration();
+//            var           parser = new PullParser(config, stream, KML.Placemark);
+//            SimpleFeature f      = null;
+//
+//            while ((f = (SimpleFeature) parser.parse()) != null) {
+//
+//                features.add(f);
+//            }
+//
+//        } catch (Exception e) {
+//
+//            throw new PolicyEvaluationException(ERROR, e);
+//        }
+//        return convertToObjects(features);
+
         var features = new ArrayList<SimpleFeature>();
-        try {
-            var           stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
+
+        try (var stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8))) {
             var           config = new KMLConfiguration();
             var           parser = new PullParser(config, stream, KML.Placemark);
-            SimpleFeature f      = null;
+            SimpleFeature f;
 
             while ((f = (SimpleFeature) parser.parse()) != null) {
-
                 features.add(f);
             }
-
-        } catch (Exception e) {
-
+        } catch (IOException | IllegalStateException | ClassCastException e) {
             throw new PolicyEvaluationException(ERROR, e);
+        } catch (Exception e) {
+            throw new PolicyEvaluationException("Unexpected error while parsing KML", e);
         }
+
         return convertToObjects(features);
     }
 

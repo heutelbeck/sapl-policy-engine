@@ -31,14 +31,14 @@ public abstract class PostgisTestBase extends DatabaseTestBase {
             DockerImageName.parse("postgis/postgis:16-3.4-alpine").asCompatibleSubstituteFor("postgres"))
             .withUsername("test").withPassword("test").withDatabaseName("test");
 
-    protected void commonSetUp() throws Exception {
+    protected void commonSetUp() {
 
         authTemplate = String.format(authenticationTemplate, postgisContainer.getUsername(),
                 postgisContainer.getPassword(), postgisContainer.getHost(), postgisContainer.getMappedPort(5432),
                 postgisContainer.getDatabaseName());
 
-        template = String.format(template1, postgisContainer.getUsername(), postgisContainer.getPassword(),
-                postgisContainer.getHost(), postgisContainer.getMappedPort(5432));
+//        template = String.format(template1, postgisContainer.getUsername(), postgisContainer.getPassword(),
+//                postgisContainer.getHost(), postgisContainer.getMappedPort(5432));
 
         templateAll = template.concat(templateAll1);
 

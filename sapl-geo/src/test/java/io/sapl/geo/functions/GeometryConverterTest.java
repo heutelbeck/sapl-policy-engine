@@ -34,7 +34,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.util.StringUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 
 import io.sapl.geo.common.TestBase;
 
@@ -86,7 +85,7 @@ class GeometryConverterTest extends TestBase {
     }
 
     @Test
-    void geometryToGeoJsonNodeTest() throws JsonMappingException, JsonProcessingException {
+    void geometryToGeoJsonNodeTest() throws JsonProcessingException {
 
         var expPoint   = source.getJsonSource().get("Point").toPrettyString();
         var expPolygon = source.getJsonSource().get("Polygon").toPrettyString();

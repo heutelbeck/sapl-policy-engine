@@ -21,8 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 
 import org.junit.jupiter.api.AfterEach;
@@ -37,7 +39,6 @@ import org.springframework.http.MediaType;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.functionlibraries.GeoParser;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.pip.http.ReactiveWebClient;
 
@@ -64,15 +65,19 @@ class GeoParserTest {
         path              = resourceDirectory.concat("/geoparser/example.kml");
         parser            = new GeoParser(mapper);
 
-        var    reader        = new BufferedReader(new FileReader(path));
-        var    stringBuilder = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            stringBuilder.append(line);
-        }
-        reader.close();
+        try (var reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8))) {
 
-        kml = Val.of(stringBuilder.toString());
+            var    stringBuilder = new StringBuilder();
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+
+            kml = Val.of(stringBuilder.toString());
+        }
+
     }
 
     @AfterEach

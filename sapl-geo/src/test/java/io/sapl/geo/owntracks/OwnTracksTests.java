@@ -40,7 +40,6 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 public class OwnTracksTests {
     String         address;
-    Integer        port;
     SourceProvider source = SourceProvider.getInstance();
 
     String template = """
@@ -51,13 +50,13 @@ public class OwnTracksTests {
             	"deviceId":1
             """;
 
-    final static String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
+    final static String RESOURCE_DIRECTORY = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
 
     @Container
 
     public static GenericContainer<?> owntracksRecorder = new GenericContainer<>(
             DockerImageName.parse("owntracks/recorder:latest")).withExposedPorts(8083)
-            .withFileSystemBind(resourceDirectory + "/owntracks/store", "/store", BindMode.READ_WRITE)
+            .withFileSystemBind(RESOURCE_DIRECTORY + "/owntracks/store", "/store", BindMode.READ_WRITE)
             .withEnv("OTR_PORT", "0").withReuse(false);
 
     @BeforeAll

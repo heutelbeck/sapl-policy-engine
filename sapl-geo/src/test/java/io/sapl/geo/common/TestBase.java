@@ -17,6 +17,13 @@
  */
 package io.sapl.geo.common;
 
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
@@ -31,4 +38,11 @@ public abstract class TestBase {
     protected GeoConverter geoConverter = new GeoConverter();
 
     protected SourceProvider source = SourceProvider.getInstance();
+
+    protected void writePdp(String json, String path) throws IOException, FileNotFoundException {
+        try (BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(new FileOutputStream(path), StandardCharsets.UTF_8))) {
+            writer.write(json);
+        }
+    }
 }

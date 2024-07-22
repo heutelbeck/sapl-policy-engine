@@ -50,15 +50,13 @@ class JsonConverterTest extends TestBase {
         var result  = geoConverter.geoJsonToKml(point);
         var result1 = geoConverter.geoJsonToKml(polygon);
 
-        var stringWriter = new StringWriter();
-
         var point   = source.getXmlSource().getElementsByTagName("Point").item(0);
         var polygon = source.getXmlSource().getElementsByTagName("Polygon").item(0);
 
-        stringWriter = new StringWriter();
+        var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(point), new StreamResult(stringWriter));
         var expPoint = stringWriter.toString();
-        stringWriter = new StringWriter();
+        stringWriter.getBuffer().setLength(0);// clean buffer
         source.getTransform().transform(new DOMSource(polygon), new StreamResult(stringWriter));
         var expPolygon = stringWriter.toString();
 
@@ -86,15 +84,13 @@ class JsonConverterTest extends TestBase {
         var result  = geoConverter.geoJsonToGml(point);
         var result1 = geoConverter.geoJsonToGml(polygon);
 
-        var stringWriter = new StringWriter();
-
         var point   = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         var polygon = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
-        stringWriter = new StringWriter();
+        var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(point), new StreamResult(stringWriter));
         var expPoint = stringWriter.toString();
-        stringWriter = new StringWriter();
+        stringWriter.getBuffer().setLength(0);// clean buffer
         source.getTransform().transform(new DOMSource(polygon), new StreamResult(stringWriter));
         var expPolygon = stringWriter.toString();
 

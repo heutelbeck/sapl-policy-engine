@@ -17,47 +17,47 @@
  */
 package io.sapl.geo.traccar;
 
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-
-import java.nio.file.Paths;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.BindMode;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.interpreter.Val;
-import io.sapl.geo.common.SourceProvider;
-import reactor.test.StepVerifier;
-
-@Testcontainers
-@TestInstance(Lifecycle.PER_CLASS)
+//import org.junit.jupiter.api.TestInstance;
+//import org.junit.jupiter.api.TestInstance.Lifecycle;
+//import org.junit.jupiter.api.parallel.Execution;
+//import org.junit.jupiter.api.parallel.ExecutionMode;
+//import org.junit.jupiter.params.ParameterizedTest;
+//import org.junit.jupiter.params.provider.CsvSource;
+//
+//import java.nio.file.Paths;
+//import org.junit.jupiter.api.BeforeAll;
+//import org.junit.jupiter.api.Test;
+//import org.testcontainers.containers.BindMode;
+//import org.testcontainers.containers.GenericContainer;
+//import org.testcontainers.junit.jupiter.Container;
+//import org.testcontainers.junit.jupiter.Testcontainers;
+//import org.testcontainers.utility.DockerImageName;
+//
+//import com.fasterxml.jackson.core.JsonProcessingException;
+//import com.fasterxml.jackson.databind.JsonNode;
+//import com.fasterxml.jackson.databind.ObjectMapper;
+//import io.sapl.api.interpreter.Val;
+//import io.sapl.geo.common.SourceProvider;
+//import reactor.test.StepVerifier;
+//
+//@Testcontainers
+//@TestInstance(Lifecycle.PER_CLASS)
 public class TraccarTests {
-    String         address;
-    Integer        port;
-    SourceProvider source = SourceProvider.getInstance();
-    JsonNode       authTemplate;
-
-    final static String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
-
-    @Container
-
-    public static GenericContainer<?> traccarServer = new GenericContainer<>(
-            DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082)
-            .withFileSystemBind(resourceDirectory + "/opt/traccar/logs", "/opt/traccar/logs", BindMode.READ_WRITE)
-            .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
-            .withReuse(false);
-
+//    String         address;
+//    Integer        port;
+//    SourceProvider source = SourceProvider.getInstance();
+//    JsonNode       authTemplate;
+//
+//    final static String RESOURCE_DIRECTORY = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
+//
+//    @Container
+//
+//    public static GenericContainer<?> traccarServer = new GenericContainer<>(
+//            DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082)
+//            .withFileSystemBind(RESOURCE_DIRECTORY + "/opt/traccar/logs", "/opt/traccar/logs", BindMode.READ_WRITE)
+//            .withFileSystemBind(RESOURCE_DIRECTORY + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
+//            .withReuse(false);
+//
 //    @BeforeAll
 //    void setup() throws JsonProcessingException {
 //
@@ -179,5 +179,5 @@ public class TraccarTests {
 //        StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
 //                .verify();
 //    }
-
+//
 }

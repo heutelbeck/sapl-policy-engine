@@ -34,12 +34,12 @@ public abstract class MySqlTestBase extends DatabaseTestBase {
                                                                                                                          // buggy
             .withUsername("test").withPassword("test").withDatabaseName("test");
 
-    protected void commonSetUp() throws Exception {
+    protected void commonSetUp() {
 
         authTemplate = String.format(authenticationTemplate, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
-        template     = String.format(template1, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
-                mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306));
+//        template     = String.format(template1, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
+//                mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306));
 
         templateAll = template.concat(templateAll1);
 

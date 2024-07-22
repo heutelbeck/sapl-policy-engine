@@ -106,6 +106,12 @@ public class GeoFunctions {
     private static final String SUBSET_DOC                                  = "subset(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns true, if GEOMETRYCOLLECTIONTHIS is a subset of GEOMETRYCOLLECTIONTHAT.";
     private static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM = "Input must be a GeometryCollection containing only one Geometry.";
 
+    private static final String TYPENAME_POINT           = Geometry.TYPENAME_POINT;
+    private static final String TYPENAME_MULTIPOINT      = Geometry.TYPENAME_MULTIPOINT;
+    private static final String TYPENAME_LINESTRING      = Geometry.TYPENAME_LINESTRING;
+    private static final String TYPENAME_MULTILINESTRING = Geometry.TYPENAME_MULTILINESTRING;
+    private static final String TYPENAME_LINEARRING      = Geometry.TYPENAME_LINEARRING;
+
     @Function(name = "equalsExact", docs = EQUALS_DOC)
     public Val geometryEquals(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
 
@@ -382,10 +388,15 @@ public class GeoFunctions {
 
         var crs    = CRS.decode(coordinateReferenceSystem);
         var distOp = new DistanceOp(geometryThis, geometryThat);
-        var gc     = new GeodeticCalculator(crs);
 
-        gc.setStartingPosition(JTS.toDirectPosition(distOp.nearestPoints()[0], crs));
-        gc.setDestinationPosition(JTS.toDirectPosition(distOp.nearestPoints()[1], crs));
+        var nearestPoints    = distOp.nearestPoints();
+        var nearestPointThis = nearestPoints[0];
+        var nearestPointThat = nearestPoints[1];
+
+        var gc = new GeodeticCalculator(crs);
+
+        gc.setStartingPosition(JTS.toDirectPosition(nearestPointThis, crs));
+        gc.setDestinationPosition(JTS.toDirectPosition(nearestPointThat, crs));
 
         return gc.getOrthodromicDistance();
     }
@@ -457,16 +468,16 @@ public class GeoFunctions {
     public Boolean isClosed(@JsonObject JsonNode jsonGeometry) throws ParseException, OperationNotSupportedException {
         var geometry = JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString());
 
-        if (geometry.isEmpty() || (geometry.getGeometryType().equals(Geometry.TYPENAME_POINT))
-                || (geometry.getGeometryType().equals(Geometry.TYPENAME_MULTIPOINT))) {
+        if (geometry.isEmpty() || (geometry.getGeometryType().equals(TYPENAME_POINT))
+                || (geometry.getGeometryType().equals(TYPENAME_MULTIPOINT))) {
             return true;
         }
         switch (geometry.getGeometryType()) {
-        case Geometry.TYPENAME_LINESTRING:
+        case TYPENAME_LINESTRING:
             return ((LineString) geometry).isClosed();
-        case Geometry.TYPENAME_MULTILINESTRING:
+        case TYPENAME_MULTILINESTRING:
             return ((MultiLineString) geometry).isClosed();
-        case Geometry.TYPENAME_LINEARRING:
+        case TYPENAME_LINEARRING:
             return ((LinearRing) geometry).isClosed();
         default:
             throw new OperationNotSupportedException(
@@ -481,7 +492,7 @@ public class GeoFunctions {
         return Val.of(milesToMeter(jsonValue.get()));
     }
 
-    public JsonNode milesToMeter(@Number JsonNode jsonValue) throws IllegalArgumentException {
+    public JsonNode milesToMeter(@Number JsonNode jsonValue) {
         var mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         return mapper.convertValue(milesToMeter(jsonValue.asDouble()), JsonNode.class);
     }
@@ -531,14 +542,15 @@ public class GeoFunctions {
 
     @Function(docs = ONE_AND_ONLY_DOC)
     public Val oneAndOnly(@JsonObject Val jsonGeometryCollection)
-            throws OperationNotSupportedException, ClassCastException, ParseException, JsonProcessingException {
+            throws OperationNotSupportedException, ParseException, JsonProcessingException {
 
         return oneAndOnly(jsonGeometryCollection.get());
 
     }
 
     public Val oneAndOnly(@JsonObject JsonNode jsonGeometryCollection)
-            throws ParseException, OperationNotSupportedException, ClassCastException, JsonProcessingException {
+            throws ParseException, OperationNotSupportedException, JsonProcessingException {
+
         var geometryCollection = (GeometryCollection) JsonConverter
                 .geoJsonToGeometry(jsonGeometryCollection.toPrettyString());
         if (geometryCollection.getNumGeometries() == 1) {

@@ -41,15 +41,15 @@ class GmlConverterTest extends TestBase {
     @BeforeAll
     void setup() throws TransformerException {
 
-        var sw  = new StringWriter();
-        var pnt = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
-        var plg = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
+        var stringWriter = new StringWriter();
+        var pnt          = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
+        var plg          = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
-        source.getTransform().transform(new DOMSource(pnt), new StreamResult(sw));
-        point = Val.of(sw.toString());
-        sw    = new StringWriter();
-        source.getTransform().transform(new DOMSource(plg), new StreamResult(sw));
-        polygon = Val.of(sw.toString());
+        source.getTransform().transform(new DOMSource(pnt), new StreamResult(stringWriter));
+        point = Val.of(stringWriter.toString());
+        stringWriter.getBuffer().setLength(0);// clean buffer
+        source.getTransform().transform(new DOMSource(plg), new StreamResult(stringWriter));
+        polygon = Val.of(stringWriter.toString());
 
     }
 
@@ -86,15 +86,13 @@ class GmlConverterTest extends TestBase {
         var res  = geoConverter.gmlToKml(point);
         var res1 = geoConverter.gmlToKml(polygon);
 
-        var stringWriter = new StringWriter();
-
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
         var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);
 
-        stringWriter = new StringWriter();
+        var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(stringWriter));
         var expPoint = stringWriter.toString();
-        stringWriter = new StringWriter();
+        stringWriter.getBuffer().setLength(0);// clean buffer
         source.getTransform().transform(new DOMSource(plg1), new StreamResult(stringWriter));
         var expPolygon = stringWriter.toString();
 

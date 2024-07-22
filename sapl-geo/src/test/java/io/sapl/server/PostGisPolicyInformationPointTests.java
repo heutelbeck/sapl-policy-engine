@@ -50,9 +50,6 @@ import io.sapl.pdp.PolicyDecisionPointFactory;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import reactor.test.StepVerifier;
-
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.util.List;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -85,12 +82,7 @@ class PostGisPolicyInformationPointTests extends PostgisTestBase {
         var json     = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(),
                 postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
 
-        var writer = new BufferedWriter(
-                new FileWriter(String.format(path, "/postgisTestEnvironmentVariable/pdp.json")));
-        writer.write(json);
-
-        writer.close();
-
+        writePdp(json, String.format(path, "/postgisTestEnvironmentVariable/pdp.json"));
     }
 
     @Test
@@ -127,7 +119,7 @@ class PostGisPolicyInformationPointTests extends PostgisTestBase {
 
     @Getter
     @RequiredArgsConstructor
-    class Subject {
+    static class Subject {
         private final String user;
         private final String password;
         private final String server;

@@ -20,11 +20,11 @@ package io.sapl.geo.common;
 import io.r2dbc.spi.ConnectionFactory;
 import reactor.core.publisher.Mono;
 
-public abstract class DatabaseTestBase {
+public abstract class DatabaseTestBase extends TestBase {
 
     protected String templateAll;
     protected String templatePoint;
-    protected String template;
+    // protected String template;
     protected String authTemplate;
 
     protected String authenticationTemplate = """
@@ -37,7 +37,7 @@ public abstract class DatabaseTestBase {
             	}
             """;
 
-    protected String template1 = """
+    protected String template = """
                          {
 
                 "responseFormat":"GEOJSON",

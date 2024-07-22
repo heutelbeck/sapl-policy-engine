@@ -32,9 +32,6 @@ import io.sapl.pdp.PolicyDecisionPointFactory;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import reactor.test.StepVerifier;
-
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.util.List;
 
 @Testcontainers
@@ -67,11 +64,7 @@ class MySqlPolicyInformationPointTests extends MySqlTestBase {
         var json     = String.format(template, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
 
-        var writer = new BufferedWriter(new FileWriter(String.format(path, "/mysqlTestEnvironmentVariable/pdp.json")));
-        writer.write(json);
-
-        writer.close();
-
+        writePdp(json, String.format(path, "/mysqlTestEnvironmentVariable/pdp.json"));
     }
 
     @Test
@@ -108,7 +101,7 @@ class MySqlPolicyInformationPointTests extends MySqlTestBase {
 
     @Getter
     @RequiredArgsConstructor
-    class Subject {
+    static class Subject {
         private final String user;
         private final String password;
         private final String server;

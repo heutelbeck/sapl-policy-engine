@@ -18,7 +18,6 @@
 package io.sapl.server;
 
 import java.util.Map;
-import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.EnvironmentAttribute;
@@ -28,7 +27,6 @@ import io.sapl.geo.mysql.MySql;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
-@Component
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = MySqlPolicyInformationPoint.NAME, description = MySqlPolicyInformationPoint.DESCRIPTION)
 public class MySqlPolicyInformationPoint {

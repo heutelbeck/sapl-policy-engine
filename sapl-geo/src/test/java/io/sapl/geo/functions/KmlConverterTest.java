@@ -33,7 +33,6 @@ import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.TestBase;
@@ -56,7 +55,7 @@ class KmlConverterTest extends TestBase {
     }
 
     @Test
-    void kmlToGeoJsonTest() throws ParseException, JsonMappingException, JsonProcessingException {
+    void kmlToGeoJsonTest() throws ParseException, JsonProcessingException {
 
         var result  = geoConverter.kmlToGeoJson(point);
         var result1 = geoConverter.kmlToGeoJson(polygon);
@@ -88,15 +87,13 @@ class KmlConverterTest extends TestBase {
         var res  = geoConverter.kmlToGml(point);
         var res1 = geoConverter.kmlToGml(polygon);
 
-        var stringWriter = new StringWriter();
-
         var point   = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         var polygon = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
-        stringWriter = new StringWriter();
+        var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(point), new StreamResult(stringWriter));
         var expPoint = stringWriter.toString();
-        stringWriter = new StringWriter();
+        stringWriter.getBuffer().setLength(0);// clean buffer
         source.getTransform().transform(new DOMSource(polygon), new StreamResult(stringWriter));
         var expPolygon = stringWriter.toString();
 

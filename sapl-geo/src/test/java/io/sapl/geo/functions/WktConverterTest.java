@@ -33,7 +33,6 @@ import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.TestBase;
@@ -53,15 +52,13 @@ class WktConverterTest extends TestBase {
         var result  = geoConverter.wktToKml(point);
         var result1 = geoConverter.wktToKml(polygon);
 
-        var stringWriter = new StringWriter();
-
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
         var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);
 
-        stringWriter = new StringWriter();
+        var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(stringWriter));
         var expPoint = stringWriter.toString();
-        stringWriter = new StringWriter();
+        stringWriter.getBuffer().setLength(0); // clean buffer
         source.getTransform().transform(new DOMSource(plg1), new StreamResult(stringWriter));
         var expPolygon = stringWriter.toString();
 
@@ -89,15 +86,13 @@ class WktConverterTest extends TestBase {
         var result  = geoConverter.wktToGml(point);
         var result1 = geoConverter.wktToGml(polygon);
 
-        StringWriter stringWriter = new StringWriter();
-
         var pnt1 = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         var plg1 = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
-        stringWriter = new StringWriter();
+        var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(stringWriter));
         var expPoint = stringWriter.toString();
-        stringWriter = new StringWriter();
+        stringWriter.getBuffer().setLength(0); // clean buffer
         source.getTransform().transform(new DOMSource(plg1), new StreamResult(stringWriter));
         var expPolygon = stringWriter.toString();
 
@@ -107,7 +102,7 @@ class WktConverterTest extends TestBase {
     }
 
     @Test
-    void wktToGeoJsonTest() throws ParseException, JsonMappingException, JsonProcessingException {
+    void wktToGeoJsonTest() throws ParseException, JsonProcessingException {
 
         var result  = geoConverter.wktToGeoJson(point);
         var result1 = geoConverter.wktToGeoJson(polygon);

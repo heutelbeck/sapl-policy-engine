@@ -38,7 +38,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.functionlibraries.GeoFunctions;
 import io.sapl.geo.functions.GeometryConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
