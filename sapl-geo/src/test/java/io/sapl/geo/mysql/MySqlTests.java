@@ -43,19 +43,16 @@ class MySqlTests extends MySqlTestBase {
 
     @Test
     void Test01MySqlConnection() throws JsonProcessingException, InterruptedException {
-        System.out.println("Test01");
         var queryString = String.format(templateAll, "geometries", "geom");
 
         var expected      = Val.ofJson(expectedAll);
         var mysqlResponse = new MySql(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
-        System.out.println("Test01");
     }
 
     @Test
     void Test02MySqlConnectionSingleResult() throws JsonProcessingException, InterruptedException {
-        System.out.println("Test02");
         var queryString = String.format(templatePoint, "geometries", "geom");
 
         var expected = Val.ofJson(expectedPoint);
@@ -63,12 +60,11 @@ class MySqlTests extends MySqlTestBase {
         var mysqlResponse = new MySql(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
-        System.out.println("Test02");
+
     }
 
     @Test
     void Test03ErrorNonexistantTable() throws JsonProcessingException, InterruptedException {
-        System.out.println("Test03");
         var errorTemplate = template.concat("""
                     ,
                     "table":"%s",
@@ -83,19 +79,16 @@ class MySqlTests extends MySqlTestBase {
         var mysqlResponse = new MySql(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectError();
-        System.out.println("Test03");
     }
 
     @Test
     void Test04ErrorInvalidTemplate() throws JsonProcessingException, InterruptedException {
-        System.out.println("Test04");
         var queryString = "{\"invalid\":\"Template\"}";
 
         var mysqlResponse = new MySql(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .sendQuery(Val.ofJson(queryString).get()).map(Val::getMessage);
 
         StepVerifier.create(mysqlResponse).expectNext("No geoColumn-name found").verifyComplete();
-        System.out.println("Test04");
     }
 
 }
