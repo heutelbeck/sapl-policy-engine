@@ -52,14 +52,12 @@ import io.sapl.geo.functions.JsonConverter;
 import io.sapl.geo.mysql.MySql;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.geo.postgis.PostGis;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 import reactor.retry.Repeat;
 
-@RequiredArgsConstructor
 public abstract class DatabaseConnection extends ConnectionBase {
 
     private static final String   DATABASE      = "dataBase";

@@ -18,7 +18,9 @@
 package io.sapl.geo.owntracks;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.model.Geofence;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.geo.shared.ConnectionBase;
@@ -127,7 +130,7 @@ public class OwnTracks extends ConnectionBase {
 
         var flux = client.httpRequest(HttpMethod.GET, request).flatMap(v -> {
             try {
-                return mapPosition(v.get(), format, mapper, latitudeFirst);
+                return mapResponse(v.get(), format, mapper, latitudeFirst);
             } catch (JsonProcessingException e) {
                 return Flux.error(e);
             }
@@ -136,18 +139,34 @@ public class OwnTracks extends ConnectionBase {
         return flux;
     }
 
-    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
+    public Flux<GeoPipResponse> mapResponse(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
             boolean latitudeFirst) throws JsonProcessingException {
 
         var response = geoMapper.mapPosition(deviceId, in.get(0), format, latitudeFirst);
         var res      = in.findValue("inregions");
 
-        response.setGeoFences(geoMapper.mapOwnTracksInRegions(res, mapper));
+        response.setGeoFences(mapOwnTracksInRegions(res, mapper));
 
         return Flux.just(response);
 
     }
 
+    private List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws JsonProcessingException {
+
+        List<Geofence> fenceRes = new ArrayList<>();
+
+        var fences = mapper.readTree(in.toString());
+
+        for (var geoFence : fences) {
+
+            fenceRes.add(Geofence.builder().name(geoFence.asText()).build());
+
+        }
+
+        return fenceRes;
+
+    }
+    
     private static String getHttpBasicAuthUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(HTTP_BASIC_AUTH_USER)) {
             return requestSettings.findValue(HTTP_BASIC_AUTH_USER).asText();

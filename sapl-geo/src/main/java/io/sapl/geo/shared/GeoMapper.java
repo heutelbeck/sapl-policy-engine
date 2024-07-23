@@ -17,27 +17,16 @@
  */
 package io.sapl.geo.shared;
 
-import java.util.ArrayList;
-import java.util.List;
 
-import org.geotools.api.geometry.MismatchedDimensionException;
-import org.geotools.api.referencing.FactoryException;
-import org.geotools.api.referencing.operation.TransformException;
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Geometry;
+
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
-import org.locationtech.jts.io.ParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.interpreter.Val;
-import io.sapl.geo.functions.GeoProjector;
 import io.sapl.geo.functions.GeometryConverter;
-import io.sapl.geo.functions.WktConverter;
-import io.sapl.geo.model.Geofence;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import lombok.AllArgsConstructor;
@@ -52,13 +41,6 @@ public class GeoMapper {
     private String       accuracy;
     private ObjectMapper mapper;
 
-    private static final String FENCENAME   = "name";
-    private static final String AREA        = "area";
-    private static final String ATTRIBUTES  = "attributes";
-    private static final String DESCRIPTION = "description";
-    private static final String CALENDARID  = "calendarId";
-    private static final String ID          = "id";
-    private static final String EPSG        = "EPSG:4326";
 
     /**
      * @param in            a {@link JsonNode} containing the latutide/longitude
@@ -123,77 +105,13 @@ public class GeoMapper {
      * @throws TransformException
      * @throws MismatchedDimensionException
      */
-    public List<Geofence> mapTraccarGeoFences(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
-            boolean latitudeFirst) throws JsonProcessingException, ParseException, FactoryException,
-            MismatchedDimensionException, TransformException {
 
-        List<Geofence> fenceRes = new ArrayList<>();
-
-        var fences = mapper.readTree(in.toString());
-
-        for (JsonNode geoFence : fences) {
-            var      factory = new GeometryFactory(new PrecisionModel(), 4326);
-            Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
-
-            if (!latitudeFirst) {
-                var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
-                geo = geoProjector.project(geo);
-            }
-
-            switch (format) {
-
-            case GEOJSON:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
-                break;
-
-            case WKT:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
-                break;
-
-            case GML:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
-                break;
-
-            case KML:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
-                break;
-            default:
-
-                break;
-            }
-
-        }
-
-        return fenceRes;
-
-    }
-
-    private Geofence mapFence(JsonNode geoFence, JsonNode area) {
-
-        return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
-                .calendarId(geoFence.findValue(CALENDARID).asText()).name(geoFence.findValue(FENCENAME).asText())
-                .description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
-    }
 
     /**
      * @param in     a {@link JsonNode} containing the owntracks in-regions
      * @param mapper a {@link ObjectMapper}
      * @throws JsonProcessingException
      */
-    public List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws JsonProcessingException {
 
-        List<Geofence> fenceRes = new ArrayList<>();
-
-        var fences = mapper.readTree(in.toString());
-
-        for (var geoFence : fences) {
-
-            fenceRes.add(Geofence.builder().name(geoFence.asText()).build());
-
-        }
-
-        return fenceRes;
-
-    }
 
 }
