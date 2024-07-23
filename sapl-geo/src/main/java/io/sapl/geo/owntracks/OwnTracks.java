@@ -74,7 +74,6 @@ public class OwnTracks extends TrackerConnectionBase {
                         "headers" : {
                            Authorization": "%s"
                         }
-                      }
                     """;
             authSettings = String.format(authSettings, basicAuthHeader);
         }
@@ -87,8 +86,6 @@ public class OwnTracks extends TrackerConnectionBase {
 
         deviceId = getDeviceId(settings);
         client   = new ReactiveWebClient(mapper);
-        // geoMapper = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE,
-        // ACCURACY, mapper);
         var url = String.format("%s://%s/api/0/last?user=%s&device=%s", getProtocol(settings), getServer(settings),
                 getUser(settings), deviceId);
 
@@ -107,9 +104,7 @@ public class OwnTracks extends TrackerConnectionBase {
     private String getRequest(String url) {
 
         var settings = """
-                {
-                    "baseUrl" : "%s",
-                    "accept" : "%s"
+                {"baseUrl" : "%s", "accept" : "%s"
                 """;
 
         settings = String.format(settings, url, MediaType.APPLICATION_JSON_VALUE);
@@ -119,10 +114,9 @@ public class OwnTracks extends TrackerConnectionBase {
 
             settings = settings.concat(authSettings);
 
-        } else {
-            settings = settings.concat("}");
+        } 
+        settings = settings.concat("}");
 
-        }
 
         return settings;
 

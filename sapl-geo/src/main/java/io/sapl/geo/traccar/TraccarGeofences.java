@@ -61,6 +61,7 @@ public class TraccarGeofences extends TraccarBase {
         password = getPassword(auth);
         server   = getServer(auth);
         protocol = getProtocol(auth);
+        this.mapper = mapper;
     }
 
     /**
@@ -111,15 +112,17 @@ public class TraccarGeofences extends TraccarBase {
         var webClient = new ReactiveWebClient(mapper);
         var baseURL   = protocol + "://" + server;
 
-        var template = """
-                {
-                    "baseUrl" : "%s",
-                    "path" : "%s",
-                    "accept" : "%s",
-                    "headers" : {
+        
+        var template ="""
+            {
+                "baseUrl" : "%s",
+                "path" : "%s",
+                "accept" : 1000,
+                "headers" : {
                         "cookie" : "%s"
                     }
-                """;
+            }
+            """;
         template = String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE, sessionCookie);
         if (pollingInterval != null) {
             template = template.concat("""

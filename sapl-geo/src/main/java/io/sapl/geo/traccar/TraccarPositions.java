@@ -63,9 +63,6 @@ public class TraccarPositions extends TraccarBase {
      */
     public Flux<Val> getPositions(JsonNode settings) {
 
-        // geoMapper = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE,
-        // ACCURACY, mapper);
-
         var url = (String.format("ws://%s/api/socket", server));
         return establishSession(user, password, server, protocol).flatMapMany(cookie ->
 
