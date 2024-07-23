@@ -372,6 +372,7 @@ public class GeoFunctions {
 
     }
 
+    @SuppressWarnings("all") //zugriff auf nearestPoints nur mit index möglich; external_fbcontrib:CLI_CONSTANT_LIST_INDEX
     private double geodesicDistance(JsonNode jsonGeometryThis, JsonNode jsonGeometryThat,
             String coordinateReferenceSystem) throws ParseException, FactoryException, TransformException {
         var geometryThis = JsonConverter.geoJsonToGeometry(jsonGeometryThis.toPrettyString());

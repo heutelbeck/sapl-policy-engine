@@ -53,6 +53,7 @@ import io.sapl.geo.mysql.MySql;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.geo.postgis.PostGis;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
@@ -76,7 +77,8 @@ public abstract class DatabaseConnection extends ConnectionBase {
     private AtomicReference<Connection> connectionReference = new AtomicReference<>();
     private String[]                    selectColumns;
     private static ConnectionFactory           connectionFactory;
-    private final ObjectMapper          mapper;
+    @Setter
+    private ObjectMapper          mapper;
     
 
     /**

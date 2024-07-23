@@ -30,8 +30,9 @@ public class MySql extends DatabaseConnection {
      * @param mapper a {@link ObjectMapper}
      */
     public MySql(JsonNode auth, ObjectMapper mapper) {
-        super(mapper);
+        super();
         createMySqlConnectionFactory(auth, getPort(auth));
+        setMapper(mapper);
     }
 
     protected static int getPort(JsonNode requestSettings) throws PolicyEvaluationException {

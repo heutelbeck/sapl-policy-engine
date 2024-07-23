@@ -70,8 +70,10 @@ public class OwnTracks extends ConnectionBase {
                 getUser(settings), deviceId);
 
         try {
-            return getFlux(getHttpBasicAuthUser(settings), getPassword(settings), url,
-                    getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings)).map(Val::of);
+
+            var request = getRequest(settings, url);
+            return getFlux(request, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings))
+                    .map(Val::of);
 
         } catch (Exception e) {
             return Flux.just(Val.error(e.getMessage()));
@@ -79,53 +81,57 @@ public class OwnTracks extends ConnectionBase {
 
     }
 
-    private Flux<ObjectNode> getFlux(String httpBasicAuthUser, String password, String url, GeoPipResponseFormat format,
-            ObjectMapper mapper, boolean latitudeFirst) {
+    private String getRequest(JsonNode auth, String url) {
 
-        var html1 = """
+        var settings = """
                 {
                     "baseUrl" : "%s",
                     "accept" : "%s"
                 """;
 
-        html1 = String.format(html1, url, MediaType.APPLICATION_JSON_VALUE);
+        settings = String.format(settings, url, MediaType.APPLICATION_JSON_VALUE);
 
-        if (!"none".equals(httpBasicAuthUser) && !"none".equals(password)) {
-            var valueToEncode   = String.format("%s:%s", httpBasicAuthUser, password);
+        if (getHttpBasicAuthUser(auth) != null && getPassword(auth) != null) {
+            var valueToEncode   = String.format("%s:%s", getHttpBasicAuthUser(auth), getPassword(auth));
             var basicAuthHeader = "Basic "
                     + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
 
-            var html2 = """
+            var authorizationSettings = """
                         ,
                         "headers" : {
                            Authorization": "%s"
                         }
                       }
                     """;
-            html2 = String.format(html2, basicAuthHeader);
-            html1 = html1.concat(html2);
+            authorizationSettings = String.format(authorizationSettings, basicAuthHeader);
+            settings              = settings.concat(authorizationSettings);
         } else {
-            html1 = html1.concat("}");
+            settings = settings.concat("}");
 
         }
 
+        return settings;
+
+    }
+
+    private Flux<ObjectNode> getFlux(String requestString, GeoPipResponseFormat format, ObjectMapper mapper,
+            boolean latitudeFirst) {
+
         Val request;
         try {
-            request = Val.ofJson(html1);
+            request = Val.ofJson(requestString);
 
         } catch (Exception e) {
             return Flux.error(e);
         }
 
-        var flux = client.httpRequest(HttpMethod.GET, request)
-                .flatMap(v -> {
-                    try {
-                        return mapPosition(v.get(), format, mapper, latitudeFirst);
-                    } catch (JsonProcessingException e) {
-                        return Flux.error(e);
-                    }
-                })
-                .map(res -> mapper.convertValue(res, ObjectNode.class));
+        var flux = client.httpRequest(HttpMethod.GET, request).flatMap(v -> {
+            try {
+                return mapPosition(v.get(), format, mapper, latitudeFirst);
+            } catch (JsonProcessingException e) {
+                return Flux.error(e);
+            }
+        }).map(res -> mapper.convertValue(res, ObjectNode.class));
         logger.info("OwnTracks-Client connected.");
         return flux;
     }
@@ -146,7 +152,7 @@ public class OwnTracks extends ConnectionBase {
         if (requestSettings.has(HTTP_BASIC_AUTH_USER)) {
             return requestSettings.findValue(HTTP_BASIC_AUTH_USER).asText();
         } else {
-            return "none";
+            return null;
 
         }
 
@@ -157,7 +163,7 @@ public class OwnTracks extends ConnectionBase {
             return requestSettings.findValue(PASSWORD_CONST).asText();
         } else {
 
-            return "none";
+            return null;
         }
 
     }
