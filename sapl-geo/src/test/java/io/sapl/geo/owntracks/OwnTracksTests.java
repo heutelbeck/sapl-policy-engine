@@ -40,7 +40,7 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 public class OwnTracksTests {
     String         address;
-    SourceProvider source = SourceProvider.getInstance();
+    SourceProvider source = new SourceProvider();
 
     String template = """
                 {

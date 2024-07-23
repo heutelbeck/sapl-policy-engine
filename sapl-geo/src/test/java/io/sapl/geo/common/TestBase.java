@@ -34,7 +34,7 @@ public abstract class TestBase {
     protected Val          polygon;
     protected GeoConverter geoConverter = new GeoConverter();
 
-    protected SourceProvider source = SourceProvider.getInstance();
+    protected SourceProvider source = new SourceProvider();
 
     protected void writePdp(String json, String path) throws IOException {
 

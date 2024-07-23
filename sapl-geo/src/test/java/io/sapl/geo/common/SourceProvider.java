@@ -42,8 +42,6 @@ import lombok.Getter;
 
 public class SourceProvider {
 
-    private static SourceProvider instance;
-
     GeometryFactory geometryFactory = new GeometryFactory();
 
     Coordinate[] coordinates = new Coordinate[] { new Coordinate(10, 12), new Coordinate(10, 14),
@@ -63,7 +61,7 @@ public class SourceProvider {
 
     final String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
 
-    private SourceProvider() {
+    public SourceProvider() {
         try {
             setUp();
         } catch (Exception e) {
@@ -71,13 +69,6 @@ public class SourceProvider {
         }
     }
 
-    public static synchronized SourceProvider getInstance() {
-
-        if (instance == null) {
-            instance = new SourceProvider();
-        }
-        return instance;
-    }
 
     public final void setUp() throws TransformerConfigurationException, TransformerFactoryConfigurationError,
             ParserConfigurationException, SAXException, IOException {
