@@ -22,7 +22,6 @@ import io.sapl.geo.shared.DatabaseConnection;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-
 public class MySql extends DatabaseConnection {
 
     /**
@@ -30,7 +29,7 @@ public class MySql extends DatabaseConnection {
      * @param mapper a {@link ObjectMapper}
      */
     public MySql(JsonNode auth, ObjectMapper mapper) {
-        super();
+
         createMySqlConnectionFactory(auth, getPort(auth));
         setMapper(mapper);
     }

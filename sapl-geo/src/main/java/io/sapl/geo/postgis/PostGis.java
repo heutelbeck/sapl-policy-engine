@@ -30,7 +30,6 @@ public class PostGis extends DatabaseConnection {
      */
     public PostGis(JsonNode auth, ObjectMapper mapper) {
 
-        super();
         createPostgresqlConnectionFactory(auth, getPort(auth));
         setMapper(mapper);
 
@@ -44,7 +43,5 @@ public class PostGis extends DatabaseConnection {
             return 5432;
         }
     }
-
-    
 
 }
