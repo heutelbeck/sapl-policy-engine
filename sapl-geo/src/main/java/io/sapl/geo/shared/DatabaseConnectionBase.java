@@ -52,13 +52,12 @@ import io.sapl.geo.functions.JsonConverter;
 import io.sapl.geo.mysql.MySql;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.geo.postgis.PostGis;
-import lombok.Setter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 import reactor.retry.Repeat;
 
-public abstract class DatabaseConnection extends ConnectionBase {
+public abstract class DatabaseConnectionBase extends ConnectionBase {
 
     private static final String   DATABASE      = "dataBase";
     private static final String   TABLE         = "table";
@@ -75,8 +74,6 @@ public abstract class DatabaseConnection extends ConnectionBase {
     private AtomicReference<Connection> connectionReference = new AtomicReference<>();
     private String[]                    selectColumns;
     private static ConnectionFactory           connectionFactory;
-    @Setter
-    private ObjectMapper          mapper;
     
 
     /**
@@ -335,5 +332,20 @@ public abstract class DatabaseConnection extends ConnectionBase {
         }
 
     }
+    
+    private static long longOrDefault(JsonNode requestSettings, String fieldName, long defaultValue) {
+
+        if (requestSettings.has(fieldName)) {
+            var value = requestSettings.findValue(fieldName);
+
+            if (!value.isNumber())
+                throw new PolicyEvaluationException(fieldName + " must be an integer, but was: " + value.getNodeType());
+
+            return value.asLong();
+        }
+
+        return defaultValue;
+    }
+
 
 }

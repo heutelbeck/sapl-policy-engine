@@ -18,11 +18,11 @@
 package io.sapl.geo.mysql;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.geo.shared.DatabaseConnection;
+import io.sapl.geo.shared.DatabaseConnectionBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class MySql extends DatabaseConnection {
+public class MySql extends DatabaseConnectionBase {
 
     /**
      * @param auth   a {@link JsonNode} containing the settings for authorization
@@ -31,7 +31,7 @@ public class MySql extends DatabaseConnection {
     public MySql(JsonNode auth, ObjectMapper mapper) {
 
         createMySqlConnectionFactory(auth, getPort(auth));
-        setMapper(mapper);
+        this.mapper = mapper;
     }
 
     protected static int getPort(JsonNode requestSettings) throws PolicyEvaluationException {

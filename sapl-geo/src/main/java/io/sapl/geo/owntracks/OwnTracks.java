@@ -36,39 +36,59 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.geo.model.Geofence;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
-import io.sapl.geo.shared.ConnectionBase;
-import io.sapl.geo.shared.GeoMapper;
+import io.sapl.geo.shared.TrackerConnectionBase;
 import io.sapl.pip.http.ReactiveWebClient;
-import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
-@RequiredArgsConstructor
-public class OwnTracks extends ConnectionBase {
-
-    private static final String ALTITUDE   = "alt";
-    private static final String LASTUPDATE = "created_at";
-    private static final String ACCURACY   = "acc";
-    private static final String LATITUDE   = "lat";
-    private static final String LONGITUDE  = "lon";
+public class OwnTracks extends TrackerConnectionBase {
 
     protected static final String HTTP_BASIC_AUTH_USER = "httpUser";
 
-    private ReactiveWebClient  client;
-    private GeoMapper          geoMapper;
-    private final ObjectMapper mapper;
-    private final Logger       logger = LoggerFactory.getLogger(getClass());
+    private ReactiveWebClient client;
+    private final Logger      logger = LoggerFactory.getLogger(getClass());
 
-    private int deviceId;
+    private int    deviceId;
+    private String authSettings;
+
+    /**
+     * @param auth   a {@link JsonNode} containing the settings for authorization
+     * @param mapper a {@link ObjectMapper}
+     */
+    public OwnTracks(JsonNode auth, ObjectMapper mapper) {
+
+        this.mapper = mapper;
+        altitude    = "alt";
+        lastupdate  = "created_at";
+        accuracy    = "acc";
+        latitude    = "lat";
+        longitude   = "lon";
+
+        if (auth != null) {
+
+            var valueToEncode   = String.format("%s:%s", getHttpBasicAuthUser(auth), getPassword(auth));
+            var basicAuthHeader = "Basic "
+                    + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
+
+            authSettings = """
+                        ,
+                        "headers" : {
+                           Authorization": "%s"
+                        }
+                      }
+                    """;
+            authSettings = String.format(authSettings, basicAuthHeader);
+        }
+    }
 
     /**
      * @param settings a {@link JsonNode} containing the settings
-     * @return a {@link Flux} of {@link Val}
      */
     public Flux<Val> connect(JsonNode settings) {
 
-        deviceId  = getDeviceId(settings);
-        client    = new ReactiveWebClient(mapper);
-        geoMapper = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
+        deviceId = getDeviceId(settings);
+        client   = new ReactiveWebClient(mapper);
+        // geoMapper = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE,
+        // ACCURACY, mapper);
         var url = String.format("%s://%s/api/0/last?user=%s&device=%s", getProtocol(settings), getServer(settings),
                 getUser(settings), deviceId);
 
@@ -94,20 +114,24 @@ public class OwnTracks extends ConnectionBase {
 
         settings = String.format(settings, url, MediaType.APPLICATION_JSON_VALUE);
 
-        if (getHttpBasicAuthUser(auth) != null && getPassword(auth) != null) {
-            var valueToEncode   = String.format("%s:%s", getHttpBasicAuthUser(auth), getPassword(auth));
-            var basicAuthHeader = "Basic "
-                    + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
+//        if (getHttpBasicAuthUser(auth) != null && getPassword(auth) != null) {
+//            var valueToEncode   = String.format("%s:%s", getHttpBasicAuthUser(auth), getPassword(auth));
+//            var basicAuthHeader = "Basic "
+//                    + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
+//
+//            var authorizationSettings = """
+//                        ,
+//                        "headers" : {
+//                           Authorization": "%s"
+//                        }
+//                      }
+//                    """;
+//            authorizationSettings = String.format(authorizationSettings, basicAuthHeader);
 
-            var authorizationSettings = """
-                        ,
-                        "headers" : {
-                           Authorization": "%s"
-                        }
-                      }
-                    """;
-            authorizationSettings = String.format(authorizationSettings, basicAuthHeader);
-            settings              = settings.concat(authorizationSettings);
+        if (authSettings != null) {
+
+            settings = settings.concat(authSettings);
+
         } else {
             settings = settings.concat("}");
 
@@ -142,7 +166,7 @@ public class OwnTracks extends ConnectionBase {
     public Flux<GeoPipResponse> mapResponse(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
             boolean latitudeFirst) throws JsonProcessingException {
 
-        var response = geoMapper.mapPosition(deviceId, in.get(0), format, latitudeFirst);
+        var response = mapPosition(deviceId, in.get(0), format, latitudeFirst);
         var res      = in.findValue("inregions");
 
         response.setGeoFences(mapOwnTracksInRegions(res, mapper));
@@ -166,7 +190,7 @@ public class OwnTracks extends ConnectionBase {
         return fenceRes;
 
     }
-    
+
     private static String getHttpBasicAuthUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(HTTP_BASIC_AUTH_USER)) {
             return requestSettings.findValue(HTTP_BASIC_AUTH_USER).asText();

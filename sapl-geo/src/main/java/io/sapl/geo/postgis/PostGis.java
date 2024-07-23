@@ -20,9 +20,9 @@ package io.sapl.geo.postgis;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.geo.shared.DatabaseConnection;
+import io.sapl.geo.shared.DatabaseConnectionBase;
 
-public class PostGis extends DatabaseConnection {
+public class PostGis extends DatabaseConnectionBase {
 
     /**
      * @param auth   a {@link JsonNode} containing the settings for authorization
@@ -31,7 +31,7 @@ public class PostGis extends DatabaseConnection {
     public PostGis(JsonNode auth, ObjectMapper mapper) {
 
         createPostgresqlConnectionFactory(auth, getPort(auth));
-        setMapper(mapper);
+        this.mapper = mapper;
 
     }
 

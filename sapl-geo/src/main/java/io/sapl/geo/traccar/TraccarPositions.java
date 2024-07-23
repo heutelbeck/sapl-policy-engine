@@ -29,21 +29,29 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
-import io.sapl.geo.shared.GeoMapper;
 import io.sapl.pip.http.ReactiveWebClient;
 
 import reactor.core.publisher.Flux;
 
 public class TraccarPositions extends TraccarBase {
 
-    private GeoMapper geoMapper;
+    private static final String DEVICE_ID = "deviceId";
+    private static final String POSITIONS = "positions";
 
     /**
      * @param auth a {@link JsonNode} containing the settings for authorization
+     * @param mapper a {@link ObjectMapper}
      */
     public TraccarPositions(JsonNode auth, ObjectMapper mapper) {
 
-        super(mapper);
+        altitude   = "altitude";
+        lastupdate = "fixTime";
+        accuracy   = "accuracy";
+        latitude   = "latitude";
+        longitude  = "longitude";
+        
+        this.mapper = mapper;
+        
         user     = getUser(auth);
         password = getPassword(auth);
         server   = getServer(auth);
@@ -55,15 +63,16 @@ public class TraccarPositions extends TraccarBase {
      */
     public Flux<Val> getPositions(JsonNode settings) {
 
-        geoMapper = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE, ACCURACY, mapper);
+        // geoMapper = new GeoMapper(LATITUDE, LONGITUDE, ALTITUDE, LASTUPDATE,
+        // ACCURACY, mapper);
 
         var url = (String.format("ws://%s/api/socket", server));
         return establishSession(user, password, server, protocol).flatMapMany(cookie ->
 
         {
             try {
-                return getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings), getLatitudeFirst(settings))
-                        .map(Val::of)
+                return getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
+                        getLatitudeFirst(settings)).map(Val::of)
 
                         .doFinally(s -> disconnect());
             } catch (JsonProcessingException | PolicyEvaluationException e) {
@@ -74,7 +83,7 @@ public class TraccarPositions extends TraccarBase {
     }
 
     private Flux<ObjectNode> getFlux(String url, String cookie, GeoPipResponseFormat format, int deviceId,
-            boolean latitudeFirst) throws  JsonProcessingException {
+            boolean latitudeFirst) throws JsonProcessingException {
 
         var client = new ReactiveWebClient(mapper);
 
@@ -101,8 +110,6 @@ public class TraccarPositions extends TraccarBase {
         logger.info("Traccar-Client connected.");
         return flux;
 
-        
-
     }
 
     Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, int deviceId)
@@ -111,7 +118,7 @@ public class TraccarPositions extends TraccarBase {
 
         if (pos.has(DEVICE_ID)) {
 
-            return Flux.just(geoMapper.mapPosition(deviceId, pos, format, latitudeFirst));
+            return Flux.just(mapPosition(deviceId, pos, format, latitudeFirst));
         }
 
         return Flux.just();

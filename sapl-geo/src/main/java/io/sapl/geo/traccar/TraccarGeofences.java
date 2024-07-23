@@ -58,7 +58,6 @@ public class TraccarGeofences extends TraccarBase {
      */
     public TraccarGeofences(JsonNode auth, ObjectMapper mapper) {
 
-        super(mapper);
         user     = getUser(auth);
         password = getPassword(auth);
         server   = getServer(auth);

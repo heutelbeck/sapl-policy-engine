@@ -22,10 +22,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.pip.GeoPipResponseFormat;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+
 public abstract class ConnectionBase {
 
     protected static final String USER_CONST                         = "user";
@@ -35,11 +33,12 @@ public abstract class ConnectionBase {
     protected static final String POLLING_INTERVAL_CONST             = "pollingIntervalMs";
     protected static final String REPEAT_TIMES_CONST                 = "repetitions";
     protected static final String PROTOCOL_CONST                     = "protocol";
-    protected static final String DEVICEID_CONST                     = "deviceId";
     protected static final String LATITUDE_FIRST_CONST               = "latitudeFirst";
     protected static final long   DEFAULT_POLLING_INTERVALL_MS_CONST = 1000L;
     protected static final long   DEFAULT_REPETITIONS_CONST          = Long.MAX_VALUE;
 
+    protected ObjectMapper mapper;
+    
     protected static String getUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(USER_CONST)) {
 
@@ -80,40 +79,6 @@ public abstract class ConnectionBase {
         } else {
 
             return GeoPipResponseFormat.GEOJSON;
-        }
-
-    }
-
-    protected static long longOrDefault(JsonNode requestSettings, String fieldName, long defaultValue) {
-
-        if (requestSettings.has(fieldName)) {
-            var value = requestSettings.findValue(fieldName);
-
-            if (!value.isNumber())
-                throw new PolicyEvaluationException(fieldName + " must be an integer, but was: " + value.getNodeType());
-
-            return value.asLong();
-        }
-
-        return defaultValue;
-    }
-
-    protected static String getProtocol(JsonNode requestSettings) {
-        if (requestSettings.has(PROTOCOL_CONST)) {
-            return requestSettings.findValue(PROTOCOL_CONST).asText();
-        } else {
-
-            return "https";
-        }
-
-    }
-
-    protected static Integer getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(DEVICEID_CONST)) {
-            return requestSettings.findValue(DEVICEID_CONST).asInt();
-        } else {
-
-            throw new PolicyEvaluationException("No Device ID found");
         }
 
     }

@@ -372,7 +372,6 @@ public class GeoFunctions {
 
     }
 
-    @SuppressWarnings("all") //zugriff auf nearestPoints nur mit index möglich; external_fbcontrib:CLI_CONSTANT_LIST_INDEX
     private double geodesicDistance(JsonNode jsonGeometryThis, JsonNode jsonGeometryThat,
             String coordinateReferenceSystem) throws ParseException, FactoryException, TransformException {
         var geometryThis = JsonConverter.geoJsonToGeometry(jsonGeometryThis.toPrettyString());
@@ -381,9 +380,12 @@ public class GeoFunctions {
         var crs    = CRS.decode(coordinateReferenceSystem);
         var distOp = new DistanceOp(geometryThis, geometryThat);
 
-        var nearestPoints    = distOp.nearestPoints();
-        var nearestPointThis = nearestPoints[0];
-        var nearestPointThat = nearestPoints[1];
+        var nearestPoints = distOp.nearestPoints();
+
+        // zugriff auf nearestPoints nur mit index möglich;
+        // external_fbcontrib:CLI_CONSTANT_LIST_INDEX
+        var nearestPointThis = nearestPoints[0]; //NOSONAR
+        var nearestPointThat = nearestPoints[1]; //NOSONAR
 
         var gc = new GeodeticCalculator(crs);
 

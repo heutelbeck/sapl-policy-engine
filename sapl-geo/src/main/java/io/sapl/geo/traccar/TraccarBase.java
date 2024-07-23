@@ -27,19 +27,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.geo.shared.ConnectionBase;
-import lombok.RequiredArgsConstructor;
+import io.sapl.geo.shared.TrackerConnectionBase;
 
 import reactor.core.publisher.Mono;
 
-@RequiredArgsConstructor
-abstract class TraccarBase extends ConnectionBase {
+abstract class TraccarBase extends TrackerConnectionBase {
 
     final Logger logger = LoggerFactory.getLogger(getClass());
-
-    protected final ObjectMapper mapper;
 
     private int sessionId;
     private URI uri;
@@ -91,7 +86,7 @@ abstract class TraccarBase extends ConnectionBase {
                                 sessionCookie = setCookieHeader;
                                 try {
                                     setSessionId(response.getBody());
-                                }catch (Exception e) {
+                                } catch (Exception e) {
                                     return Mono.error(e);
                                 }
                                 logger.info("Traccar Session {} established.", sessionId);
@@ -113,12 +108,12 @@ abstract class TraccarBase extends ConnectionBase {
 
     }
 
-    private void setSessionId(String json) throws  JsonProcessingException {
+    private void setSessionId(String json) throws JsonProcessingException {
 
-            var sessionJson = mapper.readTree(json);
-            if (sessionJson.has("id")) {
-                this.sessionId = sessionJson.get("id").asInt();
-            }
+        var sessionJson = mapper.readTree(json);
+        if (sessionJson.has("id")) {
+            this.sessionId = sessionJson.get("id").asInt();
+        }
 
     }
 
