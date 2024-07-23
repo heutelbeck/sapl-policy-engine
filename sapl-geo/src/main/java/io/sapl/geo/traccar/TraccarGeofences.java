@@ -132,9 +132,7 @@ public class TraccarGeofences extends TraccarBase {
 
         template = template.concat("}");
 
-        Val request = Val.of("");
-
-        request = Val.ofJson(template);
+        var request = Val.ofJson(template);
 
         return webClient.httpRequest(HttpMethod.GET, request).map(Val::get);
     }

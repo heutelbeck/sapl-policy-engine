@@ -126,10 +126,10 @@ public class GeoMapper {
     public List<Geofence> mapTraccarGeoFences(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
             boolean latitudeFirst) throws JsonProcessingException, ParseException, FactoryException,
             MismatchedDimensionException, TransformException {
-        JsonNode       fences   = mapper.createArrayNode();
+
         List<Geofence> fenceRes = new ArrayList<>();
 
-        fences = mapper.readTree(in.toString());
+        var fences = mapper.readTree(in.toString());
 
         for (JsonNode geoFence : fences) {
             var      factory = new GeometryFactory(new PrecisionModel(), 4326);
@@ -181,10 +181,10 @@ public class GeoMapper {
      * @throws JsonProcessingException
      */
     public List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws JsonProcessingException {
-        JsonNode       fences   = mapper.createArrayNode();
+
         List<Geofence> fenceRes = new ArrayList<>();
 
-        fences = mapper.readTree(in.toString());
+        var fences = mapper.readTree(in.toString());
 
         for (var geoFence : fences) {
 
