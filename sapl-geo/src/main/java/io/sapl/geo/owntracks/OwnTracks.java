@@ -70,10 +70,7 @@ public class OwnTracks extends TrackerConnectionBase {
                     + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
 
             authSettings = """
-                        ,
-                        "headers" : {
-                           Authorization": "%s"
-                        }
+                        ,"headers" : {Authorization": "%s"}
                     """;
             authSettings = String.format(authSettings, basicAuthHeader);
         }

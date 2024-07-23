@@ -114,14 +114,7 @@ public class TraccarGeofences extends TraccarBase {
 
         
         var template ="""
-            {
-                "baseUrl" : "%s",
-                "path" : "%s",
-                "accept" : 1000,
-                "headers" : {
-                        "cookie" : "%s"
-                    }
-            }
+            {"baseUrl" : "%s", "path" : "%s", "accept" : 1000, "headers" : { "cookie" : "%s" } }
             """;
         template = String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE, sessionCookie);
         if (pollingInterval != null) {
@@ -140,10 +133,7 @@ public class TraccarGeofences extends TraccarBase {
 
         if (deviceId != null) {
             template = template.concat("""
-                    ,
-                    "urlParameters" : {
-                        "deviceId":%s
-                    }
+                    , "urlParameters" : { "deviceId":%s }
                     """);
             template = String.format(template, deviceId);
         }

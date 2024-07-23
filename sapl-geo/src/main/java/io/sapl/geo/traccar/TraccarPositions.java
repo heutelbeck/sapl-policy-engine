@@ -85,13 +85,7 @@ public class TraccarPositions extends TraccarBase {
         var client = new ReactiveWebClient(mapper);
 
         var template = """
-                {
-                    "baseUrl" : "%s",
-                    "accept" : "%s",
-                    "headers" : {
-                        "cookie": "%s"
-                    }
-                }
+                { "baseUrl" : "%s", "accept" : "%s", "headers" : { "cookie": "%s" } }
                 """;
 
         var request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
