@@ -72,7 +72,7 @@ public class OwnTracksTests {
             "KML,ResponseKML,true" })
     void testConnection(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
         var expected        = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var requestTemplate =(template.concat(",\"responseFormat\":\"%s\""));
+        var requestTemplate = (template.concat(",\"responseFormat\":\"%s\""));
         requestTemplate = String.format(requestTemplate, responseFormat);
 
         if (!latitudeFirst) {

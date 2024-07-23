@@ -45,14 +45,6 @@ abstract class TraccarBase extends TrackerConnectionBase {
     protected String server;
     protected String protocol;
 
-    protected static final String DEVICE_ID  = "deviceId";
-    protected static final String POSITIONS  = "positions";
-    protected static final String ALTITUDE   = "altitude";
-    protected static final String LASTUPDATE = "fixTime";
-    protected static final String ACCURACY   = "accuracy";
-    protected static final String LATITUDE   = "latitude";
-    protected static final String LONGITUDE  = "longitude";
-
     protected Mono<String> establishSession(String user, String password, String serverName, String protocol)
             throws PolicyEvaluationException {
 

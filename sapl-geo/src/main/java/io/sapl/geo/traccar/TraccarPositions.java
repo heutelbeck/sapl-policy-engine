@@ -39,7 +39,7 @@ public class TraccarPositions extends TraccarBase {
     private static final String POSITIONS = "positions";
 
     /**
-     * @param auth a {@link JsonNode} containing the settings for authorization
+     * @param auth   a {@link JsonNode} containing the settings for authorization
      * @param mapper a {@link ObjectMapper}
      */
     public TraccarPositions(JsonNode auth, ObjectMapper mapper) {
@@ -49,9 +49,9 @@ public class TraccarPositions extends TraccarBase {
         accuracy   = "accuracy";
         latitude   = "latitude";
         longitude  = "longitude";
-        
+
         this.mapper = mapper;
-        
+
         user     = getUser(auth);
         password = getPassword(auth);
         server   = getServer(auth);

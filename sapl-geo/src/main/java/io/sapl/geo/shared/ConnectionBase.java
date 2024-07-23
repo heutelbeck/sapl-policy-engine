@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 
-
 public abstract class ConnectionBase {
 
     protected static final String USER_CONST                         = "user";
@@ -38,7 +37,7 @@ public abstract class ConnectionBase {
     protected static final long   DEFAULT_REPETITIONS_CONST          = Long.MAX_VALUE;
 
     protected ObjectMapper mapper;
-    
+
     protected static String getUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(USER_CONST)) {
 

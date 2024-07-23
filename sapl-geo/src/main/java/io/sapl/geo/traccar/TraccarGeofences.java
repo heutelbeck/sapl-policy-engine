@@ -51,7 +51,6 @@ public class TraccarGeofences extends TraccarBase {
     private static final String CALENDARID  = "calendarId";
     private static final String ID          = "id";
     private static final String EPSG        = "EPSG:4326";
-    
 
     /**
      * @param auth a {@link JsonNode} containing the settings for authorization
@@ -71,7 +70,7 @@ public class TraccarGeofences extends TraccarBase {
     public Flux<Val> getGeofences(JsonNode settings) {
 
         var deviceId = getDeviceId(settings);
-  
+
         return establishSession(user, password, server, protocol).flatMapMany(cookie ->
 
         {
@@ -216,8 +215,7 @@ public class TraccarGeofences extends TraccarBase {
                 .calendarId(geoFence.findValue(CALENDARID).asText()).name(geoFence.findValue(FENCENAME).asText())
                 .description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
     }
-    
-    
+
     protected static Integer getDeviceId(JsonNode requestSettings) {
         if (requestSettings.has(DEVICEID_CONST)) {
             return requestSettings.findValue(DEVICEID_CONST).asInt();

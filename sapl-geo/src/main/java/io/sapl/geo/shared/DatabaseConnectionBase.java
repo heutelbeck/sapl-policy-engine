@@ -73,8 +73,7 @@ public abstract class DatabaseConnectionBase extends ConnectionBase {
 
     private AtomicReference<Connection> connectionReference = new AtomicReference<>();
     private String[]                    selectColumns;
-    private static ConnectionFactory           connectionFactory;
-    
+    private static ConnectionFactory    connectionFactory;
 
     /**
      * @param settings a {@link JsonNode} containing the settings
@@ -235,18 +234,13 @@ public abstract class DatabaseConnectionBase extends ConnectionBase {
                 PostgresqlConnectionConfiguration.builder().username(getUser(auth)).password(getPassword(auth))
                         .host(getServer(auth)).port(port).database(getDataBase(auth)).build());
     }
-    
+
     protected static void createMySqlConnectionFactory(JsonNode auth, int port) {
-        connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
-                .username(getUser(auth))
-                .password(getPassword(auth))
-                .host(getServer(auth))
-                .port(port)
-                .database(getDataBase(auth))
-                .serverZoneId(ZoneId.of("UTC"))
-                .build());
+        connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))
+                .password(getPassword(auth)).host(getServer(auth)).port(port).database(getDataBase(auth))
+                .serverZoneId(ZoneId.of("UTC")).build());
     }
-    
+
     private String buildSql(String geoColumn, String[] columns, String table, String where) {
         var frmt = "ST_AsGeoJSON";
 
@@ -332,7 +326,7 @@ public abstract class DatabaseConnectionBase extends ConnectionBase {
         }
 
     }
-    
+
     private static long longOrDefault(JsonNode requestSettings, String fieldName, long defaultValue) {
 
         if (requestSettings.has(fieldName)) {
@@ -346,6 +340,5 @@ public abstract class DatabaseConnectionBase extends ConnectionBase {
 
         return defaultValue;
     }
-
 
 }

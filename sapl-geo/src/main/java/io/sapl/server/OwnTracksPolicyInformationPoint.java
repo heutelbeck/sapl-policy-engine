@@ -40,14 +40,14 @@ public class OwnTracksPolicyInformationPoint {
     @Attribute(name = "ownTracks")
     public Flux<Val> connectToOwnTracks(Val leftHandValue, Val variables) {
 
-        return new OwnTracks(null,mapper).connect(variables.get());
+        return new OwnTracks(null, mapper).connect(variables.get());
 
     }
 
     @EnvironmentAttribute(name = "ownTracks")
     public Flux<Val> connectToOwnTracks(Val variables) {
 
-        return new OwnTracks(null,mapper).connect(variables.get());
+        return new OwnTracks(null, mapper).connect(variables.get());
 
     }
 

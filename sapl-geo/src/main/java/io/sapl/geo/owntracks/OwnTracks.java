@@ -94,7 +94,7 @@ public class OwnTracks extends TrackerConnectionBase {
 
         try {
 
-            var request = getRequest(settings, url);
+            var request = getRequest(url);
             return getFlux(request, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings))
                     .map(Val::of);
 
@@ -104,7 +104,7 @@ public class OwnTracks extends TrackerConnectionBase {
 
     }
 
-    private String getRequest(JsonNode auth, String url) {
+    private String getRequest(String url) {
 
         var settings = """
                 {
@@ -114,19 +114,6 @@ public class OwnTracks extends TrackerConnectionBase {
 
         settings = String.format(settings, url, MediaType.APPLICATION_JSON_VALUE);
 
-//        if (getHttpBasicAuthUser(auth) != null && getPassword(auth) != null) {
-//            var valueToEncode   = String.format("%s:%s", getHttpBasicAuthUser(auth), getPassword(auth));
-//            var basicAuthHeader = "Basic "
-//                    + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
-//
-//            var authorizationSettings = """
-//                        ,
-//                        "headers" : {
-//                           Authorization": "%s"
-//                        }
-//                      }
-//                    """;
-//            authorizationSettings = String.format(authorizationSettings, basicAuthHeader);
 
         if (authSettings != null) {
 
