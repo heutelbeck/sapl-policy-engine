@@ -99,34 +99,38 @@ public abstract class DatabaseConnectionBase extends ConnectionBase {
     private Flux<JsonNode> createConnection(GeoPipResponseFormat format, String sql, boolean singleResult,
             int defaultCrs, long repeatTimes, long pollingInterval, boolean latitudeFirst) {
 
-        var connection = Mono.from(connectionFactory.create()).doOnNext(connectionReference::set);
-
         logger.info("Database-Client connected.");
 
         if (singleResult) {
 
             sql = sql.concat(" LIMIT 1");
-            return poll(getResults(connection, sql, format, defaultCrs, latitudeFirst).next(), repeatTimes,
+            return poll(getResults(sql, format, defaultCrs, latitudeFirst).next(), repeatTimes,
                     pollingInterval);
         } else {
 
-            return poll(collectMultipleResults(getResults(connection, sql, format, defaultCrs, latitudeFirst)),
+            return poll(collectMultipleResults(getResults(sql, format, defaultCrs, latitudeFirst)),
                     repeatTimes, pollingInterval);
         }
 
     }
 
-    private Flux<JsonNode> getResults(Mono<? extends Connection> connection, String sql, GeoPipResponseFormat format,
+    private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format,
             int defaultCrs, boolean latitudeFirst) {
 
-        return connection.flatMapMany(conn -> Flux.from(conn.createStatement(sql).execute())
-                .flatMap(result -> result.map((row, rowMetadata) -> {
+    	
+        return Flux.usingWhen(connectionFactory.create(),
+        		
+        		conn -> Flux.from(conn.createStatement(sql).execute())
+        		.flatMap(result -> result.map((row, rowMetadata) -> {
                     try {
                         return mapResult(row, format, defaultCrs, latitudeFirst);
                     } catch (Exception e) {
                         throw new PolicyEvaluationException(e);
                     }
-                })));
+                })),
+
+        		Connection::close);
+        		
     }
 
     private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst)
