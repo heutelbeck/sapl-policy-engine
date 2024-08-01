@@ -18,22 +18,33 @@
 
 package io.sapl.test.dsl.setup;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.IOUtils;
+import org.eclipse.emf.common.util.Diagnostic;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.common.util.WrappedException;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.util.Diagnostician;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResourceSet;
 
+import io.sapl.interpreter.InputStreamHelper;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.grammar.SAPLTestStandaloneSetup;
 import io.sapl.test.grammar.sapltest.SAPLTest;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class DefaultSaplTestInterpreter implements SaplTestInterpreter {
+    public static final String INVALID_BYTE_SEQUENCE = "Invalid byte sequence in InputStream.";
+
     private static final String DUMMY_RESOURCE_URI = "test:/test1.sapltest";
+    private static final String PARSING_ERRORS     = "Parsing errors: %s";
 
     @Override
     public SAPLTest loadAsResource(final InputStream testInputStream) {
@@ -58,4 +69,58 @@ public class DefaultSaplTestInterpreter implements SaplTestInterpreter {
         final var inputStream = IOUtils.toInputStream(input, StandardCharsets.UTF_8);
         return loadAsResource(inputStream);
     }
+
+    @Override
+    public TestDocument parseDocument(String source) {
+        return parseDocument(new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    public TestDocument parseDocument(final InputStream saplInputStream) {
+        InputStream convertedAndSecuredInputStream;
+        try {
+            convertedAndSecuredInputStream = InputStreamHelper.detectAndConvertEncodingOfStream(saplInputStream);
+            convertedAndSecuredInputStream = InputStreamHelper
+                    .convertToTrojanSourceSecureStream(convertedAndSecuredInputStream);
+        } catch (IOException e) {
+            return new TestDocument(null, null, INVALID_BYTE_SEQUENCE);
+        }
+        return loadDocumentAsResource(convertedAndSecuredInputStream);
+    }
+
+    public TestDocument loadDocumentAsResource(final InputStream testInputStream) {
+        final var injector    = SAPLTestStandaloneSetup.doSetupAndGetInjector();
+        final var resourceSet = injector.getInstance(XtextResourceSet.class);
+        final var resource    = resourceSet.createResource(URI.createFileURI(DUMMY_RESOURCE_URI));
+
+        try {
+            resource.load(testInputStream, resourceSet.getLoadOptions());
+        } catch (IOException | WrappedException e) {
+            var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
+            log.debug(errorMessage, e);
+            return new TestDocument(null, null, errorMessage);
+        }
+
+        if (!resource.getErrors().isEmpty()) {
+            var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
+            return new TestDocument(null, null, errorMessage);
+        }
+
+        var saplTest   = (SAPLTest) resource.getContents().get(0);
+        var diagnostic = Diagnostician.INSTANCE.validate(saplTest);
+
+        return new TestDocument(saplTest, diagnostic, composeErrorMessage(diagnostic));
+    }
+
+    private static String composeErrorMessage(Diagnostic diagnostic) {
+        if (diagnostic.getSeverity() == Diagnostic.OK) {
+            return "OK";
+        }
+        var sb = new StringBuilder().append("SAPLTest Validation Error: [");
+        for (Diagnostic d : diagnostic.getChildren()) {
+            sb.append('[').append(NodeModelUtils.findActualNodeFor((EObject) d.getData().get(0)).getText()).append(": ")
+                    .append(d.getMessage()).append(']');
+        }
+        return sb.append(']').toString();
+    }
+
 }

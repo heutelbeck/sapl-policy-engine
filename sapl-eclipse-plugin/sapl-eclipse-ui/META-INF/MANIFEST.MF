@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Automatic-Module-Name: sapl-eclipse-ui
 Bundle-ManifestVersion: 2
 Bundle-Name: sapl-ui
-Bundle-Vendor: My Company
+Bundle-Vendor: Dominic Heutelbeck
 Bundle-Version: 3.0.0.qualifier
 Bundle-SymbolicName: sapl-eclipse-ui; singleton:=true
 Bundle-ActivationPolicy: lazy
