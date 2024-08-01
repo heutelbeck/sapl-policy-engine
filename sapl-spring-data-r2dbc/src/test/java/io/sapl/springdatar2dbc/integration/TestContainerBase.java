@@ -24,6 +24,7 @@ import org.testcontainers.utility.MountableFile;
 
 public class TestContainerBase {
 
+    @SuppressWarnings("resource") // Fine for tests which are short lived
     static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:12")
             .withCopyFileToContainer(MountableFile.forClasspathResource("testing_init_scripts/testing_schema.sql"),
                     "/docker-entrypoint-initdb.d/testing_schema.sql");
