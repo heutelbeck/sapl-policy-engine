@@ -73,11 +73,13 @@
 
 	<properties>
 		<java.version>17</java.version>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<maven.compiler.release>${java.version}</maven.compiler.release>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+		<maven.deploy.skip>true</maven.deploy.skip>
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
 
 		<!-- Dependencies -->
@@ -96,7 +98,7 @@
 		<json-schema-validator.version>1.5.1</json-schema-validator.version>
 		
 		<!-- Maven Plug-Ins -->
-		<tycho.version>4.0.6</tycho.version>
+		<tycho.version>4.0.8</tycho.version>
 		<spdx-maven-plugin.version>0.7.3</spdx-maven-plugin.version>
 		<license-maven-plugin.version>4.5</license-maven-plugin.version>
 		<maven-failsafe-plugin.version>3.3.1</maven-failsafe-plugin.version>
@@ -109,8 +111,6 @@
 		
 		 <!-- Base argLine for JDK21+ profiles -->
 		<argLine />
-
-		<maven.deploy.skip>true</maven.deploy.skip>
 	</properties>
 
 	<modules>
