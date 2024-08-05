@@ -47,67 +47,75 @@ class MongoReactiveRepositoryProxyPostProcessorTests {
             RepositoryInformation.class);
 
     @Test
-	void when_postProcess_then_addAdviceWithReactiveMongoRepository() {
-		// GIVEN
-        when(repositoryInformationMock.getRepositoryInterface()).thenAnswer(invocation -> UserReactiveMongoRepository.class);
+    void when_postProcess_then_addAdviceWithReactiveMongoRepository() {
+        // GIVEN
+        when(repositoryInformationMock.getRepositoryInterface())
+                .thenAnswer(invocation -> UserReactiveMongoRepository.class);
 
-		var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
+        var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
+                mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
 
-		// WHEN
-		postProcessor.postProcess(factoryMock, repositoryInformationMock);
+        // WHEN
+        postProcessor.postProcess(factoryMock, repositoryInformationMock);
 
-		// THEN
-		verify(factoryMock, times(1)).addAdvice(mongoReactivePolicyEnforcementPointMock);
-		verify(repositoryInformationMock, times(1)).getRepositoryInterface();
-		verify(repositoryInformationCollectorServiceMock, times(1)).add(any(RepositoryInformation.class));
-	}
-
-    @Test
-	void when_postProcess_then_addNoAdvice() {
-		// GIVEN
-        when(repositoryInformationMock.getRepositoryInterface()).thenAnswer(invocation -> MethodInvocationForTesting.class);
-
-		var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
-
-		// WHEN
-		postProcessor.postProcess(factoryMock, repositoryInformationMock);
-
-		// THEN
-		verify(factoryMock, times(0)).addAdvice(mongoReactivePolicyEnforcementPointMock);
-		verify(repositoryInformationMock, times(1)).getRepositoryInterface();
-		verify(repositoryInformationCollectorServiceMock, times(0)).add(any(RepositoryInformation.class));
-	}
+        // THEN
+        verify(factoryMock, times(1)).addAdvice(mongoReactivePolicyEnforcementPointMock);
+        verify(repositoryInformationMock, times(1)).getRepositoryInterface();
+        verify(repositoryInformationCollectorServiceMock, times(1)).add(any(RepositoryInformation.class));
+    }
 
     @Test
-	void when_postProcess_then_addAdviceWithReactiveCrudRepository() {
-		// GIVEN
-        when(repositoryInformationMock.getRepositoryInterface()).thenAnswer(invocation -> UserReactiveCrudRepository.class);
+    void when_postProcess_then_addNoAdvice() {
+        // GIVEN
+        when(repositoryInformationMock.getRepositoryInterface())
+                .thenAnswer(invocation -> MethodInvocationForTesting.class);
 
-		var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
+        var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
+                mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
 
-		// WHEN
-		postProcessor.postProcess(factoryMock, repositoryInformationMock);
+        // WHEN
+        postProcessor.postProcess(factoryMock, repositoryInformationMock);
 
-		// THEN
-		verify(factoryMock, times(1)).addAdvice(mongoReactivePolicyEnforcementPointMock);
-		verify(repositoryInformationMock, times(1)).getRepositoryInterface();
-		verify(repositoryInformationCollectorServiceMock, times(1)).add(any(RepositoryInformation.class));
-	}
+        // THEN
+        verify(factoryMock, times(0)).addAdvice(mongoReactivePolicyEnforcementPointMock);
+        verify(repositoryInformationMock, times(1)).getRepositoryInterface();
+        verify(repositoryInformationCollectorServiceMock, times(0)).add(any(RepositoryInformation.class));
+    }
 
     @Test
-	void when_postProcess_then_addAdviceWithReactiveSortingRepository() {
-		// GIVEN
-        when(repositoryInformationMock.getRepositoryInterface()).thenAnswer(invocation -> UserReactiveSortingRepository.class);
+    void when_postProcess_then_addAdviceWithReactiveCrudRepository() {
+        // GIVEN
+        when(repositoryInformationMock.getRepositoryInterface())
+                .thenAnswer(invocation -> UserReactiveCrudRepository.class);
 
-		var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
+        var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
+                mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
 
-		// WHEN
-		postProcessor.postProcess(factoryMock, repositoryInformationMock);
+        // WHEN
+        postProcessor.postProcess(factoryMock, repositoryInformationMock);
 
-		// THEN
-		verify(factoryMock, times(1)).addAdvice(mongoReactivePolicyEnforcementPointMock);
-		verify(repositoryInformationMock, times(1)).getRepositoryInterface();
-		verify(repositoryInformationCollectorServiceMock, times(1)).add(any(RepositoryInformation.class));
-	}
+        // THEN
+        verify(factoryMock, times(1)).addAdvice(mongoReactivePolicyEnforcementPointMock);
+        verify(repositoryInformationMock, times(1)).getRepositoryInterface();
+        verify(repositoryInformationCollectorServiceMock, times(1)).add(any(RepositoryInformation.class));
+    }
+
+    @Test
+    void when_postProcess_then_addAdviceWithReactiveSortingRepository() {
+        // GIVEN
+        when(repositoryInformationMock.getRepositoryInterface())
+                .thenAnswer(invocation -> UserReactiveSortingRepository.class);
+
+        var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
+                mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
+
+        // WHEN
+        postProcessor.postProcess(factoryMock, repositoryInformationMock);
+
+        // THEN
+        verify(factoryMock, times(1)).addAdvice(mongoReactivePolicyEnforcementPointMock);
+        verify(repositoryInformationMock, times(1)).getRepositoryInterface();
+        verify(repositoryInformationCollectorServiceMock, times(1)).add(any(RepositoryInformation.class));
+    }
 
 }

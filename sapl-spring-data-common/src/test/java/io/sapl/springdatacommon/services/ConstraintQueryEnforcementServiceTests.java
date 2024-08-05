@@ -63,142 +63,142 @@ class ConstraintQueryEnforcementServiceTests {
     private static ConstraintQueryEnforcementService CONSTRAINT_SERVICE = new ConstraintQueryEnforcementService();
 
     @Test
-	void when_queryManipulationBundelFor_then_createBundleWithMongoQueryManipulation() {
-		// GIVEN
-		when(decision.getObligations()).thenReturn(OBLIGATIONS_MONGO_QUERY);
-		when(ConstraintResponsibility.isResponsible(OBLIGATION_MONGO_QUERY, "mongoQueryManipulation")).thenReturn(true);
+    void when_queryManipulationBundelFor_then_createBundleWithMongoQueryManipulation() {
+        // GIVEN
+        when(decision.getObligations()).thenReturn(OBLIGATIONS_MONGO_QUERY);
+        when(ConstraintResponsibility.isResponsible(OBLIGATION_MONGO_QUERY, "mongoQueryManipulation")).thenReturn(true);
 
-		var queryManipulationRecords = List
-				.of(new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, OBLIGATION_MONGO_QUERY));
-		var result = new QueryManipulationConstraintHandlerService(queryManipulationRecords);
+        var queryManipulationRecords = List
+                .of(new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, OBLIGATION_MONGO_QUERY));
+        var result                   = new QueryManipulationConstraintHandlerService(queryManipulationRecords);
 
-		// WHEN
-		var handler = CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision);
+        // WHEN
+        var handler = CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision);
 
-		// THEN
-		assertEquals(handler.getQueryManipulationRecords(), result.getQueryManipulationRecords());
-	}
-
-    @Test
-	void when_queryManipulationBundelFor_then_createBundleWithR2dbcQueryManipulation() {
-		// GIVEN
-		when(decision.getObligations()).thenReturn(OBLIGATIONS_R2DBC_QUERY);
-		when(ConstraintResponsibility.isResponsible(OBLIGATION_R2DBC_QUERY, "r2dbcQueryManipulation")).thenReturn(true);
-
-		var queryManipulationRecords = List
-				.of(new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, OBLIGATION_R2DBC_QUERY));
-		var result = new QueryManipulationConstraintHandlerService(queryManipulationRecords);
-
-		// WHEN
-		var handler = CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision);
-
-		// THEN
-		assertEquals(handler.getQueryManipulationRecords(), result.getQueryManipulationRecords());
-	}
+        // THEN
+        assertEquals(handler.getQueryManipulationRecords(), result.getQueryManipulationRecords());
+    }
 
     @Test
-	void when_queryManipulationBundelFor_then_throwAccessDenyErrorBecauseUnhandledObligationDetected1() {
-		// GIVEN
-		when(decision.getObligations()).thenReturn(OBLIGATIONS_MONGO_QUERY);
-		when(ConstraintResponsibility.isResponsible(OBLIGATION_MONGO_QUERY, "mongoQueryManipulation"))
-				.thenReturn(false);
+    void when_queryManipulationBundelFor_then_createBundleWithR2dbcQueryManipulation() {
+        // GIVEN
+        when(decision.getObligations()).thenReturn(OBLIGATIONS_R2DBC_QUERY);
+        when(ConstraintResponsibility.isResponsible(OBLIGATION_R2DBC_QUERY, "r2dbcQueryManipulation")).thenReturn(true);
 
-		var errorMessage = """
-							Unhandable Obligation: {
-							  "type" : "mongoQueryManipulation",
-							  "conditions" : [ "{'role': {'$eq': 'USER'}}" ],
-							  "selection" : {
-							    "type" : "blacklist",
-							    "columns" : [ "firstname" ]
-							  }
-							}
-				""";
+        var queryManipulationRecords = List
+                .of(new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, OBLIGATION_R2DBC_QUERY));
+        var result                   = new QueryManipulationConstraintHandlerService(queryManipulationRecords);
 
-		// WHEN
+        // WHEN
+        var handler = CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision);
 
-		// THEN
-		var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
-			CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision);
-		});
-		assertEquals(TestUtils.removeWhitespace(errorMessage),
-				TestUtils.removeWhitespace(accessDeniedException.getMessage()));
-	}
+        // THEN
+        assertEquals(handler.getQueryManipulationRecords(), result.getQueryManipulationRecords());
+    }
 
     @Test
-	void when_queryManipulationBundelFor_then_throwAccessDenyErrorBecauseNoObligationDetected() {
-		// GIVEN
-		when(decision.getObligations()).thenReturn(OBLIGATIONS_ANOTHER_ONE);
-		when(ConstraintResponsibility.isResponsible(OBLIGATIONS_ANOTHER_ONE.get(), "r2dbcQueryManipulation"))
-				.thenReturn(true);
+    void when_queryManipulationBundelFor_then_throwAccessDenyErrorBecauseUnhandledObligationDetected1() {
+        // GIVEN
+        when(decision.getObligations()).thenReturn(OBLIGATIONS_MONGO_QUERY);
+        when(ConstraintResponsibility.isResponsible(OBLIGATION_MONGO_QUERY, "mongoQueryManipulation"))
+                .thenReturn(false);
 
-		var errorMessage = """
-						UnhandableObligation:{
-							"type":"testObligation",
-							"test":["{'role':{'$eq':'USER'}}"]}
-				""";
+        var errorMessage = """
+                			Unhandable Obligation: {
+                			  "type" : "mongoQueryManipulation",
+                			  "conditions" : [ "{'role': {'$eq': 'USER'}}" ],
+                			  "selection" : {
+                			    "type" : "blacklist",
+                			    "columns" : [ "firstname" ]
+                			  }
+                			}
+                """;
 
-		// WHEN
+        // WHEN
 
-		// THEN
-		var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
-			CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision);
-		});
-		assertEquals(TestUtils.removeWhitespace(errorMessage),
-				TestUtils.removeWhitespace(accessDeniedException.getMessage()));
-	}
-
-    @Test
-	void when_queryManipulationBundelFor_then_throwAccessDenyErrorWrongFormatOfObligationDetected() {
-		// GIVEN
-		when(decision.getObligations()).thenReturn(OBLIGATION_WITH_WRONG_FORMAT_TWO);
-		when(ConstraintResponsibility.isResponsible(any(JsonNode.class), eq("r2dbcQueryManipulation")))
-				.thenReturn(true);
-
-		var errorMessage = """
-					UnhandableObligation:{
-						"type":"r2dbcQueryManipulation",
-						"conditionss":["active=true"],
-						"selectionss":{
-							"types":["blacklist"],
-							"columnss":["firstname"]}}
-				""";
-
-		// WHEN
-
-		// THEN
-		var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
-			CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision);
-		});
-		assertEquals(TestUtils.removeWhitespace(errorMessage),
-				TestUtils.removeWhitespace(accessDeniedException.getMessage()));
-	}
+        // THEN
+        var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
+            CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision);
+        });
+        assertEquals(TestUtils.removeWhitespace(errorMessage),
+                TestUtils.removeWhitespace(accessDeniedException.getMessage()));
+    }
 
     @Test
-	void when_queryManipulationBundelFor_then_throwAccessDenyErrorBecauseUnhandledObligationDetected2() {
-		// GIVEN
-		when(decision.getObligations()).thenReturn(OBLIGATION_WITH_WRONG_FORMAT);
-		when(ConstraintResponsibility.isResponsible(OBLIGATION_MONGO_QUERY, "mongoQueryManipulation")).thenReturn(true);
+    void when_queryManipulationBundelFor_then_throwAccessDenyErrorBecauseNoObligationDetected() {
+        // GIVEN
+        when(decision.getObligations()).thenReturn(OBLIGATIONS_ANOTHER_ONE);
+        when(ConstraintResponsibility.isResponsible(OBLIGATIONS_ANOTHER_ONE.get(), "r2dbcQueryManipulation"))
+                .thenReturn(true);
 
-		var errorMessage = """
-							Unhandable Obligation: {
-							  "type" : "r2dbcQueryManipulation",
-							  "conditionss" : [ "active=true" ],
-							  "selection" : {
-							    "types" : "blacklist",
-							    "columns" : [ "firstname" ]
-							  }
-							}
-				""";
+        var errorMessage = """
+                		UnhandableObligation:{
+                			"type":"testObligation",
+                			"test":["{'role':{'$eq':'USER'}}"]}
+                """;
 
-		// WHEN
+        // WHEN
 
-		// THEN
-		var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
-			CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision);
-		});
-		assertEquals(TestUtils.removeWhitespace(errorMessage),
-				TestUtils.removeWhitespace(accessDeniedException.getMessage()));
-	}
+        // THEN
+        var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
+            CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision);
+        });
+        assertEquals(TestUtils.removeWhitespace(errorMessage),
+                TestUtils.removeWhitespace(accessDeniedException.getMessage()));
+    }
+
+    @Test
+    void when_queryManipulationBundelFor_then_throwAccessDenyErrorWrongFormatOfObligationDetected() {
+        // GIVEN
+        when(decision.getObligations()).thenReturn(OBLIGATION_WITH_WRONG_FORMAT_TWO);
+        when(ConstraintResponsibility.isResponsible(any(JsonNode.class), eq("r2dbcQueryManipulation")))
+                .thenReturn(true);
+
+        var errorMessage = """
+                	UnhandableObligation:{
+                		"type":"r2dbcQueryManipulation",
+                		"conditionss":["active=true"],
+                		"selectionss":{
+                			"types":["blacklist"],
+                			"columnss":["firstname"]}}
+                """;
+
+        // WHEN
+
+        // THEN
+        var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
+            CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision);
+        });
+        assertEquals(TestUtils.removeWhitespace(errorMessage),
+                TestUtils.removeWhitespace(accessDeniedException.getMessage()));
+    }
+
+    @Test
+    void when_queryManipulationBundelFor_then_throwAccessDenyErrorBecauseUnhandledObligationDetected2() {
+        // GIVEN
+        when(decision.getObligations()).thenReturn(OBLIGATION_WITH_WRONG_FORMAT);
+        when(ConstraintResponsibility.isResponsible(OBLIGATION_MONGO_QUERY, "mongoQueryManipulation")).thenReturn(true);
+
+        var errorMessage = """
+                			Unhandable Obligation: {
+                			  "type" : "r2dbcQueryManipulation",
+                			  "conditionss" : [ "active=true" ],
+                			  "selection" : {
+                			    "types" : "blacklist",
+                			    "columns" : [ "firstname" ]
+                			  }
+                			}
+                """;
+
+        // WHEN
+
+        // THEN
+        var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
+            CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision);
+        });
+        assertEquals(TestUtils.removeWhitespace(errorMessage),
+                TestUtils.removeWhitespace(accessDeniedException.getMessage()));
+    }
 
     @BeforeEach
     void initStaticClasses() {

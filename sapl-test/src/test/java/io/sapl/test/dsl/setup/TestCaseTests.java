@@ -129,7 +129,8 @@ class TestCaseTests {
     private Runnable assertDynamicTestAndGetRunnable() {
         when(scenarioMock.getName()).thenReturn("test1");
 
-        final var result = io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, requirementMock, scenarioMock, null);
+        final var result = io.sapl.test.dsl.setup.TestCase.from(stepConstructorMock, requirementMock, scenarioMock,
+                null);
 
         assertEquals("test1", result.getIdentifier());
 
@@ -171,7 +172,8 @@ class TestCaseTests {
     void from_withNullScenarioName_throwsSaplTestException() {
         when(scenarioMock.getName()).thenReturn(null);
 
-        final var exception = assertThrows(SaplTestException.class, () -> TestCase.from(stepConstructorMock, requirementMock, scenarioMock, null));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> TestCase.from(stepConstructorMock, requirementMock, scenarioMock, null));
 
         assertEquals("Name of the scenario is null", exception.getMessage());
     }
