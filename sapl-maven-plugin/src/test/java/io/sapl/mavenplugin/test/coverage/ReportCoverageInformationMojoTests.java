@@ -68,7 +68,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
     private Log log;
 
-    private CoverageTargets coverageTargets_twoSets_two_Policies_twoConditions;
+    private CoverageTargets coverageTargetsTwoSetsTwoPoliciesTwoConditions;
 
     @BeforeEach
     void setup() throws Exception {
@@ -90,7 +90,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         getContainer().addComponent(sonarReporter, SonarLineCoverageReportGenerator.class, "");
         getContainer().addComponent(htmlReporter, HtmlLineCoverageReportGenerator.class, "");
 
-        coverageTargets_twoSets_two_Policies_twoConditions = new CoverageTargets(
+        coverageTargetsTwoSetsTwoPoliciesTwoConditions = new CoverageTargets(
                 List.of(new PolicySetHit("set1"), new PolicySetHit("set2")),
                 List.of(new PolicyHit("set1", "policy1"), new PolicyHit("set2", "policy2")),
                 List.of(new PolicyConditionHit("set1", "policy1", 1, true),
@@ -112,8 +112,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -134,8 +134,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -156,8 +156,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -178,8 +178,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -200,7 +200,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.coverageAPIHelper.readHits(any())).thenThrow(new IOException("TESTING"));
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
@@ -219,8 +219,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -241,8 +241,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 50f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -263,8 +263,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 50f, 100f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -285,8 +285,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 100f, 100f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -308,8 +308,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 100f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -331,8 +331,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 100f, 50f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -354,8 +354,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 50f, 50f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -377,8 +377,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 50f);
@@ -402,7 +402,7 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         CoverageTargets targets = new CoverageTargets(List.of(), List.of(), List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any())).thenReturn(targets);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 50f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -433,8 +433,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
@@ -457,8 +457,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom_htmlReportDisabled.xml");
@@ -479,8 +479,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
 
         when(this.saplDocumentReader.retrievePolicyDocuments(any(), any(), any())).thenReturn(List.of());
         when(this.coverageTargetHelper.getCoverageTargets(any()))
-                .thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
-        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargets_twoSets_two_Policies_twoConditions);
+                .thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
+        when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
 
         Path pom  = Paths.get("src", "test", "resources", "pom", "pom_allReportsDisabled.xml");

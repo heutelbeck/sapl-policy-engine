@@ -37,8 +37,8 @@ class JWTTestUtility {
 
     static final String UNSUPPORTED_KEY_ERROR = "The type of the provided key is not supported!";
 
-    static final long timeUnit            = 2000L; // two seconds in millis
-    static final long synchronousTimeUnit = 50L;   // fifty milliseconds
+    static final long TIME_UNIT             = 2000L; // two seconds in millis
+    static final long SYNCHRONOUS_TIME_UNIT = 50L;   // fifty milliseconds
 
     static final String EC  = "EC";
     static final String RSA = "RSA";
@@ -47,35 +47,35 @@ class JWTTestUtility {
      * @return timestamp one unit ago as Date object
      */
     static Date timeOneUnitBeforeNow() {
-        return Date.from(Instant.now().minusMillis(timeUnit));
+        return Date.from(Instant.now().minusMillis(TIME_UNIT));
     }
 
     /**
      * @return timestamp one unit in the future as Date object
      */
     static Date timeOneUnitAfterNow() {
-        return Date.from(Instant.now().plusMillis(timeUnit));
+        return Date.from(Instant.now().plusMillis(TIME_UNIT));
     }
 
     /**
      * @return timestamp three units in the future as Date object
      */
     static Date timeThreeUnitsAfterNow() {
-        return Date.from(Instant.now().plusMillis(3 * timeUnit));
+        return Date.from(Instant.now().plusMillis(3 * TIME_UNIT));
     }
 
     /**
      * @return time interval of two units as Duration object
      */
     static Duration twoUnitDuration() {
-        return Duration.ofMillis(2 * timeUnit);
+        return Duration.ofMillis(2 * TIME_UNIT);
     }
 
     /**
      * @return time interval of two synchronous units as Duration object
      */
     static Duration twoSynchronousUnitDuration() {
-        return Duration.ofMillis(2 * synchronousTimeUnit);
+        return Duration.ofMillis(2 * SYNCHRONOUS_TIME_UNIT);
     }
 
     /**

@@ -57,7 +57,7 @@ import lombok.NoArgsConstructor;
 
 class AnnotationFunctionContextTests {
 
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     void failToInitializeNonFunctionLibraryAnnotatedClass() {
@@ -256,7 +256,7 @@ class AnnotationFunctionContextTests {
 
     @Test
     void schemaIsReturned() throws InitializationException, JsonProcessingException {
-        final JsonNode PERSON_SCHEMA = MAPPER.readValue("""
+        final JsonNode personSchema = MAPPER.readValue("""
                 {  "$schema": "http://json-schema.org/draft-07/schema#",
                   "$id": "https://example.com/schemas/regions",
                   "type": "object",
@@ -268,7 +268,7 @@ class AnnotationFunctionContextTests {
         var context         = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
         var functionSchemas = context.getFunctionSchemas();
-        assertThat(functionSchemas, hasEntry("annotation.schemaFromJson", PERSON_SCHEMA));
+        assertThat(functionSchemas, hasEntry("annotation.schemaFromJson", personSchema));
     }
 
     @Test

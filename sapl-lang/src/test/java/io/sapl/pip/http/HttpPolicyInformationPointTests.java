@@ -34,19 +34,19 @@ import reactor.core.publisher.Flux;
 
 class HttpPolicyInformationPointTests {
 
-    private final static String DFAULT_REQUEST = """
+    private static final String DFAULT_REQUEST = """
             {
                 "baseUrl" : "https://localhost:8008"
             }
             """;
 
-    private final static String ALTERED_REQUEST = """
+    private static final String ALTERED_REQUEST = """
             {
                 "baseUrl" : "https://localhost:1234"
             }
             """;
 
-    private final static Val URL = Val.of("https://localhost:1234");
+    private static final Val URL = Val.of("https://localhost:1234");
 
     @Test
     void get() throws JsonProcessingException {

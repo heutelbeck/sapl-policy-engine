@@ -22,26 +22,26 @@ enum DispatchMode {
     /**
      * Dispatcher returns the true Base64Url-encoded key, matching the kid
      */
-    True,
+    TRUE,
     /**
      * Dispatcher returns the true Base64-encoded key, matching the kid
      */
-    Basic,
+    BASIC,
     /**
      * Dispatcher returns a wrong Base64Url-encoded key, not matching the kid
      */
-    Wrong,
+    WRONG,
     /**
-     * Dispatcher returns the key with Base64(Url) encoding errors
+     * Dispatcher returns the key with Base64(URL) encoding errors
      */
-    Invalid,
+    INVALID,
     /**
      * Dispatcher returns bogus data, not resembling an encoded key
      */
-    Bogus,
+    BOGUS,
     /**
      * Dispatcher always returns 404 - unknown
      */
-    Unknown
+    UNKNOWN
 
 }

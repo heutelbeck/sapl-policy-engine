@@ -55,7 +55,7 @@ import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
 class AnnotationAttributeContextTests {
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     void when_classHasNoAnnotation_fail() {
