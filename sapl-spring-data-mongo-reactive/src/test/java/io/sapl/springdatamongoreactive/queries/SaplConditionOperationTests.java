@@ -43,16 +43,16 @@ import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 
 class SaplConditionOperationTests {
 
-    static final ObjectMapper MAPPER = new ObjectMapper();
-    static JsonNode           MONGO_QUERY_MANIPULATION;
-    static JsonNode           MONGO_QUERY_MANIPULATION_OR_PART;
-    static JsonNode           CONDITIONS;
-    static JsonNode           CONDITIONS_WITH_OR_PART;
-    static JsonNode           NOT_VALID_CONDITIONS;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static JsonNode mongoQueryManipulation;
+    private static JsonNode mongoQueryManipulationOrPart;
+    private static JsonNode conditions;
+    private static JsonNode ConditionsWithOrPart;
 
     @BeforeAll
     public static void setUp() throws JsonProcessingException {
-        MONGO_QUERY_MANIPULATION         = MAPPER.readTree("""
+        mongoQueryManipulation       = MAPPER.readTree("""
                     		{
                   "type": "mongoQueryManipulation",
                   "conditions": [
@@ -61,7 +61,7 @@ class SaplConditionOperationTests {
                   ]
                 }
                     		""");
-        MONGO_QUERY_MANIPULATION_OR_PART = MAPPER.readTree("""
+        mongoQueryManipulationOrPart = MAPPER.readTree("""
                     		{
                   "type": "mongoQueryManipulation",
                   "conditions": [
@@ -69,13 +69,8 @@ class SaplConditionOperationTests {
                   ]
                 }
                     		""");
-        CONDITIONS                       = MONGO_QUERY_MANIPULATION.get("conditions");
-        CONDITIONS_WITH_OR_PART          = MONGO_QUERY_MANIPULATION_OR_PART.get("conditions");
-        NOT_VALID_CONDITIONS             = MAPPER.readTree("""
-                    		[
-                  "{'fieldNotValid': {'gt': 30 }}"
-                ]
-                    		""");
+        conditions                   = mongoQueryManipulation.get("conditions");
+        ConditionsWithOrPart         = mongoQueryManipulationOrPart.get("conditions");
     }
 
     @Test
@@ -86,7 +81,7 @@ class SaplConditionOperationTests {
         expected.add(new SaplCondition("firstname", "Aaron", OperatorMongoDB.SIMPLE_PROPERTY, "or"));
 
         // WHEN
-        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(CONDITIONS_WITH_OR_PART);
+        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(ConditionsWithOrPart);
 
         // THEN
         assertTwoSaplConditions(actualSaplConditions.get(0), expected.get(0));
@@ -101,7 +96,7 @@ class SaplConditionOperationTests {
         expected.add(new SaplCondition("firstname", List.of("Cathrin", "Aaron"), OperatorMongoDB.IN, "and"));
 
         // WHEN
-        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(CONDITIONS);
+        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditions);
 
         // THEN
         assertTwoSaplConditions(actualSaplConditions.get(0), expected.get(0));

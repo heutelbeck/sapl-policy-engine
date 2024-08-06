@@ -17,6 +17,6 @@
  */
 package io.sapl.springdatamongoreactive.sapl.database.repositoryerror;
 
-public interface R2dbcRepositoryNotFoundExceptionTests<T, ID> {
+public interface R2dbcRepositoryNotFoundExceptionTests<T, I> {
 
 }

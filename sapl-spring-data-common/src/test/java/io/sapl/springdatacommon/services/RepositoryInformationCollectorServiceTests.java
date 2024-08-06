@@ -37,7 +37,7 @@ import io.sapl.springdatacommon.database.Person;
 class RepositoryInformationCollectorServiceTests {
 
     @Mock
-    private static TypeInformation<?> TYPEINFO;
+    private static TypeInformation<?> typeInfo;
 
     @Test
     void when_add_then_addNewRepositoryInformation() {
@@ -68,12 +68,12 @@ class RepositoryInformationCollectorServiceTests {
 
         @Override
         public TypeInformation<?> getIdTypeInformation() {
-            return TYPEINFO;
+            return typeInfo;
         }
 
         @Override
         public TypeInformation<?> getDomainTypeInformation() {
-            return TYPEINFO;
+            return typeInfo;
         }
 
         @Override
@@ -83,7 +83,7 @@ class RepositoryInformationCollectorServiceTests {
 
         @Override
         public TypeInformation<?> getReturnType(Method method) {
-            return TYPEINFO;
+            return typeInfo;
         }
 
         @Override

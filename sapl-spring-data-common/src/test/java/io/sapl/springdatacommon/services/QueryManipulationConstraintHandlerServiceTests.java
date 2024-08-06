@@ -35,21 +35,22 @@ import io.sapl.springdatacommon.utils.TestUtils;
 
 class QueryManipulationConstraintHandlerServiceTests {
 
-    private static JsonNode     R2DBC_OBLIGATION;
-    private static JsonNode     R2DBC_UNHANDABLE_OBLIGATION;
-    private static JsonNode     MONGO_OBLIGATION;
-    private static JsonNode     SELECTIONS;
-    private static JsonNode     CONDITIONS;
-    private static JsonNode     OBLIGATION_WITHOUT_SELECTION;
-    private static JsonNode     R2DBC_OBLIGATION_WRONG_ALIAS;
-    private static JsonNode     R2DBC_OBLIGATION_WRONG_TRANSFORMATIONS;
-    private static ArrayNode    TRANSFORMATIONS;
-    private static ObjectMapper MAPPER = new ObjectMapper();
+    private final static ObjectMapper MAPPER = new ObjectMapper();
+
+    private static JsonNode  r2dbcObligation;
+    private static JsonNode  r2dbcUnhandableObligation;
+    private static JsonNode  mongoObligation;
+    private static JsonNode  selections;
+    private static JsonNode  conditions;
+    private static JsonNode  obligationWithoutSelection;
+    private static JsonNode  r2dbcObligationWrongAlias;
+    private static JsonNode  r2dbcObligationWrongTransformations;
+    private static ArrayNode transformations;
 
     @BeforeAll
     static void initJsonNodes() throws JsonProcessingException {
 
-        R2DBC_OBLIGATION = MAPPER.readTree("""
+        r2dbcObligation = MAPPER.readTree("""
                 	{
                           "type": "r2dbcQueryManipulation",
                           "conditions": [ "role = 'USER'" ],
@@ -64,7 +65,7 @@ class QueryManipulationConstraintHandlerServiceTests {
                      }
                 """);
 
-        R2DBC_OBLIGATION_WRONG_ALIAS = MAPPER.readTree("""
+        r2dbcObligationWrongAlias = MAPPER.readTree("""
                 	{
                           "type": "r2dbcQueryManipulation",
                           "conditions": [ "role = 'USER'" ],
@@ -79,7 +80,7 @@ class QueryManipulationConstraintHandlerServiceTests {
                      }
                 """);
 
-        R2DBC_OBLIGATION_WRONG_TRANSFORMATIONS = MAPPER.readTree("""
+        r2dbcObligationWrongTransformations = MAPPER.readTree("""
                 	{
                           "type": "r2dbcQueryManipulation",
                           "conditions": [ "role = 'USER'" ],
@@ -92,7 +93,7 @@ class QueryManipulationConstraintHandlerServiceTests {
                      }
                 """);
 
-        R2DBC_UNHANDABLE_OBLIGATION = MAPPER.readTree("""
+        r2dbcUnhandableObligation = MAPPER.readTree("""
                 	{
                           "types": "r2dbcQueryManipulation",
                           "conditions": [ "role = 'USER'" ],
@@ -103,7 +104,7 @@ class QueryManipulationConstraintHandlerServiceTests {
                      }
                 """);
 
-        MONGO_OBLIGATION = MAPPER.readTree("""
+        mongoObligation = MAPPER.readTree("""
                 {
                   "type": "mongoQueryManipulation",
                   "conditions": [ "{'role': {'$eq': 'USER'}}" ],
@@ -114,7 +115,7 @@ class QueryManipulationConstraintHandlerServiceTests {
                          }
                 """);
 
-        SELECTIONS = MAPPER.readValue("""
+        selections = MAPPER.readValue("""
                 [
                 	{
                 		"type": "blacklist",
@@ -127,21 +128,21 @@ class QueryManipulationConstraintHandlerServiceTests {
                 ]
                 """, ArrayNode.class);
 
-        CONDITIONS = MAPPER.readValue("""
+        conditions = MAPPER.readValue("""
                 [
                 	"role = 'USER'",
                 	"{'role': {'$eq': 'USER'}}"
                 ]
                 """, ArrayNode.class);
 
-        OBLIGATION_WITHOUT_SELECTION = MAPPER.readTree("""
+        obligationWithoutSelection = MAPPER.readTree("""
                 {
                   "type": "mongoQueryManipulation",
                   "conditions": [ "{'role': {'$eq': 'USER'}}" ]
                 }
                 """);
 
-        TRANSFORMATIONS = MAPPER.readValue("""
+        transformations = MAPPER.readValue("""
                 [{"firstname":"UPPER"}]
                 """, ArrayNode.class);
     }
@@ -150,8 +151,8 @@ class QueryManipulationConstraintHandlerServiceTests {
     void when_getSelections_then_returnSelectionsOfObligations() {
         // GIVEN
         var constraintData = List.of(
-                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, R2DBC_OBLIGATION),
-                new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, MONGO_OBLIGATION));
+                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligation),
+                new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
 
         var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
@@ -159,7 +160,7 @@ class QueryManipulationConstraintHandlerServiceTests {
         var result = handlerBundle.getSelections();
 
         // THEN
-        assertEquals(result, SELECTIONS);
+        assertEquals(result, selections);
     }
 
     @Test
@@ -178,8 +179,8 @@ class QueryManipulationConstraintHandlerServiceTests {
                 """;
 
         var constraintData = List.of(
-                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, R2DBC_UNHANDABLE_OBLIGATION),
-                new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, MONGO_OBLIGATION));
+                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcUnhandableObligation),
+                new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
 
         var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
@@ -226,7 +227,7 @@ class QueryManipulationConstraintHandlerServiceTests {
     void when_getSelections_then_returnEmptyArrayNode2() {
         // GIVEN
         var constraintData = List.of(
-                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, OBLIGATION_WITHOUT_SELECTION));
+                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, obligationWithoutSelection));
 
         var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
@@ -241,8 +242,8 @@ class QueryManipulationConstraintHandlerServiceTests {
     void when_getConditions_then_returnConditionsOfObligations() {
         // GIVEN
         var constraintData = List.of(
-                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, R2DBC_OBLIGATION),
-                new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, MONGO_OBLIGATION));
+                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligation),
+                new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
 
         var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
@@ -251,16 +252,16 @@ class QueryManipulationConstraintHandlerServiceTests {
         var result = handlerBundle.getConditions();
 
         // THEN
-        assertEquals(result, CONDITIONS);
+        assertEquals(result, conditions);
     }
 
     @Test
     void when_getQueryManipulationObligations_then_returnObligations() {
         // GIVEN
         var constraintData = List.of(
-                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, R2DBC_OBLIGATION),
-                new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, MONGO_OBLIGATION));
-        var obligations    = new JsonNode[] { R2DBC_OBLIGATION, MONGO_OBLIGATION };
+                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligation),
+                new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
+        var obligations    = new JsonNode[] { r2dbcObligation, mongoObligation };
 
         var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
@@ -277,7 +278,7 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getQueryManipulationObligations_then_returnEmptyArray() {
         // GIVEN
-        var constraintData = List.of(new RecordConstraintData(null, R2DBC_OBLIGATION));
+        var constraintData = List.of(new RecordConstraintData(null, r2dbcObligation));
 
         var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
@@ -308,8 +309,8 @@ class QueryManipulationConstraintHandlerServiceTests {
     void when_getTransformations_then_returnTransformations() {
         // GIVEN
         var constraintData = List.of(
-                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, R2DBC_OBLIGATION),
-                new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, MONGO_OBLIGATION));
+                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligation),
+                new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
 
         var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
@@ -318,14 +319,14 @@ class QueryManipulationConstraintHandlerServiceTests {
         var result = handlerBundle.getTransformations();
 
         // THEN
-        assertEquals(result, TRANSFORMATIONS);
+        assertEquals(result, transformations);
     }
 
     @Test
     void when_getTransformations_then_returnEmptyArrayNode2() {
         // GIVEN
         var constraintData = List.of(new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION,
-                R2DBC_OBLIGATION_WRONG_TRANSFORMATIONS));
+                r2dbcObligationWrongTransformations));
 
         var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
@@ -356,7 +357,7 @@ class QueryManipulationConstraintHandlerServiceTests {
     void when_getTransformations_then_returnAlias() {
         // GIVEN
         var constraintData = List
-                .of(new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, R2DBC_OBLIGATION));
+                .of(new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligation));
 
         var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
@@ -372,7 +373,7 @@ class QueryManipulationConstraintHandlerServiceTests {
     void when_getTransformations_then_returnEmptyString() {
         // GIVEN
         var constraintData = List
-                .of(new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, MONGO_OBLIGATION));
+                .of(new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
 
         var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
@@ -388,7 +389,7 @@ class QueryManipulationConstraintHandlerServiceTests {
     void when_getTransformations_then_returnEmptyArrayNode() {
         // GIVEN
         var constraintData = List.of(
-                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, R2DBC_OBLIGATION_WRONG_ALIAS));
+                new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligationWrongAlias));
 
         var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 

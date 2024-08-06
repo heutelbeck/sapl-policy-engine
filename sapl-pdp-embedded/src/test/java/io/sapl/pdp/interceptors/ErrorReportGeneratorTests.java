@@ -187,8 +187,7 @@ class ErrorReportGeneratorTests {
         resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getExpressionRule());
         InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
         resource.load(in, resourceSet.getLoadOptions());
-        var expression = (Expression) resource.getContents().get(0);
-        return expression;
+        return (Expression) resource.getContents().get(0);
     }
 
 }

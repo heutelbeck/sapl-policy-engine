@@ -64,12 +64,12 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class MongoReactiveAnnotationQueryManipulationEnforcementPointTests {
 
-    private static final String ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
-    static final ObjectMapper   MAPPER               = new ObjectMapper();
-    static ArrayNode            EMPTY_ARRAY_NODE     = MAPPER.createArrayNode();
+    private static final String       ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
+    private static final ObjectMapper MAPPER               = new ObjectMapper();
+    private static final ArrayNode    EMPTY_ARRAY_NODE     = MAPPER.createArrayNode();
 
-    final TestUser cathrin   = new TestUser(new ObjectId(), "Cathrin", 33, true);
-    BasicQuery     baseQuery = new BasicQuery("{'active': {'$eq': true}}");
+    private final TestUser   cathrin   = new TestUser(new ObjectId(), "Cathrin", 33, true);
+    private final BasicQuery baseQuery = new BasicQuery("{'active': {'$eq': true}}");
 
     @Mock
     ObjectProvider<PolicyDecisionPoint> objectProviderPolicyDecisionPointMock;
