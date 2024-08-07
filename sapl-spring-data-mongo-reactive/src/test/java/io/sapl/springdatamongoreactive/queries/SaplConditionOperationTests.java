@@ -48,7 +48,7 @@ class SaplConditionOperationTests {
     private static JsonNode mongoQueryManipulation;
     private static JsonNode mongoQueryManipulationOrPart;
     private static JsonNode conditions;
-    private static JsonNode ConditionsWithOrPart;
+    private static JsonNode conditionsWithOrPart;
 
     @BeforeAll
     public static void setUp() throws JsonProcessingException {
@@ -70,7 +70,7 @@ class SaplConditionOperationTests {
                 }
                     		""");
         conditions                   = mongoQueryManipulation.get("conditions");
-        ConditionsWithOrPart         = mongoQueryManipulationOrPart.get("conditions");
+        conditionsWithOrPart         = mongoQueryManipulationOrPart.get("conditions");
     }
 
     @Test
@@ -81,7 +81,7 @@ class SaplConditionOperationTests {
         expected.add(new SaplCondition("firstname", "Aaron", OperatorMongoDB.SIMPLE_PROPERTY, "or"));
 
         // WHEN
-        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(ConditionsWithOrPart);
+        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditionsWithOrPart);
 
         // THEN
         assertTwoSaplConditions(actualSaplConditions.get(0), expected.get(0));

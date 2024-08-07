@@ -62,12 +62,11 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class R2dbcAnnotationQueryManipulationEnforcementPointTests {
 
-    private static final String ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
-    static final ObjectMapper   MAPPER               = new ObjectMapper();
-    static ArrayNode            EMPTY_ARRAY_NODE     = MAPPER.createArrayNode();
-
-    final Person cathrin   = new Person(1, "Cathrin", 33, true);
-    String       baseQuery = "SELECT * FROM PERSON WHERE age < 90";
+    private static final String       ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
+    private static final ObjectMapper MAPPER               = new ObjectMapper();
+    private static final ArrayNode    EMPTY_ARRAY_NODE     = MAPPER.createArrayNode();
+    private static final Person       CATHRIN              = new Person(1, "Cathrin", 33, true);
+    private static final String       BASE_QUERY           = "SELECT * FROM PERSON WHERE age < 90";
 
     @Mock
     ObjectProvider<PolicyDecisionPoint> objectProviderPolicyDecisionPointMock;
@@ -92,18 +91,18 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTests {
     ConstraintEnforcementService              constraintEnforcementServiceMock              = mock(
             ConstraintEnforcementService.class);
     MockedStatic<QueryCreation>               queryCreationMock;
-    PolicyDecisionPoint                       PDP;
+    PolicyDecisionPoint                       pdp;
 
     @BeforeEach
     public void beforeEach() throws InitializationException {
-        PDP = buildPdp();
-        lenient().when(objectProviderPolicyDecisionPointMock.getObject()).thenReturn(PDP);
+        pdp = buildPdp();
+        lenient().when(objectProviderPolicyDecisionPointMock.getObject()).thenReturn(pdp);
         lenient().when(objectProviderQueryManipulationExecutorMock.getObject())
                 .thenReturn(queryManipulationExecutorMock);
         lenient().when(objectProviderConstraintQueryEnforcementServiceMock.getObject())
                 .thenReturn(constraintQueryEnforcementServiceMock);
         lenient().when(queryManipulationExecutorMock.execute(anyString(), eq(Person.class)))
-                .thenReturn(Flux.just(cathrin));
+                .thenReturn(Flux.just(CATHRIN));
 
         when(queryManipulationConstraintHandlerServiceMock.getConditions()).thenReturn(EMPTY_ARRAY_NODE);
         when(queryManipulationConstraintHandlerServiceMock.getSelections()).thenReturn(EMPTY_ARRAY_NODE);
@@ -115,9 +114,9 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTests {
         queryCreationMock = mockStatic(QueryCreation.class);
 
         queryCreationMock.when(() -> QueryCreation.createBaselineQuery(any(MethodInvocation.class)))
-                .thenReturn(baseQuery);
+                .thenReturn(BASE_QUERY);
         queryCreationMock.when(() -> QueryCreation.manipulateQuery(anyString(), any(ArrayNode.class),
-                any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(baseQuery);
+                any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(BASE_QUERY);
     }
 
     @AfterEach
@@ -141,12 +140,12 @@ class R2dbcAnnotationQueryManipulationEnforcementPointTests {
         doNothing().when(reactiveConstraintHandlerBundleMock)
                 .handleMethodInvocationHandlers(any(MethodInvocation.class));
         when(constraintEnforcementServiceMock.replaceIfResourcePresent(any(), any(), eq(Person.class)))
-                .thenReturn(Flux.just(cathrin));
+                .thenReturn(Flux.just(CATHRIN));
 
         var result = enforcementPoint.enforce(authorizationSubscriptionMock, Person.class, methodInvocationMock);
 
         // THEN
-        StepVerifier.create(result).expectNext(cathrin).expectComplete().verify();
+        StepVerifier.create(result).expectNext(CATHRIN).expectComplete().verify();
 
         queryCreationMock.verify(() -> QueryCreation.createBaselineQuery(any(MethodInvocation.class)), times(1));
         verify(constraintQueryEnforcementServiceMock, times(1))

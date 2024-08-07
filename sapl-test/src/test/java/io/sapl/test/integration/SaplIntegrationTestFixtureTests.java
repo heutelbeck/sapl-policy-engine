@@ -324,7 +324,7 @@ class SaplIntegrationTestFixtureTests {
         @DisplayName("Error cases")
         class ErrorCases {
 
-            private static final String validPolicy = """
+            private static final String VALID_POLICY = """
                     policy "policy read"
                     permit
                         action == "read\"""";
@@ -373,28 +373,28 @@ class SaplIntegrationTestFixtureTests {
 
             @Test
             void test_nullPDPConfigValueDocumentStrings1() {
-                var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), null);
+                var fixture = new SaplIntegrationTestFixture(List.of(VALID_POLICY, VALID_POLICY), null);
                 assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
                         .withMessageContaining("Encountered policy name duplication");
             }
 
             @Test
             void test_nullPDPConfigDocumentStrings2() {
-                var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), null);
+                var fixture = new SaplIntegrationTestFixture(List.of(VALID_POLICY, VALID_POLICY), null);
                 assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
                         .withMessageContaining("Encountered policy name duplication");
             }
 
             @Test
             void test_emptyPDPConfigValueDocumentStrings1() {
-                var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), "");
+                var fixture = new SaplIntegrationTestFixture(List.of(VALID_POLICY, VALID_POLICY), "");
                 assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase)
                         .withMessageContaining("Encountered policy name duplication");
             }
 
             @Test
             void test_emptyPDPConfigDocumentStrings2() {
-                var fixture = new SaplIntegrationTestFixture(List.of(validPolicy, validPolicy), "");
+                var fixture = new SaplIntegrationTestFixture(List.of(VALID_POLICY, VALID_POLICY), "");
                 assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks)
                         .withMessageContaining("Encountered policy name duplication");
             }

@@ -63,12 +63,11 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class R2dbcMethodNameQueryManipulationEnforcementPointTests {
 
-    private static final String ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
-    static final ObjectMapper   MAPPER               = new ObjectMapper();
-    static ArrayNode            EMPTY_ARRAY_NODE     = MAPPER.createArrayNode();
-
-    Person cathrin   = new Person(1, "Cathrin", 33, true);
-    String baseQuery = "SELECT * FROM PERSON WHERE age < 90";
+    private static final String       ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
+    private static final ObjectMapper MAPPER               = new ObjectMapper();
+    private static final ArrayNode    EMPTY_ARRAY_NODE     = MAPPER.createArrayNode();
+    private static final Person       CATHRIN              = new Person(1, "Cathrin", 33, true);
+    private static final String       BASE_QUERY           = "SELECT * FROM PERSON WHERE age < 90";
 
     @Mock
     ObjectProvider<PolicyDecisionPoint> objectProviderPolicyDecisionPointMock;
@@ -94,18 +93,18 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTests {
             ConstraintEnforcementService.class);
     MockedStatic<QueryCreation>                     queryCreationMock;
     MockedStatic<PartTreeToSqlQueryStringConverter> partTreeToSqlQueryStringConverterMock;
-    PolicyDecisionPoint                             PDP;
+    PolicyDecisionPoint                             pdp;
 
     @BeforeEach
     public void beforeEach() throws InitializationException {
-        PDP = buildPdp();
-        lenient().when(objectProviderPolicyDecisionPointMock.getObject()).thenReturn(PDP);
+        pdp = buildPdp();
+        lenient().when(objectProviderPolicyDecisionPointMock.getObject()).thenReturn(pdp);
         lenient().when(objectProviderQueryManipulationExecutorMock.getObject())
                 .thenReturn(queryManipulationExecutorMock);
         lenient().when(objectProviderConstraintQueryEnforcementServiceMock.getObject())
                 .thenReturn(constraintQueryEnforcementServiceMock);
         lenient().when(queryManipulationExecutorMock.execute(anyString(), eq(Person.class)))
-                .thenReturn(Flux.just(cathrin));
+                .thenReturn(Flux.just(CATHRIN));
 
         when(queryManipulationConstraintHandlerBundleMock.getQueryManipulationObligations())
                 .thenReturn(new JsonNode[0]);
@@ -117,9 +116,9 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTests {
         partTreeToSqlQueryStringConverterMock = mockStatic(PartTreeToSqlQueryStringConverter.class);
 
         queryCreationMock.when(() -> QueryCreation.createSqlQuery(any(ArrayNode.class), any(ArrayNode.class),
-                any(ArrayNode.class), eq(Person.class), anyString())).thenReturn(baseQuery);
+                any(ArrayNode.class), eq(Person.class), anyString())).thenReturn(BASE_QUERY);
         partTreeToSqlQueryStringConverterMock.when(() -> PartTreeToSqlQueryStringConverter
-                .createSqlBaseQuery(any(MethodInvocation.class), eq(Person.class))).thenReturn(baseQuery);
+                .createSqlBaseQuery(any(MethodInvocation.class), eq(Person.class))).thenReturn(BASE_QUERY);
     }
 
     @AfterEach
@@ -144,12 +143,12 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTests {
         doNothing().when(reactiveConstraintHandlerBundleMock)
                 .handleMethodInvocationHandlers(any(MethodInvocation.class));
         when(constraintEnforcementServiceMock.replaceIfResourcePresent(any(), any(), eq(Person.class)))
-                .thenReturn(Flux.just(cathrin));
+                .thenReturn(Flux.just(CATHRIN));
 
         var result = enforcementPoint.enforce(authorizationSubscriptionMock, Person.class, methodInvocationMock);
 
         // THEN
-        StepVerifier.create(result).expectNext(cathrin).expectComplete().verify();
+        StepVerifier.create(result).expectNext(CATHRIN).expectComplete().verify();
 
         partTreeToSqlQueryStringConverterMock.verify(() -> PartTreeToSqlQueryStringConverter
                 .createSqlBaseQuery(any(MethodInvocation.class), eq(Person.class)), times(1));

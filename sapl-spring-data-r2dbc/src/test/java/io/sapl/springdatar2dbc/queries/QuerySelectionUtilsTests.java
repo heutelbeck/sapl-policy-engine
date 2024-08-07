@@ -28,18 +28,19 @@ import io.sapl.springdatar2dbc.database.Person;
 
 class QuerySelectionUtilsTests {
 
-    private static ObjectMapper MAPPER = new ObjectMapper();
-    private static ArrayNode    SELECTIONS_BLACKLIST;
-    private static ArrayNode    SELECTIONS_WHITELIST;
-    private static ArrayNode    SELECTIONS_ALIAS_BLACKLIST;
-    private static ArrayNode    SELECTIONS_ALIAS_WHITELIST;
-    private static ArrayNode    SELECTIONS_ALIAS_IS_EMPTY_WHITELIST;
-    private static ArrayNode    TRANSFORMATIONS;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static ArrayNode selectionsBlacklist;
+    private static ArrayNode selectionsWhitelist;
+    private static ArrayNode selectionsAliasBlacklist;
+    private static ArrayNode selectionsAlisasWhitelist;
+    private static ArrayNode selectionsAliasIsEmptyWhitelist;
+    private static ArrayNode transformations;
 
     @BeforeAll
     static void initJsonNodes() throws JsonProcessingException {
 
-        SELECTIONS_BLACKLIST = MAPPER.readValue("""
+        selectionsBlacklist = MAPPER.readValue("""
                 [
                 	{
                 		"type": "blacklist",
@@ -52,7 +53,7 @@ class QuerySelectionUtilsTests {
                 ]
                 """, ArrayNode.class);
 
-        SELECTIONS_WHITELIST = MAPPER.readValue("""
+        selectionsWhitelist = MAPPER.readValue("""
                 [
                 	{
                 		"type": "whitelist",
@@ -61,7 +62,7 @@ class QuerySelectionUtilsTests {
                 ]
                 """, ArrayNode.class);
 
-        SELECTIONS_ALIAS_BLACKLIST = MAPPER.readValue("""
+        selectionsAliasBlacklist = MAPPER.readValue("""
                 [
                 	{
                 		"type": "blacklist",
@@ -71,7 +72,7 @@ class QuerySelectionUtilsTests {
                 ]
                 """, ArrayNode.class);
 
-        SELECTIONS_ALIAS_WHITELIST = MAPPER.readValue("""
+        selectionsAlisasWhitelist = MAPPER.readValue("""
                 [
                 	{
                 		"type": "whitelist",
@@ -80,7 +81,7 @@ class QuerySelectionUtilsTests {
                 ]
                 """, ArrayNode.class);
 
-        SELECTIONS_ALIAS_IS_EMPTY_WHITELIST = MAPPER.readValue("""
+        selectionsAliasIsEmptyWhitelist = MAPPER.readValue("""
                 [
                 	{
                 		"type": "whitelist",
@@ -88,7 +89,7 @@ class QuerySelectionUtilsTests {
                 	}
                 ]
                 """, ArrayNode.class);
-        TRANSFORMATIONS                     = MAPPER.readValue("""
+        transformations                 = MAPPER.readValue("""
                 [
                 	{
                 		"firstname": "UPPER"
@@ -107,7 +108,7 @@ class QuerySelectionUtilsTests {
         var expected = "SELECT id,age,active FROM XXXXX WHERE ";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(SELECTIONS_BLACKLIST, TRANSFORMATIONS,
+        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsBlacklist, transformations,
                 Person.class);
 
         // THEN
@@ -120,7 +121,7 @@ class QuerySelectionUtilsTests {
         var expected = "SELECT age,active FROM XXXXX WHERE ";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(SELECTIONS_WHITELIST, TRANSFORMATIONS,
+        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsWhitelist, transformations,
                 Person.class);
 
         // THEN
@@ -133,8 +134,8 @@ class QuerySelectionUtilsTests {
         var expected = "SELECT id,active FROM XXXXX WHERE ";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(SELECTIONS_ALIAS_BLACKLIST,
-                TRANSFORMATIONS, Person.class);
+        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsAliasBlacklist,
+                transformations, Person.class);
 
         // THEN
         assertEquals(result, expected);
@@ -146,8 +147,8 @@ class QuerySelectionUtilsTests {
         var expected = "SELECT UPPER(firstname),age FROM XXXXX WHERE ";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(SELECTIONS_ALIAS_WHITELIST,
-                TRANSFORMATIONS, Person.class);
+        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsAlisasWhitelist,
+                transformations, Person.class);
 
         // THEN
         assertEquals(result, expected);
@@ -159,8 +160,8 @@ class QuerySelectionUtilsTests {
         var expected = "SELECT UPPER(firstname),age FROM XXXXX WHERE ";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(SELECTIONS_ALIAS_IS_EMPTY_WHITELIST,
-                TRANSFORMATIONS, Person.class);
+        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsAliasIsEmptyWhitelist,
+                transformations, Person.class);
 
         // THEN
         assertEquals(result, expected);
@@ -173,7 +174,7 @@ class QuerySelectionUtilsTests {
 
         // WHEN
         var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(MAPPER.createArrayNode(),
-                TRANSFORMATIONS, Person.class);
+                transformations, Person.class);
 
         // THEN
         assertEquals(result, expected);
@@ -186,8 +187,8 @@ class QuerySelectionUtilsTests {
         var baseQuery = "SELECT * FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, SELECTIONS_BLACKLIST,
-                TRANSFORMATIONS, "", Person.class);
+        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsBlacklist,
+                transformations, "", Person.class);
 
         // THEN
         assertEquals(expected, result);
@@ -200,7 +201,7 @@ class QuerySelectionUtilsTests {
 
         // WHEN
         var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, MAPPER.createArrayNode(),
-                TRANSFORMATIONS, "", Person.class);
+                transformations, "", Person.class);
 
         // THEN
         assertEquals(baseQuery, result);
@@ -227,7 +228,7 @@ class QuerySelectionUtilsTests {
 
         // WHEN
         var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, MAPPER.createArrayNode(),
-                TRANSFORMATIONS, "", Person.class);
+                transformations, "", Person.class);
 
         // THEN
         assertEquals(expected, result);
@@ -240,8 +241,8 @@ class QuerySelectionUtilsTests {
         var expected  = "SELECT id,age,active FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, SELECTIONS_BLACKLIST,
-                TRANSFORMATIONS, "", Person.class);
+        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsBlacklist,
+                transformations, "", Person.class);
 
         // THEN
         assertEquals(expected, result);
@@ -254,8 +255,8 @@ class QuerySelectionUtilsTests {
         var expected  = "SELECT UPPER(p.firstname),p.age FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, SELECTIONS_ALIAS_WHITELIST,
-                TRANSFORMATIONS, "p", Person.class);
+        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsAlisasWhitelist,
+                transformations, "p", Person.class);
 
         // THEN
         assertEquals(expected, result);
@@ -268,8 +269,8 @@ class QuerySelectionUtilsTests {
         var expected  = "SELECT id,active FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, SELECTIONS_ALIAS_BLACKLIST,
-                TRANSFORMATIONS, "", Person.class);
+        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsAliasBlacklist,
+                transformations, "", Person.class);
 
         // THEN
         assertEquals(expected, result);
@@ -282,7 +283,7 @@ class QuerySelectionUtilsTests {
         var expected  = "SELECT id,active FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, SELECTIONS_ALIAS_BLACKLIST,
+        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsAliasBlacklist,
                 MAPPER.createArrayNode(), "", Person.class);
 
         // THEN

@@ -27,20 +27,20 @@ import org.springframework.data.repository.core.support.RepositoryFactorySupport
 class R2dbcRepositoryFactoryCustomizerTests {
 
     RepositoryFactorySupport             repositoryFactorySupportMock          = mock(RepositoryFactorySupport.class);
-    R2dbcRepositoryProxyPostProcessor<?> R2dbcRepositoryProxyPostProcessorMock = mock(
+    R2dbcRepositoryProxyPostProcessor<?> r2dbcRepositoryProxyPostProcessorMock = mock(
             R2dbcRepositoryProxyPostProcessor.class);
 
     @Test
     void when_usingMongoEnforcementPointIsDesired_then_customizeRepositoryFactorySupport() {
         // GIVEN
-        var customizer = new R2dbcRepositoryFactoryCustomizer(R2dbcRepositoryProxyPostProcessorMock);
+        var customizer = new R2dbcRepositoryFactoryCustomizer(r2dbcRepositoryProxyPostProcessorMock);
 
         // WHEN
         customizer.customize(repositoryFactorySupportMock);
 
         // THEN
         verify(repositoryFactorySupportMock, times(1))
-                .addRepositoryProxyPostProcessor(R2dbcRepositoryProxyPostProcessorMock);
+                .addRepositoryProxyPostProcessor(r2dbcRepositoryProxyPostProcessorMock);
     }
 
 }

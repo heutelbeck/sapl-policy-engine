@@ -39,7 +39,7 @@ import io.sapl.springdatar2dbc.database.PersonReactiveSortingRepository;
 class R2dbcRepositoryProxyPostProcessorTests {
 
     @Mock
-    R2dbcPolicyEnforcementPoint<Person>   R2dbcPolicyEnforcementPointMock;
+    R2dbcPolicyEnforcementPoint<Person>   r2dbcPolicyEnforcementPointMock;
     RepositoryInformationCollectorService repositoryInformationCollectorServiceMock = mock(
             RepositoryInformationCollectorService.class);
     ProxyFactory                          factoryMock                               = mock(ProxyFactory.class);
@@ -50,14 +50,14 @@ class R2dbcRepositoryProxyPostProcessorTests {
         // GIVEN
         when(repositoryInformationMock.getRepositoryInterface()).thenAnswer(invocation -> PersonR2dbcRepository.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(R2dbcPolicyEnforcementPointMock,
+        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN
         postProcessor.postProcess(factoryMock, repositoryInformationMock);
 
         // THEN
-        verify(factoryMock, times(1)).addAdvice(R2dbcPolicyEnforcementPointMock);
+        verify(factoryMock, times(1)).addAdvice(r2dbcPolicyEnforcementPointMock);
         verify(repositoryInformationMock, times(1)).getRepositoryInterface();
         verify(repositoryInformationCollectorServiceMock, times(1)).add(any(RepositoryInformation.class));
     }
@@ -68,14 +68,14 @@ class R2dbcRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> MethodInvocationForTesting.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(R2dbcPolicyEnforcementPointMock,
+        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN
         postProcessor.postProcess(factoryMock, repositoryInformationMock);
 
         // THEN
-        verify(factoryMock, times(0)).addAdvice(R2dbcPolicyEnforcementPointMock);
+        verify(factoryMock, times(0)).addAdvice(r2dbcPolicyEnforcementPointMock);
         verify(repositoryInformationMock, times(1)).getRepositoryInterface();
         verify(repositoryInformationCollectorServiceMock, times(0)).add(any(RepositoryInformation.class));
     }
@@ -86,14 +86,14 @@ class R2dbcRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> PersonReactiveCrudRepository.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(R2dbcPolicyEnforcementPointMock,
+        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN
         postProcessor.postProcess(factoryMock, repositoryInformationMock);
 
         // THEN
-        verify(factoryMock, times(1)).addAdvice(R2dbcPolicyEnforcementPointMock);
+        verify(factoryMock, times(1)).addAdvice(r2dbcPolicyEnforcementPointMock);
         verify(repositoryInformationMock, times(1)).getRepositoryInterface();
         verify(repositoryInformationCollectorServiceMock, times(1)).add(any(RepositoryInformation.class));
     }
@@ -104,14 +104,14 @@ class R2dbcRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> PersonReactiveSortingRepository.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(R2dbcPolicyEnforcementPointMock,
+        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN
         postProcessor.postProcess(factoryMock, repositoryInformationMock);
 
         // THEN
-        verify(factoryMock, times(1)).addAdvice(R2dbcPolicyEnforcementPointMock);
+        verify(factoryMock, times(1)).addAdvice(r2dbcPolicyEnforcementPointMock);
         verify(repositoryInformationMock, times(1)).getRepositoryInterface();
         verify(repositoryInformationCollectorServiceMock, times(1)).add(any(RepositoryInformation.class));
     }

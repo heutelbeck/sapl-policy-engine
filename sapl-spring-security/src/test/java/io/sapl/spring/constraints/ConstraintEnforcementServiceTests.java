@@ -36,7 +36,6 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
 import org.aopalliance.intercept.MethodInvocation;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -73,10 +72,6 @@ class ConstraintEnforcementServiceTests {
         CONSTRAINT     = JSON.textNode("a constraint");
         ONE_CONSTRAINT = JSON.arrayNode();
         ONE_CONSTRAINT.add(CONSTRAINT);
-    }
-
-    @BeforeAll
-    public static void init() {
     }
 
     List<RunnableConstraintHandlerProvider> globalRunnableProviders;
