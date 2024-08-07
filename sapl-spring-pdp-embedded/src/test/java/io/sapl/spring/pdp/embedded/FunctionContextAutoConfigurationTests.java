@@ -78,6 +78,7 @@ class FunctionContextAutoConfigurationTests {
 
         @Function
         void iAmABadSignatureFunction(Integer i, Float f) {
+            // NOOP test dummy
         }
 
     }

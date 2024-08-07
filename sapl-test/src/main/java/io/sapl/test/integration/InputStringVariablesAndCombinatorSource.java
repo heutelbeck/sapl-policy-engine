@@ -35,7 +35,7 @@ import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 @Slf4j
-public class InputStringVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
+public final class InputStringVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
     private final PolicyDecisionPointConfiguration config;
 
     public InputStringVariablesAndCombinatorSource(@NonNull String input, @NonNull ObjectMapper mapper,
