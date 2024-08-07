@@ -35,7 +35,7 @@ import io.sapl.springdatacommon.utils.TestUtils;
 
 class QueryManipulationConstraintHandlerServiceTests {
 
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static JsonNode  r2dbcObligation;
     private static JsonNode  r2dbcUnhandableObligation;

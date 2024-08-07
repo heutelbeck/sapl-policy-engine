@@ -95,12 +95,12 @@ class MongoReactiveAnnotationQueryManipulationEnforcementPointTests {
             ConstraintEnforcementService.class);
 
     MockedStatic<QueryCreation> queryCreationMock;
-    PolicyDecisionPoint         PDP;
+    PolicyDecisionPoint         pdp;
 
     @BeforeEach
     public void beforeEach() throws InitializationException {
-        PDP = buildPdp();
-        lenient().when(objectProviderPolicyDecisionPointMock.getObject()).thenReturn(PDP);
+        pdp = buildPdp();
+        lenient().when(objectProviderPolicyDecisionPointMock.getObject()).thenReturn(pdp);
         lenient().when(objectProviderBeanFactoryMock.getObject()).thenReturn(beanFactoryMock);
         lenient().when(objectProviderConstraintQueryEnforcementServiceMock.getObject())
                 .thenReturn(constraintQueryEnforcementServiceMock);

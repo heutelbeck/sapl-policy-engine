@@ -44,17 +44,17 @@ class PolicyBodyImplCustomCoverageTests {
 
     CoverageHitRecorder recorder;
 
-    private SAPLInterpreter INTERPRETER;
+    private SAPLInterpreter interpreter;
 
     @BeforeEach
     void setup() {
         this.recorder    = mock(CoverageHitRecorder.class);
-        this.INTERPRETER = new TestSaplInterpreter(this.recorder);
+        this.interpreter = new TestSaplInterpreter(this.recorder);
     }
 
     @Test
     void trueReturnsEntitlement() {
-        var policy   = INTERPRETER.parse("policy \"p\" permit true where true; true; true;");
+        var policy   = interpreter.parse("policy \"p\" permit true where true; true; true;");
         var expected = AuthorizationDecision.PERMIT;
         StepVerifier
                 .create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
@@ -73,7 +73,7 @@ class PolicyBodyImplCustomCoverageTests {
 
     @Test
     void trueReturnsEntitlementInSet() {
-        var policy   = INTERPRETER.parse("set \"set\" deny-overrides policy \"p\" permit true where true; true; true;");
+        var policy   = interpreter.parse("set \"set\" deny-overrides policy \"p\" permit true where true; true; true;");
         var expected = AuthorizationDecision.PERMIT;
         StepVerifier
                 .create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
@@ -92,7 +92,7 @@ class PolicyBodyImplCustomCoverageTests {
 
     @Test
     void test_evaluateConditionThrowsError() {
-        var policy   = INTERPRETER.parse(
+        var policy   = interpreter.parse(
                 "set \"set\" deny-overrides policy \"p\" permit true where true == subject.<pip.attr>; true; true;");
         var expected = AuthorizationDecision.INDETERMINATE;
         StepVerifier

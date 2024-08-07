@@ -39,7 +39,7 @@ import io.sapl.test.SaplTestFixture;
 
 class SaplIntegrationTestFixtureTests {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     void test() {
@@ -58,7 +58,7 @@ class SaplIntegrationTestFixtureTests {
     void test_withPDPVariables() {
         var fixture   = new SaplIntegrationTestFixture("it/variables");
         var variables = new HashMap<String, Val>(1);
-        variables.put("test", Val.of(mapper.createObjectNode().numberNode(1)));
+        variables.put("test", Val.of(MAPPER.createObjectNode().numberNode(1)));
         fixture.withPDPVariables(variables).constructTestCase()
                 .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
     }
@@ -135,7 +135,7 @@ class SaplIntegrationTestFixtureTests {
         void test_invalidPDPConfigPath_givenVariablesAndCombiningAlgorithmOverridesConfig() {
             var       fixture   = new SaplIntegrationTestFixture("it/empty",
                     List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
-            final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(1)));
+            final var variables = Map.of("test", Val.of(MAPPER.createObjectNode().numberNode(1)));
             fixture.withPDPVariables(variables)
                     .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)
                     .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
@@ -162,7 +162,7 @@ class SaplIntegrationTestFixtureTests {
         void test_validConfigPath_givenVariablesOverridesConfig() {
             var       fixture   = new SaplIntegrationTestFixture("policiesIT",
                     List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
-            final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(1)));
+            final var variables = Map.of("test", Val.of(MAPPER.createObjectNode().numberNode(1)));
             fixture.withPDPVariables(variables).constructTestCase()
                     .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit().verify();
         }
@@ -171,7 +171,7 @@ class SaplIntegrationTestFixtureTests {
         void test_validConfigPath_givenVariablesAndCombiningAlgorithmOverridesConfig() {
             var       fixture   = new SaplIntegrationTestFixture("policiesIT",
                     List.of("it/variables/policy", "policiesIT/policy_A.sapl"));
-            final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(1)));
+            final var variables = Map.of("test", Val.of(MAPPER.createObjectNode().numberNode(1)));
             fixture.withPDPVariables(variables)
                     .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)
                     .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
@@ -180,22 +180,22 @@ class SaplIntegrationTestFixtureTests {
 
         @Test
         void test_withNullPdpConfiguration_givenVariablesAndCombiningAlgorithm() {
-            final var policy_A = """
+            final var policyA = """
                     policy "policy_A"
                     deny
                         resource == "foo"
                     where
                         "WILLI" == subject;""";
 
-            final var policy_B = """
+            final var policyB = """
                     policy "policy_B"
                     permit
                         resource == "foo"
                     where
                         "WILLI" == subject;""";
 
-            var       fixture   = new SaplIntegrationTestFixture(List.of(policy_A, policy_B), null);
-            final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(1)));
+            var       fixture   = new SaplIntegrationTestFixture(List.of(policyA, policyB), null);
+            final var variables = Map.of("test", Val.of(MAPPER.createObjectNode().numberNode(1)));
             fixture.withPDPVariables(variables)
                     .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES)
                     .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
@@ -253,28 +253,28 @@ class SaplIntegrationTestFixtureTests {
     @DisplayName("DocumentStrings cases")
     class DocumentStringsTests {
 
-        private static final String policy_A = """
+        private static final String POLICY_A = """
                 policy "policy_A"
                 deny
                     resource == "foo"
                 where
                     "WILLI" == subject;""";
 
-        private static final String policy_B = """
+        private static final String POLICY_B = """
                 policy "policy_B"
                 permit
                     resource == "foo"
                 where
                     "WILLI" == subject;""";
 
-        private static final String policyWithVariables = """
+        private static final String POLICY_WITH_VARIABLES = """
                 policy "policy read"
                 permit
                 	action == "read"
                 where
                 	test == 1;""";
 
-        private static final String pdpConfig = """
+        private static final String PDP_CONFIG = """
                 {
                 	"algorithm": "PERMIT_OVERRIDES",
                 	"variables": { "test": 1 }
@@ -282,21 +282,21 @@ class SaplIntegrationTestFixtureTests {
 
         @Test
         void test_usesConfigCombiningAlgorithm() {
-            var fixture = new SaplIntegrationTestFixture(List.of(policy_A, policy_B), pdpConfig);
+            var fixture = new SaplIntegrationTestFixture(List.of(POLICY_A, POLICY_B), PDP_CONFIG);
             fixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
                     .verify();
         }
 
         @Test
         void test_usesGivenCombiningAlgorithm() {
-            var fixture = new SaplIntegrationTestFixture(List.of(policy_A, policy_B), pdpConfig);
+            var fixture = new SaplIntegrationTestFixture(List.of(POLICY_A, POLICY_B), PDP_CONFIG);
             fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES).constructTestCase()
                     .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
         }
 
         @Test
         void test_usesGivenCombiningAlgorithmAndConfigVariables() {
-            var fixture = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
+            var fixture = new SaplIntegrationTestFixture(List.of(POLICY_WITH_VARIABLES, POLICY_A), PDP_CONFIG);
             fixture.withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES)
                     .constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
                     .verify();
@@ -304,15 +304,15 @@ class SaplIntegrationTestFixtureTests {
 
         @Test
         void test_usesGivenVariablesAndConfigCombiningAlgorithm() {
-            var       fixture   = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
-            final var variables = Map.of("test", Val.of(mapper.createObjectNode().numberNode(2)));
+            var       fixture   = new SaplIntegrationTestFixture(List.of(POLICY_WITH_VARIABLES, POLICY_A), PDP_CONFIG);
+            final var variables = Map.of("test", Val.of(MAPPER.createObjectNode().numberNode(2)));
             fixture.withPDPVariables(variables).constructTestCase()
                     .when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny().verify();
         }
 
         @Test
         void test_givenVariablesAndCombiningAlgorithmOverridesConfig() {
-            var       fixture   = new SaplIntegrationTestFixture(List.of(policyWithVariables, policy_A), pdpConfig);
+            var       fixture   = new SaplIntegrationTestFixture(List.of(POLICY_WITH_VARIABLES, POLICY_A), PDP_CONFIG);
             final var variables = Map.of("test", Val.of(2));
             fixture.withPDPVariables(variables)
                     .withPDPPolicyCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT)

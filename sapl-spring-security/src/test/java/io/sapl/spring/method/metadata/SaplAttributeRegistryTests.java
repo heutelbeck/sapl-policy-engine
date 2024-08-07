@@ -40,8 +40,9 @@ class SaplAttributeRegistryTests {
     void whenInspectedHasNotAnnotationsAnywhere_ThenReturnsEmptyCollection() {
 
         class NoAnnotations {
-            @SuppressWarnings("unused")
+            @SuppressWarnings("unused") // test dummy
             public void doSomething() {
+                // NOOP test dummy
             }
         }
 
@@ -55,8 +56,9 @@ class SaplAttributeRegistryTests {
 
         @PreEnforce(subject = "'onClass'")
         class TestClass {
-            @SuppressWarnings("unused")
+            @SuppressWarnings("unused") // test dummy
             public void doSomething() {
+                // NOOP test dummy
             }
         }
 
@@ -69,6 +71,7 @@ class SaplAttributeRegistryTests {
         class TestClass {
             @PreEnforce(subject = "'onMethod'")
             public void doSomething() {
+                // NOOP test dummy
             }
         }
 
@@ -82,6 +85,7 @@ class SaplAttributeRegistryTests {
         class TestClass {
             @PreEnforce(subject = "'onMethod'")
             public void doSomething() {
+                // NOOP test dummy
             }
         }
 
@@ -89,10 +93,8 @@ class SaplAttributeRegistryTests {
     }
 
     interface TestInterfaceAnnotatedOnMethod {
-
         @PreEnforce(subject = "'onInterfaceMethod'")
         void doSomething();
-
     }
 
     @Test
@@ -100,22 +102,19 @@ class SaplAttributeRegistryTests {
 
         class TestClass implements TestInterfaceAnnotatedOnMethod {
             public void doSomething() {
+                // NOOP test dummy
             }
         }
         expectSubjectExpressionStringInAttribute(TestClass.class, "'onInterfaceMethod'");
     }
 
     interface TestGenericInterface<E, I> {
-
         void doSomethingGeneric();
-
     }
 
     interface TestDomainInterface {
-
         @PreEnforce(subject = "'onDomainInterfaceMethod'")
         void doSomething();
-
     }
 
     interface CombinedInterface extends TestGenericInterface<Object, Long>, TestDomainInterface {
@@ -128,12 +127,12 @@ class SaplAttributeRegistryTests {
 
             @Override
             public void doSomethingGeneric() {
-                // NOOP
+                // NOOP test dummy
             }
 
             @Override
             public void doSomething() {
-                // NOOP
+                // NOOP test dummy
             }
         }
 
@@ -150,6 +149,7 @@ class SaplAttributeRegistryTests {
 
         class TestClass implements TestInterfaceAnnotatedOnInterface {
             public void doSomething() {
+                // NOOP test dummy
             }
         }
 
@@ -167,6 +167,7 @@ class SaplAttributeRegistryTests {
 
         class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
             public void doSomething() {
+                // NOOP test dummy
             }
         }
 
@@ -180,6 +181,7 @@ class SaplAttributeRegistryTests {
         class TestClass implements TestInterfaceAnnotatedOnInterfaceAndMethod {
             @PreEnforce(subject = "'onMethod'")
             public void doSomething() {
+                // NOOP test dummy
             }
         }
 
@@ -192,6 +194,7 @@ class SaplAttributeRegistryTests {
         class TestClass {
             @PostEnforce(subject = "'onMethod'")
             public void doSomething() {
+                // NOOP test dummy
             }
         }
 
@@ -204,6 +207,7 @@ class SaplAttributeRegistryTests {
         class TestClass {
             @EnforceTillDenied(subject = "'onMethod'")
             public void doSomething() {
+                // NOOP test dummy
             }
         }
 
@@ -216,6 +220,7 @@ class SaplAttributeRegistryTests {
         class TestClass {
             @EnforceDropWhileDenied(subject = "'onMethod'")
             public void doSomething() {
+                // NOOP test dummy
             }
         }
 
@@ -228,6 +233,7 @@ class SaplAttributeRegistryTests {
         class TestClass {
             @EnforceRecoverableIfDenied(subject = "'onMethod'")
             public void doSomething() {
+                // NOOP test dummy
             }
         }
 
@@ -237,6 +243,7 @@ class SaplAttributeRegistryTests {
     interface DefaultMethodInterface {
         @PostEnforce(subject = "'onDefaultInterfaceMethod'")
         default void doSomething() {
+            // NOOP test dummy
         }
     }
 

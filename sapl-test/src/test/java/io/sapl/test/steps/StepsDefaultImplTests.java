@@ -121,14 +121,14 @@ class StepsDefaultImplTests {
 
     @Test
     void test_mockAttribute_withParentValueAndArguments() {
-        var policy_Attribute_WithAttributeAsParentValueAndArguments = """
+        var policyAttributeWithAttributeAsParentValueAndArguments = """
                 policy "policy"
                 permit
                 where
                   var parentValue = true;
                   parentValue.<pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;""";
-        var steps                                                   = new StepsDefaultImplTestsImpl(
-                policy_Attribute_WithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
+        var steps                                                 = new StepsDefaultImplTestsImpl(
+                policyAttributeWithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
                 .givenAttribute("pip.attributeWithParams",
                         whenAttributeParams(parentValue(val(true)), arguments(val(2), val(2))),
