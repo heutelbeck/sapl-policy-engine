@@ -33,7 +33,7 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 /**
  * Maven test Stub
  */
-public class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
+public final class SaplMavenPluginTestMavenProjectStub extends MavenProjectStub {
 
     public SaplMavenPluginTestMavenProjectStub() throws IOException, XmlPullParserException {
         initialize();

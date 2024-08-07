@@ -48,7 +48,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
-public class ReactiveSaplMethodInterceptor implements MethodInterceptor {
+public final class ReactiveSaplMethodInterceptor implements MethodInterceptor {
 
     @NonNull
     private final SaplAttributeRegistry source;

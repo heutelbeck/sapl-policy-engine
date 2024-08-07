@@ -38,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 @Slf4j
-public class ResourcesVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
+public final class ResourcesVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
     private static final String DEFAULT_CONFIG_PATH = "/policies";
     private static final String CONFIG_FILE         = "pdp.json";

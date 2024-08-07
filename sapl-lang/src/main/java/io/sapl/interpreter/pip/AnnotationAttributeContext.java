@@ -59,7 +59,7 @@ import reactor.core.publisher.Flux;
  * evaluation.
  */
 @NoArgsConstructor
-public class AnnotationAttributeContext implements AttributeContext {
+public final class AnnotationAttributeContext implements AttributeContext {
 
     static final String FIRST_PARAMETER_NOT_PRESENT_S_ERROR                     = "Argument missing. First parameter of the method '%s' must be a Val for taking in the left-hand argument, but no argument was present.";
     static final String FIRST_PARAMETER_S_UNEXPECTED_S_ERROR                    = "First parameter of the method %s has an unexpected type. Was expecting a Val but got %s.";

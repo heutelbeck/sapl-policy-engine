@@ -40,7 +40,7 @@ import org.springframework.util.ClassUtils;
 
 import lombok.NonNull;
 
-public class SaplAttributeRegistry {
+public final class SaplAttributeRegistry {
     public static final List<Class<? extends Annotation>> SAPL_ANNOTATIONS = List.of(EnforceRecoverableIfDenied.class,
             EnforceTillDenied.class, EnforceDropWhileDenied.class, PreEnforce.class, PostEnforce.class);
 
