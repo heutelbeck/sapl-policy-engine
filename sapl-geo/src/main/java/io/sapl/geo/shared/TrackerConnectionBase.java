@@ -30,7 +30,7 @@ import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 
-public class TrackerConnectionBase extends ConnectionBase {
+public abstract class TrackerConnectionBase extends ConnectionBase {
 
     protected static final String DEVICEID_CONST = "deviceId";
 
@@ -40,10 +40,12 @@ public class TrackerConnectionBase extends ConnectionBase {
     protected String latitude;
     protected String longitude;
 
+    private final int WGS84 = 4326;
+    
     protected GeoPipResponse mapPosition(int deviceId, JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst)
             throws JsonProcessingException {
 
-        var   geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+        var   geometryFactory = new GeometryFactory(new PrecisionModel(), WGS84);
         Point position;
 
         var lat = in.findValue(latitude).asDouble();

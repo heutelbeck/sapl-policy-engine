@@ -21,7 +21,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 
 import javax.xml.stream.XMLStreamException;
 
@@ -39,7 +38,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functions.GeometryConverter;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +48,7 @@ public class GeoParser {
 
     private static final JsonNodeFactory JSON      = JsonNodeFactory.instance;
     private static final String          PARSE_KML = "parses kml to Geometries";
-    private static final String          ERROR     = "Error while parsing kml";
+    //private static final String          ERROR     = "Error while parsing kml";
     private static final String          NAME      = "name";
     private static final String          GEOM      = "Geometry";
 
@@ -81,14 +79,14 @@ public class GeoParser {
 
     }
 
-    protected ArrayNode convertToObjects(Collection<?> placeMarks) {
+    protected ArrayNode convertToObjects(ArrayList<SimpleFeature> placeMarks) {
         var arrayNode = mapper.createArrayNode();
 
-        for (Object obj : placeMarks) {
-
-            if (!(obj instanceof SimpleFeature feature)) {
-                throw new PolicyEvaluationException(ERROR);
-            } else {
+        //for (Object obj : placeMarks) {
+        for (SimpleFeature feature : placeMarks) {
+            //if (!(obj instanceof SimpleFeature feature)) {
+            //    throw new PolicyEvaluationException(ERROR);
+            //} else {
                 var name         = "unnamed geometry";
                 var nameProperty = feature.getAttribute(NAME);
                 if (nameProperty != null) {
@@ -98,11 +96,15 @@ public class GeoParser {
                 var geo  = JSON.objectNode();
 
                 if (geom != null) {
-                    geo.set(NAME, new TextNode(name));
-                    geo.set(GEOM, GeometryConverter.geometryToKML(geom).get());
+                    
+                	geo.set(NAME, new TextNode(name));
+                    
+                    var json = new TextNode(GeometryConverter.geometryToKML(geom).getText());
+
+                    geo.set(GEOM, json);
                     arrayNode.add(geo);
                 }
-            }
+            //}
         }
         return arrayNode;
     }

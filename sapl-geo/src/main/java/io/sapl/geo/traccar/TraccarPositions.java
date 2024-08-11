@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -40,7 +41,7 @@ public class TraccarPositions extends TraccarBase {
 
     /**
      * @param auth   a {@link JsonNode} containing the settings for authorization
-     * @param mapper a {@link ObjectMapper}
+     * @param mapper an {@link ObjectMapper}
      */
     public TraccarPositions(JsonNode auth, ObjectMapper mapper) {
 
@@ -65,21 +66,20 @@ public class TraccarPositions extends TraccarBase {
 
         var url = (String.format("ws://%s/api/socket", server));
         return establishSession(user, password, server, protocol).flatMapMany(cookie ->
-
-        {
-            try {
-                return getFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
-                        getLatitudeFirst(settings)).map(Val::of)
-
-                        .doFinally(s -> disconnect());
-            } catch (JsonProcessingException | PolicyEvaluationException e) {
-                return Flux.error(e);
-            }
-        });
+            {
+                try {
+                    return getPositionFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
+                            getLatitudeFirst(settings)).map(Val::of)
+    
+                            .doFinally(s -> disconnect());
+                } catch (Exception e) {
+                    return Flux.error(e);
+                }
+            });
 
     }
 
-    private Flux<ObjectNode> getFlux(String url, String cookie, GeoPipResponseFormat format, int deviceId,
+    private Flux<ObjectNode> getPositionFlux(String url, String cookie, GeoPipResponseFormat format, int deviceId,
             boolean latitudeFirst) throws JsonProcessingException {
 
         var client = new ReactiveWebClient(mapper);
@@ -105,7 +105,7 @@ public class TraccarPositions extends TraccarBase {
 
     Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, int deviceId)
             throws JsonProcessingException {
-        JsonNode pos = getPositionFromMessage(in, deviceId);
+        var pos = getPositionFromMessage(in, deviceId);
 
         if (pos.has(DEVICE_ID)) {
 
@@ -118,16 +118,14 @@ public class TraccarPositions extends TraccarBase {
     private JsonNode getPositionFromMessage(JsonNode in, int deviceId) {
 
         if (in.has(POSITIONS)) {
-            var pos1 = (ArrayNode) in.findValue(POSITIONS);
-            for (var p : pos1) {
+            var pos = (ArrayNode) in.findValue(POSITIONS);
+            for (var p : pos) {
                 if (p.findValue(DEVICE_ID).toPrettyString().equals(Integer.toString(deviceId))) {
                     return p;
                 }
             }
         }
-
-        return mapper.createObjectNode();
-
+        
+        return JsonNodeFactory.instance.objectNode();
     }
-
 }
