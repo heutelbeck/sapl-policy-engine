@@ -47,7 +47,7 @@ public class OwnTracks extends TrackerConnectionBase {
     private ReactiveWebClient client;
     private final Logger      logger = LoggerFactory.getLogger(getClass());
 
-    private int    deviceId;
+    private String    deviceId;
     private String authSettings;
 
     /**

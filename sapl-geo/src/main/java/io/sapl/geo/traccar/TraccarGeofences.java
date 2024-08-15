@@ -86,7 +86,7 @@ public class TraccarGeofences extends TraccarBase {
 
     }
 
-    private Flux<JsonNode> getFlux(GeoPipResponseFormat format, Integer deviceId, String protocol, String server,
+    private Flux<JsonNode> getFlux(GeoPipResponseFormat format, String deviceId, String protocol, String server,
             Long pollingInterval, Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
 
         var flux = getGeofences1(format, deviceId, protocol, server, pollingInterval, repetitions, latitudeFirst)
@@ -97,7 +97,7 @@ public class TraccarGeofences extends TraccarBase {
 
     }
 
-    private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, Integer deviceId, String protocol,
+    private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, String deviceId, String protocol,
             String server, Long pollingInterval, Long repetitions, boolean latitudeFirst)
             throws JsonProcessingException {
 
@@ -106,7 +106,7 @@ public class TraccarGeofences extends TraccarBase {
 
     }
 
-    private Flux<JsonNode> getGeofences(Integer deviceId, String protocol, String server, Long pollingInterval,
+    private Flux<JsonNode> getGeofences(String deviceId, String protocol, String server, Long pollingInterval,
             Long repetitions) throws JsonProcessingException {
 
         var webClient = new ReactiveWebClient(mapper);
@@ -209,9 +209,9 @@ public class TraccarGeofences extends TraccarBase {
                 .description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
     }
 
-    protected static Integer getDeviceId(JsonNode requestSettings) {
+    protected static String getDeviceId(JsonNode requestSettings) {
         if (requestSettings.has(DEVICEID_CONST)) {
-            return requestSettings.findValue(DEVICEID_CONST).asInt();
+            return requestSettings.findValue(DEVICEID_CONST).asText();
         } else {
 
             return null;

@@ -79,7 +79,7 @@ public class TraccarPositions extends TraccarBase {
 
     }
 
-    private Flux<ObjectNode> getPositionFlux(String url, String cookie, GeoPipResponseFormat format, int deviceId,
+    private Flux<ObjectNode> getPositionFlux(String url, String cookie, GeoPipResponseFormat format, String deviceId,
             boolean latitudeFirst) throws JsonProcessingException {
 
         var client = new ReactiveWebClient(mapper);
@@ -103,7 +103,7 @@ public class TraccarPositions extends TraccarBase {
 
     }
 
-    Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, int deviceId)
+    Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, String deviceId)
             throws JsonProcessingException {
         var pos = getPositionFromMessage(in, deviceId);
 
@@ -115,12 +115,12 @@ public class TraccarPositions extends TraccarBase {
         return Flux.just();
     }
 
-    private JsonNode getPositionFromMessage(JsonNode in, int deviceId) {
+    private JsonNode getPositionFromMessage(JsonNode in, String deviceId) {
 
         if (in.has(POSITIONS)) {
             var pos = (ArrayNode) in.findValue(POSITIONS);
             for (var p : pos) {
-                if (p.findValue(DEVICE_ID).toPrettyString().equals(Integer.toString(deviceId))) {
+                if (p.findValue(DEVICE_ID).toPrettyString().equals(deviceId)) {
                     return p;
                 }
             }

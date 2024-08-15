@@ -42,7 +42,7 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
 
     private final int WGS84 = 4326;
     
-    protected GeoPipResponse mapPosition(int deviceId, JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst)
+    protected GeoPipResponse mapPosition(String deviceId, JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst)
             throws JsonProcessingException {
 
         var   geometryFactory = new GeometryFactory(new PrecisionModel(), WGS84);
@@ -85,16 +85,16 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
                 .lastUpdate(in.findValue(lastupdate).asText()).accuracy(in.findValue(accuracy).asDouble()).build();
     }
 
-    protected static Integer getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
+    protected static String getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(DEVICEID_CONST)) {
-            return requestSettings.findValue(DEVICEID_CONST).asInt();
+            return requestSettings.findValue(DEVICEID_CONST).asText();
         } else {
 
             throw new PolicyEvaluationException("No Device ID found");
         }
 
     }
-
+    
     protected static String getProtocol(JsonNode requestSettings) {
         if (requestSettings.has(PROTOCOL_CONST)) {
             return requestSettings.findValue(PROTOCOL_CONST).asText();
