@@ -57,7 +57,7 @@ public class OwnTracksTests {
     public static final GenericContainer<?> owntracksRecorder = new GenericContainer<>(
             DockerImageName.parse("owntracks/recorder:latest")).withExposedPorts(8083)
             .withFileSystemBind(RESOURCE_DIRECTORY + "/owntracks/store", "/store", BindMode.READ_WRITE)
-            .withEnv("OTR_PORT", "0") //disable mqtt
+            .withEnv("OTR_PORT", "0") // disable mqtt
             .withReuse(false);
 
     @BeforeAll

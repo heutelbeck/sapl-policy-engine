@@ -64,17 +64,16 @@ public class TraccarPositions extends TraccarBase {
     public Flux<Val> getPositions(JsonNode settings) {
 
         var url = (String.format("ws://%s/api/socket", server));
-        return establishSession(user, password, server, protocol).flatMapMany(cookie ->
-            {
-                try {
-                    return getPositionFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
-                            getLatitudeFirst(settings)).map(Val::of)
-    
-                            .doFinally(s -> disconnect());
-                } catch (Exception e) {
-                    return Flux.error(e);
-                }
-            });
+        return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
+            try {
+                return getPositionFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
+                        getLatitudeFirst(settings)).map(Val::of)
+
+                        .doFinally(s -> disconnect());
+            } catch (Exception e) {
+                return Flux.error(e);
+            }
+        });
 
     }
 
@@ -124,7 +123,7 @@ public class TraccarPositions extends TraccarBase {
                 }
             }
         }
-        
+
         return JsonNodeFactory.instance.objectNode();
     }
 }

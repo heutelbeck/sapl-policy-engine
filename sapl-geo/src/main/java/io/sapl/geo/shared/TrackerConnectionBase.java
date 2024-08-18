@@ -41,9 +41,9 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
     protected String longitude;
 
     private static final int WGS84 = 4326;
-    
-    protected GeoPipResponse mapPosition(String deviceId, JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst)
-            throws JsonProcessingException {
+
+    protected GeoPipResponse mapPosition(String deviceId, JsonNode in, GeoPipResponseFormat format,
+            boolean latitudeFirst) throws JsonProcessingException {
 
         var   geometryFactory = new GeometryFactory(new PrecisionModel(), WGS84);
         Point position;
@@ -94,7 +94,7 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
         }
 
     }
-    
+
     protected static String getProtocol(JsonNode requestSettings) {
         if (requestSettings.has(PROTOCOL_CONST)) {
             return requestSettings.findValue(PROTOCOL_CONST).asText();

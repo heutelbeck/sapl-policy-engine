@@ -382,8 +382,10 @@ public class GeoFunctions {
 
         var nearestPoints = distOp.nearestPoints();
 
-        /* zugriff auf nearestPoints nur mit index möglich;
-         external_fbcontrib:CLI_CONSTANT_LIST_INDEX*/
+        /*
+         * zugriff auf nearestPoints nur mit index möglich;
+         * external_fbcontrib:CLI_CONSTANT_LIST_INDEX
+         */
         var nearestPointThis = nearestPoints[0]; // NOSONAR
         var nearestPointThat = nearestPoints[1]; // NOSONAR
 

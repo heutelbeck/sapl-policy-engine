@@ -69,7 +69,6 @@ public class SourceProvider {
         }
     }
 
-
     public final void setUp() throws TransformerConfigurationException, TransformerFactoryConfigurationError,
             ParserConfigurationException, SAXException, IOException {
 

@@ -40,10 +40,10 @@ public final class GeometryConverter {
      * @return a {@link Val} containing the GML-string}
      */
     public static Val geometryToGML(Geometry geo) {
-    	
-    	var writer = new GMLWriter();
-    	writer.setMaxCoordinatesPerLine(Integer.MAX_VALUE);// reader has problems if /n occurs in coordinates
-    	var s = writer.write(geo);
+
+        var writer = new GMLWriter();
+        writer.setMaxCoordinatesPerLine(Integer.MAX_VALUE);// reader has problems if /n occurs in coordinates
+        var s = writer.write(geo);
         return Val.of(s);
 
     }
@@ -54,9 +54,9 @@ public final class GeometryConverter {
      */
     public static Val geometryToKML(Geometry geo) {
 
-    	var writer = new KMLWriter();
-    	writer.setMaximumCoordinatesPerLine(Integer.MAX_VALUE); // reader has problems if /n occurs in coordinates
-    	var s = writer.write(geo);
+        var writer = new KMLWriter();
+        writer.setMaximumCoordinatesPerLine(Integer.MAX_VALUE); // reader has problems if /n occurs in coordinates
+        var s = writer.write(geo);
         return Val.of(s);
     }
 
@@ -66,9 +66,9 @@ public final class GeometryConverter {
      */
     public static Val geometryToWKT(Geometry geo) {
 
-    	var writer = new WKTWriter();
-    	writer.setMaxCoordinatesPerLine(Integer.MAX_VALUE);// reader has problems if /n occurs in coordinates
-    	var s = writer.write(geo);
+        var writer = new WKTWriter();
+        writer.setMaxCoordinatesPerLine(Integer.MAX_VALUE);// reader has problems if /n occurs in coordinates
+        var s = writer.write(geo);
         return Val.of(s);
     }
 

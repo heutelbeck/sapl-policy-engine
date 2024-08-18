@@ -104,33 +104,30 @@ public abstract class DatabaseConnectionBase extends ConnectionBase {
         if (singleResult) {
 
             sql = sql.concat(" LIMIT 1");
-            return poll(getResults(sql, format, defaultCrs, latitudeFirst).next(), repeatTimes,
-                    pollingInterval);
+            return poll(getResults(sql, format, defaultCrs, latitudeFirst).next(), repeatTimes, pollingInterval);
         } else {
 
-            return poll(collectMultipleResults(getResults(sql, format, defaultCrs, latitudeFirst)),
-                    repeatTimes, pollingInterval);
+            return poll(collectMultipleResults(getResults(sql, format, defaultCrs, latitudeFirst)), repeatTimes,
+                    pollingInterval);
         }
 
     }
 
-    private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format,
-            int defaultCrs, boolean latitudeFirst) {
+    private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
 
-    	
         return Flux.usingWhen(connectionFactory.create(),
-        		
-        		conn -> Flux.from(conn.createStatement(sql).execute())
-        		.flatMap(result -> result.map((row, rowMetadata) -> {
-                    try {
-                        return mapResult(row, format, defaultCrs, latitudeFirst);
-                    } catch (Exception e) {
-                        throw new PolicyEvaluationException(e);
-                    }
-                })),
 
-        		Connection::close);
-        		
+                conn -> Flux.from(conn.createStatement(sql).execute())
+                        .flatMap(result -> result.map((row, rowMetadata) -> {
+                            try {
+                                return mapResult(row, format, defaultCrs, latitudeFirst);
+                            } catch (Exception e) {
+                                throw new PolicyEvaluationException(e);
+                            }
+                        })),
+
+                Connection::close);
+
     }
 
     private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst)
