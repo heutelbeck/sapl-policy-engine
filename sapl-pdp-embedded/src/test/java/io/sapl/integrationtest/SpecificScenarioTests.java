@@ -35,8 +35,8 @@ import io.sapl.pdp.PolicyDecisionPointFactory;
 
 class SpecificScenarioTests {
 
-    private final static ObjectMapper MAPPER                = new ObjectMapper();
-    private final static String       BOOK3                 = """
+    private static final ObjectMapper MAPPER                = new ObjectMapper();
+    private static final String       BOOK3                 = """
             "resource": {
               "id": 3,
               "name": "Dragonlance Chronicles Vol. 1: Dragons of Autumn Twilight",
@@ -44,7 +44,7 @@ class SpecificScenarioTests {
               "content": "Some fantasy story."
             },
             """;
-    private final static String       BOOK4                 = """
+    private static final String       BOOK4                 = """
             "resource":{
               "id":4,
               "name":"The Three-Body Problem",
@@ -52,7 +52,7 @@ class SpecificScenarioTests {
               "content":"Space is scary."
             },
             """;
-    private final static String       SUBSCRIPTION_TEMPLATE = """
+    private static final String       SUBSCRIPTION_TEMPLATE = """
             {
               "subject": {
                 "username": "%s",
@@ -62,9 +62,9 @@ class SpecificScenarioTests {
               %s
               "environment": null
             }""";
-    private final static String       SUB_BOB_BOOK3         = String.format(SUBSCRIPTION_TEMPLATE, "bob",
+    private static final String       SUB_BOB_BOOK3         = String.format(SUBSCRIPTION_TEMPLATE, "bob",
             birthdayForAgeInYears(10), BOOK3);
-    private final static String       SUB_BOB_BOOK4         = String.format(SUBSCRIPTION_TEMPLATE, "bob",
+    private static final String       SUB_BOB_BOOK4         = String.format(SUBSCRIPTION_TEMPLATE, "bob",
             birthdayForAgeInYears(10), BOOK4);
 
     @Test

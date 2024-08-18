@@ -104,14 +104,14 @@ class StepsDefaultImplTests {
 
     @Test
     void test_mockAttribute_withParentValue() {
-        var policy_Attribute_WithAttributeAsParentValue = """
+        var policyAttributeWithAttributeAsParentValue = """
                 policy "policy"
                 permit
                 where
                   var test = true;
                   test.<pip.attribute1>.<pip.attribute2> < 50;""";
-        var steps                                       = new StepsDefaultImplTestsImpl(
-                policy_Attribute_WithAttributeAsParentValue, attrCtx, funcCtx, variables);
+        var steps                                     = new StepsDefaultImplTestsImpl(
+                policyAttributeWithAttributeAsParentValue, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1", Val.of(true), Val.of(false))
                 .givenAttribute("pip.attribute2", parentValue(val(true)), thenReturn(Val.of(0)))
                 .givenAttribute("pip.attribute2", parentValue(val(false)), thenReturn(Val.of(99)))
@@ -121,14 +121,14 @@ class StepsDefaultImplTests {
 
     @Test
     void test_mockAttribute_withParentValueAndArguments() {
-        var policy_Attribute_WithAttributeAsParentValueAndArguments = """
+        var policyAttributeWithAttributeAsParentValueAndArguments = """
                 policy "policy"
                 permit
                 where
                   var parentValue = true;
                   parentValue.<pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;""";
-        var steps                                                   = new StepsDefaultImplTestsImpl(
-                policy_Attribute_WithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
+        var steps                                                 = new StepsDefaultImplTestsImpl(
+                policyAttributeWithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
                 .givenAttribute("pip.attributeWithParams",
                         whenAttributeParams(parentValue(val(true)), arguments(val(2), val(2))),
@@ -147,14 +147,14 @@ class StepsDefaultImplTests {
 
     @Test
     void test_mockAttribute_withParentValueAndArguments_ForEnvironmentAttribute() {
-        var policy_EnvironmentAttribute_WithAttributeAsParentValueAndArguments = """
+        var policyEnvironmentAttributeWithAttributeAsParentValueAndArguments = """
                 policy "policy"
                 permit
                 where
                   var parentValue = true;
                   <pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;""";
-        var steps                                                              = new StepsDefaultImplTestsImpl(
-                policy_EnvironmentAttribute_WithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
+        var steps                                                            = new StepsDefaultImplTestsImpl(
+                policyEnvironmentAttributeWithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
                 .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(2))),
                         thenReturn(Val.of(true)))
@@ -222,7 +222,7 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNextDeny_XTimes_Greater1() {
-        var policy_Streaming_Deny = """
+        var policyStreamingDeny = """
                 policy "policyStreaming"
                 deny
                   resource == "heartBeatData"
@@ -230,7 +230,7 @@ class StepsDefaultImplTests {
                   subject == "ROLE_DOCTOR";
                   var interval = 2;
                   time.secondOf(<time.now(interval)>) > 4;""";
-        var steps                 = new StepsDefaultImplTestsImpl(policy_Streaming_Deny, attrCtx, funcCtx, variables);
+        var steps               = new StepsDefaultImplTestsImpl(policyStreamingDeny, attrCtx, funcCtx, variables);
         steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
                 .givenFunctionOnce("time.secondOf", Val.of(5), Val.of(6), Val.of(7))
                 .when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextDeny(3).verify();
@@ -245,7 +245,7 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNextIndeterminate_XTimes_Greater1() {
-        var policy_Streaming_Indeterminate = """
+        var policyStreamingIndeterminate = """
                 policy "policyStreaming"
                 permit
                   resource == "heartBeatData"
@@ -253,8 +253,8 @@ class StepsDefaultImplTests {
                   subject == "ROLE_DOCTOR";
                   var interval = 2;
                   time.secondOf(<time.now(interval)>) > 4;  17 / 0;""";
-        var steps                          = new StepsDefaultImplTestsImpl(policy_Streaming_Indeterminate, attrCtx,
-                funcCtx, variables);
+        var steps                        = new StepsDefaultImplTestsImpl(policyStreamingIndeterminate, attrCtx, funcCtx,
+                variables);
         steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
                 .givenFunctionOnce("time.secondOf", Val.of(5), Val.of(6), Val.of(7))
                 .when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextIndeterminate(3)

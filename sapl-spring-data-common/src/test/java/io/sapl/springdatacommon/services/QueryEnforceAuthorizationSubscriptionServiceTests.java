@@ -53,7 +53,8 @@ import io.sapl.springdatacommon.database.R2dbcMethodInvocation;
 
 class QueryEnforceAuthorizationSubscriptionServiceTests {
 
-    private static ObjectMapper       MAPPER                    = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private BeanFactory               beanFactoryMock           = mock(BeanFactory.class);
     private SecurityExpressionService securityExpressionService = mock(SecurityExpressionService.class);
     private SecurityContext           securityContextMock       = mock(SecurityContext.class);

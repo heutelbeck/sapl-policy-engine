@@ -118,6 +118,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
     public static class TestClass {
 
         public void publicVoid() {
+            // NOOP test dummy
         }
 
     }

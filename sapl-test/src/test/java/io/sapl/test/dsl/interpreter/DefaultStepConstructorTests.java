@@ -112,14 +112,14 @@ class DefaultStepConstructorTests {
     void constructWhenStep_callsWhenStepConstructor_returnsWhenStep() {
         final var givenSteps          = Collections.<GivenStep>emptyList();
         final var givenOrWhenStepMock = mock(GivenOrWhenStep.class);
-        final var ExpectationMock     = mock(Expectation.class);
+        final var expectationMock     = mock(Expectation.class);
 
         final var whenStepMock = mock(WhenStep.class);
 
-        when(defaultWhenStepConstructorMock.constructWhenStep(givenSteps, givenOrWhenStepMock, ExpectationMock))
+        when(defaultWhenStepConstructorMock.constructWhenStep(givenSteps, givenOrWhenStepMock, expectationMock))
                 .thenReturn(whenStepMock);
 
-        final var result = defaultStepConstructor.constructWhenStep(givenSteps, givenOrWhenStepMock, ExpectationMock);
+        final var result = defaultStepConstructor.constructWhenStep(givenSteps, givenOrWhenStepMock, expectationMock);
 
         assertEquals(whenStepMock, result);
     }

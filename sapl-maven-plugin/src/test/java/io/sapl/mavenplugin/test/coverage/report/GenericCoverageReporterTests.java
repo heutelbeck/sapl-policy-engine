@@ -55,14 +55,13 @@ import io.sapl.test.coverage.api.model.PolicySetHit;
 
 class GenericCoverageReporterTests {
 
-    private DefaultSAPLInterpreter INTERPRETER;
-
+    private DefaultSAPLInterpreter  interpreter;
     private GenericCoverageReporter reporter;
 
     @BeforeEach
     void setup() {
         this.reporter    = new GenericCoverageReporter();
-        this.INTERPRETER = new DefaultSAPLInterpreter();
+        this.interpreter = new DefaultSAPLInterpreter();
     }
 
     @Test
@@ -72,7 +71,7 @@ class GenericCoverageReporterTests {
         String                   sapl          = Files.readString(path);
         int                      lineCount     = Files.readAllLines(path).size();
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(path, lineCount, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(path, lineCount, this.interpreter.parse(sapl)));
         PolicySetHit             setHit        = new PolicySetHit("testPolicies");
         PolicyHit                policyHit     = new PolicyHit("testPolicies", "policy 1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("testPolicies", "policy 1", 0, true);
@@ -117,7 +116,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl      = "set \"set\" \ndeny-unless-permit \npolicy \"policy1\" \npermit";
         Collection<SaplDocument> documents = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         CoverageTargets          hits      = new CoverageTargets(List.of(), List.of(), List.of());
 
         // act
@@ -141,7 +140,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl      = "set \"set\" \ndeny-unless-permit \nfor action == \"read\" \npolicy \"policy1\" \npermit";
         Collection<SaplDocument> documents = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 5, this.interpreter.parse(sapl)));
         PolicySetHit             setHit    = new PolicySetHit("set");
         CoverageTargets          hits      = new CoverageTargets(List.of(setHit), List.of(), List.of());
 
@@ -185,7 +184,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl      = "set \"set\" \ndeny-unless-permit \nvar temp = 1; \npolicy \"policy1\" \npermit";
         Collection<SaplDocument> documents = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 5, this.interpreter.parse(sapl)));
         PolicySetHit             setHit    = new PolicySetHit("set");
         CoverageTargets          hits      = new CoverageTargets(List.of(setHit), List.of(), List.of());
 
@@ -212,7 +211,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
         PolicyConditionHit       conditionHit2 = new PolicyConditionHit("", "policy1", 0, true);
@@ -240,7 +239,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl         = "policy \"policy1\" \npermit\nwhere\ntrue;\ntrue;";
         Collection<SaplDocument> documents    = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 5, this.interpreter.parse(sapl)));
         PolicyHit                policyHit    = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit = new PolicyConditionHit("", "policy1", 0, false);
         CoverageTargets          hits         = new CoverageTargets(List.of(), List.of(policyHit),
@@ -269,7 +268,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\nfalse;\nvar id=1;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 5, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
         CoverageTargets          hits          = new CoverageTargets(List.of(), List.of(policyHit),
@@ -298,7 +297,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\nvar id=1;\ntrue;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 5, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 5, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 1, false);
         CoverageTargets          hits          = new CoverageTargets(List.of(), List.of(policyHit),
@@ -327,7 +326,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
         PolicyConditionHit       conditionHit2 = new PolicyConditionHit("", "policy1", 0, true);
@@ -361,7 +360,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
         PolicyConditionHit       conditionHit2 = new PolicyConditionHit("", "policy1", 1, true);
@@ -394,7 +393,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 1, false);
         PolicyConditionHit       conditionHit2 = new PolicyConditionHit("", "policy1", 1, true);
@@ -411,7 +410,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
         PolicyConditionHit       conditionHit2 = new PolicyConditionHit("", "policy1", 0, true);
@@ -445,7 +444,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 0, true);
         PolicyConditionHit       conditionHit2 = new PolicyConditionHit("", "policy1", 1, false);
@@ -477,7 +476,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 1, true);
         CoverageTargets          hits          = new CoverageTargets(List.of(), List.of(policyHit),
@@ -493,7 +492,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
         PolicyConditionHit       conditionHit2 = new PolicyConditionHit("", "policy1", 0, true);
@@ -525,7 +524,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 0, true);
         CoverageTargets          hits          = new CoverageTargets(List.of(), List.of(policyHit),
@@ -556,7 +555,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl      = "policy \"policy1\" \npermit\nwhere\ntrue;true;";
         Collection<SaplDocument> documents = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit = new PolicyHit("", "policy1");
         CoverageTargets          hits      = new CoverageTargets(List.of(), List.of(policyHit), List.of());
 
@@ -585,7 +584,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;var id=1;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 0, true);
         PolicyConditionHit       conditionHit2 = new PolicyConditionHit("", "policy1", 0, false);
@@ -617,7 +616,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;var id=1;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 0, true);
         CoverageTargets          hits          = new CoverageTargets(List.of(), List.of(policyHit),
@@ -666,7 +665,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl          = "policy \"policy1\" \npermit\nwhere\ntrue;var id=1;";
         Collection<SaplDocument> documents     = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit     = new PolicyHit("", "policy1");
         PolicyConditionHit       conditionHit1 = new PolicyConditionHit("", "policy1", 0, false);
         CoverageTargets          hits          = new CoverageTargets(List.of(), List.of(policyHit),
@@ -697,7 +696,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl      = "policy \"policy1\" \npermit\nwhere\ntrue;var id=1;";
         Collection<SaplDocument> documents = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit = new PolicyHit("", "policy1");
         CoverageTargets          hits      = new CoverageTargets(List.of(), List.of(policyHit), List.of());
 
@@ -726,7 +725,7 @@ class GenericCoverageReporterTests {
         // arrange
         String                   sapl      = "policy \"policy1\" \npermit\nwhere\ntrue;var id=1;";
         Collection<SaplDocument> documents = List
-                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.INTERPRETER.parse(sapl)));
+                .of(new SaplDocument(Paths.get("test.sapl"), 4, this.interpreter.parse(sapl)));
         PolicyHit                policyHit = new PolicyHit("", "policy1");
         CoverageTargets          hits      = new CoverageTargets(List.of(), List.of(policyHit), List.of());
 

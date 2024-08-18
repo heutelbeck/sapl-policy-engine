@@ -45,15 +45,15 @@ import io.sapl.springdatar2dbc.database.Person;
 
 class QueryCreationTests {
 
-    private static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER          = new ObjectMapper();
+    private static final ArrayNode    EMPTY_ARRAYNODE = MAPPER.createArrayNode();
 
-    private static ArrayNode CONDITIONS_ONE;
-    private static ArrayNode CONDITIONS_TWO;
-    private static ArrayNode CONDITIONS_WITH_OR;
-    private static ArrayNode CONDITIONS_WITH_AND;
-    private static ArrayNode SELECTIONS;
-    private static ArrayNode TRANSFORMATIONS;
-    private static ArrayNode EMPTY_ARRAYNODE = MAPPER.createArrayNode();
+    private static ArrayNode conditionsOne;
+    private static ArrayNode conditionsTwo;
+    private static ArrayNode conditionsWithOr;
+    private static ArrayNode conditionsWithAnd;
+    private static ArrayNode selections;
+    private static ArrayNode transdormations;
 
     MockedStatic<ConvertToSQL>                     convertToSQLMock;
     MockedStatic<QuerySelectionUtils>              querySelectionUtilsMock;
@@ -62,7 +62,7 @@ class QueryCreationTests {
     @BeforeAll
     static void initJsonNodes() throws JsonProcessingException {
 
-        SELECTIONS = MAPPER.readValue("""
+        selections = MAPPER.readValue("""
                 [
                 	{
                 		"type": "blacklist",
@@ -75,32 +75,32 @@ class QueryCreationTests {
                 ]
                 """, ArrayNode.class);
 
-        CONDITIONS_ONE = MAPPER.readValue("""
+        conditionsOne = MAPPER.readValue("""
                 [
                 	"firstname = 'Juni'",
                 	"active = true"
                 ]
                 """, ArrayNode.class);
 
-        CONDITIONS_TWO = MAPPER.readValue("""
+        conditionsTwo = MAPPER.readValue("""
                 [
                 	"AND firstname = 'Juni'",
                 	"OR active = true"
                 ]
                 """, ArrayNode.class);
 
-        CONDITIONS_WITH_OR = MAPPER.readValue("""
+        conditionsWithOr = MAPPER.readValue("""
                 [
                 	"OR firstname = 'Juni'"
                 ]
                 """, ArrayNode.class);
 
-        CONDITIONS_WITH_AND = MAPPER.readValue("""
+        conditionsWithAnd = MAPPER.readValue("""
                 [
                 	"AND firstname = 'Juni'"
                 ]
                 """, ArrayNode.class);
-        TRANSFORMATIONS     = MAPPER.readValue("""
+        transdormations   = MAPPER.readValue("""
                 [
                 	{
                 		"firstname": "UPPER"
@@ -136,7 +136,7 @@ class QueryCreationTests {
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        var result = QueryCreation.manipulateQuery(baseQuery, CONDITIONS_ONE, SELECTIONS, TRANSFORMATIONS, "",
+        var result = QueryCreation.manipulateQuery(baseQuery, conditionsOne, selections, transdormations, "",
                 Person.class);
 
         // THEN
@@ -156,7 +156,7 @@ class QueryCreationTests {
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        var result = QueryCreation.manipulateQuery(baseQuery, CONDITIONS_ONE, SELECTIONS, TRANSFORMATIONS, "",
+        var result = QueryCreation.manipulateQuery(baseQuery, conditionsOne, selections, transdormations, "",
                 Person.class);
 
         // THEN
@@ -176,7 +176,7 @@ class QueryCreationTests {
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        var result = QueryCreation.manipulateQuery(baseQuery, CONDITIONS_WITH_AND, SELECTIONS, TRANSFORMATIONS, "",
+        var result = QueryCreation.manipulateQuery(baseQuery, conditionsWithAnd, selections, transdormations, "",
                 Person.class);
 
         // THEN
@@ -196,7 +196,7 @@ class QueryCreationTests {
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        var result = QueryCreation.manipulateQuery(baseQuery, CONDITIONS_WITH_OR, SELECTIONS, TRANSFORMATIONS, "",
+        var result = QueryCreation.manipulateQuery(baseQuery, conditionsWithOr, selections, transdormations, "",
                 Person.class);
 
         // THEN
@@ -243,7 +243,7 @@ class QueryCreationTests {
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        var result = QueryCreation.createSqlQuery(CONDITIONS_ONE, SELECTIONS, TRANSFORMATIONS, Person.class, baseQuery);
+        var result = QueryCreation.createSqlQuery(conditionsOne, selections, transdormations, Person.class, baseQuery);
 
         // THEN
         assertEquals(result, expected);
@@ -265,7 +265,7 @@ class QueryCreationTests {
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        var result = QueryCreation.createSqlQuery(CONDITIONS_ONE, SELECTIONS, TRANSFORMATIONS, Person.class, baseQuery);
+        var result = QueryCreation.createSqlQuery(conditionsOne, selections, transdormations, Person.class, baseQuery);
 
         // THEN
         assertEquals(result, expected);
@@ -287,7 +287,7 @@ class QueryCreationTests {
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        var result = QueryCreation.createSqlQuery(EMPTY_ARRAYNODE, SELECTIONS, TRANSFORMATIONS, Person.class,
+        var result = QueryCreation.createSqlQuery(EMPTY_ARRAYNODE, selections, transdormations, Person.class,
                 baseQuery);
 
         // THEN
@@ -310,7 +310,7 @@ class QueryCreationTests {
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        var result = QueryCreation.createSqlQuery(CONDITIONS_TWO, SELECTIONS, TRANSFORMATIONS, Person.class, baseQuery);
+        var result = QueryCreation.createSqlQuery(conditionsTwo, selections, transdormations, Person.class, baseQuery);
 
         // THEN
         assertEquals(result, expected);

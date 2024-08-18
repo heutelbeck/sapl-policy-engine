@@ -34,7 +34,7 @@ class TestMockServerDispatcher extends Dispatcher {
     private final Map<String, String> kidToPubKeyMap;
 
     @Setter
-    private DispatchMode dispatchMode = DispatchMode.True;
+    private DispatchMode dispatchMode = DispatchMode.TRUE;
 
     public TestMockServerDispatcher(String kidPath, Map<String, String> kidToPubKeyMap) {
         this.kidPath        = kidPath;
@@ -54,11 +54,11 @@ class TestMockServerDispatcher extends Dispatcher {
             return new MockResponse().setResponseCode(404);
 
         return switch (this.dispatchMode) {
-        case Bogus -> this.dispatchBogusKey();
-        case Invalid -> this.dispatchInvalidKey(requestedId);
-        case True -> this.dispatchTrueKey(requestedId);
-        case Wrong -> this.dispatchWrongKey();
-        case Basic -> this.dispatchBasicKey(requestedId);
+        case BOGUS -> this.dispatchBogusKey();
+        case INVALID -> this.dispatchInvalidKey(requestedId);
+        case TRUE -> this.dispatchTrueKey(requestedId);
+        case WRONG -> this.dispatchWrongKey();
+        case BASIC -> this.dispatchBasicKey(requestedId);
         default -> new MockResponse().setResponseCode(404);
         };
     }

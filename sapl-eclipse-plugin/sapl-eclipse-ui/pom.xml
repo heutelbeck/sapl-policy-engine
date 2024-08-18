@@ -73,7 +73,7 @@
 			<!-- Used to validate RFC 3339 date and date-time -->
 			<groupId>com.ethlo.time</groupId>
 			<artifactId>itu</artifactId>
-			<version>1.8.0</version>
+			<version>1.10.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>

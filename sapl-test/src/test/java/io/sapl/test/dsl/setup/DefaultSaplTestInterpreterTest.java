@@ -173,6 +173,7 @@ class DefaultSaplTestInterpreterTests {
         final var inputStreamMock = mock(InputStream.class);
         ioUtilsMockedStatic.when(() -> {
             try (var is = IOUtils.toInputStream("foo", StandardCharsets.UTF_8)) {
+                // NOOP
             }
         }).thenReturn(inputStreamMock);
 

@@ -32,7 +32,7 @@ import io.sapl.test.utils.DocumentHelper;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
+public final class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
     private final Map<String, Document> documents;
 

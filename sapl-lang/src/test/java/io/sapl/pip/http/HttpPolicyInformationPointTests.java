@@ -34,24 +34,24 @@ import reactor.core.publisher.Flux;
 
 class HttpPolicyInformationPointTests {
 
-    private final static String DFAULT_REQUEST = """
+    private static final String DEFAULT_REQUEST = """
             {
                 "baseUrl" : "https://localhost:8008"
             }
             """;
 
-    private final static String ALTERED_REQUEST = """
+    private static final String ALTERED_REQUEST = """
             {
                 "baseUrl" : "https://localhost:1234"
             }
             """;
 
-    private final static Val URL = Val.of("https://localhost:1234");
+    private static final Val URL = Val.of("https://localhost:1234");
 
     @Test
     void get() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var expectedRequest  = Val.ofJson(ALTERED_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.get(URL, request)).doesNotThrowAnyException();
@@ -61,7 +61,7 @@ class HttpPolicyInformationPointTests {
     @Test
     void post() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var expectedRequest  = Val.ofJson(ALTERED_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.post(URL, request)).doesNotThrowAnyException();
@@ -71,7 +71,7 @@ class HttpPolicyInformationPointTests {
     @Test
     void put() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var expectedRequest  = Val.ofJson(ALTERED_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.put(URL, request)).doesNotThrowAnyException();
@@ -81,7 +81,7 @@ class HttpPolicyInformationPointTests {
     @Test
     void patch() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var expectedRequest  = Val.ofJson(ALTERED_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.patch(URL, request)).doesNotThrowAnyException();
@@ -91,7 +91,7 @@ class HttpPolicyInformationPointTests {
     @Test
     void delete() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var expectedRequest  = Val.ofJson(ALTERED_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.delete(URL, request)).doesNotThrowAnyException();
@@ -101,7 +101,7 @@ class HttpPolicyInformationPointTests {
     @Test
     void webSocket() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var expectedRequest  = Val.ofJson(ALTERED_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.websocket(URL, request)).doesNotThrowAnyException();
@@ -111,7 +111,7 @@ class HttpPolicyInformationPointTests {
     @Test
     void environmentGet() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.get(request)).doesNotThrowAnyException();
         verify(mockClient, times(1)).httpRequest(HttpMethod.GET, request);
@@ -120,7 +120,7 @@ class HttpPolicyInformationPointTests {
     @Test
     void environmentPost() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.post(request)).doesNotThrowAnyException();
         verify(mockClient, times(1)).httpRequest(HttpMethod.POST, request);
@@ -129,7 +129,7 @@ class HttpPolicyInformationPointTests {
     @Test
     void environmentPut() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.put(request)).doesNotThrowAnyException();
         verify(mockClient, times(1)).httpRequest(HttpMethod.PUT, request);
@@ -138,7 +138,7 @@ class HttpPolicyInformationPointTests {
     @Test
     void environmentPatch() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.patch(request)).doesNotThrowAnyException();
         verify(mockClient, times(1)).httpRequest(HttpMethod.PATCH, request);
@@ -147,7 +147,7 @@ class HttpPolicyInformationPointTests {
     @Test
     void environmentDelete() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.delete(request)).doesNotThrowAnyException();
         verify(mockClient, times(1)).httpRequest(HttpMethod.DELETE, request);
@@ -156,7 +156,7 @@ class HttpPolicyInformationPointTests {
     @Test
     void environmentWebSocket() throws JsonProcessingException {
         var mockClient       = mockClient();
-        var request          = Val.ofJson(DFAULT_REQUEST);
+        var request          = Val.ofJson(DEFAULT_REQUEST);
         var httpPipUnderTest = new HttpPolicyInformationPoint(mockClient);
         assertThatCode(() -> httpPipUnderTest.websocket(request)).doesNotThrowAnyException();
         verify(mockClient, times(1)).consumeWebSocket(request);

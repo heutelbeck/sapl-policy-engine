@@ -66,9 +66,9 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class MongoReactiveMethodNameQueryManipulationEnforcementPointTests {
 
-    private static final String ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
-    static final ObjectMapper   MAPPER               = new ObjectMapper();
-    static ArrayNode            EMPTY_ARRAY_NODE     = MAPPER.createArrayNode();
+    private static final String       ACCESS_DENIED_BY_PDP = "Access Denied by PDP";
+    private static final ObjectMapper MAPPER               = new ObjectMapper();
+    private static final ArrayNode    EMPTY_ARRAY_NODE     = MAPPER.createArrayNode();
 
     final TestUser cathrin   = new TestUser(new ObjectId(), "Cathrin", 33, true);
     Query          baseQuery = new Query();
@@ -98,12 +98,12 @@ class MongoReactiveMethodNameQueryManipulationEnforcementPointTests {
     ConstraintEnforcementService              constraintEnforcementServiceMock         = mock(
             ConstraintEnforcementService.class);
     MockedStatic<QueryCreation>               queryCreationMock;
-    PolicyDecisionPoint                       PDP;
+    PolicyDecisionPoint                       pdp;
 
     @BeforeEach
     public void beforeEach() throws InitializationException {
-        PDP = buildPdp();
-        lenient().when(objectProviderPolicyDecisionPointMock.getObject()).thenReturn(PDP);
+        pdp = buildPdp();
+        lenient().when(objectProviderPolicyDecisionPointMock.getObject()).thenReturn(pdp);
         lenient().when(objectProviderBeanFactoryMock.getObject()).thenReturn(beanFactoryMock);
         lenient().when(objectProviderConstraintQueryEnforcementServiceMock.getObject())
                 .thenReturn(constraintQueryEnforcementServiceMock);

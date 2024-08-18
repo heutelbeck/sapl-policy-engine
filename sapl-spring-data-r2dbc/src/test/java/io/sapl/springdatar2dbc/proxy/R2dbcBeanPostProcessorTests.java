@@ -42,7 +42,7 @@ class R2dbcBeanPostProcessorTests {
             R2dbcRepositoryFactoryCustomizer.class);
 
     @Mock
-    R2dbcRepositoryFactoryBean<?, ?, ?> R2dbcRepositoryFactoryBeanMock;
+    R2dbcRepositoryFactoryBean<?, ?, ?> r2dbcRepositoryFactoryBeanMock;
 
     @Test
     void when_postProcessBeforeInitialization_then_addRepositoryFactoryCustomizer() {
@@ -52,12 +52,12 @@ class R2dbcBeanPostProcessorTests {
         // WHEN
         when(r2dbcRepositoryFactoryCustomizerProviderMock.getObject()).thenReturn(r2dbcRepositoryFactoryCustomizerMock);
 
-        var result = mongoPostProcessor.postProcessBeforeInitialization(R2dbcRepositoryFactoryBeanMock,
+        var result = mongoPostProcessor.postProcessBeforeInitialization(r2dbcRepositoryFactoryBeanMock,
                 "R2dbcRepositoryFactoryBean");
 
         // THEN
-        assertEquals(result, R2dbcRepositoryFactoryBeanMock);
-        verify(R2dbcRepositoryFactoryBeanMock, times(1))
+        assertEquals(result, r2dbcRepositoryFactoryBeanMock);
+        verify(r2dbcRepositoryFactoryBeanMock, times(1))
                 .addRepositoryFactoryCustomizer(r2dbcRepositoryFactoryCustomizerMock);
     }
 
@@ -73,7 +73,7 @@ class R2dbcBeanPostProcessorTests {
 
         // THEN
         assertEquals(result, mongoDbRepositoryTestMock);
-        verify(R2dbcRepositoryFactoryBeanMock, times(0))
+        verify(r2dbcRepositoryFactoryBeanMock, times(0))
                 .addRepositoryFactoryCustomizer(r2dbcRepositoryFactoryCustomizerMock);
     }
 }

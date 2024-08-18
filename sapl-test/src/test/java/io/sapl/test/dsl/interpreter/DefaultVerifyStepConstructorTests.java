@@ -94,7 +94,8 @@ class DefaultVerifyStepConstructorTests {
     void constructVerifyStep_handlesNullExpectation_throwsSaplTestException() {
         when(scenarioMock.getExpectation()).thenReturn(null);
 
-        final var exception = assertThrows(SaplTestException.class, () -> defaultVerifyStepConstructor.constructVerifyStep(scenarioMock, expectStepMock));
+        final var exception = assertThrows(SaplTestException.class,
+                () -> defaultVerifyStepConstructor.constructVerifyStep(scenarioMock, expectStepMock));
 
         assertEquals("Unknown type of Expectation", exception.getMessage());
         verifyNoInteractions(expectInterpreterMock);

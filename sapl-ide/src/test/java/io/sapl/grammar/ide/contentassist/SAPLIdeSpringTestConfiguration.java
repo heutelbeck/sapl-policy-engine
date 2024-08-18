@@ -43,7 +43,7 @@ import reactor.core.publisher.Flux;
 @ComponentScan
 @Configuration
 class SAPLIdeSpringTestConfiguration {
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Bean
     PDPConfigurationProvider pdpConfiguration() {

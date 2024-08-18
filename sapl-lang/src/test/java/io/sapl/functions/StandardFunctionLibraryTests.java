@@ -33,7 +33,7 @@ import io.sapl.api.interpreter.Val;
 
 class StandardFunctionLibraryTests {
 
-    private final static String HTML_DOCUMENT = """
+    private static final String HTML_DOCUMENT = """
             <!DOCTYPE html>
             <html>
             <body>
@@ -43,7 +43,7 @@ class StandardFunctionLibraryTests {
             </html>
             """;
 
-    private final static String XML_DOCUMENT = """
+    private static final String XML_DOCUMENT = """
             <Flower>
                 <name>Poppy</name>
                 <color>RED</color>

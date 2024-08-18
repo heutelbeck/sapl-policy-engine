@@ -80,7 +80,7 @@ public class SchemaValidationLibrary {
 
         var schemaLoader  = new MapSchemaLoader(schemaMap);
         var schemaFactory = JsonSchemaFactory.builder().schemaLoaders(schemaLoaders -> schemaLoaders.add(schemaLoader))
-                .addMetaSchema(JsonMetaSchema.getV202012()).defaultMetaSchemaURI(JsonMetaSchema.getV202012().getUri())
+                .metaSchema(JsonMetaSchema.getV202012()).defaultMetaSchemaIri(JsonMetaSchema.getV202012().getIri())
                 .build();
 
         try {

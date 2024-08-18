@@ -49,9 +49,10 @@ import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 
 class QueryCreationTests {
 
-    private static ArrayNode    CONDITIONS;
-    private static ArrayNode    SELECTIONS;
-    private static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private static ArrayNode conditions;
+    private static ArrayNode selections;
 
     MethodInvocation                               methodInvocationMock = mock(MethodInvocation.class);
     MockedStatic<ConvertToMQL>                     convertToMQLMock;
@@ -82,7 +83,7 @@ class QueryCreationTests {
     @BeforeAll
     static void initJsonNodes() throws JsonProcessingException {
 
-        SELECTIONS = MAPPER.readValue("""
+        selections = MAPPER.readValue("""
                 [
                 	{
                 		"type": "blacklist",
@@ -95,7 +96,7 @@ class QueryCreationTests {
                 ]
                 """, ArrayNode.class);
 
-        CONDITIONS = MAPPER.readValue("""
+        conditions = MAPPER.readValue("""
                 [
                 	"{'firstname': {'$eq': 'Juni' }}",
                 	"{'role': {'$eq': 'USER'}}"
@@ -112,7 +113,7 @@ class QueryCreationTests {
         var expected    = "Query: { \"age\" : { \"$gte\" : 18}, \"firstname\" : { \"$eq\" : \"Juni\"}, \"role\" : { \"$eq\" : \"USER\"}}, Fields: { \"firstname\" : 0, \"age\" : 0}, Sort: { \"age\" : -1}";
 
         // WHEN
-        var result = QueryCreation.manipulateQuery(CONDITIONS, SELECTIONS, basicQuery, methodInvocationMock);
+        var result = QueryCreation.manipulateQuery(conditions, selections, basicQuery, methodInvocationMock);
 
         // THEN
         assertEquals(result.toString(), expected);
@@ -175,7 +176,7 @@ class QueryCreationTests {
                 .when(() -> SaplPartTreeCriteriaCreator.create(any(List.class), any(PartTree.class)))
                 .thenReturn(criteria);
 
-        var result = QueryCreation.createManipulatedQuery(CONDITIONS, SELECTIONS, "findAllByFirstname", TestUser.class,
+        var result = QueryCreation.createManipulatedQuery(conditions, selections, "findAllByFirstname", TestUser.class,
                 new Object[] { "Juni", PageRequest.of(0, 2) });
 
         // THEN
@@ -201,7 +202,7 @@ class QueryCreationTests {
                 .when(() -> SaplPartTreeCriteriaCreator.create(any(List.class), any(PartTree.class)))
                 .thenReturn(criteria);
 
-        var result = QueryCreation.createManipulatedQuery(CONDITIONS, SELECTIONS, "findAllByFirstname", TestUser.class,
+        var result = QueryCreation.createManipulatedQuery(conditions, selections, "findAllByFirstname", TestUser.class,
                 new Object[] { "Juni", Sort.by(Sort.Direction.ASC, "age") });
 
         // THEN

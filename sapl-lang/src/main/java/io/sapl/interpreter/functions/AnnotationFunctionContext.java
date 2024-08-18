@@ -55,7 +55,7 @@ import lombok.NoArgsConstructor;
  * Context to hold functions libraries during policy evaluation.
  */
 @NoArgsConstructor
-public class AnnotationFunctionContext implements FunctionContext {
+public final class AnnotationFunctionContext implements FunctionContext {
 
     private static final int    VAR_ARGS                                       = -1;
     private static final String UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
@@ -159,6 +159,7 @@ public class AnnotationFunctionContext implements FunctionContext {
                 return ErrorFactory.error(location, e);
             }
         }
+        // THe following cast is actually necessary. Reason unknown.
         return invokeFunction(location, metadata, (Object[]) new Object[] { parameters });
     }
 

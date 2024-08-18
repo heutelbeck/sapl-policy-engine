@@ -171,7 +171,7 @@ class MethodInvocationSerializerTests {
                         .where(MethodInvocationSerializer.MODIFIERS, is(jsonArray(empty())))));
     }
 
-    public static abstract class AbstractTestClass {
+    public abstract static class AbstractTestClass {
 
     }
 
@@ -180,28 +180,36 @@ class MethodInvocationSerializerTests {
         private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
         public void publicVoid() {
+            // NOOP test dummy
         }
 
         static void staticVoid() {
+            // NOOP test dummy
         }
 
         protected static void protectedStaticVoid() {
+            // NOOP test dummy
         }
 
         protected void protectedVoid() {
+            // NOOP test dummy
         }
 
-        @SuppressWarnings("unused")
+        @SuppressWarnings("unused") // test dummy
         private void privateVoid() {
+            // NOOP test dummy
         }
 
         synchronized void synchronizedVoid() {
+            // NOOP test dummy
         }
 
         final void finalVoid() {
+            // NOOP test dummy
         }
 
         void noModVoid() {
+            // NOOP test dummy
         }
 
     }

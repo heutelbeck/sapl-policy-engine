@@ -41,17 +41,17 @@ class PolicyImplCustomCoverageTests {
 
     CoverageHitRecorder recorder;
 
-    private SAPLInterpreter INTERPRETER;
+    private SAPLInterpreter interpreter;
 
     @BeforeEach
     void setup() {
         this.recorder    = mock(CoverageHitRecorder.class);
-        this.INTERPRETER = new TestSaplInterpreter(this.recorder);
+        this.interpreter = new TestSaplInterpreter(this.recorder);
     }
 
     @Test
     void test_Match() {
-        var policy   = INTERPRETER.parse("policy \"p\" permit action == \"read\"");
+        var policy   = interpreter.parse("policy \"p\" permit action == \"read\"");
         var authzSub = AuthorizationSubscription.of("willi", "read", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
@@ -65,7 +65,7 @@ class PolicyImplCustomCoverageTests {
 
     @Test
     void test_NotMatching() {
-        var policy   = INTERPRETER.parse("policy \"p\" permit action == \"read\"");
+        var policy   = interpreter.parse("policy \"p\" permit action == \"read\"");
         var authzSub = AuthorizationSubscription.of("willi", "write", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
@@ -79,7 +79,7 @@ class PolicyImplCustomCoverageTests {
 
     @Test
     void test_matchesThrowsError() {
-        var policy   = INTERPRETER.parse("policy \"p\" permit 1/0 == \"test\"");
+        var policy   = interpreter.parse("policy \"p\" permit 1/0 == \"test\"");
         var authzSub = AuthorizationSubscription.of("willi", "write", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());

@@ -120,17 +120,17 @@ class PartTreeToSqlQueryStringConverterTests {
     }
 
     @Test
-	void when_partTreeHasNoOrPartAtAll_then_throwNoSuchElementException() {
-		// GIVEN
+    void when_partTreeHasNoOrPartAtAll_then_throwNoSuchElementException() {
+        // GIVEN
 
-		// WHEN
-		when(methodInvocationMock.getMethod().getName()).thenReturn("findAllByAge");
-		when(methodInvocationMock.getArguments()).thenReturn(new Object[] {});
+        // WHEN
+        when(methodInvocationMock.getMethod().getName()).thenReturn("findAllByAge");
+        when(methodInvocationMock.getArguments()).thenReturn(new Object[] {});
 
-		// THEN
-		assertThrows(NoSuchElementException.class,
-				() -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class));
-	}
+        // THEN
+        assertThrows(NoSuchElementException.class,
+                () -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class));
+    }
 
     @Test
     void when_partTreeHasNoOrPartAtAll_then_throwIllegalStateException() {
@@ -150,17 +150,17 @@ class PartTreeToSqlQueryStringConverterTests {
     }
 
     @Test
-	void when_partTreeHasNoOrPartAtAll_then_throwNullPointerException() {
-		// GIVEN
+    void when_partTreeHasNoOrPartAtAll_then_throwNullPointerException() {
+        // GIVEN
 
-		// WHEN
-		when(methodInvocationMock.getMethod().getName()).thenReturn("findAllByAgeAndFirstname");
-		when(methodInvocationMock.getArguments()).thenReturn(new Object[] { 22, null });
+        // WHEN
+        when(methodInvocationMock.getMethod().getName()).thenReturn("findAllByAgeAndFirstname");
+        when(methodInvocationMock.getArguments()).thenReturn(new Object[] { 22, null });
 
-		// THEN
-		assertThrows(NullPointerException.class,
-				() -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class));
-	}
+        // THEN
+        assertThrows(NullPointerException.class,
+                () -> PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class));
+    }
 
     @Test
     void when_classIsStaticUtilityClass_then_instantiateThisTestForCoverageReasonsOfConstructor() {

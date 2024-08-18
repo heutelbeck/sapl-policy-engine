@@ -96,7 +96,7 @@
 							!groovy
 						</Import-Package>
 						<_exportcontents>
-							org.springframework.*;version="6.1.3",
+							org.springframework.*;version="6.1.11",
 						</_exportcontents>
 						<Bundle-ClassPath>{maven-dependencies}</Bundle-ClassPath>
 						<Embed-Transitive>true</Embed-Transitive>

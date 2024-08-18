@@ -52,7 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Configuration(proxyBeanMethods = false)
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-public class ReactiveSaplMethodSecurityConfiguration {
+public final class ReactiveSaplMethodSecurityConfiguration {
 
     @NonNull
     private final PolicyDecisionPoint pdp;

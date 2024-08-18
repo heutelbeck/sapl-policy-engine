@@ -26,8 +26,7 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>3.0.0-SNAPSHOT</version>
-		<relativePath />
+		<version>3.0.0-SNAPSHOT</version>		
 	</parent>
 
 	<artifactId>sapl-server-ce</artifactId>
@@ -65,8 +64,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
-		<!--
-		https://mvnrepository.com/artifact/org.keycloak/keycloak-spring-security-adapter -->
 		<dependency>
 			<groupId>org.keycloak</groupId>
 			<artifactId>keycloak-spring-security-adapter</artifactId>

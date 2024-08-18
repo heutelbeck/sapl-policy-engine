@@ -48,7 +48,6 @@ class PersonRepositoryIT extends TestContainerBase {
 
         // WHEN
         var personFlux = repository.findAll().collectList();
-        ;
 
         // THEN
         StepVerifier.create(personFlux).expectNext(personList).verifyComplete();
@@ -89,9 +88,9 @@ class PersonRepositoryIT extends TestContainerBase {
         // GIVEN
 
         // WHEN
-        Flux<Person> PersonFlux = repository.findAllByAgeBefore(80);
+        Flux<Person> personFlux = repository.findAllByAgeBefore(80);
 
         // THEN
-        StepVerifier.create(PersonFlux).expectError(AccessDeniedException.class).verify();
+        StepVerifier.create(personFlux).expectError(AccessDeniedException.class).verify();
     }
 }

@@ -43,7 +43,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-public class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
+public final class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
     private static final String POLICIES_FILE_GLOB_PATTERN = "*.sapl";
 

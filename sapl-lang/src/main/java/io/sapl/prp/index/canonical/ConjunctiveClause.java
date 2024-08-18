@@ -28,7 +28,7 @@ import java.util.Objects;
 
 import lombok.NonNull;
 
-public class ConjunctiveClause {
+public final class ConjunctiveClause {
 
     static final String CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";
 

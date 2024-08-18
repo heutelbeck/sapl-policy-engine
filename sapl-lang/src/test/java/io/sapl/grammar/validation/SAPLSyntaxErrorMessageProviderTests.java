@@ -220,11 +220,13 @@ class SAPLSyntaxErrorMessageProviderTests {
     void handleMismatchedTokenException_ContextIsPolicy_NoMatchingOptionReturnsNull() {
         SAPLSyntaxErrorMessageProvider provider  = new SAPLSyntaxErrorMessageProvider();
         MismatchedTokenException       exception = new MismatchedTokenException();
+        INode                          node      = Mockito.mock(INode.class);
+        when(node.utils()).thenCallRealMethod();
 
         IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
         when(context.getRecognitionException()).thenReturn(exception);
         when(context.getCurrentContext()).thenReturn(Mockito.mock(Policy.class));
-        when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
+        when(context.getCurrentNode()).thenReturn(node);
 
         SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
         assertNull(message);
@@ -237,6 +239,7 @@ class SAPLSyntaxErrorMessageProviderTests {
 
         INode node = Mockito.mock(INode.class);
         when(node.getText()).thenReturn("abc;");
+        when(node.utils()).thenCallRealMethod();
 
         IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
         when(context.getRecognitionException()).thenReturn(exception);
@@ -251,11 +254,13 @@ class SAPLSyntaxErrorMessageProviderTests {
     void handleMismatchedTokenException_ContextIsUnknown_ReturnsNull() {
         SAPLSyntaxErrorMessageProvider provider  = new SAPLSyntaxErrorMessageProvider();
         MismatchedTokenException       exception = new MismatchedTokenException();
+        INode                          node      = Mockito.mock(INode.class);
+        when(node.utils()).thenCallRealMethod();
 
         IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
         when(context.getRecognitionException()).thenReturn(exception);
         when(context.getCurrentContext()).thenReturn(Mockito.mock(SAPL.class));
-        when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
+        when(context.getCurrentNode()).thenReturn(node);
 
         SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
         assertNull(message);
@@ -267,10 +272,13 @@ class SAPLSyntaxErrorMessageProviderTests {
         MismatchedTokenException       exception = new MismatchedTokenException();
         exception.token = Token.EOF_TOKEN;
 
+        INode node = Mockito.mock(INode.class);
+        when(node.utils()).thenCallRealMethod();
+
         IParserErrorContext context = Mockito.mock(IParserErrorContext.class);
         when(context.getRecognitionException()).thenReturn(exception);
         when(context.getCurrentContext()).thenReturn(Mockito.mock(SAPL.class));
-        when(context.getCurrentNode()).thenReturn(Mockito.mock(INode.class));
+        when(context.getCurrentNode()).thenReturn(node);
 
         SyntaxErrorMessage message = provider.handleMismatchedTokenException(context, exception);
         assertEquals(SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR, message.getMessage());

@@ -28,7 +28,7 @@ import java.util.Objects;
 
 import lombok.NonNull;
 
-public class DisjunctiveFormula {
+public final class DisjunctiveFormula {
 
     static final String                   CONSTRUCTION_FAILED = "Failed to create instance, empty collection provided.";
     private final List<ConjunctiveClause> clauses;

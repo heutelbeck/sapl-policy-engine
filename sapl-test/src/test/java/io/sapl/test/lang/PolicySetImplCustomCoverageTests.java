@@ -42,17 +42,17 @@ class PolicySetImplCustomCoverageTests {
 
     CoverageHitRecorder recorder;
 
-    private SAPLInterpreter INTERPRETER;
+    private SAPLInterpreter interpreter;
 
     @BeforeEach
     void setup() {
         this.recorder    = mock(CoverageHitRecorder.class);
-        this.INTERPRETER = new TestSaplInterpreter(this.recorder);
+        this.interpreter = new TestSaplInterpreter(this.recorder);
     }
 
     @Test
     void test_match() {
-        var policy   = INTERPRETER.parse("""
+        var policy   = interpreter.parse("""
                 set "set"
 
                 deny-overrides
@@ -75,7 +75,7 @@ class PolicySetImplCustomCoverageTests {
 
     @Test
     void test_NotMatching() {
-        var policy   = INTERPRETER.parse("""
+        var policy   = interpreter.parse("""
                 set "set"
 
                 deny-overrides
@@ -98,7 +98,7 @@ class PolicySetImplCustomCoverageTests {
 
     @Test
     void test_matchesThrowsError() {
-        var policy   = INTERPRETER.parse("""
+        var policy   = interpreter.parse("""
                 set "set"
 
                 deny-overrides

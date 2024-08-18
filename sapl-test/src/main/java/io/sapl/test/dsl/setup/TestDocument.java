@@ -15,33 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.extension.jwt;
+package io.sapl.test.dsl.setup;
 
-enum DispatchMode {
+import org.eclipse.emf.common.util.Diagnostic;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
-    /**
-     * Dispatcher returns the true Base64Url-encoded key, matching the kid
-     */
-    TRUE,
-    /**
-     * Dispatcher returns the true Base64-encoded key, matching the kid
-     */
-    BASIC,
-    /**
-     * Dispatcher returns a wrong Base64Url-encoded key, not matching the kid
-     */
-    WRONG,
-    /**
-     * Dispatcher returns the key with Base64(URL) encoding errors
-     */
-    INVALID,
-    /**
-     * Dispatcher returns bogus data, not resembling an encoded key
-     */
-    BOGUS,
-    /**
-     * Dispatcher always returns 404 - unknown
-     */
-    UNKNOWN
+import io.sapl.test.grammar.sapltest.SAPLTest;
 
+public record TestDocument(SAPLTest sapl, Diagnostic diagnostic, String errorMessage) {
+    public boolean isInvalid() {
+        return diagnostic == null || diagnostic.getSeverity() != Diagnostic.OK;
+    }
+
+    public String source() {
+        return NodeModelUtils.findActualNodeFor(sapl).getText();
+    }
 }

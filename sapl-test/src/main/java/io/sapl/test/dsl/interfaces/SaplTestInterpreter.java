@@ -20,6 +20,7 @@ package io.sapl.test.dsl.interfaces;
 
 import java.io.InputStream;
 
+import io.sapl.test.dsl.setup.TestDocument;
 import io.sapl.test.grammar.sapltest.SAPLTest;
 
 /**
@@ -32,4 +33,14 @@ public interface SaplTestInterpreter {
     SAPLTest loadAsResource(InputStream inputStream);
 
     SAPLTest loadAsResource(String input);
+
+    /**
+     * Method which applies the SAPLTest parser to a String containing a SAPLTest
+     * document and generates the matching TestDocument.
+     *
+     * @param source a String containing a SAPL document
+     * @return TestDocument parsed test document
+     */
+    TestDocument parseDocument(String source);
+
 }

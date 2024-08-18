@@ -47,7 +47,7 @@ class UserRepositoryIT {
     private static final ObjectMapper   MAPPER               = new ObjectMapper();
     private static final CollectionType LIST_TYPE            = MAPPER.getTypeFactory()
             .constructCollectionType(List.class, TestUser.class);
-    private static String               USERS_AS_JSON_STRING = """
+    private static final String         USERS_AS_JSON_STRING = """
             [
               {"id": "64de3bd9fbf82799677ed336", "firstname": "Rowat", "age": 82, "admin": false},
               {"id": "64de3bd9fbf82799677ed338", "firstname": "Woodings", "age": 96, "admin": true},
@@ -92,7 +92,6 @@ class UserRepositoryIT {
 
         // WHEN
         var testUserFlux = repository.findAllByAgeAfter(80, Pageable.ofSize(2)).collectList();
-        ;
 
         // THEN
         StepVerifier.create(testUserFlux).expectNext(testUserList);
