@@ -40,7 +40,7 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
     protected String latitude;
     protected String longitude;
 
-    private final int WGS84 = 4326;
+    private static final int WGS84 = 4326;
     
     protected GeoPipResponse mapPosition(String deviceId, JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst)
             throws JsonProcessingException {
