@@ -35,7 +35,7 @@ import java.util.List;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
-class PostGisPolicyInformationPointTests extends PostgisTestBase {
+class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
 
     private String path = "src/test/resources/policies/%s";
 

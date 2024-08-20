@@ -38,7 +38,7 @@ import reactor.test.StepVerifier;
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
-public class OwnTracksTests {
+public class OwnTracksTestsIT {
     String         address;
     SourceProvider source = new SourceProvider();
 

@@ -33,7 +33,7 @@ import reactor.test.StepVerifier;
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.DisplayName.class)
-class MySqlTests extends MySqlTestBase {
+class MySqlTestsIT extends MySqlTestBase {
 
     @BeforeAll
     void setUp() {

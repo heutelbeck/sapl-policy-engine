@@ -33,7 +33,7 @@ import reactor.test.StepVerifier;
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.DisplayName.class)
-class PostGisTests extends PostgisTestBase {
+class PostGisTestsIT extends PostgisTestBase {
 
     @BeforeAll
     void setUp() {

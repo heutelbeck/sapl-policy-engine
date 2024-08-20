@@ -35,7 +35,7 @@ import java.util.List;
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
-class MySqlPolicyInformationPointTests extends MySqlTestBase {
+class MySqlPolicyInformationPointTestsIT extends MySqlTestBase {
 
     private String path = "src/test/resources/policies/%s";
 
