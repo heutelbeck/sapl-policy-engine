@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.shared.DatabaseConnectionBase;
 
-public class PostGis extends DatabaseConnectionBase {
+public final class PostGis extends DatabaseConnectionBase {
 
     /**
      * @param auth   a {@link JsonNode} containing the settings for authorization

@@ -22,7 +22,7 @@ import io.sapl.geo.shared.DatabaseConnectionBase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class MySql extends DatabaseConnectionBase {
+public final class MySql extends DatabaseConnectionBase {
 
     /**
      * @param auth   a {@link JsonNode} containing the settings for authorization

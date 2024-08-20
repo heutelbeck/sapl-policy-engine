@@ -384,10 +384,9 @@ public class GeoFunctions {
 
         /*
          * zugriff auf nearestPoints nur mit index möglich;
-         * external_fbcontrib:CLI_CONSTANT_LIST_INDEX
          */
-        var nearestPointThis = nearestPoints[0]; // NOSONAR
-        var nearestPointThat = nearestPoints[1]; // NOSONAR
+        var nearestPointThis = nearestPoints[0]; 
+        var nearestPointThat = nearestPoints[1]; 
 
         var gc = new GeodeticCalculator(crs);
 

@@ -1,45 +1,30 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<!--
-
-    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
-
-    SPDX-License-Identifier: Apache-2.0
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-
--->
+<!-- Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com) 
+	SPDX-License-Identifier: Apache-2.0 Licensed under the Apache License, Version 
+	2.0 (the "License"); you may not use this file except in compliance with 
+	the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 
+	Unless required by applicable law or agreed to in writing, software distributed 
+	under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES 
+	OR CONDITIONS OF ANY KIND, either express or implied. See the License for 
+	the specific language governing permissions and limitations under the License. -->
 
 <!DOCTYPE properties SYSTEM 'http://java.sun.com/dtd/properties.dtd'>
 
 <properties>
 
-    <entry key='config.default'>./conf/default.xml</entry>
+	<entry key='config.default'>./conf/default.xml</entry>
 
-    <!--
+	<!-- This is the main configuration file. All your configuration parameters 
+		should be placed in this file. Default configuration parameters are located 
+		in the "default.xml" file. You should not modify it to avoid issues with 
+		upgrading to a new version. Parameters in the main config file override values 
+		in the default file. Do not remove "config.default" parameter from this file 
+		unless you know what you are doing. For list of available parameters see 
+		following page: https://www.traccar.org/configuration-file/ -->
 
-    This is the main configuration file. All your configuration parameters should be placed in this file.
-
-    Default configuration parameters are located in the "default.xml" file. You should not modify it to avoid issues
-    with upgrading to a new version. Parameters in the main config file override values in the default file. Do not
-    remove "config.default" parameter from this file unless you know what you are doing.
-
-    For list of available parameters see following page: https://www.traccar.org/configuration-file/
-
-    -->
-
-    <entry key='database.driver'>org.h2.Driver</entry>
-    <entry key='database.url'>jdbc:h2:./data/database</entry>
-    <entry key='database.user'>sa</entry>
-    <entry key='database.password'></entry>
+	<entry key='database.driver'>org.h2.Driver</entry>
+	<entry key='database.url'>jdbc:h2:./data/database</entry>
+	<entry key='database.user'>sa</entry>
+	<entry key='database.password'></entry>
 
 </properties>

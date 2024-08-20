@@ -42,7 +42,7 @@ import io.sapl.pip.http.ReactiveWebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class TraccarGeofences extends TraccarBase {
+public final class TraccarGeofences extends TraccarBase {
 
     private static final String FENCENAME   = "name";
     private static final String AREA        = "area";

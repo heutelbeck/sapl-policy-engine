@@ -40,7 +40,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 
-public class SourceProvider {
+public final class SourceProvider {
 
     GeometryFactory geometryFactory = new GeometryFactory();
 

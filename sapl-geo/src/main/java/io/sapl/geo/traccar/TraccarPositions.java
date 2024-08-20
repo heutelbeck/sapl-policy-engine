@@ -33,7 +33,7 @@ import io.sapl.pip.http.ReactiveWebClient;
 
 import reactor.core.publisher.Flux;
 
-public class TraccarPositions extends TraccarBase {
+public final class TraccarPositions extends TraccarBase {
 
     private static final String DEVICE_ID = "deviceId";
     private static final String POSITIONS = "positions";

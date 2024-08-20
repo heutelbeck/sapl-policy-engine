@@ -26,7 +26,7 @@ import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.MathTransform;
 import org.geotools.api.referencing.operation.TransformException;
 
-public class GeoProjector {
+public final class GeoProjector {
 
     private final MathTransform mathTransform;
 

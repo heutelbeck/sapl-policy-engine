@@ -40,7 +40,7 @@ import io.sapl.geo.shared.TrackerConnectionBase;
 import io.sapl.pip.http.ReactiveWebClient;
 import reactor.core.publisher.Flux;
 
-public class OwnTracks extends TrackerConnectionBase {
+public final class OwnTracks extends TrackerConnectionBase {
 
     protected static final String HTTP_BASIC_AUTH_USER = "httpUser";
 
