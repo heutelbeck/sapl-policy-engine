@@ -23,7 +23,8 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
-import io.sapl.geo.postgis.PostGis;
+import io.sapl.geo.databases.DataBaseTypes;
+import io.sapl.geo.databases.DatabaseConnection;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
@@ -42,7 +43,7 @@ public class PostGisPolicyInformationPoint {
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
 
-        return new PostGis(auth.get(POSTGIS_DEFAULT_CONFIG).get(), mapper).sendQuery(variables.get());
+        return new DatabaseConnection(auth.get(POSTGIS_DEFAULT_CONFIG).get(), mapper, DataBaseTypes.POSTGIS).sendQuery(variables.get());
 
     }
 
@@ -50,7 +51,7 @@ public class PostGisPolicyInformationPoint {
     public Flux<Val> geometry(@JsonObject Val auth, @JsonObject Val variables) {
 
         try {
-            return new PostGis(auth.get(), mapper).sendQuery(variables.get());
+            return new DatabaseConnection(auth.get(), mapper, DataBaseTypes.POSTGIS).sendQuery(variables.get());
 
         } catch (Exception e) {
             return Flux.just(Val.error(e.getMessage()));

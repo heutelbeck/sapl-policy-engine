@@ -57,7 +57,6 @@ import reactor.retry.Repeat;
 @Slf4j
 public class DatabaseConnection extends ConnectionBase {
 
-	private static final String DATABASETYPE_CONST = "dataBaseType";
 	private static final String DATABASE = "dataBase";
 	private static final String TABLE = "table";
 	private static final String GEOCOLUMN = "geoColumn";
@@ -77,10 +76,14 @@ public class DatabaseConnection extends ConnectionBase {
 	 * @param auth   a {@link JsonNode} containing the settings for authorization
 	 * @param mapper a {@link ObjectMapper}
 	 */
-	public DatabaseConnection(JsonNode auth, ObjectMapper mapper) {
+	public DatabaseConnection(JsonNode auth, ObjectMapper mapper, DataBaseTypes dataBaseType) {
 
-		dataBaseType = getDataBaseType(auth, mapper);
-		createMySqlConnectionFactory(auth, getPort(auth));
+		this.dataBaseType = dataBaseType;
+		if(dataBaseType == DataBaseTypes.MYSQL) {
+			createMySqlConnectionFactory(auth, getPort(auth));
+		}else {
+			createPostgresqlConnectionFactory(auth, getPort(auth));
+		}
 		this.mapper = mapper;
 	}
 
@@ -262,17 +265,6 @@ public class DatabaseConnection extends ConnectionBase {
 		return String.format(str, frmt, geoColumn, geoColumn, clms, table, where);
 	}
 
-	protected DataBaseTypes getDataBaseType(JsonNode requestSettings, ObjectMapper mapper)
-			throws PolicyEvaluationException {
-		if (requestSettings.has(DATABASETYPE_CONST)) {
-			return mapper.convertValue(requestSettings.findValue(DATABASETYPE_CONST), DataBaseTypes.class);
-		} else {
-			return DataBaseTypes.POSTGIS;
-
-		}
-
-	}
-
 	protected String getDataBaseName(JsonNode requestSettings) throws PolicyEvaluationException {
 		if (requestSettings.has(DATABASE)) {
 			return requestSettings.findValue(DATABASE).asText();
@@ -366,7 +358,7 @@ public class DatabaseConnection extends ConnectionBase {
 		} else {
 			if (dataBaseType == DataBaseTypes.MYSQL) {
 				return 3306;
-			}else {
+			} else {
 				return 5432;
 			}
 		}

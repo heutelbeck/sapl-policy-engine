@@ -23,7 +23,8 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
-import io.sapl.geo.mysql.MySql;
+import io.sapl.geo.databases.DataBaseTypes;
+import io.sapl.geo.databases.DatabaseConnection;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
@@ -42,14 +43,14 @@ public class MySqlPolicyInformationPoint {
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
 
-        return new MySql(auth.get(MYSQL_DEFAULT_CONFIG).get(), mapper).sendQuery(variables.get());
+        return new DatabaseConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(), mapper, DataBaseTypes.MYSQL).sendQuery(variables.get());
 
     }
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(@JsonObject Val auth, @JsonObject Val variables) {
 
-        return new MySql(auth.get(), mapper).sendQuery(variables.get());
+        return new DatabaseConnection(auth.get(), mapper, DataBaseTypes.MYSQL).sendQuery(variables.get());
 
     }
 
