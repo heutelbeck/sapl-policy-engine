@@ -48,8 +48,8 @@ class MySqlTestsIT extends MySqlTestBase {
         var queryString = String.format(templateAll, "geometries", "geom");
 
         var expected      = Val.ofJson(expectedAll);
-        var mysqlResponse = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.MYSQL)
-                .sendQuery(Val.ofJson(queryString).get());
+        var mysqlResponse = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
@@ -59,8 +59,8 @@ class MySqlTestsIT extends MySqlTestBase {
 
         var expected = Val.ofJson(expectedPoint);
 
-        var mysqlResponse = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.MYSQL)
-                .sendQuery(Val.ofJson(queryString).get());
+        var mysqlResponse = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
 
     }
@@ -78,8 +78,8 @@ class MySqlTestsIT extends MySqlTestBase {
                 """);
         var queryString   = String.format(errorTemplate, "nonExistant", "geog");
 
-        var mysqlResponse = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.MYSQL)
-                .sendQuery(Val.ofJson(queryString).get());
+        var mysqlResponse = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectError();
     }
 
@@ -87,8 +87,8 @@ class MySqlTestsIT extends MySqlTestBase {
     void Test04ErrorInvalidTemplate() throws JsonProcessingException {
         var queryString = "{\"invalid\":\"Template\"}";
 
-        var mysqlResponse = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.MYSQL)
-                .sendQuery(Val.ofJson(queryString).get()).map(Val::getMessage);
+        var mysqlResponse = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::getMessage);
 
         StepVerifier.create(mysqlResponse).expectNext("No geoColumn-name found").verifyComplete();
     }

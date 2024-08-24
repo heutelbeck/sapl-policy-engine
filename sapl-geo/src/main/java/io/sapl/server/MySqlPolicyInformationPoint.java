@@ -43,7 +43,8 @@ public class MySqlPolicyInformationPoint {
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
 
-        return new DatabaseConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(), mapper, DataBaseTypes.MYSQL).sendQuery(variables.get());
+        return new DatabaseConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(), mapper, DataBaseTypes.MYSQL)
+                .sendQuery(variables.get());
 
     }
 

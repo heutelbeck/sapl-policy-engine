@@ -43,7 +43,8 @@ public class PostGisPolicyInformationPoint {
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
 
-        return new DatabaseConnection(auth.get(POSTGIS_DEFAULT_CONFIG).get(), mapper, DataBaseTypes.POSTGIS).sendQuery(variables.get());
+        return new DatabaseConnection(auth.get(POSTGIS_DEFAULT_CONFIG).get(), mapper, DataBaseTypes.POSTGIS)
+                .sendQuery(variables.get());
 
     }
 
