@@ -35,57 +35,57 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GeometryConverter {
 
-    /**
-     * @param geo a {@link Geometry}
-     * @return a {@link Val} containing the GML-string}
-     */
-    public static Val geometryToGML(Geometry geo) {
+	/**
+	 * @param geo a {@link Geometry}
+	 * @return a {@link Val} containing the GML-string}
+	 */
+	public static Val geometryToGML(Geometry geo) {
 
-        var writer = new GMLWriter();
-        writer.setMaxCoordinatesPerLine(Integer.MAX_VALUE);// reader has problems if /n occurs in coordinates
-        var s = writer.write(geo);
-        return Val.of(s);
+		var writer = new GMLWriter();
+		writer.setMaxCoordinatesPerLine(Integer.MAX_VALUE);// reader has problems if /n occurs in coordinates
+		var s = writer.write(geo);
+		return Val.of(s);
 
-    }
+	}
 
-    /**
-     * @param geo a {@link Geometry}
-     * @return a {@link Val} containing the KML-string}
-     */
-    public static Val geometryToKML(Geometry geo) {
+	/**
+	 * @param geo a {@link Geometry}
+	 * @return a {@link Val} containing the KML-string}
+	 */
+	public static Val geometryToKML(Geometry geo) {
 
-        var writer = new KMLWriter();
-        writer.setMaximumCoordinatesPerLine(Integer.MAX_VALUE); // reader has problems if /n occurs in coordinates
-        var s = writer.write(geo);
-        return Val.of(s);
-    }
+		var writer = new KMLWriter();
+		writer.setMaximumCoordinatesPerLine(Integer.MAX_VALUE); // reader has problems if /n occurs in coordinates
+		var s = writer.write(geo);
+		return Val.of(s);
+	}
 
-    /**
-     * @param geo a {@link Geometry}
-     * @return a {@link Val} containing the WKT-string}
-     */
-    public static Val geometryToWKT(Geometry geo) {
+	/**
+	 * @param geo a {@link Geometry}
+	 * @return a {@link Val} containing the WKT-string}
+	 */
+	public static Val geometryToWKT(Geometry geo) {
 
-        var writer = new WKTWriter();
-        writer.setMaxCoordinatesPerLine(Integer.MAX_VALUE);// reader has problems if /n occurs in coordinates
-        var s = writer.write(geo);
-        return Val.of(s);
-    }
+		var writer = new WKTWriter();
+		writer.setMaxCoordinatesPerLine(Integer.MAX_VALUE);// reader has problems if /n occurs in coordinates
+		var s = writer.write(geo);
+		return Val.of(s);
+	}
 
-    /**
-     * @param geo a {@link Geometry}
-     * @return a {@link Val} containing the GeoJSON-string}
-     * @throws JsonProcessingException
-     * @throws JsonMappingException
-     */
-    public static Val geometryToGeoJsonNode(Geometry geo) throws JsonProcessingException {
+	/**
+	 * @param geo a {@link Geometry}
+	 * @return a {@link Val} containing the GeoJSON-string}
+	 * @throws JsonProcessingException
+	 * @throws JsonMappingException
+	 */
+	public static Val geometryToGeoJsonNode(Geometry geo) throws JsonProcessingException {
 
-        JsonNode json          = null;
-        var      mapper        = new ObjectMapper();
-        var      geoJsonWriter = new GeoJsonWriter();
-        json = mapper.readTree(geoJsonWriter.write(geo));
+		JsonNode json = null;
+		var mapper = new ObjectMapper();
+		var geoJsonWriter = new GeoJsonWriter();
+		json = mapper.readTree(geoJsonWriter.write(geo));
 
-        return Val.of(json);
-    }
+		return Val.of(json);
+	}
 
 }

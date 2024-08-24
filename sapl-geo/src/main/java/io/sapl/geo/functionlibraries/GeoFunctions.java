@@ -382,9 +382,6 @@ public class GeoFunctions {
 
         var nearestPoints = distOp.nearestPoints();
 
-        /*
-         * zugriff auf nearestPoints nur mit index möglich;
-         */
         var nearestPointThis = nearestPoints[0];
         var nearestPointThat = nearestPoints[1];
 

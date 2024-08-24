@@ -39,200 +39,202 @@ import io.sapl.geo.functions.WktConverter;
 import io.sapl.geo.model.Geofence;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.pip.http.ReactiveWebClient;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 public final class TraccarGeofences extends TraccarBase {
 
-    private static final String FENCENAME   = "name";
-    private static final String AREA        = "area";
-    private static final String ATTRIBUTES  = "attributes";
-    private static final String DESCRIPTION = "description";
-    private static final String CALENDARID  = "calendarId";
-    private static final String ID          = "id";
-    private static final String EPSG        = "EPSG:4326";
+	private static final String FENCENAME = "name";
+	private static final String AREA = "area";
+	private static final String ATTRIBUTES = "attributes";
+	private static final String DESCRIPTION = "description";
+	private static final String CALENDARID = "calendarId";
+	private static final String ID = "id";
+	private static final String EPSG = "EPSG:4326";
 
-    /**
-     * @param auth a {@link JsonNode} containing the settings for authorization
-     */
-    public TraccarGeofences(JsonNode auth, ObjectMapper mapper) {
+	/**
+	 * @param auth a {@link JsonNode} containing the settings for authorization
+	 */
+	public TraccarGeofences(JsonNode auth, ObjectMapper mapper) {
 
-        user        = getUser(auth);
-        password    = getPassword(auth);
-        server      = getServer(auth);
-        protocol    = getProtocol(auth);
-        this.mapper = mapper;
-    }
+		user = getUser(auth);
+		password = getPassword(auth);
+		server = getServer(auth);
+		protocol = getProtocol(auth);
+		this.mapper = mapper;
+	}
 
-    /**
-     * @param settings a {@link JsonNode} containing the settings
-     * @return a {@link Flux} of {@link Val}
-     */
-    public Flux<Val> getGeofences(JsonNode settings) {
+	/**
+	 * @param settings a {@link JsonNode} containing the settings
+	 * @return a {@link Flux} of {@link Val}
+	 */
+	public Flux<Val> getGeofences(JsonNode settings) {
 
-        var deviceId = getDeviceId(settings);
+		var deviceId = getDeviceId(settings);
 
-        return establishSession(user, password, server, protocol).flatMapMany(cookie ->
+		return establishSession(user, password, server, protocol).flatMapMany(cookie ->
 
-        {
-            try {
-                return getFlux(getResponseFormat(settings, mapper), deviceId, protocol, server,
-                        getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
-                        .onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
-            } catch (JsonProcessingException e) {
-                return Flux.error(e);
-            }
-        });
+		{
+			try {
+				return getFlux(getResponseFormat(settings, mapper), deviceId, protocol, server,
+						getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
+						.onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
+			} catch (JsonProcessingException e) {
+				return Flux.error(e);
+			}
+		});
 
-    }
+	}
 
-    private Flux<JsonNode> getFlux(GeoPipResponseFormat format, String deviceId, String protocol, String server,
-            Long pollingInterval, Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
+	private Flux<JsonNode> getFlux(GeoPipResponseFormat format, String deviceId, String protocol, String server,
+			Long pollingInterval, Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
 
-        var flux = getGeofences1(format, deviceId, protocol, server, pollingInterval, repetitions, latitudeFirst)
-                .map(res -> mapper.convertValue(res, JsonNode.class));
+		var flux = getGeofences1(format, deviceId, protocol, server, pollingInterval, repetitions, latitudeFirst)
+				.map(res -> mapper.convertValue(res, JsonNode.class));
 
-        logger.info("Traccar-Client connected.");
-        return flux;
+		log.info("Traccar-Client connected.");
+		return flux;
 
-    }
+	}
 
-    private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, String deviceId, String protocol,
-            String server, Long pollingInterval, Long repetitions, boolean latitudeFirst)
-            throws JsonProcessingException {
+	private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, String deviceId, String protocol,
+			String server, Long pollingInterval, Long repetitions, boolean latitudeFirst)
+			throws JsonProcessingException {
 
-        return getGeofences(deviceId, protocol, server, pollingInterval, repetitions)
-                .flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
+		return getGeofences(deviceId, protocol, server, pollingInterval, repetitions)
+				.flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
 
-    }
+	}
 
-    private Flux<JsonNode> getGeofences(String deviceId, String protocol, String server, Long pollingInterval,
-            Long repetitions) throws JsonProcessingException {
+	private Flux<JsonNode> getGeofences(String deviceId, String protocol, String server, Long pollingInterval,
+			Long repetitions) throws JsonProcessingException {
 
-        var webClient = new ReactiveWebClient(mapper);
-        var baseURL   = protocol + "://" + server;
+		var webClient = new ReactiveWebClient(mapper);
+		var baseURL = protocol + "://" + server;
 
-        var template = """
-                {"baseUrl" : "%s", "path" : "%s", "accept" : "%s", "headers" : { "cookie" : "%s" }
-                """;
-        template = String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE, sessionCookie);
-        if (pollingInterval != null) {
-            template = template.concat("""
-                    ,"pollingIntervalMs" : %s
-                    """);
-            template = String.format(template, pollingInterval);
-        }
+		var template = """
+				{"baseUrl" : "%s", "path" : "%s", "accept" : "%s", "headers" : { "cookie" : "%s" }
+				""";
+		template = String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE, sessionCookie);
+		if (pollingInterval != null) {
+			template = template.concat("""
+					,"pollingIntervalMs" : %s
+					""");
+			template = String.format(template, pollingInterval);
+		}
 
-        if (repetitions != null) {
-            template = template.concat("""
-                    ,"repetitions" : %s
-                    """);
-            template = String.format(template, repetitions);
-        }
+		if (repetitions != null) {
+			template = template.concat("""
+					,"repetitions" : %s
+					""");
+			template = String.format(template, repetitions);
+		}
 
-        if (deviceId != null) {
-            template = template.concat("""
-                    , "urlParameters" : { "deviceId":%s }
-                    """);
-            template = String.format(template, deviceId);
-        }
+		if (deviceId != null) {
+			template = template.concat("""
+					, "urlParameters" : { "deviceId":%s }
+					""");
+			template = String.format(template, deviceId);
+		}
 
-        template = template.concat("}");
+		template = template.concat("}");
 
-        var request = Val.ofJson(template);
+		var request = Val.ofJson(template);
 
-        return webClient.httpRequest(HttpMethod.GET, request).map(Val::get);
-    }
+		return webClient.httpRequest(HttpMethod.GET, request).map(Val::get);
+	}
 
-    private Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
+	private Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
 
-        try {
+		try {
 
-            var fenceRes = mapTraccarGeoFences(in, format, mapper, latitudeFirst);
-            return Mono.just(fenceRes);
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
+			var fenceRes = mapTraccarGeoFences(in, format, mapper, latitudeFirst);
+			return Mono.just(fenceRes);
+		} catch (Exception e) {
+			return Mono.error(e);
+		}
 
-    }
+	}
 
-    public List<Geofence> mapTraccarGeoFences(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
-            boolean latitudeFirst) throws JsonProcessingException, ParseException, FactoryException,
-            MismatchedDimensionException, TransformException {
+	public List<Geofence> mapTraccarGeoFences(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
+			boolean latitudeFirst) throws JsonProcessingException, ParseException, FactoryException,
+			MismatchedDimensionException, TransformException {
 
-        List<Geofence> fenceRes = new ArrayList<>();
+		List<Geofence> fenceRes = new ArrayList<>();
 
-        var fences = mapper.readTree(in.toString());
+		var fences = mapper.readTree(in.toString());
 
-        for (JsonNode geoFence : fences) {
-            var      factory = new GeometryFactory(new PrecisionModel(), 4326);
-            Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
+		for (JsonNode geoFence : fences) {
+			var factory = new GeometryFactory(new PrecisionModel(), 4326);
+			Geometry geo = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
 
-            if (!latitudeFirst) {
-                var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
-                geo = geoProjector.project(geo);
-            }
+			if (!latitudeFirst) {
+				var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
+				geo = geoProjector.project(geo);
+			}
 
-            switch (format) {
+			switch (format) {
 
-            case GEOJSON:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
-                break;
+			case GEOJSON:
+				fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
+				break;
 
-            case WKT:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
-                break;
+			case WKT:
+				fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
+				break;
 
-            case GML:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
-                break;
+			case GML:
+				fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
+				break;
 
-            case KML:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
-                break;
-            default:
+			case KML:
+				fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
+				break;
+			default:
 
-                break;
-            }
+				break;
+			}
 
-        }
+		}
 
-        return fenceRes;
+		return fenceRes;
 
-    }
+	}
 
-    private Geofence mapFence(JsonNode geoFence, JsonNode area) {
+	private Geofence mapFence(JsonNode geoFence, JsonNode area) {
 
-        return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
-                .calendarId(geoFence.findValue(CALENDARID).asText()).name(geoFence.findValue(FENCENAME).asText())
-                .description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
-    }
+		return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
+				.calendarId(geoFence.findValue(CALENDARID).asText()).name(geoFence.findValue(FENCENAME).asText())
+				.description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
+	}
 
-    protected static String getDeviceId(JsonNode requestSettings) {
-        if (requestSettings.has(DEVICEID_CONST)) {
-            return requestSettings.findValue(DEVICEID_CONST).asText();
-        } else {
+	protected static String getDeviceId(JsonNode requestSettings) {
+		if (requestSettings.has(DEVICEID_CONST)) {
+			return requestSettings.findValue(DEVICEID_CONST).asText();
+		} else {
 
-            return null;
-        }
-    }
+			return null;
+		}
+	}
 
-    protected static Long getPollingInterval(JsonNode requestSettings) {
-        if (requestSettings.has(POLLING_INTERVAL_CONST)) {
-            return requestSettings.findValue(POLLING_INTERVAL_CONST).asLong();
-        } else {
+	protected static Long getPollingInterval(JsonNode requestSettings) {
+		if (requestSettings.has(POLLING_INTERVAL_CONST)) {
+			return requestSettings.findValue(POLLING_INTERVAL_CONST).asLong();
+		} else {
 
-            return null;
-        }
-    }
+			return null;
+		}
+	}
 
-    protected static Long getRepetitions(JsonNode requestSettings) {
-        if (requestSettings.has(REPEAT_TIMES_CONST)) {
-            return requestSettings.findValue(REPEAT_TIMES_CONST).asLong();
-        } else {
+	protected static Long getRepetitions(JsonNode requestSettings) {
+		if (requestSettings.has(REPEAT_TIMES_CONST)) {
+			return requestSettings.findValue(REPEAT_TIMES_CONST).asLong();
+		} else {
 
-            return null;
-        }
-    }
+			return null;
+		}
+	}
 
 }

@@ -24,24 +24,24 @@ import io.sapl.geo.shared.DatabaseConnectionBase;
 
 public final class PostGis extends DatabaseConnectionBase {
 
-    /**
-     * @param auth   a {@link JsonNode} containing the settings for authorization
-     * @param mapper a {@link ObjectMapper}
-     */
-    public PostGis(JsonNode auth, ObjectMapper mapper) {
+	/**
+	 * @param auth   a {@link JsonNode} containing the settings for authorization
+	 * @param mapper a {@link ObjectMapper}
+	 */
+	public PostGis(JsonNode auth, ObjectMapper mapper) {
 
-        createPostgresqlConnectionFactory(auth, getPort(auth));
-        this.mapper = mapper;
+		createPostgresqlConnectionFactory(auth, getPort(auth));
+		this.mapper = mapper;
 
-    }
+	}
 
-    protected static int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(PORT)) {
-            return requestSettings.findValue(PORT).asInt();
-        } else {
+	protected static int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
+		if (requestSettings.has(PORT)) {
+			return requestSettings.findValue(PORT).asInt();
+		} else {
 
-            return 5432;
-        }
-    }
+			return 5432;
+		}
+	}
 
 }

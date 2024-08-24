@@ -24,23 +24,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class MySql extends DatabaseConnectionBase {
 
-    /**
-     * @param auth   a {@link JsonNode} containing the settings for authorization
-     * @param mapper a {@link ObjectMapper}
-     */
-    public MySql(JsonNode auth, ObjectMapper mapper) {
+	/**
+	 * @param auth   a {@link JsonNode} containing the settings for authorization
+	 * @param mapper a {@link ObjectMapper}
+	 */
+	public MySql(JsonNode auth, ObjectMapper mapper) {
 
-        createMySqlConnectionFactory(auth, getPort(auth));
-        this.mapper = mapper;
-    }
+		createMySqlConnectionFactory(auth, getPort(auth));
+		this.mapper = mapper;
+	}
 
-    protected static int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(PORT)) {
-            return requestSettings.findValue(PORT).asInt();
-        } else {
+	protected static int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
+		if (requestSettings.has(PORT)) {
+			return requestSettings.findValue(PORT).asInt();
+		} else {
 
-            return 3306;
-        }
-    }
+			return 3306;
+		}
+	}
 
 }
