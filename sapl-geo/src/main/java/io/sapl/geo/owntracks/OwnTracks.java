@@ -163,7 +163,7 @@ public final class OwnTracks extends TrackerConnectionBase {
 
 	}
 
-	private static String getHttpBasicAuthUser(JsonNode requestSettings) throws PolicyEvaluationException {
+	private String getHttpBasicAuthUser(JsonNode requestSettings) throws PolicyEvaluationException {
 		if (requestSettings.has(HTTP_BASIC_AUTH_USER)) {
 			return requestSettings.findValue(HTTP_BASIC_AUTH_USER).asText();
 		} else {
@@ -173,7 +173,8 @@ public final class OwnTracks extends TrackerConnectionBase {
 
 	}
 
-	protected static String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
+	@Override
+	protected String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
 		if (requestSettings.has(PASSWORD_CONST)) {
 			return requestSettings.findValue(PASSWORD_CONST).asText();
 		} else {

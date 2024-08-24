@@ -32,7 +32,7 @@ public abstract class PostgisTestBase extends DatabaseTestBase {
             .withUsername("test").withPassword("test").withDatabaseName("test");
 
     protected void commonSetUp() {
-
+    	authenticationTemplate = authenticationTemplate.concat("}");
         authTemplate = String.format(authenticationTemplate, postgisContainer.getUsername(),
                 postgisContainer.getPassword(), postgisContainer.getHost(), postgisContainer.getMappedPort(5432),
                 postgisContainer.getDatabaseName());

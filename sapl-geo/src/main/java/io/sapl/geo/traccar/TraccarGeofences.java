@@ -85,7 +85,6 @@ public final class TraccarGeofences extends TraccarBase {
 				return Flux.error(e);
 			}
 		});
-
 	}
 
 	private Flux<JsonNode> getFlux(GeoPipResponseFormat format, String deviceId, String protocol, String server,
@@ -140,7 +139,6 @@ public final class TraccarGeofences extends TraccarBase {
 		}
 
 		template = template.concat("}");
-
 		var request = Val.ofJson(template);
 
 		return webClient.httpRequest(HttpMethod.GET, request).map(Val::get);
@@ -149,13 +147,11 @@ public final class TraccarGeofences extends TraccarBase {
 	private Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
 
 		try {
-
 			var fenceRes = mapTraccarGeoFences(in, format, mapper, latitudeFirst);
 			return Mono.just(fenceRes);
 		} catch (Exception e) {
 			return Mono.error(e);
 		}
-
 	}
 
 	public List<Geofence> mapTraccarGeoFences(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
@@ -176,7 +172,6 @@ public final class TraccarGeofences extends TraccarBase {
 			}
 
 			switch (format) {
-
 			case GEOJSON:
 				fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
 				break;
@@ -192,43 +187,38 @@ public final class TraccarGeofences extends TraccarBase {
 			case KML:
 				fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
 				break;
-			default:
 
+			default:
 				break;
 			}
-
 		}
-
 		return fenceRes;
-
 	}
 
 	private Geofence mapFence(JsonNode geoFence, JsonNode area) {
-
 		return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
 				.calendarId(geoFence.findValue(CALENDARID).asText()).name(geoFence.findValue(FENCENAME).asText())
 				.description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
 	}
 
-	protected static String getDeviceId(JsonNode requestSettings) {
+	@Override
+	protected String getDeviceId(JsonNode requestSettings) {
 		if (requestSettings.has(DEVICEID_CONST)) {
 			return requestSettings.findValue(DEVICEID_CONST).asText();
 		} else {
-
 			return null;
 		}
 	}
 
-	protected static Long getPollingInterval(JsonNode requestSettings) {
+	protected Long getPollingInterval(JsonNode requestSettings) {
 		if (requestSettings.has(POLLING_INTERVAL_CONST)) {
 			return requestSettings.findValue(POLLING_INTERVAL_CONST).asLong();
 		} else {
-
 			return null;
 		}
 	}
 
-	protected static Long getRepetitions(JsonNode requestSettings) {
+	protected Long getRepetitions(JsonNode requestSettings) {
 		if (requestSettings.has(REPEAT_TIMES_CONST)) {
 			return requestSettings.findValue(REPEAT_TIMES_CONST).asLong();
 		} else {

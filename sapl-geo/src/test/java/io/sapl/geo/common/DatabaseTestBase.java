@@ -32,7 +32,7 @@ public abstract class DatabaseTestBase extends TestBase {
             	"server":"%s",
             	"port": %s,
             	"dataBase":"%s"
-            	}
+            	
             """;
 
     protected String template = """

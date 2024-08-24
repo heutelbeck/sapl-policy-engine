@@ -85,7 +85,7 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
                 .lastUpdate(in.findValue(lastupdate).asText()).accuracy(in.findValue(accuracy).asDouble()).build();
     }
 
-    protected static String getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
+    protected String getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(DEVICEID_CONST)) {
             return requestSettings.findValue(DEVICEID_CONST).asText();
         } else {
@@ -95,7 +95,7 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
 
     }
 
-    protected static String getProtocol(JsonNode requestSettings) {
+    protected String getProtocol(JsonNode requestSettings) {
         if (requestSettings.has(PROTOCOL_CONST)) {
             return requestSettings.findValue(PROTOCOL_CONST).asText();
         } else {

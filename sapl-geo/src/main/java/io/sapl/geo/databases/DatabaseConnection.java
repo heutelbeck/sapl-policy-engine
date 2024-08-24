@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.shared;
+package io.sapl.geo.databases;
 
 import java.time.Duration;
 import java.time.ZoneId;
@@ -46,9 +46,8 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functions.GeoProjector;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.JsonConverter;
-import io.sapl.geo.mysql.MySql;
 import io.sapl.geo.pip.GeoPipResponseFormat;
-import io.sapl.geo.postgis.PostGis;
+import io.sapl.geo.shared.ConnectionBase;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -56,8 +55,9 @@ import reactor.core.publisher.SignalType;
 import reactor.retry.Repeat;
 
 @Slf4j
-public abstract class DatabaseConnectionBase extends ConnectionBase {
+public class DatabaseConnection extends ConnectionBase {
 
+	private static final String DATABASETYPE_CONST = "dataBaseType";
 	private static final String DATABASE = "dataBase";
 	private static final String TABLE = "table";
 	private static final String GEOCOLUMN = "geoColumn";
@@ -66,11 +66,23 @@ public abstract class DatabaseConnectionBase extends ConnectionBase {
 	private static final String DEFAULTCRS = "defaultCRS";
 	private static final String SINGLE_RESULT = "singleResult";
 	private static final String EPSG = "EPSG:";
-	protected static final String PORT = "port";
+	private static final String PORT = "port";
 
 	private AtomicReference<Connection> connectionReference = new AtomicReference<>();
 	private String[] selectColumns;
+	private DataBaseTypes dataBaseType;
 	private ConnectionFactory connectionFactory;
+
+	/**
+	 * @param auth   a {@link JsonNode} containing the settings for authorization
+	 * @param mapper a {@link ObjectMapper}
+	 */
+	public DatabaseConnection(JsonNode auth, ObjectMapper mapper) {
+
+		dataBaseType = getDataBaseType(auth, mapper);
+		createMySqlConnectionFactory(auth, getPort(auth));
+		this.mapper = mapper;
+	}
 
 	/**
 	 * @param settings a {@link JsonNode} containing the settings
@@ -160,11 +172,10 @@ public abstract class DatabaseConnectionBase extends ConnectionBase {
 
 		var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
 
-		if (this.getClass() == MySql.class && !latitudeFirst) {
+		if (dataBaseType == DataBaseTypes.MYSQL && !latitudeFirst) {
 			var geoProjector = new GeoProjector(crs, false, crs, true);
 			geo = geoProjector.project(geo);
-		} else if (this.getClass() == PostGis.class && latitudeFirst) {
-
+		} else if (dataBaseType == DataBaseTypes.POSTGIS && latitudeFirst) {
 			var geoProjector = new GeoProjector(crs, true, crs, false);
 			geo = geoProjector.project(geo);
 		}
@@ -229,12 +240,12 @@ public abstract class DatabaseConnectionBase extends ConnectionBase {
 	protected void createPostgresqlConnectionFactory(JsonNode auth, int port) {
 		connectionFactory = new PostgresqlConnectionFactory(
 				PostgresqlConnectionConfiguration.builder().username(getUser(auth)).password(getPassword(auth))
-						.host(getServer(auth)).port(port).database(getDataBase(auth)).build());
+						.host(getServer(auth)).port(port).database(getDataBaseName(auth)).build());
 	}
 
 	protected void createMySqlConnectionFactory(JsonNode auth, int port) {
 		connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))
-				.password(getPassword(auth)).host(getServer(auth)).port(port).database(getDataBase(auth))
+				.password(getPassword(auth)).host(getServer(auth)).port(port).database(getDataBaseName(auth))
 				.serverZoneId(ZoneId.of("UTC")).build());
 	}
 
@@ -251,7 +262,18 @@ public abstract class DatabaseConnectionBase extends ConnectionBase {
 		return String.format(str, frmt, geoColumn, geoColumn, clms, table, where);
 	}
 
-	protected static String getDataBase(JsonNode requestSettings) throws PolicyEvaluationException {
+	protected DataBaseTypes getDataBaseType(JsonNode requestSettings, ObjectMapper mapper)
+			throws PolicyEvaluationException {
+		if (requestSettings.has(DATABASETYPE_CONST)) {
+			return mapper.convertValue(requestSettings.findValue(DATABASETYPE_CONST), DataBaseTypes.class);
+		} else {
+			return DataBaseTypes.POSTGIS;
+
+		}
+
+	}
+
+	protected String getDataBaseName(JsonNode requestSettings) throws PolicyEvaluationException {
 		if (requestSettings.has(DATABASE)) {
 			return requestSettings.findValue(DATABASE).asText();
 		} else {
@@ -336,6 +358,18 @@ public abstract class DatabaseConnectionBase extends ConnectionBase {
 		}
 
 		return defaultValue;
+	}
+
+	protected int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
+		if (requestSettings.has(PORT)) {
+			return requestSettings.findValue(PORT).asInt();
+		} else {
+			if (dataBaseType == DataBaseTypes.MYSQL) {
+				return 3306;
+			}else {
+				return 5432;
+			}
+		}
 	}
 
 }

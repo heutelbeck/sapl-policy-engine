@@ -55,7 +55,8 @@ class MySqlPolicyInformationPointTestsIT extends MySqlTestBase {
                 			"password":"%s",
                 			"server":"%s",
                 			"port": %s,
-                			"dataBase":"%s"
+                			"dataBase":"%s",
+                			"dataBaseType":"MYSQL"
                 		}
                 	}
                 }

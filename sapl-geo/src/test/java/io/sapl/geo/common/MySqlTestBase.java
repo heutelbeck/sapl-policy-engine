@@ -36,6 +36,7 @@ public abstract class MySqlTestBase extends DatabaseTestBase {
 
     protected void commonSetUp() {
 
+    	authenticationTemplate = authenticationTemplate.concat(",\"responseFormat\":\"MYSQL\"}");
         authTemplate = String.format(authenticationTemplate, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
 
