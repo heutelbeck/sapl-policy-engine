@@ -240,13 +240,13 @@ public class DatabaseConnection extends ConnectionBase {
 
     }
 
-    protected void createPostgresqlConnectionFactory(JsonNode auth, int port) {
+    private final void createPostgresqlConnectionFactory(JsonNode auth, int port) {
         connectionFactory = new PostgresqlConnectionFactory(
                 PostgresqlConnectionConfiguration.builder().username(getUser(auth)).password(getPassword(auth))
                         .host(getServer(auth)).port(port).database(getDataBaseName(auth)).build());
     }
 
-    protected void createMySqlConnectionFactory(JsonNode auth, int port) {
+    private final void createMySqlConnectionFactory(JsonNode auth, int port) {
         connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))
                 .password(getPassword(auth)).host(getServer(auth)).port(port).database(getDataBaseName(auth))
                 .serverZoneId(ZoneId.of("UTC")).build());
