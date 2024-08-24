@@ -55,7 +55,7 @@ import reactor.core.publisher.SignalType;
 import reactor.retry.Repeat;
 
 @Slf4j
-public class DatabaseConnection extends ConnectionBase {
+public final class DatabaseConnection extends ConnectionBase {
 
     private static final String DATABASE      = "dataBase";
     private static final String TABLE         = "table";
@@ -352,8 +352,8 @@ public class DatabaseConnection extends ConnectionBase {
         return defaultValue;
     }
 
-    protected int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(PORT)) {
+    private final int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
+        if (requestSettings.has(PORT)) { //called in constructor
             return requestSettings.findValue(PORT).asInt();
         } else {
             if (dataBaseType == DataBaseTypes.MYSQL) {
