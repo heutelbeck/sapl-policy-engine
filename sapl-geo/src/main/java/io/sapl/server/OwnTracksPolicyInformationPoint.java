@@ -17,12 +17,14 @@
  */
 package io.sapl.server;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.api.validation.JsonObject;
 import io.sapl.geo.owntracks.OwnTracks;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -31,23 +33,25 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = OwnTracksPolicyInformationPoint.NAME, description = OwnTracksPolicyInformationPoint.DESCRIPTION)
 public class OwnTracksPolicyInformationPoint {
 
-    public static final String NAME = "geo";
+    public static final String NAME = "ownTracks";
 
     public static final String DESCRIPTION = "PIP for geographical data.";
 
     private final ObjectMapper mapper;
 
-    @Attribute(name = "ownTracks")
-    public Flux<Val> connectToOwnTracks(Val leftHandValue, Val variables) {
+    private static final String OWNTRACKS_DEFAULT_CONFIG = "OWNTRACKS_DEFAULT_CONFIG";
 
-        return new OwnTracks(null, mapper).connect(variables.get());
+    @EnvironmentAttribute(name = "positionAndFences")
+    public Flux<Val> positionAndFences(Map<String, Val> auth, @JsonObject Val variables) {
+
+        return new OwnTracks(auth.get(OWNTRACKS_DEFAULT_CONFIG).get(), mapper).connect(variables.get());
 
     }
 
-    @EnvironmentAttribute(name = "ownTracks")
-    public Flux<Val> connectToOwnTracks(Val variables) {
+    @EnvironmentAttribute(name = "positionAndFences")
+    public Flux<Val> positionAndFences(@JsonObject Val auth, @JsonObject Val variables) {
 
-        return new OwnTracks(null, mapper).connect(variables.get());
+        return new OwnTracks(auth.get(), mapper).connect(variables.get());
 
     }
 

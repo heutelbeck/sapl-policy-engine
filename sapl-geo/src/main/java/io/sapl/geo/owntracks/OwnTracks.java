@@ -45,6 +45,8 @@ public final class OwnTracks extends TrackerConnectionBase {
     private ReactiveWebClient client;
     private String            deviceId;
     private String            authSettings;
+    private String            server;
+    private String            protocol;
 
     /**
      * @param auth   a {@link JsonNode} containing the settings for authorization
@@ -59,9 +61,15 @@ public final class OwnTracks extends TrackerConnectionBase {
         latitude    = "lat";
         longitude   = "lon";
 
-        if (auth != null) {
+        server   = getServer(auth);
+        protocol = getProtocol(auth);
 
-            var valueToEncode   = String.format("%s:%s", getHttpBasicAuthUser(auth), getPassword(auth));
+        var authUser = getHttpBasicAuthUser(auth);
+        var password = getPassword(auth);
+
+        if (authUser != null && password != null) {
+
+            var valueToEncode   = String.format("%s:%s", authUser, password);
             var basicAuthHeader = "Basic "
                     + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
 
@@ -79,8 +87,7 @@ public final class OwnTracks extends TrackerConnectionBase {
 
         deviceId = getDeviceId(settings);
         client   = new ReactiveWebClient(mapper);
-        var url = String.format("%s://%s/api/0/last?user=%s&device=%s", getProtocol(settings), getServer(settings),
-                getUser(settings), deviceId);
+        var url = String.format("%s://%s/api/0/last?user=%s&device=%s", protocol, server, getUser(settings), deviceId);
 
         try {
 

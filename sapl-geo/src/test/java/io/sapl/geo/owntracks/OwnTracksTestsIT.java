@@ -42,11 +42,16 @@ public class OwnTracksTestsIT {
     String         address;
     SourceProvider source = new SourceProvider();
 
+    String authTemplate = """
+                {
+            	"server":"%s",
+            	"protocol":"http"
+            	}
+            """;
+
     String template = """
                 {
                 "user":"user",
-            	"server":"%s",
-            	"protocol":"http",
             	"deviceId":1
             """;
 
@@ -63,8 +68,8 @@ public class OwnTracksTestsIT {
     @BeforeAll
     void setup() {
 
-        address  = owntracksRecorder.getHost() + ":" + owntracksRecorder.getMappedPort(8083);
-        template = String.format(template, address);
+        address      = owntracksRecorder.getHost() + ":" + owntracksRecorder.getMappedPort(8083);
+        authTemplate = String.format(authTemplate, address);
     }
 
     @ParameterizedTest
@@ -82,8 +87,8 @@ public class OwnTracksTestsIT {
         }
         requestTemplate = requestTemplate.concat("}");
         var val          = Val.ofJson(requestTemplate);
-        var resultStream = new OwnTracks(null, new ObjectMapper()).connect(val.get()).map(Val::get)
-                .map(JsonNode::toPrettyString);
+        var resultStream = new OwnTracks(Val.ofJson(authTemplate).get(), new ObjectMapper()).connect(val.get())
+                .map(Val::get).map(JsonNode::toPrettyString);
         StepVerifier.create(resultStream).expectNext(expected).thenCancel().verify();
 
     }

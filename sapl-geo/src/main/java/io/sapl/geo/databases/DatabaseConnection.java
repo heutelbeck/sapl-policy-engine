@@ -353,7 +353,7 @@ public final class DatabaseConnection extends ConnectionBase {
     }
 
     private final int getPort(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(PORT)) { //called in constructor
+        if (requestSettings.has(PORT)) { // called in constructor
             return requestSettings.findValue(PORT).asInt();
         } else {
             if (dataBaseType == DataBaseTypes.MYSQL) {

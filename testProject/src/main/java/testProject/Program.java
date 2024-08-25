@@ -20,10 +20,10 @@ package testProject;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functionlibraries.GeoFunctions;
-import io.sapl.geo.mysql.MySql;
+
 import io.sapl.geo.owntracks.OwnTracks;
 import io.sapl.geo.pip.GeoPipResponse;
-import io.sapl.geo.postgis.PostGis;
+
 import io.sapl.geo.traccar.TraccarGeofences;
 import io.sapl.geo.traccar.TraccarPositions;
 import io.sapl.pip.http.ReactiveWebClient;

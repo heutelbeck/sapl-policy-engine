@@ -1,0 +1,11 @@
+      {
+"algorithm": "DENY_OVERRIDES",
+"variables":
+	{
+		"OWNTRACKS_DEFAULT_CONFIG":
+		{
+			"server":"localhost:65267",
+			"protocol": http
+		}
+	}
+}

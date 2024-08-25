@@ -1,0 +1,6 @@
+olicy "owntracksTestEnvironmentVariable"
+permit
+where
+  
+  var position=<ownTracks.positionAndFences({"user": subject.user, "deviceId": subject.deviceId})>;
+  position.deviceId == subject.deviceId;
