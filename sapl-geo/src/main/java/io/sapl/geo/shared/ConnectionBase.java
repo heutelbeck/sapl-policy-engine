@@ -68,7 +68,6 @@ public abstract class ConnectionBase {
         } else {
             return GeoPipResponseFormat.GEOJSON;
         }
-
     }
 
     protected static boolean getLatitudeFirst(JsonNode requestSettings) {

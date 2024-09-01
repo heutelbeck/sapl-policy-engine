@@ -65,5 +65,4 @@ public final class WktConverter {
 
         return (new WKTReader(factory)).read(wkt);
     }
-
 }

@@ -60,9 +60,8 @@ public final class OwnTracks extends TrackerConnectionBase {
         accuracy    = "acc";
         latitude    = "lat";
         longitude   = "lon";
-
-        server   = getServer(auth);
-        protocol = getProtocol(auth);
+        server      = getServer(auth);
+        protocol    = getProtocol(auth);
 
         var authUser = getHttpBasicAuthUser(auth);
         var password = getPassword(auth);
@@ -90,7 +89,6 @@ public final class OwnTracks extends TrackerConnectionBase {
         var url = String.format("%s://%s/api/0/last?user=%s&device=%s", protocol, server, getUser(settings), deviceId);
 
         try {
-
             var request = getRequest(url);
             return getFlux(request, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings))
                     .map(Val::of);
@@ -98,7 +96,6 @@ public final class OwnTracks extends TrackerConnectionBase {
         } catch (Exception e) {
             return Flux.just(Val.error(e.getMessage()));
         }
-
     }
 
     private String getRequest(String url) {
@@ -112,12 +109,9 @@ public final class OwnTracks extends TrackerConnectionBase {
         if (authSettings != null) {
 
             settings = settings.concat(authSettings);
-
         }
         settings = settings.concat("}");
-
         return settings;
-
     }
 
     private Flux<ObjectNode> getFlux(String requestString, GeoPipResponseFormat format, ObjectMapper mapper,
@@ -147,9 +141,7 @@ public final class OwnTracks extends TrackerConnectionBase {
 
         var response = mapPosition(deviceId, in.get(0), format, latitudeFirst);
         var res      = in.findValue("inregions");
-
         response.setGeoFences(mapOwnTracksInRegions(res, mapper));
-
         return Flux.just(response);
 
     }
@@ -157,17 +149,13 @@ public final class OwnTracks extends TrackerConnectionBase {
     private List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws JsonProcessingException {
 
         List<Geofence> fenceRes = new ArrayList<>();
-
-        var fences = mapper.readTree(in.toString());
-
+        var            fences   = mapper.readTree(in.toString());
         for (var geoFence : fences) {
 
             fenceRes.add(Geofence.builder().name(geoFence.asText()).build());
 
         }
-
         return fenceRes;
-
     }
 
     private String getHttpBasicAuthUser(JsonNode requestSettings) throws PolicyEvaluationException {
@@ -175,9 +163,7 @@ public final class OwnTracks extends TrackerConnectionBase {
             return requestSettings.findValue(HTTP_BASIC_AUTH_USER).asText();
         } else {
             return null;
-
         }
-
     }
 
     @Override
@@ -185,9 +171,7 @@ public final class OwnTracks extends TrackerConnectionBase {
         if (requestSettings.has(PASSWORD_CONST)) {
             return requestSettings.findValue(PASSWORD_CONST).asText();
         } else {
-
             return null;
         }
-
     }
 }

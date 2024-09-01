@@ -71,5 +71,4 @@ public class SqlFunctions {
             return Val.TRUE;
         }
     }
-
 }

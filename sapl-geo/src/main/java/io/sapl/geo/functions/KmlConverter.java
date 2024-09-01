@@ -65,5 +65,4 @@ public final class KmlConverter {
 
         return (new KMLReader(factory)).read(kml);
     }
-
 }

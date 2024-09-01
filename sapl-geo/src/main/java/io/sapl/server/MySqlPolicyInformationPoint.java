@@ -24,7 +24,7 @@ import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.geo.databases.DataBaseTypes;
-import io.sapl.geo.databases.DatabaseConnection;
+import io.sapl.geo.databases.DatabaseStreamQuery;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
@@ -32,27 +32,21 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = MySqlPolicyInformationPoint.NAME, description = MySqlPolicyInformationPoint.DESCRIPTION)
 public class MySqlPolicyInformationPoint {
 
-    public static final String NAME = "mySql";
-
-    public static final String DESCRIPTION = "PIP for geographical data from MySQL.";
-
-    private final ObjectMapper mapper;
-
+    public static final String  NAME                 = "mySql";
+    public static final String  DESCRIPTION          = "PIP for geographical data from MySQL.";
+    private final ObjectMapper  mapper;
     private static final String MYSQL_DEFAULT_CONFIG = "MYSQL_DEFAULT_CONFIG";
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
 
-        return new DatabaseConnection(auth.get(MYSQL_DEFAULT_CONFIG).get(), mapper, DataBaseTypes.MYSQL)
+        return new DatabaseStreamQuery(auth.get(MYSQL_DEFAULT_CONFIG).get(), mapper, DataBaseTypes.MYSQL)
                 .sendQuery(variables.get());
-
     }
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(@JsonObject Val auth, @JsonObject Val variables) {
 
-        return new DatabaseConnection(auth.get(), mapper, DataBaseTypes.MYSQL).sendQuery(variables.get());
-
+        return new DatabaseStreamQuery(auth.get(), mapper, DataBaseTypes.MYSQL).sendQuery(variables.get());
     }
-
 }

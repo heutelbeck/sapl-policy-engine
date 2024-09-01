@@ -33,9 +33,8 @@ import reactor.core.publisher.Mono;
 @Slf4j
 abstract class TraccarBase extends TrackerConnectionBase {
 
-    private int sessionId;
-    private URI uri;
-
+    private int      sessionId;
+    private URI      uri;
     protected String sessionCookie;
     protected String user;
     protected String password;
@@ -94,7 +93,6 @@ abstract class TraccarBase extends TrackerConnectionBase {
         } catch (Exception e) {
             return Mono.error(e);
         }
-
     }
 
     private void setSessionId(String json) throws JsonProcessingException {
@@ -103,7 +101,6 @@ abstract class TraccarBase extends TrackerConnectionBase {
         if (sessionJson.has("id")) {
             this.sessionId = sessionJson.get("id").asInt();
         }
-
     }
 
     protected void disconnect() throws PolicyEvaluationException {
@@ -123,9 +120,6 @@ abstract class TraccarBase extends TrackerConnectionBase {
             var errorMsg1 = String.format("Failed to close Traccar Session %s", sessionId);
             log.error(errorMsg1);
             return Mono.just(error);
-        })
-
-                .subscribe();
+        }).subscribe();
     }
-
 }

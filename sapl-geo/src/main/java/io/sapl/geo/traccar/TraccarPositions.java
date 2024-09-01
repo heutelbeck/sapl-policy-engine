@@ -75,42 +75,35 @@ public final class TraccarPositions extends TraccarBase {
                 return Flux.error(e);
             }
         });
-
     }
 
     private Flux<ObjectNode> getPositionFlux(String url, String cookie, GeoPipResponseFormat format, String deviceId,
             boolean latitudeFirst) throws JsonProcessingException {
 
-        var client = new ReactiveWebClient(mapper);
-
-        var template = """
+        var client       = new ReactiveWebClient(mapper);
+        var template     = """
                 { "baseUrl" : "%s", "accept" : "%s", "headers" : { "cookie": "%s" } }
                 """;
-
-        var request = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
-
-        var flux = client.consumeWebSocket(request).map(Val::get).flatMap(msg -> {
-            try {
-                return mapPosition(msg, format, latitudeFirst, deviceId);
-            } catch (JsonProcessingException e) {
-                return Flux.error(e);
-            }
-        }).map(res -> mapper.convertValue(res, ObjectNode.class));
+        var request      = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
+        var responseFlux = client.consumeWebSocket(request).map(Val::get).flatMap(msg -> {
+                             try {
+                                 return mapPosition(msg, format, latitudeFirst, deviceId);
+                             } catch (JsonProcessingException e) {
+                                 return Flux.error(e);
+                             }
+                         }).map(res -> mapper.convertValue(res, ObjectNode.class));
 
         log.info("Traccar-Client connected.");
-        return flux;
-
+        return responseFlux;
     }
 
     Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, String deviceId)
             throws JsonProcessingException {
         var pos = getPositionFromMessage(in, deviceId);
-
         if (pos.has(DEVICE_ID)) {
 
             return Flux.just(mapPosition(deviceId, pos, format, latitudeFirst));
         }
-
         return Flux.just();
     }
 
@@ -124,7 +117,6 @@ public final class TraccarPositions extends TraccarBase {
                 }
             }
         }
-
         return JsonNodeFactory.instance.objectNode();
     }
 }

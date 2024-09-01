@@ -94,7 +94,6 @@ public final class GeoProjector {
     public Geometry project(Geometry geometry) throws MismatchedDimensionException, TransformException {
 
         return JTS.transform(geometry, mathTransform);
-
     }
 
     /**
@@ -106,7 +105,5 @@ public final class GeoProjector {
     public Geometry reProject(Geometry geometry) throws MismatchedDimensionException, TransformException {
 
         return JTS.transform(geometry, mathTransform.inverse());
-
     }
-
 }

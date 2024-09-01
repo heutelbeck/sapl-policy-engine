@@ -55,7 +55,7 @@ import reactor.core.publisher.SignalType;
 import reactor.retry.Repeat;
 
 @Slf4j
-public final class DatabaseConnection extends ConnectionBase {
+public final class DatabaseStreamQuery extends ConnectionBase {
 
     private static final String DATABASE      = "dataBase";
     private static final String TABLE         = "table";
@@ -76,7 +76,7 @@ public final class DatabaseConnection extends ConnectionBase {
      * @param auth   a {@link JsonNode} containing the settings for authorization
      * @param mapper a {@link ObjectMapper}
      */
-    public DatabaseConnection(JsonNode auth, ObjectMapper mapper, DataBaseTypes dataBaseType) {
+    public DatabaseStreamQuery(JsonNode auth, ObjectMapper mapper, DataBaseTypes dataBaseType) {
 
         this.dataBaseType = dataBaseType;
         if (dataBaseType == DataBaseTypes.MYSQL) {
@@ -105,7 +105,6 @@ public final class DatabaseConnection extends ConnectionBase {
         } catch (Exception e) {
             return Flux.just(Val.error(e.getMessage()));
         }
-
     }
 
     private Flux<JsonNode> createConnection(GeoPipResponseFormat format, String sql, boolean singleResult,
@@ -122,7 +121,6 @@ public final class DatabaseConnection extends ConnectionBase {
             return poll(collectMultipleResults(getResults(sql, format, defaultCrs, latitudeFirst)), repeatTimes,
                     pollingInterval);
         }
-
     }
 
     private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
@@ -139,7 +137,6 @@ public final class DatabaseConnection extends ConnectionBase {
                         })),
 
                 Connection::close);
-
     }
 
     private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst)
@@ -220,7 +217,6 @@ public final class DatabaseConnection extends ConnectionBase {
             }
             return (JsonNode) arrayNode;
         });
-
     }
 
     private Flux<JsonNode> poll(Mono<JsonNode> mono, long repeatTimes, long pollingInterval) {
@@ -237,7 +233,6 @@ public final class DatabaseConnection extends ConnectionBase {
                     .doOnSuccess(aVoid -> log.info("Database-Client disconnected."))
                     .subscribe(null, err -> log.error(String.format("Error during close subscription %s ", s), err));
         }
-
     }
 
     private final void createPostgresqlConnectionFactory(JsonNode auth, int port) {
@@ -253,8 +248,8 @@ public final class DatabaseConnection extends ConnectionBase {
     }
 
     private String buildSql(String geoColumn, String[] columns, String table, String where) {
-        var frmt = "ST_AsGeoJSON";
 
+        var frmt    = "ST_AsGeoJSON";
         var builder = new StringBuilder();
         for (String c : columns) {
             builder.append(String.format(", %s AS %s", c, c));
@@ -270,9 +265,7 @@ public final class DatabaseConnection extends ConnectionBase {
             return requestSettings.findValue(DATABASE).asText();
         } else {
             throw new PolicyEvaluationException("No database-name found");
-
         }
-
     }
 
     private String getTable(JsonNode requestSettings) throws PolicyEvaluationException {
@@ -280,9 +273,7 @@ public final class DatabaseConnection extends ConnectionBase {
             return requestSettings.findValue(TABLE).asText();
         } else {
             throw new PolicyEvaluationException("No table-name found");
-
         }
-
     }
 
     private String getGeoColumn(JsonNode requestSettings) throws PolicyEvaluationException {
@@ -290,25 +281,19 @@ public final class DatabaseConnection extends ConnectionBase {
             return requestSettings.findValue(GEOCOLUMN).asText();
         } else {
             throw new PolicyEvaluationException("No geoColumn-name found");
-
         }
-
     }
 
     private String[] getColumns(JsonNode requestSettings, ObjectMapper mapper) throws PolicyEvaluationException {
         if (requestSettings.has(COLUMNS)) {
             var columns = requestSettings.findValue(COLUMNS);
             if (columns.isArray()) {
-
                 return mapper.convertValue((ArrayNode) columns, String[].class);
             }
-
             return new String[] { columns.asText() };
         } else {
             return new String[] {};
-
         }
-
     }
 
     private String getWhere(JsonNode requestSettings) {
@@ -317,7 +302,6 @@ public final class DatabaseConnection extends ConnectionBase {
         } else {
             return "";
         }
-
     }
 
     private int getDefaultCRS(JsonNode requestSettings) {
@@ -326,7 +310,6 @@ public final class DatabaseConnection extends ConnectionBase {
         } else {
             return 4326;
         }
-
     }
 
     private boolean getSingleResult(JsonNode requestSettings) {
@@ -335,7 +318,6 @@ public final class DatabaseConnection extends ConnectionBase {
         } else {
             return false;
         }
-
     }
 
     private long longOrDefault(JsonNode requestSettings, String fieldName, long defaultValue) {
@@ -348,7 +330,6 @@ public final class DatabaseConnection extends ConnectionBase {
 
             return value.asLong();
         }
-
         return defaultValue;
     }
 
@@ -363,5 +344,4 @@ public final class DatabaseConnection extends ConnectionBase {
             }
         }
     }
-
 }

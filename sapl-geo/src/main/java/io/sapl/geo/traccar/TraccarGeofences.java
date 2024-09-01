@@ -73,10 +73,7 @@ public final class TraccarGeofences extends TraccarBase {
     public Flux<Val> getGeofences(JsonNode settings) {
 
         var deviceId = getDeviceId(settings);
-
-        return establishSession(user, password, server, protocol).flatMapMany(cookie ->
-
-        {
+        return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
             try {
                 return getFlux(getResponseFormat(settings, mapper), deviceId, protocol, server,
                         getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
@@ -95,7 +92,6 @@ public final class TraccarGeofences extends TraccarBase {
 
         log.info("Traccar-Client connected.");
         return flux;
-
     }
 
     private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, String deviceId, String protocol,
@@ -104,7 +100,6 @@ public final class TraccarGeofences extends TraccarBase {
 
         return getGeofences(deviceId, protocol, server, pollingInterval, repetitions)
                 .flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
-
     }
 
     private Flux<JsonNode> getGeofences(String deviceId, String protocol, String server, Long pollingInterval,
@@ -137,10 +132,8 @@ public final class TraccarGeofences extends TraccarBase {
                     """);
             template = String.format(template, deviceId);
         }
-
         template = template.concat("}");
         var request = Val.ofJson(template);
-
         return webClient.httpRequest(HttpMethod.GET, request).map(Val::get);
     }
 
@@ -159,9 +152,7 @@ public final class TraccarGeofences extends TraccarBase {
             MismatchedDimensionException, TransformException {
 
         List<Geofence> fenceRes = new ArrayList<>();
-
-        var fences = mapper.readTree(in.toString());
-
+        var            fences   = mapper.readTree(in.toString());
         for (JsonNode geoFence : fences) {
             var      factory = new GeometryFactory(new PrecisionModel(), 4326);
             Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
@@ -226,5 +217,4 @@ public final class TraccarGeofences extends TraccarBase {
             return null;
         }
     }
-
 }

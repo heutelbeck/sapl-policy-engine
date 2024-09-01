@@ -57,7 +57,6 @@ public class GeoParser {
     public Val parseKML(Val kml) throws XMLStreamException, IOException, SAXException {
 
         return Val.of(parseKML(kml.getText()));
-
     }
 
     public ArrayNode parseKML(String kmlString) throws XMLStreamException, IOException, SAXException {
@@ -73,9 +72,7 @@ public class GeoParser {
 
             features.add(f);
         }
-
         return convertToObjects(features);
-
     }
 
     protected ArrayNode convertToObjects(ArrayList<SimpleFeature> placeMarks) {
@@ -102,5 +99,4 @@ public class GeoParser {
         }
         return arrayNode;
     }
-
 }

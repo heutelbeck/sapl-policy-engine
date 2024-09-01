@@ -33,16 +33,10 @@ import lombok.NoArgsConstructor;
 
 public class Geofence {
 
-    private int id;
-
+    private int      id;
     private JsonNode attributes;
-
-    private String calendarId;
-
-    private String name;
-
-    private String description;
-
+    private String   calendarId;
+    private String   name;
+    private String   description;
     private JsonNode area;
-
 }

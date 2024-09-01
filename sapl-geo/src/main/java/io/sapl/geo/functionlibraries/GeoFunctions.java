@@ -66,12 +66,17 @@ public class GeoFunctions {
     private static final String DISJOINT_DOC                                                                                                                  = "disjoint(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are disjoint from each other (not intersecting each other). ";
     private static final String TOUCHES_DOC                                                                                                                   = "touches(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are touching each other.";
     private static final String CROSSES_DOC                                                                                                                   = "crosses(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are crossing each other (having a intersecting area).";
-    private static final String WITHIN_DOC                                                                                                                    = "within(GEOMETRYTHIS, GEOMETRYTHAT): Tests if the GEOMETRYCOLLECTIONTHIS is fully within GEOMETRYCOLLECTIONTHAT (converse of contains-function). GEOMETRY2 can also be of type GeometryCollection.";
-    private static final String CONTAINS_DOC                                                                                                                  = "contains(GEOMETRYTHIS, GEOMETRYTHAT): Tests if the GEOMETRYCOLLECTIONTHIS fully contains GEOMETRYCOLLECTIONTHAT (converse of within-function). GEOMETRY1 can also be of type GeometryCollection.";
+    private static final String WITHIN_DOC                                                                                                                    = """
+            within(GEOMETRYTHIS, GEOMETRYTHAT): Tests if the GEOMETRYCOLLECTIONTHIS is fully within GEOMETRYCOLLECTIONTHAT (converse of contains-function).
+            GEOMETRY2 can also be of type GeometryCollection.""";
+    private static final String CONTAINS_DOC                                                                                                                  = """
+            contains(GEOMETRYTHIS, GEOMETRYTHAT): Tests if the GEOMETRYCOLLECTIONTHIS fully contains GEOMETRYCOLLECTIONTHAT (converse of within-function).
+            GEOMETRY1 can also be of type GeometryCollection.""";
     private static final String OVERLAPS_DOC                                                                                                                  = "overlaps(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are overlapping.";
     private static final String INTERSECTS_DOC                                                                                                                = "intersects(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries have at least one common intersection point.";
-    private static final String BUFFER_DOC                                                                                                                    = "buffer(GEOMETRY, BUFFER_WIDTH): Adds a buffer area of BUFFER_WIDTH around GEOMETRY and returns the new geometry."
-            + " BUFFE_RWIDTH is in the units of the coordinates or of the projection (if projection applied)";
+    private static final String BUFFER_DOC                                                                                                                    = """
+            buffer(GEOMETRY, BUFFER_WIDTH): Adds a buffer area of BUFFER_WIDTH around GEOMETRY and returns the new geometry.
+            BUFFER_WIDTH is in the units of the coordinates or of the projection (if projection applied)""";
     private static final String BOUNDARY_DOC                                                                                                                  = "boundary(GEOMETRY): Returns the boundary of a geometry.";
     private static final String CENTROID_DOC                                                                                                                  = "centroid(GEOMETRY): Returns a point that is the geometric center of gravity of the geometry.";
     private static final String CONVEX_HULL_GEOMETRY_RETURNS_THE_CONVEX_HULL_SMALLEST_CONVEX_POLYGON_THAT_CONTAINS_ALL_POINTS_OF_THE_GEOMETRY_OF_THE_GEOMETRY = "convexHull(GEOMETRY): Returns the convex hull (smallest convex polygon, that contains all points of the geometry) of the geometry.";
@@ -79,35 +84,49 @@ public class GeoFunctions {
     private static final String INTERSECTION_DOC                                                                                                              = "intersection(GEOMETRYTHIS, GEOMETRYTHAT): Returns the point set intersection of the geometries. GEOMETRY can also be a GEOMETRYCOLLECTION.";
     private static final String DIFFERENCE_DOC                                                                                                                = "difference(GEOMETRYTHIS, GEOMETRYTHAT): Returns the closure of the set difference between two geometries.";
     private static final String BETWEEN_TWO_GEOMETRIES                                                                                                        = "symDifference(GEOMETRYTHIS, GEOMETRY2): Returns the closure of the symmetric difference between two geometries.";
-    private static final String DISTANCE_DOC                                                                                                                  = "distance(GEOMETRYTHIS, GEOMETRYTHAT): Returns the (shortest) geometric (planar) distance between two geometries. Does return the value of the unit of the coordinates (or projection if used).";
-    private static final String GEO_DISTANCE_DOC                                                                                                              = "geoDistance(GEOMETRYTHIS, GEOMETRYTHAT): Returns the (shortest) geodetic distance of two geometries in [m]. Coordinate Reference System is the un-projected (source) system (WGS84 recommended).";
-    private static final String IS_WITHIN_DISTANCE_DOC                                                                                                        = "isWithinDistance(GEOMETRYTHIS, GEOMETRYTHAT, DISTANCE): Tests if two geometries are within the given geometric (planar) distance of each other. "
-            + "Uses the unit of the coordinates (or projection if used).";
-    private static final String IS_WITHIN_GEO_DISTANCE_DOC                                                                                                    = "isWithinGeoDistance(GEOMETRYTHIS, GEOMETRYTHAT, DISTANCE): Tests if two geometries are within the given geodetic distance of each other. Uses [m] as unit."
-            + " Coordinate Reference System is the unprojected (source) system (WGS84 recommended).";
-    private static final String LENGTH_DOC                                                                                                                    = "length(GEOMETRY): Returns the length of the geometry (perimeter in case of areal geometries). The returned value is in the units of the coordinates or of the projection (if projection applied).";
-    private static final String AREA_DOC                                                                                                                      = "area(GEOMETRY): Returns the area of the geometry. The returned value is in the units (squared) of the coordinates or of the projection (if projection applied).";
+    private static final String DISTANCE_DOC                                                                                                                  = """
+            distance(GEOMETRYTHIS, GEOMETRYTHAT): Returns the (shortest) geometric (planar) distance between two geometries.
+            Does return the value of the unit of the coordinates (or projection if used).""";
+    private static final String GEO_DISTANCE_DOC                                                                                                              = """
+            geoDistance(GEOMETRYTHIS, GEOMETRYTHAT): Returns the (shortest) geodetic distance of two geometries in [m].
+            Coordinate Reference System is the un-projected (source) system (WGS84 recommended).""";
+    private static final String IS_WITHIN_DISTANCE_DOC                                                                                                        = """
+            isWithinDistance(GEOMETRYTHIS, GEOMETRYTHAT, DISTANCE): Tests if two geometries are within the given geometric (planar) distance of each other.
+            Uses the unit of the coordinates (or projection if used).""";
+    private static final String IS_WITHIN_GEO_DISTANCE_DOC                                                                                                    = """
+            isWithinGeoDistance(GEOMETRYTHIS, GEOMETRYTHAT, DISTANCE): Tests if two geometries are within the given geodetic distance of each other. Uses [m] as unit.
+            Coordinate Reference System is the unprojected (source) system (WGS84 recommended).""";
+    private static final String LENGTH_DOC                                                                                                                    = """
+            length(GEOMETRY): Returns the lenth of the geometry (perimeter in case of areal geometries).
+            The returned value is in the units of the coordinates or of the projection (if projection applied).""";
+    private static final String AREA_DOC                                                                                                                      = """
+            area(GEOMETRY): Returns the area of the geometry.
+            The returned value is in the units (squared) of the coordinates or of the projection (if projection applied).""";
     private static final String IS_SIMPLE_DOC                                                                                                                 = "isSimple(GEOMETRY): Returns true if the geometry has no anomalous geometric points (e.g. self interesection, self tangency,...).";
     private static final String IS_VALID_DOC                                                                                                                  = "isValid(GEOMETRY): Returns true if the geometry is topologically valid according to OGC specifications.";
     private static final String IS_CLOSED_DOC                                                                                                                 = "isClosed(GEOMETRY): Returns true if the geometry is either empty or from type (Multi)Point or a closed (Multi)LineString.";
-
-    private static final String MILES_TOMETER_DOC                           = "toMeter(VALUE, UNIT): Converts the given VALUE from MILES to [m].";
-    private static final String YARDS_TOMETER_DOC                           = "toMeter(VALUE, UNIT): Converts the given VALUE from YARDS to [m].";
-    private static final String DEGREE_TOMETER_DOC                          = "toMeter(VALUE, UNIT): Converts the given VALUE from DEGREES to [m].";
-    private static final String ONE_AND_ONLY_DOC                            = "oneAndOnly(GEOMETRYCOLLECTION): If GEOMETRYCOLLECTION only contains one element, this element will be returned. In all other cases an error will be thrown.";
-    private static final String BAG_SIZE_DOC                                = "bagSize(GOEMETRYCOLLECTION): Returns the number of elements in the GEOMETRYCOLLECTION.";
-    private static final String GEOMETRY_IS_IN_DOC                          = "geometryIsIn(GEOMETRY, GEOMETRYCOLLECTION): Tests if GEOMETRY is included in GEOMETRYCOLLECTION.";
-    private static final String GEOMETRY_BAG_DOC                            = "geometryBag(GEOMETRY,...): Takes any number of GEOMETRY and returns a GEOMETRYCOLLECTION containing all of them.";
-    private static final String RES_TO_GEOMETRY_BAG_DOC                     = "resToGeometryBag(RESOURCE_ARRAY): Takes multiple Geometries from RESOURCE_ARRAY and turns them into a GeometryCollection (e.g. geofences from a third party system).";
-    private static final String AT_LEAST_ONE_MEMBER_OF_DOC                  = "atLeastOneMemberOf(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns TRUE if at least one member of GEOMETRYCOLLECTIONTHIS is contained in GEOMETRYCOLLECTIONTHAT.";
-    private static final String SUBSET_DOC                                  = "subset(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns true, if GEOMETRYCOLLECTIONTHIS is a subset of GEOMETRYCOLLECTIONTHAT.";
-    private static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM = "Input must be a GeometryCollection containing only one Geometry.";
+    private static final String MILES_TOMETER_DOC                                                                                                             = "toMeter(VALUE, UNIT): Converts the given VALUE from MILES to [m].";
+    private static final String YARDS_TOMETER_DOC                                                                                                             = "toMeter(VALUE, UNIT): Converts the given VALUE from YARDS to [m].";
+    private static final String DEGREE_TOMETER_DOC                                                                                                            = "toMeter(VALUE, UNIT): Converts the given VALUE from DEGREES to [m].";
+    private static final String ONE_AND_ONLY_DOC                                                                                                              = """
+            oneAndOnly(GEOMETRYCOLLECTION): If GEOMETRYCOLLECTION only contains one element, this element will be returned.
+            In all other cases an error will be thrown.""";
+    private static final String BAG_SIZE_DOC                                                                                                                  = "bagSize(GOEMETRYCOLLECTION): Returns the number of elements in the GEOMETRYCOLLECTION.";
+    private static final String GEOMETRY_IS_IN_DOC                                                                                                            = "geometryIsIn(GEOMETRY, GEOMETRYCOLLECTION): Tests if GEOMETRY is included in GEOMETRYCOLLECTION.";
+    private static final String GEOMETRY_BAG_DOC                                                                                                              = "geometryBag(GEOMETRY,...): Takes any number of GEOMETRY and returns a GEOMETRYCOLLECTION containing all of them.";
+    private static final String RES_TO_GEOMETRY_BAG_DOC                                                                                                       = """
+            resToGeometryBag(RESOURCE_ARRAY): Takes multiple Geometries from RESOURCE_ARRAY and turns them into a GeometryCollection
+            (e.g. geofences from a third party system).""";
+    private static final String AT_LEAST_ONE_MEMBER_OF_DOC                                                                                                    = """
+            atLeastOneMemberOf(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2):
+            Returns TRUE if at least one member of GEOMETRYCOLLECTIONTHIS is contained in GEOMETRYCOLLECTIONTHAT.""";
+    private static final String SUBSET_DOC                                                                                                                    = "subset(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns true, if GEOMETRYCOLLECTIONTHIS is a subset of GEOMETRYCOLLECTIONTHAT.";
+    private static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM                                                                                   = "Input must be a GeometryCollection containing only one Geometry.";
 
     @Function(name = "equalsExact", docs = EQUALS_DOC)
     public Val geometryEquals(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
 
         return Val.of(geometryEquals(geoJsonThis.get(), geoJsonThat.get()));
-
     }
 
     public Boolean geometryEquals(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat)
@@ -120,7 +139,6 @@ public class GeoFunctions {
     public Val disjoint(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
 
         return Val.of(disjoint(geoJsonThis.get(), geoJsonThat.get()));
-
     }
 
     public Boolean disjoint(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -132,7 +150,6 @@ public class GeoFunctions {
     public Val touches(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
 
         return Val.of(touches(geoJsonThis.get(), geoJsonThat.get()));
-
     }
 
     public Boolean touches(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -144,7 +161,6 @@ public class GeoFunctions {
     public Val crosses(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
 
         return Val.of(crosses(geoJsonThis.get(), geoJsonThat.get()));
-
     }
 
     public Boolean crosses(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -156,7 +172,6 @@ public class GeoFunctions {
     public Val within(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
 
         return Val.of(within(geoJsonThis.get(), geoJsonThat.get()));
-
     }
 
     public Boolean within(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -170,7 +185,6 @@ public class GeoFunctions {
     public Val contains(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
 
         return Val.of(contains(geoJsonThis.get(), geoJsonThat.get()));
-
     }
 
     public Boolean contains(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -184,7 +198,6 @@ public class GeoFunctions {
     public Val overlaps(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
 
         return Val.of(overlaps(geoJsonThis.get(), geoJsonThat.get()));
-
     }
 
     public Boolean overlaps(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -196,7 +209,6 @@ public class GeoFunctions {
     public Val intersects(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
 
         return Val.of(intersects(geoJsonThis.get(), geoJsonThat.get()));
-
     }
 
     public Boolean intersects(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat)
@@ -209,7 +221,6 @@ public class GeoFunctions {
     public Val buffer(@JsonObject Val jsonGeometry, @Number Val buffer) throws ParseException, JsonProcessingException {
 
         return buffer(jsonGeometry.get(), buffer.get().asDouble());
-
     }
 
     public Val buffer(@JsonObject JsonNode jsonGeometry, @Number Double buffer)
@@ -223,7 +234,6 @@ public class GeoFunctions {
     public Val boundary(@JsonObject Val jsonGeometry) throws ParseException, JsonProcessingException {
 
         return boundary(jsonGeometry.get());
-
     }
 
     public Val boundary(@JsonObject JsonNode jsonGeometry) throws ParseException, JsonProcessingException {
@@ -235,7 +245,6 @@ public class GeoFunctions {
     public Val centroid(@JsonObject Val jsonGeometry) throws ParseException, JsonProcessingException {
 
         return centroid(jsonGeometry.get());
-
     }
 
     public Val centroid(@JsonObject JsonNode jsonGeometry) throws ParseException, JsonProcessingException {
@@ -247,7 +256,6 @@ public class GeoFunctions {
     public Val convexHull(@JsonObject Val jsonGeometry) throws ParseException, JsonProcessingException {
 
         return convexHull(jsonGeometry.get());
-
     }
 
     public Val convexHull(@JsonObject JsonNode jsonGeometry) throws ParseException, JsonProcessingException {
@@ -263,7 +271,6 @@ public class GeoFunctions {
             geometries[i] = jsonGeometries[i].get();
         }
         return union(geometries);
-
     }
 
     public Val union(@JsonObject JsonNode... jsonGeometries) throws ParseException, JsonProcessingException {
@@ -283,7 +290,6 @@ public class GeoFunctions {
             throws ParseException, JsonProcessingException {
 
         return intersection(geoJsonThis.get(), geoJsonThat.get());
-
     }
 
     public Val intersection(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat)
@@ -297,7 +303,6 @@ public class GeoFunctions {
             throws ParseException, JsonProcessingException {
 
         return difference(geoJsonThis.get(), geoJsonThat.get());
-
     }
 
     public Val difference(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat)
@@ -323,7 +328,6 @@ public class GeoFunctions {
     public Val distance(@JsonObject Val geoJsonThis, @JsonObject Val geoJsonThat) throws ParseException {
 
         return Val.of(distance(geoJsonThis.get(), geoJsonThat.get()));
-
     }
 
     public double distance(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat) throws ParseException {
@@ -336,7 +340,6 @@ public class GeoFunctions {
             throws ParseException {
 
         return Val.of(isWithinDistance(geoJsonThis.get(), geoJsonThat.get(), distInput.get().asDouble()));
-
     }
 
     public Boolean isWithinDistance(@JsonObject JsonNode geoJsonThis, @JsonObject JsonNode geoJsonThat,
@@ -350,7 +353,6 @@ public class GeoFunctions {
             throws FactoryException, TransformException, ParseException {
 
         return Val.of(geoDistance(jsonGeometryThis.get(), jsonGeometryThat.get()));
-
     }
 
     @Function(docs = GEO_DISTANCE_DOC)
@@ -358,7 +360,6 @@ public class GeoFunctions {
             Val coordinateReferenceSystem) throws ParseException, FactoryException, TransformException {
 
         return Val.of(geoDistance(jsonGeometryThis.get(), jsonGeometryThat.get(), coordinateReferenceSystem.getText()));
-
     }
 
     public double geoDistance(JsonNode jsonGeometryThis, JsonNode jsonGeometryThat)
@@ -369,27 +370,21 @@ public class GeoFunctions {
     public double geoDistance(JsonNode jsonGeometryThis, JsonNode jsonGeometryThat, String coordinateReferenceSystem)
             throws ParseException, FactoryException, TransformException {
         return geodesicDistance(jsonGeometryThis, jsonGeometryThat, coordinateReferenceSystem);
-
     }
 
     private double geodesicDistance(JsonNode jsonGeometryThis, JsonNode jsonGeometryThat,
             String coordinateReferenceSystem) throws ParseException, FactoryException, TransformException {
-        var geometryThis = JsonConverter.geoJsonToGeometry(jsonGeometryThis.toPrettyString());
-        var geometryThat = JsonConverter.geoJsonToGeometry(jsonGeometryThat.toPrettyString());
 
-        var crs    = CRS.decode(coordinateReferenceSystem);
-        var distOp = new DistanceOp(geometryThis, geometryThat);
-
-        var nearestPoints = distOp.nearestPoints();
-
+        var geometryThis     = JsonConverter.geoJsonToGeometry(jsonGeometryThis.toPrettyString());
+        var geometryThat     = JsonConverter.geoJsonToGeometry(jsonGeometryThat.toPrettyString());
+        var crs              = CRS.decode(coordinateReferenceSystem);
+        var distOp           = new DistanceOp(geometryThis, geometryThat);
+        var nearestPoints    = distOp.nearestPoints();
         var nearestPointThis = nearestPoints[0];
         var nearestPointThat = nearestPoints[1];
-
-        var gc = new GeodeticCalculator(crs);
-
+        var gc               = new GeodeticCalculator(crs);
         gc.setStartingPosition(JTS.toDirectPosition(nearestPointThis, crs));
         gc.setDestinationPosition(JTS.toDirectPosition(nearestPointThat, crs));
-
         return gc.getOrthodromicDistance();
     }
 
@@ -398,7 +393,6 @@ public class GeoFunctions {
             @Number Val distance) throws TransformException, FactoryException, ParseException {
 
         return Val.of(isWithinGeoDistance(jsonGeometryThis.get(), jsonGeometryThat.get(), distance.get().asDouble()));
-
     }
 
     public Boolean isWithinGeoDistance(@JsonObject JsonNode jsonGeometryThis, @JsonObject JsonNode jsonGeometryThat,
@@ -410,7 +404,6 @@ public class GeoFunctions {
     public Val length(@JsonObject Val jsonGeometry) throws ParseException {
 
         return Val.of(length(jsonGeometry.get()));
-
     }
 
     public Double length(@JsonObject JsonNode jsonGeometry) throws ParseException {
@@ -421,7 +414,6 @@ public class GeoFunctions {
     public Val area(@JsonObject Val jsonGeometry) throws ParseException {
 
         return Val.of(area(jsonGeometry.get()));
-
     }
 
     public Double area(@JsonObject JsonNode jsonGeometry) throws ParseException {
@@ -432,7 +424,6 @@ public class GeoFunctions {
     public Val isSimple(@JsonObject Val jsonGeometry) throws ParseException {
 
         return Val.of(isSimple(jsonGeometry.get()));
-
     }
 
     public Boolean isSimple(@JsonObject JsonNode jsonGeometry) throws ParseException {
@@ -443,7 +434,6 @@ public class GeoFunctions {
     public Val isValid(@JsonObject Val jsonGeometry) throws ParseException {
 
         return Val.of(isValid(jsonGeometry.get()));
-
     }
 
     public Boolean isValid(@JsonObject JsonNode jsonGeometry) throws ParseException {
@@ -454,7 +444,6 @@ public class GeoFunctions {
     public Val isClosed(@JsonObject Val jsonGeometry) throws OperationNotSupportedException, ParseException {
 
         return Val.of(isClosed(jsonGeometry.get()));
-
     }
 
     public Boolean isClosed(@JsonObject JsonNode jsonGeometry) throws ParseException, OperationNotSupportedException {
@@ -477,7 +466,6 @@ public class GeoFunctions {
             throw new OperationNotSupportedException(
                     "Operation isClosed is not applicable for the type " + geometry.getGeometryType());
         }
-
     }
 
     @Function(docs = MILES_TOMETER_DOC)
@@ -499,7 +487,6 @@ public class GeoFunctions {
     public Val yardToMeter(@Number Val jsonValue) {
 
         return Val.of(yardToMeter(jsonValue.get()));
-
     }
 
     public JsonNode yardToMeter(@Number JsonNode jsonValue) {
@@ -511,7 +498,6 @@ public class GeoFunctions {
     public Val degreeToMeter(@Number Val jsonValue) {
 
         return Val.of(degreeToMeter(jsonValue.get()));
-
     }
 
     public JsonNode degreeToMeter(@Number JsonNode jsonValue) {
@@ -527,7 +513,6 @@ public class GeoFunctions {
     public Val bagSize(@JsonObject Val jsonGeometry) throws ParseException {
 
         return Val.of(bagSize(jsonGeometry.get()));
-
     }
 
     public int bagSize(@JsonObject JsonNode jsonGeometry) throws ParseException {
@@ -539,7 +524,6 @@ public class GeoFunctions {
             throws OperationNotSupportedException, ParseException, JsonProcessingException {
 
         return oneAndOnly(jsonGeometryCollection.get());
-
     }
 
     public Val oneAndOnly(@JsonObject JsonNode jsonGeometryCollection)
@@ -559,7 +543,6 @@ public class GeoFunctions {
             throws ParseException {
 
         return Val.of(geometryIsIn(jsonGeometry.get(), jsonGeometryCollection.get()));
-
     }
 
     public Boolean geometryIsIn(@JsonObject JsonNode jsonGeometry, @JsonObject JsonNode jsonGeometryCollection)
@@ -585,7 +568,6 @@ public class GeoFunctions {
         }
 
         return geometryBag(geometries);
-
     }
 
     public Val geometryBag(@JsonObject JsonNode... geometryJsonInput) throws ParseException, JsonProcessingException {
@@ -667,8 +649,6 @@ public class GeoFunctions {
                 }
             }
         }
-
         return (resultSet.cardinality() == geometryCollectionThis.getNumGeometries());
     }
-
 }

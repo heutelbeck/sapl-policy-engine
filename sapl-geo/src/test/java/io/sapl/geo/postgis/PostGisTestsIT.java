@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.PostgisTestBase;
 import io.sapl.geo.databases.DataBaseTypes;
-import io.sapl.geo.databases.DatabaseConnection;
+import io.sapl.geo.databases.DatabaseStreamQuery;
 import reactor.test.StepVerifier;
 
 @Testcontainers
@@ -50,7 +50,7 @@ class PostGisTestsIT extends PostgisTestBase {
 
         var expected = Val.ofJson(expectedAll);
 
-        var postgis = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
+        var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
                 .sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
@@ -61,8 +61,8 @@ class PostGisTestsIT extends PostgisTestBase {
         var queryString = String.format(templatePoint, "geometries", "geom");
 
         var expected = Val.ofJson(expectedPoint);
-        var postgis  = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
-                .sendQuery(Val.ofJson(queryString).get());
+        var postgis  = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
@@ -72,8 +72,8 @@ class PostGisTestsIT extends PostgisTestBase {
         var queryString = String.format(templateAll, "geographies", "geog");
 
         var expected = Val.ofJson(expectedAll);
-        var postgis  = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
-                .sendQuery(Val.ofJson(queryString).get());
+        var postgis  = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
@@ -83,7 +83,7 @@ class PostGisTestsIT extends PostgisTestBase {
         var str = String.format(templatePoint, "geographies", "geog");
 
         var exp     = Val.ofJson(expectedPoint);
-        var postgis = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
+        var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
                 .sendQuery(Val.ofJson(str).get());
         StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
     }
@@ -93,7 +93,7 @@ class PostGisTestsIT extends PostgisTestBase {
 
         var str = String.format(templatePoint, "nonExistantTable", "geog");
 
-        var postgis = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
+        var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
                 .sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
         StepVerifier.create(postgis).expectNext("relation \"nonexistanttable\" does not exist").verifyComplete();
     }
@@ -103,7 +103,7 @@ class PostGisTestsIT extends PostgisTestBase {
 
         var str = "{\"invalid\":\"Template\"}";
 
-        var postgis = new DatabaseConnection(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
+        var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
                 .sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
 
         StepVerifier.create(postgis).expectNext("No geoColumn-name found").verifyComplete();

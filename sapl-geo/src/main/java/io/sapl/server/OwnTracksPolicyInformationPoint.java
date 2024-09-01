@@ -33,26 +33,20 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = OwnTracksPolicyInformationPoint.NAME, description = OwnTracksPolicyInformationPoint.DESCRIPTION)
 public class OwnTracksPolicyInformationPoint {
 
-    public static final String NAME = "ownTracks";
-
-    public static final String DESCRIPTION = "PIP for geographical data.";
-
-    private final ObjectMapper mapper;
-
+    public static final String  NAME                     = "ownTracks";
+    public static final String  DESCRIPTION              = "PIP for geographical data.";
+    private final ObjectMapper  mapper;
     private static final String OWNTRACKS_DEFAULT_CONFIG = "OWNTRACKS_DEFAULT_CONFIG";
 
     @EnvironmentAttribute(name = "positionAndFences")
     public Flux<Val> positionAndFences(Map<String, Val> auth, @JsonObject Val variables) {
 
         return new OwnTracks(auth.get(OWNTRACKS_DEFAULT_CONFIG).get(), mapper).connect(variables.get());
-
     }
 
     @EnvironmentAttribute(name = "positionAndFences")
     public Flux<Val> positionAndFences(@JsonObject Val auth, @JsonObject Val variables) {
 
         return new OwnTracks(auth.get(), mapper).connect(variables.get());
-
     }
-
 }

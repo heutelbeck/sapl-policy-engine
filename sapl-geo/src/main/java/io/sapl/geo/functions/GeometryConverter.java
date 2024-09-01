@@ -45,7 +45,6 @@ public final class GeometryConverter {
         writer.setMaxCoordinatesPerLine(Integer.MAX_VALUE);// reader has problems if /n occurs in coordinates
         var s = writer.write(geo);
         return Val.of(s);
-
     }
 
     /**
@@ -87,5 +86,4 @@ public final class GeometryConverter {
 
         return Val.of(json);
     }
-
 }

@@ -20,17 +20,8 @@ package io.sapl.geo.functions;
 public enum CrsConst {
 
     WGS84_CRS(1, "EPSG:4326"), // WGS84
-
     WEB_MERCATOR_CRS(2, "EPSG:3857"), // WebMercator
-
-    ED50_CRS(3, "EPSG:23032"),
-
-    DHDN_2_CRS(4, "EPSG:31466"),
-
-    DHDN_3_CRS(5, "EPSG:31467"),
-
-    DHDN_4_CRS(6, "EPSG:31468"),
-
+    ED50_CRS(3, "EPSG:23032"), DHDN_2_CRS(4, "EPSG:31466"), DHDN_3_CRS(5, "EPSG:31467"), DHDN_4_CRS(6, "EPSG:31468"),
     DHDN_5_CRS(7, "EPSG:31469");
 
     private final Integer key;
@@ -39,7 +30,6 @@ public enum CrsConst {
     CrsConst(Integer key, String value) {
         this.key   = key;
         this.value = value;
-
     }
 
     public Integer getKey() {

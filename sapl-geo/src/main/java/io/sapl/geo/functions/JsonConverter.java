@@ -65,5 +65,4 @@ public final class JsonConverter {
 
         return (new GeoJsonReader()).read(geoJson);
     }
-
 }

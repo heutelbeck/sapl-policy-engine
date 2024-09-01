@@ -34,40 +34,32 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = TraccarPolicyInformationPoint.NAME, description = TraccarPolicyInformationPoint.DESCRIPTION)
 public class TraccarPolicyInformationPoint {
 
-    public static final String NAME = "traccar";
-
-    public static final String DESCRIPTION = "PIP for geographical data from traccar.";
-
-    private final ObjectMapper mapper;
-
+    public static final String  NAME                   = "traccar";
+    public static final String  DESCRIPTION            = "PIP for geographical data from traccar.";
     private static final String TRACCAR_DEFAULT_CONFIG = "TRACCAR_DEFAULT_CONFIG";
+    private final ObjectMapper  mapper;
 
     @EnvironmentAttribute(name = "position")
     public Flux<Val> position(Map<String, Val> auth, @JsonObject Val variables) {
 
         return new TraccarPositions(auth.get(TRACCAR_DEFAULT_CONFIG).get(), mapper).getPositions(variables.get());
-
     }
 
     @EnvironmentAttribute(name = "position")
     public Flux<Val> position(@JsonObject Val auth, @JsonObject Val variables) {
 
         return new TraccarPositions(auth.get(), mapper).getPositions(variables.get());
-
     }
 
     @EnvironmentAttribute(name = "geofences")
     public Flux<Val> geofences(Map<String, Val> auth, @JsonObject Val variables) {
 
         return new TraccarGeofences(auth.get(TRACCAR_DEFAULT_CONFIG).get(), mapper).getGeofences(variables.get());
-
     }
 
     @EnvironmentAttribute(name = "geofences")
     public Flux<Val> geofences(@JsonObject Val auth, @JsonObject Val variables) {
 
         return new TraccarGeofences(auth.get(), mapper).getGeofences(variables.get());
-
     }
-
 }

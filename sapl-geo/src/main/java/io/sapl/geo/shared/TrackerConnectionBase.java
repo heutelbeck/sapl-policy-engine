@@ -32,24 +32,21 @@ import io.sapl.geo.pip.GeoPipResponseFormat;
 
 public abstract class TrackerConnectionBase extends ConnectionBase {
 
+    protected String              altitude;
+    protected String              lastupdate;
+    protected String              accuracy;
+    protected String              latitude;
+    protected String              longitude;
     protected static final String DEVICEID_CONST = "deviceId";
-
-    protected String altitude;
-    protected String lastupdate;
-    protected String accuracy;
-    protected String latitude;
-    protected String longitude;
-
-    private static final int WGS84 = 4326;
+    private static final int      WGS84          = 4326;
 
     protected GeoPipResponse mapPosition(String deviceId, JsonNode in, GeoPipResponseFormat format,
             boolean latitudeFirst) throws JsonProcessingException {
 
         var   geometryFactory = new GeometryFactory(new PrecisionModel(), WGS84);
         Point position;
-
-        var lat = in.findValue(latitude).asDouble();
-        var lon = in.findValue(longitude).asDouble();
+        var   lat             = in.findValue(latitude).asDouble();
+        var   lon             = in.findValue(longitude).asDouble();
 
         if (!latitudeFirst) {
             position = geometryFactory.createPoint(new Coordinate(lon, lat));
@@ -92,7 +89,6 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
 
             throw new PolicyEvaluationException("No Device ID found");
         }
-
     }
 
     protected String getProtocol(JsonNode requestSettings) {
