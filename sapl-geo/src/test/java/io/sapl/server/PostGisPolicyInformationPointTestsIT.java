@@ -21,6 +21,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -67,25 +71,12 @@ class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
         writePdp(json, String.format(path, "/postgisTestEnvironmentVariable/pdp.json"));
     }
 
-    @Test
-    void AuthenticateByEnvironmentVariable() throws InitializationException {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "postgisTest", "postgisTestEnvironmentVariable"})
+    void PostGisPipTest(String pddPath) throws InitializationException {
 
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, "postgisTestEnvironmentVariable"),
-                () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-
-        var authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var pdpDecisionFlux   = pdp.decide(authzSubscription);
-
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
-    }
-
-    @Test
-    void AuthenticateByVariable() throws InitializationException {
-
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "postgisTest"),
+        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, pddPath),
                 () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
 
         var subject = new Subject(postgisContainer.getUsername(), postgisContainer.getPassword(),

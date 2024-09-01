@@ -1,4 +1,4 @@
-olicy "owntracksTestEnvironmentVariable"
+policy "owntracksTestEnvironmentVariable"
 permit
 where
   

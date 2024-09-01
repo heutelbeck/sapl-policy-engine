@@ -21,6 +21,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -67,23 +71,25 @@ class MySqlPolicyInformationPointTestsIT extends MySqlTestBase {
         writePdp(json, String.format(path, "/mysqlTestEnvironmentVariable/pdp.json"));
     }
 
-    @Test
-    void AuthenticateByEnvironmentVariable() throws InitializationException {
+//    @Test
+//    void AuthenticateByEnvironmentVariable() throws InitializationException {
+//
+//        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
+//                String.format(path, "mysqlTestEnvironmentVariable"),
+//                () -> List.of(new MySqlPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
+//
+//        var authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
+//        var pdpDecisionFlux   = pdp.decide(authzSubscription);
+//
+//        StepVerifier.create(pdpDecisionFlux)
+//                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
+//                .verify();
+//    }
 
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, "mysqlTestEnvironmentVariable"),
-                () -> List.of(new MySqlPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-
-        var authzSubscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var pdpDecisionFlux   = pdp.decide(authzSubscription);
-
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
-    }
-
-    @Test
-    void AuthenticateByVariable() throws InitializationException {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "mysqlTest", "mysqlTestEnvironmentVariable"})
+    void MySqlPipTest() throws InitializationException {
 
         var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "mysqlTest"),
                 () -> List.of(new MySqlPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);

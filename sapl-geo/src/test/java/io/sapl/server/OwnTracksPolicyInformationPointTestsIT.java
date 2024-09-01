@@ -21,9 +21,12 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -87,7 +90,7 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
                 		"OWNTRACKS_DEFAULT_CONFIG":
                 		{
                 			"server":"%s",
-                			"protocol": %s
+                			"protocol": "%s"
                 		}
                 	}
                 }
@@ -98,10 +101,14 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
 
     }
 
-    @Test
-    void AuthenticateByVariable() throws InitializationException {
+    
+    
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "owntracksTest", "owntracksTestEnvironmentVariable"})
+    void OwnTracksPipTest(String pdpPath) throws InitializationException {
 
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "owntracksTest"),
+        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, pdpPath),
                 () -> List.of(new OwnTracksPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
 
         server = String.format("%s:%s", owntracksRecorder.getHost(), owntracksRecorder.getMappedPort(8083));
@@ -110,29 +117,12 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
 
         AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
         var                       pdpDecisionFlux   = pdp.decide(authzSubscription);
-
+ 
         StepVerifier.create(pdpDecisionFlux)
                 .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
                 .verify();
     }
 
-    @Test
-    void AuthenticateByEnvironmentVariable() throws InitializationException {
-
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "owntracksTest"),
-                () -> List.of(new OwnTracksPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-
-        var server = String.format("%s:%s", owntracksRecorder.getHost(), owntracksRecorder.getMappedPort(8083));
-
-        var subject = new Subject("user", "device", server);
-
-        AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
-        var                       pdpDecisionFlux   = pdp.decide(authzSubscription);
-
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
-    }
 
     @Getter
     @RequiredArgsConstructor

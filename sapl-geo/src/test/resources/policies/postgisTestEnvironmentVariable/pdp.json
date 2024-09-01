@@ -7,7 +7,7 @@
 			"user":"test",
 			"password":"test",
 			"server":"localhost",
-			"port": 58938,
+			"port": 55435,
 			"dataBase":"test",
 			"dataBaseType" : "POSTGIS"
 		}
