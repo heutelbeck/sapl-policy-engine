@@ -73,7 +73,7 @@ public class TraccarTestsIT {
     @BeforeAll
     void setup() {
 
-        var address = "localhost" + ":" + traccarServer.getMappedPort(8082);
+        var address = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
         authTemplate = String.format(authenticationTemplate, address);
 
     }
