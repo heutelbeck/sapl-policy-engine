@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -72,7 +73,8 @@ public class TraccarTestsIT {
 
     @BeforeAll
     void setup() {
-
+    	traccarServer.start();
+    	traccarServer.waitingFor(Wait.forHttp("/api").forStatusCode(200));
         var address = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
         authTemplate = String.format(authenticationTemplate, address);
 
