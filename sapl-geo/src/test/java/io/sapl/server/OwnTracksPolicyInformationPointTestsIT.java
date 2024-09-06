@@ -101,11 +101,9 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
 
     }
 
-    
-    
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "owntracksTest", "owntracksTestEnvironmentVariable"})
+    @CsvSource({ "owntracksTest", "owntracksTestEnvironmentVariable" })
     void OwnTracksPipTest(String pdpPath) throws InitializationException {
 
         var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, pdpPath),
@@ -117,12 +115,11 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
 
         AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
         var                       pdpDecisionFlux   = pdp.decide(authzSubscription);
- 
+
         StepVerifier.create(pdpDecisionFlux)
                 .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
                 .verify();
     }
-
 
     @Getter
     @RequiredArgsConstructor

@@ -88,7 +88,7 @@ class MySqlPolicyInformationPointTestsIT extends MySqlTestBase {
 
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "mysqlTest", "mysqlTestEnvironmentVariable"})
+    @CsvSource({ "mysqlTest", "mysqlTestEnvironmentVariable" })
     void MySqlPipTest() throws InitializationException {
 
         var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "mysqlTest"),

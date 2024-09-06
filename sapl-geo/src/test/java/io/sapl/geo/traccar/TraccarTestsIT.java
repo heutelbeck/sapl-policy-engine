@@ -69,12 +69,12 @@ public class TraccarTestsIT {
             DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082)
             .withFileSystemBind(resourceDirectory + "/opt/traccar/logs", "/opt/traccar/logs", BindMode.READ_WRITE)
             .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
-            .withReuse(false);
+            .withReuse(false).waitingFor(Wait.forHttp("/login").forStatusCode(200));
 
     @BeforeAll
     void setup() {
-    	traccarServer.start();
-    	traccarServer.waitingFor(Wait.forHttp("/api").forStatusCode(200));
+        traccarServer.start();
+        // traccarServer.waitingFor(Wait.forHttp("/login").forStatusCode(200));
         var address = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
         authTemplate = String.format(authenticationTemplate, address);
 
