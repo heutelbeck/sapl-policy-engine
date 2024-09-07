@@ -109,7 +109,6 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
         var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, pdpPath),
                 () -> List.of(new OwnTracksPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
 
-        server = String.format("%s:%s", owntracksRecorder.getHost(), owntracksRecorder.getMappedPort(8083));
 
         var subject = new Subject("user", "device", server);
 

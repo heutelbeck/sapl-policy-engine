@@ -65,11 +65,11 @@ public class TraccarPolicyInformationPointTestsIT extends TestBase {
     private Subject   subject;
 
     @Container
-    public static GenericContainer<?> traccarContainer = new GenericContainer<>(
+    public static final GenericContainer<?> traccarContainer = new GenericContainer<>(
             DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082, 5055).withReuse(false);
 
     @BeforeAll
-    void setUp() throws IOException {
+    void setUp() throws Exception {
 
         email    = "test@fake.de";
         password = "1234";
@@ -91,9 +91,13 @@ public class TraccarPolicyInformationPointTestsIT extends TestBase {
 
         for (var fence : traccarGeofences) {
 
-            var fenceId = postTraccarGeofence(sessionCookie, fence).block().get("id").asInt();
-            ;
-            linkGeofenceToDevice(deviceId, fenceId, sessionCookie);
+            var fenceId = postTraccarGeofence(sessionCookie, fence).block().get("id");
+            if (fenceId != null) {
+                linkGeofenceToDevice(deviceId, fenceId.asInt(), sessionCookie);
+            }
+            else {
+                throw new Exception("Id of Geofence was null");
+            }
         }
 
         addTraccarPosition("1234567890", 51.34533, 7.40575).block();
@@ -178,16 +182,15 @@ public class TraccarPolicyInformationPointTestsIT extends TestBase {
         if (response != null) {
             var setCookieHeader = response.getHeaders().getFirst("Set-Cookie");
             if (setCookieHeader != null) {
-                var sessionCookie = Arrays.stream(setCookieHeader.split(";")).filter(s -> s.startsWith("JSESSIONID"))
+                return Arrays.stream(setCookieHeader.split(";")).filter(s -> s.startsWith("JSESSIONID"))
                         .findFirst().orElse(null);
-                return sessionCookie;
             }
         }
         return null;
 
     }
 
-    private String createDevice(String sessionCookie) {
+    private String createDevice(String sessionCookie) throws Exception {
         var createDeviceUrl = String.format("http://%s:%d/api/devices", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
 
@@ -203,8 +206,13 @@ public class TraccarPolicyInformationPointTestsIT extends TestBase {
             headers.setContentType(MediaType.APPLICATION_JSON);
         }).bodyValue(body).retrieve().bodyToMono(JsonNode.class).block();
 
-        return result.get("id").asText();
-
+        var id = result.get("id");
+        if(id != null) {
+            return id.asText();
+        }
+        else {
+            throw new Exception ("Id of device was null");
+        }
     }
 
     private Mono<JsonNode> postTraccarGeofence(String sessionCookie, String body) {
@@ -239,8 +247,6 @@ public class TraccarPolicyInformationPointTestsIT extends TestBase {
 
     public Mono<String> addTraccarPosition(String deviceId, Double lat, Double lon) {
 
-        var webClient = WebClient.builder().build();
-
         var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         var timeStamp = LocalDateTime.now().format(formatter);
 
@@ -268,7 +274,7 @@ public class TraccarPolicyInformationPointTestsIT extends TestBase {
 
     @Getter
     @RequiredArgsConstructor
-    class Subject {
+    static class Subject {
         private final String user;
         private final String password;
         private final String server;
