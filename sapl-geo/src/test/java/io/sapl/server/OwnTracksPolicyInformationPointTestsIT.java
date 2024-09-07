@@ -109,7 +109,6 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
         var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, pdpPath),
                 () -> List.of(new OwnTracksPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
 
-
         var subject = new Subject("user", "device", server);
 
         AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");

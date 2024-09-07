@@ -30,11 +30,10 @@ import io.sapl.geo.functionlibraries.GeoConverter;
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class TestBase {
 
-    protected Val          point;
-    protected Val          polygon;
-    protected GeoConverter geoConverter = new GeoConverter();
-
-    protected SourceProvider source = new SourceProvider();
+    protected Val            point;
+    protected Val            polygon;
+    protected GeoConverter   geoConverter = new GeoConverter();
+    protected SourceProvider source       = new SourceProvider();
 
     protected void writePdp(String json, String path) throws IOException {
 
