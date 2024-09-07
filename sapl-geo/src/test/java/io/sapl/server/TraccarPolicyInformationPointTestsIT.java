@@ -116,8 +116,8 @@ public class TraccarPolicyInformationPointTestsIT extends TestBase {
 
         server = String.format("%s:%s", traccarContainer.getHost(), traccarContainer.getMappedPort(8082));
         var pdp = String.format(template, email, password, server, "http");
-        writePdp(pdp, String.format(path, "/TraccarGeofencesTestEnvironmentVariable/pdp.json"));
-        writePdp(pdp, String.format(path, "/TraccarPositionTestEnvironmentVariable/pdp.json"));
+        writePdp(pdp, String.format(path, "/traccarGeofencesTestEnvironmentVariable/pdp.json"));
+        writePdp(pdp, String.format(path, "/traccarPositionTestEnvironmentVariable/pdp.json"));
 
     }
 
