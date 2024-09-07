@@ -41,8 +41,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import reactor.test.StepVerifier;
 
-@TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
+@TestInstance(Lifecycle.PER_CLASS)
 public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
 
     private String path = "src/test/resources/policies/%s";

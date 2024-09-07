@@ -1,5 +1,5 @@
 policy "traccarTestEnvironmentVariable"
 permit
 where
-  var position= <traccar.position({"responseFormat": "WKT", "deviceId":"1"})>;
-   position.deviceId == 1;
+  var position= <traccar.position({"responseFormat": "WKT", "deviceId":subject.deviceId})>;
+   position.deviceId == subject.deviceId;

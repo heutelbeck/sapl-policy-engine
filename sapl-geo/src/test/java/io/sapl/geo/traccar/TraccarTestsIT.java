@@ -24,12 +24,10 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import java.nio.file.Paths;
-
 import org.junit.Test;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -64,17 +62,16 @@ public class TraccarTestsIT {
     final static String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
 
     @Container
-
     public static GenericContainer<?> traccarServer = new GenericContainer<>(
             DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082)
             .withFileSystemBind(resourceDirectory + "/opt/traccar/logs", "/opt/traccar/logs", BindMode.READ_WRITE)
             .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
-            .withReuse(false).waitingFor(Wait.forHttp("/login").forStatusCode(200));
-
+            .withReuse(false)
+            ;
+    
     @BeforeAll
     void setup() {
         traccarServer.start();
-        // traccarServer.waitingFor(Wait.forHttp("/login").forStatusCode(200));
         var address = traccarServer.getHost() + ":" + traccarServer.getMappedPort(8082);
         authTemplate = String.format(authenticationTemplate, address);
 

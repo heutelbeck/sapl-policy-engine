@@ -1,13 +1,13 @@
       {
 "algorithm": "DENY_OVERRIDES",
 "variables":
-    {
-        "TRACCAR_DEFAULT_CONFIG":
-        {
-            "user":"test@fake.de",
-            "password":"1234",
-            "server":"localhost:52827",
-            "protocol": "http"
-        }
-    }
+	{
+		"TRACCAR_DEFAULT_CONFIG":
+		{
+		    "user":"test@fake.de",
+                  "password":"1234",
+			"server":"localhost:63973",
+			"protocol": "http"
+		}
+	}
 }

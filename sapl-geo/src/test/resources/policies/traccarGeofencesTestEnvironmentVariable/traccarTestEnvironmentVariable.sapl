@@ -1,5 +1,5 @@
 policy "traccarTestEnvironmentVariable"
 permit
 where
-  var fences= <traccar.geofences({"responseFormat": "WKT", "deviceId":"1"})>;
+  var fences= <traccar.geofences({"responseFormat": "WKT", "deviceId":subject.deviceId})>;
    fences[0].id == 1;
