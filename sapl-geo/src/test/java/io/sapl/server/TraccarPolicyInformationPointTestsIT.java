@@ -27,9 +27,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
@@ -118,52 +121,12 @@ public class TraccarPolicyInformationPointTestsIT extends TestBase {
 
 	}
 
-	@Test
-	void PositionAuthenticateByEnvironmentVariable() throws InitializationException {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "traccarPositionTestEnvironmentVariable", "traccarPositionTest", "traccarGeofencesTestEnvironmentVariable", "traccarGeofencesTest" })
+	void TraccarPipTest(String pdpPath) throws InitializationException {
 
-		var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-				String.format(path, "traccarPositionTestEnvironmentVariable"),
-				() -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-		var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
-		var pdpDecisionFlux = pdp.decide(authzSubscription);
-
-		StepVerifier.create(pdpDecisionFlux)
-				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-				.verify();
-	}
-
-	@Test
-	void PositionAuthenticateByVariable() throws InitializationException {
-
-		var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "traccarPositionTest"),
-				() -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);		
-		var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
-		var pdpDecisionFlux = pdp.decide(authzSubscription);
-     
-		
-		StepVerifier.create(pdpDecisionFlux)
-				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-				.verify();
-	}
-
-	@Test
-	void GeofencesAuthenticateByEnvironmentVariable() throws InitializationException {
-
-		var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-				String.format(path, "traccarGeofencesTestEnvironmentVariable"),
-				() -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-		var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
-		var pdpDecisionFlux = pdp.decide(authzSubscription);
-
-		StepVerifier.create(pdpDecisionFlux)
-				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-				.verify();
-	}
-
-	@Test
-	void GeofencesAuthenticateByVariable() throws InitializationException {
-
-		var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, "traccarGeofencesTest"),
+		var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, pdpPath),
 				() -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
 		var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
 		var pdpDecisionFlux = pdp.decide(authzSubscription);

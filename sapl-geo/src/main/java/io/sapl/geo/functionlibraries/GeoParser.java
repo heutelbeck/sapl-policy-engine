@@ -49,7 +49,7 @@ public class GeoParser {
     private static final JsonNodeFactory JSON      = JsonNodeFactory.instance;
     private static final String          PARSE_KML = "parses kml to Geometries";
     private static final String          NAME      = "name";
-    private static final String          GEOM      = "Geometry";
+    private static final String          GEOMETRY      = "Geometry";
 
     private final ObjectMapper mapper;
 
@@ -84,7 +84,7 @@ public class GeoParser {
             if (nameProperty != null) {
                 name = nameProperty.toString();
             }
-            var geom = (Geometry) feature.getAttribute(GEOM);
+            var geom = (Geometry) feature.getAttribute(GEOMETRY);
             var geo  = JSON.objectNode();
 
             if (geom != null) {
@@ -93,7 +93,7 @@ public class GeoParser {
 
                 var json = new TextNode(GeometryConverter.geometryToKML(geom).getText());
 
-                geo.set(GEOM, json);
+                geo.set(GEOMETRY, json);
                 arrayNode.add(geo);
             }
         }
