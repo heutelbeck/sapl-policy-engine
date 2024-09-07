@@ -49,7 +49,7 @@ public class GeoParser {
     private static final JsonNodeFactory JSON      = JsonNodeFactory.instance;
     private static final String          PARSE_KML = "parses kml to Geometries";
     private static final String          NAME      = "name";
-    private static final String          GEOMETRY      = "Geometry";
+    private static final String          GEOMETRY  = "Geometry";
 
     private final ObjectMapper mapper;
 
