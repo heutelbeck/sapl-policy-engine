@@ -8,8 +8,6 @@ This document outlines some key configurations to make in your Eclipse install t
 
 SAPL applies a standardized code formatting style based on the Eclipse auto formatter. Import the settings from the [SAPL Formatter setting XML](https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-code-style/src/main/resources/eclipse/formatter.xml) file. To import it go to "Window -> Preferences". Then navigate to "Java -> Code Style -> Formatter" and use "Import..." to import the settings.
 
-SAPL ignores the "Serializable class without serialVersionUID" warning. You can deactivate the warning in the preferences under "Java -> Compiler -> Errors/Warnings".
-
 ## Mandatory Eclipse Plug-Ins 
 
 The following Plug-Ins are mandatory to have installed in order to be able to work with the SAPL source code without a lot of errors within the IDE.
