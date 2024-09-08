@@ -36,8 +36,8 @@ import lombok.RequiredArgsConstructor;
 import reactor.test.StepVerifier;
 import java.util.List;
 
-@TestInstance(Lifecycle.PER_CLASS)
 @Testcontainers
+@TestInstance(Lifecycle.PER_CLASS)
 class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
 
     private String path = "src/test/resources/policies/%s";

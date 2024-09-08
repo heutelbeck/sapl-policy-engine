@@ -17,7 +17,6 @@
  */
 package io.sapl.geo.common;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -80,10 +79,10 @@ public abstract class TraccarTestBase extends TestBase {
         var client = WebClient.builder().build();
 
         var response = client.post().uri(sessionUrl).header("Content-Type", "application/x-www-form-urlencoded")
-                .bodyValue(body).retrieve().toEntity(String.class).block();
+                .bodyValue(body).retrieve().toEntity(String.class).blockOptional();
 
-        if (response != null) {
-            var setCookieHeader = response.getHeaders().getFirst("Set-Cookie");
+        if (response.isPresent()) {
+            var setCookieHeader = response.get().getHeaders().getFirst("Set-Cookie");
             if (setCookieHeader != null) {
                 return Arrays.stream(setCookieHeader.split(";")).filter(s -> s.startsWith("JSESSIONID")).findFirst()
                         .orElse(null);
@@ -107,13 +106,12 @@ public abstract class TraccarTestBase extends TestBase {
         var result = webClient.post().uri(createDeviceUrl).headers(headers -> {
             headers.add("Cookie", sessionCookie);
             headers.setContentType(MediaType.APPLICATION_JSON);
-        }).bodyValue(body).retrieve().bodyToMono(JsonNode.class).block();
+        }).bodyValue(body).retrieve().bodyToMono(JsonNode.class).blockOptional();
 
-        var id = result.get("id");
-        if (id != null) {
-            return id.asText();
+        if (result.isPresent()) {
+            return result.get().get("id").asText();
         } else {
-            throw new Exception("Id of device was null");
+            throw new RuntimeException("Response was null");
         }
     }
 
@@ -147,8 +145,7 @@ public abstract class TraccarTestBase extends TestBase {
 
     }
 
-    protected Mono<String> addTraccarPosition(String deviceId, Double lat, Double lon)
-            throws UnsupportedEncodingException {
+    protected Mono<String> addTraccarPosition(String deviceId, Double lat, Double lon) {
 
         var timeStamp      = "2023-07-09 13:34:19";
         var url            = """

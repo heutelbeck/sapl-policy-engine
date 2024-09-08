@@ -38,7 +38,7 @@ import reactor.test.StepVerifier;
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
-public class TraccarPolicyInformationPointTestsIT extends TraccarTestBase {
+class TraccarPolicyInformationPointTestsIT extends TraccarTestBase {
 
     private String  path = "src/test/resources/policies/%s";
     private Subject subject;
@@ -63,11 +63,12 @@ public class TraccarPolicyInformationPointTestsIT extends TraccarTestBase {
 
         var traccarGeofences = new String[] { body, body2 };
         for (var fence : traccarGeofences) {
-            var fenceId = postTraccarGeofence(sessionCookie, fence).block().get("id");
-            if (fenceId != null) {
-                linkGeofenceToDevice(deviceId, fenceId.asInt(), sessionCookie);
+            var fenceRes = postTraccarGeofence(sessionCookie, fence).blockOptional();
+
+            if (fenceRes.isPresent()) {
+                linkGeofenceToDevice(deviceId, fenceRes.get().get("id").asInt(), sessionCookie);
             } else {
-                throw new Exception("Id of Geofence was null");
+                throw new RuntimeException("Response was null");
             }
         }
 

@@ -4,7 +4,7 @@
 	{
 		"OWNTRACKS_DEFAULT_CONFIG":
 		{
-			"server":"localhost:49601",
+			"server":"localhost:59875",
 			"protocol": "http"
 		}
 	}

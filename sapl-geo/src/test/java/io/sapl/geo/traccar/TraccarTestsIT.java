@@ -23,14 +23,12 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import java.nio.file.Paths;
 import org.junit.Test;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.common.SourceProvider;
 import io.sapl.geo.common.TraccarTestBase;
 import reactor.test.StepVerifier;
 
@@ -38,10 +36,7 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 class TraccarTestsIT extends TraccarTestBase {
 
-    String         address;
-    Integer        port;
-    SourceProvider source                 = new SourceProvider();
-    String         authenticationTemplate = """
+    String authenticationTemplate = """
                 {
                 "user":"%s",
                 "password":"%s",
@@ -49,22 +44,7 @@ class TraccarTestsIT extends TraccarTestBase {
             	"protocol":"http"
             	}
             """;
-    String         authTemplate;
-
-    String template = ("""
-            {
-                "deviceId":"1"
-            """);
-
-    final static String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
-
-//    @Container
-//    public static GenericContainer<?> traccarServer = new GenericContainer<>(
-//            DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082)
-//            .withFileSystemBind(resourceDirectory + "/opt/traccar/logs", "/opt/traccar/logs", BindMode.READ_WRITE)
-//            .withFileSystemBind(resourceDirectory + "/opt/traccar/data", "/opt/traccar/data", BindMode.READ_WRITE)
-//            .withReuse(false)
-//            ;
+    String authTemplate;
 
     @BeforeAll
     void setup() throws Exception {
@@ -89,12 +69,14 @@ class TraccarTestsIT extends TraccarTestBase {
 
         var traccarGeofences = new String[] { body, body2 };
         for (var fence : traccarGeofences) {
-            var fenceId = postTraccarGeofence(sessionCookie, fence).block().get("id");
-            if (fenceId != null) {
-                linkGeofenceToDevice(deviceId, fenceId.asInt(), sessionCookie);
+            var fenceRes = postTraccarGeofence(sessionCookie, fence).blockOptional();
+
+            if (fenceRes.isPresent()) {
+                linkGeofenceToDevice(deviceId, fenceRes.get().get("id").asInt(), sessionCookie);
             } else {
-                throw new Exception("Id of Geofence was null");
+                throw new RuntimeException("Response was null");
             }
+
         }
         postTraccarGeofence(sessionCookie, body3).block();
 

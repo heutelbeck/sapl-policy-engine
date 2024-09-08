@@ -6,7 +6,7 @@
         {
             "user":"test@fake.de",
                   "password":"1234",
-            "server":"localhost:49768",
+            "server":"localhost:60041",
             "protocol": "http"
         }
     }
