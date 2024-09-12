@@ -1,7 +1,9 @@
 import { LitElement, html } from 'lit';
 import { CodeMirrorStyles, CodeMirrorLintStyles, CodeMirrorHintStyles, XTextAnnotationsStyles, AutocompleteWidgetStyle, ReadOnlyStyle, HeightFix, DarkStyle } from './shared-styles.js';
 import "./sapl-mode";
-import { exports } from "./xtext-codemirror";
+import { exports } from "./xtext-codemirror-patched";
+
+let saplPdpConfigurationId = null;
 
 class SAPLEditor extends LitElement {
 
@@ -81,6 +83,7 @@ class SAPLEditor extends LitElement {
     this._configurationId = value;
     console.debug('SaplEditor: set configurationId', oldVal, value);
     this.requestUpdate("configurationId", oldVal);
+	saplPdPConfigurationId = value;
   }
 
   get configurationId() {

@@ -19,6 +19,8 @@ package io.sapl.converter;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,24 +33,29 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class TransformFilesToESM {
 
-    private static final String FRONTEND_FOLDER_PATH      = "/META-INF/frontend/";
-    private static final String SAPL_MODE_FILENAME        = "sapl-mode.js";
-    private static final String SAPL_TEST_MODE_FILENAME   = "sapl-test-mode.js";
-    private static final String XTEXT_CODEMIRROR_FILENAME = "xtext-codemirror.js";
+    private static final String FRONTEND_FOLDER_PATH              = "/META-INF/frontend/";
+    private static final String SAPL_MODE_FILENAME                = FRONTEND_FOLDER_PATH + "sapl-mode.js";
+    private static final String SAPL_TEST_MODE_FILENAME           = FRONTEND_FOLDER_PATH + "sapl-test-mode.js";
+    private static final String XTEXT_CODEMIRROR_FILENAME         = FRONTEND_FOLDER_PATH + "xtext-codemirror.js";
+    private static final String PATCHED_XTEXT_CODEMIRROR_FILENAME = "META-INF/resources/frontend/xtext-codemirror-patched.js";
 
     /**
      * Entry point for conversion.
      *
      * @param args command line parameters
-     * @throws IOException in case of conversion errors
+     * @throws IOException        in case of conversion errors
+     * @throws URISyntaxException
      */
-    public void main(String[] args) throws IOException {
+    public void main(String[] args) throws IOException, URISyntaxException {
         var classPathDir     = new File(TransformFilesToESM.class.getResource("/").getPath());
-        var targetFolderPath = classPathDir + FRONTEND_FOLDER_PATH;
+        var targetFolderPath = classPathDir;
 
         convertFileToESM(targetFolderPath + SAPL_MODE_FILENAME, SaplModeConverter::convertToESM);
         convertFileToESM(targetFolderPath + SAPL_TEST_MODE_FILENAME, SaplModeConverter::convertToESM);
         convertFileToESM(targetFolderPath + XTEXT_CODEMIRROR_FILENAME, XtextCodemirrorConverter::convertToESM);
+        URL  res  = TransformFilesToESM.class.getClassLoader().getResource(PATCHED_XTEXT_CODEMIRROR_FILENAME);
+        File file = Paths.get(res.toURI()).toFile();
+        convertFileToESM(file.getAbsolutePath(), XtextCodemirrorConverter::convertToESM);
     }
 
     private void convertFileToESM(String filePath, Converter converter) throws IOException {
