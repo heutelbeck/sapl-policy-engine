@@ -83,7 +83,7 @@ class SAPLEditor extends LitElement {
     this._configurationId = value;
     console.debug('SaplEditor: set configurationId', oldVal, value);
     this.requestUpdate("configurationId", oldVal);
-	saplPdPConfigurationId = value;
+	saplPdpConfigurationId = value;
   }
 
   get configurationId() {
