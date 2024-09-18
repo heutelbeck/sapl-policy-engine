@@ -124,7 +124,7 @@
 		<dependency>
 			<groupId>com.giffing.bucket4j.spring.boot.starter</groupId>
 			<artifactId>bucket4j-spring-boot-starter</artifactId>
-			<version>0.10.3</version>
+			<version>0.12.6</version>
 		</dependency>
 		<dependency>
 			<groupId>javax.cache</groupId>
