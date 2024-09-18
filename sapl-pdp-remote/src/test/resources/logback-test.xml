@@ -2,7 +2,6 @@
 <!DOCTYPE xml>
 <configuration>
 	<!-- This quiets the logging of the Spring testing initialization, which ignores profiles etc. -->
-    <include resource="org/springframework/boot/logging/logback/base.xml" />
     <logger name="org.springframework" level="error" />
     <logger name="reactor" level="info" />
     <logger name="org.hibernate" level="error" />

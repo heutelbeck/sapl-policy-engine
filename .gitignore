@@ -35,3 +35,4 @@ sapl-web/src/main/java/io/sapl/grammar/web/SAPLWebModule.java
 sapl-ide/src/test/java/io/sapl/grammar/ide/contentassist/Schema_wo_variables.java
 .vscode
 sapl-lang/.project
+sapl-server-ce/tsconfig.json
