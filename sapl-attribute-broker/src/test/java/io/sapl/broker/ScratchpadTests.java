@@ -66,7 +66,7 @@ class ScratchpadTests {
         var dummyPip = (PolicyInformationPoint) invocation -> Flux.range(0, 3).delayElements(Duration.ofSeconds(1L))
                 .map(Val::of).log();
 
-        broker.publishPolicyInformationPoint(dummyPipSpec, dummyPip);
+        broker.registerPolicyInformationPoint(dummyPipSpec, dummyPip);
 
         var invocation = new PolicyInformationPointInvocation("dummy.pip", null, List.of(), Map.of(),
                 Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofMillis(50L), 20L);
