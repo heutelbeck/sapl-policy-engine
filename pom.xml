@@ -116,6 +116,7 @@
 	<modules>
 		<module>sapl-code-style</module>
 		<module>sapl-pdp-api</module>
+		<module>sapl-attribute-broker</module>		
 		<module>sapl-extensions-api</module>
 		<module>sapl-hamcrest</module>
 		<module>sapl-assertj</module>
