@@ -39,7 +39,7 @@ public record PolicyInformationPointSpecification(@NonNull String fullyQualified
 
     public boolean matches(PolicyInformationPointInvocation invocation) {
         // @formatter:off
-        return    (invocation.fullyQualifiedAttributeName().equals(fullyQualifiedAttributeName)) 
+        return    (invocation.fullyQualifiedAttributeName().equals(fullyQualifiedAttributeName))
                && (null != invocation.entity() ^ isEnvironmentAttribute)
                && (invocation.arguments().size() == numberOfArguments || hasVariableNumberOfArguments());
         // @formatter:on
