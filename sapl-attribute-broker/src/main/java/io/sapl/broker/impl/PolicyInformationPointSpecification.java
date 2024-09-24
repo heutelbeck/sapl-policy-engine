@@ -1,26 +1,19 @@
 package io.sapl.broker.impl;
 
+import static io.sapl.broker.impl.NameValidator.requireValidName;
 import java.lang.annotation.Annotation;
 import java.util.List;
 
 import lombok.NonNull;
 
-public record PolicyInformationPointSpecification(String fullyQualifiedAttributeName,
+public record PolicyInformationPointSpecification(@NonNull String fullyQualifiedAttributeName,
         boolean isEnvironmentAttribute, int numberOfArguments, boolean takesVariables,
-        List<Annotation> entityValidators, List<List<Annotation>> parameterValidators) {
+        @NonNull List<Annotation> entityValidators, @NonNull List<List<Annotation>> parameterValidators) {
 
     public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;
 
-    public PolicyInformationPointSpecification(@NonNull String fullyQualifiedAttributeName,
-            boolean isEnvironmentAttribute, int numberOfArguments, boolean takesVariables,
-            @NonNull List<Annotation> entityValidators, @NonNull List<List<Annotation>> parameterValidators) {
-        NameValidator.assertIsValidName(fullyQualifiedAttributeName);
-        this.fullyQualifiedAttributeName = fullyQualifiedAttributeName;
-        this.isEnvironmentAttribute      = isEnvironmentAttribute;
-        this.numberOfArguments           = numberOfArguments;
-        this.takesVariables              = takesVariables;
-        this.entityValidators            = entityValidators;
-        this.parameterValidators         = parameterValidators;
+    public PolicyInformationPointSpecification {
+        requireValidName(fullyQualifiedAttributeName);
     }
 
     public boolean hasVariableNumberOfArguments() {
@@ -34,4 +27,19 @@ public record PolicyInformationPointSpecification(String fullyQualifiedAttribute
                && (invocation.arguments().size() == numberOfArguments || hasVariableNumberOfArguments());
         // @formatter:on
     }
+
+    /**
+     * @param other another specification
+     * @return true, if the presence of the two specifications leads to
+     *         disambiguates in resolving PIP lookups.
+     */
+    public boolean collidesWith(PolicyInformationPointSpecification other) {
+        if (!fullyQualifiedAttributeName.equals(other.fullyQualifiedAttributeName)
+                || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
+            return false;
+        }
+        return (hasVariableNumberOfArguments() || other.hasVariableNumberOfArguments())
+                || numberOfArguments == other.numberOfArguments;
+    }
+
 }
