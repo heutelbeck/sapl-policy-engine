@@ -120,6 +120,7 @@
 		<module>sapl-code-style</module>
 		
 		<module>sapl-pdp-api</module>
+		<module>sapl-attribute-broker</module>		
 		<module>sapl-extensions-api</module>
 		
 		<module>pdp-extensions/geo-functions</module>
