@@ -35,18 +35,18 @@ import reactor.util.retry.Retry;
  * An instance represents an attribute stream in use. The attribute stream is
  * identified by this fully qualified attribute name and its parameter values,
  * i.e., the so-called PolicyInformationPointInvocation.
- * 
+ *
  * This class is only to be used internally by the attribute broker for indexing
  * purposes.
- * 
+ *
  * The ActiveAttribute takes a the PolicyInformationPointInvocation, a Flux<Val>
  * supplying the raw attribute stream matching the invocation, and a cleanup
  * action.
- * 
+ *
  * The raw attribute stream is turned into a cached multi-cast stream, which
  * will call the cleanup action when the last subscriber cancelled, or the
  * stream terminated for some reason.
- * 
+ *
  * The subscription to the raw attribute stream is kept alive for a given grace
  * period before it is cancelled, implementing a basic connection cache for
  * attribute streams.
@@ -66,7 +66,7 @@ public class AttributeStream {
 
     /**
      * Creates an ActiveAttribute.
-     * 
+     *
      * @param invocation    A PolicyInformationPointinvocation providing the fully
      *                      qualified attribute name and its parameter values.
      * @param cleanupAction A callback to the index to be executed to drop the
@@ -130,7 +130,7 @@ public class AttributeStream {
                                                                    .doOnNext(this::publish)
                                                                    .doOnError(this::publish)
                                             )));
-        // @formatter:on        
+        // @formatter:on
         pipSubscription.getAndUpdate(s -> {
             if (null != s) {
                 log.info("While connecting {} to {}, there was already a subscription to a PIP. Dispose of it!",

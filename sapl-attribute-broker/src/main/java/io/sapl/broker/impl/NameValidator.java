@@ -32,8 +32,8 @@ public class NameValidator {
     private static final Predicate<String> PATTERN = Pattern.compile(REGEX).asMatchPredicate();
 
     /**
-     * 
-     * 
+     *
+     *
      * @param stringUnderTest a String for validation.
      * @throws IllegalArgumentException if the stringUnderTest does not match the
      *                                  pattern for fully qualified names.
