@@ -53,7 +53,7 @@ public class TimeOutWrapper {
      *         after the given time out expired if the original flux did not emit
      *         any value until then.
      */
-    public Flux<Val> wrap(Flux<Val> flux, Duration timeOut) {
+    public static Flux<Val> wrap(Flux<Val> flux, Duration timeOut) {
         return wrap(flux, timeOut, Val.UNDEFINED, Val.UNDEFINED);
     }
 
@@ -82,7 +82,7 @@ public class TimeOutWrapper {
      *         after the given time out expired if the original flux did not emit
      *         any value until then.
      */
-    public Flux<Val> wrap(Flux<Val> flux, Duration timeOut, Val timeOutValue, Val emptyFluxValue) {
+    public static Flux<Val> wrap(Flux<Val> flux, Duration timeOut, Val timeOutValue, Val emptyFluxValue) {
         Many<Event> mergedSink          = Sinks.many().unicast().onBackpressureBuffer();
         final var   timeoutSubscription = new AtomicReference<Disposable>(null);
         final var   valuesSubscription  = new AtomicReference<Disposable>(null);
