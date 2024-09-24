@@ -12,14 +12,14 @@ class NameValidatorTests {
     @ValueSource(strings = { "", " ", " abc.def", "abc.def ", " abc.def ", "abc. def", "abc", "abc.123as",
             "a.b.c.d.e.f.g.h.i.j.k" })
     void whenPresentedWithInvalidNamesThenAssertionThrowsIllegalArgumentException(String invalidName) {
-        assertThatThrownBy(() -> NameValidator.assertIsValidName(invalidName))
+        assertThatThrownBy(() -> NameValidator.requireValidName(invalidName))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "a.b", "a1.b2", "a2.d.x333", "a.b.c.d.e.f.g.h.i.j" })
     void whenPresentedWithValidNamesThenAssertionDoesNotThrow(String validName) {
-        assertDoesNotThrow(() -> NameValidator.assertIsValidName(validName));
+        assertDoesNotThrow(() -> NameValidator.requireValidName(validName));
     }
 
 }

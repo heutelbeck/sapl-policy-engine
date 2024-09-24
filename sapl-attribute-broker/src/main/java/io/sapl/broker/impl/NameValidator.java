@@ -21,7 +21,7 @@ public class NameValidator {
      * @throws IllegalArgumentException if the stringUnderTest does not match the
      *                                  pattern for fully qualified names.
      */
-    public void assertIsValidName(String stringUnderTest) {
+    public void requireValidName(String stringUnderTest) {
         if (!PATTERN.test(stringUnderTest)) {
             throw new IllegalArgumentException(String.format("""
                     The fully qualified name of a Policy Information Point or function must cosist of \
