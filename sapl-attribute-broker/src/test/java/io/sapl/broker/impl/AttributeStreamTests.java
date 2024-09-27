@@ -31,11 +31,8 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
-@Slf4j
 class AttributeStreamTests {
 
     private static final PolicyInformationPointInvocation INVOCATION = new PolicyInformationPointInvocation(
