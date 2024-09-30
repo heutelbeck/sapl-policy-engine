@@ -39,7 +39,7 @@ public class SubscriptionUtility {
      * Builds a mqtt topic subscription containing one or multiple topics.
      *
      * @param topic a {@link Val} of one or multiple topics
-     * @param qos   the qos level for the mqtt topic subscription
+     * @param qos the qos level for the mqtt topic subscription
      * @return returns the build mqtt topic subscription
      */
     public static Mqtt5Subscribe buildTopicSubscription(Val topic, Val qos) {
@@ -66,12 +66,11 @@ public class SubscriptionUtility {
      * Adds the count of the topics contained in the subscription to the count of
      * the topic subscription list.
      *
-     * @param clientValues      the object containing the topic subscription list
-     * @param mqtt5SubAck       the acknowledgement message specifying whether a
-     *                          subscription of a topic was successfully established
-     *                          or not
+     * @param clientValues the object containing the topic subscription list
+     * @param mqtt5SubAck the acknowledgement message specifying whether a
+     * subscription of a topic was successfully established or not
      * @param topicSubscription the topic subscription containing the topics which
-     *                          count is to add
+     * count is to add
      */
     public static void addSubscriptionsCountToSubscriptionList(MqttClientValues clientValues, Mqtt5SubAck mqtt5SubAck,
             Mqtt5Subscribe topicSubscription) {

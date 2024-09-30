@@ -115,11 +115,10 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> {
      * the query is manipulated and then the database is called with it.
      *
      * @param obligations are the obligations from the {@link Decision}.
-     * @param query       is the original value from the
-     *                    {@link org.springframework.data.r2dbc.repository.Query}
-     *                    annotation.
+     * @param query is the original value from the
+     * {@link org.springframework.data.r2dbc.repository.Query} annotation.
      * @return objects from the database that were queried with the manipulated
-     *         query.
+     * query.
      */
     private Flux<T> retrieveData(ArrayNode conditions, ArrayNode selections, ArrayNode transformations, String alias,
             String basicQuery, Class<T> domainType) {

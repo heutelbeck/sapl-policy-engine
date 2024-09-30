@@ -70,7 +70,7 @@ public interface ExpectStep {
      * Allow custom validation of {@link AuthorizationDecision}
      *
      * @param authDec An {@link AuthorizationDecision} object which has to be equal
-     *                to the first emitted {@link AuthorizationDecision}
+     * to the first emitted {@link AuthorizationDecision}
      * @return {@link VerifyStep} to verify your test case.
      */
     VerifyStep expect(AuthorizationDecision authDec);
@@ -79,7 +79,7 @@ public interface ExpectStep {
      * Allow custom validation of {@link AuthorizationDecision}
      *
      * @param pred {@code Predicate<AuthorizationDecision>} to validate the first
-     *             emitted {@link AuthorizationDecision}
+     * emitted {@link AuthorizationDecision}
      * @return {@link VerifyStep} to verify your test case.
      */
     VerifyStep expect(Predicate<AuthorizationDecision> pred);
@@ -88,7 +88,7 @@ public interface ExpectStep {
      * Allow custom validation of {@link AuthorizationDecision}
      *
      * @param matcher {@link Matcher} to validate the first emitted
-     *                {@link AuthorizationDecision}
+     * {@link AuthorizationDecision}
      * @return {@link VerifyStep} to verify your test case.
      */
     VerifyStep expect(Matcher<AuthorizationDecision> matcher);
@@ -100,7 +100,7 @@ public interface ExpectStep {
      * evaluation is a {@link io.sapl.api.pdp.Decision#PERMIT}
      *
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNextPermit();
 
@@ -110,7 +110,7 @@ public interface ExpectStep {
      *
      * @param count number of permits
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNextPermit(Integer count);
 
@@ -119,7 +119,7 @@ public interface ExpectStep {
      * evaluation is a {@link io.sapl.api.pdp.Decision#DENY}
      *
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNextDeny();
 
@@ -129,7 +129,7 @@ public interface ExpectStep {
      *
      * @param count expected number
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNextDeny(Integer count);
 
@@ -138,7 +138,7 @@ public interface ExpectStep {
      * evaluation is a {@link io.sapl.api.pdp.Decision#INDETERMINATE}
      *
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNextIndeterminate();
 
@@ -148,7 +148,7 @@ public interface ExpectStep {
      *
      * @param count expected number
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNextIndeterminate(Integer count);
 
@@ -157,7 +157,7 @@ public interface ExpectStep {
      * evaluation is a {@link io.sapl.api.pdp.Decision#NOT_APPLICABLE}
      *
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNextNotApplicable();
 
@@ -167,7 +167,7 @@ public interface ExpectStep {
      *
      * @param count expected number
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNextNotApplicable(Integer count);
 
@@ -175,9 +175,9 @@ public interface ExpectStep {
      * Allow custom validation of {@link AuthorizationDecision}
      *
      * @param authDec An {@link AuthorizationDecision} object which has to be equal
-     *                to the current emitted {@link AuthorizationDecision}
+     * to the current emitted {@link AuthorizationDecision}
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNext(AuthorizationDecision authDec);
 
@@ -185,9 +185,9 @@ public interface ExpectStep {
      * Allow custom validation of {@link AuthorizationDecision}
      *
      * @param matcher {@link Matcher} to validate the current emitted
-     *                {@link AuthorizationDecision}
+     * {@link AuthorizationDecision}
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNext(Matcher<AuthorizationDecision> matcher);
 
@@ -195,9 +195,9 @@ public interface ExpectStep {
      * Allow custom validation of {@link AuthorizationDecision}
      *
      * @param pred {@link Predicate} to validate the current emitted
-     *             {@link AuthorizationDecision}
+     * {@link AuthorizationDecision}
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNext(Predicate<AuthorizationDecision> pred);
 
@@ -205,9 +205,9 @@ public interface ExpectStep {
      * Mock the return value of a PIP in the SAPL policy
      *
      * @param importName the reference in the SAPL policy to the PIP
-     * @param returns    the mocked return value
+     * @param returns the mocked return value
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep thenAttribute(String importName, Val returns);
 
@@ -218,7 +218,7 @@ public interface ExpectStep {
      *
      * @param duration Pause for this {#link Duration}
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep thenAwait(Duration duration);
 
@@ -228,7 +228,7 @@ public interface ExpectStep {
      *
      * @param duration Wait for this {#link Duration}
      * @return {@link ExpectOrVerifyStep} to define another {@link ExpectStep} or
-     *         {@link VerifyStep}
+     * {@link VerifyStep}
      */
     ExpectOrVerifyStep expectNoEvent(Duration duration);
 

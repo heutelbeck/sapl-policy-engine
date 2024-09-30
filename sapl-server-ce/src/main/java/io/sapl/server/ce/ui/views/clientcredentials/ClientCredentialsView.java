@@ -137,8 +137,7 @@ public class ClientCredentialsView extends VerticalLayout {
         ConfirmUtils.letConfirm("Delete Client",
                 String.format("Should the client credentials with key \"%s\" really be deleted?",
                         currentClientCredential.getKey()),
-                () -> executeDeletionOfClient(currentClientCredential), () -> {
-                });
+                () -> executeDeletionOfClient(currentClientCredential), () -> {});
     }
 
     private void executeDeletionOfClient(ClientCredentials currentClientCredential) {

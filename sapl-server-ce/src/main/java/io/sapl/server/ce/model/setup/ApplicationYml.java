@@ -51,8 +51,7 @@ class ApplicationYml {
         if (file.exists()) {
             InputStream                                  inputStream   = Files.newInputStream(file.toPath());
             ObjectMapper                                 objectMapper  = new ObjectMapper(new YAMLFactory());
-            TypeReference<LinkedHashMap<String, Object>> typeReference = new TypeReference<>() {
-                                                                       };
+            TypeReference<LinkedHashMap<String, Object>> typeReference = new TypeReference<>() {};
             try {
                 this.addNormalizedAt("", objectMapper.readValue(inputStream, typeReference));
             } catch (IOException e) {

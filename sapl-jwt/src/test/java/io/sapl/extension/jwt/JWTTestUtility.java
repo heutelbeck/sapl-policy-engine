@@ -100,7 +100,7 @@ class JWTTestUtility {
      * @param signedJWT
      * @param tamperedPayload
      * @return replaces the encoded payload of a signed JWT with another payload,
-     *         without updating the signature.
+     * without updating the signature.
      */
     static Val replacePayload(Val signedJWT, JWTClaimsSet tamperedPayload) {
         String[] parts       = signedJWT.getText().split("\\.");

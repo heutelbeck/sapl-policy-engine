@@ -103,7 +103,7 @@ public class SaplMqttClient {
      * This method returns a reactive stream of mqtt messages of one or many
      * subscribed topics.
      *
-     * @param topic     A string or array of topic(s) for subscription.
+     * @param topic A string or array of topic(s) for subscription.
      * @param variables The configuration specified in the PDP configuration file.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
@@ -115,11 +115,11 @@ public class SaplMqttClient {
      * This method returns a reactive stream of mqtt messages of one or many
      * subscribed topics.
      *
-     * @param topic     A string or array of topic(s) for subscription.
+     * @param topic A string or array of topic(s) for subscription.
      * @param variables The configuration specified in the PDP configuration file.
-     * @param qos       A {@link Flux} of the quality of service level of the mqtt
-     *                  subscription to the broker. Possible values: 0, 1, 2. This
-     *                  variable may be null.
+     * @param qos A {@link Flux} of the quality of service level of the mqtt
+     * subscription to the broker. Possible values: 0, 1, 2. This variable may be
+     * null.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
     protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables, Val qos) {
@@ -130,19 +130,17 @@ public class SaplMqttClient {
      * This method returns a reactive stream of mqtt messages of one or many
      * subscribed topics.
      *
-     * @param topic         A string or array of topic(s) for subscription.
-     * @param variables     The configuration specified in the PDP configuration
-     *                      file.
-     * @param qos           A {@link Flux} of the quality of service level of the
-     *                      mqtt subscription to the broker. Possible values: 0, 1,
-     *                      2. This variable can be null.
+     * @param topic A string or array of topic(s) for subscription.
+     * @param variables The configuration specified in the PDP configuration file.
+     * @param qos A {@link Flux} of the quality of service level of the mqtt
+     * subscription to the broker. Possible values: 0, 1, 2. This variable can be
+     * null.
      * @param mqttPipConfig An {@link ArrayNode} of {@link ObjectNode}s or only a
-     *                      single {@link ObjectNode} containing configurations for
-     *                      the pip as a mqtt client. Each {@link ObjectNode}
-     *                      specifies the configuration of a single mqtt client.
-     *                      Therefore, it is possible for the pip to build multiple
-     *                      mqtt clients, that is the pip can subscribe to topics by
-     *                      different brokers. This variable may be null.
+     * single {@link ObjectNode} containing configurations for the pip as a mqtt
+     * client. Each {@link ObjectNode} specifies the configuration of a single mqtt
+     * client. Therefore, it is possible for the pip to build multiple mqtt clients,
+     * that is the pip can subscribe to topics by different brokers. This variable
+     * may be null.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
     protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables, Val qos, Val mqttPipConfig) {

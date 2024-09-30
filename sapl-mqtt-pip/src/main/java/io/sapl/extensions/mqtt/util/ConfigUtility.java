@@ -62,12 +62,12 @@ public class ConfigUtility {
      * object. If the clientConfig object is no json object or no entry exists under
      * the key than the default value will be returned.
      *
-     * @param clientConfig  the object to look up the referenced value
-     * @param key           the key to look up the value in the json object
+     * @param clientConfig the object to look up the referenced value
+     * @param key the key to look up the value in the json object
      * @param defaultConfig the value returned if the referenced object does not
-     *                      exist
+     * exist
      * @return returns the referenced value if existing or else the defaultConfig
-     *         object
+     * object
      */
     public static JsonNode getConfigValueOrDefault(JsonNode clientConfig, String key, JsonNode defaultConfig) {
         JsonNode config;
@@ -85,12 +85,12 @@ public class ConfigUtility {
      * object. If the clientConfig object is no json object or no entry exists under
      * the key than the default value will be returned.
      *
-     * @param clientConfig  the object to look up the referenced value
-     * @param key           the key to look up the value in the json object
+     * @param clientConfig the object to look up the referenced value
+     * @param key the key to look up the value in the json object
      * @param defaultConfig the value returned if the referenced object does not
-     *                      exist
+     * exist
      * @return returns the referenced value if existing or else the defaultConfig
-     *         object
+     * object
      */
     public static String getConfigValueOrDefault(JsonNode clientConfig, String key, String defaultConfig) {
         String   config;
@@ -108,12 +108,12 @@ public class ConfigUtility {
      * object. If the clientConfig object is no json object or no entry exists under
      * the key than the default value will be returned.
      *
-     * @param clientConfig  the object to look up the referenced value
-     * @param key           the key to look up the value in the json object
+     * @param clientConfig the object to look up the referenced value
+     * @param key the key to look up the value in the json object
      * @param defaultConfig the value returned if the referenced object does not
-     *                      exist
+     * exist
      * @return returns the referenced value if existing or else the defaultConfig
-     *         object
+     * object
      */
     public static int getConfigValueOrDefault(JsonNode clientConfig, String key, int defaultConfig) {
         int      config;
@@ -131,12 +131,12 @@ public class ConfigUtility {
      * object. If the clientConfig object is no json object or no entry exists under
      * the key than the default value will be returned.
      *
-     * @param clientConfig  the object to look up the referenced value
-     * @param key           the key to look up the value in the json object
+     * @param clientConfig the object to look up the referenced value
+     * @param key the key to look up the value in the json object
      * @param defaultConfig the value returned if the referenced object does not
-     *                      exist
+     * exist
      * @return returns the referenced value if existing or else the defaultConfig
-     *         object
+     * object
      */
     public static long getConfigValueOrDefault(JsonNode clientConfig, String key, long defaultConfig) {
         long     config;
@@ -154,12 +154,12 @@ public class ConfigUtility {
      * object. If the clientConfig object is no json object or no entry exists under
      * the key than the default value will be returned.
      *
-     * @param clientConfig  the object to look up the referenced value
-     * @param key           the key to look up the value in the json object
+     * @param clientConfig the object to look up the referenced value
+     * @param key the key to look up the value in the json object
      * @param defaultConfig the value returned if the referenced object does not
-     *                      exist
+     * exist
      * @return returns the referenced value if existing or else the defaultConfig
-     *         object
+     * object
      */
     public static boolean getConfigValueOrDefault(JsonNode clientConfig, String key, boolean defaultConfig) {
         boolean  config;
@@ -177,7 +177,7 @@ public class ConfigUtility {
      * or the clientConfig object is no json object than null will be returned.
      *
      * @param clientConfig the object to look up the referenced value
-     * @param key          the key referencing the searched value
+     * @param key the key referencing the searched value
      * @return the referenced value or null
      */
     public static JsonNode getConfigValue(JsonNode clientConfig, String key) {
@@ -193,12 +193,12 @@ public class ConfigUtility {
     /**
      * Evaluates the provided configuration for the mqtt broker configuration.
      *
-     * @param pipMqttClientConfig    the pdp configuration
+     * @param pipMqttClientConfig the pdp configuration
      * @param pipMqttClientConfigVal {@link Val} of the configuration in the
-     *                               attribute finder
+     * attribute finder
      * @return Returns a json object containing the mqtt broker config. If no valid
-     *         configuration was provided in the configurations than a
-     *         {@link NoSuchElementException} will be thrown.
+     * configuration was provided in the configurations than a
+     * {@link NoSuchElementException} will be thrown.
      */
     public static ObjectNode getMqttBrokerConfig(JsonNode pipMqttClientConfig, Val pipMqttClientConfigVal) {
         // return the broker config from attribute finder param or from pdp.json

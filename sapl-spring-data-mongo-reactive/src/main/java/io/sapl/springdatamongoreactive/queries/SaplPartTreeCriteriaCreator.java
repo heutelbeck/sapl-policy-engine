@@ -48,9 +48,8 @@ public class SaplPartTreeCriteriaCreator {
      * concatenation.
      *
      * @param manipulatedPartTree is the created PartTree of the manipulated method.
-     * @param parameters          from the original method plus the parameters that
-     *                            could be obtained from the condition from the
-     *                            {@link io.sapl.api.pdp.Decision}.
+     * @param parameters from the original method plus the parameters that could be
+     * obtained from the condition from the {@link io.sapl.api.pdp.Decision}.
      * @return a new {@link CriteriaDefinition}.
      */
     private CriteriaDefinition buildCriteria(PartTree manipulatedPartTree, List<Object> parameters) {

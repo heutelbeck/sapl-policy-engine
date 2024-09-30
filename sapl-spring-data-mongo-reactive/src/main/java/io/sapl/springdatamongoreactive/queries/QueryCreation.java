@@ -64,9 +64,8 @@ public class QueryCreation {
      * value of the sapl condition.
      *
      * @param annotationQuery is the original value from the
-     *                        {@link org.springframework.data.mongodb.repository.Query}
-     *                        annotation.
-     * @param conditions      are the query conditions from the {@link Decision}.
+     * {@link org.springframework.data.mongodb.repository.Query} annotation.
+     * @param conditions are the query conditions from the {@link Decision}.
      * @return the manipulated query.
      */
     private Query enforceQueryManipulation(BasicQuery annotationQuery, Iterable<JsonNode> conditions,
@@ -122,7 +121,7 @@ public class QueryCreation {
      * be built from all the information obtained.
      *
      * @param conditions are the query condition from the
-     *                   {@link io.sapl.api.pdp.Decision}
+     * {@link io.sapl.api.pdp.Decision}
      * @return a manipulated {@link Query}
      */
     public static <T> Query createManipulatedQuery(Iterable<JsonNode> conditions, Iterable<JsonNode> selections,

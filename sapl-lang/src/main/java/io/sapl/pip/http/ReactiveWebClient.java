@@ -81,8 +81,8 @@ public class ReactiveWebClient {
      * Connects to an HTTP service and produces a Flux&lt;Val&gt;
      * </p>
      *
-     * @param method          the @see HttpMethod to execute and a @see Val
-     *                        containing the settings
+     * @param method the @see HttpMethod to execute and a @see Val containing the
+     * settings
      * @param requestSettings contains the HTTP parameters for the request.
      * @return a @see Flux&lt;@see Val&gt;
      */
@@ -179,8 +179,7 @@ public class ReactiveWebClient {
     }
 
     private Map<String, String> toStringMap(JsonNode node) {
-        return mapper.convertValue(node, new TypeReference<Map<String, String>>() {
-        });
+        return mapper.convertValue(node, new TypeReference<Map<String, String>>() {});
     }
 
     public MediaType toMediaType(JsonNode mediaTypeJson) {
@@ -195,8 +194,7 @@ public class ReactiveWebClient {
     }
 
     private Flux<JsonNode> retrieveSSE(RequestHeadersSpec<?> client) {
-        ParameterizedTypeReference<ServerSentEvent<JsonNode>> type = new ParameterizedTypeReference<ServerSentEvent<JsonNode>>() {
-        };
+        ParameterizedTypeReference<ServerSentEvent<JsonNode>> type = new ParameterizedTypeReference<ServerSentEvent<JsonNode>>() {};
         return client.retrieve().bodyToFlux(type).map(ServerSentEvent::data);
     }
 

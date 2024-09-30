@@ -85,9 +85,9 @@ public final class AnnotationAttributeContext implements AttributeContext {
     /**
      * Create context from a supplied PIPs.
      *
-     * @param pipSupplier       supplies instantiated libraries
+     * @param pipSupplier supplies instantiated libraries
      * @param staticPipSupplier supplies libraries contained in utility classes with
-     *                          static methods as functions
+     * static methods as functions
      * @throws InitializationException if initialization fails.
      */
     public AnnotationAttributeContext(PolicyInformationPointSupplier pipSupplier,
@@ -100,7 +100,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
      * Loads supplied policy information point instances into the context.
      *
      * @param staticPipSupplier supplies libraries contained in utility classes with
-     *                          static methods as functions
+     * static methods as functions
      * @throws InitializationException if initialization fails.
      */
     public final void loadPolicyInformationPoints(StaticPolicyInformationPointSupplier staticPipSupplier)
@@ -325,8 +325,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
      *
      * @param pip The object implementing the Policy Information Point
      * @throws InitializationException is thrown when the validation of the
-     *                                 annotation and method signatures finds
-     *                                 inconsistencies.
+     * annotation and method signatures finds inconsistencies.
      */
     public final void loadPolicyInformationPoint(Object pip) throws InitializationException {
         loadPolicyInformationPoint(pip, pip.getClass());
@@ -337,10 +336,9 @@ public final class AnnotationAttributeContext implements AttributeContext {
      * policy engine.
      *
      * @param pipClass The class implementing the Policy Information Point with
-     *                 static only methods.
+     * static only methods.
      * @throws InitializationException is thrown when the validation of the
-     *                                 annotation and method signatures finds
-     *                                 inconsistencies.
+     * annotation and method signatures finds inconsistencies.
      */
     public final void loadPolicyInformationPoint(Class<?> pipClass) throws InitializationException {
         loadPolicyInformationPoint(null, pipClass);

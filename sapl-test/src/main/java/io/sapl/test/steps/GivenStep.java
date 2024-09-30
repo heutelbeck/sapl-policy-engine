@@ -38,21 +38,21 @@ public interface GivenStep {
      * {@link Val}
      *
      * @param importName the reference in the SAPL policy to the function
-     * @param returns    the mocked return value
+     * @param returns the mocked return value
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenFunction(String importName, Val returns);
 
     /**
      * Mock the return value of a Function in the SAPL policy
      *
-     * @param importName   the reference in the SAPL policy to the function
-     * @param returns      the mocked return value
+     * @param importName the reference in the SAPL policy to the function
+     * @param returns the mocked return value
      * @param verification verification for this mocking. See
-     *                     {@link io.sapl.test.verification.MockingVerification}
+     * {@link io.sapl.test.verification.MockingVerification}
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenFunction(String importName, Val returns, TimesCalledVerification verification);
 
@@ -61,9 +61,9 @@ public interface GivenStep {
      * verification, that this mocked return value has been returned.
      *
      * @param importName the reference in the SAPL policy to the function
-     * @param returns    the mocked return value
+     * @param returns the mocked return value
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenFunctionOnce(String importName, Val returns);
 
@@ -71,9 +71,9 @@ public interface GivenStep {
      * Mock the return value of a Function in the SAPL policy
      *
      * @param importName the reference in the SAPL policy to the function
-     * @param returns    a sequence of {@link Val} to be returned by this function
+     * @param returns a sequence of {@link Val} to be returned by this function
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenFunctionOnce(String importName, Val... returns);
 
@@ -91,12 +91,11 @@ public interface GivenStep {
      * </pre>
      *
      * @param importName the reference in the SAPL policy to the function
-     * @param returns    the mocked return value
+     * @param returns the mocked return value
      * @param parameters only return the specified {@link Val} if the parameters of
-     *                   the call to the function are equal to the Val's specified
-     *                   here.
+     * the call to the function are equal to the Val's specified here.
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenFunction(String importName, FunctionParameters parameters, Val returns);
 
@@ -113,16 +112,15 @@ public interface GivenStep {
      * }
      * </pre>
      *
-     * @param importName   the reference in the SAPL policy to the function
-     * @param returns      the mocked return value
-     * @param parameters   only return the specified {@link Val} if the parameters
-     *                     of the call to the function are equal to the Val's
-     *                     specified here. See
-     *                     {@link io.sapl.test.Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
+     * @param importName the reference in the SAPL policy to the function
+     * @param returns the mocked return value
+     * @param parameters only return the specified {@link Val} if the parameters of
+     * the call to the function are equal to the Val's specified here. See
+     * {@link io.sapl.test.Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
      * @param verification verification for this mocking. See
-     *                     {@link io.sapl.test.verification.MockingVerification}
+     * {@link io.sapl.test.verification.MockingVerification}
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenFunction(String importName, FunctionParameters parameters, Val returns,
             TimesCalledVerification verification);
@@ -150,9 +148,9 @@ public interface GivenStep {
      * </pre>
      *
      * @param importName the reference in the SAPL policy to the function
-     * @param returns    a {@link Val} to be returned by the function
+     * @param returns a {@link Val} to be returned by the function
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenFunction(String importName, Function<Val[], Val> returns);
 
@@ -178,12 +176,12 @@ public interface GivenStep {
      * }
      * </pre>
      *
-     * @param importName   the reference in the SAPL policy to the function
-     * @param returns      a {@link Val} to be returned by the function
+     * @param importName the reference in the SAPL policy to the function
+     * @param returns a {@link Val} to be returned by the function
      * @param verification verification for this mocking. See
-     *                     {@link io.sapl.test.verification.MockingVerification}
+     * {@link io.sapl.test.verification.MockingVerification}
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenFunction(String importName, Function<Val[], Val> returns,
             TimesCalledVerification verification);
@@ -192,9 +190,9 @@ public interface GivenStep {
      * Mock the return value of a PIP in the SAPL policy
      *
      * @param importName the reference in the SAPL policy to the PIP
-     * @param returns    the mocked return value
+     * @param returns the mocked return value
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenAttribute(String importName, Val... returns);
 
@@ -210,11 +208,11 @@ public interface GivenStep {
      * }
      * </pre>
      *
-     * @param importName         the reference in the SAPL policy to the PIP
+     * @param importName the reference in the SAPL policy to the PIP
      * @param parentValueMatcher a parameter value matcher
-     * @param returns            the mocked return value
+     * @param returns the mocked return value
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenAttribute(String importName, AttributeParentValueMatcher parentValueMatcher, Val returns);
 
@@ -234,11 +232,11 @@ public interface GivenStep {
      *
      * @param importName the reference in the SAPL policy to the PIP
      * @param parameters only return the specified {@link Val} if the parameters of
-     *                   the call to the attribute match the expectations. Use
-     *                   {@link io.sapl.test.Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
-     * @param returns    the mocked return value
+     * the call to the attribute match the expectations. Use
+     * {@link io.sapl.test.Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
+     * @param returns the mocked return value
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenAttribute(String importName, AttributeParameters parameters, Val returns);
 
@@ -246,10 +244,10 @@ public interface GivenStep {
      * Mock the return value of a PIP in the SAPL policy
      *
      * @param importName the reference in the SAPL policy to the PIP
-     * @param timing     the duration between emitting every return value
-     * @param returns    the mocked return value
+     * @param timing the duration between emitting every return value
+     * @param returns the mocked return value
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenAttribute(String importName, Duration timing, Val... returns);
 
@@ -260,7 +258,7 @@ public interface GivenStep {
      *
      * @param importName the reference in the SAPL policy to the PIP
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep givenAttribute(String importName);
 
@@ -268,7 +266,7 @@ public interface GivenStep {
      * Allow control of virtual time for time-based streams
      *
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
-     *         the {@link WhenStep}
+     * the {@link WhenStep}
      */
     GivenOrWhenStep withVirtualTime();
 

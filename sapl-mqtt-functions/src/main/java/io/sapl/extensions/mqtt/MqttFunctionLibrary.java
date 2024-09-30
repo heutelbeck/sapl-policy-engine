@@ -48,7 +48,7 @@ public class MqttFunctionLibrary {
      * topic.
      *
      * @param wildcardTopic The mqtt topic containing the wildcard.
-     * @param topics        A single textual mqtt topic or an array of mqtt topics.
+     * @param topics A single textual mqtt topic or an array of mqtt topics.
      * @return Return true when all given topics are matching the wildcard topic.
      */
     @Function(name = "isMatchingAllTopics", docs = "Checks whether all the topics match the wildcard.")
@@ -68,7 +68,7 @@ public class MqttFunctionLibrary {
      * matching the wildcard topic.
      *
      * @param wildcardTopic The mqtt topic containing the wildcard.
-     * @param topics        A single textual mqtt topic or an array of mqtt topics.
+     * @param topics A single textual mqtt topic or an array of mqtt topics.
      * @return Return true when all given topics are matching the wildcard topic.
      */
     @Function(name = "isMatchingAtLeastOneTopic", docs = "Checks whether at least one topic matches the wildcard.")

@@ -137,7 +137,7 @@ public class JWTPolicyInformationPoint {
      * Checks the validity of a JWT token. Will update based on validity times of
      * the token.
      *
-     * @param rawToken  a raw JWT Token
+     * @param rawToken a raw JWT Token
      * @param variables SAPL variables
      * @return a TRUE Val, iff the token is valid.
      */
@@ -151,7 +151,7 @@ public class JWTPolicyInformationPoint {
      * <p>
      * The validity may change over time as it becomes mature and then expires.
      *
-     * @param rawToken  object containing JWT
+     * @param rawToken object containing JWT
      * @param variables configuration variables
      * @return Flux representing the JWT's validity over time
      */

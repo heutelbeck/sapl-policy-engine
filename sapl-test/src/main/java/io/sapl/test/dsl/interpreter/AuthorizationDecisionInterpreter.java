@@ -78,9 +78,9 @@ class AuthorizationDecisionInterpreter {
 
     private AuthorizationDecision getAuthorizationDecisionFromDSL(final AuthorizationDecisionType decision) {
         return switch (decision) {
-        case PERMIT -> AuthorizationDecision.PERMIT;
-        case DENY -> AuthorizationDecision.DENY;
-        case INDETERMINATE -> AuthorizationDecision.INDETERMINATE;
+        case PERMIT         -> AuthorizationDecision.PERMIT;
+        case DENY           -> AuthorizationDecision.DENY;
+        case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
         case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
         };
     }

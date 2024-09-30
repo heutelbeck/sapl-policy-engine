@@ -49,11 +49,11 @@ public class SaplConditionOperation {
      * parts of the method can be better edited. To get to the field types of the
      * DomainType, {@link java.lang.reflect} is used.
      *
-     * @param args       are the parameters of the original method.
-     * @param method     is the original method.
+     * @param args are the parameters of the original method.
+     * @param method is the original method.
      * @param domainType is the domain type.
      * @return list of {@link SaplCondition} which were created from the parameters
-     *         of the method.
+     * of the method.
      */
     public List<SaplCondition> methodToSaplConditions(Object[] args, Method method, Class<?> domainType) {
         var saplConditions = new ArrayList<SaplCondition>();
@@ -139,9 +139,9 @@ public class SaplConditionOperation {
      * Expands the method name using the {@link SaplCondition}s created from the
      * conditions of the {@link io.sapl.api.pdp.Decision}.
      *
-     * @param methodName     is the repository method name.
+     * @param methodName is the repository method name.
      * @param saplConditions are created from the conditions of the
-     *                       {@link io.sapl.api.pdp.Decision}.
+     * {@link io.sapl.api.pdp.Decision}.
      * @return modified method name.
      */
     public String toModifiedMethodName(String methodName, List<SaplCondition> saplConditions) {
@@ -173,7 +173,7 @@ public class SaplConditionOperation {
      * to the original method name.
      *
      * @param saplConditions are created from the conditions of the
-     *                       {@link io.sapl.api.pdp.Decision}.
+     * {@link io.sapl.api.pdp.Decision}.
      * @return the modifying method name part.
      */
     private String creatModifyingMethodNamePart(List<SaplCondition> saplConditions, boolean findAllMethodType) {

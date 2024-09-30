@@ -30,8 +30,8 @@ public class ConfirmUtils {
     /**
      * Lets the user confirm a specific message.
      *
-     * @param header           the dialog title
-     * @param message          the message to confirm
+     * @param header the dialog title
+     * @param message the message to confirm
      * @param confirmedHandler the handler for confirmation
      * @param cancelledHandler the handler for cancellation
      */

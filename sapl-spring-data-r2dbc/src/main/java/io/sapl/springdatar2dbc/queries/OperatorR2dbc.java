@@ -39,8 +39,7 @@ public enum OperatorR2dbc {
      * to be bound and operator. Keyword and operator can be {@literal null}.
      *
      * @param sqlQueryBasedKeywords are the keywords for relational databases that
-     *                              correspond to the corresponding
-     *                              {@link Part.Type}.
+     * correspond to the corresponding {@link Part.Type}.
      */
     OperatorR2dbc(boolean isArray, List<String> sqlQueryBasedKeywords) {
         this.isArray               = isArray;

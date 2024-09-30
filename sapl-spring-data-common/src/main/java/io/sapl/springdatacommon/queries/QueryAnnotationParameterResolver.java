@@ -36,7 +36,7 @@ public class QueryAnnotationParameterResolver {
      * database.
      *
      * @param method The method to resolve parameters for.
-     * @param args   The arguments passed to the method.
+     * @param args The arguments passed to the method.
      * @return The resolved query with substituted parameters.
      */
     public static String resolveForRelationalDatabase(Method method, Object[] args) {
@@ -53,7 +53,7 @@ public class QueryAnnotationParameterResolver {
      * Resolves bounded method parameters and annotation parameters for MongoDB.
      *
      * @param method The method to resolve parameters for.
-     * @param args   The arguments passed to the method.
+     * @param args The arguments passed to the method.
      * @return The resolved query with substituted parameters.
      */
     public static String resolveForMongoDB(Method method, Object[] args) {

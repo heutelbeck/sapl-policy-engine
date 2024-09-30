@@ -57,7 +57,7 @@ public class PDPController {
      *
      * @param flux a flux emitting the authorization decisions
      * @return the original flux with additional keep-alive messages if keep-alive
-     *         parameter > 0
+     * parameter > 0
      */
     private <T> Flux<ServerSentEvent<T>> wrapWithKeepAlive(Flux<T> flux) {
         if (keepAliveSeconds > 0) {
@@ -73,7 +73,7 @@ public class PDPController {
      * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
      *
      * @param authzSubscription the authorization subscription to be processed by
-     *                          the PDP.
+     * the PDP.
      * @return a flux emitting the current authorization decisions.
      * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
      */
@@ -88,7 +88,7 @@ public class PDPController {
      * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
      *
      * @param authzSubscription the authorization subscription to be processed by
-     *                          the PDP.
+     * the PDP.
      * @return a Mono for the initial decision.
      * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
      */
@@ -103,10 +103,10 @@ public class PDPController {
      * {@link PolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
      *
      * @param multiAuthzSubscription the authorization multi-subscription to be
-     *                               processed by the PDP.
+     * processed by the PDP.
      * @return a flux emitting authorization decisions related to the individual
-     *         subscriptions contained in the given {@code multiAuthzSubscription}
-     *         as soon as they are available.
+     * subscriptions contained in the given {@code multiAuthzSubscription} as soon
+     * as they are available.
      * @see PolicyDecisionPoint#decide(MultiAuthorizationSubscription)
      */
     @PostMapping(value = "/multi-decide", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -121,10 +121,10 @@ public class PDPController {
      * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
      *
      * @param multiAuthzSubscription the authorization multi-subscription to be
-     *                               processed by the PDP.
+     * processed by the PDP.
      * @return a flux emitting multi-decisions containing authorization decisions
-     *         for all the individual authorization subscriptions contained in the
-     *         given {@code multiAuthzSubscription}.
+     * for all the individual authorization subscriptions contained in the given
+     * {@code multiAuthzSubscription}.
      * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
      */
     @PostMapping(value = "/multi-decide-all", produces = MediaType.APPLICATION_NDJSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -139,10 +139,10 @@ public class PDPController {
      * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
      *
      * @param multiAuthzSubscription the authorization multi-subscription to be
-     *                               processed by the PDP.
+     * processed by the PDP.
      * @return a Mono emitting the initial multi-decision containing authorization
-     *         decisions for all the individual authorization subscriptions
-     *         contained in the given {@code multiAuthzSubscription}.
+     * decisions for all the individual authorization subscriptions contained in the
+     * given {@code multiAuthzSubscription}.
      * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
      */
     @PostMapping(value = "/multi-decide-all-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)

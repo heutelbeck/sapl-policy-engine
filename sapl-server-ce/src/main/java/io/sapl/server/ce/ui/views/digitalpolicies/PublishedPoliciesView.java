@@ -110,8 +110,7 @@ public class PublishedPoliciesView extends VerticalLayout {
                             return;
                         }
                         grid.getDataProvider().refreshAll();
-                    }, () -> {
-                    }));
+                    }, () -> {}));
 
             HorizontalLayout componentsForEntry = new HorizontalLayout();
             componentsForEntry.add(unpublishButton);

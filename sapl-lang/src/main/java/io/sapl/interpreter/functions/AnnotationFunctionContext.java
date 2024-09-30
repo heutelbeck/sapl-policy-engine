@@ -74,9 +74,9 @@ public final class AnnotationFunctionContext implements FunctionContext {
     /**
      * Create context from a supplied libraries.
      *
-     * @param librariesSupplier       supplies instantiated libraries
+     * @param librariesSupplier supplies instantiated libraries
      * @param staticLibrariesSupplier supplies libraries contained in utility
-     *                                classes with static methods as functions
+     * classes with static methods as functions
      * @throws InitializationException if initialization fails.
      */
     public AnnotationFunctionContext(FunctionLibrarySupplier librariesSupplier,
@@ -89,7 +89,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
      * Loads supplied library instances into the context.
      *
      * @param staticLibrariesSupplier supplies libraries contained in utility
-     *                                classes with static methods as functions
+     * classes with static methods as functions
      * @throws InitializationException if initialization fails.
      */
     public final void loadLibraries(StaticFunctionLibrarySupplier staticLibrariesSupplier)

@@ -99,8 +99,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-        var type = new ParameterizedTypeReference<AuthorizationDecision>() {
-        };
+        var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
         return decide(DECIDE, type, authzSubscription)
                 .onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -108,16 +107,14 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
-        var type = new ParameterizedTypeReference<AuthorizationDecision>() {
-        };
+        var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
         return rSocketRequester.route(DECIDE_ONCE).data(authzSubscription).retrieveMono(type)
                 .doOnError(error -> log.error("RSocket Connect Error : error {}", error.getMessage(), error));
     }
 
     @Override
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
-        var type = new ParameterizedTypeReference<IdentifiableAuthorizationDecision>() {
-        };
+        var type = new ParameterizedTypeReference<IdentifiableAuthorizationDecision>() {};
         return decide(MULTI_DECIDE, type, multiAuthzSubscription)
                 .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -125,8 +122,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
-        var type = new ParameterizedTypeReference<MultiAuthorizationDecision>() {
-        };
+        var type = new ParameterizedTypeReference<MultiAuthorizationDecision>() {};
         return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
                 .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -231,9 +227,9 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
          * <p>
          * By default, these are set to 20 seconds and 90 seconds respectively.
          *
-         * @param keepAlive   how frequently to emit KEEPALIVE frames
+         * @param keepAlive how frequently to emit KEEPALIVE frames
          * @param maxLifeTime how long to allow between KEEPALIVE frames from the remote
-         *                    end before assuming that connectivity is lost
+         * end before assuming that connectivity is lost
          * @return RemoteRsocketPolicyDecisionPoint
          */
         public RemoteRsocketPolicyDecisionPointBuilder keepAlive(Duration keepAlive, Duration maxLifeTime) {

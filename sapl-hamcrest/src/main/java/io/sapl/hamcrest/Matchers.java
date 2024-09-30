@@ -74,7 +74,7 @@ public class Matchers {
      *
      * @param integer the number to check for
      * @return a matcher checking if an object is a Val object containing a JSON
-     *         number with an integer.
+     * number with an integer.
      */
     public static Matcher<Val> val(int integer) {
         return new IsVal(jsonInt(integer));
@@ -85,7 +85,7 @@ public class Matchers {
      *
      * @param decimal the number to check for
      * @return a matcher checking if an object is a Val object containing a JSON
-     *         number with an BigDecimal.
+     * number with an BigDecimal.
      */
     public static Matcher<Val> val(BigDecimal decimal) {
         return new IsVal(jsonBigDecimal(decimal));
@@ -96,7 +96,7 @@ public class Matchers {
      *
      * @param bigInt the number to check for
      * @return a matcher checking if an object is a Val object containing a JSON
-     *         number with an BigInteger.
+     * number with an BigInteger.
      */
     public static Matcher<Val> val(BigInteger bigInt) {
         return new IsVal(jsonBigInteger(bigInt));
@@ -107,7 +107,7 @@ public class Matchers {
      *
      * @param floatValue the number to check for
      * @return a matcher checking if an object is a Val object containing a JSON
-     *         number with a Float.
+     * number with a Float.
      */
     public static Matcher<Val> val(float floatValue) {
         return new IsVal(jsonFloat(floatValue));
@@ -117,7 +117,7 @@ public class Matchers {
      * Tests for a Val object containing a JSON null.
      *
      * @return a matcher checking if an object is a Val object containing a JSON
-     *         null.
+     * null.
      */
     public static Matcher<Val> valNull() {
         return new IsVal(jsonNull());
@@ -128,7 +128,7 @@ public class Matchers {
      *
      * @param bool the number to check for
      * @return a matcher checking if an object is a Val object containing a JSON
-     *         Boolean value.
+     * Boolean value.
      */
     public static Matcher<Val> val(boolean bool) {
         return new IsVal(jsonBoolean(bool));
@@ -138,7 +138,7 @@ public class Matchers {
      * Tests for a Val object containing a JSON Boolean true.
      *
      * @return a matcher checking if an object is a Val object containing a JSON
-     *         Boolean true.
+     * Boolean true.
      */
     public static Matcher<Val> valTrue() {
         return val(true);
@@ -148,7 +148,7 @@ public class Matchers {
      * Tests for a Val object containing a JSON Boolean false.
      *
      * @return a matcher checking if an object is a Val object containing a JSON
-     *         Boolean false.
+     * Boolean false.
      */
     public static Matcher<Val> valFalse() {
         return val(false);
@@ -168,7 +168,7 @@ public class Matchers {
      *
      * @param doubleValue the number to check for
      * @return a matcher checking if an object is a Val object containing a JSON
-     *         number with a double.
+     * number with a double.
      */
     public static Matcher<Val> val(double doubleValue) {
         return new IsVal(jsonDouble(doubleValue));
@@ -179,7 +179,7 @@ public class Matchers {
      *
      * @param longValue the number to check for
      * @return a matcher checking if an object is a Val object containing a JSON
-     *         number with a long.
+     * number with a long.
      */
     public static Matcher<Val> val(long longValue) {
         return new IsVal(jsonLong(longValue));
@@ -255,7 +255,7 @@ public class Matchers {
      * An AuthorizationDecision matcher, checking if the decision is NOT_APPLICABLE.
      *
      * @return An AuthorizationDecision matcher, checking if the decision is
-     *         NOT_APPLICABLE.
+     * NOT_APPLICABLE.
      */
     public static Matcher<AuthorizationDecision> isNotApplicable() {
         return new IsDecision(Decision.NOT_APPLICABLE);
@@ -265,7 +265,7 @@ public class Matchers {
      * An AuthorizationDecision matcher, checking if the decision is INDETERMINATE.
      *
      * @return An AuthorizationDecision matcher, checking if the decision is
-     *         INDETERMINATE.
+     * INDETERMINATE.
      */
     public static Matcher<AuthorizationDecision> isIndeterminate() {
         return new IsDecision(Decision.INDETERMINATE);
@@ -286,7 +286,7 @@ public class Matchers {
      *
      * @param predicate a Predicate<JsonNode>
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         obligation satisfying the predicate.
+     * obligation satisfying the predicate.
      */
     public static Matcher<AuthorizationDecision> hasObligationMatching(Predicate<? super JsonNode> predicate) {
         return new HasObligationMatching(predicate);
@@ -296,10 +296,10 @@ public class Matchers {
      * A AuthorizationDecision matcher checking for the existence of an obligation
      * containing a key-value pair.
      *
-     * @param key   a key.
+     * @param key a key.
      * @param value a value matcher.
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         obligation containing a key-value pair.
+     * obligation containing a key-value pair.
      */
     public static Matcher<AuthorizationDecision> hasObligationContainingKeyValue(String key,
             Matcher<? super JsonNode> value) {
@@ -310,10 +310,10 @@ public class Matchers {
      * A AuthorizationDecision matcher checking for the existence of an obligation
      * containing a key-value pair.
      *
-     * @param key   a key.
+     * @param key a key.
      * @param value a value.
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         obligation containing a key-value pair.
+     * obligation containing a key-value pair.
      */
     public static Matcher<AuthorizationDecision> hasObligationContainingKeyValue(String key, String value) {
         return new HasObligationContainingKeyValue(key, jsonText(value));
@@ -325,7 +325,7 @@ public class Matchers {
      *
      * @param key a key.
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         obligation containing a key pair.
+     * obligation containing a key pair.
      */
     public static Matcher<AuthorizationDecision> hasObligationContainingKeyValue(String key) {
         return new HasObligationContainingKeyValue(key);
@@ -335,7 +335,7 @@ public class Matchers {
      * A AuthorizationDecision matcher checking for the existence of any obligation
      *
      * @return A AuthorizationDecision matcher checking for the existence of any
-     *         obligation
+     * obligation
      */
     public static Matcher<AuthorizationDecision> hasObligation() {
         return new HasObligation();
@@ -347,7 +347,7 @@ public class Matchers {
      *
      * @param node an ObjectNode
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         obligation a specific ObjectNode.
+     * obligation a specific ObjectNode.
      */
     public static Matcher<AuthorizationDecision> hasObligation(ObjectNode node) {
         return new HasObligation(jsonObject(node));
@@ -359,7 +359,7 @@ public class Matchers {
      *
      * @param value a String
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         obligation a specific JSON text.
+     * obligation a specific JSON text.
      */
     public static Matcher<AuthorizationDecision> hasObligation(String value) {
         return new HasObligation(jsonText(value));
@@ -371,7 +371,7 @@ public class Matchers {
      *
      * @param matcher a JsonNode matcher
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         obligation matching a matcher.
+     * obligation matching a matcher.
      */
     public static Matcher<AuthorizationDecision> hasObligation(Matcher<? super JsonNode> matcher) {
         return new HasObligation(matcher);
@@ -381,7 +381,7 @@ public class Matchers {
      * A AuthorizationDecision matcher checking for the existence of any advice
      *
      * @return A AuthorizationDecision matcher checking for the existence of any
-     *         advice
+     * advice
      */
     public static Matcher<AuthorizationDecision> hasAdvice() {
         return new HasAdvice();
@@ -393,7 +393,7 @@ public class Matchers {
      *
      * @param predicate a Predicate<JsonNode>
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         advice satisfying the predicate.
+     * advice satisfying the predicate.
      */
     public static Matcher<AuthorizationDecision> hasAdviceMatching(Predicate<? super JsonNode> predicate) {
         return new HasAdviceMatching(predicate);
@@ -403,10 +403,10 @@ public class Matchers {
      * A AuthorizationDecision matcher checking for the existence of an advice
      * containing a key-value pair.
      *
-     * @param key   a key.
+     * @param key a key.
      * @param value a value matcher.
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         advice containing a key-value pair.
+     * advice containing a key-value pair.
      */
     public static Matcher<AuthorizationDecision> hasAdviceContainingKeyValue(String key,
             Matcher<? super JsonNode> value) {
@@ -417,10 +417,10 @@ public class Matchers {
      * A AuthorizationDecision matcher checking for the existence of an advice
      * containing a key-value pair.
      *
-     * @param key   a key.
+     * @param key a key.
      * @param value a value.
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         advice containing a key-value pair.
+     * advice containing a key-value pair.
      */
     public static Matcher<AuthorizationDecision> hasAdviceContainingKeyValue(String key, String value) {
         return new HasAdviceContainingKeyValue(key, jsonText(value));
@@ -432,7 +432,7 @@ public class Matchers {
      *
      * @param key a key.
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         advice containing a key pair.
+     * advice containing a key pair.
      */
     public static Matcher<AuthorizationDecision> hasAdviceContainingKeyValue(String key) {
         return new HasAdviceContainingKeyValue(key);
@@ -444,7 +444,7 @@ public class Matchers {
      *
      * @param node an ObjectNode
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         advice a specific ObjectNode.
+     * advice a specific ObjectNode.
      */
     public static Matcher<AuthorizationDecision> hasAdvice(ObjectNode node) {
         return new HasAdvice(jsonObject(node));
@@ -456,7 +456,7 @@ public class Matchers {
      *
      * @param value a String
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         advice a specific JSON text.
+     * advice a specific JSON text.
      */
     public static Matcher<AuthorizationDecision> hasAdvice(String value) {
         return new HasAdvice(jsonText(value));
@@ -468,7 +468,7 @@ public class Matchers {
      *
      * @param matcher a JsonNode matcher
      * @return A AuthorizationDecision matcher checking for the existence of an
-     *         advice matching a matcher.
+     * advice matching a matcher.
      */
     public static Matcher<AuthorizationDecision> hasAdvice(Matcher<? super JsonNode> matcher) {
         return new HasAdvice(matcher);
@@ -480,7 +480,7 @@ public class Matchers {
      *
      * @param node an ObjectNode
      * @return A AuthorizationDecision Matcher checking for the presence of a
-     *         resource object matching an ObjectNode.
+     * resource object matching an ObjectNode.
      */
     public static Matcher<AuthorizationDecision> hasResource(ObjectNode node) {
         return new HasResource(jsonObject(node));
@@ -492,7 +492,7 @@ public class Matchers {
      *
      * @param matcher a matcher
      * @return A AuthorizationDecision Matcher checking for the presence of a
-     *         resource object matching a JsonNode matcher.
+     * resource object matching a JsonNode matcher.
      */
     public static Matcher<AuthorizationDecision> hasResource(Matcher<? super JsonNode> matcher) {
         return new HasResource(matcher);
@@ -503,7 +503,7 @@ public class Matchers {
      * object.
      *
      * @return A AuthorizationDecision Matcher checking for the presence of a
-     *         resource object.
+     * resource object.
      */
     public static Matcher<AuthorizationDecision> hasResource() {
         return new HasResource();
@@ -515,7 +515,7 @@ public class Matchers {
      *
      * @param predicate a JsonNode predicate
      * @return A AuthorizationDecision Matcher checking for the presence of a
-     *         resource object matching a predicate.
+     * resource object matching a predicate.
      */
     public static Matcher<AuthorizationDecision> hasResourceMatching(Predicate<? super JsonNode> predicate) {
         return new HasResourceMatching(predicate);

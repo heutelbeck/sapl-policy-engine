@@ -60,7 +60,6 @@ public class WebDependencyFactory {
     }
 
     public record WebDependency(@NonNull String name, @NonNull String fileName, @NonNull String sourcePath,
-            @NonNull String targetPath) {
-    }
+            @NonNull String targetPath) {}
 
 }

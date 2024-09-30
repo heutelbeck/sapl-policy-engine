@@ -355,9 +355,9 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
     private String getDebugMessage(String endOfMessage) {
         StringBuilder builder = new StringBuilder();
         switch (this.numberOfExpectSteps.getNumberOfExpectSteps()) {
-        case 1 -> builder.append("1st");
-        case 2 -> builder.append("2nd");
-        case 3 -> builder.append("3rd");
+        case 1  -> builder.append("1st");
+        case 2  -> builder.append("2nd");
+        case 3  -> builder.append("3rd");
         default -> builder.append(this.numberOfExpectSteps.getNumberOfExpectSteps()).append("th");
         }
 

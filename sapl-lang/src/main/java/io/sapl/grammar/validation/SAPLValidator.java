@@ -119,8 +119,8 @@ public class SAPLValidator extends AbstractSAPLValidator {
      * looks for given class in a subtree of the AST
      *
      * @param startNode start node
-     * @param aClass    forbidden type
-     * @param message   an error message
+     * @param aClass forbidden type
+     * @param message an error message
      */
     public void genericCheckForElementInAST(final EObject startNode, final EClass aClass, final String message) {
         var foundItem = containsClass(startNode, aClass);
@@ -132,7 +132,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
     /**
      * scan content of given EObject recursively
      *
-     * @param eObj   object to search through
+     * @param eObj object to search through
      * @param eClass class to look up
      * @return discovered object or null
      */

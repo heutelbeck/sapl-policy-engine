@@ -153,8 +153,8 @@ public class Trace implements Serializable {
      * Creates a trace for an attribute finder operation and its arguments.
      *
      * @param leftHandValue the left hand input value of the attribute finder
-     * @param operation     class implementing the traced operation.
-     * @param arguments     traced arguments.
+     * @param operation class implementing the traced operation.
+     * @param arguments traced arguments.
      */
     public Trace(Val leftHandValue, Class<?> operation, Val... arguments) {
         this.operation = operation;

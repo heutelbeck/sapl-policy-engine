@@ -53,8 +53,8 @@ class JsonTestUtility {
     }
 
     /**
-     * @param kid1     the ID of the first KeyPair
-     * @param kid2     the ID of the second KeyPair
+     * @param kid1 the ID of the first KeyPair
+     * @param kid2 the ID of the second KeyPair
      * @param keyPair1 KeyPair of the first public key. Non-textual, if null
      * @param keyPair2 KeyPair of the second public key. Bogus, if null
      * @return whitelist variables containing two public keys
@@ -81,11 +81,11 @@ class JsonTestUtility {
 
     /**
      * @param server mock web server for automatically generated url, or use null to
-     *               omit
+     * omit
      * @param method request method ("GET" or "POST"), use null or empty String to
-     *               omit, use "NONETEXT" to generate a none-text value
+     * omit, use "NONETEXT" to generate a none-text value
      * @return environment variables containing public key server URI and request
-     *         method
+     * method
      */
     static Map<String, Val> publicKeyUriVariables(MockWebServer server, String method) {
 

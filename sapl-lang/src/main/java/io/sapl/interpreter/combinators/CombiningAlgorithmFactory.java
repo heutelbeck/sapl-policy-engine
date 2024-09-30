@@ -27,22 +27,22 @@ public class CombiningAlgorithmFactory {
 
     public static PolicySetCombiningAlgorithm policySetCombiningAlgorithm(CombiningAlgorithm algorithm) {
         return switch (algorithm) {
-        case DENY_OVERRIDES -> DenyOverrides::denyOverrides;
-        case PERMIT_OVERRIDES -> PermitOverrides::permitOverrides;
-        case FIRST_APPLICABLE -> FirstApplicable::firstApplicable;
+        case DENY_OVERRIDES      -> DenyOverrides::denyOverrides;
+        case PERMIT_OVERRIDES    -> PermitOverrides::permitOverrides;
+        case FIRST_APPLICABLE    -> FirstApplicable::firstApplicable;
         case ONLY_ONE_APPLICABLE -> OnlyOneApplicable::onlyOneApplicable;
-        case DENY_UNLESS_PERMIT -> DenyUnlessPermit::denyUnlessPermit;
-        case PERMIT_UNLESS_DENY -> PermitUnlessDeny::permitUnlessDeny;
+        case DENY_UNLESS_PERMIT  -> DenyUnlessPermit::denyUnlessPermit;
+        case PERMIT_UNLESS_DENY  -> PermitUnlessDeny::permitUnlessDeny;
         };
     }
 
     public static DocumentsCombiningAlgorithm documentsCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {
         return switch (algorithm) {
-        case DENY_OVERRIDES -> DenyOverrides::denyOverrides;
-        case PERMIT_OVERRIDES -> PermitOverrides::permitOverrides;
+        case DENY_OVERRIDES      -> DenyOverrides::denyOverrides;
+        case PERMIT_OVERRIDES    -> PermitOverrides::permitOverrides;
         case ONLY_ONE_APPLICABLE -> OnlyOneApplicable::onlyOneApplicable;
-        case DENY_UNLESS_PERMIT -> DenyUnlessPermit::denyUnlessPermit;
-        case PERMIT_UNLESS_DENY -> PermitUnlessDeny::permitUnlessDeny;
+        case DENY_UNLESS_PERMIT  -> DenyUnlessPermit::denyUnlessPermit;
+        case PERMIT_UNLESS_DENY  -> PermitUnlessDeny::permitUnlessDeny;
         };
     }
 
