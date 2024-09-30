@@ -43,8 +43,7 @@ class AttributeStreamTests {
     void whenGetInvocationThenIncovationIsReturned() {
         final var invocation         = INVOCATION;
         final var pipAttributeStream = Flux.<Val>empty();
-        final var cleanupCallback    = (Consumer<AttributeStream>) a -> {
-                                     };
+        final var cleanupCallback    = (Consumer<AttributeStream>) a -> {};
         final var attributeStream    = new AttributeStream(invocation, cleanupCallback, Duration.ofMillis(500L));
 
         assertThat(attributeStream.getInvocation()).isEqualTo(invocation);

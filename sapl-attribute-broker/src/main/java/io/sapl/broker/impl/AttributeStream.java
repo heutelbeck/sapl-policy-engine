@@ -67,12 +67,12 @@ public class AttributeStream {
     /**
      * Creates an ActiveAttribute.
      *
-     * @param invocation    A PolicyInformationPointinvocation providing the fully
-     *                      qualified attribute name and its parameter values.
+     * @param invocation A PolicyInformationPointinvocation providing the fully
+     * qualified attribute name and its parameter values.
      * @param cleanupAction A callback to the index to be executed to drop the
-     *                      attribute from the index upon termination.
-     * @param gracePeriod   The time to live for the connection to the raw stream,
-     *                      once all subscribers cancelled their subscription.
+     * attribute from the index upon termination.
+     * @param gracePeriod The time to live for the connection to the raw stream,
+     * once all subscribers cancelled their subscription.
      */
     public AttributeStream(@NonNull PolicyInformationPointInvocation invocation,
             @NonNull Consumer<AttributeStream> cleanupAction, @NonNull Duration gracePeriod) {
