@@ -81,15 +81,12 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * addAuthorizationSubscription(subscriptionId, subject, action, resource, null)}.
      *
      * @param subscriptionId the id identifying the authorization subscription to be
-     *                       added.
-     * @param subject        the subject of the authorization subscription to be
-     *                       added.
-     * @param action         the action of the authorization subscription to be
-     *                       added.
-     * @param resource       the resource of the authorization subscription to be
-     *                       added.
+     * added.
+     * @param subject the subject of the authorization subscription to be added.
+     * @param action the action of the authorization subscription to be added.
+     * @param resource the resource of the authorization subscription to be added.
      * @return this {@code MultiAuthorizationSubscription} instance to support
-     *         chaining of multiple calls to {@code addAuthorizationSubscription}.
+     * chaining of multiple calls to {@code addAuthorizationSubscription}.
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId, JsonNode subject,
             JsonNode action, JsonNode resource) {
@@ -104,10 +101,10 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * null)}.
      *
      * @param subscriptionId the id identifying the authorization subscription to be
-     *                       added.
-     * @param subscription   an authorization subscription.
+     * added.
+     * @param subscription an authorization subscription.
      * @return this {@code MultiAuthorizationSubscription} instance to support
-     *         chaining of multiple calls to {@code addAuthorizationSubscription}.
+     * chaining of multiple calls to {@code addAuthorizationSubscription}.
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(String subscriptionId,
             AuthorizationSubscription subscription) {
@@ -122,17 +119,14 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * correlate subscription/decision pairs.
      *
      * @param subscriptionId the id identifying the authorization subscription to be
-     *                       added.
-     * @param subject        the subject of the authorization subscription to be
-     *                       added.
-     * @param action         the action of the authorization subscription to be
-     *                       added.
-     * @param resource       the resource of the authorization subscription to be
-     *                       added.
-     * @param environment    the environment of the authorization subscription to be
-     *                       added.
+     * added.
+     * @param subject the subject of the authorization subscription to be added.
+     * @param action the action of the authorization subscription to be added.
+     * @param resource the resource of the authorization subscription to be added.
+     * @param environment the environment of the authorization subscription to be
+     * added.
      * @return this {@code MultiAuthorizationSubscription} instance to support
-     *         chaining of multiple calls to {@code addAuthorizationSubscription}.
+     * chaining of multiple calls to {@code addAuthorizationSubscription}.
      */
     public MultiAuthorizationSubscription addAuthorizationSubscription(@NonNull String subscriptionId,
             @NonNull JsonNode subject, @NonNull JsonNode action, @NonNull JsonNode resource, JsonNode environment) {
@@ -164,7 +158,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 
     /**
      * @return {@code true} if this multi-subscription holds at least one
-     *         authorization subscription, {@code false} otherwise.
+     * authorization subscription, {@code false} otherwise.
      */
     public boolean hasAuthorizationSubscriptions() {
         return !authorizationSubscriptions.isEmpty();
@@ -175,9 +169,9 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * {@code null} if this multi-subscription contains no such ID.
      *
      * @param subscriptionId the ID of the authorization subscription to be
-     *                       returned.
+     * returned.
      * @return the authorization subscription related to the given ID or
-     *         {@code null}.
+     * {@code null}.
      */
     public AuthorizationSubscription getAuthorizationSubscriptionWithId(String subscriptionId) {
         var authorizationSubscription = authorizationSubscriptions.get(subscriptionId);
@@ -189,9 +183,8 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
 
     /**
      * @return an {@link Iterator iterator} providing access to the
-     *         {@link IdentifiableAuthorizationSubscription identifiable
-     *         authorization subscriptions} created from the data held by this
-     *         multi-subscription.
+     * {@link IdentifiableAuthorizationSubscription identifiable authorization
+     * subscriptions} created from the data held by this multi-subscription.
      */
     @Override
     public Iterator<IdentifiableAuthorizationSubscription> iterator() {

@@ -39,9 +39,8 @@ public interface PolicyDecisionPoint {
      *
      * @param authzSubscription the SAPL authorization subscription object
      * @return a {@link Flux} emitting the authorization decisions for the given
-     *         authorization subscription. New authorization decisions are only
-     *         added to the stream if they are different from the preceding
-     *         authorization decision.
+     * authorization subscription. New authorization decisions are only added to the
+     * stream if they are different from the preceding authorization decision.
      */
     Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription);
 
@@ -60,13 +59,11 @@ public interface PolicyDecisionPoint {
      * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
      *
      * @param multiAuthzSubscription the multi-subscription object containing the
-     *                               subjects, actions, resources, and environments
-     *                               of the authorization subscriptions to be
-     *                               evaluated by the PDP.
+     * subjects, actions, resources, and environments of the authorization
+     * subscriptions to be evaluated by the PDP.
      * @return a {@link Flux} emitting authorization decisions for the given
-     *         authorization subscriptions as soon as they are available. Related
-     *         authorization decisions and authorization subscriptions have the same
-     *         id.
+     * authorization subscriptions as soon as they are available. Related
+     * authorization decisions and authorization subscriptions have the same id.
      */
     Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription);
 
@@ -74,12 +71,11 @@ public interface PolicyDecisionPoint {
      * Multi-subscription variant of {@link #decide(AuthorizationSubscription)}.
      *
      * @param multiAuthzSubscription the multi-subscription object containing the
-     *                               subjects, actions, resources, and environments
-     *                               of the authorization subscriptions to be
-     *                               evaluated by the PDP.
+     * subjects, actions, resources, and environments of the authorization
+     * subscriptions to be evaluated by the PDP.
      * @return a {@link Flux} emitting authorization decisions for the given
-     *         authorization subscriptions as soon as at least one authorization
-     *         decision for each authorization subscription is available.
+     * authorization subscriptions as soon as at least one authorization decision
+     * for each authorization subscription is available.
      */
     Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription);
 }

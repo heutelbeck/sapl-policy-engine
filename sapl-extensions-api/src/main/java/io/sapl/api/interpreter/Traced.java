@@ -33,7 +33,7 @@ public interface Traced {
 
     /**
      * @return a collection of errors encountered in the evaluation of the traced
-     *         element.
+     * element.
      */
     Collection<Val> getErrorsFromTrace();
 }

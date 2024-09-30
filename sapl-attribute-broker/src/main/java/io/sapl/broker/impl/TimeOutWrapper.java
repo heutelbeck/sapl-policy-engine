@@ -47,11 +47,11 @@ public class TimeOutWrapper {
      * c) If the source Flux emits values and completes the wrapped FLux also
      * immediately completes and does not stay alive until the time out expires.
      *
-     * @param flux    a Flux of Val values.
+     * @param flux a Flux of Val values.
      * @param timeOut The time out before the wrapped flux emits an undefined value.
      * @return a flux identical to the original flux, that emits a Val.UNDEFINED
-     *         after the given time out expired if the original flux did not emit
-     *         any value until then.
+     * after the given time out expired if the original flux did not emit any value
+     * until then.
      */
     public static Flux<Val> wrap(Flux<Val> flux, Duration timeOut) {
         return wrap(flux, timeOut, Val.UNDEFINED, Val.UNDEFINED);
@@ -71,16 +71,15 @@ public class TimeOutWrapper {
      * c) If the source Flux emits values and completes the wrapped FLux also
      * immediately completes and does not stay alive until the time out expires.
      *
-     * @param flux           a Flux of Val values.
-     * @param timeOut        The time out before the wrapped flux emits an undefined
-     *                       value.
-     * @param timeOutValue   the value emitted when a time out occurs. E.g.,
-     *                       Val.UNDEFINED or a Val.error(...).
+     * @param flux a Flux of Val values.
+     * @param timeOut The time out before the wrapped flux emits an undefined value.
+     * @param timeOutValue the value emitted when a time out occurs. E.g.,
+     * Val.UNDEFINED or a Val.error(...).
      * @param emptyFluxValue the value emitted when the original flux is empty.
-     *                       E.g., Val.UNDEFINED or a Val.error(...).
+     * E.g., Val.UNDEFINED or a Val.error(...).
      * @return a flux identical to the original flux, that emits a Val.UNDEFINED
-     *         after the given time out expired if the original flux did not emit
-     *         any value until then.
+     * after the given time out expired if the original flux did not emit any value
+     * until then.
      */
     public static Flux<Val> wrap(Flux<Val> flux, Duration timeOut, Val timeOutValue, Val emptyFluxValue) {
         Many<Event> mergedSink          = Sinks.many().unicast().onBackpressureBuffer();
@@ -136,7 +135,6 @@ public class TimeOutWrapper {
         }
     }
 
-    private record LastAndCurrent(Event last, Event current) {
-    }
+    private record LastAndCurrent(Event last, Event current) {}
 
 }

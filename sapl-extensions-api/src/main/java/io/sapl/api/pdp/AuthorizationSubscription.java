@@ -75,9 +75,9 @@ public class AuthorizationSubscription implements Serializable {
     /**
      * Create a new AuthorizationSubscription with the provided parameters.
      *
-     * @param subject     the subject
-     * @param action      the action
-     * @param resource    the resource
+     * @param subject the subject
+     * @param action the action
+     * @param resource the resource
      * @param environment the environment
      */
     public AuthorizationSubscription(@NotNull JsonNode subject, @NotNull JsonNode action, @NotNull JsonNode resource,
@@ -137,8 +137,8 @@ public class AuthorizationSubscription implements Serializable {
      * marshaled to JSON by a default ObjectMapper with Jdk8Module registered.
      * Environment will be omitted.
      *
-     * @param subject  an object describing the subject.
-     * @param action   an object describing the action.
+     * @param subject an object describing the subject.
+     * @param action an object describing the action.
      * @param resource an object describing the resource.
      * @return an AuthorizationSubscription for subscribing to a SAPL PDP
      */
@@ -150,10 +150,10 @@ public class AuthorizationSubscription implements Serializable {
      * Creates an AuthorizationSubscription, containing the supplied objects
      * marshaled the supplied ObjectMapper. Environment will be omitted.
      *
-     * @param subject  an object describing the subject.
-     * @param action   an object describing the action.
+     * @param subject an object describing the subject.
+     * @param action an object describing the action.
      * @param resource an object describing the resource.
-     * @param mapper   the ObjectMapper to be used for marshaling.
+     * @param mapper the ObjectMapper to be used for marshaling.
      * @return an AuthorizationSubscription for subscribing to a SAPL PDP
      */
     public static AuthorizationSubscription of(Object subject, Object action, Object resource, ObjectMapper mapper) {
@@ -164,9 +164,9 @@ public class AuthorizationSubscription implements Serializable {
      * Creates an AuthorizationSubscription, containing the supplied objects
      * marshaled to JSON by a default ObjectMapper with Jdk8Module registered.
      *
-     * @param subject     an object describing the subject.
-     * @param action      an object describing the action.
-     * @param resource    an object describing the resource.
+     * @param subject an object describing the subject.
+     * @param action an object describing the action.
+     * @param resource an object describing the resource.
      * @param environment an object describing the environment.
      * @return an AuthorizationSubscription for subscribing to a SAPL PDP
      */
@@ -178,11 +178,11 @@ public class AuthorizationSubscription implements Serializable {
      * Creates an AuthorizationSubscription, containing the supplied objects
      * marshaled the supplied ObjectMapper.
      *
-     * @param subject     an object describing the subject.
-     * @param action      an object describing the action.
-     * @param resource    an object describing the resource.
+     * @param subject an object describing the subject.
+     * @param action an object describing the action.
+     * @param resource an object describing the resource.
      * @param environment an object describing the environment.
-     * @param mapper      the ObjectMapper to be used for marshaling.
+     * @param mapper the ObjectMapper to be used for marshaling.
      * @return an AuthorizationSubscription for subscribing to a SAPL PDP
      */
     public static AuthorizationSubscription of(Object subject, Object action, Object resource, Object environment,

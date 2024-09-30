@@ -48,7 +48,7 @@ public record PolicyInformationPointSpecification(@NonNull String fullyQualified
     /**
      * @param other another specification
      * @return true, if the presence of the two specifications leads to
-     *         disambiguates in resolving PIP lookups.
+     * disambiguates in resolving PIP lookups.
      */
     public boolean collidesWith(PolicyInformationPointSpecification other) {
         if (!fullyQualifiedAttributeName.equals(other.fullyQualifiedAttributeName)

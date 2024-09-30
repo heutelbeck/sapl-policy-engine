@@ -82,11 +82,11 @@ public class AttributeStreamBroker {
     /**
      * Create a new AttributeStream for an invocation.
      *
-     * @param invocation               an invocation
+     * @param invocation an invocation
      * @param pipsWithNameOfInvocation all PIPs with the same name.
      * @return a new AttributeStream, which is connected to a matching PIP is
-     *         present. Else directly, an error is published in the stream that no
-     *         PIP was was found for the invocation.
+     * present. Else directly, an error is published in the stream that no PIP was
+     * was found for the invocation.
      */
     private AttributeStream newAttributeStream(PolicyInformationPointInvocation invocation,
             List<SpecAndPip> pipsWithNameOfInvocation) {
@@ -104,7 +104,7 @@ public class AttributeStreamBroker {
     /**
      * Find a PIP with specification that matches an invocation in a list.
      *
-     * @param invocation               an invocation
+     * @param invocation an invocation
      * @param pipsWithNameOfInvocation a List of PIPs with specification.
      * @return a PIP whose specification is matching the invocation, or null.
      */
@@ -139,7 +139,7 @@ public class AttributeStreamBroker {
      * attribute streams consumed my policies, the streams are connected to the new
      * PIP.
      *
-     * @param pipSpecification       The specification of the PIP.
+     * @param pipSpecification The specification of the PIP.
      * @param policyInformationPoint The PIP itself.
      * @throws AttributeBrokerException if there is a specification collision.
      */
@@ -205,6 +205,5 @@ public class AttributeStreamBroker {
     }
 
     private record SpecAndPip(PolicyInformationPointSpecification specification,
-            PolicyInformationPoint policyInformationPoint) {
-    }
+            PolicyInformationPoint policyInformationPoint) {}
 }

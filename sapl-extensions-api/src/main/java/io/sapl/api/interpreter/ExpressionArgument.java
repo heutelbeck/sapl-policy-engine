@@ -22,5 +22,4 @@ import java.io.Serializable;
 /**
  * Traced expression argument value.
  */
-public record ExpressionArgument(String name, Val value) implements Serializable {
-}
+public record ExpressionArgument(String name, Val value) implements Serializable {}

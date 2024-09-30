@@ -36,7 +36,7 @@ public class NameValidator {
      *
      * @param stringUnderTest a String for validation.
      * @throws IllegalArgumentException if the stringUnderTest does not match the
-     *                                  pattern for fully qualified names.
+     * pattern for fully qualified names.
      */
     public static void requireValidName(String stringUnderTest) {
         if (!PATTERN.test(stringUnderTest)) {

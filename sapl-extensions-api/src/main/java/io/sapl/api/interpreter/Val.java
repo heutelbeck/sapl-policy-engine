@@ -147,10 +147,10 @@ public class Val implements Traced, Serializable {
     /**
      * Attaches a trace to the Val including arguments.
      *
-     * @param operation                   traced operation
+     * @param operation traced operation
      * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
-     *                                    the new value also is a secret.
-     * @param arguments                   the arguments
+     * the new value also is a secret.
+     * @param arguments the arguments
      * @return the Val with attached trace
      */
     public Val withTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, Val... arguments) {
@@ -171,10 +171,10 @@ public class Val implements Traced, Serializable {
     /**
      * Attaches a trace to the Val including arguments.
      *
-     * @param operation                   traced operation
+     * @param operation traced operation
      * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
-     *                                    the new value also is a secret.
-     * @param arguments                   the arguments with parameter names
+     * the new value also is a secret.
+     * @param arguments the arguments with parameter names
      * @return the Val with attached trace
      */
     public Val withTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, Map<String, Val> arguments) {
@@ -195,10 +195,10 @@ public class Val implements Traced, Serializable {
     /**
      * Attaches a trace to the Val parent value.
      *
-     * @param operation                   traced operation
+     * @param operation traced operation
      * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
-     *                                    the new value also is a secret.
-     * @param parentValue                 the parent value
+     * the new value also is a secret.
+     * @param parentValue the parent value
      * @return the Val with attached trace
      */
     public Val withParentTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, Val parentValue) {
@@ -212,10 +212,10 @@ public class Val implements Traced, Serializable {
     /**
      * Attaches a trace to the Val including arguments.
      *
-     * @param operation                   traced operation
+     * @param operation traced operation
      * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
-     *                                    the new value also is a secret.
-     * @param arguments                   the arguments with parameter names
+     * the new value also is a secret.
+     * @param arguments the arguments with parameter names
      * @return the Val with attached trace
      */
     public Val withTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, ExpressionArgument... arguments) {
@@ -236,11 +236,11 @@ public class Val implements Traced, Serializable {
     /**
      * Attaches a trace to the Val including arguments for attribute finders.
      *
-     * @param leftHandValue               left hand value of attribute finder
-     * @param operation                   traced operation
+     * @param leftHandValue left hand value of attribute finder
+     * @param operation traced operation
      * @param inheritsSecretStatusOfTrace if true, and a previous value is a secret,
-     *                                    the new value also is a secret.
-     * @param arguments                   the arguments with parameter names
+     * the new value also is a secret.
+     * @param arguments the arguments with parameter names
      * @return the Val with attached trace
      */
     public Val withTrace(Val leftHandValue, Class<?> operation, boolean inheritsSecretStatusOfTrace, Val... arguments) {
@@ -331,7 +331,7 @@ public class Val implements Traced, Serializable {
 
     /**
      * @return the JsonNode value of the Val, or a NoSuchElementException, if Val is
-     *         undefined or an error.
+     * undefined or an error.
      */
     public JsonNode get() {
         if (isError()) {
@@ -489,7 +489,7 @@ public class Val implements Traced, Serializable {
     /**
      * Returns the given field or the alternative given.
      *
-     * @param fieldName     the field name
+     * @param fieldName the field name
      * @param errorSupplier supplier for error if field not present.
      * @return the field vale if Val is an object with the field. Else throw.
      * @throws Exception if field is not present supplied Exception is thrown.
@@ -506,10 +506,10 @@ public class Val implements Traced, Serializable {
      * Returns the given field or the alternative given.
      *
      * @param fieldName the field name
-     * @param other     alternative to return if undefined, error, nonObject, or
-     *                  field not present
+     * @param other alternative to return if undefined, error, nonObject, or field
+     * not present
      * @return the field vale if Val is an object with the field. Else returns
-     *         other.
+     * other.
      */
     public JsonNode fieldJsonNodeOrElse(String fieldName, JsonNode other) {
         var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
@@ -520,10 +520,10 @@ public class Val implements Traced, Serializable {
      * Returns the given field or the supplied alternative given.
      *
      * @param fieldName the field name
-     * @param other     alternative supplier to return if undefined, error,
-     *                  nonObject, or field not present
+     * @param other alternative supplier to return if undefined, error, nonObject,
+     * or field not present
      * @return the field vale if Val is an object with the field. Else returns
-     *         other.
+     * other.
      */
     public JsonNode fieldJsonNodeOrElse(String fieldName, Supplier<JsonNode> other) {
         var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
@@ -534,10 +534,10 @@ public class Val implements Traced, Serializable {
      * Returns the given field or the alternative given.
      *
      * @param fieldName the field name
-     * @param other     alternative to return if undefined, error, nonObject, or
-     *                  field not present
+     * @param other alternative to return if undefined, error, nonObject, or field
+     * not present
      * @return the field vale if Val is an object with the field. Else returns
-     *         other.
+     * other.
      */
     public Val fieldValOrElse(String fieldName, Val other) {
         var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
@@ -548,10 +548,10 @@ public class Val implements Traced, Serializable {
      * Returns the given field or the supplied alternative given.
      *
      * @param fieldName the field name
-     * @param other     alternative supplier to return if undefined, error,
-     *                  nonObject, or field not present
+     * @param other alternative supplier to return if undefined, error, nonObject,
+     * or field not present
      * @return the field vale if Val is an object with the field. Else returns
-     *         other.
+     * other.
      */
     public Val fieldValOrElse(String fieldName, Supplier<Val> other) {
         var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
@@ -569,10 +569,10 @@ public class Val implements Traced, Serializable {
     }
 
     /**
-     * @param <X>               error type
+     * @param <X> error type
      * @param exceptionSupplier a supplier for a Throwable.
      * @return the value of the Val, if defined. Else the supplied Throwable is
-     *         thrown.
+     * thrown.
      * @throws X an Exception if value undefined.
      */
     public <X extends Throwable> JsonNode orElseThrow(Supplier<? extends X> exceptionSupplier) throws X {
@@ -586,7 +586,7 @@ public class Val implements Traced, Serializable {
     /**
      * @param predicate a predicate
      * @return the original value, or an undefined Val if the predicate evaluates to
-     *         false for the value.
+     * false for the value.
      */
     public Val filter(Predicate<? super JsonNode> predicate) {
         Objects.requireNonNull(predicate);
@@ -597,7 +597,7 @@ public class Val implements Traced, Serializable {
     }
 
     /**
-     * @param left  a Val
+     * @param left a Val
      * @param right a Val
      * @return a Boolean Val which is true, iff left and right are not equal.
      */
@@ -620,7 +620,7 @@ public class Val implements Traced, Serializable {
     }
 
     /**
-     * @param left  a Val
+     * @param left a Val
      * @param right a Val
      * @return a Boolean Val which is true, iff left and right are equal.
      */
@@ -859,7 +859,7 @@ public class Val implements Traced, Serializable {
     /**
      * @param value a Val
      * @return if the Val is a Boolean, returns a Flux of just this Boolean. Else a
-     *         Flux only containing a PolicyEvaluationException error.
+     * Flux only containing a PolicyEvaluationException error.
      */
     public static Flux<Boolean> toBoolean(Val value) {
         if (value.isBoolean()) {
@@ -870,7 +870,7 @@ public class Val implements Traced, Serializable {
 
     /**
      * @return if the Val is Boolean, the Boolean value is returned. Else throws a
-     *         PolicyEvaluationException.
+     * PolicyEvaluationException.
      */
     public boolean getBoolean() {
         if (isBoolean()) {
@@ -881,7 +881,7 @@ public class Val implements Traced, Serializable {
 
     /**
      * @return if the Val is a number, the number is returned as Long. Else throws a
-     *         PolicyEvaluationException.
+     * PolicyEvaluationException.
      */
     public long getLong() {
         if (isNumber()) {
@@ -892,7 +892,7 @@ public class Val implements Traced, Serializable {
 
     /**
      * @return the Val as a String. If the Val was a JSON String, the contents is
-     *         returned. Else the contents toString is used.
+     * returned. Else the contents toString is used.
      */
     public String getText() {
         if (isUndefined()) {
@@ -907,7 +907,7 @@ public class Val implements Traced, Serializable {
     /**
      * @param value a Val
      * @return a Flux of the value of the Val as an JsonNode. Or a Flux with an
-     *         error.
+     * error.
      */
     public static Flux<JsonNode> toJsonNode(Val value) {
         if (value.isUndefined()) {
@@ -918,7 +918,7 @@ public class Val implements Traced, Serializable {
 
     /**
      * @return the value of the Val as a JsonNode. Throws a PolicyEvaluation
-     *         Exception if the value is not defined.
+     * Exception if the value is not defined.
      */
     public JsonNode getJsonNode() {
         if (this.isDefined()) {
@@ -943,7 +943,7 @@ public class Val implements Traced, Serializable {
 
     /**
      * @return the value of the Val as an ArrayNode. Throws a PolicyEvaluation
-     *         Exception if the value is not a JSON array.
+     * Exception if the value is not a JSON array.
      */
     public ArrayNode getArrayNode() {
         if (this.isArray()) {
@@ -954,7 +954,7 @@ public class Val implements Traced, Serializable {
 
     /**
      * @return the value of the Val as an ObjectNode. Throws a PolicyEvaluation
-     *         Exception if the value is not a JSON object.
+     * Exception if the value is not a JSON object.
      */
     public ObjectNode getObjectNode() {
         if (this.isObject()) {
@@ -965,7 +965,7 @@ public class Val implements Traced, Serializable {
 
     /**
      * @return the value of the Val as a BigDecimal. Throws a PolicyEvaluation
-     *         Exception if the value is not a number.
+     * Exception if the value is not a number.
      */
     public BigDecimal decimalValue() {
         if (this.isNumber()) {
@@ -979,7 +979,7 @@ public class Val implements Traced, Serializable {
      *
      * @param value a Val
      * @return a Flux only containing the ObjectNode value or an error if Val not
-     *         ObjectNode.
+     * ObjectNode.
      */
     public static Flux<ObjectNode> toObjectNode(Val value) {
         if (value.isUndefined() || !value.get().isObject()) {
@@ -1006,7 +1006,7 @@ public class Val implements Traced, Serializable {
      *
      * @param value a Val
      * @return a Flux only containing the number value as BigDecimal or an error if
-     *         Val not a number.
+     * Val not a number.
      */
     public static Flux<BigDecimal> toBigDecimal(Val value) {
         if (value.isUndefined() || !value.get().isNumber()) {
