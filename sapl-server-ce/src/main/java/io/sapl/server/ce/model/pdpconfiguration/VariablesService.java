@@ -148,9 +148,9 @@ public class VariablesService {
      * Checks a for a duplicated name of a variable.
      *
      * @param name the name to check
-     * @param id   the id of the variable to check
+     * @param id the id of the variable to check
      * @throws DuplicatedVariableNameException thrown if the name is already used by
-     *                                         another variable
+     * another variable
      */
     private void checkForDuplicatedName(String name, Long id) throws DuplicatedVariableNameException {
         Collection<Variable> variablesWithName = variableRepository.findByName(name);

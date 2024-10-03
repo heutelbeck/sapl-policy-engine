@@ -62,7 +62,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
      * Maps error or non-boolean to the matching evaluation result.
      *
      * @param targetValue the evaluation result of the target expression (must be
-     *                    non-Boolean or error).
+     * non-Boolean or error).
      * @Returns the matching evaluation result.
      */
     @Override

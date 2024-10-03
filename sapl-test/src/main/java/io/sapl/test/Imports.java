@@ -49,9 +49,9 @@ public class Imports {
      * specify Matchers for the parent value and all arguments of an attribute mock
      *
      * @param parentValueMatcher Matcher for the parent value. See
-     *                           {@link #parentValue(Matcher)}
-     * @param argumentMatchers   Matcher for the arguments. See
-     *                           {@link #arguments(Matcher[])}
+     * {@link #parentValue(Matcher)}
+     * @param argumentMatchers Matcher for the arguments. See
+     * {@link #arguments(Matcher[])}
      * @return an {@link AttributeParameters} object required by the given step
      */
     public static AttributeParameters whenAttributeParams(AttributeParentValueMatcher parentValueMatcher,
@@ -63,7 +63,7 @@ public class Imports {
      * specify Matchers for all arguments of an environment attribute mock
      *
      * @param argumentMatchers Matcher for the arguments. See
-     *                         {@link #arguments(Matcher[])}
+     * {@link #arguments(Matcher[])}
      * @return an {@link AttributeParameters} object required by the given step
      */
     public static AttributeParameters whenEnvironmentAttributeParams(AttributeArgumentMatchers argumentMatchers) {
@@ -75,7 +75,7 @@ public class Imports {
      *
      * @param matcher Matcher for the parent value
      * @return an {@link AttributeParentValueMatcher} object required by the given
-     *         step
+     * step
      */
     public static AttributeParentValueMatcher whenParentValue(Matcher<Val> matcher) {
         return new AttributeParentValueMatcher(matcher);
@@ -87,8 +87,8 @@ public class Imports {
      *
      * @param matcher the matcher for the parent value
      * @return an {@link AttributeParentValueMatcher} object required by the
-     *         {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
-     *         method
+     * {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
+     * method
      */
     public static AttributeParentValueMatcher parentValue(Matcher<Val> matcher) {
         return new AttributeParentValueMatcher(matcher);
@@ -100,8 +100,8 @@ public class Imports {
      *
      * @param argumentMatcher the matchers for the arguments
      * @return an {@link AttributeArgumentMatchers} object required by the
-     *         {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
-     *         method
+     * {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
+     * method
      */
     @SafeVarargs
     public static AttributeArgumentMatchers arguments(Matcher<Val>... argumentMatcher) {

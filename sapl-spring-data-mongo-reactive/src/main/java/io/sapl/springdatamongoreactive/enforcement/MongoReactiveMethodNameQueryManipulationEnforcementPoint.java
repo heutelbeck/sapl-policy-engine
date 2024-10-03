@@ -116,7 +116,7 @@ public class MongoReactiveMethodNameQueryManipulationEnforcementPoint<T> {
      *
      * @param obligations are the obligations from the {@link Decision}.
      * @return objects from the database that were queried with the manipulated
-     *         query.
+     * query.
      */
     private Flux<T> retrieveDataFromDatabase(ArrayNode conditions, ArrayNode selections, MethodInvocation invocation,
             Class<T> domainType) {

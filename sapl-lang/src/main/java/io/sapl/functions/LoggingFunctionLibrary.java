@@ -70,7 +70,7 @@ public class LoggingFunctionLibrary {
      * value.
      *
      * @param message a text massage.
-     * @param value   a value
+     * @param value a value
      * @return the value
      */
     @Function(docs = INFO_SPY_DOC)
@@ -84,7 +84,7 @@ public class LoggingFunctionLibrary {
      * value.
      *
      * @param message a text massage.
-     * @param value   a value
+     * @param value a value
      * @return the value
      */
     @Function(docs = ERROR_SPY_DOC)
@@ -98,7 +98,7 @@ public class LoggingFunctionLibrary {
      * value.
      *
      * @param message a text massage.
-     * @param value   a value
+     * @param value a value
      * @return the value
      */
     @Function(docs = TRACE_SPY_DOC)
@@ -112,7 +112,7 @@ public class LoggingFunctionLibrary {
      * value.
      *
      * @param message a text massage.
-     * @param value   a value
+     * @param value a value
      * @return the value
      */
     @Function(docs = WARN_SPY_DOC)
@@ -126,7 +126,7 @@ public class LoggingFunctionLibrary {
      * value.
      *
      * @param message a text massage.
-     * @param value   a value
+     * @param value a value
      * @return the value
      */
     @Function(docs = DEBUG_SPY_DOC)
@@ -140,7 +140,7 @@ public class LoggingFunctionLibrary {
      * the inspected value.
      *
      * @param message a text massage.
-     * @param value   a value
+     * @param value a value
      * @return the value
      */
     @Function(docs = INFO_DOC)
@@ -154,7 +154,7 @@ public class LoggingFunctionLibrary {
      * the inspected value.
      *
      * @param message a text massage.
-     * @param value   a value
+     * @param value a value
      * @return the value
      */
     @Function(docs = ERROR_DOC)
@@ -168,7 +168,7 @@ public class LoggingFunctionLibrary {
      * the inspected value.
      *
      * @param message a text massage.
-     * @param value   a value
+     * @param value a value
      * @return the value
      */
     @Function(docs = TRACE_DOC)
@@ -182,7 +182,7 @@ public class LoggingFunctionLibrary {
      * the inspected value.
      *
      * @param message a text massage.
-     * @param value   a value
+     * @param value a value
      * @return the value
      */
     @Function(docs = WARN_DOC)
@@ -196,7 +196,7 @@ public class LoggingFunctionLibrary {
      * the inspected value.
      *
      * @param message a text massage.
-     * @param value   a value
+     * @param value a value
      * @return the value
      */
     @Function(docs = DEBUG_DOC)

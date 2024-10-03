@@ -54,12 +54,12 @@ class TestMockServerDispatcher extends Dispatcher {
             return new MockResponse().setResponseCode(404);
 
         return switch (this.dispatchMode) {
-        case BOGUS -> this.dispatchBogusKey();
+        case BOGUS   -> this.dispatchBogusKey();
         case INVALID -> this.dispatchInvalidKey(requestedId);
-        case TRUE -> this.dispatchTrueKey(requestedId);
-        case WRONG -> this.dispatchWrongKey();
-        case BASIC -> this.dispatchBasicKey(requestedId);
-        default -> new MockResponse().setResponseCode(404);
+        case TRUE    -> this.dispatchTrueKey(requestedId);
+        case WRONG   -> this.dispatchWrongKey();
+        case BASIC   -> this.dispatchBasicKey(requestedId);
+        default      -> new MockResponse().setResponseCode(404);
         };
     }
 

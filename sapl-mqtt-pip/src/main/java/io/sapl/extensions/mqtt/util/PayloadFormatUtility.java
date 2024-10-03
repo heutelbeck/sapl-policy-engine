@@ -65,7 +65,7 @@ public class PayloadFormatUtility {
      *
      * @param publishMessage the published mqtt message
      * @return returns the content type or null in case no content type was
-     *         specified
+     * specified
      */
     public static String getContentType(Mqtt5Publish publishMessage) {
         Optional<MqttUtf8String> contentTypeOptional = publishMessage.getContentType(); // specifies kind of utf-8
@@ -78,7 +78,7 @@ public class PayloadFormatUtility {
      *
      * @param bytes the byte array to be checked for conversion
      * @return returns true if a conversions into a UTF-8 string is possible,
-     *         otherwise false
+     * otherwise false
      */
     public static boolean isValidUtf8String(byte[] bytes) {
         CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
@@ -95,8 +95,7 @@ public class PayloadFormatUtility {
      *
      * @param publishMessage the published mqtt message
      * @return returns the build {@link Val} of the json object or a {@link Val} of
-     *         error in case the mqtt message could not be converted into a json
-     *         object.
+     * error in case the mqtt message could not be converted into a json object.
      */
     public static Val getValOfJson(Mqtt5Publish publishMessage) {
         try {

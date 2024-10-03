@@ -85,31 +85,31 @@
 		<!-- Dependencies -->
 		<guice.version>5.1.0</guice.version>
 		<xtext.version>2.35.0</xtext.version>
-		<junit.version>5.10.3</junit.version>
+		<junit.version>5.11.0</junit.version>
 		<jacoco.version>0.8.12</jacoco.version>
 		<rsocket.version>1.1.4</rsocket.version>
 		<lombok.version>1.18.34</lombok.version>
-		<vaadin.version>24.4.7</vaadin.version>
+		<vaadin.version>24.4.12</vaadin.version>
 		<assertj.version>3.26.3</assertj.version>
-		<springboot.version>3.3.3</springboot.version>
-		<reactor-netty.version>1.1.21</reactor-netty.version>
+		<springboot.version>3.3.4</springboot.version>
+		<reactor-netty.version>1.1.22</reactor-netty.version>
 		<spotify.hamcrest.version>1.3.2</spotify.hamcrest.version>
 		<json-unit-assertj.version>3.4.1</json-unit-assertj.version>
 		<json-schema-validator.version>1.5.1</json-schema-validator.version>
-		
+
 		<!-- Maven Plug-Ins -->
 		<tycho.version>4.0.8</tycho.version>
 		<spdx-maven-plugin.version>0.7.3</spdx-maven-plugin.version>
 		<license-maven-plugin.version>4.5</license-maven-plugin.version>
-		<maven-failsafe-plugin.version>3.3.1</maven-failsafe-plugin.version>
-		<maven-surefire-plugin.version>3.3.1</maven-surefire-plugin.version>
+		<maven-failsafe-plugin.version>3.5.0</maven-failsafe-plugin.version>
+		<maven-surefire-plugin.version>3.5.0</maven-surefire-plugin.version>
 		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
 		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
-		<spotbugs-maven-plugin.version>4.8.6.2</spotbugs-maven-plugin.version>
+		<spotbugs-maven-plugin.version>4.8.6.3</spotbugs-maven-plugin.version>
 		<sb-contrib.version>7.6.4</sb-contrib.version>
 		<maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-		
-		 <!-- Base argLine for JDK21+ profiles -->
+
+		<!-- Base argLine for JDK21+ profiles -->
 		<argLine />
 	</properties>
 
@@ -200,7 +200,7 @@
 				<artifactId>json-unit-assertj</artifactId>
 				<version>${json-unit-assertj.version}</version>
 			</dependency>
-			
+
 			<!-- Spring-Boot -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
@@ -704,7 +704,18 @@
 							<version>${maven-surefire-plugin.version}</version>
 							<configuration>
 								<argLine>@{argLine} -Xshare:off
-									-XX:+EnableDynamicAgentLoading</argLine>
+									-XX:+EnableDynamicAgentLoading
+									-Djava.security.manager=allow</argLine>
+							</configuration>
+						</plugin>
+						<plugin>
+							<groupId>org.apache.maven.plugins</groupId>
+							<artifactId>maven-failsafe-plugin</artifactId>
+							<version>${maven-failsafe-plugin.version}</version>
+							<configuration>
+								<argLine>@{argLine} -Xshare:off
+									-XX:+EnableDynamicAgentLoading
+									-Djava.security.manager=allow</argLine>
 							</configuration>
 						</plugin>
 					</plugins>
@@ -748,7 +759,7 @@
 				https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
 		</repository>
 	</distributionManagement>
-	
+
 	<repositories>
 		<!-- Central on top here makes sure it has the highest priority. -->
 		<repository>
@@ -767,7 +778,7 @@
 			</snapshots>
 		</repository>
 	</repositories>
-	
+
 	<pluginRepositories>
 		<!-- Central on top here makes sure it has the highest priority. -->
 		<pluginRepository>

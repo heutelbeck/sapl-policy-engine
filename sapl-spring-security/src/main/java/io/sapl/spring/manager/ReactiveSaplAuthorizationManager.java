@@ -76,7 +76,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
      * this moment in time.
      *
      * @param authentication the Authentication to check
-     * @param context        the context to check
+     * @param context the context to check
      * @return a decision
      */
     @Override

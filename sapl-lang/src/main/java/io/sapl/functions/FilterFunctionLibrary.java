@@ -86,12 +86,11 @@ public class FilterFunctionLibrary {
      * Replaces a section of a text with a fixed character.
      *
      * @param parameters STRING (original textual Val), DISCLOSE_LEFT leave this
-     *                   number of characters original on the left side of the
-     *                   string, DISCLOSE_RIGHT leave this number of characters
-     *                   original on the right side of the string, REPLACEMENT the
-     *                   replacement characters, defaulting to X.
+     * number of characters original on the left side of the string, DISCLOSE_RIGHT
+     * leave this number of characters original on the right side of the string,
+     * REPLACEMENT the replacement characters, defaulting to X.
      * @return the original Text value with the indicated characters replaced with
-     *         the replacement characters.
+     * the replacement characters.
      */
     @Function(docs = BLACKEN_DOC)
     public static Val blacken(Val... parameters) {
@@ -205,7 +204,7 @@ public class FilterFunctionLibrary {
     /**
      * Replaces the original with another value.
      *
-     * @param original    the original value, which is ignored.
+     * @param original the original value, which is ignored.
      * @param replacement a replacement value.
      * @return the replacement value.
      */

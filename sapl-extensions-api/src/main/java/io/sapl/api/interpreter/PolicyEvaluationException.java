@@ -46,7 +46,7 @@ public class PolicyEvaluationException extends RuntimeException {
      * Create a new PolicyEvaluationException
      *
      * @param format format string
-     * @param args   arguments for format string
+     * @param args arguments for format string
      */
     public PolicyEvaluationException(String format, Object... args) {
         super(String.format(format, args));
@@ -56,8 +56,8 @@ public class PolicyEvaluationException extends RuntimeException {
      * Create a new PolicyEvaluationException
      *
      * @param format format string
-     * @param cause  causing Throwable
-     * @param args   arguments for format string
+     * @param cause causing Throwable
+     * @param args arguments for format string
      */
     public PolicyEvaluationException(Throwable cause, String format, Object... args) {
         super(String.format(format, args), cause);
@@ -67,7 +67,7 @@ public class PolicyEvaluationException extends RuntimeException {
      * Create a new PolicyEvaluationException
      *
      * @param message a message
-     * @param cause   causing Throwable
+     * @param cause causing Throwable
      */
     public PolicyEvaluationException(String message, Throwable cause) {
         super(message, cause);

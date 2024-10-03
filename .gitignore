@@ -35,3 +35,9 @@ sapl-web/src/main/java/io/sapl/grammar/web/SAPLWebModule.java
 sapl-ide/src/test/java/io/sapl/grammar/ide/contentassist/Schema_wo_variables.java
 .vscode
 sapl-lang/.project
+sapl-server-ce/tsconfig.json
+sapl-server-ce/types.d.ts
+sapl-server-ce/vite.config.ts
+sapl-eclipse-plugin/sapl-test-eclipse-ui/.tycho-consumer-pom.xml
+sapl-eclipse-plugin/sapl-eclipse-ui/.tycho-consumer-pom.xml
+sapl-eclipse-plugin/sapl-eclipse-feature/.tycho-consumer-pom.xml

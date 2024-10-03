@@ -59,9 +59,9 @@ public final class SaplAttributeRegistry {
      * Returns an {@link Optional} {@link SaplAttribute} for the
      * {@link MethodInvocation}.
      *
-     * @param <T>            the annotation type
+     * @param <T> the annotation type
      *
-     * @param mi             the {@link MethodInvocation} to use
+     * @param mi the {@link MethodInvocation} to use
      * @param annotationType the annotation type.
      * @return the {@link Optional} {@link SaplAttribute} to use
      */
@@ -120,10 +120,10 @@ public final class SaplAttributeRegistry {
      * Returns an {@link Optional} {@link SaplAttribute} for the method and the
      * target class.
      *
-     * @param <T>            the annotation type
+     * @param <T> the annotation type
      *
-     * @param method         the method
-     * @param targetClass    the target class
+     * @param method the method
+     * @param targetClass the target class
      * @param annotationType the annotation type
      * @return the {@link Optional} {@link SaplAttribute} to use
      */

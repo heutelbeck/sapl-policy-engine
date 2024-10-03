@@ -40,7 +40,7 @@ class ProtectedPayload<P> {
     /**
      * Creates a ProtectedPayload
      *
-     * @param <T>     the payload type.
+     * @param <T> the payload type.
      * @param payload a payload
      * @return a ProtectedPayload containing the payload value
      */
@@ -51,7 +51,7 @@ class ProtectedPayload<P> {
     /**
      * Creates a ProtectedPayload
      *
-     * @param <T>       the payload type.
+     * @param <T> the payload type.
      * @param exception an Exception
      * @return a ProtectedPayload containing the exception
      */

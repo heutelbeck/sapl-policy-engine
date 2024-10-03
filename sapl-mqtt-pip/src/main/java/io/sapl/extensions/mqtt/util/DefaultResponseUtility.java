@@ -51,7 +51,7 @@ public class DefaultResponseUtility {
      * Build the {@link DefaultResponseConfig} of the provided configuration.
      *
      * @param pipMqttClientConfig the pdp configuration
-     * @param pipConfigParams     the configuration provided in the attribute finder
+     * @param pipConfigParams the configuration provided in the attribute finder
      * @return returns the build {@link DefaultResponseConfig}
      */
     public static DefaultResponseConfig getDefaultResponseConfig(JsonNode pipMqttClientConfig, Val pipConfigParams) {

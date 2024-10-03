@@ -134,7 +134,7 @@ public class ReactiveConstraintHandlerBundle<T> {
      * methodInvocation.
      *
      * @param methodInvocation the method invocation to examine and potentially
-     *                         modify
+     * modify
      */
     public void handleMethodInvocationHandlers(MethodInvocation methodInvocation) {
         methodInvocationHandlers.accept(methodInvocation);
@@ -164,7 +164,7 @@ public class ReactiveConstraintHandlerBundle<T> {
      *
      * @param resourceAccessPoint a reactive resource access point
      * @return the resource access point with the different handlers wired to their
-     *         respective hooks.
+     * respective hooks.
      */
     public Flux<T> wrap(Flux<T> resourceAccessPoint) {
         var wrapped = resourceAccessPoint.doOnRequest(onRequestHandlers).doOnSubscribe(onSubscribeHandlers)

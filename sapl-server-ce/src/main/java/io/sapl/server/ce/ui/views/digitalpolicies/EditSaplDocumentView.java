@@ -286,7 +286,7 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
      * Gets the currently selected version number.
      *
      * @return the version number as {@link Optional} (empty if no explicit version
-     *         is selected)
+     * is selected)
      */
     private Optional<Integer> getSelectedVersionNumber() {
         String selectedVersionAsString = versionSelection.getValue();

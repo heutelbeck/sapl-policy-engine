@@ -44,11 +44,11 @@ public final class MqttClientValues {
     /**
      * Caches the given client specifics.
      *
-     * @param clientId          the referenced mqtt client
+     * @param clientId the referenced mqtt client
      * @param mqttReactorClient the mqtt reactor client
-     * @param mqttBrokerConfig  the configuration of the connection to the mqtt
-     *                          broker
-     * @param clientConnection  the mqtt client connection
+     * @param mqttBrokerConfig the configuration of the connection to the mqtt
+     * broker
+     * @param clientConnection the mqtt client connection
      */
     public MqttClientValues(String clientId, Mqtt5ReactorClient mqttReactorClient, ObjectNode mqttBrokerConfig,
             Mono<Mqtt5ConnAck> clientConnection) {
@@ -84,7 +84,7 @@ public final class MqttClientValues {
      *
      * @param topic the reference for the topic count
      * @return returns true in case there is a new positive count for the topic
-     *         otherwise returns false
+     * otherwise returns false
      */
     public boolean countTopicSubscriptionsCountMapDown(String topic) {
         int count = topicSubscriptionsCountMap.remove(topic);

@@ -36,8 +36,7 @@ public class QueryCreation {
      * conditions from the obligation.
      *
      * @param basicQuery is the original value from the
-     *                   {@link org.springframework.data.r2dbc.repository.Query}
-     *                   annotation.
+     * {@link org.springframework.data.r2dbc.repository.Query} annotation.
      * @param conditions are the query conditions from the {@link Decision}.
      * @return the manipulated query.
      */
@@ -122,7 +121,7 @@ public class QueryCreation {
      * converted from the method name.
      *
      * @param conditions are the conditions from the {@link Decision}.
-     * @param selection  is the selection from the {@link Decision}.
+     * @param selection is the selection from the {@link Decision}.
      * @return created sql query.
      */
     public <T> String createSqlQuery(ArrayNode conditions, ArrayNode selection, ArrayNode transformations,

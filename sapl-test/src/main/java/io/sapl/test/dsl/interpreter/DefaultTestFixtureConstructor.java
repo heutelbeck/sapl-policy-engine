@@ -87,9 +87,9 @@ class DefaultTestFixtureConstructor {
             final var registration = getRegistrationForType(fixtureRegistrations, registrationType, identifier);
 
             switch (specificImport.getType()) {
-            case PIP -> handlePip(fixture, registration, identifier);
-            case STATIC_PIP -> handleStaticPip(fixture, registration, identifier);
-            case FUNCTION_LIBRARY -> handleFunctionLibrary(fixture, registration, identifier);
+            case PIP                     -> handlePip(fixture, registration, identifier);
+            case STATIC_PIP              -> handleStaticPip(fixture, registration, identifier);
+            case FUNCTION_LIBRARY        -> handleFunctionLibrary(fixture, registration, identifier);
             case STATIC_FUNCTION_LIBRARY -> handleStaticFunctionLibrary(fixture, registration, identifier);
             }
         }

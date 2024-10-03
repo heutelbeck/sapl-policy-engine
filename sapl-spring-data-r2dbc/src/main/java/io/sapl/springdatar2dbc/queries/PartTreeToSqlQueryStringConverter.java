@@ -92,8 +92,8 @@ public class PartTreeToSqlQueryStringConverter {
      * adjusted here.
      *
      * @param baseConditions the already built {@link SqlCondition}s.
-     * @param currentOrPart  the current SqlConditions, where the last
-     *                       {@link SqlCondition} is adjusted.
+     * @param currentOrPart the current SqlConditions, where the last
+     * {@link SqlCondition} is adjusted.
      * @return the composite {@link SqlCondition}s.
      */
     private ArrayList<SqlCondition> or(ArrayList<SqlCondition> baseConditions, ArrayList<SqlCondition> currentOrPart) {
@@ -151,8 +151,8 @@ public class PartTreeToSqlQueryStringConverter {
     /**
      * Builds a {@link SqlCondition} from the available parameters.
      *
-     * @param part       is the current {@link Part}
-     * @param argument   is the corresponding value of the part.
+     * @param part is the current {@link Part}
+     * @param argument is the corresponding value of the part.
      * @param domainType is the domain type.
      * @return created {@link SqlCondition}.
      */

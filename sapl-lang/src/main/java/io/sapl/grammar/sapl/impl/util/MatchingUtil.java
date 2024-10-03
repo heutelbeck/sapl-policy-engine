@@ -34,7 +34,7 @@ public class MatchingUtil {
      * the context.
      *
      * @param targetExpression the explicit or implicit target expression
-     * @param startObject      the element from where the evaluation starts
+     * @param startObject the element from where the evaluation starts
      * @return a Mono of the matching result
      */
     public static Mono<Val> matches(Expression targetExpression, EObject startObject) {

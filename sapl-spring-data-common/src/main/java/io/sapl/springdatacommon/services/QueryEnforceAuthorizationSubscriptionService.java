@@ -63,7 +63,7 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * information obtained.
      *
      * @param methodInvocation from the interface
-     *                         {@link org.aopalliance.intercept.MethodInterceptor}
+     * {@link org.aopalliance.intercept.MethodInterceptor}
      * @return the found AuthorizationSubscription.
      */
     public AuthorizationSubscription getAuthorizationSubscription(MethodInvocation methodInvocation,
@@ -79,9 +79,9 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * The EvaluationContext must be populated with the parameters of the method in
      * order to be resolved.
      *
-     * @param context          is the {@link EvaluationContext}
+     * @param context is the {@link EvaluationContext}
      * @param methodInvocation from the interface
-     *                         {@link org.aopalliance.intercept.MethodInterceptor}
+     * {@link org.aopalliance.intercept.MethodInterceptor}
      */
     private void setMethodParameterInEvaluationContext(EvaluationContext context, MethodInvocation methodInvocation) {
         var methodParameters = Arrays.stream(methodInvocation.getMethod().getParameters()).map(Parameter::getName)
@@ -98,7 +98,7 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * an AuthorizationSubscription.
      *
      * @param enforceAnnotation corresponds to the information from the QueryEnforce
-     *                          annotation.
+     * annotation.
      * @return new {@link AuthorizationSubscription}.
      */
     private AuthorizationSubscription enforceAnnotationValueToAuthorizationSubscription(QueryEnforce enforceAnnotation,
@@ -127,11 +127,11 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * json string
      *
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
-     * @param staticClasses   corresponds to all specified static variables
-     *                        {@link QueryEnforce#staticClasses()}.
+     * QueryEnforce annotation.
+     * @param staticClasses corresponds to all specified static variables
+     * {@link QueryEnforce#staticClasses()}.
      * @return the resolved final value of the corresponding attribute of an
-     *         {@link AuthorizationSubscription}.
+     * {@link AuthorizationSubscription}.
      * @throws ClassNotFoundException
      */
     @SneakyThrows // ClassNotFoundException
@@ -204,7 +204,7 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * Parameters of the method are extracted from the {@link EvaluationContext}.
      *
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
+     * QueryEnforce annotation.
      * @return the value of the method parameter.
      */
     private String parseMethodParameterInEvaluationContext(String annotationValue, MethodInvocation methodInvocation) {
@@ -215,13 +215,13 @@ public class QueryEnforceAuthorizationSubscriptionService {
 
     /**
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
-     * @param staticClasses   contains all specified static classes.
+     * QueryEnforce annotation.
+     * @param staticClasses contains all specified static classes.
      * @return the value returned by the static class method or just the method
-     *         parameter as value.
+     * parameter as value.
      * @see EvaluationContext corresponds to a method of a static class. The second
-     *      parameter 'staticClasses' contains the corresponding static class. The
-     *      value from the {@link EvaluationContext} is extracted.
+     * parameter 'staticClasses' contains the corresponding static class. The value
+     * from the {@link EvaluationContext} is extracted.
      */
     private Object getObjectByStaticClassWhenValueStartsWithHash(String annotationValue, Class<?>[] staticClasses,
             MethodInvocation methodInvocation) {
@@ -232,12 +232,12 @@ public class QueryEnforceAuthorizationSubscriptionService {
 
     /**
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
-     * @param staticClasses   contains all specified static classes.
+     * QueryEnforce annotation.
+     * @param staticClasses contains all specified static classes.
      * @return the value returned by the static class method.
      * @see EvaluationContext corresponds to a method of a static class. The second
-     *      parameter 'staticClasses' contains the corresponding static class. The
-     *      value from the {@link EvaluationContext} is extracted.
+     * parameter 'staticClasses' contains the corresponding static class. The value
+     * from the {@link EvaluationContext} is extracted.
      */
     @SneakyThrows // NoSuchMethodException
     private Object findMethodAndParseExpression(String methodName, Class<?>[] staticClasses, String annotationValue,
@@ -269,7 +269,7 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * desired method.
      *
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
+     * QueryEnforce annotation.
      * @return the value returned by the static class method.
      */
     private Object getObjectByStaticClassWhenValueStartsWithLetterT(String annotationValue,
@@ -285,7 +285,7 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * the EvaluationContext to call the desired bean.
      *
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
+     * QueryEnforce annotation.
      * @return the value returned by the bean.
      */
     private Object getObjectByBeanWhenValueStartsWithAt(String annotationValue, MethodInvocation methodInvocation) {

@@ -49,12 +49,11 @@ public interface StepConstructor {
      * Defines logic to construct an instance of {@link SaplTestFixture} and handles
      * fixture registrations.
      *
-     * @param document              the document to test
-     * @param pdpVariables          the pdp variables to apply to the fixture
+     * @param document the document to test
+     * @param pdpVariables the pdp variables to apply to the fixture
      * @param pdpCombiningAlgorithm the pdp combining algorithm to set
-     * @param givenSteps            containing the
-     *                              {@link io.sapl.test.grammar.sapltest.Import} to
-     *                              apply on the constructed fixture.
+     * @param givenSteps containing the {@link io.sapl.test.grammar.sapltest.Import}
+     * to apply on the constructed fixture.
      * @return The created Fixture.
      */
     SaplTestFixture constructTestFixture(Document document, PdpVariables pdpVariables,
@@ -66,10 +65,10 @@ public interface StepConstructor {
      * {@link Environment}.
      *
      * @param saplTestFixture The Fixture created in
-     *                        {@link StepConstructor#constructTestFixture(Document, PdpVariables, PdpCombiningAlgorithm, List, Map)}.
-     * @param environment     The Environment to consider for the TestCase.
-     * @param needsMocks      Additional information if mocking is required for the
-     *                        TestCase.
+     * {@link StepConstructor#constructTestFixture(Document, PdpVariables, PdpCombiningAlgorithm, List, Map)}.
+     * @param environment The Environment to consider for the TestCase.
+     * @param needsMocks Additional information if mocking is required for the
+     * TestCase.
      * @return The created initial TestCase.
      */
     GivenOrWhenStep constructTestCase(SaplTestFixture saplTestFixture, Environment environment, boolean needsMocks);
@@ -78,11 +77,11 @@ public interface StepConstructor {
      * Defines logic to apply a List of GivenSteps to the initial TestCase to
      * construct a {@link WhenStep}.
      *
-     * @param givenSteps      containing the
-     *                        {@link io.sapl.test.grammar.sapltest.MockDefinition}
-     *                        to apply on the constructed WhenStep.
+     * @param givenSteps containing the
+     * {@link io.sapl.test.grammar.sapltest.MockDefinition} to apply on the
+     * constructed WhenStep.
      * @param initialTestCase The initial TestCase contructed from
-     *                        {@link StepConstructor#constructTestCase(SaplTestFixture, Environment, boolean)}.
+     * {@link StepConstructor#constructTestCase(SaplTestFixture, Environment, boolean)}.
      * @return The created WhenStep instance.
      */
     WhenStep constructWhenStep(List<GivenStep> givenSteps, GivenOrWhenStep initialTestCase, Expectation expectation);
@@ -92,7 +91,7 @@ public interface StepConstructor {
      *
      * @param scenario The Scenario to derive information from.
      * @param whenStep The WhenStep created in
-     *                 {@link StepConstructor#constructWhenStep(List, GivenOrWhenStep, Expectation)}.
+     * {@link StepConstructor#constructWhenStep(List, GivenOrWhenStep, Expectation)}.
      * @return The created ExpectStep.
      */
     ExpectStep constructExpectStep(Scenario scenario, WhenStep whenStep);
@@ -100,9 +99,9 @@ public interface StepConstructor {
     /**
      * Defines logic to construct a {@link VerifyStep} from a ExpectStep.
      *
-     * @param scenario   The Scenario to derive information from.
+     * @param scenario The Scenario to derive information from.
      * @param expectStep The ExpectStep created in
-     *                   {@link StepConstructor#constructExpectStep(Scenario, WhenStep)}.
+     * {@link StepConstructor#constructExpectStep(Scenario, WhenStep)}.
      * @return The created VerifyStep.
      */
     VerifyStep constructVerifyStep(Scenario scenario, ExpectStep expectStep);

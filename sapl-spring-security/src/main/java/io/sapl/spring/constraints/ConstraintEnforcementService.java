@@ -85,22 +85,18 @@ public class ConstraintEnforcementService {
      * Constructor with dependency injection of all beans implementing handler
      * providers.
      *
-     * @param globalRunnableProviders            all
-     *                                           RunnableConstraintHandlerProvider
-     * @param globalConsumerProviders            all
-     *                                           ConsumerConstraintHandlerProvider
+     * @param globalRunnableProviders all RunnableConstraintHandlerProvider
+     * @param globalConsumerProviders all ConsumerConstraintHandlerProvider
      * @param globalSubscriptionHandlerProviders all SubscriptionHandlerProvider
-     * @param globalRequestHandlerProviders      all RequestHandlerProvider
-     * @param globalMappingHandlerProviders      all
-     *                                           MappingConstraintHandlerProvider
+     * @param globalRequestHandlerProviders all RequestHandlerProvider
+     * @param globalMappingHandlerProviders all MappingConstraintHandlerProvider
      * @param globalErrorMappingHandlerProviders all
-     *                                           ErrorMappingConstraintHandlerProvider
-     * @param globalErrorHandlerProviders        all ErrorHandlerProvider
-     * @param filterPredicateProviders           all
-     *                                           FilterPredicateConstraintHandlerProvider
-     * @param methodInvocationHandlerProviders   all
-     *                                           MethodInvocationConstraintHandlerProvider
-     * @param mapper                             the global ObjectMapper
+     * ErrorMappingConstraintHandlerProvider
+     * @param globalErrorHandlerProviders all ErrorHandlerProvider
+     * @param filterPredicateProviders all FilterPredicateConstraintHandlerProvider
+     * @param methodInvocationHandlerProviders all
+     * MethodInvocationConstraintHandlerProvider
+     * @param mapper the global ObjectMapper
      */
     public ConstraintEnforcementService(List<RunnableConstraintHandlerProvider> globalRunnableProviders,
             List<ConsumerConstraintHandlerProvider<?>> globalConsumerProviders,
@@ -135,10 +131,10 @@ public class ConstraintEnforcementService {
      * decision is enforced. I.e., access is granted or denied, and all constraints
      * are handled.
      *
-     * @param <T>                 event type
-     * @param decision            a decision
+     * @param <T> event type
+     * @param decision a decision
      * @param resourceAccessPoint a Flux to be protected
-     * @param clazz               the class of the event type
+     * @param clazz the class of the event type
      * @return a Flux where the decision is enforced.
      */
     public <T> Flux<T> enforceConstraintsOfDecisionOnResourceAccessPoint(AuthorizationDecision decision,
@@ -153,17 +149,16 @@ public class ConstraintEnforcementService {
     }
 
     /**
-     * @param <T>                event type
-     * @param decision           a decision
-     * @param clazz              class of the event type
+     * @param <T> event type
+     * @param decision a decision
+     * @param clazz class of the event type
      * @param ignoredObligations if the client of this method already has taken care
-     *                           of specific obligations that have not to be handled
-     *                           by the bundle, these can be indicated here and will
-     *                           be ignored when checking for completeness of
-     *                           obligation handing by the bundle.
+     * of specific obligations that have not to be handled by the bundle, these can
+     * be indicated here and will be ignored when checking for completeness of
+     * obligation handing by the bundle.
      * @return a ReactiveTypeConstraintHandlerBundle with handlers for all
-     *         constraints in the decision, or throws AccessDeniedException, if
-     *         bundle cannot be constructed.
+     * constraints in the decision, or throws AccessDeniedException, if bundle
+     * cannot be constructed.
      */
     public <T> ReactiveConstraintHandlerBundle<T> reactiveTypeBundleFor(AuthorizationDecision decision, Class<T> clazz,
             JsonNode... ignoredObligations) {
@@ -200,12 +195,12 @@ public class ConstraintEnforcementService {
     }
 
     /**
-     * @param <T>      event type
+     * @param <T> event type
      * @param decision a decision
-     * @param clazz    class of the event type
+     * @param clazz class of the event type
      * @return a BlockingPostEnforceConstraintHandlerBundle with handlers for all
-     *         constraints in the decision, or throws AccessDeniedException, if
-     *         bundle cannot be constructed.
+     * constraints in the decision, or throws AccessDeniedException, if bundle
+     * cannot be constructed.
      */
     public <T> BlockingConstraintHandlerBundle<T> blockingPostEnforceBundleFor(AuthorizationDecision decision,
             Class<T> clazz) {
@@ -236,12 +231,12 @@ public class ConstraintEnforcementService {
     }
 
     /**
-     * @param <T>      the return type of the protected Resource Access Point
+     * @param <T> the return type of the protected Resource Access Point
      * @param decision a decision
-     * @param clazz    the return type of the protected Resource Access Point
+     * @param clazz the return type of the protected Resource Access Point
      * @return a BlockingPreEnforceConstraintHandlerBundle with handlers for all
-     *         constraints in the decision, or throws AccessDeniedException, if
-     *         bundle cannot be constructed.
+     * constraints in the decision, or throws AccessDeniedException, if bundle
+     * cannot be constructed.
      */
     public <T> BlockingConstraintHandlerBundle<T> blockingPreEnforceBundleFor(AuthorizationDecision decision,
             Class<T> clazz) {
@@ -267,8 +262,8 @@ public class ConstraintEnforcementService {
      *
      * @param decision a decision
      * @return a BlockingPreEnforceConstraintHandlerBundle with handlers for all
-     *         constraints in the decision, or throws AccessDeniedException, if
-     *         bundle cannot be constructed.
+     * constraints in the decision, or throws AccessDeniedException, if bundle
+     * cannot be constructed.
      */
     public <T> BlockingConstraintHandlerBundle<T> accessManagerBundleFor(AuthorizationDecision decision) {
         var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
@@ -685,8 +680,7 @@ public class ConstraintEnforcementService {
 
     private Runnable constructRunnableHandlersForConstraints(Signal signal, Optional<ArrayNode> constraints,
             Consumer<JsonNode> onHandlerFound) {
-        var handlers = (Runnable) () -> {
-        };
+        var handlers = (Runnable) () -> {};
 
         if (constraints.isEmpty())
             return handlers;
@@ -721,12 +715,12 @@ public class ConstraintEnforcementService {
      * Convenience method to replace the resource access point (RAP) with a Flux
      * only containing the resource if present.
      *
-     * @param <T>                 event type
+     * @param <T> event type
      * @param resourceAccessPoint the original RAP
-     * @param resource            an optional resource to replace the RAP
-     * @param clazz               event type class
+     * @param resource an optional resource to replace the RAP
+     * @param clazz event type class
      * @return the replacement, if a resource was present. Else return the original
-     *         RAP.
+     * RAP.
      */
     public <T> Flux<T> replaceIfResourcePresent(Flux<T> resourceAccessPoint, Optional<JsonNode> resource,
             Class<T> clazz) {
@@ -745,11 +739,11 @@ public class ConstraintEnforcementService {
      * Convenience method to convert a JSON to a JavaObject using the global
      * ObjectMapper.
      *
-     * @param <T>      type of the expected output
+     * @param <T> type of the expected output
      * @param resource a JSON value
-     * @param clazz    class of the expected output
+     * @param clazz class of the expected output
      * @return the JSON object converted into the provided class
-     * @throws JsonProcessingException  on JSON marshaling error
+     * @throws JsonProcessingException on JSON marshaling error
      * @throws IllegalArgumentException on JSON marshaling error
      */
     public <T> T unmarshallResource(JsonNode resource, Class<T> clazz) throws JsonProcessingException {

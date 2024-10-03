@@ -142,12 +142,12 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             return;
 
         switch (parserRuleName) {
-        case "import" -> createImportProposals(feature, context, acceptor, pdpConfiguration);
-        case "schema" -> createSchemaProposals(feature, context, acceptor, pdpConfiguration);
+        case "import"              -> createImportProposals(feature, context, acceptor, pdpConfiguration);
+        case "schema"              -> createSchemaProposals(feature, context, acceptor, pdpConfiguration);
         case "policy", "policyset" -> createPolicyOrPolicySetNameStringProposals(feature, context, acceptor);
-        case "basic" -> createBasicProposals(feature, context, acceptor, pdpConfiguration);
-        case "step" -> createIdStepProposals(context, acceptor, pdpConfiguration);
-        default -> {
+        case "basic"               -> createBasicProposals(feature, context, acceptor, pdpConfiguration);
+        case "step"                -> createIdStepProposals(context, acceptor, pdpConfiguration);
+        default                    -> {
             // NOOP
         }
         }
@@ -266,8 +266,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         switch (feature) {
         case "subscriptionelement" -> createProposalsContainingSubscriptionElementIdentifiers(context, acceptor);
-        case "schemaexpression" -> createEnvironmentVariableProposals(context, acceptor, pdpConfiguration);
-        default -> {
+        case "schemaexpression"    -> createEnvironmentVariableProposals(context, acceptor, pdpConfiguration);
+        default                    -> {
             // NOOP
         }
         }
@@ -276,16 +276,16 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     private void createBasicProposals(String feature, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
         switch (feature) {
-        case "identifier" -> createBasicIdentifierProposals(context, acceptor, pdpConfiguration);
+        case "identifier"       -> createBasicIdentifierProposals(context, acceptor, pdpConfiguration);
         case "idsteps", "steps" -> {
             createBasicIdentifierProposals(context, acceptor, pdpConfiguration);
             createIdStepProposals(context, acceptor, pdpConfiguration);
         }
-        case "fsteps" -> {
+        case "fsteps"           -> {
             createFStepsProposals(context, acceptor, pdpConfiguration);
             createIdStepProposals(context, acceptor, pdpConfiguration);
         }
-        default -> {
+        default                 -> {
             // NOOP
         }
         }

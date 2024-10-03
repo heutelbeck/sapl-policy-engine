@@ -180,7 +180,6 @@ public class ErrorReportGenerator {
         return newLine.toString();
     }
 
-    private record MarkedSource(String source, int row, int column, String documentName) {
-    }
+    private record MarkedSource(String source, int row, int column, String documentName) {}
 
 }

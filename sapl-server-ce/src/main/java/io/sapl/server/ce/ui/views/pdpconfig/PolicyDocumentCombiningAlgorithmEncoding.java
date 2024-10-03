@@ -64,11 +64,11 @@ class PolicyDocumentCombiningAlgorithmEncoding {
                 PolicyDocumentCombiningAlgorithm.class);
         for (PolicyDocumentCombiningAlgorithm combiningAlgorithm : combiningAlgorithms) {
             String encoded = switch (combiningAlgorithm) {
-            case DENY_UNLESS_PERMIT -> "deny-unless-permit";
-            case PERMIT_UNLESS_DENY -> "permit-unless-deny";
+            case DENY_UNLESS_PERMIT  -> "deny-unless-permit";
+            case PERMIT_UNLESS_DENY  -> "permit-unless-deny";
             case ONLY_ONE_APPLICABLE -> "only-one-applicable";
-            case DENY_OVERRIDES -> "deny-overrides";
-            case PERMIT_OVERRIDES -> "permit-overrides";
+            case DENY_OVERRIDES      -> "deny-overrides";
+            case PERMIT_OVERRIDES    -> "permit-overrides";
             };
 
             mapping.put(combiningAlgorithm, encoded);

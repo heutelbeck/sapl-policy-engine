@@ -70,7 +70,7 @@ public class MockingAttributeContext implements AttributeContext {
      * Constructor of MockingAttributeContext
      *
      * @param originalAttributeContext original "normal" AttributeContext do
-     *                                 delegate original attribute calls
+     * delegate original attribute calls
      */
     public MockingAttributeContext(AttributeContext originalAttributeContext) {
         this.originalAttributeContext = originalAttributeContext;

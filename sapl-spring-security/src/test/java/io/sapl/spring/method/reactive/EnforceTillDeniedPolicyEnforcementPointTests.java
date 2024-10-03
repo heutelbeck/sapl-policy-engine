@@ -83,8 +83,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
     public static void beforeAll() {
         // this eliminates excessive logging of dropped errors in case of onErrorStop()
         // downstream.
-        Hooks.onErrorDropped(err -> {
-        });
+        Hooks.onErrorDropped(err -> {});
     }
 
     @BeforeEach
@@ -178,8 +177,7 @@ class EnforceTillDeniedPolicyEnforcementPointTests {
         var data               = Flux.just(1, 2, 3);
         var sut                = EnforceTillDeniedPolicyEnforcementPoint.of(decisions, data, constraintsService,
                 Integer.class);
-        StepVerifier.create(sut.onErrorContinue((a, b) -> {
-        })).expectError(AccessDeniedException.class).verify();
+        StepVerifier.create(sut.onErrorContinue((a, b) -> {})).expectError(AccessDeniedException.class).verify();
     }
 
     @Test

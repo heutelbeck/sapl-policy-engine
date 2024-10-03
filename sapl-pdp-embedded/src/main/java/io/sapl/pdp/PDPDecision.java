@@ -56,8 +56,7 @@ public class PDPDecision implements TracedDecision {
     LinkedList<Modification>  modifications = new LinkedList<>();
     BaseJsonNode              metadata      = null;
 
-    private record Modification(AuthorizationDecision authorizationDecision, String explanation) {
-    }
+    private record Modification(AuthorizationDecision authorizationDecision, String explanation) {}
 
     private PDPDecision(AuthorizationSubscription authorizationSubscription, PolicyRetrievalResult prpResult,
             CombinedDecision combinedDecision, Instant timestamp, List<Modification> modifications,

@@ -124,7 +124,7 @@
 		<dependency>
 			<groupId>com.giffing.bucket4j.spring.boot.starter</groupId>
 			<artifactId>bucket4j-spring-boot-starter</artifactId>
-			<version>0.10.3</version>
+			<version>0.12.6</version>
 		</dependency>
 		<dependency>
 			<groupId>javax.cache</groupId>
@@ -133,7 +133,7 @@
 		<dependency>
 			<groupId>com.bucket4j</groupId>
 			<artifactId>bucket4j-infinispan</artifactId>
-			<version>8.9.0</version>
+			<version>8.10.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.infinispan</groupId>

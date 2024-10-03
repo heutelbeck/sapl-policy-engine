@@ -116,7 +116,7 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> {
      *
      * @param obligations are the obligations from the {@link Decision}.
      * @return objects from the database that were queried with the manipulated
-     *         query.
+     * query.
      */
     private Flux<T> enforceQueryManipulation(ArrayNode conditions, ArrayNode selections, ArrayNode transformations,
             Class<T> domainType, String baseQuery) {

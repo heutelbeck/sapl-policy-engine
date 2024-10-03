@@ -89,8 +89,7 @@ class EnforceRecoverableIfDeniedPolicyEnforcementPointTests {
     public static void beforeAll() {
         // this eliminates excessive logging of dropped errors in case of onErrorStop()
         // downstream.
-        Hooks.onErrorDropped(err -> {
-        });
+        Hooks.onErrorDropped(err -> {});
     }
 
     @BeforeEach

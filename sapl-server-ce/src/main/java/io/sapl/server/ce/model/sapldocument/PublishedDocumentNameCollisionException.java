@@ -32,7 +32,7 @@ public class PublishedDocumentNameCollisionException extends Exception {
      * Creates a new instance of the {@link PublishedDocumentNameCollisionException}
      * class.
      *
-     * @param name    the name of the already published SAPL document
+     * @param name the name of the already published SAPL document
      * @param innerEx the inner exception
      */
     public PublishedDocumentNameCollisionException(@NonNull String name, @NonNull Throwable innerEx) {

@@ -80,7 +80,7 @@ public class JWTKeyProvider {
     /**
      * Fetches the public key of a server.
      *
-     * @param kid              the key id
+     * @param kid the key id
      * @param jPublicKeyServer the key server
      * @return the public key
      * @throws CachingException on error
@@ -116,7 +116,7 @@ public class JWTKeyProvider {
     /**
      * Put public key into cache.
      *
-     * @param kid    key id
+     * @param kid key id
      * @param pubKey public key
      */
     public void cache(String kid, RSAPublicKey pubKey) {
@@ -151,8 +151,8 @@ public class JWTKeyProvider {
     /**
      * Fetches public key from remote authentication server
      *
-     * @param kid                    ID of public key to fetch
-     * @param publicKeyURI           URI to request the public key
+     * @param kid ID of public key to fetch
+     * @param publicKeyURI URI to request the public key
      * @param publicKeyRequestMethod HTTP request method: GET or POST
      * @return public key or empty
      */

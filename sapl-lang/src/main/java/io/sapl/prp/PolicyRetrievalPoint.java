@@ -34,8 +34,8 @@ public interface PolicyRetrievalPoint {
      * constitute the environment the target expressions are evaluated in.
      *
      * @return a {@link Mono} providing the policy retrieval results containing all
-     *         the matching policies or policy sets. New results are only added to
-     *         the stream if they are different from the preceding result.
+     * the matching policies or policy sets. New results are only added to the
+     * stream if they are different from the preceding result.
      */
     Mono<PolicyRetrievalResult> retrievePolicies();
 

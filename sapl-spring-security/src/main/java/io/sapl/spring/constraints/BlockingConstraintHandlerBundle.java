@@ -62,17 +62,17 @@ public class BlockingConstraintHandlerBundle<T> {
     /**
      * Factory method for creating a bundle for use in a @PostEnforce PEP.
      *
-     * @param <T>                     payload type
-     * @param onDecisionHandlers      Handlers to be executed after each decision.
-     * @param doOnNextHandlers        Handlers to be executed when data is emitted
-     *                                by the RAP.
-     * @param onNextMapHandlers       Handlers mapping the RAP output.
-     * @param doOnErrorHandlers       Handlers executed on an error.
-     * @param onErrorMapHandlers      Handlers mapping an error.
+     * @param <T> payload type
+     * @param onDecisionHandlers Handlers to be executed after each decision.
+     * @param doOnNextHandlers Handlers to be executed when data is emitted by the
+     * RAP.
+     * @param onNextMapHandlers Handlers mapping the RAP output.
+     * @param doOnErrorHandlers Handlers executed on an error.
+     * @param onErrorMapHandlers Handlers mapping an error.
      * @param filterPredicateHandlers Handlers for filtering content from List,
-     *                                Obligation, array types.
-     * @param replaceResourceHandler  Handler for replacing the RAP output by a
-     *                                value provided by the PDP.
+     * Obligation, array types.
+     * @param replaceResourceHandler Handler for replacing the RAP output by a value
+     * provided by the PDP.
      * @return a constraint handler bundle.
      */
     public static <T> BlockingConstraintHandlerBundle<T> postEnforceConstraintHandlerBundle(Runnable onDecisionHandlers,
@@ -87,19 +87,19 @@ public class BlockingConstraintHandlerBundle<T> {
     /**
      * Factory method for creating a bundle for use in a @PreEnforce PEP.
      *
-     * @param <T>                      payload type
-     * @param onDecisionHandlers       Handlers to be executed after each decision.
-     * @param doOnNextHandlers         Handlers to be executed when data is emitted
-     *                                 by the RAP.
-     * @param onNextMapHandlers        Handlers mapping the RAP output.
-     * @param doOnErrorHandlers        Handlers executed on an error.
-     * @param onErrorMapHandlers       Handlers mapping an error.
-     * @param filterPredicateHandlers  Handlers for filtering content from List,
-     *                                 Obligation, array types.
+     * @param <T> payload type
+     * @param onDecisionHandlers Handlers to be executed after each decision.
+     * @param doOnNextHandlers Handlers to be executed when data is emitted by the
+     * RAP.
+     * @param onNextMapHandlers Handlers mapping the RAP output.
+     * @param doOnErrorHandlers Handlers executed on an error.
+     * @param onErrorMapHandlers Handlers mapping an error.
+     * @param filterPredicateHandlers Handlers for filtering content from List,
+     * Obligation, array types.
      * @param methodInvocationHandlers Handlers for manipulating the method
-     *                                 invocation.
-     * @param replaceResourceHandler   Handler for replacing the RAP output by a
-     *                                 value provided by the PDP.
+     * invocation.
+     * @param replaceResourceHandler Handler for replacing the RAP output by a value
+     * provided by the PDP.
      * @return a constraint handler bundle.
      */
     public static <T> BlockingConstraintHandlerBundle<T> preEnforceConstraintHandlerBundle(Runnable onDecisionHandlers,
@@ -114,7 +114,7 @@ public class BlockingConstraintHandlerBundle<T> {
     /**
      * Factory method for creating a bundle for use in an AuthorizationManager PEP.
      *
-     * @param <T>                payload type
+     * @param <T> payload type
      * @param onDecisionHandlers Handlers to be executed after each decision.
      * @return a constraint handler bundle.
      */
@@ -130,7 +130,7 @@ public class BlockingConstraintHandlerBundle<T> {
      * methodInvocation.
      *
      * @param methodInvocation the method invocation to examine and potentially
-     *                         modify
+     * modify
      */
     public void handleMethodInvocationHandlers(MethodInvocation methodInvocation) {
         methodInvocationHandlers.accept(methodInvocation);
