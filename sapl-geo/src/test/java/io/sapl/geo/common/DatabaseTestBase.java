@@ -40,7 +40,8 @@ public abstract class DatabaseTestBase extends TestBase {
                 "responseFormat":"GEOJSON",
                 "defaultCRS": 4326,
                 "pollingIntervalMs":1000,
-                "repetitions":2
+                "repetitions":2,
+                "responseFormat":"%s"
             """;
 
     protected String templateAll1 = ("""

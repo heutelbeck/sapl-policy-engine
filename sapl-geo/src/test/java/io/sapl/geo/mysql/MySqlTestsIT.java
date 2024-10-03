@@ -22,9 +22,14 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.MySqlTestBase;
@@ -43,23 +48,31 @@ class MySqlTestsIT extends MySqlTestBase {
         commonSetUp();
     }
 
-    @Test
-    void Test01MySqlConnection() throws JsonProcessingException {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "WKT,ExpectedAllWKT", "GEOJSON,ExpectedAllGeoJson", "GML,ExpectedAllGML", "KML,ExpectedAllKML" })
+    void Test01MySqlConnection(String responseFormat, String expectedJsonKey) throws JsonProcessingException {
 
-        var queryString   = String.format(templateAll, "geometries", "geom");
-        var expected      = Val.ofJson(expectedAll);
+        var queryString   = String.format(templateAll, responseFormat, "geometries", "geom");
+        var expected      = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
+                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+                .map(JsonNode::toPrettyString);
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
-    @Test
-    void Test02MySqlConnectionSingleResult() throws JsonProcessingException {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "WKT,ExpectedPointWKT", "GEOJSON,ExpectedPointGeoJson", "GML,ExpectedPointGML",
+            "KML,ExpectedPointKML" })
+    void Test02MySqlConnectionSingleResult(String responseFormat, String expectedJsonKey)
+            throws JsonProcessingException {
 
-        var queryString   = String.format(templatePoint, "geometries", "geom");
-        var expected      = Val.ofJson(expectedPoint);
+        var queryString   = String.format(templatePoint, responseFormat, "geometries", "geom");
+        var expected      = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
+                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+                .map(JsonNode::toPrettyString);
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
 
     }
@@ -76,7 +89,7 @@ class MySqlTestsIT extends MySqlTestBase {
                 	"where": "name = 'point'"
                 }
                 """);
-        var queryString   = String.format(errorTemplate, "nonExistant", "geog");
+        var queryString   = String.format(errorTemplate, "WKT", "nonExistant", "geog");
         var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
                 DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectError();

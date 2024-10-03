@@ -23,8 +23,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.PostgisTestBase;
@@ -43,50 +48,66 @@ class PostGisTestsIT extends PostgisTestBase {
         commonSetUp();
     }
 
-    @Test
-    void Test01PostGisConnectionGeometry() throws JsonProcessingException {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "WKT,ExpectedAllWKT", "GEOJSON,ExpectedAllGeoJson", "GML,ExpectedAllGML", "KML,ExpectedAllKML" })
+    void Test01PostGisConnectionGeometry(String responseFormat, String expectedJsonKey) throws JsonProcessingException {
 
-        var queryString = String.format(templateAll, "geometries", "geom");
-        var expected    = Val.ofJson(expectedAll);
+        var queryString = String.format(templateAll, responseFormat, "geometries", "geom");
+        var expected    = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get());
+                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+                .map(JsonNode::toPrettyString);
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
-    @Test
-    void Test02PostGisConnectionGeometrySingleResult() throws JsonProcessingException {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "WKT,ExpectedPointWKT", "GEOJSON,ExpectedPointGeoJson", "GML,ExpectedPointGML",
+            "KML,ExpectedPointKML" })
+    void Test02PostGisConnectionGeometrySingleResult(String responseFormat, String expectedJsonKey)
+            throws JsonProcessingException {
 
-        var queryString = String.format(templatePoint, "geometries", "geom");
-        var expected    = Val.ofJson(expectedPoint);
+        var queryString = String.format(templatePoint, responseFormat, "geometries", "geom");
+        var expected    = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get());
+                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+                .map(JsonNode::toPrettyString);
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
-    @Test
-    void Test03PostGisConnectionGeography() throws JsonProcessingException {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "WKT,ExpectedAllWKT", "GEOJSON,ExpectedAllGeoJson", "GML,ExpectedAllGML", "KML,ExpectedAllKML" })
+    void Test03PostGisConnectionGeography(String responseFormat, String expectedJsonKey)
+            throws JsonProcessingException {
 
-        var queryString = String.format(templateAll, "geographies", "geog");
-        var expected    = Val.ofJson(expectedAll);
+        var queryString = String.format(templateAll, responseFormat, "geographies", "geog");
+        var expected    = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get());
+                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+                .map(JsonNode::toPrettyString);
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
-    @Test
-    void Test04PostGisConnectionGeographySingleResult() throws JsonProcessingException {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "WKT,ExpectedPointWKT", "GEOJSON,ExpectedPointGeoJson", "GML,ExpectedPointGML",
+            "KML,ExpectedPointKML" })
+    void Test04PostGisConnectionGeographySingleResult(String responseFormat, String expectedJsonKey)
+            throws JsonProcessingException {
 
-        var str     = String.format(templatePoint, "geographies", "geog");
-        var exp     = Val.ofJson(expectedPoint);
-        var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
-                .sendQuery(Val.ofJson(str).get());
-        StepVerifier.create(postgis).expectNext(exp).expectNext(exp).verifyComplete();
+        var str      = String.format(templatePoint, responseFormat, "geographies", "geog");
+        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        var postgis  = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(str).get()).map(Val::get).map(JsonNode::toPrettyString);
+        StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
     @Test
     void Test05ErrorNonExistantTable() throws JsonProcessingException {
 
-        var str     = String.format(templatePoint, "nonExistantTable", "geog");
+        var str     = String.format(templatePoint, "WKT", "nonExistantTable", "geog");
         var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
                 .sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
         StepVerifier.create(postgis).expectNext("relation \"nonexistanttable\" does not exist").verifyComplete();

@@ -377,7 +377,7 @@ class GeoFunctionsTest extends TestBase {
     }
 
     @Test
-    void testMilesToMeterJsonNode() throws Exception {
+    void testMilesToMeterJsonNode() {
         double miles    = 1.0;
         Val    milesVal = Val.of(miles);
         var    result   = func.milesToMeter(milesVal);
@@ -385,7 +385,7 @@ class GeoFunctionsTest extends TestBase {
     }
 
     @Test
-    void testYardToMeter() throws Exception {
+    void testYardToMeter() {
         double yards          = 1.0;
         Val    yardVal        = Val.of(yards);
         var    result         = func.yardToMeter(yardVal);

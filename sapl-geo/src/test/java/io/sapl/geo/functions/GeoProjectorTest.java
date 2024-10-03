@@ -19,7 +19,6 @@ package io.sapl.geo.functions;
 
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.stream.Stream;
-import javax.xml.crypto.dsig.TransformException;
 import org.geotools.api.geometry.MismatchedDimensionException;
 import org.geotools.api.referencing.FactoryException;
 import org.junit.jupiter.api.TestInstance;
@@ -44,7 +43,7 @@ class GeoProjectorTest {
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
     @MethodSource("projectorProvider")
-    void testProjectValidGeometry(GeoProjector geoProjector) throws TransformException, MismatchedDimensionException,
+    void testProjectValidGeometry(GeoProjector geoProjector) throws MismatchedDimensionException,
             org.geotools.api.referencing.operation.TransformException {
 
         GeometryFactory geometryFactory = new GeometryFactory();
@@ -59,7 +58,7 @@ class GeoProjectorTest {
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
     @MethodSource("projectorProvider")
-    void testReProjectValidGeometry(GeoProjector geoProjector) throws TransformException, MismatchedDimensionException,
+    void testReProjectValidGeometry(GeoProjector geoProjector) throws MismatchedDimensionException,
             org.geotools.api.referencing.operation.TransformException {
 
         GeometryFactory geometryFactory = new GeometryFactory();
