@@ -30,16 +30,13 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
+import org.locationtech.spatial4j.distance.DistanceUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functions.CrsConst;
 import io.sapl.geo.functions.GeometryConverter;
-import io.sapl.geo.functions.JsonConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GeoFunctionsTest extends TestBase {
@@ -285,8 +282,8 @@ class GeoFunctionsTest extends TestBase {
 
     @Test
     void isClosedTest() throws ParseException, OperationNotSupportedException, JsonProcessingException {
-        
-        var multiLineString = """
+
+        var multiLineString    = """
                 {
                     "type": "MultiLineString",
                     "coordinates": [
@@ -294,13 +291,13 @@ class GeoFunctionsTest extends TestBase {
                             [0.0, 0.0],
                             [1.0, 1.0],
                             [1.0, 0.0],
-                            [0.0, 0.0]  
+                            [0.0, 0.0]
                         ],
                         [
                             [2.0, 2.0],
                             [3.0, 3.0],
                             [3.0, 2.0],
-                            [2.0, 2.0]  
+                            [2.0, 2.0]
                         ]
                     ]
                 }
@@ -377,5 +374,30 @@ class GeoFunctionsTest extends TestBase {
 
         assertTrue(func.isWithinGeoDistance(point2, point4, Val.of(1200)).get().asBoolean());
         assertFalse(func.isWithinGeoDistance(point2, point4, Val.of(2)).get().asBoolean());
+    }
+
+    @Test
+    void testMilesToMeterJsonNode() throws Exception {
+        double miles    = 1.0;
+        Val    milesVal = Val.of(miles);
+        var    result   = func.milesToMeter(milesVal);
+        assertEquals(miles * DistanceUtils.MILES_TO_KM * 1000, result.get().asDouble(), 0.0001);
+    }
+
+    @Test
+    void testYardToMeter() throws Exception {
+        double yards          = 1.0;
+        Val    yardVal        = Val.of(yards);
+        var    result         = func.yardToMeter(yardVal);
+        var    expectedMeters = (yards / 1760) * DistanceUtils.MILES_TO_KM * 1000;
+        assertEquals(expectedMeters, result.get().asDouble(), 0.0001);
+    }
+
+    @Test
+    void testDegreeToMeter() {
+
+        Val inputVal = Val.of(1.0);
+        Val result   = func.degreeToMeter(inputVal);
+        assertEquals(111195.07973436874, result.get().asDouble(), 0.0001);
     }
 }

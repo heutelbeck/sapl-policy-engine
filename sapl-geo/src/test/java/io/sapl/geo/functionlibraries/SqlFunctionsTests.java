@@ -76,7 +76,7 @@ class SqlFunctionsTests {
     @Test
     void CheckForKeywordsError2() {
 
-        var sql = sqlFunctions.assertNoSqlKeywords(Val.of("Select * from table where name in (truncate table table1)"));
+        var sql = sqlFunctions.assertNoSqlKeywords(Val.of("Select * from table where name in (TRUNCATE table table1)"));
         assertEquals(errorVal, sql);
     }
 }

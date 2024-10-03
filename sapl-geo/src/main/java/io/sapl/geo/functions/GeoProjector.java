@@ -32,7 +32,7 @@ public final class GeoProjector {
 
     public GeoProjector() throws FactoryException {
         // standard configuration
-        this(CrsConst.WGS84_CRS, false, CrsConst.WEB_MERCATOR_CRS, false);
+        this(CrsConst.WGS84_CRS, true, CrsConst.WEB_MERCATOR_CRS, false);
     }
 
     /**

@@ -72,10 +72,10 @@ class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
     @CsvSource({ "postgisTest", "postgisTestEnvironmentVariable" })
-    void PostGisPipTest(String pddPath) throws InitializationException {
+    void PostGisPipTest(String pdpPath) throws InitializationException {
 
         var                       pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, pddPath), () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())),
+                String.format(path, pdpPath), () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())),
                 List::of, List::of, List::of);
         var                       subject           = new Subject(postgisContainer.getUsername(),
                 postgisContainer.getPassword(), postgisContainer.getHost(), postgisContainer.getMappedPort(5432),
