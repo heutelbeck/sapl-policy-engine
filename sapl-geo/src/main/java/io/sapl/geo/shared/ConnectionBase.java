@@ -69,7 +69,7 @@ public abstract class ConnectionBase {
         }
     }
 
-    protected static boolean getLatitudeFirst(JsonNode requestSettings) {
+    protected boolean getLatitudeFirst(JsonNode requestSettings) {
         if (requestSettings.has(LATITUDE_FIRST_CONST)) {
             return requestSettings.findValue(LATITUDE_FIRST_CONST).asBoolean();
         } else {
