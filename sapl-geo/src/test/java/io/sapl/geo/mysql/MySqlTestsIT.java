@@ -45,8 +45,8 @@ class MySqlTestsIT extends MySqlTestBase {
 
     @Test
     void Test01MySqlConnection() throws JsonProcessingException {
-        var queryString = String.format(templateAll, "geometries", "geom");
 
+        var queryString   = String.format(templateAll, "geometries", "geom");
         var expected      = Val.ofJson(expectedAll);
         var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
                 DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
@@ -55,10 +55,9 @@ class MySqlTestsIT extends MySqlTestBase {
 
     @Test
     void Test02MySqlConnectionSingleResult() throws JsonProcessingException {
-        var queryString = String.format(templatePoint, "geometries", "geom");
 
-        var expected = Val.ofJson(expectedPoint);
-
+        var queryString   = String.format(templatePoint, "geometries", "geom");
+        var expected      = Val.ofJson(expectedPoint);
         var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
                 DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
@@ -67,6 +66,7 @@ class MySqlTestsIT extends MySqlTestBase {
 
     @Test
     void Test03ErrorNonexistantTable() throws JsonProcessingException {
+
         var errorTemplate = template.concat("""
                     ,
                     "table":"%s",
@@ -77,7 +77,6 @@ class MySqlTestsIT extends MySqlTestBase {
                 }
                 """);
         var queryString   = String.format(errorTemplate, "nonExistant", "geog");
-
         var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
                 DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectError();
@@ -85,12 +84,10 @@ class MySqlTestsIT extends MySqlTestBase {
 
     @Test
     void Test04ErrorInvalidTemplate() throws JsonProcessingException {
-        var queryString = "{\"invalid\":\"Template\"}";
 
+        var queryString   = "{\"invalid\":\"Template\"}";
         var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
                 DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::getMessage);
-
         StepVerifier.create(mysqlResponse).expectNext("No geoColumn-name found").verifyComplete();
     }
-
 }

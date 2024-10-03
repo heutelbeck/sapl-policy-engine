@@ -20,7 +20,6 @@ package io.sapl.geo.common;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.DockerImageName;
-
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 
@@ -32,21 +31,16 @@ public abstract class PostgisTestBase extends DatabaseTestBase {
             .withUsername("test").withPassword("test").withDatabaseName("test");
 
     protected void commonSetUp() {
-        authTemplate = String.format(authenticationTemplate, postgisContainer.getUsername(),
+        authTemplate  = String.format(authenticationTemplate, postgisContainer.getUsername(),
                 postgisContainer.getPassword(), postgisContainer.getHost(), postgisContainer.getMappedPort(5432),
                 postgisContainer.getDatabaseName());
-
-        templateAll = template.concat(templateAll1);
-
+        templateAll   = template.concat(templateAll1);
         templatePoint = template.concat(templatePoint1);
-
         var connectionFactory = new PostgresqlConnectionFactory(
                 PostgresqlConnectionConfiguration.builder().host(postgisContainer.getHost())
                         .port(postgisContainer.getMappedPort(5432)).database(postgisContainer.getDatabaseName())
                         .username(postgisContainer.getUsername()).password(postgisContainer.getPassword()).build());
-
         createTable(connectionFactory);
         insert(connectionFactory);
     }
-
 }

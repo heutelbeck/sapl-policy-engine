@@ -44,6 +44,7 @@ public abstract class TraccarTestBase extends TestBase {
             DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082, 5055).withReuse(false);
 
     protected void registerUser(String email, String password) {
+
         String registerUserUrl = String.format("http://%s:%d/api/users", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
 
@@ -61,26 +62,20 @@ public abstract class TraccarTestBase extends TestBase {
 
     protected String establishSession(String email, String password) {
 
-        var sessionUrl = String.format("http://%s:%d/api/session", traccarContainer.getHost(),
+        var sessionUrl     = String.format("http://%s:%d/api/session", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
-
         var bodyProperties = new HashMap<String, String>() {
-            private static final long serialVersionUID = 1L;
-
-        };
+                               private static final long serialVersionUID = 1L;
+                           };
 
         bodyProperties.put("email", email);
         bodyProperties.put("password", password);
-
-        var body = bodyProperties.entrySet().stream()
+        var body     = bodyProperties.entrySet().stream()
                 .map(e -> String.format("%s=%s", e.getKey(), URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8)))
                 .collect(Collectors.joining("&"));
-
-        var client = WebClient.builder().build();
-
+        var client   = WebClient.builder().build();
         var response = client.post().uri(sessionUrl).header("Content-Type", "application/x-www-form-urlencoded")
                 .bodyValue(body).retrieve().toEntity(String.class).blockOptional();
-
         if (response.isPresent()) {
             var setCookieHeader = response.get().getHeaders().getFirst("Set-Cookie");
             if (setCookieHeader != null) {
@@ -89,10 +84,10 @@ public abstract class TraccarTestBase extends TestBase {
             }
         }
         return null;
-
     }
 
     protected String createDevice(String sessionCookie) throws Exception {
+
         var createDeviceUrl = String.format("http://%s:%d/api/devices", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
 
@@ -107,7 +102,6 @@ public abstract class TraccarTestBase extends TestBase {
             headers.add("Cookie", sessionCookie);
             headers.setContentType(MediaType.APPLICATION_JSON);
         }).bodyValue(body).retrieve().bodyToMono(JsonNode.class).blockOptional();
-
         if (result.isPresent()) {
             return result.get().get("id").asText();
         } else {
@@ -124,20 +118,16 @@ public abstract class TraccarTestBase extends TestBase {
             headers.add("Cookie", sessionCookie);
             headers.setContentType(MediaType.APPLICATION_JSON);
         }).bodyValue(body).retrieve().bodyToMono(JsonNode.class);
-
     }
 
     protected void linkGeofenceToDevice(String deviceId, int geofenceId, String sessionCookie) {
 
-        var linkGeofenceUrl = String.format("http://%s:%d/api/permissions", traccarContainer.getHost(),
+        var    linkGeofenceUrl = String.format("http://%s:%d/api/permissions", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
-
-        String linkJson = """
+        String linkJson        = """
                 {"deviceId":"%s","geofenceId": %d}
                 """;
-
-        String body = String.format(linkJson, deviceId, geofenceId);
-
+        String body            = String.format(linkJson, deviceId, geofenceId);
         webClient.post().uri(linkGeofenceUrl).headers(headers -> {
             headers.add("Cookie", sessionCookie);
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -153,7 +143,6 @@ public abstract class TraccarTestBase extends TestBase {
                            """;
         var addPositionUrl = String.format(url, traccarContainer.getHost(), traccarContainer.getMappedPort(5055),
                 deviceId, lat.toString(), lon.toString(), timeStamp);
-
         return exchange(webClient.get().uri(addPositionUrl));
     }
 

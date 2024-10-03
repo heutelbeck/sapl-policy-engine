@@ -55,36 +55,42 @@ class TraccarTestsIT extends TraccarTestBase {
         registerUser(email, password);
         var sessionCookie = establishSession(email, password);
         deviceId = createDevice(sessionCookie);
-
         var body  = """
-                {"name":"fence1","description": "description1","area":"POLYGON ((29.031502836569203 33.089228694845474, 29.00276317262039 33.09128276117099, 29.016684945926443 33.13356229304324, 29.031502836569203 33.089228694845474))"}
+                    {
+                     "name":"fence1",
+                     "description": "description1",
+                     "area":"POLYGON ((29.031502836569203 33.089228694845474, 29.00276317262039 33.09128276117099, 29.016684945926443 33.13356229304324, 29.031502836569203 33.089228694845474))"
+                    }
                 """;
         var body2 = """
-                {"name":"fence2","description": "description2","area":"POLYGON ((29.042083035750323 32.98056450865346, 28.946694589751544 32.987488754266934, 28.95426831559641 33.09568009197196, 29.03678598719543 33.05673121039777, 29.042083035750323 32.98056450865346))"}
+                    {
+                     "name":"fence2",
+                     "description": "description2",
+                     "area":"POLYGON ((29.042083035750323 32.98056450865346, 28.946694589751544 32.987488754266934, 28.95426831559641 33.09568009197196, 29.03678598719543 33.05673121039777, 29.042083035750323 32.98056450865346))"
+                    }
                 """;
 
         var body3 = """
-                {"name":"fence3","description": "description3","area":"POLYGON ((29.144943123387407 32.68974619290327, 28.998185000516372 32.7183087060568, 29.135115352003865 32.85246596481156, 29.144943123387407 32.68974619290327))"}
+                    {
+                     "name":"fence3",
+                     "description": "description3",
+                     "area":"POLYGON ((29.144943123387407 32.68974619290327, 28.998185000516372 32.7183087060568, 29.135115352003865 32.85246596481156, 29.144943123387407 32.68974619290327))"
+                    }
                 """;
 
         var traccarGeofences = new String[] { body, body2 };
         for (var fence : traccarGeofences) {
             var fenceRes = postTraccarGeofence(sessionCookie, fence).blockOptional();
-
             if (fenceRes.isPresent()) {
                 linkGeofenceToDevice(deviceId, fenceRes.get().get("id").asInt(), sessionCookie);
             } else {
                 throw new RuntimeException("Response was null");
             }
-
         }
         postTraccarGeofence(sessionCookie, body3).block();
-
         addTraccarPosition("1234567890", 29D, 33D).block();
-
         var address = traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082);
         authTemplate = String.format(authenticationTemplate, email, password, address);
-
     }
 
     @ParameterizedTest
@@ -92,8 +98,8 @@ class TraccarTestsIT extends TraccarTestBase {
     @CsvSource({ "WKT,PositionWKT,true", "GEOJSON,PositionGeoJsonSwitchedCoordinates,false", "GML,PositionGML,true",
             "KML,PositionKML,true" })
     void testTraccarPositions(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
-        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
 
+        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         var str              = """
                 {
                    "responseFormat":"%s",
@@ -117,6 +123,7 @@ class TraccarTestsIT extends TraccarTestBase {
             "GML,TraccarGeofencesDeviceGML,true", "KML,TraccarGeofencesDeviceKML,true" })
     void testTraccarGeofencesWithDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
             throws Exception {
+
         var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         var str              = """
                 {
@@ -141,15 +148,13 @@ class TraccarTestsIT extends TraccarTestBase {
             "GML,TraccarGeofencesGML,true", "KML,TraccarGeofencesKML,true" })
     void testTraccarGeofencesWithoutDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
             throws Exception {
-        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
 
-        var str = """
+        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        var str              = """
                 {
                    "responseFormat":"%s"
                    """;
-
         var responseTemplate = String.format(str, responseFormat);
-
         if (!latitudeFirst) {
             responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
 
@@ -164,15 +169,13 @@ class TraccarTestsIT extends TraccarTestBase {
 
     @Test
     void testTraccarGeofencesRepetitionsAndPollingInterval() throws Exception {
-        var expected = source.getJsonSource().get("TraccarGeofencesWKT").toPrettyString();
 
-        var str = """
+        var expected         = source.getJsonSource().get("TraccarGeofencesWKT").toPrettyString();
+        var str              = """
                 {
                    "responseFormat":"WKT"
                    """;
-
         var responseTemplate = str.concat("""
-
                    ,"repetitions" : 3
                    ,"pollingIntervalMs" : 1000
                 }
@@ -184,5 +187,4 @@ class TraccarTestsIT extends TraccarTestBase {
         StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
                 .verify();
     }
-
 }

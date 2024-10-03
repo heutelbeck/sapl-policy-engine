@@ -19,7 +19,6 @@ package io.sapl.geo.traccar;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.geotools.api.geometry.MismatchedDimensionException;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.TransformException;

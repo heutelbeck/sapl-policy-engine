@@ -22,14 +22,12 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.geotools.api.geometry.MismatchedDimensionException;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.TransformException;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.ParseException;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -111,13 +109,10 @@ public final class DatabaseStreamQuery extends ConnectionBase {
             int defaultCrs, long repeatTimes, long pollingInterval, boolean latitudeFirst) {
 
         log.info("Database-Client connected.");
-
         if (singleResult) {
-
             sql = sql.concat(" LIMIT 1");
             return poll(getResults(sql, format, defaultCrs, latitudeFirst).next(), repeatTimes, pollingInterval);
         } else {
-
             return poll(collectMultipleResults(getResults(sql, format, defaultCrs, latitudeFirst)), repeatTimes,
                     pollingInterval);
         }
@@ -125,35 +120,30 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 
     private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
 
-        return Flux.usingWhen(connectionFactory.create(),
-
-                conn -> Flux.from(conn.createStatement(sql).execute())
-                        .flatMap(result -> result.map((row, rowMetadata) -> {
-                            try {
-                                return mapResult(row, format, defaultCrs, latitudeFirst);
-                            } catch (Exception e) {
-                                throw new PolicyEvaluationException(e);
-                            }
-                        })),
-
-                Connection::close);
+        return Flux.usingWhen(connectionFactory.create(), conn -> Flux.from(conn.createStatement(sql).execute())
+                .flatMap(result -> result.map((row, rowMetadata) -> {
+                    try {
+                        return mapResult(row, format, defaultCrs, latitudeFirst);
+                    } catch (Exception e) {
+                        throw new PolicyEvaluationException(e);
+                    }
+                })), Connection::close);
     }
 
     private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst)
             throws MismatchedDimensionException, JsonProcessingException, ParseException, FactoryException,
             TransformException {
+
         var      resultNode = mapper.createObjectNode();
         JsonNode geoNode;
-
-        var resValue = row.get("res", String.class);
-        var srid     = row.get("srid", Integer.class);
+        var      resValue   = row.get("res", String.class);
+        var      srid       = row.get("srid", Integer.class);
 
         if (srid != null && srid != 0) {
             geoNode = convertResponse(resValue, format, srid, latitudeFirst);
         } else {
             geoNode = convertResponse(resValue, format, defaultCrs, latitudeFirst);
         }
-
         resultNode.put("srid", srid);
         resultNode.set("geo", geoNode);
         for (String column : selectColumns) {
@@ -169,9 +159,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 
         var res = (JsonNode) mapper.createObjectNode();
         var crs = EPSG + srid;
-
         var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
-
         if (dataBaseType == DataBaseTypes.MYSQL && !latitudeFirst) {
             var geoProjector = new GeoProjector(crs, false, crs, true);
             geo = geoProjector.project(geo);
@@ -182,22 +170,18 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 
         switch (format) {
         case GEOJSON:
-
             res = GeometryConverter.geometryToGeoJsonNode(geo).get();
             break;
 
         case WKT:
-
             res = GeometryConverter.geometryToWKT(geo).get();
             break;
 
         case GML:
-
             res = GeometryConverter.geometryToGML(geo).get();
             break;
 
         case KML:
-
             res = GeometryConverter.geometryToKML(geo).get();
             break;
 
@@ -256,7 +240,6 @@ public final class DatabaseStreamQuery extends ConnectionBase {
         }
         var clms = builder.toString();
         var str  = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid%s FROM %s %s";
-
         return String.format(str, frmt, geoColumn, geoColumn, clms, table, where);
     }
 
@@ -327,7 +310,6 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 
             if (!value.isNumber())
                 throw new PolicyEvaluationException(fieldName + " must be an integer, but was: " + value.getNodeType());
-
             return value.asLong();
         }
         return defaultValue;

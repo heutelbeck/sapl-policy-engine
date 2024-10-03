@@ -50,15 +50,13 @@ class GmlConverterTest extends TestBase {
         stringWriter.getBuffer().setLength(0);// clean buffer
         source.getTransform().transform(new DOMSource(plg), new StreamResult(stringWriter));
         polygon = Val.of(stringWriter.toString());
-
     }
 
     @Test
     void gmlToGeoJsonTest() throws SAXException, IOException, ParserConfigurationException {
 
-        var res  = geoConverter.gmlToGeoJson(point);
-        var res1 = geoConverter.gmlToGeoJson(polygon);
-
+        var res        = geoConverter.gmlToGeoJson(point);
+        var res1       = geoConverter.gmlToGeoJson(polygon);
         var expPoint   = source.getJsonSource().get("Point").toPrettyString();
         var expPolygon = source.getJsonSource().get("Polygon").toPrettyString();
 
@@ -69,15 +67,13 @@ class GmlConverterTest extends TestBase {
     @Test
     void gmlToGeometryTest() throws SAXException, IOException, ParserConfigurationException {
 
-        var res  = (Point) GmlConverter.gmlToGeometry(point);
-        var res1 = (Polygon) GmlConverter.gmlToGeometry(polygon);
-
+        var res        = (Point) GmlConverter.gmlToGeometry(point);
+        var res1       = (Polygon) GmlConverter.gmlToGeometry(polygon);
         var expPoint   = source.getPoint();
         var expPolygon = source.getPolygon();
 
         assertEquals(expPoint, res);
         assertEquals(expPolygon, res1);
-
     }
 
     @Test
@@ -85,7 +81,6 @@ class GmlConverterTest extends TestBase {
 
         var res  = geoConverter.gmlToKml(point);
         var res1 = geoConverter.gmlToKml(polygon);
-
         var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
         var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);
 
@@ -98,20 +93,17 @@ class GmlConverterTest extends TestBase {
 
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));
-
     }
 
     @Test
     void gmlToWktTest() throws SAXException, IOException, ParserConfigurationException {
 
-        var res  = geoConverter.gmlToWkt(point);
-        var res1 = geoConverter.gmlToWkt(polygon);
-
+        var res        = geoConverter.gmlToWkt(point);
+        var res1       = geoConverter.gmlToWkt(polygon);
         var expPoint   = source.getJsonSource().get("WktPoint").asText();
         var expPolygon = source.getJsonSource().get("WktPolygon").asText();
 
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));
     }
-
 }

@@ -7,7 +7,7 @@
 			"user":"test",
 			"password":"test",
 			"server":"localhost",
-			"port": 59880,
+			"port": 54189,
 			"dataBase":"test",
 			"dataBaseType":"MYSQL"
 		}

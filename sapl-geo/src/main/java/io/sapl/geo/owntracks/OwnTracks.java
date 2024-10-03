@@ -65,13 +65,10 @@ public final class OwnTracks extends TrackerConnectionBase {
 
         var authUser = getHttpBasicAuthUser(auth);
         var password = getPassword(auth);
-
         if (authUser != null && password != null) {
-
             var valueToEncode   = String.format("%s:%s", authUser, password);
             var basicAuthHeader = "Basic "
                     + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
-
             authSettings = """
                         ,"headers" : {Authorization": "%s"}
                     """;
@@ -87,7 +84,6 @@ public final class OwnTracks extends TrackerConnectionBase {
         deviceId = getDeviceId(settings);
         client   = new ReactiveWebClient(mapper);
         var url = String.format("%s://%s/api/0/last?user=%s&device=%s", protocol, server, getUser(settings), deviceId);
-
         try {
             var request = getRequest(url);
             return getFlux(request, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings))
@@ -103,9 +99,7 @@ public final class OwnTracks extends TrackerConnectionBase {
         var settings = """
                 {"baseUrl" : "%s", "accept" : "%s"
                 """;
-
         settings = String.format(settings, url, MediaType.APPLICATION_JSON_VALUE);
-
         if (authSettings != null) {
 
             settings = settings.concat(authSettings);
@@ -124,7 +118,6 @@ public final class OwnTracks extends TrackerConnectionBase {
         } catch (Exception e) {
             return Flux.error(e);
         }
-
         var flux = client.httpRequest(HttpMethod.GET, request).flatMap(v -> {
             try {
                 return mapResponse(v.get(), format, mapper, latitudeFirst);
@@ -143,7 +136,6 @@ public final class OwnTracks extends TrackerConnectionBase {
         var res      = in.findValue("inregions");
         response.setGeoFences(mapOwnTracksInRegions(res, mapper));
         return Flux.just(response);
-
     }
 
     private List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws JsonProcessingException {

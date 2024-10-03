@@ -53,48 +53,50 @@ class TraccarPolicyInformationPointTestsIT extends TraccarTestBase {
         deviceId = createDevice(sessionCookie);
         subject  = new Subject(email, password, traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082),
                 deviceId);
-
         var body  = """
-                {"name":"fence1","description": "description for fence1","area":"POLYGON ((48.25767 11.54370, 48.25767 11.54422, 48.25747 11.54422, 48.25747 11.54370, 48.25767 11.54370))"}
+                {
+                 "name":"fence1",
+                 "description": "description for fence1",
+                 "area":"POLYGON ((48.25767 11.54370, 48.25767 11.54422, 48.25747 11.54422, 48.25747 11.54370, 48.25767 11.54370))"
+                }
                 """;
         var body2 = """
-                {"name":"lmu","description": "description for lmu","area":"POLYGON ((48.150402911178844 11.566792870984045, 48.1483205765966 11.56544925428264, 48.147576865197465 11.56800995875841, 48.14969540929175 11.56935357546081, 48.150402911178844 11.566792870984045))"}
+                {
+                 "name":"lmu",
+                 "description": "description for lmu",
+                 "area":"POLYGON ((48.150402911178844 11.566792870984045, 48.1483205765966 11.56544925428264, 48.147576865197465 11.56800995875841, 48.14969540929175 11.56935357546081, 48.150402911178844 11.566792870984045))"
+                }
                 """;
 
         var traccarGeofences = new String[] { body, body2 };
         for (var fence : traccarGeofences) {
             var fenceRes = postTraccarGeofence(sessionCookie, fence).blockOptional();
-
             if (fenceRes.isPresent()) {
                 linkGeofenceToDevice(deviceId, fenceRes.get().get("id").asInt(), sessionCookie);
             } else {
                 throw new RuntimeException("Response was null");
             }
         }
-
         addTraccarPosition("1234567890", 51.34533, 7.40575).block();
-
         var template = """
+                 {
+                  "algorithm": "DENY_OVERRIDES",
+                  "variables":
                       {
-                "algorithm": "DENY_OVERRIDES",
-                "variables":
-                    {
-                        "TRACCAR_DEFAULT_CONFIG":
-                        {
-                            "user":"%s",
-                                  "password":"%s",
-                            "server":"%s",
-                            "protocol": "%s"
-                        }
-                    }
-                }
-                  """;
-
+                          "TRACCAR_DEFAULT_CONFIG":
+                          {
+                              "user":"%s",
+                                    "password":"%s",
+                              "server":"%s",
+                              "protocol": "%s"
+                          }
+                      }
+                  }
+                """;
         server = String.format("%s:%s", traccarContainer.getHost(), traccarContainer.getMappedPort(8082));
         var pdp = String.format(template, email, password, server, "http");
         writePdp(pdp, String.format(path, "/traccarGeofencesTestEnvironmentVariable/pdp.json"));
         writePdp(pdp, String.format(path, "/traccarPositionTestEnvironmentVariable/pdp.json"));
-
     }
 
     @ParameterizedTest

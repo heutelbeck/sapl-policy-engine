@@ -19,7 +19,6 @@ package io.sapl.geo.functionlibraries;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import javax.naming.OperationNotSupportedException;
 import io.sapl.geo.common.*;
 import org.geotools.api.referencing.FactoryException;
@@ -33,9 +32,7 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functions.GeometryConverter;
 
@@ -143,7 +140,6 @@ class GeoFunctionsTest extends TestBase {
 
         assertTrue(func.touches(point, polygon).getBoolean());
         assertFalse(func.touches(point, polygon1).getBoolean());
-
     }
 
     @Test
@@ -151,7 +147,6 @@ class GeoFunctionsTest extends TestBase {
 
         assertTrue(func.crosses(line, polygon1).getBoolean());
         assertFalse(func.crosses(polygon, polygon1).getBoolean());
-
     }
 
     @Test
@@ -190,9 +185,7 @@ class GeoFunctionsTest extends TestBase {
     void bufferTest() throws ParseException, JsonProcessingException {
 
         var expBuffer = GeometryConverter.geometryToGeoJsonNode(po1.buffer(10.0));
-
         assertEquals(expBuffer, func.buffer(point1, Val.of(10.0)));
-
     }
 
     @Test
@@ -312,7 +305,6 @@ class GeoFunctionsTest extends TestBase {
     void geometryBagTest() throws ParseException, JsonProcessingException {
 
         assertEquals(coll.get(), func.geometryBag(polygon1, polygon3).get());
-
     }
 
     @Test
@@ -320,7 +312,6 @@ class GeoFunctionsTest extends TestBase {
 
         assertTrue(func.atLeastOneMemberOf(coll, coll1).getBoolean());
         assertFalse(func.atLeastOneMemberOf(coll, coll2).getBoolean());
-
     }
 
     @Test
@@ -328,7 +319,6 @@ class GeoFunctionsTest extends TestBase {
 
         assertTrue(func.subset(coll1, coll).getBoolean());
         assertFalse(func.subset(coll, coll2).getBoolean());
-
     }
 
     @Test
@@ -337,7 +327,6 @@ class GeoFunctionsTest extends TestBase {
         var st = GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(10.0, 10.0)));
         var de = GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(10.0, 10.000001)));
         assertTrue(func.geoDistance(st, de).get().asDouble() > (0.1));
-
     }
 
     @Test
@@ -345,6 +334,5 @@ class GeoFunctionsTest extends TestBase {
 
         assertTrue(func.isWithinGeoDistance(point2, point4, Val.of(1200)).get().asBoolean());
         assertFalse(func.isWithinGeoDistance(point2, point4, Val.of(2)).get().asBoolean());
-
     }
 }

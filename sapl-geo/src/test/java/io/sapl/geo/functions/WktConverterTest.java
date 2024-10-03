@@ -51,9 +51,8 @@ class WktConverterTest extends TestBase {
 
         var result  = geoConverter.wktToKml(point);
         var result1 = geoConverter.wktToKml(polygon);
-
-        var pnt1 = source.getXmlSource().getElementsByTagName("Point").item(0);
-        var plg1 = source.getXmlSource().getElementsByTagName("Polygon").item(0);
+        var pnt1    = source.getXmlSource().getElementsByTagName("Point").item(0);
+        var plg1    = source.getXmlSource().getElementsByTagName("Polygon").item(0);
 
         var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(stringWriter));
@@ -69,15 +68,13 @@ class WktConverterTest extends TestBase {
     @Test
     void wktToGeometryTest() throws ParseException {
 
-        var result  = (Point) WktConverter.wktToGeometry(point);
-        var result1 = (Polygon) WktConverter.wktToGeometry(polygon);
-
+        var result     = (Point) WktConverter.wktToGeometry(point);
+        var result1    = (Polygon) WktConverter.wktToGeometry(polygon);
         var expPoint   = source.getPoint();
         var expPolygon = source.getPolygon();
 
         assertEquals(expPoint, result);
         assertEquals(expPolygon, result1);
-
     }
 
     @Test
@@ -85,9 +82,8 @@ class WktConverterTest extends TestBase {
 
         var result  = geoConverter.wktToGml(point);
         var result1 = geoConverter.wktToGml(polygon);
-
-        var pnt1 = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
-        var plg1 = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
+        var pnt1    = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
+        var plg1    = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
         var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(stringWriter));
@@ -98,20 +94,17 @@ class WktConverterTest extends TestBase {
 
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
-
     }
 
     @Test
     void wktToGeoJsonTest() throws ParseException, JsonProcessingException {
 
-        var result  = geoConverter.wktToGeoJson(point);
-        var result1 = geoConverter.wktToGeoJson(polygon);
-
+        var result     = geoConverter.wktToGeoJson(point);
+        var result1    = geoConverter.wktToGeoJson(polygon);
         var expPoint   = source.getJsonSource().get("Point").toPrettyString();
         var expPolygon = source.getJsonSource().get("Polygon").toPrettyString();
 
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
     }
-
 }

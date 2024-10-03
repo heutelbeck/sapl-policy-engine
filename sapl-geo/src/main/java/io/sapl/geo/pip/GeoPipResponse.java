@@ -18,11 +18,9 @@
 package io.sapl.geo.pip;
 
 import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.geo.model.Geofence;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

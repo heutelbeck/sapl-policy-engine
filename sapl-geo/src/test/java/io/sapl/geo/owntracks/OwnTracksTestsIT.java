@@ -39,17 +39,16 @@ import reactor.test.StepVerifier;
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
 public class OwnTracksTestsIT {
-    String         address;
-    SourceProvider source = new SourceProvider();
 
-    String authTemplate = """
+    String         address;
+    SourceProvider source       = new SourceProvider();
+    String         authTemplate = """
                 {
             	"server":"%s",
             	"protocol":"http"
             	}
             """;
-
-    String template = """
+    String         template     = """
                 {
                 "user":"user",
             	"deviceId":1
@@ -58,7 +57,6 @@ public class OwnTracksTestsIT {
     static final String RESOURCE_DIRECTORY = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
 
     @Container
-
     public static final GenericContainer<?> owntracksRecorder = new GenericContainer<>(
             DockerImageName.parse("owntracks/recorder:latest")).withExposedPorts(8083)
             .withFileSystemBind(RESOURCE_DIRECTORY + "/owntracks/store", "/store", BindMode.READ_WRITE)
@@ -90,7 +88,5 @@ public class OwnTracksTestsIT {
         var resultStream = new OwnTracks(Val.ofJson(authTemplate).get(), new ObjectMapper()).connect(val.get())
                 .map(Val::get).map(JsonNode::toPrettyString);
         StepVerifier.create(resultStream).expectNext(expected).thenCancel().verify();
-
     }
-
 }

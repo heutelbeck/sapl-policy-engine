@@ -18,11 +18,9 @@
 package io.sapl.geo.common;
 
 import java.time.ZoneId;
-
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.DockerImageName;
-
 import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
 import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
 
@@ -30,18 +28,15 @@ public abstract class MySqlTestBase extends DatabaseTestBase {
 
     @Container
     protected static final MySQLContainer<?> mySqlContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.2.0")) // 8.3.0
-                                                                                                                         // is
-                                                                                                                         // buggy
+                                                                                                                         // isbuggy
             .withUsername("test").withPassword("test").withDatabaseName("test");
 
     protected void commonSetUp() {
-        authTemplate = String.format(authenticationTemplate, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
-                mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
-
-        templateAll = template.concat(templateAll1);
-
+        authTemplate  = String.format(authenticationTemplate, mySqlContainer.getUsername(),
+                mySqlContainer.getPassword(), mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306),
+                mySqlContainer.getDatabaseName());
+        templateAll   = template.concat(templateAll1);
         templatePoint = template.concat(templatePoint1);
-
         var connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
                 .username(mySqlContainer.getUsername()).password(mySqlContainer.getPassword())
                 .host(mySqlContainer.getHost()).port(mySqlContainer.getMappedPort(3306))

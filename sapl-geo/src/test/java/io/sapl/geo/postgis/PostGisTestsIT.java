@@ -47,11 +47,9 @@ class PostGisTestsIT extends PostgisTestBase {
     void Test01PostGisConnectionGeometry() throws JsonProcessingException {
 
         var queryString = String.format(templateAll, "geometries", "geom");
-
-        var expected = Val.ofJson(expectedAll);
-
-        var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
-                .sendQuery(Val.ofJson(queryString).get());
+        var expected    = Val.ofJson(expectedAll);
+        var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
@@ -59,9 +57,8 @@ class PostGisTestsIT extends PostgisTestBase {
     void Test02PostGisConnectionGeometrySingleResult() throws JsonProcessingException {
 
         var queryString = String.format(templatePoint, "geometries", "geom");
-
-        var expected = Val.ofJson(expectedPoint);
-        var postgis  = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+        var expected    = Val.ofJson(expectedPoint);
+        var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
                 DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
@@ -70,9 +67,8 @@ class PostGisTestsIT extends PostgisTestBase {
     void Test03PostGisConnectionGeography() throws JsonProcessingException {
 
         var queryString = String.format(templateAll, "geographies", "geog");
-
-        var expected = Val.ofJson(expectedAll);
-        var postgis  = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+        var expected    = Val.ofJson(expectedAll);
+        var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
                 DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
@@ -80,8 +76,7 @@ class PostGisTestsIT extends PostgisTestBase {
     @Test
     void Test04PostGisConnectionGeographySingleResult() throws JsonProcessingException {
 
-        var str = String.format(templatePoint, "geographies", "geog");
-
+        var str     = String.format(templatePoint, "geographies", "geog");
         var exp     = Val.ofJson(expectedPoint);
         var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
                 .sendQuery(Val.ofJson(str).get());
@@ -91,8 +86,7 @@ class PostGisTestsIT extends PostgisTestBase {
     @Test
     void Test05ErrorNonExistantTable() throws JsonProcessingException {
 
-        var str = String.format(templatePoint, "nonExistantTable", "geog");
-
+        var str     = String.format(templatePoint, "nonExistantTable", "geog");
         var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
                 .sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
         StepVerifier.create(postgis).expectNext("relation \"nonexistanttable\" does not exist").verifyComplete();
@@ -101,12 +95,9 @@ class PostGisTestsIT extends PostgisTestBase {
     @Test
     void Test06ErrorInvalidTemplate() throws JsonProcessingException {
 
-        var str = "{\"invalid\":\"Template\"}";
-
+        var str     = "{\"invalid\":\"Template\"}";
         var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
                 .sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
-
         StepVerifier.create(postgis).expectNext("No geoColumn-name found").verifyComplete();
     }
-
 }

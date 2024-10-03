@@ -46,24 +46,23 @@ class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
     void setUp() throws Exception {
 
         commonSetUp();
-
         var template = """
-                      {
-                "algorithm": "DENY_OVERRIDES",
-                "variables":
-                	{
-                		"POSTGIS_DEFAULT_CONFIG":
-                		{
-                			"user":"%s",
-                			"password":"%s",
-                			"server":"%s",
-                			"port": %s,
-                			"dataBase":"%s",
-                			"dataBaseType" : "POSTGIS"
-                		}
-                	}
-                }
-                  """;
+                    {
+                      "algorithm": "DENY_OVERRIDES",
+                      "variables":
+                      	{
+                      		"POSTGIS_DEFAULT_CONFIG":
+                      		{
+                      			"user":"%s",
+                      			"password":"%s",
+                      			"server":"%s",
+                      			"port": %s,
+                      			"dataBase":"%s",
+                      			"dataBaseType" : "POSTGIS"
+                      		}
+                      	}
+                      }
+                """;
         var json     = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(),
                 postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
 
@@ -75,12 +74,12 @@ class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
     @CsvSource({ "postgisTest", "postgisTestEnvironmentVariable" })
     void PostGisPipTest(String pddPath) throws InitializationException {
 
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, pddPath),
-                () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-
-        var subject = new Subject(postgisContainer.getUsername(), postgisContainer.getPassword(),
-                postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
-
+        var                       pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
+                String.format(path, pddPath), () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())),
+                List::of, List::of, List::of);
+        var                       subject           = new Subject(postgisContainer.getUsername(),
+                postgisContainer.getPassword(), postgisContainer.getHost(), postgisContainer.getMappedPort(5432),
+                postgisContainer.getDatabaseName());
         AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
         var                       pdpDecisionFlux   = pdp.decide(authzSubscription);
 
@@ -98,5 +97,4 @@ class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
         private final int    port;
         private final String dataBase;
     }
-
 }

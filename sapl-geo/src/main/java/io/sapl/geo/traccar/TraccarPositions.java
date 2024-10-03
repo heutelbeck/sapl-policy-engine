@@ -25,7 +25,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
@@ -101,7 +100,6 @@ public final class TraccarPositions extends TraccarBase {
             throws JsonProcessingException {
         var pos = getPositionFromMessage(in, deviceId);
         if (pos.has(DEVICE_ID)) {
-
             return Flux.just(mapPosition(deviceId, pos, format, latitudeFirst));
         }
         return Flux.just();

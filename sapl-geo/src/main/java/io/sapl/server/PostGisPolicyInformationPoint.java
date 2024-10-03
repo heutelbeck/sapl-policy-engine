@@ -32,13 +32,10 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = PostGisPolicyInformationPoint.NAME, description = PostGisPolicyInformationPoint.DESCRIPTION)
 public class PostGisPolicyInformationPoint {
 
-    public static final String NAME = "postGis";
-
-    public static final String DESCRIPTION = "PIP for geographical data from PostGIS.";
-
-    private final ObjectMapper mapper;
-
+    public static final String  NAME                   = "postGis";
+    public static final String  DESCRIPTION            = "PIP for geographical data from PostGIS.";
     private static final String POSTGIS_DEFAULT_CONFIG = "POSTGIS_DEFAULT_CONFIG";
+    private final ObjectMapper  mapper;
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
@@ -52,7 +49,6 @@ public class PostGisPolicyInformationPoint {
 
         try {
             return new DatabaseStreamQuery(auth.get(), mapper, DataBaseTypes.POSTGIS).sendQuery(variables.get());
-
         } catch (Exception e) {
             return Flux.just(Val.error(e.getMessage()));
         }

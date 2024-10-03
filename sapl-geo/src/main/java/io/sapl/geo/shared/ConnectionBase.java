@@ -19,7 +19,6 @@ package io.sapl.geo.shared;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 

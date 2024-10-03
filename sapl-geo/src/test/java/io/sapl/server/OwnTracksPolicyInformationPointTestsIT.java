@@ -47,18 +47,20 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
 
     private String path = "src/test/resources/policies/%s";
     private String server;
-
-    public static final GenericContainer<?> owntracksRecorder = new GenericContainer<>(
-            DockerImageName.parse("owntracks/recorder:latest")).withExposedPorts(8083).withEnv("OTR_PORT", "0") // disable
-                                                                                                                // mqtt
-            .withReuse(false);
+    // @formatter:off
+    public static final GenericContainer<?> owntracksRecorder =
+            new GenericContainer<>(DockerImageName.parse("owntracks/recorder:latest"))
+                .withExposedPorts(8083)
+                .withEnv("OTR_PORT", "0") // disable mqtt
+                .withReuse(false);
+    // @formatter:on
 
     @BeforeAll
     void setUp() throws IOException {
         owntracksRecorder.start();
         var webClient = WebClient.builder().build();
         server = String.format("%s:%s", owntracksRecorder.getHost(), owntracksRecorder.getMappedPort(8083));
-        var urlString = String.format("http://%s/pub", server); // URL des OwnTracks Servers
+        var urlString = String.format("http://%s/pub", server);             // URL des OwnTracks Servers
         var json      = """
                 	{
                 	"_type": "location",
@@ -72,33 +74,27 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
                 	"created_at":"2023-07-09T13:34:19.000+00:00",
                 	"inregions":[]}
                 """;
-
-        var payload = String.format(json, Instant.now().getEpochSecond());
-
+        var payload   = String.format(json, Instant.now().getEpochSecond());
         webClient.post().uri(urlString).header("X-Limit-U", "user").header("X-Limit-D", "device").bodyValue(payload)
                 .exchangeToMono(response -> {
-
                     return response.bodyToMono(String.class);
-
                 }).block();
 
         var template = """
-                      {
-                "algorithm": "DENY_OVERRIDES",
-                "variables":
-                	{
-                		"OWNTRACKS_DEFAULT_CONFIG":
-                		{
-                			"server":"%s",
-                			"protocol": "%s"
-                		}
-                	}
-                }
-                  """;
-
-        var pdp = String.format(template, server, "http");
+                   {
+                    "algorithm": "DENY_OVERRIDES",
+                    "variables":
+                    	{
+                    		"OWNTRACKS_DEFAULT_CONFIG":
+                    		{
+                    			"server":"%s",
+                    			"protocol": "%s"
+                    		}
+                    	}
+                    }
+                """;
+        var pdp      = String.format(template, server, "http");
         writePdp(pdp, String.format(path, "/owntracksTestEnvironmentVariable/pdp.json"));
-
     }
 
     @ParameterizedTest
@@ -106,11 +102,10 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
     @CsvSource({ "owntracksTest", "owntracksTestEnvironmentVariable" })
     void OwnTracksPipTest(String pdpPath) throws InitializationException {
 
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, pdpPath),
-                () -> List.of(new OwnTracksPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-
-        var subject = new Subject("user", "device", server);
-
+        var                       pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
+                String.format(path, pdpPath), () -> List.of(new OwnTracksPolicyInformationPoint(new ObjectMapper())),
+                List::of, List::of, List::of);
+        var                       subject           = new Subject("user", "device", server);
         AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
         var                       pdpDecisionFlux   = pdp.decide(authzSubscription);
 
@@ -126,5 +121,4 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
         private final String deviceId;
         private final String server;
     }
-
 }

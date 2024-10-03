@@ -21,10 +21,8 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.pip.GeoPipResponse;
@@ -47,16 +45,12 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
         Point position;
         var   lat             = in.findValue(latitude).asDouble();
         var   lon             = in.findValue(longitude).asDouble();
-
         if (!latitudeFirst) {
             position = geometryFactory.createPoint(new Coordinate(lon, lat));
-
         } else {
             position = geometryFactory.createPoint(new Coordinate(lat, lon));
         }
-
         var posRes = (JsonNode) mapper.createObjectNode();
-
         switch (format) {
         case GEOJSON:
             posRes = GeometryConverter.geometryToGeoJsonNode(position).get();
@@ -77,7 +71,6 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
         default:
             break;
         }
-
         return GeoPipResponse.builder().deviceId(deviceId).position(posRes).altitude(in.findValue(altitude).asDouble())
                 .lastUpdate(in.findValue(lastupdate).asText()).accuracy(in.findValue(accuracy).asDouble()).build();
     }
@@ -86,7 +79,6 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
         if (requestSettings.has(DEVICEID_CONST)) {
             return requestSettings.findValue(DEVICEID_CONST).asText();
         } else {
-
             throw new PolicyEvaluationException("No Device ID found");
         }
     }
@@ -95,7 +87,6 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
         if (requestSettings.has(PROTOCOL_CONST)) {
             return requestSettings.findValue(PROTOCOL_CONST).asText();
         } else {
-
             return "https";
         }
     }

@@ -1,15 +1,15 @@
-      {
-"algorithm": "DENY_OVERRIDES",
-"variables":
-	{
-		"POSTGIS_DEFAULT_CONFIG":
-		{
-			"user":"test",
-			"password":"test",
-			"server":"localhost",
-			"port": 60050,
-			"dataBase":"test",
-			"dataBaseType" : "POSTGIS"
-		}
-	}
-}
+    {
+      "algorithm": "DENY_OVERRIDES",
+      "variables":
+      	{
+      		"POSTGIS_DEFAULT_CONFIG":
+      		{
+      			"user":"test",
+      			"password":"test",
+      			"server":"localhost",
+      			"port": 54351,
+      			"dataBase":"test",
+      			"dataBaseType" : "POSTGIS"
+      		}
+      	}
+      }

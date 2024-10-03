@@ -46,21 +46,16 @@ abstract class TraccarBase extends TrackerConnectionBase {
 
         try {
             uri = new URI(String.format("%s://%s/api/session", protocol, serverName));
-
             var bodyProperties = new HashMap<String, String>() {
                 private static final long serialVersionUID = 1L;
-
             };
 
             bodyProperties.put("email", user);
             bodyProperties.put("password", password);
-
-            var form = bodyProperties.entrySet().stream().map(
+            var form   = bodyProperties.entrySet().stream().map(
                     e -> String.format("%s=%s", e.getKey(), URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8)))
                     .collect(Collectors.joining("&"));
-
             var client = WebClient.builder().build();
-
             return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
                     .retrieve()
                     .onStatus(HttpStatusCode::isError,

@@ -18,7 +18,6 @@
 package io.sapl.geo.functionlibraries;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.util.Assert;
 import io.sapl.api.interpreter.Val;
@@ -43,25 +42,20 @@ class SqlFunctionsTests {
                 "SELECT id, value FROM table WHERE name IN (SELECT name, someField FROM table2 WHERE id = 'someNumber')");
         var result = sqlFunctions.assertNoSqlControlChars(sql);
         assertEquals(Val.TRUE, result);
-
     }
 
     @Test
     void CheckForControlCharactersError() {
 
         var sql = sqlFunctions.assertNoSqlControlChars(Val.of("Select * from table where name = 'test;drop table'"));
-
         assertEquals(errorVal, sql);
-
     }
 
     @Test
     void CheckForControlCharactersError2() {
 
         var sql = sqlFunctions.assertNoSqlControlChars(Val.of("Select * from table where name = @setvalue = 1"));
-
         assertEquals(errorVal, sql);
-
     }
 
     @Test
@@ -76,18 +70,13 @@ class SqlFunctionsTests {
     void CheckForKeywordsError() {
 
         var sql = sqlFunctions.assertNoSqlKeywords(Val.of("Select (drop table table1) from table where name = 'test'"));
-
         assertEquals(errorVal, sql);
-
     }
 
     @Test
     void CheckForKeywordsError2() {
 
         var sql = sqlFunctions.assertNoSqlKeywords(Val.of("Select * from table where name in (truncate table table1)"));
-
         assertEquals(errorVal, sql);
-
     }
-
 }
