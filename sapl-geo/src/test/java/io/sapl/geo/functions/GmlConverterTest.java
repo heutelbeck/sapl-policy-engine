@@ -28,8 +28,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.util.StringUtils;
 import org.xml.sax.SAXException;
 import io.sapl.api.interpreter.Val;
@@ -69,6 +71,19 @@ class GmlConverterTest extends TestBase {
 
         var res        = (Point) GmlConverter.gmlToGeometry(point);
         var res1       = (Polygon) GmlConverter.gmlToGeometry(polygon);
+        var expPoint   = source.getPoint();
+        var expPolygon = source.getPolygon();
+
+        assertEquals(expPoint, res);
+        assertEquals(expPolygon, res1);
+    }
+
+    @Test
+    void gmlToGeometryFactoryTest() throws SAXException, IOException, ParserConfigurationException {
+
+        var factory    = new GeometryFactory(new PrecisionModel(), 4326);
+        var res        = (Point) GmlConverter.gmlToGeometry(point, factory);
+        var res1       = (Polygon) GmlConverter.gmlToGeometry(polygon, factory);
         var expPoint   = source.getPoint();
         var expPolygon = source.getPolygon();
 

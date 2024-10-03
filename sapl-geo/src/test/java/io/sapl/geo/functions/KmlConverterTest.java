@@ -26,8 +26,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -67,6 +69,19 @@ class KmlConverterTest extends TestBase {
 
         var result     = (Point) KmlConverter.kmlToGeometry(point);
         var result1    = (Polygon) KmlConverter.kmlToGeometry(polygon);
+        var expPoint   = source.getPoint();
+        var expPolygon = source.getPolygon();
+
+        assertEquals(expPoint, result);
+        assertEquals(expPolygon, result1);
+    }
+    
+    @Test
+    void kmlToGeometryFactoryTest() throws ParseException {
+        
+        var factory    = new GeometryFactory(new PrecisionModel(), 4326);
+        var result     = (Point) KmlConverter.kmlToGeometry(point, factory);
+        var result1    = (Polygon) KmlConverter.kmlToGeometry(polygon, factory);
         var expPoint   = source.getPoint();
         var expPolygon = source.getPolygon();
 

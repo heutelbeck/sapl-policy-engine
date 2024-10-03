@@ -30,11 +30,16 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.interpreter.Val;
+import io.sapl.geo.functions.CrsConst;
 import io.sapl.geo.functions.GeometryConverter;
+import io.sapl.geo.functions.JsonConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GeoFunctionsTest extends TestBase {
@@ -216,6 +221,12 @@ class GeoFunctionsTest extends TestBase {
     }
 
     @Test
+    void unionSingleTest() throws ParseException, JsonProcessingException {
+
+        assertEquals(point1.get().toPrettyString(), func.union(new Val[] { point1 }).get().toPrettyString());
+    }
+
+    @Test
     void intersectionTest() throws ParseException, JsonProcessingException {
 
         assertEquals(GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(200, 200))).get()
@@ -273,9 +284,33 @@ class GeoFunctionsTest extends TestBase {
     }
 
     @Test
-    void isClosedTest() throws ParseException, OperationNotSupportedException {
+    void isClosedTest() throws ParseException, OperationNotSupportedException, JsonProcessingException {
+        
+        var multiLineString = """
+                {
+                    "type": "MultiLineString",
+                    "coordinates": [
+                        [
+                            [0.0, 0.0],
+                            [1.0, 1.0],
+                            [1.0, 0.0],
+                            [0.0, 0.0]  
+                        ],
+                        [
+                            [2.0, 2.0],
+                            [3.0, 3.0],
+                            [3.0, 2.0],
+                            [2.0, 2.0]  
+                        ]
+                    ]
+                }
+                """;
+        var multiLineStringVal = Val.ofJson(multiLineString);
+        assertTrue(func.isClosed(point1).getBoolean());
+        assertTrue(func.isClosed(multipoint).getBoolean());
         assertThrows(OperationNotSupportedException.class, () -> func.isClosed(polygon1));
         assertFalse(func.isClosed(line).getBoolean());
+        assertTrue(func.isClosed(multiLineStringVal).getBoolean());
     }
 
     @Test
@@ -319,6 +354,14 @@ class GeoFunctionsTest extends TestBase {
 
         assertTrue(func.subset(coll1, coll).getBoolean());
         assertFalse(func.subset(coll, coll2).getBoolean());
+    }
+
+    @Test
+    void geoDistanceCrsTest() throws ParseException, FactoryException, TransformException, JsonProcessingException {
+        var crs = Val.of(CrsConst.WGS84_CRS.getValue());
+        var st  = GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(10.0, 10.0)));
+        var de  = GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(10.0, 10.000001)));
+        assertTrue(func.geoDistance(st, de, crs).get().asDouble() > (0.1));
     }
 
     @Test

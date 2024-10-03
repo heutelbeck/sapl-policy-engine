@@ -26,8 +26,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
 import io.sapl.api.interpreter.Val;
@@ -74,6 +76,19 @@ class JsonConverterTest extends TestBase {
         assertEquals(expPolygon, result1);
     }
 
+    @Test
+    void geoJsonToGeometryFactoryTest() throws ParseException {
+        
+        var factory    = new GeometryFactory(new PrecisionModel(), 4326);
+        var result     = (Point) JsonConverter.geoJsonToGeometry(point, factory);
+        var result1    = (Polygon) JsonConverter.geoJsonToGeometry(polygon, factory);
+        var expPoint   = source.getPoint();
+        var expPolygon = source.getPolygon();
+
+        assertEquals(expPoint, result);
+        assertEquals(expPolygon, result1);
+    }
+    
     @Test
     void geoJsonToGMLTest() throws TransformerException, ParseException {
 

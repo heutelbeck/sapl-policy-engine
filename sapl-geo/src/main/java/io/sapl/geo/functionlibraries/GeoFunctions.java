@@ -26,7 +26,6 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
-import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.operation.distance.DistanceOp;
@@ -446,21 +445,19 @@ public class GeoFunctions {
     }
 
     public Boolean isClosed(@JsonObject JsonNode jsonGeometry) throws ParseException, OperationNotSupportedException {
+        
         var geometry = JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString());
-
-        if (geometry.isEmpty() || Geometry.TYPENAME_POINT.equals(geometry.getGeometryType())
+        if (Geometry.TYPENAME_POINT.equals(geometry.getGeometryType())
                 || Geometry.TYPENAME_MULTIPOINT.equals(geometry.getGeometryType())) {
 
             return true;
         }
-
+        
         switch (geometry.getGeometryType()) {
         case Geometry.TYPENAME_LINESTRING:
             return ((LineString) geometry).isClosed();
         case Geometry.TYPENAME_MULTILINESTRING:
             return ((MultiLineString) geometry).isClosed();
-        case Geometry.TYPENAME_LINEARRING:
-            return ((LinearRing) geometry).isClosed();
         default:
             throw new OperationNotSupportedException(
                     "Operation isClosed is not applicable for the type " + geometry.getGeometryType());

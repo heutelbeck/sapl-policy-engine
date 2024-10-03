@@ -27,8 +27,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.ParseException;
 import org.springframework.util.StringUtils;
 
@@ -77,6 +79,19 @@ class WktConverterTest extends TestBase {
         assertEquals(expPolygon, result1);
     }
 
+    @Test
+    void wktToGeometryFactoryTest() throws ParseException {
+
+        var factory    = new GeometryFactory(new PrecisionModel(), 4326);
+        var result     = (Point) WktConverter.wktToGeometry(point, factory);
+        var result1    = (Polygon) WktConverter.wktToGeometry(polygon, factory);
+        var expPoint   = source.getPoint();
+        var expPolygon = source.getPolygon();
+
+        assertEquals(expPoint, result);
+        assertEquals(expPolygon, result1);
+    }
+    
     @Test
     void wktToGMLTest() throws TransformerException, ParseException {
 
