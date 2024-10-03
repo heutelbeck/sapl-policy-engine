@@ -47,10 +47,6 @@ public class PostGisPolicyInformationPoint {
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(@JsonObject Val auth, @JsonObject Val variables) {
 
-        try {
-            return new DatabaseStreamQuery(auth.get(), mapper, DataBaseTypes.POSTGIS).sendQuery(variables.get());
-        } catch (Exception e) {
-            return Flux.just(Val.error(e.getMessage()));
-        }
+        return new DatabaseStreamQuery(auth.get(), mapper, DataBaseTypes.POSTGIS).sendQuery(variables.get());
     }
 }

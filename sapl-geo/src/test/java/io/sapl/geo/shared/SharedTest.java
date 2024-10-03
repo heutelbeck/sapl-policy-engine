@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.pip.GeoPipResponseFormat;
@@ -47,7 +46,7 @@ class SharedTest {
     }
 
     @Test
-    void getUserTest() throws JsonMappingException, JsonProcessingException {
+    void getUserTest() throws JsonProcessingException {
 
         var requestSettings = """
                 {
@@ -69,7 +68,7 @@ class SharedTest {
     }
 
     @Test
-    void getPasswordTest() throws JsonMappingException, JsonProcessingException {
+    void getPasswordTest() throws JsonProcessingException {
 
         var requestSettings = """
                 {
@@ -91,7 +90,7 @@ class SharedTest {
     }
 
     @Test
-    void getServerTest() throws JsonMappingException, JsonProcessingException {
+    void getServerTest() throws JsonProcessingException {
 
         var requestSettings = """
                 {
@@ -113,7 +112,7 @@ class SharedTest {
     }
 
     @Test
-    void getResponseFormatTest() throws JsonMappingException, JsonProcessingException {
+    void getResponseFormatTest() throws JsonProcessingException {
 
         var requestSettings = """
                 {
@@ -135,7 +134,7 @@ class SharedTest {
     }
 
     @Test
-    void getLatitudeFirstTest() throws JsonMappingException, JsonProcessingException {
+    void getLatitudeFirstTest() throws JsonProcessingException {
 
         var requestSettings = """
                 {
@@ -158,7 +157,7 @@ class SharedTest {
     }
 
     @Test
-    void getDeviceIdTest() throws JsonMappingException, JsonProcessingException {
+    void getDeviceIdTest() throws JsonProcessingException {
 
         var requestSettings = """
                 {

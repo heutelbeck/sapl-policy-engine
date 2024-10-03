@@ -70,7 +70,7 @@ public final class OwnTracks extends TrackerConnectionBase {
             var basicAuthHeader = "Basic "
                     + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
             authSettings = """
-                        ,"headers" : {Authorization": "%s"}
+                        ,"headers" : {"Authorization": "%s"}
                     """;
             authSettings = String.format(authSettings, basicAuthHeader);
         }

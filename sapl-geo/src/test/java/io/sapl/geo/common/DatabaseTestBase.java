@@ -64,65 +64,6 @@ public abstract class DatabaseTestBase extends TestBase {
              }
             """);
 
-    protected String expectedPoint = """
-            {
-              \"srid\":4326,
-              \"geo\":
-                     {
-                     \"type\":\"Point\",
-                     \"coordinates\":[1,0.0],
-                     \"crs\":{
-                         \"type\":\"name\",
-                         \"properties\":
-                             {
-                              \"name\":\"EPSG:4326\"
-                             }
-                     }
-                   },
-              \"name\":\"point\",
-              \"text\":\"text point\"
-            }
-             """;
-    protected String expectedAll   = """
-            [
-             {
-              \"srid\":4326,
-              \"geo\":
-               {
-                \"type\":\"Point\",
-                \"coordinates\":[0.0,1],
-                \"crs\":
-                 {
-                  \"type\":\"name\",
-                  \"properties\":
-                   {
-                    \"name\":\"EPSG:4326\"
-                   }
-                  }
-                 },
-              \"name\":\"point\"
-             },
-             {
-              \"srid\":4326,
-              \"geo\":
-               {
-                \"type\":\"Polygon\",
-                \"coordinates\":[[[0.0,0.0],[0.0,1],[1,1],[1,0.0],[0.0,0.0]]],
-                \"crs\":
-                 {
-                  \"type\":\"name\",
-                  \"properties\":
-                   {
-                    \"name\":\"EPSG:4326\"
-                   }
-                 }
-               },
-              \"name\":\"polygon\"
-             }
-            ]
-
-            """;
-
     protected void createTable(ConnectionFactory connectionFactory) {
         Mono.from(connectionFactory.create()).flatMap(connection -> {
             String createTableQuery = """

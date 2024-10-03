@@ -19,6 +19,7 @@ package io.sapl.geo.owntracks;
 
 import java.nio.file.Paths;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.parallel.Execution;
@@ -30,6 +31,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
@@ -83,6 +85,28 @@ public class OwnTracksTestsIT {
             requestTemplate = requestTemplate.concat(",\"latitudeFirst\":false");
 
         }
+        requestTemplate = requestTemplate.concat("}");
+        var val          = Val.ofJson(requestTemplate);
+        var resultStream = new OwnTracks(Val.ofJson(authTemplate).get(), new ObjectMapper()).connect(val.get())
+                .map(Val::get).map(JsonNode::toPrettyString);
+        StepVerifier.create(resultStream).expectNext(expected).thenCancel().verify();
+    }
+
+    @Test
+    void testHttpAuth() throws JsonProcessingException {
+        var authTemplate = """
+                    {
+                    "server":"%s",
+                    "protocol":"http",
+                    "httpUser":"test",
+                    "password":"test"
+                    }
+                """;
+        authTemplate = String.format(authTemplate, address);
+        var expected        = source.getJsonSource().get("ResponseWKT").toPrettyString();
+        var requestTemplate = (template.concat(",\"responseFormat\":\"%s\""));
+        requestTemplate = String.format(requestTemplate, "WKT");
+
         requestTemplate = requestTemplate.concat("}");
         var val          = Val.ofJson(requestTemplate);
         var resultStream = new OwnTracks(Val.ofJson(authTemplate).get(), new ObjectMapper()).connect(val.get())
