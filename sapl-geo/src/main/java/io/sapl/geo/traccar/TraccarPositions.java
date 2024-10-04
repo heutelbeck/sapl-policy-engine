@@ -108,27 +108,4 @@ public final class TraccarPositions extends TraccarBase {
 
         return Flux.empty();
     }
-
-//    Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, String deviceId)
-//            throws JsonProcessingException {
-//        System.out.println("------"+in.toString());
-//        var pos = getPositionFromMessage(in, deviceId);
-//        if (pos.has(DEVICE_ID)) {
-//            return Flux.just(mapPosition(deviceId, pos, format, latitudeFirst));
-//        }
-//        return Flux.just();
-//    }
-//
-//    private JsonNode getPositionFromMessage(JsonNode in, String deviceId) {
-//
-//        if (in.has(POSITIONS)) {
-//            var pos = (ArrayNode) in.findValue(POSITIONS);
-//            for (var p : pos) {
-//                if (p.findValue(DEVICE_ID).toPrettyString().equals(deviceId)) {
-//                    return p;
-//                }
-//            }
-//        }
-//        return JsonNodeFactory.instance.objectNode();
-//    }
 }
