@@ -86,55 +86,93 @@ public final class TraccarGeofences extends TraccarBase {
     private Flux<JsonNode> getFlux(GeoPipResponseFormat format, String deviceId, String protocol, String server,
             Long pollingInterval, Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
 
-        var flux = getGeofences1(format, deviceId, protocol, server, pollingInterval, repetitions, latitudeFirst)
+        var flux = getGeofences(format, deviceId, protocol, server, pollingInterval, repetitions, latitudeFirst)
                 .map(res -> mapper.convertValue(res, JsonNode.class));
 
         log.info("Traccar-Client connected.");
         return flux;
     }
 
-    private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, String deviceId, String protocol,
+    private Flux<List<Geofence>> getGeofences(GeoPipResponseFormat format, String deviceId, String protocol,
             String server, Long pollingInterval, Long repetitions, boolean latitudeFirst)
             throws JsonProcessingException {
-
-        return getGeofences(deviceId, protocol, server, pollingInterval, repetitions)
-                .flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
-    }
-
-    private Flux<JsonNode> getGeofences(String deviceId, String protocol, String server, Long pollingInterval,
-            Long repetitions) throws JsonProcessingException {
 
         var webClient = new ReactiveWebClient(mapper);
         var baseURL   = protocol + "://" + server;
 
-        var template = """
+        var template = new StringBuilder("""
                 {"baseUrl" : "%s", "path" : "%s", "accept" : "%s", "headers" : { "cookie" : "%s" }
-                """;
-        template = String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE, sessionCookie);
+                """);
+        template = new StringBuilder(String.format(template.toString(), baseURL, "api/geofences",
+                MediaType.APPLICATION_JSON_VALUE, sessionCookie));
+
         if (pollingInterval != null) {
-            template = template.concat("""
-                    ,"pollingIntervalMs" : %s
-                    """);
-            template = String.format(template, pollingInterval);
+            template.append(String.format("""
+                        , "pollingIntervalMs" : %s
+                    """, pollingInterval));
         }
 
         if (repetitions != null) {
-            template = template.concat("""
-                    ,"repetitions" : %s
-                    """);
-            template = String.format(template, repetitions);
+            template.append(String.format("""
+                        , "repetitions" : %s
+                    """, repetitions));
         }
 
         if (deviceId != null) {
-            template = template.concat("""
-                    , "urlParameters" : { "deviceId":%s }
-                    """);
-            template = String.format(template, deviceId);
+            template.append(String.format("""
+                        , "urlParameters" : { "deviceId":%s }
+                    """, deviceId));
         }
-        template = template.concat("}");
-        var request = Val.ofJson(template);
-        return webClient.httpRequest(HttpMethod.GET, request).map(Val::get);
+        template.append("}");
+
+        var request = Val.ofJson(template.toString());
+
+        return webClient.httpRequest(HttpMethod.GET, request).map(Val::get)
+                .flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
     }
+
+//    private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, String deviceId, String protocol,
+//            String server, Long pollingInterval, Long repetitions, boolean latitudeFirst)
+//            throws JsonProcessingException {
+//
+//        return getGeofences(deviceId, protocol, server, pollingInterval, repetitions)
+//                .flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
+//    }
+//
+//    private Flux<JsonNode> getGeofences(String deviceId, String protocol, String server, Long pollingInterval,
+//            Long repetitions) throws JsonProcessingException {
+//
+//        var webClient = new ReactiveWebClient(mapper);
+//        var baseURL   = protocol + "://" + server;
+//
+//        var template = """
+//                {"baseUrl" : "%s", "path" : "%s", "accept" : "%s", "headers" : { "cookie" : "%s" }
+//                """;
+//        template = String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE, sessionCookie);
+//        if (pollingInterval != null) {
+//            template = template.concat("""
+//                    ,"pollingIntervalMs" : %s
+//                    """);
+//            template = String.format(template, pollingInterval);
+//        }
+//
+//        if (repetitions != null) {
+//            template = template.concat("""
+//                    ,"repetitions" : %s
+//                    """);
+//            template = String.format(template, repetitions);
+//        }
+//
+//        if (deviceId != null) {
+//            template = template.concat("""
+//                    , "urlParameters" : { "deviceId":%s }
+//                    """);
+//            template = String.format(template, deviceId);
+//        }
+//        template = template.concat("}");
+//        var request = Val.ofJson(template);
+//        return webClient.httpRequest(HttpMethod.GET, request).map(Val::get);
+//    }
 
     private Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
 
