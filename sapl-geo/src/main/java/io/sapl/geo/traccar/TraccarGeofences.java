@@ -131,49 +131,6 @@ public final class TraccarGeofences extends TraccarBase {
                 .flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
     }
 
-//    private Flux<List<Geofence>> getGeofences1(GeoPipResponseFormat format, String deviceId, String protocol,
-//            String server, Long pollingInterval, Long repetitions, boolean latitudeFirst)
-//            throws JsonProcessingException {
-//
-//        return getGeofences(deviceId, protocol, server, pollingInterval, repetitions)
-//                .flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
-//    }
-//
-//    private Flux<JsonNode> getGeofences(String deviceId, String protocol, String server, Long pollingInterval,
-//            Long repetitions) throws JsonProcessingException {
-//
-//        var webClient = new ReactiveWebClient(mapper);
-//        var baseURL   = protocol + "://" + server;
-//
-//        var template = """
-//                {"baseUrl" : "%s", "path" : "%s", "accept" : "%s", "headers" : { "cookie" : "%s" }
-//                """;
-//        template = String.format(template, baseURL, "api/geofences", MediaType.APPLICATION_JSON_VALUE, sessionCookie);
-//        if (pollingInterval != null) {
-//            template = template.concat("""
-//                    ,"pollingIntervalMs" : %s
-//                    """);
-//            template = String.format(template, pollingInterval);
-//        }
-//
-//        if (repetitions != null) {
-//            template = template.concat("""
-//                    ,"repetitions" : %s
-//                    """);
-//            template = String.format(template, repetitions);
-//        }
-//
-//        if (deviceId != null) {
-//            template = template.concat("""
-//                    , "urlParameters" : { "deviceId":%s }
-//                    """);
-//            template = String.format(template, deviceId);
-//        }
-//        template = template.concat("}");
-//        var request = Val.ofJson(template);
-//        return webClient.httpRequest(HttpMethod.GET, request).map(Val::get);
-//    }
-
     private Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
 
         try {
