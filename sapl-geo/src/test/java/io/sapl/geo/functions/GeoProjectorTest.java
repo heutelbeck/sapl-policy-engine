@@ -36,7 +36,7 @@ import org.locationtech.jts.geom.Point;
 class GeoProjectorTest {
 
     static Stream<GeoProjector> projectorProvider() throws FactoryException {
-        return Stream.of(new GeoProjector(CrsConst.WGS84_CRS, true, CrsConst.WEB_MERCATOR_CRS, false),
+        return Stream.of(new GeoProjector(CrsConst.WGS84_CRS.getValue(), true, CrsConst.WEB_MERCATOR_CRS.getValue(), false),
                 new GeoProjector());
     }
 

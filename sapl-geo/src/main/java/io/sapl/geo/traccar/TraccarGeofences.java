@@ -119,7 +119,7 @@ public final class TraccarGeofences extends TraccarBase {
                         , "urlParameters" : { "deviceId":%s }
                     """, deviceId));
         }
-        template.append("}");
+        template.append('}');
 
         var request = Val.ofJson(template.toString());
 

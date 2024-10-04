@@ -32,25 +32,9 @@ public final class GeoProjector {
 
     public GeoProjector() throws FactoryException {
         // standard configuration
-        this(CrsConst.WGS84_CRS, true, CrsConst.WEB_MERCATOR_CRS, false);
+        this(CrsConst.WGS84_CRS.getValue(), true, CrsConst.WEB_MERCATOR_CRS.getValue(), false);
     }
-
-    /**
-     * @param srcCrs             a {@link CrsConst} to set the coordinate reference
-     *                           system for the source geometry. see
-     *                           {@link #project(Geometry)}
-     * @param srcLongitudeFirst  a {@link Boolean} to set latitude/longitude as
-     *                           first coordinate
-     * @param destCrs            a {@link CrsConst} to set the coordinate reference
-     *                           system for the destination geometry. see
-     *                           {@link #project(Geometry)}
-     * @param destLongitudeFirst a {@link Boolean} to set latitude/longitude as
-     *                           first coordinate
-     */
-    public GeoProjector(CrsConst srcCrs, Boolean srcLongitudeFirst, CrsConst destCrs, Boolean destLongitudeFirst)
-            throws FactoryException {
-        this(srcCrs.getValue(), srcLongitudeFirst, destCrs.getValue(), destLongitudeFirst);
-    }
+   
 
     /**
      * @param srcCrs             sets the coordinate reference system for the source

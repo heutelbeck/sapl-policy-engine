@@ -46,7 +46,6 @@ class TraccarTestsIT extends TraccarTestBase {
             	}
             """;
     private String authTemplate;
-    private String address;
 
     @BeforeAll
     void setup() throws Exception {
@@ -91,7 +90,7 @@ class TraccarTestsIT extends TraccarTestBase {
         }
         postTraccarGeofence(sessionCookie, body3).block();
         addTraccarPosition("1234567890", 29D, 33D).block();
-        address      = traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082);
+        var address      = traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082);
         authTemplate = String.format(authenticationTemplate, email, password, address);
     }
 
