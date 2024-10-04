@@ -23,7 +23,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.pip.GeoPipResponse;
@@ -67,9 +66,7 @@ public final class TraccarPositions extends TraccarBase {
         return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
             try {
                 return getPositionFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
-                        getLatitudeFirst(settings)).map(Val::of)
-
-                        .doFinally(s -> disconnect());
+                        getLatitudeFirst(settings)).map(Val::of).doFinally(s -> disconnect());
             } catch (Exception e) {
                 return Flux.error(e);
             }
@@ -84,37 +81,54 @@ public final class TraccarPositions extends TraccarBase {
                 { "baseUrl" : "%s", "accept" : "%s", "headers" : { "cookie": "%s" } }
                 """;
         var request      = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
-        var responseFlux = client.consumeWebSocket(request).map(Val::get).flatMap(msg -> {
-                             try {
-                                 return mapPosition(msg, format, latitudeFirst, deviceId);
-                             } catch (JsonProcessingException e) {
-                                 return Flux.error(e);
-                             }
-                         }).map(res -> mapper.convertValue(res, ObjectNode.class));
+        var responseFlux = client.consumeWebSocket(request).map(Val::get)
+                .flatMap(msg -> mapPosition(msg, format, latitudeFirst, deviceId))
+                .map(res -> mapper.convertValue(res, ObjectNode.class));
 
         log.info("Traccar-Client connected.");
         return responseFlux;
     }
 
-    Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, String deviceId)
-            throws JsonProcessingException {
-        var pos = getPositionFromMessage(in, deviceId);
-        if (pos.has(DEVICE_ID)) {
-            return Flux.just(mapPosition(deviceId, pos, format, latitudeFirst));
-        }
-        return Flux.just();
-    }
-
-    private JsonNode getPositionFromMessage(JsonNode in, String deviceId) {
+    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst,
+            String deviceId) {
 
         if (in.has(POSITIONS)) {
-            var pos = (ArrayNode) in.findValue(POSITIONS);
-            for (var p : pos) {
-                if (p.findValue(DEVICE_ID).toPrettyString().equals(deviceId)) {
-                    return p;
-                }
-            }
+            var posArray = (ArrayNode) in.get(POSITIONS);
+
+            return Flux.fromIterable(posArray)
+                    .filter(pos -> pos.has(DEVICE_ID) && pos.get(DEVICE_ID).asText().equals(deviceId)).flatMap(pos -> {
+                        try {
+                            var response = mapPosition(deviceId, pos, format, latitudeFirst);
+                            return Flux.just(response);
+                        } catch (JsonProcessingException e) {
+                            return Flux.error(e);
+                        }
+                    });
         }
-        return JsonNodeFactory.instance.objectNode();
+
+        return Flux.empty();
     }
+
+//    Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, String deviceId)
+//            throws JsonProcessingException {
+//        System.out.println("------"+in.toString());
+//        var pos = getPositionFromMessage(in, deviceId);
+//        if (pos.has(DEVICE_ID)) {
+//            return Flux.just(mapPosition(deviceId, pos, format, latitudeFirst));
+//        }
+//        return Flux.just();
+//    }
+//
+//    private JsonNode getPositionFromMessage(JsonNode in, String deviceId) {
+//
+//        if (in.has(POSITIONS)) {
+//            var pos = (ArrayNode) in.findValue(POSITIONS);
+//            for (var p : pos) {
+//                if (p.findValue(DEVICE_ID).toPrettyString().equals(deviceId)) {
+//                    return p;
+//                }
+//            }
+//        }
+//        return JsonNodeFactory.instance.objectNode();
+//    }
 }

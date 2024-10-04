@@ -94,7 +94,7 @@ public class OwnTracksTestsIT {
 
     @Test
     void testHttpAuth() throws JsonProcessingException {
-        var authTemplate = """
+        var authTemp = """
                     {
                     "server":"%s",
                     "protocol":"http",
@@ -102,14 +102,14 @@ public class OwnTracksTestsIT {
                     "password":"test"
                     }
                 """;
-        authTemplate = String.format(authTemplate, address);
+        authTemp = String.format(authTemp, address);
         var expected        = source.getJsonSource().get("ResponseWKT").toPrettyString();
         var requestTemplate = (template.concat(",\"responseFormat\":\"%s\""));
         requestTemplate = String.format(requestTemplate, "WKT");
 
         requestTemplate = requestTemplate.concat("}");
         var val          = Val.ofJson(requestTemplate);
-        var resultStream = new OwnTracks(Val.ofJson(authTemplate).get(), new ObjectMapper()).connect(val.get())
+        var resultStream = new OwnTracks(Val.ofJson(authTemp).get(), new ObjectMapper()).connect(val.get())
                 .map(Val::get).map(JsonNode::toPrettyString);
         StepVerifier.create(resultStream).expectNext(expected).thenCancel().verify();
     }

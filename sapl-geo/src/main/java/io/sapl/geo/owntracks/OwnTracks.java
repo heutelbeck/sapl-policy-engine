@@ -143,9 +143,7 @@ public final class OwnTracks extends TrackerConnectionBase {
         List<Geofence> fenceRes = new ArrayList<>();
         var            fences   = mapper.readTree(in.toString());
         for (var geoFence : fences) {
-
             fenceRes.add(Geofence.builder().name(geoFence.asText()).build());
-
         }
         return fenceRes;
     }

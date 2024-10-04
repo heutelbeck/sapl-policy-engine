@@ -24,6 +24,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.Test;
+import java.net.URISyntaxException;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -36,7 +37,7 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 class TraccarTestsIT extends TraccarTestBase {
 
-    String authenticationTemplate = """
+    private String authenticationTemplate = """
                 {
                 "user":"%s",
                 "password":"%s",
@@ -44,7 +45,8 @@ class TraccarTestsIT extends TraccarTestBase {
             	"protocol":"http"
             	}
             """;
-    String authTemplate;
+    private String authTemplate;
+    private String address;
 
     @BeforeAll
     void setup() throws Exception {
@@ -89,7 +91,7 @@ class TraccarTestsIT extends TraccarTestBase {
         }
         postTraccarGeofence(sessionCookie, body3).block();
         addTraccarPosition("1234567890", 29D, 33D).block();
-        var address = traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082);
+        address      = traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082);
         authTemplate = String.format(authenticationTemplate, email, password, address);
     }
 
@@ -186,5 +188,33 @@ class TraccarTestsIT extends TraccarTestBase {
 
         StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
                 .verify();
+    }
+
+    @Test
+    void testEstablishSessionUriSyntaxException() throws Exception {
+
+        String authenticationTemp = """
+                    {
+                    "user":"%s",
+                    "password":"%s",
+                    "server":"%s"
+                    }
+                """;
+        var    authTemp           = String.format(authenticationTemp, email, password, "abc<>()");
+        var    str                = """
+                {
+                   "responseFormat":"WKT"
+                   """;
+        var    responseTemplate   = str.concat("""
+                   ,"repetitions" : 3
+                   ,"pollingIntervalMs" : 1000
+                }
+                """);
+        var    val                = Val.ofJson(responseTemplate);
+
+        var result = new TraccarGeofences(Val.ofJson(authTemp).get(), new ObjectMapper()).getGeofences(val.get())
+                .map(Val::get).map(JsonNode::toPrettyString);
+
+        StepVerifier.create(result).expectError(URISyntaxException.class).verify();
     }
 }
