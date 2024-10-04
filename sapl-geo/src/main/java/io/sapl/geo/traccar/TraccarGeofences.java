@@ -19,13 +19,9 @@ package io.sapl.geo.traccar;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.geotools.api.geometry.MismatchedDimensionException;
-import org.geotools.api.referencing.FactoryException;
-import org.geotools.api.referencing.operation.TransformException;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
-import org.locationtech.jts.io.ParseException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -134,11 +130,11 @@ public final class TraccarGeofences extends TraccarBase {
     private Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
         try {
             List<Geofence> fenceRes = new ArrayList<>();
-            var fences = mapper.readTree(in.toString());
+            var            fences   = mapper.readTree(in.toString());
 
             for (JsonNode geoFence : fences) {
-                var factory = new GeometryFactory(new PrecisionModel(), 4326);
-                Geometry geo = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
+                var      factory = new GeometryFactory(new PrecisionModel(), 4326);
+                Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
 
                 if (!latitudeFirst) {
                     var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
@@ -146,20 +142,20 @@ public final class TraccarGeofences extends TraccarBase {
                 }
 
                 switch (format) {
-                    case GEOJSON:
-                        fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
-                        break;
-                    case WKT:
-                        fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
-                        break;
-                    case GML:
-                        fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
-                        break;
-                    case KML:
-                        fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
-                        break;
-                    default:
-                        break;
+                case GEOJSON:
+                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
+                    break;
+                case WKT:
+                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
+                    break;
+                case GML:
+                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
+                    break;
+                case KML:
+                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
+                    break;
+                default:
+                    break;
                 }
             }
 
@@ -168,55 +164,6 @@ public final class TraccarGeofences extends TraccarBase {
             return Mono.error(e);
         }
     }
-    
-//    private Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
-//
-//        try {
-//            var fenceRes = mapTraccarGeoFences(in, format, mapper, latitudeFirst);
-//            return Mono.just(fenceRes);
-//        } catch (Exception e) {
-//            return Mono.error(e);
-//        }
-//    }
-//
-//    private List<Geofence> mapTraccarGeoFences(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
-//            boolean latitudeFirst) throws JsonProcessingException, ParseException, FactoryException,
-//            MismatchedDimensionException, TransformException {
-//
-//        List<Geofence> fenceRes = new ArrayList<>();
-//        var            fences   = mapper.readTree(in.toString());
-//        for (JsonNode geoFence : fences) {
-//            var      factory = new GeometryFactory(new PrecisionModel(), 4326);
-//            Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
-//
-//            if (!latitudeFirst) {
-//                var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
-//                geo = geoProjector.project(geo);
-//            }
-//
-//            switch (format) {
-//            case GEOJSON:
-//                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
-//                break;
-//
-//            case WKT:
-//                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
-//                break;
-//
-//            case GML:
-//                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
-//                break;
-//
-//            case KML:
-//                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
-//                break;
-//
-//            default:
-//                break;
-//            }
-//        }
-//        return fenceRes;
-//    }
 
     private Geofence mapFence(JsonNode geoFence, JsonNode area) {
         return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
