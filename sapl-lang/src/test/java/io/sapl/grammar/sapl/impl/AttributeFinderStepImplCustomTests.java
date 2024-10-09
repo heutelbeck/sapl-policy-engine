@@ -110,7 +110,8 @@ class AttributeFinderStepImplCustomTests {
 
     private static AttributeFinderStep attributeFinderStep() {
         var step = FACTORY.createAttributeFinderStep();
-        step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
+        step.eSet(step.eClass().getEStructuralFeature("identifier"), FACTORY.createFunctionIdentifier());
+        step.getIdentifier().getNameFragments().add(FULLY_QUALIFIED_ATTRIBUTE);
         return step;
     }
 

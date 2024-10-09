@@ -96,7 +96,8 @@ class BasicEnvironmentHeadAttributeImplTests {
 
     private static BasicEnvironmentHeadAttribute headAttributeFinderStep() {
         var step = FACTORY.createBasicEnvironmentHeadAttribute();
-        step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
+        step.eSet(step.eClass().getEStructuralFeature("identifier"), FACTORY.createFunctionIdentifier());
+        step.getIdentifier().getNameFragments().add(FULLY_QUALIFIED_ATTRIBUTE);
         return step;
     }
 

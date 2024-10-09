@@ -118,7 +118,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter
                     fieldFluxes.add(FilterAlgorithmUtil
-                            .applyFilterFunction(value, statement.getArguments(), statement.getFsteps(),
+                            .applyFilterFunction(value, statement.getArguments(), statement.getIdentifier(),
                                     statement.isEach(), statement)
                             .map(val -> Tuples.of(field.getKey(), val))
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, unfilteredValue)));

@@ -136,13 +136,16 @@ BasicValue:
 	{BasicValue} value=Value steps+=Step*;
 
 BasicFunction:
-	{BasicFunction} fsteps+=SaplID ('.' fsteps+=SaplID)* arguments=Arguments steps+=Step*;
+	identifier=FunctionIdentifier arguments=Arguments steps+=Step*;
 
 BasicEnvironmentAttribute:
-	{BasicEnvironmentAttribute} '<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>' steps+=Step*;
+	{BasicEnvironmentAttribute} '<' identifier=FunctionIdentifier arguments=Arguments? '>' steps+=Step*;
 
 BasicEnvironmentHeadAttribute:
-	{BasicEnvironmentHeadAttribute} '|<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>' steps+=Step*;
+	{BasicEnvironmentHeadAttribute} '|<' identifier=FunctionIdentifier arguments=Arguments? '>' steps+=Step*;
+
+FunctionIdentifier:
+	{FunctionIdentifier} nameFragments+=ID ('.' nameFragments+=SaplID)*;
 
 BasicIdentifier:
 	{BasicIdentifier} identifier=SaplID steps+=Step*;
@@ -184,10 +187,10 @@ WildcardStep:
 	{WildcardStep} '*';
 
 AttributeFinderStep:
-	'<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>';
+	'<' identifier=FunctionIdentifier arguments=Arguments? '>';
 
 HeadAttributeFinderStep:
-	'|<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>';
+	'|<' identifier=FunctionIdentifier arguments=Arguments? '>';
 
 RecursiveKeyStep:
 	(id=SaplID | '[' id=STRING ']');
@@ -245,11 +248,11 @@ NumberLiteral returns Value:
 	{NumberLiteral} number=JSONNUMBER;
 
 FilterComponent:
-	{FilterSimple} each?='each'? fsteps+=SaplID ('.' fsteps+=SaplID)* arguments=Arguments?
+	{FilterSimple} each?='each'? identifier=FunctionIdentifier arguments=Arguments?
 	| {FilterExtended} '{' statements+=FilterStatement (',' statements+=FilterStatement)* '}';
 
 FilterStatement:
-	each?='each'? target=BasicRelative? ':' fsteps+=SaplID ('.' fsteps+=SaplID)* arguments=Arguments?;
+	each?='each'? target=BasicRelative? ':' identifier=FunctionIdentifier arguments=Arguments?;
 
 SignedNumber returns ecore::EBigDecimal:
 	'-'? JSONNUMBER;

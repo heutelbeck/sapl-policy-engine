@@ -32,6 +32,7 @@ import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.ConditionStep;
 import io.sapl.grammar.sapl.FilterComponent;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.grammar.sapl.FunctionIdentifier;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -132,7 +133,7 @@ public class FilterAlgorithmUtil {
                 var elementValueTraced = elementValue.withTrace(ConditionStep.class, true, trace);
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter
-                    return applyFilterFunction(elementValueTraced, statement.getArguments(), statement.getFsteps(),
+                    return applyFilterFunction(elementValueTraced, statement.getArguments(), statement.getIdentifier(),
                             statement.isEach(), statement)
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx,
                                     unfilteredValue.withTrace(ConditionStep.class, true, trace)));
@@ -147,7 +148,7 @@ public class FilterAlgorithmUtil {
         };
     }
 
-    public static Flux<Val> applyFilterFunction(Val unfilteredValue, Arguments arguments, Iterable<String> fsteps,
+    public static Flux<Val> applyFilterFunction(Val unfilteredValue, Arguments arguments, FunctionIdentifier identifier,
             boolean each, EObject location) {
         if (unfilteredValue.isError()) {
             return Flux.just(unfilteredValue.withTrace(FilterComponent.class, true, unfilteredValue));
@@ -159,7 +160,7 @@ public class FilterAlgorithmUtil {
 
         if (!each) {
             return FunctionUtil.combineArgumentFluxes(arguments)
-                    .concatMap(parameters -> FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(location, fsteps,
+                    .concatMap(parameters -> FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(location, identifier,
                             unfilteredValue, parameters))
                     .map(val -> val.withTrace(FilterComponent.class, true,
                             Map.of(UNFILTERED_VALUE, unfilteredValue, "filterResult", val)));
@@ -180,7 +181,7 @@ public class FilterAlgorithmUtil {
             for (var element : rootArray) {
                 var elementVal = Val.of(element).withTrace(FilterComponent.class, true,
                         Map.of(UNFILTERED_VALUE, unfilteredValue, "index", Val.of(index++)));
-                elementsEvaluations.add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(location, fsteps,
+                elementsEvaluations.add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(location, identifier,
                         elementVal, parameters));
             }
             return Flux.combineLatest(elementsEvaluations, e -> Arrays.copyOf(e, e.length, Val[].class))

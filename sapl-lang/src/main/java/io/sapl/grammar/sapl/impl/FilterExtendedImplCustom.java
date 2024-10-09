@@ -68,7 +68,7 @@ public class FilterExtendedImplCustom extends FilterExtendedImpl {
         if (statement.getTarget().getSteps().isEmpty()) {
             // the expression has no steps. apply filter to unfiltered node directly
             return FilterAlgorithmUtil.applyFilterFunction(unfilteredValue, statement.getArguments(),
-                    statement.getFsteps(), statement.isEach(), statement);
+                    statement.getIdentifier(), statement.isEach(), statement);
         } else {
             // descent with steps
             return statement.getTarget().getSteps().get(0).applyFilterStatement(unfilteredValue, 0, statement);

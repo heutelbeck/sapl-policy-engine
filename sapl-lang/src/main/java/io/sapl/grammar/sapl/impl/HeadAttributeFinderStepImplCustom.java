@@ -46,7 +46,7 @@ public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepIm
     public Flux<Val> apply(@NonNull Val parentValue) {
 
         return Flux.deferContextual(ctxView -> {
-            var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdSteps(), getImports(ctxView));
+            var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdentifier(), getImports(ctxView));
 
             if (parentValue.isError()) {
                 return Flux.just(parentValue.withTrace(HeadAttributeFinderStep.class, false,

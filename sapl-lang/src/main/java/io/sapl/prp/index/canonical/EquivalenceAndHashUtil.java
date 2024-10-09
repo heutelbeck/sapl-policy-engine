@@ -53,7 +53,7 @@ public class EquivalenceAndHashUtil {
         EList<EStructuralFeature> features = thiz.eClass().getEAllStructuralFeatures();
         for (EStructuralFeature feature : features) {
             var featureInstance = thiz.eGet(feature);
-            if ("fsteps".equals(feature.getName())) {
+            if ("nameFragments".equals(feature.getName())) {
                 hash = PRIME * hash + hashFStepRespectingImports(featureInstance, imports);
             } else {
                 hash = PRIME * hash + hash(featureInstance, imports);
@@ -96,7 +96,7 @@ public class EquivalenceAndHashUtil {
         for (EStructuralFeature feature : features) {
             var thisFeatureInstance = thiz.eGet(feature);
             var thatFeatureInstance = that.eGet(feature, true);
-            if ("fsteps".equals(feature.getName())) {
+            if ("nameFragments".equals(feature.getName())) {
                 return fStepsAreEquivalentWithRegardsToImports(thisFeatureInstance, thizImports, thatFeatureInstance,
                         thatImports);
             }

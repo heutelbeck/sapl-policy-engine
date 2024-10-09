@@ -173,7 +173,9 @@ public class SAPLImplCustom extends SAPLImpl {
 
     private static Expression schemaPredicateExpression(Schema schema) {
         var function = SaplFactory.eINSTANCE.createBasicFunction();
-        var fSteps   = function.getFsteps();
+        function.eSet(function.eClass().getEStructuralFeature("identifier"),
+                SaplFactory.eINSTANCE.createFunctionIdentifier());
+        var fSteps = function.getIdentifier().getNameFragments();
         fSteps.add(SchemaValidationLibrary.NAME);
         fSteps.add("isCompliantWithExternalSchemas");
 

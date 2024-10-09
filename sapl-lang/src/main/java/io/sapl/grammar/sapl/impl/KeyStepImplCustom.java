@@ -105,7 +105,7 @@ public class KeyStepImplCustom extends KeyStepImpl {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter
                     fieldFluxes.add(FilterAlgorithmUtil
-                            .applyFilterFunction(value, statement.getArguments(), statement.getFsteps(),
+                            .applyFilterFunction(value, statement.getArguments(), statement.getIdentifier(),
                                     statement.isEach(), statement)
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(object)))
                             .map(val -> Tuples.of(field.getKey(), val)));

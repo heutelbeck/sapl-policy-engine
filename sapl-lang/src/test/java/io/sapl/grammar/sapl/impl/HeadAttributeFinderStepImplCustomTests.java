@@ -102,8 +102,9 @@ class HeadAttributeFinderStepImplCustomTests {
     }
 
     private static HeadAttributeFinderStep headAttributeFinderStep() {
-        var step = FACTORY.createHeadAttributeFinderStep();
-        step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
+        final var step = FACTORY.createHeadAttributeFinderStep();
+        step.eSet(step.eClass().getEStructuralFeature("identifier"), FACTORY.createFunctionIdentifier());
+        step.getIdentifier().getNameFragments().add(FULLY_QUALIFIED_ATTRIBUTE);
         return step;
     }
 

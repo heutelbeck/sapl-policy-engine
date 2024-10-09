@@ -67,17 +67,18 @@ public class ExpressionSchemaResolver {
             steps       = basicGroup.getSteps();
         } else if (expression instanceof BasicFunction basicFunction) {
             // function implementations may have schemas associated
-            baseSchemas = inferPotentialSchemasFromFunction(basicFunction.getFsteps(), context, pdpConfiguration);
+            baseSchemas = inferPotentialSchemasFromFunction(basicFunction.getIdentifier().getNameFragments(), context,
+                    pdpConfiguration);
             steps       = basicFunction.getSteps();
         } else if (expression instanceof BasicEnvironmentAttribute basicEnvironmentAttribute) {
             // PIP implementations may have schemas associated
-            baseSchemas = inferPotentialSchemasFromAttributeFinder(basicEnvironmentAttribute.getIdSteps(), context,
-                    pdpConfiguration);
+            baseSchemas = inferPotentialSchemasFromAttributeFinder(
+                    basicEnvironmentAttribute.getIdentifier().getNameFragments(), context, pdpConfiguration);
             steps       = basicEnvironmentAttribute.getSteps();
         } else if (expression instanceof BasicEnvironmentHeadAttribute basicEnvironmentHeadAttribute) {
             // PIP implementations may have schemas associated
-            baseSchemas = inferPotentialSchemasFromAttributeFinder(basicEnvironmentHeadAttribute.getIdSteps(), context,
-                    pdpConfiguration);
+            baseSchemas = inferPotentialSchemasFromAttributeFinder(
+                    basicEnvironmentHeadAttribute.getIdentifier().getNameFragments(), context, pdpConfiguration);
             steps       = basicEnvironmentHeadAttribute.getSteps();
         } else if (expression instanceof BasicIdentifier basicIdentifier) {
             // an identifier may be an authorization subscription element with schema, or
@@ -121,11 +122,11 @@ public class ExpressionSchemaResolver {
         // improvement to be made here in the future.
 
         if (head instanceof AttributeFinderStep attributeFinderStep) {
-            newSchemas = inferPotentialSchemasFromAttributeFinder(attributeFinderStep.getIdSteps(), context,
-                    pdpConfiguration);
+            newSchemas = inferPotentialSchemasFromAttributeFinder(
+                    attributeFinderStep.getIdentifier().getNameFragments(), context, pdpConfiguration);
         } else if (head instanceof HeadAttributeFinderStep headAttributeFinderStep) {
-            newSchemas = inferPotentialSchemasFromAttributeFinder(headAttributeFinderStep.getIdSteps(), context,
-                    pdpConfiguration);
+            newSchemas = inferPotentialSchemasFromAttributeFinder(
+                    headAttributeFinderStep.getIdentifier().getNameFragments(), context, pdpConfiguration);
         }
 
         return inferPotentialSchemasStepsAfterExpression(newSchemas, tail(steps), context, pdpConfiguration);

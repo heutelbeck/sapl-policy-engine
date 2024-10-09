@@ -102,7 +102,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter
                     elementFluxes.add(FilterAlgorithmUtil
-                            .applyFilterFunction(element, statement.getArguments(), statement.getFsteps(),
+                            .applyFilterFunction(element, statement.getArguments(), statement.getIdentifier(),
                                     statement.isEach(), statement)
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue)));
                 } else {

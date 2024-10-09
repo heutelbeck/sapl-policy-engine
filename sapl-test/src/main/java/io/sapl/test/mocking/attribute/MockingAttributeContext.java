@@ -36,6 +36,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.interpreter.pip.AttributeFinderMetadata;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
@@ -279,6 +280,11 @@ public class MockingAttributeContext implements AttributeContext {
     @Override
     public Map<String, JsonNode> getAttributeSchemas() {
         return Map.of();
+    }
+
+    @Override
+    public Collection<AttributeFinderMetadata> getAttributeMetatata() {
+        return List.of();
     }
 
 }

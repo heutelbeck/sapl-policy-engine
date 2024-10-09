@@ -94,7 +94,8 @@ class BasicEnvironmentAttributeImplTests {
 
     private static BasicEnvironmentAttribute attributeFinderStep() {
         var step = FACTORY.createBasicEnvironmentAttribute();
-        step.getIdSteps().add(FULLY_QUALIFIED_ATTRIBUTE);
+        step.eSet(step.eClass().getEStructuralFeature("identifier"), FACTORY.createFunctionIdentifier());
+        step.getIdentifier().getNameFragments().add(FULLY_QUALIFIED_ATTRIBUTE);
         return step;
     }
 
