@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.contentassist;
+package io.sapl.grammar.ide.contentassist.removeme;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,6 +29,7 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.grammar.ide.contentassist.SchemaProposalsGenerator;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.SAPL;
@@ -43,7 +44,7 @@ public class LibraryProposalsGenerator {
 
     public record Proposal(String fullyQualifiedName, String proposal, String documentation) {}
 
-    public static List<Proposal> createAttributeProposals(ContentAssistContext context,
+    public static List<Proposal> createEnvironmentAttributeProposals(ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         final var proposals           = new ArrayList<Proposal>();
         final var attributeContext    = pdpConfiguration.attributeContext();

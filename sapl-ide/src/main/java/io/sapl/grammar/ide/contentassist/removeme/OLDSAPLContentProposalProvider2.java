@@ -39,10 +39,9 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.google.common.base.Splitter;
 
-import io.sapl.grammar.ide.contentassist.LibraryProposalsGenerator;
-import io.sapl.grammar.ide.contentassist.LibraryProposalsGenerator.Proposal;
 import io.sapl.grammar.ide.contentassist.NewLibraryProposalsGenerator;
 import io.sapl.grammar.ide.contentassist.NewLibraryProposalsGenerator.DocumentedProposal;
+import io.sapl.grammar.ide.contentassist.removeme.LibraryProposalsGenerator.Proposal;
 import io.sapl.grammar.ide.contentassist.SpringContext;
 import io.sapl.grammar.ide.contentassist.TreeNavigationUtil;
 import io.sapl.grammar.ide.contentassist.VariablesProposalsGenerator;
@@ -163,7 +162,7 @@ public class OLDSAPLContentProposalProvider2 extends IdeContentProposalProvider 
 
     private void createBasicEnvironmentAttributeProposals(ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        final var proposals = NewLibraryProposalsGenerator.allAttributeFinders(context, pdpConfiguration);
+        final var proposals = NewLibraryProposalsGenerator.allEnvironmentAttributeFinders(context, pdpConfiguration);
         if (context.getPrefix().startsWith("|")) {
             final var prefixAdjustedProposals = new ArrayList<DocumentedProposal>();
             proposals.forEach(proposal -> prefixAdjustedProposals.add(new DocumentedProposal("|" + proposal.proposal(),
@@ -290,7 +289,7 @@ public class OLDSAPLContentProposalProvider2 extends IdeContentProposalProvider 
 
     private void createIdStepProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
             PDPConfiguration pdpConfiguration) {
-        final var proposals = LibraryProposalsGenerator.createAttributeProposals(context, pdpConfiguration);
+        final var proposals = LibraryProposalsGenerator.createEnvironmentAttributeProposals(context, pdpConfiguration);
         addLibraryProposals(proposals, context, acceptor);
     }
 

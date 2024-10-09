@@ -118,7 +118,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
         final var configurationId  = extractConfigurationIdFromRequest();
         final var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration(configurationId).blockFirst();
-        dumpCurrentState(ruleCall, context);
+//        dumpCurrentState(ruleCall, context);
+        // dumpParents(context);
         /*
          * found no simple rule to detect this scenario. there are too many
          * false-positives. e.g. <time.xxx(<[CURSOR])> the offset will be at cursor, but
@@ -149,8 +150,36 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
                 createBasicEnvironmentAttributeProposals(context, acceptor, pdpConfiguration);
             }
         }
+        case "KeyStep", "EscapedKeyStep"                                  -> {
+            log.trace("{} for {}", ruleName, context.getCurrentModel().eClass().getName());
+
+//            createKeyStepProposals(context, acceptor, pdpConfiguration);
+        }
+        case "AttributeFinderStep"                                        -> {
+            createAttributeFinderStepProposals(context, acceptor, pdpConfiguration);
+        }
+        case "Step"                                                       -> {
+            final var currentModel = context.getCurrentModel();
+            log.trace("Step for {}", currentModel.eClass().getName());
+        }
+        case "SaplID"                                                     -> {
+            final var currentModel = context.getCurrentModel();
+            log.trace("SaplID for {}", currentModel.eClass().getName());
+        }
         default                                                           -> {/* NOOP */}
         }
+    }
+
+    private void createAttributeFinderStepProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
+            PDPConfiguration pdpConfiguration) {
+        // TODO Auto-generated method stub
+
+    }
+
+    private void createKeyStepProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
+            PDPConfiguration pdpConfiguration) {
+        log.trace("creating key step proposals...");
+
     }
 
     private boolean isInsideOfPolicyBody(final ContentAssistContext context) {
@@ -198,7 +227,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void createBasicEnvironmentAttributeProposals(ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        final var proposals = NewLibraryProposalsGenerator.allAttributeFinders(context, pdpConfiguration);
+        final var proposals = NewLibraryProposalsGenerator.allEnvironmentAttributeFinders(context, pdpConfiguration);
         if (context.getPrefix().startsWith("|")) {
             final var prefixAdjustedProposals = new ArrayList<DocumentedProposal>();
             proposals.forEach(proposal -> prefixAdjustedProposals.add(new DocumentedProposal("|" + proposal.proposal(),
@@ -271,8 +300,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     private void dumpCurrentState(final RuleCall ruleCall, final ContentAssistContext context) {
+
         final var feature = ruleCall.eContainingFeature().getName();
-        log.trace("Prefix: '{}' Rule: '{}' Feature: '{}'", context.getPrefix(), ruleCall.getRule().getName(), feature);
+        log.trace(
+                "Prefix: '{}' Rule: '{}' CurrentModel: '{}' Feature: '{}' cFeature: '{}' eContainer rc: '{}' eContainer cn-sem: '{}' ",
+                context.getPrefix(), ruleCall.getRule().getName(), context.getCurrentModel().eClass().getName(),
+                ruleCall.eContainmentFeature().getName(), ruleCall.eContainer().eClass().getName(),
+                context.getCurrentNode().getSemanticElement().eContainer().eClass().getName());
     }
 
     private void addProposals(final Collection<String> proposals, ContentAssistContext context,
@@ -315,8 +349,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             return;
         }
 
-        log.trace("prefix: '{}' proposal: '{}' - '{}' - '{}'", context.getPrefix(), proposal.proposal(),
-                proposal.label(), proposal.documentation());
+//        log.trace("prefix: '{}' proposal: '{}' - '{}' - '{}'", context.getPrefix(), proposal.proposal(),
+//                proposal.label(), proposal.documentation());
         final var entry = getProposalCreator().createProposal(proposal.proposal(), context, e -> {
             e.setLabel(proposal.label());
             e.setDocumentation(proposal.documentation());

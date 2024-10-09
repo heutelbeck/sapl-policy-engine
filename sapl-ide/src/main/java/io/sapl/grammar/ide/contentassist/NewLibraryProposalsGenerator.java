@@ -30,6 +30,7 @@ import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.WildcardImport;
+import io.sapl.interpreter.pip.AttributeFinderMetadata;
 import io.sapl.interpreter.pip.LibraryEntryMetadata;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
@@ -42,8 +43,8 @@ public class NewLibraryProposalsGenerator {
     public record DocumentedProposal(String proposal, String label, String documentation) {}
 
     /**
-     * Generates documented proposals for all PDP deployed attribute finders
-     * including aliased alternatives based on potential imports.
+     * Generates documented proposals for all PDP deployed environment attribute
+     * finders including aliased alternatives based on potential imports.
      *
      * @param context The current ContentAssistContext context is needed to inspect
      * potentially defined imports in the document to resolve names correctly.
@@ -53,11 +54,12 @@ public class NewLibraryProposalsGenerator {
      * @return a List of all attribute finder proposals with their aliased
      * alternatives based on imports.
      */
-    public static Collection<DocumentedProposal> allAttributeFinders(ContentAssistContext context,
+    public static Collection<DocumentedProposal> allEnvironmentAttributeFinders(ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         final var proposals  = new ArrayList<DocumentedProposal>();
         final var attributes = pdpConfiguration.attributeContext().getAttributeMetatata();
-        attributes.forEach(attribute -> proposals.addAll(documentedProposalsForLibraryEntry(attribute, context)));
+        attributes.stream().filter(AttributeFinderMetadata::isEnvironmentAttribute)
+                .forEach(attribute -> proposals.addAll(documentedProposalsForLibraryEntry(attribute, context)));
         return proposals;
     }
 
