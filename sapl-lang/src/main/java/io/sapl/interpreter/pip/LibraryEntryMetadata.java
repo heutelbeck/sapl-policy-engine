@@ -37,6 +37,12 @@ public interface LibraryEntryMetadata {
 
     String getDocumentationCodeTemplate();
 
+    String getCodeTemplate(String alias);
+
+    String getDocumentationCodeTemplate(String alias);
+
+    String getDocumentation();
+
     Method getFunction();
 
     boolean isVarArgsParameters();

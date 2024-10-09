@@ -36,13 +36,14 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
     String   libraryName;
     String   functionName;
     JsonNode functionSchema;
+    String   documentation;
     boolean  environmentAttribute;
     boolean  attributeWithVariableParameter;
     boolean  varArgsParameters;
     int      numberOfParameters;
 
     @Override
-    public String getDocumentationCodeTemplate() {
+    public String getDocumentationCodeTemplate(String alias) {
         var sb                             = new StringBuilder();
         var indexOfParameterBeingDescribed = 0;
 
@@ -52,7 +53,7 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
         if (isAttributeWithVariableParameter())
             indexOfParameterBeingDescribed++;
 
-        sb.append('<').append(fullyQualifiedName());
+        sb.append('<').append(alias);
 
         appendParameterList(sb, indexOfParameterBeingDescribed, this::describeParameterForDocumentation);
 
@@ -61,8 +62,15 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
     }
 
     @Override
-    public String getCodeTemplate() {
-        var sb                             = new StringBuilder();
+    public String getDocumentationCodeTemplate() {
+        return getDocumentationCodeTemplate(fullyQualifiedName());
+    }
+
+    @Override
+    public String getCodeTemplate(String alias) {
+        final var sb = new StringBuilder();
+        sb.append('<');
+
         var indexOfParameterBeingDescribed = 0;
 
         if (!isEnvironmentAttribute())
@@ -71,12 +79,17 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
         if (isAttributeWithVariableParameter())
             indexOfParameterBeingDescribed++;
 
-        sb.append(fullyQualifiedName());
+        sb.append(alias);
 
         appendParameterList(sb, indexOfParameterBeingDescribed, this::getParameterName);
 
         sb.append('>');
         return sb.toString();
+    }
+
+    @Override
+    public String getCodeTemplate() {
+        return getCodeTemplate(fullyQualifiedName());
     }
 
 }

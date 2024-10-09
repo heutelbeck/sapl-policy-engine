@@ -166,7 +166,7 @@ public class ExpressionSchemaResolver {
 
     private List<JsonNode> inferPotentialSchemasFromIdentifier(String identifier, ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
-        if (SAPLContentProposalProvider.AUTHORIZATION_SUBSCRIPTION_VARIABLE_NAME_PROPOSALS.contains(identifier)) {
+        if (VariablesProposalsGenerator.AUTHORIZATION_SUBSCRIPTION_VARIABLES.contains(identifier)) {
             return inferSubscriptionElementSchema(identifier, context, pdpConfiguration);
         }
         var schemas = new ArrayList<JsonNode>();
@@ -193,8 +193,9 @@ public class ExpressionSchemaResolver {
         var schemas    = new ArrayList<JsonNode>();
         var policyBody = TreeNavigationUtil.goToFirstParent(context.getCurrentModel(), PolicyBody.class);
 
-        if (policyBody == null)
+        if (null == policyBody) {
             return schemas;
+        }
 
         for (var statement : policyBody.getStatements()) {
             if (statement instanceof ValueDefinition valueDefinition
@@ -224,9 +225,16 @@ public class ExpressionSchemaResolver {
     }
 
     private Optional<JsonNode> evaluateExpressionToSchema(Expression expression, PDPConfiguration pdpConfiguration) {
-        var expressionValue = expression.evaluate()
-                .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, pdpConfiguration.variables())).blockFirst();
-        if (expressionValue != null && expressionValue.isDefined()) {
+        var expressionValue = expression.evaluate().contextWrite(ctx -> {
+            /*
+             * explicitly do not add the attribute context, as schema definitions must not
+             * contain attribute finders. Functions are allowed in schema expressions.
+             */
+            var newCtx = AuthorizationContext.setVariables(ctx, pdpConfiguration.variables());
+            newCtx = AuthorizationContext.setFunctionContext(ctx, pdpConfiguration.functionContext());
+            return newCtx;
+        }).blockFirst();
+        if (null != expressionValue && expressionValue.isDefined()) {
             return Optional.of(expressionValue.get());
         }
         return Optional.empty();

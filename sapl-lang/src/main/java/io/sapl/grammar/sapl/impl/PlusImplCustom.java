@@ -34,10 +34,10 @@ public class PlusImplCustom extends PlusImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, this, this::plus);
+        return operator(this, this, PlusImplCustom::plus);
     }
 
-    private Val plus(Val left, Val right) {
+    public static Val plus(Val left, Val right) {
         if (left.isNumber() && right.isNumber())
             return Val.of(left.get().decimalValue().add(right.get().decimalValue())).withTrace(Plus.class, false,
                     Map.of(Trace.LEFT, left, Trace.RIGHT, right));

@@ -43,7 +43,7 @@ class CoverageHitReaderTests {
         var path = tempDir.resolve("hits").resolve("_policySetHits.txt");
         if (!Files.exists(path)) {
             var parent = path.getParent();
-            if (parent != null) {
+            if (null != parent) {
                 Files.createDirectories(parent);
             }
             Files.createFile(path);
@@ -69,7 +69,7 @@ class CoverageHitReaderTests {
         var path = tempDir.resolve("hits").resolve("_policyHits.txt");
         if (!Files.exists(path)) {
             var parent = path.getParent();
-            if (parent != null) {
+            if (null != parent) {
                 Files.createDirectories(parent);
             }
             Files.createFile(path);
@@ -97,7 +97,7 @@ class CoverageHitReaderTests {
         var hitPath = tempDir.resolve("hits").resolve("_policyConditionHits.txt");
         if (!Files.exists(hitPath)) {
             var parent = hitPath.getParent();
-            if (parent != null) {
+            if (null != parent) {
                 Files.createDirectories(parent);
             }
             Files.createFile(hitPath);

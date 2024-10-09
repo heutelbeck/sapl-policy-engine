@@ -64,14 +64,14 @@ class JsonTestUtility {
         ObjectNode keyNode   = MAPPER.createObjectNode();
         ObjectNode valueNode = MAPPER.createObjectNode();
 
-        if (keyPair1 != null) {
+        if (null != keyPair1) {
             String encodedFirstKey = Base64.getUrlEncoder().encodeToString(keyPair1.getPublic().getEncoded());
             valueNode.put(kid1, encodedFirstKey);
         } else
             valueNode.putNull(kid1);
 
         String encodedSecondKey = "This is Bogus";
-        if (keyPair2 != null)
+        if (null != keyPair2)
             encodedSecondKey = Base64.getUrlEncoder().encodeToString(keyPair2.getPublic().getEncoded());
         valueNode.put(kid2, encodedSecondKey);
 
@@ -99,10 +99,10 @@ class JsonTestUtility {
     static ObjectNode serverNode(MockWebServer server, String method, Object ttl) {
         ObjectNode valueNode = MAPPER.createObjectNode();
 
-        if (server != null) {
+        if (null != server) {
             valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/") + "public-keys/{id}");
         }
-        if (method != null && !method.isEmpty()) {
+        if (null != method && !method.isEmpty()) {
             if ("NONETEXT".equals(method)) {
                 valueNode.set(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, jsonNode(Boolean.FALSE));
             } else {

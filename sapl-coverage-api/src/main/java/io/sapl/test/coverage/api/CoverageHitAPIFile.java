@@ -131,7 +131,7 @@ class CoverageHitAPIFile implements CoverageHitRecorder, CoverageHitReader {
             // ignore when file in previous test got created
             if (!Files.exists(filePath)) {
                 var parent = filePath.getParent();
-                if (parent != null)
+                if (null != parent)
                     Files.createDirectories(parent);
                 Files.createFile(filePath);
             }

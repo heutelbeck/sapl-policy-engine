@@ -978,13 +978,13 @@ class AnnotationAttributeContextTests {
         var pip = new PIP();
         var sut = new AnnotationAttributeContext(() -> List.of(pip), List::of);
 
-        var expectedEnvironmentTemplates = new String[] { "test.a(a1, a2)>", "test.a(varArgsParams...)>",
-                "test.a2(a1, a2)>", "test.a2>" };
+        var expectedEnvironmentTemplates = new String[] { "<test.a(a1, a2)>", "<test.a(varArgsParams...)>",
+                "<test.a2(a1, a2)>", "<test.a2>" };
         var actualEnvironmentTemplates   = sut.getEnvironmentAttributeCodeTemplates();
         assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvironmentTemplates));
 
-        var expectedNonEnvironmentTemplates = new String[] { "test.x2(a1, a2)>", "test.x(varArgsParams...)>",
-                "test.x(a1, a2)>" };
+        var expectedNonEnvironmentTemplates = new String[] { "<test.x2(a1, a2)>", "<test.x(varArgsParams...)>",
+                "<test.x(a1, a2)>" };
         var actualNonEnvironmentTemplates   = sut.getAttributeCodeTemplates();
         assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvironmentTemplates));
 

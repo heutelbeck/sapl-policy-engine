@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.interpreter.pip.AttributeFinderMetadata;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import lombok.SneakyThrows;
 import reactor.core.publisher.Flux;
@@ -147,6 +148,11 @@ class TestAttributeContext implements AttributeContext {
         schemas.put("temperature.now", MAPPER.readValue(TEMP_NOW_SCHEMA, JsonNode.class));
         schemas.put("temperature.mean", MAPPER.readValue(TEMP_MEAN_SCHEMA, JsonNode.class));
         return schemas;
+    }
+
+    @Override
+    public Collection<AttributeFinderMetadata> getAttributeMetatata() {
+        return List.of();
     }
 
 }

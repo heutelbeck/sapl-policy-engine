@@ -38,8 +38,7 @@ class VariableCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("advice", "obligation", "transform", "var", "action", "bar", "environment",
-                        "foo", "resource", "subject");
+                var expected = List.of("action", "environment", "foo", "resource", "subject", "bar");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -66,8 +65,7 @@ class VariableCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("advice", "obligation", "transform", "var", "action", "environment", "foo",
-                        "resource", "subject");
+                var expected = List.of("action", "environment", "foo", "resource", "subject");
                 var unwanted = List.of("bar");
                 assertProposalsSimple(expected, completionList);
                 assertDoesNotContainProposals(unwanted, completionList);

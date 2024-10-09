@@ -195,7 +195,7 @@ public class Trace implements Serializable {
     public void collectErrors(List<Val> errors) {
         for (var argument : arguments) {
             var value = argument.value();
-            if (value != null) {
+            if (null != value) {
                 value.collectErrors(errors);
             }
         }

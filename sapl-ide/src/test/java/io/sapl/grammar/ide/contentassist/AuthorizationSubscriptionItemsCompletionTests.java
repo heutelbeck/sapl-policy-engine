@@ -35,12 +35,11 @@ class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
     @Test
     void testCompletion_AuthorizationSubscriptionItemsInTargetExpression() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit ";
+            final var policy = "policy \"test\" permit ";
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("advice", "obligation", "transform", "where", "action", "environment",
-                        "resource", "subject");
+                final var expected = List.of("action", "environment", "resource", "subject");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -49,11 +48,11 @@ class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
     @Test
     void testCompletion_AuthorizationSubscriptionItemsInBody() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where ";
+            final var policy = "policy \"test\" permit where ";
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("var", "action", "environment", "resource", "subject");
+                final var expected = List.of("var", "action", "environment", "resource", "subject");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -62,11 +61,11 @@ class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
     @Test
     void testCompletion_NoTechnicalProposalsAfterAuthorizationSubscriptionItem() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where subject.";
+            final var policy = "policy \"test\" permit where subject.";
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var unwantedProposals = List.of("\"id\"", "id", "idSteps");
+                final var unwantedProposals = List.of("\"id\"", "id", "idSteps");
                 assertDoesNotContainProposals(unwantedProposals, completionList);
             });
         });
@@ -75,11 +74,11 @@ class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
     @Test
     void testCompletion_SuggestAttributesForEnvironmentalAttribute() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where <";
+            final var policy = "policy \"test\" permit where <";
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expectedProposals = List.of("<clock.now>", "<clock.ticker>", "<clock.millis>");
+                final var expectedProposals = List.of("<clock.now>", "<clock.ticker>", "<clock.millis>");
                 assertProposalsSimple(expectedProposals, completionList);
             });
         });
@@ -88,11 +87,11 @@ class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
     @Test
     void testCompletion_SuggestAttributesForHeadEnvironmentalAttribute() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where |<";
+            final var policy = "policy \"test\" permit where |<";
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expectedProposals = List.of("<clock.now>", "<clock.ticker>", "<clock.millis>");
+                final var expectedProposals = List.of("<clock.now>", "<clock.ticker>", "<clock.millis>");
                 assertProposalsSimple(expectedProposals, completionList);
             });
         });

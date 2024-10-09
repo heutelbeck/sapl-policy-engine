@@ -267,7 +267,7 @@ public class Val implements Traced, Serializable {
      * @return Val with a given JSON value or UNDEFINED if value was null.
      */
     public static Val of(JsonNode value) {
-        return value == null ? UNDEFINED : new Val(value);
+        return null == value ? UNDEFINED : new Val(value);
     }
 
     /**
@@ -288,7 +288,7 @@ public class Val implements Traced, Serializable {
      * @return a Val with an error.
      */
     public static Val error(SaplError error) {
-        if (error == null) {
+        if (null == error) {
             error = SaplError.UNKNOWN_ERROR;
         }
         return new Val(null, false, null, error);
@@ -299,7 +299,7 @@ public class Val implements Traced, Serializable {
      */
     public static Val error(String errorMessage) {
         var error = SaplError.UNKNOWN_ERROR;
-        if (errorMessage != null) {
+        if (null != errorMessage) {
             error = SaplError.of(errorMessage);
         }
         return new Val(null, false, null, error);
@@ -319,14 +319,14 @@ public class Val implements Traced, Serializable {
      * @return true, iff the Val is an error.
      */
     public boolean isError() {
-        return error != null;
+        return null != error;
     }
 
     /**
      * @return true, iff the Val is not an error.
      */
     public boolean noError() {
-        return error == null;
+        return null == error;
     }
 
     /**
@@ -337,7 +337,7 @@ public class Val implements Traced, Serializable {
         if (isError()) {
             throw new NoSuchElementException(String.format(VALUE_IS_AN_ERROR_S_ERROR, getMessage()));
         }
-        if (value == null) {
+        if (null == value) {
             throw new NoSuchElementException(VALUE_UNDEFINED_ERROR);
         }
         return value;
@@ -347,14 +347,14 @@ public class Val implements Traced, Serializable {
      * @return true, iff Val not an error or undefined.
      */
     public boolean isDefined() {
-        return value != null;
+        return null != value;
     }
 
     /**
      * @return true, iff error or undefined.
      */
     public boolean isUndefined() {
-        return value == null && noError();
+        return null == value && noError();
     }
 
     /**
@@ -645,7 +645,7 @@ public class Val implements Traced, Serializable {
         if (isDefined() != other.isDefined()) {
             return false;
         }
-        if (value == null) {
+        if (null == value) {
             return true;
         }
         return value.equals(NUMERIC_AWARE_COMPARATOR, other.get());
@@ -653,7 +653,7 @@ public class Val implements Traced, Serializable {
 
     @Override
     public int hashCode() {
-        if (value == null)
+        if (null == value)
             return Objects.hash(error);
 
         return Objects.hash(hashCodeOfJsonNode(value), error);
@@ -705,7 +705,7 @@ public class Val implements Traced, Serializable {
         if (isError()) {
             return ERROR_LITERAL + '[' + error.message() + ']';
         }
-        return value != null ? value.toString() : UNDEFINED_LITERAL;
+        return null != value ? value.toString() : UNDEFINED_LITERAL;
     }
 
     /**
@@ -774,6 +774,18 @@ public class Val implements Traced, Serializable {
      */
     public static Flux<Val> fluxOf(long val) {
         return Flux.just(of(val));
+    }
+
+    /**
+     * @param val a Boolean number
+     * @return a Val with the given value.
+     */
+    public static Val of(Boolean bool) {
+        if (bool) {
+            return TRUE;
+        } else {
+            return FALSE;
+        }
     }
 
     /**
@@ -1048,7 +1060,7 @@ public class Val implements Traced, Serializable {
 
         var traceJson = JSON.objectNode();
         traceJson.set(Trace.VALUE, val);
-        if (trace != null) {
+        if (null != trace) {
             traceJson.set(Trace.TRACE_KEY, trace.getTrace());
         }
         return traceJson;
@@ -1065,7 +1077,7 @@ public class Val implements Traced, Serializable {
         if (isError()) {
             errors.add(this);
         }
-        if (trace != null) {
+        if (null != trace) {
             trace.collectErrors(errors);
         }
     }

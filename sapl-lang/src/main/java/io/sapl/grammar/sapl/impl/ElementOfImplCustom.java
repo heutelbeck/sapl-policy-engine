@@ -39,15 +39,15 @@ public class ElementOfImplCustom extends ElementOfImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, this, this::tracedElementOf);
+        return operator(this, this, ElementOfImplCustom::elementOf);
     }
 
-    private Val tracedElementOf(Val needle, Val haystack) {
-        return elementOf(needle, haystack).withTrace(ElementOf.class, false,
+    public static Val elementOf(Val needle, Val haystack) {
+        return rawElementOf(needle, haystack).withTrace(ElementOf.class, false,
                 Map.of(Trace.NEEDLE, needle, Trace.HAYSTACK, haystack));
     }
 
-    private Val elementOf(Val needle, Val haystack) {
+    private static Val rawElementOf(Val needle, Val haystack) {
         if (needle.isUndefined() || haystack.isUndefined() || !haystack.isArray())
             return Val.FALSE;
 
@@ -58,16 +58,16 @@ public class ElementOfImplCustom extends ElementOfImpl {
         return Val.FALSE;
     }
 
-    private boolean needleAndArrayElementAreEquivalent(Val needle, JsonNode arrayItem) {
+    private static boolean needleAndArrayElementAreEquivalent(Val needle, JsonNode arrayItem) {
         return (bothValuesAreNumbers(needle, arrayItem) && bothNumbersAreEqual(needle, arrayItem))
                 || needle.get().equals(arrayItem);
     }
 
-    private boolean bothValuesAreNumbers(Val needle, JsonNode arrayItem) {
+    private static boolean bothValuesAreNumbers(Val needle, JsonNode arrayItem) {
         return needle.isNumber() && arrayItem.isNumber();
     }
 
-    private boolean bothNumbersAreEqual(Val needle, JsonNode arrayItem) {
+    private static boolean bothNumbersAreEqual(Val needle, JsonNode arrayItem) {
         return needle.get().decimalValue().compareTo(arrayItem.decimalValue()) == 0;
     }
 

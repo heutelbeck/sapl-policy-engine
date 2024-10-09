@@ -93,7 +93,7 @@ public class JWTKeyProvider {
 
         var sMethod = "GET";
         var jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
-        if (jMethod != null && jMethod.isTextual())
+        if (null != jMethod && jMethod.isTextual())
             sMethod = jMethod.textValue();
 
         var sUri = jUri.textValue();
@@ -101,7 +101,7 @@ public class JWTKeyProvider {
         var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
         // nested if-statement in order to cover all possible branches during testing
         // (e.g. null && canConvertToLong not possible)
-        if (jTTL != null) {
+        if (null != jTTL) {
             if (jTTL.canConvertToLong()) {
                 lTTL = jTTL.longValue();
             } else {
@@ -188,7 +188,7 @@ public class JWTKeyProvider {
     private void pruneCache() {
         var pruneTime   = Instant.now().minusMillis(lastTTL);
         var oldestEntry = cachingTimes.peek();
-        while (oldestEntry != null && oldestEntry.wasCachedBefore(pruneTime)) {
+        while (null != oldestEntry && oldestEntry.wasCachedBefore(pruneTime)) {
             keyCache.remove(oldestEntry.getKeyId());
             cachingTimes.poll();
             oldestEntry = cachingTimes.peek();

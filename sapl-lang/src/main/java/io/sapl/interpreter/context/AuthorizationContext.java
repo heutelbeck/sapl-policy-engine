@@ -26,7 +26,9 @@ import java.util.Objects;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -79,7 +81,10 @@ public class AuthorizationContext {
     }
 
     public static AttributeContext getAttributeContext(ContextView ctx) {
-        return ctx.get(ATTRIBUTE_CTX);
+        if (ctx.hasKey(ATTRIBUTE_CTX)) {
+            return ctx.get(ATTRIBUTE_CTX);
+        }
+        return new AnnotationAttributeContext();
     }
 
     public Context setAttributeContext(Context ctx, AttributeContext attributeContext) {
@@ -152,7 +157,10 @@ public class AuthorizationContext {
     }
 
     public static FunctionContext functionContext(ContextView ctx) {
-        return ctx.get(FUNCTION_CTX);
+        if (ctx.hasKey(FUNCTION_CTX)) {
+            return ctx.get(FUNCTION_CTX);
+        }
+        return new AnnotationFunctionContext();
     }
 
     public Context setFunctionContext(Context ctx, FunctionContext functionContext) {

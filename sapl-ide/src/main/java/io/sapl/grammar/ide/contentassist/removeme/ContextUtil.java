@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.contentassist;
+package io.sapl.grammar.ide.contentassist.removeme;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -28,6 +28,7 @@ import org.eclipse.xtext.nodemodel.ILeafNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
+import io.sapl.grammar.ide.contentassist.TreeNavigationUtil;
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.PolicyBody;
 import lombok.experimental.UtilityClass;
@@ -36,25 +37,25 @@ import lombok.experimental.UtilityClass;
 public class ContextUtil {
 
     public static ContentAssistContext getContextWithFullPrefix(ContentAssistContext context, boolean forAttribute) {
-        var offset = context.getOffset();
-        var model  = context.getCurrentModel();
-        if (getPolicyBody(model) == null)
+        final var offset = context.getOffset();
+        final var model  = context.getCurrentModel();
+        if (null == getPolicyBody(model)) {
             return context;
-
-        List<String> tokens = new LinkedList<>();
+        }
+        final var tokens = new LinkedList<String>();
         addOldPrefixToTokens(context, tokens);
 
-        var rootNode = context.getRootNode();
-        if (shouldReturnOriginalContext(context, offset))
+        final var rootNode = context.getRootNode();
+        if (shouldReturnOriginalContext(context, offset)) {
             return context;
+        }
+        final var indexOfCurrentNode = findIndexOfCurrentNode(rootNode, offset);
+        final var currentNode        = NodeModelUtils.findLeafNodeAtOffset(rootNode, indexOfCurrentNode);
+        final var previousNode       = NodeModelUtils.findLeafNodeAtOffset(rootNode, indexOfCurrentNode - 1);
 
-        int indexOfCurrentNode = findIndexOfCurrentNode(rootNode, offset);
-        var currentNode        = NodeModelUtils.findLeafNodeAtOffset(rootNode, indexOfCurrentNode);
-        var previousNode       = NodeModelUtils.findLeafNodeAtOffset(rootNode, indexOfCurrentNode - 1);
-
-        if (lastCharacterBeforeCursorIsBlank(previousNode))
+        if (lastCharacterBeforeCursorIsBlank(previousNode)) {
             return context;
-
+        }
         if (isNodeBeforeCursorFirstNode(rootNode, indexOfCurrentNode, currentNode)) {
             String newPrefix = getNewPrefix(currentNode.getText());
             return context.copy().setPrefix(newPrefix).toContext();
@@ -84,16 +85,16 @@ public class ContextUtil {
 
     private static String computeNewPrefix(ContentAssistContext context, INode rootNode, INode currentNode,
             List<String> tokens) {
-        String currentNodeText = currentNode.getText();
+        final var currentNodeText = currentNode.getText();
         if (!context.getPrefix().equals(currentNodeText)) {
             if ("|<".equals(currentNodeText)) {
                 tokens.add("<");
             } else {
-                var req2 = (">").equals(currentNodeText);
+                final var req2 = (">").equals(currentNodeText);
                 if (!currentNodeText.isBlank() && !req2) {
                     tokens.add(currentNodeText);
                 } else {
-                    var prevNodeOffset = currentNode.getEndOffset() - currentNode.getTotalLength();
+                    final var prevNodeOffset = currentNode.getEndOffset() - currentNode.getTotalLength();
                     currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, prevNodeOffset - 1);
                 }
             }
@@ -105,7 +106,7 @@ public class ContextUtil {
     }
 
     private static void addOldPrefixToTokens(ContentAssistContext context, Collection<String> tokens) {
-        var oldPrefix = context.getPrefix();
+        final var oldPrefix = context.getPrefix();
         if (!oldPrefix.isBlank()) {
             tokens.add(context.getPrefix());
         }
@@ -120,7 +121,7 @@ public class ContextUtil {
     }
 
     private static String getNewPrefix(List<String> tokens) {
-        var sb = new StringBuilder(tokens.size());
+        final var sb = new StringBuilder(tokens.size());
         for (int j = tokens.size() - 1; j >= 0; j--) {
             sb.append(tokens.get(j));
         }
@@ -128,15 +129,15 @@ public class ContextUtil {
     }
 
     private static boolean shouldReturnOriginalContext(ContentAssistContext context, int offset) {
-        INode prevNode;
-        int   offsetOfPrevNode;
-        var   rootNode       = context.getRootNode();
-        var   currentNode    = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset);
-        var   lastNode       = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset - 1);
-        var   lengthLastNode = lastNode.getLength();
+        final var rootNode       = context.getRootNode();
+        final var currentNode    = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset);
+        final var lastNode       = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset - 1);
+        final var lengthLastNode = lastNode.getLength();
+        INode     prevNode;
+        int       offsetOfPrevNode;
         if (!".".equals(lastNode.getText()) && !"<".equals(lastNode.getText())) {
             offsetOfPrevNode = offset - 1;
-        } else if (currentNode != null && !".".equals(lastNode.getText())) {
+        } else if (null != currentNode && !".".equals(lastNode.getText())) {
             offsetOfPrevNode = offset - lengthLastNode - 1;
         } else
             offsetOfPrevNode = offset - 1;
@@ -149,10 +150,10 @@ public class ContextUtil {
     }
 
     private static int findIndexOfCurrentNode(INode rootNode, int offset) {
-        int   i           = offset;
-        INode currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset);
+        var i           = offset;
+        var currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, offset);
 
-        while (currentNode == null) {
+        while (null == currentNode) {
             i--;
             currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, i);
         }
@@ -167,8 +168,8 @@ public class ContextUtil {
         var    currentNode = leafNode;
         currentNode = NodeModelUtils.findLeafNodeAtOffset(rootNode, currentNode.getEndOffset() - 1);
         tokenText   = NodeModelUtils.getTokenText(currentNode);
-        var req1 = currentNode.getEndOffset() == context.getOffset();
-        var req2 = context.getPrefix().equals(tokenText);
+        final var req1 = currentNode.getEndOffset() == context.getOffset();
+        final var req2 = context.getPrefix().equals(tokenText);
         if (!tokenText.isBlank() && !(req1 && req2))
             tokens.add(tokenText);
         do {

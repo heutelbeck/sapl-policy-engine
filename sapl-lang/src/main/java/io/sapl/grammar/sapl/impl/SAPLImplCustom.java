@@ -87,6 +87,9 @@ public class SAPLImplCustom extends SAPLImpl {
 
     @Override
     public String toString() {
+        if (null == getPolicyElement()) {
+            return getClass().getSimpleName();
+        }
         return getPolicyElement().getSaplName();
     }
 

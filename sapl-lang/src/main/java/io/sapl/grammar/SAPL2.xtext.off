@@ -153,16 +153,40 @@ Arguments:
 	{Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
 
 Step:
-	'.' ( {KeyStep} id=SaplID
-		| {EscapedKeyStep} id=STRING
-		| {WildcardStep} '*' 
-		| {AttributeFinderStep} '<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>'
-		| {HeadAttributeFinderStep} '|<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>' )
-	| '[' Subscript ']' 
-	| '..' ( {RecursiveKeyStep} (id=SaplID | '[' id=STRING ']' )
-		   | {RecursiveWildcardStep} ('*' | '[' '*' ']' ) 
-		   | {RecursiveIndexStep} '[' index=SignedNumber ']' ) ;
+	'.' ( KeyStep
+		| EscapedKeyStep
+		| WildcardStep 
+		| AttributeFinderStep
+		| HeadAttributeFinderStep)
+	//| '[' Subscript ']' 
+	| '..' ( RecursiveKeyStep
+		   | RecursiveWildcardStep 
+		   | RecursiveIndexStep ) ;
+
+KeyStep:
+	id=SaplID ;
 	
+EscapedKeyStep:
+	id=STRING ;
+	
+WildcardStep:
+	'*' ; 
+
+AttributeFinderStep:
+	'<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>' ;
+
+HeadAttributeFinderStep:
+	'|<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>' ;
+
+RecursiveKeyStep:
+	(id=SaplID | '[' id=STRING ']' );
+
+RecursiveWildcardStep:
+	('*' | '[' '*' ']' ) ; 
+
+RecursiveIndexStep:
+	'[' index=SignedNumber ']' ;
+
 Subscript returns Step:
 	  {KeyStep} id=STRING 
 	| {WildcardStep} '*' 

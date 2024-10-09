@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.ide.contentassist.SchemaProposalGenerator;
+import io.sapl.grammar.ide.contentassist.SchemaProposalsGenerator;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.SneakyThrows;
 
@@ -859,19 +859,19 @@ class SchemaProposalGeneratorTests {
             schemasArray.add(Val.ofJson(variable).get());
         }
         variablesMap.put("SCHEMAS", Val.of(schemasArray));
-        var actualProposals = SchemaProposalGenerator.getCodeTemplates("", schemaJson, variablesMap);
+        var actualProposals = SchemaProposalsGenerator.getCodeTemplates("", schemaJson, variablesMap);
         assertThat(actualProposals).containsExactlyInAnyOrder(expectedProposals);
     }
 
     @Test
     void when_nullSchema_then_noProposals() {
-        var proposals = SchemaProposalGenerator.getCodeTemplates("", (JsonNode) null, Map.of());
+        var proposals = SchemaProposalsGenerator.getCodeTemplates("", (JsonNode) null, Map.of());
         assertThat(proposals).isEmpty();
     }
 
     @Test
     void when_undefinedSchema_then_proposalsEmpty() {
-        var proposals = SchemaProposalGenerator.getCodeTemplates("", ErrorFactory.error(""), Map.of());
+        var proposals = SchemaProposalsGenerator.getCodeTemplates("", ErrorFactory.error(""), Map.of());
         assertThat(proposals).isEmpty();
     }
 

@@ -31,6 +31,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.functions.AnnotationFunctionContext.FunctionMetadata;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import lombok.SneakyThrows;
@@ -144,6 +145,11 @@ class TestFunctionContext implements FunctionContext {
         try (var is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
             return MAPPER.readValue(is, JsonNode.class);
         }
+    }
+
+    @Override
+    public Collection<FunctionMetadata> getFunctionMetatata() {
+        return List.of();
     }
 
 }

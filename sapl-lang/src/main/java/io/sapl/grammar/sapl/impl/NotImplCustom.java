@@ -28,8 +28,11 @@ public class NotImplCustom extends NotImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, this, OperatorUtil::requireBoolean,
-                x -> Val.of(!x.get().asBoolean()).withTrace(Not.class, false, x));
+        return operator(this, this, OperatorUtil::requireBoolean, NotImplCustom::not);
+    }
+
+    public static Val not(Val x) {
+        return Val.of(!x.get().asBoolean()).withTrace(Not.class, false, x);
     }
 
 }

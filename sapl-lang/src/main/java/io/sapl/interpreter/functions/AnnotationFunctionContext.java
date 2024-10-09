@@ -258,7 +258,8 @@ public final class AnnotationFunctionContext implements FunctionContext {
             }
         }
 
-        var funMeta = new FunctionMetadata(libName, funName, processedSchemaDefinition, library, parameters, method);
+        var funMeta = new FunctionMetadata(libName, funName, processedSchemaDefinition, library, parameters, method,
+                funAnnotation.docs());
         functions.put(funMeta.fullyQualifiedName(), funMeta);
         libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
@@ -312,6 +313,8 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
         Method function;
 
+        String documentation;
+
         @Override
         public boolean isVarArgsParameters() {
             return numberOfParameters == VAR_ARGS;
@@ -319,8 +322,18 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
         @Override
         public String getCodeTemplate() {
+            return getCodeTemplate(fullyQualifiedName());
+        }
+
+        @Override
+        public String getDocumentationCodeTemplate() {
+            return getDocumentationCodeTemplate(fullyQualifiedName());
+        }
+
+        @Override
+        public String getCodeTemplate(String alias) {
             var sb = new StringBuilder();
-            sb.append(fullyQualifiedName());
+            sb.append(alias);
             appendParameterList(sb, 0, this::getParameterName);
             if (getNumberOfParameters() == 0)
                 sb.append("()");
@@ -328,9 +341,9 @@ public final class AnnotationFunctionContext implements FunctionContext {
         }
 
         @Override
-        public String getDocumentationCodeTemplate() {
+        public String getDocumentationCodeTemplate(String alias) {
             var sb = new StringBuilder();
-            sb.append(fullyQualifiedName());
+            sb.append(alias);
             appendParameterList(sb, 0, this::describeParameterForDocumentation);
             if (getNumberOfParameters() == 0)
                 sb.append("()");
@@ -384,5 +397,10 @@ public final class AnnotationFunctionContext implements FunctionContext {
             }
         }
         return documentedCodeTemplates;
+    }
+
+    @Override
+    public Collection<FunctionMetadata> getFunctionMetatata() {
+        return functions.values();
     }
 }

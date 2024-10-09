@@ -38,7 +38,7 @@ class CoverageCustomConfigTests {
         Path              path         = coveragePath.resolve("hits").resolve("_policySetHits.txt");
         if (!Files.exists(path)) {
             var parent = path.getParent();
-            if (parent != null) {
+            if (null != parent) {
                 Files.createDirectories(parent);
             }
             Files.createFile(path);

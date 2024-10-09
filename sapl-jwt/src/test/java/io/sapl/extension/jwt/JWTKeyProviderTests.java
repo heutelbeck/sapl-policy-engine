@@ -135,8 +135,8 @@ class JWTKeyProviderTests {
         provider.cache(otherKid, secondRetrievedKey);
         assertTrue(provider.isCached(kid));
         assertTrue(provider.isCached(otherKid));
-        assert firstRetrievedKey != null;
-        assert secondRetrievedKey != null;
+        assert null != firstRetrievedKey;
+        assert null != secondRetrievedKey;
         assertFalse(KeyTestUtility.areKeysEqual(firstRetrievedKey, secondRetrievedKey));
     }
 

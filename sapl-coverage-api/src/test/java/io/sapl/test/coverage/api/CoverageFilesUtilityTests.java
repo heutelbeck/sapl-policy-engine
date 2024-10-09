@@ -39,7 +39,7 @@ class CoverageFilesUtilityTests {
         var reader          = CoverageAPIFactory.constructCoverageHitReader(tempDir);
         var pathToErrorFile = tempDir.resolve("hits").resolve("_policySetHits.txt").resolve("test.txt");
         var parent          = pathToErrorFile.getParent();
-        if (parent != null) {
+        if (null != parent) {
             Files.createDirectories(parent);
             Files.createFile(pathToErrorFile);
         }
@@ -50,7 +50,7 @@ class CoverageFilesUtilityTests {
     void test_FileAlreadyExists(@TempDir Path tempDir) throws IOException {
         Path pathToErrorFile = tempDir.resolve("hits").resolve("_policySetHits.txt");
         var  parent          = pathToErrorFile.getParent();
-        if (parent != null) {
+        if (null != parent) {
             Files.createDirectories(parent);
             Files.createFile(pathToErrorFile);
         }

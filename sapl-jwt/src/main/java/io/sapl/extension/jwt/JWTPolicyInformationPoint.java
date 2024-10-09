@@ -204,7 +204,7 @@ public class JWTPolicyInformationPoint {
         Mono<RSAPublicKey> publicKey       = null;
         var                whitelist       = jwtConfig.get().get(WHITELIST_VARIABLES_KEY);
         var                isFromWhitelist = false;
-        if (whitelist != null && whitelist.get(keyId) != null) {
+        if (null != whitelist && null != whitelist.get(keyId)) {
             var key = JWTEncodingDecodingUtils.jsonNodeToKey(whitelist.get(keyId));
             if (key.isPresent()) {
                 publicKey       = Mono.just(key.get());
@@ -261,18 +261,17 @@ public class JWTPolicyInformationPoint {
         Date now = new Date();
 
         // sanity check
-        if (nbf != null && exp != null && nbf.getTime() > exp.getTime())
+        if (null != nbf && null != exp && nbf.getTime() > exp.getTime())
             return Flux.just(ValidityState.NEVER_VALID);
 
         // verify expiration
-        if (exp != null && exp.getTime() < now.getTime()) {
+        if (null != exp && exp.getTime() < now.getTime()) {
             return Flux.just(ValidityState.EXPIRED);
         }
 
         // verify maturity
-        if (nbf != null && nbf.getTime() > now.getTime()) {
-
-            if (exp == null) {
+        if (null != nbf && nbf.getTime() > now.getTime()) {
+            if (null == exp) {
                 // the token is not valid yet but will be in future
                 return Flux.concat(Mono.just(ValidityState.IMMATURE),
                         Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbf.getTime() - now.getTime())));
@@ -308,7 +307,7 @@ public class JWTPolicyInformationPoint {
 
         // verify presence of key ID
         String kid = jwt.getHeader().getKeyID();
-        return kid != null && !kid.isBlank();
+        return null != kid && !kid.isBlank();
 
         // JWT contains all required claims
     }

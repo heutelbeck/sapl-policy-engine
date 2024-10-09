@@ -408,7 +408,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
             processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(attributeSchema);
         }
         var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName,
-                processedSchemaDefinition, isEnvironmentAttribute);
+                processedSchemaDefinition, documentation, isEnvironmentAttribute);
         var name            = metadata.fullyQualifiedName();
         var namedAttributes = attributeMetadataByAttributeName.computeIfAbsent(name, k -> new ArrayList<>());
         assertNoNameCollision(namedAttributes, metadata);
@@ -442,7 +442,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     }
 
     private AttributeFinderMetadata metadataOf(Object policyInformationPoint, Method method, String pipName,
-            String attributeName, JsonNode functionSchema, boolean isEnvironmentAttribute)
+            String attributeName, JsonNode functionSchema, String documentation, boolean isEnvironmentAttribute)
             throws InitializationException {
 
         assertValidReturnType(method);
@@ -464,7 +464,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
         if (parameterUnderInspection < parameterCount && parameterTypeIsArrayOfVal(method, parameterUnderInspection)) {
             if (parameterUnderInspection + 1 == parameterCount)
                 return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName,
-                        functionSchema, isEnvironmentAttribute, requiresVariables, true, 0);
+                        functionSchema, documentation, isEnvironmentAttribute, requiresVariables, true, 0);
             else
                 throw new InitializationException("The method " + method.getName()
                         + " has an array of Val as a parameter, which indicates a variable number of arguments."
@@ -482,7 +482,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
             }
         }
         return new AttributeFinderMetadata(policyInformationPoint, method, pipName, attributeName, functionSchema,
-                isEnvironmentAttribute, requiresVariables, false, numberOfInnerAttributeParameters);
+                documentation, isEnvironmentAttribute, requiresVariables, false, numberOfInnerAttributeParameters);
     }
 
     private void assertFirstParameterIsVal(Method method) throws InitializationException {
@@ -629,5 +629,12 @@ public final class AnnotationAttributeContext implements AttributeContext {
             }
         }
         return documentedAttributeCodeTemplates;
+    }
+
+    @Override
+    public Collection<AttributeFinderMetadata> getAttributeMetatata() {
+        final var attributeFinders = new ArrayList<AttributeFinderMetadata>();
+        attributeMetadataByAttributeName.values().forEach(attributeFinders::addAll);
+        return attributeFinders;
     }
 }

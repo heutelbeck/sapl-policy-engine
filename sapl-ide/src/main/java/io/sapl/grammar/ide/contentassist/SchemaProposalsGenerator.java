@@ -37,7 +37,7 @@ import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class SchemaProposalGenerator {
+public class SchemaProposalsGenerator {
 
     private static final String DEFAULT_ID   = "https://sapl.io/schemas";
     private static final String ANCHOR       = "$anchor";
@@ -55,24 +55,25 @@ public class SchemaProposalGenerator {
 
     public static Collection<String> getCodeTemplates(String prefix, Expression expression,
             Map<String, Val> variables) {
-        if (expression == null)
+        if (null == expression) {
             return List.of();
+        }
         return expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, variables))
-                .map(schema -> SchemaProposalGenerator.getCodeTemplates(prefix, schema, variables)).blockFirst();
+                .map(schema -> SchemaProposalsGenerator.getCodeTemplates(prefix, schema, variables)).blockFirst();
     }
 
     public static List<String> getCodeTemplates(String prefix, Val schema, Map<String, Val> variables) {
-        if (!schema.isDefined())
+        if (!schema.isDefined()) {
             return List.of();
-
+        }
         return getCodeTemplates(prefix, schema.get(), variables);
     }
 
     public static List<String> getCodeTemplates(String prefix, JsonNode schema, Map<String, Val> variables) {
         var proposals = new ArrayList<String>();
-        if (schema == null)
+        if (null == schema) {
             return proposals;
-
+        }
         var definitions = new HashMap<String, JsonNode>();
         // lookup of URI vie remote web request is not supported.
         // We assume all schemas are either embedded in the schema or are stored in the
@@ -107,11 +108,13 @@ public class SchemaProposalGenerator {
             var ref = URI.create(reference);
             if (ref.isAbsolute()) {
                 var schema = definitions.get(withoutFragment(ref).toString());
-                if (schema == null)
+                if (null == schema) {
                     return null;
+                }
                 var fragment = ref.getFragment();
-                if (fragment == null)
+                if (null == fragment) {
                     return schema;
+                }
                 return lookupFragmentReference(schema, fragment);
             }
             return lookupFragmentReference(baseSchema, reference);
@@ -149,7 +152,7 @@ public class SchemaProposalGenerator {
         var elementsIterator = arrayNode.elements();
         while (elementsIterator.hasNext()) {
             var schema = lookupAnchorReference(elementsIterator.next(), anchor);
-            if (schema != null)
+            if (null != schema)
                 return schema;
         }
         return null;
@@ -157,12 +160,12 @@ public class SchemaProposalGenerator {
 
     private JsonNode lookupAnchorReferenceInObject(ObjectNode objectNode, String anchor) {
         var anchorField = objectNode.get(ANCHOR);
-        if (anchorField != null && anchorField.asText().equals(anchor))
+        if (null != anchorField && anchorField.asText().equals(anchor))
             return objectNode;
         var fieldsIterator = objectNode.fields();
         while (fieldsIterator.hasNext()) {
             var schema = lookupAnchorReference(fieldsIterator.next().getValue(), anchor);
-            if (schema != null)
+            if (null != schema)
                 return schema;
         }
         return null;
@@ -201,7 +204,7 @@ public class SchemaProposalGenerator {
 
     private static void addProposals(JsonNode baseSchema, String prefix, JsonNode schema,
             Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
-        if (recursionDepth == MAX_DEPTH || schema == null || !schema.isObject())
+        if (recursionDepth == MAX_DEPTH || null == schema || !schema.isObject())
             return;
 
         if (schema.has(REF)) {
