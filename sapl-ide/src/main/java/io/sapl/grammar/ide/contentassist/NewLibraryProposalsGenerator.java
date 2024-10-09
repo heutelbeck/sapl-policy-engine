@@ -44,7 +44,7 @@ public class NewLibraryProposalsGenerator {
     /**
      * Generates documented proposals for all PDP deployed attribute finders
      * including aliased alternatives based on potential imports.
-     * 
+     *
      * @param context The current ContentAssistContext context is needed to inspect
      * potentially defined imports in the document to resolve names correctly.
      * @param pdpConfiguration The PDPConfiguration pdpConfiguration supplies the
@@ -64,7 +64,7 @@ public class NewLibraryProposalsGenerator {
     /**
      * Generates documented proposals for all PDP deployed functions including
      * aliased alternatives based on potential imports.
-     * 
+     *
      * @param context The current ContentAssistContext context is needed to inspect
      * potentially defined imports in the document to resolve names correctly.
      * @param pdpConfiguration The PDPConfiguration pdpConfiguration supplies the
@@ -83,7 +83,7 @@ public class NewLibraryProposalsGenerator {
 
     /**
      * Generates the proposals with aliases for one function or attribute finder.
-     * 
+     *
      * @param function the metadata describing one specific function or attribute
      * finder from a library.
      * @param context The current ContentAssistContext context is needed to inspect
@@ -103,7 +103,7 @@ public class NewLibraryProposalsGenerator {
     /**
      * Creates all aliases, including the original, names for a function or
      * attribute finder.
-     * 
+     *
      * @param fullyQualifiedName the fully qualified name of a function or attribute
      * finder
      * @param context The current ContentAssistContext context is needed to inspect
@@ -132,7 +132,7 @@ public class NewLibraryProposalsGenerator {
 
     /**
      * Generates an alias for a fully qualified name if the import is applicable.
-     * 
+     *
      * @param anImport an import statement
      * @param fullyQualifiedName the original fully qualified name of the function
      * @return an Optional containing an alias for the function, if the import was
@@ -151,7 +151,7 @@ public class NewLibraryProposalsGenerator {
 
     /**
      * Generates an alias for a fully qualified name if the import is applicable.
-     * 
+     *
      * @param anImport a library import statement
      * @param fullyQualifiedName the original fully qualified name of the function
      * @return an Optional containing an alias for the function, if the import was
@@ -169,7 +169,7 @@ public class NewLibraryProposalsGenerator {
 
     /**
      * Generates an alias for a fully qualified name if the import is applicable.
-     * 
+     *
      * @param anImport a wild-card import statement
      * @param fullyQualifiedName the original fully qualified name of the function
      * @return an Optional containing an alias for the function, if the import was
@@ -187,7 +187,7 @@ public class NewLibraryProposalsGenerator {
     /**
      * Joins the steps to a string, separating steps by '.', appending a '.' at the
      * end.
-     * 
+     *
      * @param steps some steps
      * @return step names joined by '.' with '.' after last step as well.
      */
@@ -197,7 +197,7 @@ public class NewLibraryProposalsGenerator {
 
     /**
      * Joins the steps to a string, separating steps by '.'.
-     * 
+     *
      * @param steps some steps
      * @return step names joined by '.'
      */

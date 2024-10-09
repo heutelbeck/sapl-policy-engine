@@ -521,7 +521,7 @@ public class OLDSAPLContentProposalProvider2 extends IdeContentProposalProvider 
             /*
              * Add this check even, if the acceptor already is filtering, because there are
              * proposals, that are accepted, if the prefix is present after a '.'.
-             * 
+             *
              * E.g.: "import time.* ...... where a" the acceptor would accept "time.after"
              * and display it.
              */
@@ -543,7 +543,7 @@ public class OLDSAPLContentProposalProvider2 extends IdeContentProposalProvider 
             /*
              * Add this check even, if the acceptor already is filtering, because there are
              * proposals, that are accepted, if the prefix is present after a '.'.
-             * 
+             *
              * E.g.: "import time.* ...... where a" the acceptor would accept "time.after"
              * and display it.
              */
