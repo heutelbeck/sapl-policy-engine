@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.Assignment;
 import org.eclipse.xtext.Keyword;
 import org.eclipse.xtext.RuleCall;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
@@ -31,10 +32,12 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.google.common.base.Splitter;
+import com.google.inject.Inject;
 
 import io.sapl.grammar.ide.contentassist.NewLibraryProposalsGenerator.DocumentedProposal;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.ValueDefinition;
+import io.sapl.grammar.services.SAPLGrammarAccess;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +56,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     private static final int MINIMUM_KEYWORD_LENGTH = 3;
 
     private PDPConfigurationProvider pdpConfigurationProvider;
+
+    private SAPLGrammarAccess saplAccess;
+
+    @Inject
+    public void setService(SAPLGrammarAccess saplAccess) {
+        this.saplAccess = saplAccess;
+    }
 
     private void lazyLoadDependencies() {
         if (null == pdpConfigurationProvider) {
@@ -112,12 +122,32 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     @Override
-    protected void _createProposals(final RuleCall ruleCall, final ContentAssistContext context,
+    protected void _createProposals(final Assignment assignment, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
         lazyLoadDependencies();
+        if(     saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().equals(assignment)) {
+            log.error("HEUREKA");
+        }
+//        log.trace("Assignment: '{}' '{}' '{}'", assignment.getFeature(), assignment.getOperator(),
+//                assignment.getTerminal().eClass().getName());
+     
+    }
+
+    @Override
+    protected void _createProposals(final RuleCall ruleCall, final ContentAssistContext context,
+            final IIdeContentProposalAcceptor acceptor) {
+        if(true)
+            return;
+        lazyLoadDependencies();
+
+        if(true)
+            return;
+        log.error("->{}", this.saplAccess);
 
         final var configurationId  = extractConfigurationIdFromRequest();
         final var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration(configurationId).blockFirst();
+        
+        
 //        dumpCurrentState(ruleCall, context);
         // dumpParents(context);
         /*
@@ -134,12 +164,16 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 //            return;
 //        }
         final var ruleName = ruleCall.getRule().getName();
+        final var feature  = ruleCall.eContainingFeature().getName();
+
+        log.trace("rule {} feature {} for {}", ruleName, feature, ruleCall.getRule().getClass().getSimpleName());
+
         switch (ruleName) {
         case "BasicIdentifier"                                            -> {
-            createBasicIdentifierProposals(context, acceptor, pdpConfiguration);
+            // createBasicIdentifierProposals(context, acceptor, pdpConfiguration);
         }
         case "BasicFunction"                                              -> {
-            createBasicFunctionProposals(context, acceptor, pdpConfiguration);
+            // createBasicFunctionProposals(context, acceptor, pdpConfiguration);
         }
         case "BasicEnvironmentAttribute", "BasicEnvironmentHeadAttribute" -> {
             if (isInsideOfPolicyBody(context) && !isInsideOfSchemaExpression(context)) {
@@ -147,24 +181,25 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
                  * Attribute access is only allowed in policy bodies after a 'where' keyword,
                  * but not in schema expressions of variable definitions.
                  */
-                createBasicEnvironmentAttributeProposals(context, acceptor, pdpConfiguration);
+                // createBasicEnvironmentAttributeProposals(context, acceptor,
+                // pdpConfiguration);
             }
         }
         case "KeyStep", "EscapedKeyStep"                                  -> {
-            log.trace("{} for {}", ruleName, context.getCurrentModel().eClass().getName());
-
 //            createKeyStepProposals(context, acceptor, pdpConfiguration);
         }
         case "AttributeFinderStep"                                        -> {
-            createAttributeFinderStepProposals(context, acceptor, pdpConfiguration);
+            // createAttributeFinderStepProposals(context, acceptor, pdpConfiguration);
         }
         case "Step"                                                       -> {
-            final var currentModel = context.getCurrentModel();
-            log.trace("Step for {}", currentModel.eClass().getName());
+            //
         }
         case "SaplID"                                                     -> {
-            final var currentModel = context.getCurrentModel();
-            log.trace("SaplID for {}", currentModel.eClass().getName());
+//            final var grammarElement  = context.getCurrentNode().getGrammarElement();
+//            final var semanticElement = context.getCurrentNode().getSemanticElement();
+//            log.trace("#S {} in container {}", semanticElement);
+//            log.trace("#G {} in container {}", grammarElement);
+            //
         }
         default                                                           -> {/* NOOP */}
         }
