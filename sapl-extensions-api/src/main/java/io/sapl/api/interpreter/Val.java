@@ -202,7 +202,7 @@ public class Val implements Traced, Serializable {
      * @return the Val with attached trace
      */
     public Val withParentTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, Val parentValue) {
-        var newVal = withTrace(new Trace(operation, new ExpressionArgument(Trace.PARENT_VALUE, parentValue)));
+        final var newVal = withTrace(new Trace(operation, new ExpressionArgument(Trace.PARENT_VALUE, parentValue)));
         if (inheritsSecretStatusOfTrace && parentValue.isSecret()) {
             return newVal.asSecret();
         }
@@ -495,7 +495,7 @@ public class Val implements Traced, Serializable {
      * @throws Exception if field is not present supplied Exception is thrown.
      */
     public JsonNode fieldJsonNodeOrElseThrow(String fieldName, Supplier<? extends RuntimeException> errorSupplier) {
-        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        final var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
         if (!isObjectAndFieldIsPresent)
             throw errorSupplier.get();
 
@@ -512,7 +512,7 @@ public class Val implements Traced, Serializable {
      * other.
      */
     public JsonNode fieldJsonNodeOrElse(String fieldName, JsonNode other) {
-        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        final var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
         return isObjectAndFieldIsPresent ? value.get(fieldName) : other;
     }
 
@@ -526,7 +526,7 @@ public class Val implements Traced, Serializable {
      * other.
      */
     public JsonNode fieldJsonNodeOrElse(String fieldName, Supplier<JsonNode> other) {
-        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        final var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
         return isObjectAndFieldIsPresent ? value.get(fieldName) : other.get();
     }
 
@@ -540,7 +540,7 @@ public class Val implements Traced, Serializable {
      * other.
      */
     public Val fieldValOrElse(String fieldName, Val other) {
-        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        final var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
         return isObjectAndFieldIsPresent ? Val.of(value.get(fieldName)) : other;
     }
 
@@ -554,7 +554,7 @@ public class Val implements Traced, Serializable {
      * other.
      */
     public Val fieldValOrElse(String fieldName, Supplier<Val> other) {
-        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        final var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
         return isObjectAndFieldIsPresent ? Val.of(value.get(fieldName)) : other.get();
     }
 
@@ -685,8 +685,8 @@ public class Val implements Traced, Serializable {
     }
 
     private static int hashCodeOfObjectNode(ObjectNode objectNode) {
-        var fieldIterator = objectNode.fields();
-        var hash          = 0;
+        final var fieldIterator = objectNode.fields();
+        var       hash          = 0;
 
         Map.Entry<String, JsonNode> entry;
         while (fieldIterator.hasNext()) {
@@ -1058,7 +1058,7 @@ public class Val implements Traced, Serializable {
             val = value;
         }
 
-        var traceJson = JSON.objectNode();
+        final var traceJson = JSON.objectNode();
         traceJson.set(Trace.VALUE, val);
         if (null != trace) {
             traceJson.set(Trace.TRACE_KEY, trace.getTrace());
@@ -1068,7 +1068,7 @@ public class Val implements Traced, Serializable {
 
     @Override
     public Collection<Val> getErrorsFromTrace() {
-        var errors = new ArrayList<Val>();
+        final var errors = new ArrayList<Val>();
         collectErrors(errors);
         return errors;
     }

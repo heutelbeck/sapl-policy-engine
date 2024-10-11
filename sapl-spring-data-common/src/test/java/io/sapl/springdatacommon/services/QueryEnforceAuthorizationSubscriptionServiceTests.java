@@ -68,11 +68,12 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
             try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
                     StandardEvaluationContext.class)) {
                 // GIVEN
-                var methodInvocation = new R2dbcMethodInvocation("findById", new ArrayList<>(List.of(String.class)),
-                        new ArrayList<>(List.of("20")), null);
-                var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+                final var methodInvocation = new R2dbcMethodInvocation("findById",
+                        new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("20")), null);
+                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
+                        QueryEnforce.class);
 
-                var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
+                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
                 // WHEN
@@ -95,15 +96,17 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
             try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
                     StandardEvaluationContext.class)) {
                 // GIVEN
-                var methodInvocation = new R2dbcMethodInvocation("findByIdBefore",
+                final var methodInvocation = new R2dbcMethodInvocation("findByIdBefore",
                         new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("20")), null);
-                var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
+                        QueryEnforce.class);
 
-                var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
+                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
-                var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
-                var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed().get(0);
+                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
+                        .get(0);
 
                 // WHEN
                 doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
@@ -133,15 +136,17 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
             try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
                     StandardEvaluationContext.class)) {
                 // GIVEN
-                var methodInvocation = new R2dbcMethodInvocation("findAllByFirstnameAndAgeBefore",
+                final var methodInvocation = new R2dbcMethodInvocation("findAllByFirstnameAndAgeBefore",
                         new ArrayList<>(List.of(String.class, int.class)), new ArrayList<>(List.of("20", 20)), null);
-                var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
+                        QueryEnforce.class);
 
-                var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
+                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
-                var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
-                var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed().get(0);
+                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
+                        .get(0);
 
                 // WHEN
                 when(spelExpressionParserMock.parseExpression(anyString())).thenReturn(expressionMock);
@@ -159,7 +164,7 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
                 SecurityContextHolder.setContext(securityContextMock);
 
                 // THEN
-                var authSubResult = service.getAuthorizationSubscription(methodInvocation, queryEnforce);
+                final var authSubResult = service.getAuthorizationSubscription(methodInvocation, queryEnforce);
 
                 compareTwoAuthSubs(generalProtectionR2dbcPersonRepository, authSubResult);
             }
@@ -176,15 +181,17 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
             try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
                     StandardEvaluationContext.class)) {
                 // GIVEN
-                var methodInvocation = new R2dbcMethodInvocation("findAllByAgeAfterAndFirstname",
+                final var methodInvocation = new R2dbcMethodInvocation("findAllByAgeAfterAndFirstname",
                         new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(20, "20")), null);
-                var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
+                        QueryEnforce.class);
 
-                var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
+                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
-                var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
-                var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed().get(0);
+                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
+                        .get(0);
 
                 // WHEN
                 doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
@@ -201,7 +208,7 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
                 SecurityContextHolder.setContext(securityContextMock);
 
                 // THEN
-                var authSubResult = service.getAuthorizationSubscription(methodInvocation, queryEnforce);
+                final var authSubResult = service.getAuthorizationSubscription(methodInvocation, queryEnforce);
 
                 compareTwoAuthSubs(generalProtectionR2dbcPersonRepository, authSubResult);
             }
@@ -215,15 +222,17 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
             try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
                     StandardEvaluationContext.class)) {
                 // GIVEN
-                var methodInvocation = new R2dbcMethodInvocation("findByIdBeforeAndFirstname",
+                final var methodInvocation = new R2dbcMethodInvocation("findByIdBeforeAndFirstname",
                         new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(20, "20")), null);
-                var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
+                        QueryEnforce.class);
 
-                var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
+                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
-                var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
-                var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed().get(0);
+                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
+                        .get(0);
 
                 // WHEN
                 doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
@@ -250,15 +259,17 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
             try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
                     StandardEvaluationContext.class)) {
                 // GIVEN
-                var methodInvocation = new R2dbcMethodInvocation("findByIdBeforeAndFirstname",
+                final var methodInvocation = new R2dbcMethodInvocation("findByIdBeforeAndFirstname",
                         new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(20, "20")), null);
-                var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(), QueryEnforce.class);
+                final var queryEnforce     = AnnotationUtils.findAnnotation(methodInvocation.getMethod(),
+                        QueryEnforce.class);
 
-                var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
+                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
-                var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
-                var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed().get(0);
+                final var spelExpressionParserMock      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var standardEvaluationContextMock = mockedConstructionStandardEvaluationContext.constructed()
+                        .get(0);
 
                 // WHEN
                 doNothing().when(standardEvaluationContextMock).registerFunction(anyString(), any(Method.class));
@@ -293,14 +304,14 @@ class QueryEnforceAuthorizationSubscriptionServiceTests {
             try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
                     StandardEvaluationContext.class)) {
                 // GIVEN
-                var methodInvocation = new R2dbcMethodInvocation("findByIdBeforeAndFirstname",
+                final var methodInvocation = new R2dbcMethodInvocation("findByIdBeforeAndFirstname",
                         new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(20, "20")), null);
 
-                var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
+                final var service = new QueryEnforceAuthorizationSubscriptionService(beanFactoryMock,
                         securityExpressionService);
 
                 // THEN
-                var authSubResult = service.getAuthorizationSubscription(methodInvocation, null);
+                final var authSubResult = service.getAuthorizationSubscription(methodInvocation, null);
 
                 assertEquals(null, authSubResult);
             }

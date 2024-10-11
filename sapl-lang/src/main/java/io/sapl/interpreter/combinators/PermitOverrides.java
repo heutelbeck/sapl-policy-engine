@@ -73,13 +73,13 @@ public class PermitOverrides {
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
-        var entitlement = NOT_APPLICABLE;
-        var collector   = new ObligationAdviceCollector();
-        var resource    = Optional.<JsonNode>empty();
-        var decisions   = new LinkedList<DocumentEvaluationResult>();
+        final var collector   = new ObligationAdviceCollector();
+        final var decisions   = new LinkedList<DocumentEvaluationResult>();
+        var       resource    = Optional.<JsonNode>empty();
+        var       entitlement = NOT_APPLICABLE;
         for (var policyDecision : policyDecisions) {
             decisions.add(policyDecision);
-            var authzDecision = policyDecision.getAuthorizationDecision();
+            final var authzDecision = policyDecision.getAuthorizationDecision();
             if (authzDecision.getDecision() == PERMIT) {
                 entitlement = PERMIT;
             }
@@ -103,8 +103,8 @@ public class PermitOverrides {
                 }
             }
         }
-        var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
-                collector.getAdvice(entitlement));
+        final var finalDecision = new AuthorizationDecision(entitlement, resource,
+                collector.getObligations(entitlement), collector.getAdvice(entitlement));
         return CombinedDecision.of(finalDecision, CombiningAlgorithm.PERMIT_OVERRIDES, decisions);
     }
 

@@ -32,7 +32,7 @@ class PredicateInfoTests {
 
     @Test
     void testConstruction() {
-        var predicateInfo = new PredicateInfo(new Predicate(new Bool(true)));
+        final var predicateInfo = new PredicateInfo(new Predicate(new Bool(true)));
 
         assertThat(predicateInfo, is(notNullValue()));
 
@@ -46,7 +46,7 @@ class PredicateInfoTests {
 
     @Test
     void testUtilityMethods() {
-        var predicateInfo = new PredicateInfo(new Predicate(new Bool(true)));
+        final var predicateInfo = new PredicateInfo(new Predicate(new Bool(true)));
 
         predicateInfo.addUnsatisfiableConjunctionIfTrue(mock(ConjunctiveClause.class));
         predicateInfo.addUnsatisfiableConjunctionIfFalse(mock(ConjunctiveClause.class));
@@ -74,8 +74,8 @@ class PredicateInfoTests {
 
     @Test
     void testCompareTo() {
-        var p1 = new PredicateInfo(new Predicate(new Bool(true)));
-        var p2 = new PredicateInfo(new Predicate(new Bool(true)));
+        final var p1 = new PredicateInfo(new Predicate(new Bool(true)));
+        final var p2 = new PredicateInfo(new Predicate(new Bool(true)));
 
         p1.setScore(0D);
         p2.setScore(0D);
@@ -91,9 +91,9 @@ class PredicateInfoTests {
     @Test
     @SuppressWarnings("unlikely-arg-type")
     void testEquals() {
-        var p1 = new PredicateInfo(new Predicate(new Bool(true)));
-        var p2 = new PredicateInfo(new Predicate(new Bool(true)));
-        var p3 = spy(p2);
+        final var p1 = new PredicateInfo(new Predicate(new Bool(true)));
+        final var p2 = new PredicateInfo(new Predicate(new Bool(true)));
+        final var p3 = spy(p2);
         when(p3.getScore()).thenReturn(Double.MAX_VALUE);
 
         assertThat(p1.equals(p1), is(true));
@@ -105,7 +105,7 @@ class PredicateInfoTests {
 
     @Test
     void testHashCode() {
-        var p1 = new PredicateInfo(new Predicate(new Bool(true)));
+        final var p1 = new PredicateInfo(new Predicate(new Bool(true)));
         assertThat(p1.hashCode(), not(is(0)));
     }
 

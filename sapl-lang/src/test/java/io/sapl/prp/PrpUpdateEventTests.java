@@ -36,15 +36,15 @@ class PrpUpdateEventTests {
     @Test
     void should_return_empty_event_when_initialized_with_null() {
         List<Update> updates = null;
-        var          event   = new PrpUpdateEvent(updates);
+        final var    event   = new PrpUpdateEvent(updates);
         assertThat(event, notNullValue());
     }
 
     @Test
     void toStringTest() {
-        var document = INTERPRETER.parseDocument("policy \"p\" permit");
-        var empty    = new PrpUpdateEvent.Update(null, null);
-        var valid    = new PrpUpdateEvent.Update(Type.PUBLISH, document);
+        final var document = INTERPRETER.parseDocument("policy \"p\" permit");
+        final var empty    = new PrpUpdateEvent.Update(null, null);
+        final var valid    = new PrpUpdateEvent.Update(Type.PUBLISH, document);
         assertThat(empty.toString(), is("Update(type=null, documentName=NULL POLICY)"));
         assertThat(valid.toString(), is("Update(type=PUBLISH, documentName='p')"));
     }

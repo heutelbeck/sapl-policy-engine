@@ -134,7 +134,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         } else if (saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_2_1().equals(assignment)) {
             log.info("getNameFragmentsAssignment_2_1");
             /* This is at least the second element of a function name or a PIP name */
-            var n = context.getCurrentNode();
+            final var n = context.getCurrentNode();
             this.dumpSiblings(context);
         }
         log.trace("Assignment: '{}' '{}' '{}' '{}'", assignment.getFeature(), assignment.getOperator(),
@@ -167,7 +167,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
          * the current node is the ')'.
          */
 //        if ( !(context.getCurrentNode() instanceof LeafNodeWithSyntaxError)&&!(context.getCurrentNode() instanceof HiddenLeafNode) && context.getOffset() < currentNode.getEndOffset()) {
-//            var t = currentNode.getRootNode().getText();
+//            final var t = currentNode.getRootNode().getText();
 //            log.trace(t.substring(0, context.getOffset()) + "~"
 //                    + t.substring(context.getOffset(), currentNode.getEndOffset()) + "#"
 //                    + t.substring(currentNode.getEndOffset(), t.length()));

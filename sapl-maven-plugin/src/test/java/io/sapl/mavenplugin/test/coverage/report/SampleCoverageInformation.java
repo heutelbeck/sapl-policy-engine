@@ -48,7 +48,8 @@ public class SampleCoverageInformation {
     // @formatter:on
 
     public Collection<SaplDocumentCoverageInformation> documents() {
-        var document = new SaplDocumentCoverageInformation(Paths.get("src/test/resources/policies/policy_1.sapl"), 12);
+        final var document = new SaplDocumentCoverageInformation(Paths.get("src/test/resources/policies/policy_1.sapl"),
+                12);
         for (var marking : LINE_MARKINGS) {
             document.markLine(marking.lineNumber(), marking.value(), marking.coveredBranches(),
                     marking.branchesToCover());

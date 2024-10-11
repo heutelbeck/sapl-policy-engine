@@ -57,14 +57,14 @@ public class SetupView extends VerticalLayout {
             add(ErrorComponentUtils.getErrorDiv(SetupLayout.INSECURE_CONNECTION_MESSAGE));
         }
 
-        var hWelcome = new H1("Welcome to SAPL Server CE Setup Wizard");
+        final var hWelcome = new H1("Welcome to SAPL Server CE Setup Wizard");
 
-        var hDesc = new H2("Description");
-        var pDesc = new Paragraph(
+        final var hDesc = new H2("Description");
+        final var pDesc = new Paragraph(
                 "The Setup Wizard is a component designed to streamline the setup and initial configuration process of the SAPL Server CE. It serves as a user-friendly interface that guides administrators through the necessary steps to properly set up and configure the SAPL Server CE for their specific environment.");
 
-        var hKeyFeatures = new H2("Key Features");
-        var pKeyFeatures = new Paragraph();
+        final var hKeyFeatures = new H2("Key Features");
+        final var pKeyFeatures = new Paragraph();
         pKeyFeatures.getStyle().setWhiteSpace(Style.WhiteSpace.PRE_LINE);
         pKeyFeatures.setText(pKeyFeatures.getText()
                 + "1. Configure the DBMS connection, either with an existing H2 or MariaDB database or a newly created H2 database.\n");
@@ -78,8 +78,8 @@ public class SetupView extends VerticalLayout {
         pKeyFeatures.setText(
                 pKeyFeatures.getText() + "5. Configure the logging settings of SAPL, SAPL Server CE and Spring.\n");
 
-        var hUsage = new H2("Usage");
-        var pUsage = new Paragraph();
+        final var hUsage = new H2("Usage");
+        final var pUsage = new Paragraph();
         pUsage.getStyle().setWhiteSpace(Style.WhiteSpace.PRE_LINE);
         pUsage.setText(pUsage.getText()
                 + "- Run the SAPL Server CE with the production profile as described in the readme.\n");
@@ -90,16 +90,16 @@ public class SetupView extends VerticalLayout {
                 + "- After you have saved all settings, use the \"Restart SAPL Server CE\" button to restart the application.\n");
         pUsage.setText(pUsage.getText() + "- Once restarted, the new configuration parameters will take effect.\n");
 
-        var hLimitations = new H2("Limitations");
-        var pLimitations = new Paragraph();
+        final var hLimitations = new H2("Limitations");
+        final var pLimitations = new Paragraph();
         pLimitations.getStyle().setWhiteSpace(Style.WhiteSpace.PRE_LINE);
         pLimitations.setText(pLimitations.getText()
                 + "- If you use the spring-dev-tools by activating them in the pom.xml, the restart functionality works correctly only in the production profile. If you use spring-dev-tool with a non-production profile, you have to restart the application yourself.\n");
         pLimitations.setText(pLimitations.getText()
                 + "- The Setup Wizard is designed to work with .yml-files. .properties-files are not supported.\n");
 
-        var hGoodToKnow = new H2("Good to know");
-        var pGoodToKnow = new Paragraph();
+        final var hGoodToKnow = new H2("Good to know");
+        final var pGoodToKnow = new Paragraph();
         pGoodToKnow.getStyle().setWhiteSpace(Style.WhiteSpace.PRE_LINE);
         pGoodToKnow.setText(pGoodToKnow.getText()
                 + "- The configuration properties are stored in the Spring application.yml files.\n");
@@ -112,9 +112,9 @@ public class SetupView extends VerticalLayout {
         pGoodToKnow.setText(pGoodToKnow.getText()
                 + "- If no application.yml file outside the classpath is found, the Setup Wizard will create one and all necessary folders located in <working-dir>/config/\n");
 
-        var hNotUseIt = new H2("If you don't want to use it");
-        var pNotUseIt = new Paragraph();
-        var aDocu     = new Anchor("https://github.com/heutelbeck/sapl-server");
+        final var hNotUseIt = new H2("If you don't want to use it");
+        final var pNotUseIt = new Paragraph();
+        final var aDocu     = new Anchor("https://github.com/heutelbeck/sapl-server");
         pNotUseIt.getStyle().setWhiteSpace(Style.WhiteSpace.PRE_LINE);
         pNotUseIt.setText(pNotUseIt.getText()
                 + "If you don't want to use it, just have a look at the documentation, set up the application.yml files as you prefer and start the SAPL Server CE\n");

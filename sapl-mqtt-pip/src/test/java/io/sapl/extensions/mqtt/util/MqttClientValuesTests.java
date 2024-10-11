@@ -34,12 +34,12 @@ class MqttClientValuesTests {
     @Test
     void when_extractingMqttBrokerConfig_then_getCopy() {
         // GIVEN
-        var mqttReactorClientMock = mock(MqttReactorClient.class);
-        var brokerConfig          = JsonNodeFactory.instance.objectNode();
+        final var mqttReactorClientMock = mock(MqttReactorClient.class);
+        final var brokerConfig          = JsonNodeFactory.instance.objectNode();
         brokerConfig.put("key", "value");
-        var mqtt5ConnAckMock     = mock(Mqtt5ConnAck.class);
-        var mqtt5ConnAckMonoMock = Mono.just(mqtt5ConnAckMock);
-        var mqttClientValues     = new MqttClientValues("clientId", mqttReactorClientMock, brokerConfig,
+        final var mqtt5ConnAckMock     = mock(Mqtt5ConnAck.class);
+        final var mqtt5ConnAckMonoMock = Mono.just(mqtt5ConnAckMock);
+        final var mqttClientValues     = new MqttClientValues("clientId", mqttReactorClientMock, brokerConfig,
                 mqtt5ConnAckMonoMock);
 
         // WHEN

@@ -97,7 +97,7 @@ public class CombinedDecision implements Traced {
     }
 
     public CombinedDecision withEvaluationResult(DocumentEvaluationResult result) {
-        var newCombinedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
+        final var newCombinedDecision = new CombinedDecision(authorizationDecision, combiningAlgorithm,
                 documentEvaluationResults, errorMessage);
         newCombinedDecision.documentEvaluationResults.add(result);
         return newCombinedDecision;
@@ -105,7 +105,7 @@ public class CombinedDecision implements Traced {
 
     public CombinedDecision withDecisionAndEvaluationResult(AuthorizationDecision newAuthorizationDecision,
             DocumentEvaluationResult result) {
-        var newCombinedDecision = new CombinedDecision(newAuthorizationDecision, combiningAlgorithm,
+        final var newCombinedDecision = new CombinedDecision(newAuthorizationDecision, combiningAlgorithm,
                 documentEvaluationResults, errorMessage);
         newCombinedDecision.documentEvaluationResults.add(result);
         return newCombinedDecision;
@@ -113,7 +113,7 @@ public class CombinedDecision implements Traced {
 
     @Override
     public JsonNode getTrace() {
-        var trace = Val.JSON.objectNode();
+        final var trace = Val.JSON.objectNode();
         trace.set(Trace.COMBINING_ALGORITHM, Val.JSON.textNode(combiningAlgorithm));
         trace.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
         if (errorMessage != null) {
@@ -124,14 +124,14 @@ public class CombinedDecision implements Traced {
     }
 
     private JsonNode listOfTracedToJsonArray(List<DocumentEvaluationResult> results) {
-        var arrayNode = Val.JSON.arrayNode();
+        final var arrayNode = Val.JSON.arrayNode();
         results.forEach(r -> arrayNode.add(r.getTrace()));
         return arrayNode;
     }
 
     @Override
     public Collection<Val> getErrorsFromTrace() {
-        var errors = new ArrayList<Val>();
+        final var errors = new ArrayList<Val>();
         if (errorMessage != null) {
             errors.add(ErrorFactory.error(errorMessage));
         }

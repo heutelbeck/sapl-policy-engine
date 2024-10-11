@@ -59,14 +59,14 @@ class EnforcedSchemaTests {
 
     @Test
     void when_noEnforcementAndNoTarget_then_matches() {
-        var authzSubscription = """
+        final var authzSubscription = """
                 {
                     "subject"  : "willi",
                     "action"   : "eat",
                     "resource" : "ice cream"
                 }
                 """;
-        var document          = """
+        final var document          = """
                 policy "test"
                 permit
                 """;
@@ -76,14 +76,14 @@ class EnforcedSchemaTests {
 
     @Test
     void when_noEnforcementButWithTarget_then_matches() {
-        var authzSubscription = """
+        final var authzSubscription = """
                 {
                     "subject"  : "willi",
                     "action"   : "eat",
                     "resource" : "ice cream"
                 }
                 """;
-        var document          = """
+        final var document          = """
                 policy "test"
                 permit true
                 """;
@@ -93,14 +93,14 @@ class EnforcedSchemaTests {
 
     @Test
     void when_enforcedSubjectSchemaAndValidSubject_then_matches() {
-        var authzSubscription = """
+        final var authzSubscription = """
                 {
                     "subject"  : "willi",
                     "action"   : "eat",
                     "resource" : "ice cream"
                 }
                 """;
-        var document          = """
+        final var document          = """
                 subject     enforced schema {
                                                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                                                 "$id": "https://example.com/product.schema.json",
@@ -117,14 +117,14 @@ class EnforcedSchemaTests {
 
     @Test
     void when_enforcedSubjectSchemaAndValidSubjectButTargetNoMatch_then_noMatch() {
-        var authzSubscription = """
+        final var authzSubscription = """
                 {
                     "subject"  : "willi",
                     "action"   : "eat",
                     "resource" : "ice cream"
                 }
                 """;
-        var document          = """
+        final var document          = """
                 subject     enforced schema {
                                                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                                                 "$id": "https://example.com/product.schema.json",
@@ -141,14 +141,14 @@ class EnforcedSchemaTests {
 
     @Test
     void when_schemaError_then_error() {
-        var authzSubscription = """
+        final var authzSubscription = """
                 {
                     "subject"  : "willi",
                     "action"   : "eat",
                     "resource" : "ice cream"
                 }
                 """;
-        var document          = """
+        final var document          = """
                 subject     enforced schema {
                                                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                                                 "$id": "https://example.com/product.schema.json",
@@ -165,14 +165,14 @@ class EnforcedSchemaTests {
 
     @Test
     void when_elementError_then_error() {
-        var authzSubscription = """
+        final var authzSubscription = """
                 {
                     "subject"  : "willi",
                     "action"   : "eat",
                     "resource" : "ice cream"
                 }
                 """;
-        var document          = """
+        final var document          = """
                 subject     enforced schema {
                                                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                                                 "$id": "https://example.com/product.schema.json",
@@ -189,28 +189,28 @@ class EnforcedSchemaTests {
 
     @Test
     void when_enforcedSubjectAndActionSchemaAndValidSubjectAndAction_then_bothMustMatch() {
-        var bothMatchSubscription      = """
+        final var bothMatchSubscription      = """
                 {
                     "subject"  : "willi",
                     "action"   : 123,
                     "resource" : "ice cream"
                 }
                 """;
-        var actionNoMatchSubscription  = """
+        final var actionNoMatchSubscription  = """
                 {
                     "subject"  : "willi",
                     "action"   : true,
                     "resource" : "ice cream"
                 }
                 """;
-        var subjectNoMatchSubscription = """
+        final var subjectNoMatchSubscription = """
                 {
                     "subject"  : 987,
                     "action"   : 123,
                     "resource" : "ice cream"
                 }
                 """;
-        var document                   = """
+        final var document                   = """
                 subject     enforced schema {
                                                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                                                 "$id": "https://example.com/product.schema.json",
@@ -236,14 +236,14 @@ class EnforcedSchemaTests {
 
     @Test
     void when_enforcedSubjectSchemaAndInvalidSubject_then_notMatching() {
-        var authzSubscription = """
+        final var authzSubscription = """
                 {
                     "subject"  : 123,
                     "action"   : "eat",
                     "resource" : "ice cream"
                 }
                 """;
-        var document          = """
+        final var document          = """
                 subject     enforced schema {
                                                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                                                 "$id": "https://example.com/product.schema.json",
@@ -260,14 +260,14 @@ class EnforcedSchemaTests {
 
     @Test
     void when_nonEnforcedSubjectSchemaAndInvalidSubject_then_matching() {
-        var authzSubscription = """
+        final var authzSubscription = """
                 {
                     "subject"  : 123,
                     "action"   : "eat",
                     "resource" : "ice cream"
                 }
                 """;
-        var document          = """
+        final var document          = """
                 subject     schema {
                                        "$schema": "https://json-schema.org/draft/2020-12/schema",
                                        "$id": "https://example.com/product.schema.json",
@@ -283,7 +283,7 @@ class EnforcedSchemaTests {
 
     @Test
     void when_enforcedSubjectTwoSchemasSchema_then_bothVersionsMatch() {
-        var document = """
+        final var document = """
                 subject     enforced schema {
                                                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                                                 "$id": "https://example.com/product.schema.json",
@@ -302,21 +302,21 @@ class EnforcedSchemaTests {
                 permit
                 """;
 
-        var authzSubscriptionString = """
+        final var authzSubscriptionString = """
                 {
                     "subject"  : "willi",
                     "action"   : "eat",
                     "resource" : "ice cream"
                 }
                 """;
-        var authzSubscriptionNumber = """
+        final var authzSubscriptionNumber = """
                 {
                     "subject"  : 123,
                     "action"   : "eat",
                     "resource" : "ice cream"
                 }
                 """;
-        var authzSubscriptionNull   = """
+        final var authzSubscriptionNull   = """
                 {
                     "subject"  : null,
                     "action"   : "eat",
@@ -331,9 +331,10 @@ class EnforcedSchemaTests {
 
     @SneakyThrows
     private static void assertMatchEvaluation(String subscription, String document, boolean expected) {
-        var authzSubscription = MAPPER.readValue(subscription, AuthorizationSubscription.class);
-        var sapl              = INTERPRETER.parse(document);
-        var match             = sapl.matches().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
+        final var authzSubscription = MAPPER.readValue(subscription, AuthorizationSubscription.class);
+        final var sapl              = INTERPRETER.parse(document);
+        final var match             = sapl.matches()
+                .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
                 .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
@@ -341,7 +342,7 @@ class EnforcedSchemaTests {
         assertThat(match).isNotNull();
         assertThat(match.getBoolean()).isEqualTo(expected);
 
-        var implicitMatch = MatchingUtil.matches(sapl.getImplicitTargetExpression(), sapl)
+        final var implicitMatch = MatchingUtil.matches(sapl.getImplicitTargetExpression(), sapl)
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
                 .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
@@ -353,16 +354,17 @@ class EnforcedSchemaTests {
 
     @SneakyThrows
     private static void assertMatchError(String subscription, String document) {
-        var authzSubscription = MAPPER.readValue(subscription, AuthorizationSubscription.class);
-        var sapl              = INTERPRETER.parse(document);
-        var match             = sapl.matches().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
+        final var authzSubscription = MAPPER.readValue(subscription, AuthorizationSubscription.class);
+        final var sapl              = INTERPRETER.parse(document);
+        final var match             = sapl.matches()
+                .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
                 .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
 
         assertThat(match.isError()).isTrue();
 
-        var implicitMatch = MatchingUtil.matches(sapl.getImplicitTargetExpression(), sapl)
+        final var implicitMatch = MatchingUtil.matches(sapl.getImplicitTargetExpression(), sapl)
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
                 .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))

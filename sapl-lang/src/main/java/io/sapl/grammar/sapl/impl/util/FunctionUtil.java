@@ -47,7 +47,7 @@ public class FunctionUtil {
         if (null == identifier) {
             return "";
         }
-        var functionName = mergeStepsToName(identifier);
+        final var functionName = mergeStepsToName(identifier);
         return imports.getOrDefault(functionName, functionName);
     }
 

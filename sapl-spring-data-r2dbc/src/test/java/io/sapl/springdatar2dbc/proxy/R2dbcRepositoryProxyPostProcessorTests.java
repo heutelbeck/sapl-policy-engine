@@ -50,7 +50,7 @@ class R2dbcRepositoryProxyPostProcessorTests {
         // GIVEN
         when(repositoryInformationMock.getRepositoryInterface()).thenAnswer(invocation -> PersonR2dbcRepository.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
+        final var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN
@@ -68,7 +68,7 @@ class R2dbcRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> MethodInvocationForTesting.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
+        final var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN
@@ -86,7 +86,7 @@ class R2dbcRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> PersonReactiveCrudRepository.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
+        final var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN
@@ -104,7 +104,7 @@ class R2dbcRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> PersonReactiveSortingRepository.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
+        final var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN

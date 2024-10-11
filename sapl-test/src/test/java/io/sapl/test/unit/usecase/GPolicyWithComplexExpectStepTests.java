@@ -89,18 +89,19 @@ class GPolicyWithComplexExpectStepTests {
 
     @Test
     void test_equals() {
-        var obligation = mapper.createObjectNode();
+        final var obligation = mapper.createObjectNode();
         obligation.put("type", "logAccess");
         obligation.put("message", WILLI_HAS_ACCESSED_PATIENT_DATA);
-        var obligations = mapper.createArrayNode();
+        final var obligations = mapper.createArrayNode();
         obligations.add(obligation);
 
-        var resource = mapper.createObjectNode();
+        final var resource = mapper.createObjectNode();
         resource.put("id", "56");
         resource.put("diagnosisText", BLACKENED_DIAGNOSIS);
         resource.put("icd11Code", BLACKENED_ICD11);
 
-        var decision = new AuthorizationDecision(Decision.PERMIT).withObligations(obligations).withResource(resource);
+        final var decision = new AuthorizationDecision(Decision.PERMIT).withObligations(obligations)
+                .withResource(resource);
 
         fixture.constructTestCase().when(AuthorizationSubscription.of(subject, action, resource)).expect(decision)
                 .verify();
@@ -129,8 +130,9 @@ class GPolicyWithComplexExpectStepTests {
                     }
 
                     // check resource
+                    final var resource = dec.getResource().get();
+
                     var containsExpectedResource = false;
-                    var resource         = dec.getResource().get();
                     if (resource.has("id") && "56".equals(resource.get("id").asText()) && resource.has("diagnosisText")
                             && BLACKENED_DIAGNOSIS.equals(resource.get("diagnosisText").asText())
                             && resource.has("icd11Code")

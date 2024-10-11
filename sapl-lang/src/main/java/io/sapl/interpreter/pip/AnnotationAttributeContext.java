@@ -126,7 +126,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     @Override
     public Flux<Val> evaluateAttribute(EObject location, String attributeName, Val leftHandValue, Arguments arguments,
             Map<String, Val> variables) {
-        var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), false);
+        final var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), false);
         if (null == attributeMetadata)
             return Flux.just(ErrorFactory.error(location, UNKNOWN_ATTRIBUTE_ERROR, attributeName));
         return evaluateAttribute(attributeName, attributeMetadata, leftHandValue, arguments, variables);
@@ -135,7 +135,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     @Override
     public Flux<Val> evaluateEnvironmentAttribute(EObject location, String attributeName, Arguments arguments,
             Map<String, Val> variables) {
-        var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), true);
+        final var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), true);
         if (null == attributeMetadata)
             return Flux.just(ErrorFactory.error(location, UNKNOWN_ATTRIBUTE_ERROR, attributeName));
         return evaluateEnvironmentAttribute(attributeName, attributeMetadata, arguments, variables);
@@ -143,15 +143,15 @@ public final class AnnotationAttributeContext implements AttributeContext {
 
     private Flux<Val> evaluateEnvironmentAttribute(String attributeName, AttributeFinderMetadata attributeMetadata,
             Arguments arguments, Map<String, Val> variables) {
-        var pip    = attributeMetadata.getPolicyInformationPoint();
-        var method = attributeMetadata.getFunction();
+        final var pip    = attributeMetadata.getPolicyInformationPoint();
+        final var method = attributeMetadata.getFunction();
         return attributeFinderArguments(attributeMetadata, arguments, variables)
                 .switchMap(invokeAttributeFinderMethod(arguments, attributeName, pip, method));
     }
 
     private AttributeFinderMetadata lookupAttribute(String attributeName, int numberOfParameters,
             boolean environmentAttribute) {
-        var nameMatches = attributeMetadataByAttributeName.get(attributeName);
+        final var nameMatches = attributeMetadataByAttributeName.get(attributeName);
         if (null == nameMatches)
             return null;
         AttributeFinderMetadata varArgsMatch = null;
@@ -169,8 +169,8 @@ public final class AnnotationAttributeContext implements AttributeContext {
     private Flux<Val> evaluateAttribute(String attributeName, AttributeFinderMetadata attributeMetadata,
             Val leftHandValue, Arguments arguments, Map<String, Val> variables) {
 
-        var pip    = attributeMetadata.getPolicyInformationPoint();
-        var method = attributeMetadata.getFunction();
+        final var pip    = attributeMetadata.getPolicyInformationPoint();
+        final var method = attributeMetadata.getFunction();
 
         return attributeFinderArguments(attributeMetadata, leftHandValue, arguments, variables)
                 .switchMap(invokeAttributeFinderMethod(arguments, attributeName, pip, method));
@@ -182,7 +182,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
         return invocationParameters -> {
             try {
                 return ((Flux<Val>) method.invoke(pip, invocationParameters)).map(val -> {
-                    var trace = new HashMap<String, Val>();
+                    final var trace = new HashMap<String, Val>();
                     trace.put("attribute", Val.of(attributeName));
                     for (int i = 0; i < invocationParameters.length; i++) {
                         if (invocationParameters[i] instanceof Val)
@@ -201,8 +201,8 @@ public final class AnnotationAttributeContext implements AttributeContext {
     }
 
     private List<Flux<Val>> validatedArguments(AttributeFinderMetadata attributeMetadata, Arguments arguments) {
-        var argumentFluxes                   = new ArrayList<Flux<Val>>(arguments.getArgs().size());
-        var indexOfArgumentParameterOfMethod = 0;
+        final var argumentFluxes                   = new ArrayList<Flux<Val>>(arguments.getArgs().size());
+        var       indexOfArgumentParameterOfMethod = 0;
         if (!attributeMetadata.isEnvironmentAttribute())
             indexOfArgumentParameterOfMethod++; // skip leftHand
         if (attributeMetadata.isAttributeWithVariableParameter())
@@ -223,18 +223,18 @@ public final class AnnotationAttributeContext implements AttributeContext {
     private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Arguments arguments,
             Map<String, Val> variables) {
 
-        var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
+        final var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
         if (null == arguments) {
-            var invocationArguments = new Object[numberOfInvocationParameters];
-            var argumentIndex       = 0;
+            final var invocationArguments = new Object[numberOfInvocationParameters];
+            var       argumentIndex       = 0;
             if (attributeMetadata.isAttributeWithVariableParameter())
                 invocationArguments[argumentIndex++] = variables;
             if (attributeMetadata.isVarArgsParameters())
                 invocationArguments[argumentIndex] = new Val[0];
             return Flux.<Object[]>just(invocationArguments);
         }
-        var argumentFluxes = validatedArguments(attributeMetadata, arguments);
+        final var argumentFluxes = validatedArguments(attributeMetadata, arguments);
 
         return Flux.combineLatest(argumentFluxes,
                 argumentCombiner(attributeMetadata, variables, numberOfInvocationParameters, Optional.empty()));
@@ -248,8 +248,8 @@ public final class AnnotationAttributeContext implements AttributeContext {
 
     private Object[] combineArguments(AttributeFinderMetadata attributeMetadata, Map<String, Val> variables,
             int numberOfInvocationParameters, Object[] argumentValues, Optional<Val> leftHandValue) {
-        var invocationArguments = new Object[numberOfInvocationParameters];
-        var argumentIndex       = 0;
+        final var invocationArguments = new Object[numberOfInvocationParameters];
+        var       argumentIndex       = 0;
 
         if (leftHandValue.isPresent()) {
             invocationArguments[argumentIndex++] = leftHandValue.get();
@@ -259,7 +259,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
             invocationArguments[argumentIndex++] = variables;
 
         if (attributeMetadata.varArgsParameters) {
-            var varArgsParameter = new Val[argumentValues.length];
+            final var varArgsParameter = new Val[argumentValues.length];
             for (var i = 0; i < argumentValues.length; i++) {
                 varArgsParameter[i] = (Val) argumentValues[i];
             }
@@ -276,11 +276,11 @@ public final class AnnotationAttributeContext implements AttributeContext {
     private Flux<Object[]> attributeFinderArguments(AttributeFinderMetadata attributeMetadata, Val leftHandValue,
             Arguments arguments, Map<String, Val> variables) {
 
-        var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
+        final var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
         if (null == arguments) {
-            var invocationArguments = new Object[numberOfInvocationParameters];
-            var argumentIndex       = 0;
+            final var invocationArguments = new Object[numberOfInvocationParameters];
+            var       argumentIndex       = 0;
             invocationArguments[argumentIndex++] = leftHandValue;
             if (attributeMetadata.isAttributeWithVariableParameter())
                 invocationArguments[argumentIndex++] = variables;
@@ -289,7 +289,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
             return Flux.<Object[]>just(invocationArguments);
         }
 
-        var argumentFluxes = validatedArguments(attributeMetadata, arguments);
+        final var argumentFluxes = validatedArguments(attributeMetadata, arguments);
 
         return Flux.combineLatest(argumentFluxes, argumentCombiner(attributeMetadata, variables,
                 numberOfInvocationParameters, Optional.of(leftHandValue)));
@@ -345,7 +345,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     }
 
     private void loadPolicyInformationPoint(Object pip, Class<?> pipClass) throws InitializationException {
-        var pipAnnotation = pipClass.getAnnotation(PolicyInformationPoint.class);
+        final var pipAnnotation = pipClass.getAnnotation(PolicyInformationPoint.class);
 
         if (null == pipAnnotation)
             throw new InitializationException(NO_POLICY_INFORMATION_POINT_ANNOTATION_ERROR);
@@ -359,7 +359,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
                     String.format(A_PIP_WITH_THE_NAME_S_HAS_ALREADY_BEEN_REGISTERED_ERROR, pipName));
 
         attributeNamesByPipName.put(pipName, new HashSet<>());
-        var pipDocumentation = new PolicyInformationPointDocumentation(pipName, pipAnnotation.description());
+        final var pipDocumentation = new PolicyInformationPointDocumentation(pipName, pipAnnotation.description());
         pipDocumentation.setName(pipName);
         pipDocumentations.add(pipDocumentation);
 
@@ -367,13 +367,13 @@ public final class AnnotationAttributeContext implements AttributeContext {
         for (Method method : pipClass.getDeclaredMethods()) {
             if (method.isAnnotationPresent(Attribute.class)) {
                 foundAtLeastOneSuppliedAttributeInPip = true;
-                var annotation = method.getAnnotation(Attribute.class);
+                final var annotation = method.getAnnotation(Attribute.class);
                 importAttribute(pip, pipName, pipDocumentation, method, false, annotation.name(), annotation.schema(),
                         annotation.pathToSchema(), annotation.docs());
             }
             if (method.isAnnotationPresent(EnvironmentAttribute.class)) {
                 foundAtLeastOneSuppliedAttributeInPip = true;
-                var annotation = method.getAnnotation(EnvironmentAttribute.class);
+                final var annotation = method.getAnnotation(EnvironmentAttribute.class);
                 importAttribute(pip, pipName, pipDocumentation, method, true, annotation.name(), annotation.schema(),
                         annotation.pathToSchema(), annotation.docs());
             }
@@ -407,10 +407,10 @@ public final class AnnotationAttributeContext implements AttributeContext {
         if (!attributeSchema.isEmpty()) {
             processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(attributeSchema);
         }
-        var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName,
+        final var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName,
                 processedSchemaDefinition, documentation, isEnvironmentAttribute);
-        var name            = metadata.fullyQualifiedName();
-        var namedAttributes = attributeMetadataByAttributeName.computeIfAbsent(name, k -> new ArrayList<>());
+        final var name            = metadata.fullyQualifiedName();
+        final var namedAttributes = attributeMetadataByAttributeName.computeIfAbsent(name, k -> new ArrayList<>());
         assertNoNameCollision(namedAttributes, metadata);
         namedAttributes.add(metadata);
         attributeNamesByPipName.get(pipName).add(attributeName);
@@ -447,8 +447,8 @@ public final class AnnotationAttributeContext implements AttributeContext {
 
         assertValidReturnType(method);
 
-        var parameterCount           = method.getParameterCount();
-        var parameterUnderInspection = 0;
+        final var parameterCount           = method.getParameterCount();
+        var       parameterUnderInspection = 0;
 
         if (!isEnvironmentAttribute) {
             assertFirstParameterIsVal(method);
@@ -494,12 +494,12 @@ public final class AnnotationAttributeContext implements AttributeContext {
     }
 
     private void assertValidReturnType(Method method) throws InitializationException {
-        var returnType        = method.getReturnType();
-        var genericReturnType = method.getGenericReturnType();
+        final var returnType        = method.getReturnType();
+        final var genericReturnType = method.getGenericReturnType();
         if (!(genericReturnType instanceof ParameterizedType))
             throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES_ERROR, returnType.getName());
 
-        var returnTypeArgument = (Class<?>) ((ParameterizedType) genericReturnType).getActualTypeArguments()[0];
+        final var returnTypeArgument = (Class<?>) ((ParameterizedType) genericReturnType).getActualTypeArguments()[0];
         if (!Flux.class.isAssignableFrom(returnType) || !Val.class.isAssignableFrom(returnTypeArgument)) {
             throw new InitializationException(RETURN_TYPE_MUST_BE_FLUX_OF_VALUES_ERROR,
                     returnType.getName() + '<' + returnTypeArgument.getName() + '>');
@@ -511,7 +511,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     }
 
     private boolean parameterTypeIsArrayOfVal(Method method, int indexOfParameter) {
-        var parameterType = method.getParameterTypes()[indexOfParameter];
+        final var parameterType = method.getParameterTypes()[indexOfParameter];
         if (!parameterType.isArray())
             return false;
         return isVal(parameterType.getComponentType());
@@ -522,13 +522,13 @@ public final class AnnotationAttributeContext implements AttributeContext {
     }
 
     private boolean parameterTypeIsVariableMap(Method method, int indexOfParameter) {
-        var parameterTypes = method.getParameterTypes();
-        var genericTypes   = method.getGenericParameterTypes();
+        final var parameterTypes = method.getParameterTypes();
+        final var genericTypes   = method.getGenericParameterTypes();
         if (!Map.class.isAssignableFrom(parameterTypes[indexOfParameter]))
             return false;
-        var firstTypeArgument  = (Class<?>) ((ParameterizedType) genericTypes[indexOfParameter])
+        final var firstTypeArgument  = (Class<?>) ((ParameterizedType) genericTypes[indexOfParameter])
                 .getActualTypeArguments()[0];
-        var secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[indexOfParameter])
+        final var secondTypeArgument = (Class<?>) ((ParameterizedType) genericTypes[indexOfParameter])
                 .getActualTypeArguments()[1];
         return String.class.isAssignableFrom(firstTypeArgument) && Val.class.isAssignableFrom(secondTypeArgument);
     }
@@ -560,7 +560,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     @Override
     public List<String> getEnvironmentAttributeCodeTemplates() {
         if (templatesCacheEnvironment == null) {
-            var templates = new LinkedList<String>();
+            final var templates = new LinkedList<String>();
             for (var entry : attributeMetadataByAttributeName.entrySet())
                 for (var attribute : entry.getValue())
                     if (attribute.environmentAttribute) {
@@ -576,7 +576,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     @Override
     public List<String> getAttributeCodeTemplates() {
         if (templatesCache == null) {
-            var templates = new LinkedList<String>();
+            final var templates = new LinkedList<String>();
             for (var entry : attributeMetadataByAttributeName.entrySet())
                 for (var attribute : entry.getValue())
                     if (!attribute.environmentAttribute) {
@@ -590,7 +590,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
 
     @Override
     public Map<String, JsonNode> getAttributeSchemas() {
-        var schemas = new HashMap<String, JsonNode>();
+        final var schemas = new HashMap<String, JsonNode>();
         for (var entry : attributeMetadataByAttributeName.entrySet()) {
             for (var attribute : entry.getValue()) {
                 if (!attribute.environmentAttribute) {
@@ -604,7 +604,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     @Override
     public Collection<String> getAllFullyQualifiedFunctions() {
         if (functionsCache == null) {
-            var templates = new LinkedList<String>();
+            final var templates = new LinkedList<String>();
             for (var entry : attributeMetadataByAttributeName.entrySet())
                 for (var attribute : entry.getValue())
                     templates.add(attribute.fullyQualifiedName());
@@ -616,11 +616,11 @@ public final class AnnotationAttributeContext implements AttributeContext {
 
     @Override
     public Map<String, String> getDocumentedAttributeCodeTemplates() {
-        var documentedAttributeCodeTemplates = new HashMap<String, String>();
+        final var documentedAttributeCodeTemplates = new HashMap<String, String>();
 
         for (var entry : attributeMetadataByAttributeName.entrySet()) {
             for (var attribute : entry.getValue()) {
-                var attributeCodeTemplate = attribute.getDocumentationCodeTemplate();
+                final var attributeCodeTemplate = attribute.getDocumentationCodeTemplate();
                 for (var doc : pipDocumentations) {
                     documentedAttributeCodeTemplates.putIfAbsent(doc.name, doc.description);
                     Optional.ofNullable(doc.getDocumentation().get(attributeCodeTemplate)).ifPresent(

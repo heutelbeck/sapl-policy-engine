@@ -65,18 +65,18 @@ class ImmutableFileIndexTests {
     @ParameterizedTest
     @MethodSource("provideFileSystem")
     void whe_startingWithEmptyDirectory_thenNoUpdates(FileSystem fileSystem) throws Exception {
-        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        final var policiesFolder = fileSystem.getPath(POLICIES_PATH);
         Files.createDirectory(policiesFolder);
-        var index = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        final var index = new ImmutableFileIndex(policiesFolder, INTERPRETER);
         assertThat(index.getUpdateEvent().getUpdates(), is(arrayWithSize(0)));
     }
 
     @ParameterizedTest
     @MethodSource("provideFileSystem")
     void whe_startingNonExistingDirectory_thenNoUpdates(FileSystem fileSystem) {
-        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
-        var sut            = new ImmutableFileIndex(policiesFolder, INTERPRETER);
-        var actualUpdates  = sut.getUpdateEvent().getUpdates();
+        final var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        final var sut            = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        final var actualUpdates  = sut.getUpdateEvent().getUpdates();
         assertThat(actualUpdates, is(arrayWithSize(1)));
         assertThat(actualUpdates,
                 arrayContainingInAnyOrder(pojo(Update.class).withProperty("type", is(Type.INCONSISTENT))));
@@ -86,11 +86,11 @@ class ImmutableFileIndexTests {
     @MethodSource("provideFileSystem")
     void when_initializingWithDirectoryThatContainsUnreadableFile_then_updatesContainOnlyInconsistent(
             FileSystem fileSystem) throws Exception {
-        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        final var policiesFolder = fileSystem.getPath(POLICIES_PATH);
         Files.createDirectory(policiesFolder);
         writeFile(fileSystem, "badpolicy.sapl", "p oli cy bad");
-        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
-        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        final var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        final var actualUpdates = sut.getUpdateEvent().getUpdates();
         assertThat(actualUpdates, is(arrayWithSize(1)));
         assertThat(actualUpdates,
                 arrayContainingInAnyOrder(pojo(Update.class).withProperty("type", is(Type.INCONSISTENT))));
@@ -100,19 +100,20 @@ class ImmutableFileIndexTests {
     @MethodSource("provideFileSystem")
     void when_initializingWithTwoFilesInDirectory_and_update_then_updatePublish(FileSystem fileSystem)
             throws Exception {
-        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        final var policiesFolder = fileSystem.getPath(POLICIES_PATH);
         Files.createDirectory(policiesFolder);
         writeFile(fileSystem, "policy1.sapl", POLICY_1);
         writeFile(fileSystem, "policy2.sapl", POLICY_2);
-        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
-        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        final var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        final var actualUpdates = sut.getUpdateEvent().getUpdates();
         assertThat(actualUpdates, is(arrayWithSize(2)));
         assertThat(actualUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"),
                 isUpdateWithName(Type.PUBLISH, "policy2")));
 
-        var event      = new FileChangedEvent(writeFile(fileSystem, "policy2.sapl", "policy \"p2 update\" permit"));
-        var updatedSut = sut.afterFileEvent(event);
-        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        final var event      = new FileChangedEvent(
+                writeFile(fileSystem, "policy2.sapl", "policy \"p2 update\" permit"));
+        final var updatedSut = sut.afterFileEvent(event);
+        final var newUpdates = updatedSut.getUpdateEvent().getUpdates();
         assertThat(newUpdates, is(arrayWithSize(2)));
         assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.WITHDRAW, "policy2"),
                 isUpdateWithName(Type.PUBLISH, "p2 update")));
@@ -121,19 +122,19 @@ class ImmutableFileIndexTests {
     @ParameterizedTest
     @MethodSource("provideFileSystem")
     void when_initializingWithTwoFilesInDirectory_and_addOne_then_Publish(FileSystem fileSystem) throws Exception {
-        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        final var policiesFolder = fileSystem.getPath(POLICIES_PATH);
         Files.createDirectory(policiesFolder);
         writeFile(fileSystem, "policy1.sapl", POLICY_1);
         writeFile(fileSystem, "policy2.sapl", POLICY_2);
-        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
-        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        final var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        final var actualUpdates = sut.getUpdateEvent().getUpdates();
         assertThat(actualUpdates, is(arrayWithSize(2)));
         assertThat(actualUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"),
                 isUpdateWithName(Type.PUBLISH, "policy2")));
 
-        var event      = new FileCreatedEvent(writeFile(fileSystem, "policy3.sapl", "policy \"p3\" permit"));
-        var updatedSut = sut.afterFileEvent(event);
-        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        final var event      = new FileCreatedEvent(writeFile(fileSystem, "policy3.sapl", "policy \"p3\" permit"));
+        final var updatedSut = sut.afterFileEvent(event);
+        final var newUpdates = updatedSut.getUpdateEvent().getUpdates();
         assertThat(newUpdates, is(arrayWithSize(1)));
         assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "p3")));
     }
@@ -142,19 +143,19 @@ class ImmutableFileIndexTests {
     @MethodSource("provideFileSystem")
     void when_initializingWithTwoFilesInDirectory_and_addOneWithCollision_then_Inconsistenz(FileSystem fileSystem)
             throws Exception {
-        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        final var policiesFolder = fileSystem.getPath(POLICIES_PATH);
         Files.createDirectory(policiesFolder);
         writeFile(fileSystem, "policy1.sapl", POLICY_1);
         writeFile(fileSystem, "policy2.sapl", POLICY_2);
-        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
-        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        final var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        final var actualUpdates = sut.getUpdateEvent().getUpdates();
         assertThat(actualUpdates, is(arrayWithSize(2)));
         assertThat(actualUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"),
                 isUpdateWithName(Type.PUBLISH, "policy2")));
 
-        var event      = new FileCreatedEvent(writeFile(fileSystem, "policy3.sapl", "policy \"policy1\" permit"));
-        var updatedSut = sut.afterFileEvent(event);
-        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        final var event      = new FileCreatedEvent(writeFile(fileSystem, "policy3.sapl", "policy \"policy1\" permit"));
+        final var updatedSut = sut.afterFileEvent(event);
+        final var newUpdates = updatedSut.getUpdateEvent().getUpdates();
         assertThat(newUpdates, is(arrayWithSize(1)));
         assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateType(Type.INCONSISTENT)));
     }
@@ -163,19 +164,19 @@ class ImmutableFileIndexTests {
     @MethodSource("provideFileSystem")
     void when_initializingWithNameCollision_and_deleteSecond_then_updateConsistent(FileSystem fileSystem)
             throws Exception {
-        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        final var policiesFolder = fileSystem.getPath(POLICIES_PATH);
         Files.createDirectory(policiesFolder);
         writeFile(fileSystem, "policy1.sapl", POLICY_1);
         writeFile(fileSystem, "policy2.sapl", POLICY_1);
-        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
-        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        final var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        final var actualUpdates = sut.getUpdateEvent().getUpdates();
         assertThat(actualUpdates, is(arrayWithSize(2)));
         assertThat(actualUpdates,
                 arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"), isUpdateType(Type.INCONSISTENT)));
 
-        var event      = new FileDeletedEvent(deleteFile(fileSystem, "policy2.sapl"));
-        var updatedSut = sut.afterFileEvent(event);
-        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        final var event      = new FileDeletedEvent(deleteFile(fileSystem, "policy2.sapl"));
+        final var updatedSut = sut.afterFileEvent(event);
+        final var newUpdates = updatedSut.getUpdateEvent().getUpdates();
         assertThat(newUpdates, is(arrayWithSize(1)));
         assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateType(Type.CONSISTENT)));
     }
@@ -184,19 +185,19 @@ class ImmutableFileIndexTests {
     @MethodSource("provideFileSystem")
     void when_initializingWithNameCollision_and_deleteFirst_then_updateConsistent(FileSystem fileSystem)
             throws Exception {
-        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        final var policiesFolder = fileSystem.getPath(POLICIES_PATH);
         Files.createDirectory(policiesFolder);
         writeFile(fileSystem, "policy1.sapl", POLICY_1);
         writeFile(fileSystem, "policy2.sapl", POLICY_1);
-        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
-        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        final var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        final var actualUpdates = sut.getUpdateEvent().getUpdates();
         assertThat(actualUpdates, is(arrayWithSize(2)));
         assertThat(actualUpdates,
                 arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"), isUpdateType(Type.INCONSISTENT)));
 
-        var event      = new FileDeletedEvent(deleteFile(fileSystem, "policy1.sapl"));
-        var updatedSut = sut.afterFileEvent(event);
-        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        final var event      = new FileDeletedEvent(deleteFile(fileSystem, "policy1.sapl"));
+        final var updatedSut = sut.afterFileEvent(event);
+        final var newUpdates = updatedSut.getUpdateEvent().getUpdates();
         assertThat(newUpdates, is(arrayWithSize(3)));
         assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"),
                 isUpdateWithName(Type.WITHDRAW, "policy1"), isUpdateType(Type.CONSISTENT)));
@@ -206,38 +207,38 @@ class ImmutableFileIndexTests {
     @MethodSource("provideFileSystem")
     void when_initializingWithTwoDocs_and_deleteSomethingIrrelevant_then_updateConsistent(FileSystem fileSystem)
             throws Exception {
-        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        final var policiesFolder = fileSystem.getPath(POLICIES_PATH);
         Files.createDirectory(policiesFolder);
         writeFile(fileSystem, "policy1.sapl", POLICY_1);
         writeFile(fileSystem, "policy2.sapl", POLICY_2);
-        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
-        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        final var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        final var actualUpdates = sut.getUpdateEvent().getUpdates();
         assertThat(actualUpdates, is(arrayWithSize(2)));
         assertThat(actualUpdates, arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"),
                 isUpdateWithName(Type.PUBLISH, "policy2")));
 
-        var event      = new FileDeletedEvent(fileSystem.getPath("not_there.sapl"));
-        var updatedSut = sut.afterFileEvent(event);
-        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        final var event      = new FileDeletedEvent(fileSystem.getPath("not_there.sapl"));
+        final var updatedSut = sut.afterFileEvent(event);
+        final var newUpdates = updatedSut.getUpdateEvent().getUpdates();
         assertThat(newUpdates, is(arrayWithSize(0)));
     }
 
     @ParameterizedTest
     @MethodSource("provideFileSystem")
     void when_initializingWithBadDocument_and_deleteIt_then_updateConsistent(FileSystem fileSystem) throws Exception {
-        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        final var policiesFolder = fileSystem.getPath(POLICIES_PATH);
         Files.createDirectory(policiesFolder);
         writeFile(fileSystem, "policy1.sapl", POLICY_1);
         writeFile(fileSystem, "policy2.sapl", "broken");
-        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
-        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        final var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        final var actualUpdates = sut.getUpdateEvent().getUpdates();
         assertThat(actualUpdates, is(arrayWithSize(2)));
         assertThat(actualUpdates,
                 arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"), isUpdateType(Type.INCONSISTENT)));
 
-        var event      = new FileDeletedEvent(deleteFile(fileSystem, "policy2.sapl"));
-        var updatedSut = sut.afterFileEvent(event);
-        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        final var event      = new FileDeletedEvent(deleteFile(fileSystem, "policy2.sapl"));
+        final var updatedSut = sut.afterFileEvent(event);
+        final var newUpdates = updatedSut.getUpdateEvent().getUpdates();
         assertThat(newUpdates, is(arrayWithSize(1)));
         assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateType(Type.CONSISTENT)));
     }
@@ -246,18 +247,18 @@ class ImmutableFileIndexTests {
     @MethodSource("provideFileSystem")
     void when_initializingWithNameCollision_and_updateOne_then_updateConsistent(FileSystem fileSystem)
             throws Exception {
-        var policiesFolder = fileSystem.getPath(POLICIES_PATH);
+        final var policiesFolder = fileSystem.getPath(POLICIES_PATH);
         Files.createDirectory(policiesFolder);
         writeFile(fileSystem, "policy1.sapl", POLICY_1);
         writeFile(fileSystem, "policy2.sapl", POLICY_1);
-        var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
-        var actualUpdates = sut.getUpdateEvent().getUpdates();
+        final var sut           = new ImmutableFileIndex(policiesFolder, INTERPRETER);
+        final var actualUpdates = sut.getUpdateEvent().getUpdates();
         assertThat(actualUpdates, is(arrayWithSize(2)));
         assertThat(actualUpdates,
                 arrayContainingInAnyOrder(isUpdateWithName(Type.PUBLISH, "policy1"), isUpdateType(Type.INCONSISTENT)));
-        var event      = new FileDeletedEvent(writeFile(fileSystem, "policy2.sapl", POLICY_2));
-        var updatedSut = sut.afterFileEvent(event);
-        var newUpdates = updatedSut.getUpdateEvent().getUpdates();
+        final var event      = new FileDeletedEvent(writeFile(fileSystem, "policy2.sapl", POLICY_2));
+        final var updatedSut = sut.afterFileEvent(event);
+        final var newUpdates = updatedSut.getUpdateEvent().getUpdates();
         assertThat(newUpdates, is(arrayWithSize(1)));
         assertThat(newUpdates, arrayContainingInAnyOrder(isUpdateType(Type.CONSISTENT)));
     }
@@ -296,7 +297,7 @@ class ImmutableFileIndexTests {
 
     @SneakyThrows
     private Path deleteFile(FileSystem fileSystem, String fileName) {
-        var path = fileSystem.getPath(POLICIES_PATH, fileName);
+        final var path = fileSystem.getPath(POLICIES_PATH, fileName);
         Files.delete(path);
         return path;
     }

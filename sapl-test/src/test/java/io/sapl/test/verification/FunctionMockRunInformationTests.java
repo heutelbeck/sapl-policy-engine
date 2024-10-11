@@ -28,8 +28,8 @@ class FunctionMockRunInformationTests {
 
     @Test
     void test_initialization() {
-        var fullName = "foo";
-        var mock     = new MockRunInformation(fullName);
+        final var fullName = "foo";
+        final var mock     = new MockRunInformation(fullName);
 
         assertThat(mock.getFullName()).isEqualTo(fullName);
         assertThat(mock.getTimesCalled()).isZero();
@@ -38,9 +38,9 @@ class FunctionMockRunInformationTests {
 
     @Test
     void test_increase() {
-        var fullName = "foo";
-        var call     = new MockCall(Val.of("foo"));
-        var mock     = new MockRunInformation(fullName);
+        final var fullName = "foo";
+        final var call     = new MockCall(Val.of("foo"));
+        final var mock     = new MockRunInformation(fullName);
 
         mock.saveCall(call);
 

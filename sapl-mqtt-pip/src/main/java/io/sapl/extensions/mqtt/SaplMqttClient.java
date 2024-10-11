@@ -148,12 +148,12 @@ public class SaplMqttClient {
         try {
             JsonNode pipMqttClientConfig = null;
             if (variables != null) {
-                var pipMqttClientConfigVal = variables.get(ENVIRONMENT_MQTT_PIP_CONFIG);
+                final var pipMqttClientConfigVal = variables.get(ENVIRONMENT_MQTT_PIP_CONFIG);
                 if (pipMqttClientConfigVal != null) {
                     pipMqttClientConfig = pipMqttClientConfigVal.isDefined() ? pipMqttClientConfigVal.get() : null;
                 }
             }
-            var messageFlux = buildMqttMessageFlux(topic, qos, mqttPipConfig, pipMqttClientConfig);
+            final var messageFlux = buildMqttMessageFlux(topic, qos, mqttPipConfig, pipMqttClientConfig);
             return addDefaultValueToMessageFlux(pipMqttClientConfig, mqttPipConfig, messageFlux)
                     .onErrorResume(error -> {
                         log.debug("An error occurred on the sapl mqtt message flux: {}", error.getMessage());
@@ -168,7 +168,7 @@ public class SaplMqttClient {
     private Flux<Val> buildMqttMessageFlux(Val topic, Val qos, Val mqttPipConfig, JsonNode pipMqttClientConfig) {
         Sinks.Many<Val> emitterUndefined = Sinks.many().multicast().directAllOrNothing();
 
-        var mqttMessageFlux = buildFluxOfConfigParams(qos, mqttPipConfig, pipMqttClientConfig)
+        final var mqttMessageFlux = buildFluxOfConfigParams(qos, mqttPipConfig, pipMqttClientConfig)
                 .map(params -> getConnectionAndSubscription(topic, pipMqttClientConfig, params))
                 .switchMap(this::connectAndSubscribe).map(this::getValFromMqttPublishMessage).share()
                 .retryWhen(getRetrySpec(pipMqttClientConfig).doBeforeRetry(
@@ -179,7 +179,7 @@ public class SaplMqttClient {
 
     private Flux<Val> addDefaultValueToMessageFlux(JsonNode pipMqttClientConfig, Val mqttPipConfig,
             Flux<Val> messageFlux) {
-        var messageFluxUuid = UUID.randomUUID();
+        final var messageFluxUuid = UUID.randomUUID();
         return Flux
                 .merge(messageFlux, Mono.just(mqttPipConfig)
                         .map(pipConfigParams -> determineDefaultResponse(messageFluxUuid, pipMqttClientConfig,
@@ -192,14 +192,14 @@ public class SaplMqttClient {
     }
 
     private Val determineDefaultResponse(UUID messageFluxUuid, JsonNode pipMqttClientConfig, Val pipConfigParams) {
-        var defaultResponseConfig = getDefaultResponseConfig(pipMqttClientConfig, pipConfigParams);
+        final var defaultResponseConfig = getDefaultResponseConfig(pipMqttClientConfig, pipConfigParams);
         DEFAULT_RESPONSE_CONFIG_CACHE.put(messageFluxUuid, defaultResponseConfig);
         return getDefaultVal(defaultResponseConfig);
     }
 
     private Val getValFromMqttPublishMessage(Mqtt5Publish publishMessage) {
-        var payloadFormatIndicator = getPayloadFormatIndicator(publishMessage);
-        var contentType            = getContentType(publishMessage);
+        final var payloadFormatIndicator = getPayloadFormatIndicator(publishMessage);
+        final var contentType            = getContentType(publishMessage);
 
         if (publishMessage.getPayloadFormatIndicator().isEmpty() && // no indicator in mqtt versions less than 5
                 isValidUtf8String(publishMessage.getPayloadAsBytes())) {
@@ -220,19 +220,20 @@ public class SaplMqttClient {
         if (qos == null) { // if qos is not specified in attribute finder
             qos = Val.of(getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_QOS, DEFAULT_QOS));
         }
-        var mqttBrokerConfig = getMqttBrokerConfig(pipMqttClientConfig, mqttPipConfig); // broker config from
-                                                                                        // attribute finder or
-                                                                                        // pdp.json
+        final var mqttBrokerConfig = getMqttBrokerConfig(pipMqttClientConfig, mqttPipConfig); // broker config from
+        // attribute finder or
+        // pdp.json
         return Flux.just(Tuples.of(qos, Val.of(mqttBrokerConfig)));
     }
 
     private Tuple4<Mqtt5ReactorClient, Mono<Mqtt5ConnAck>, Flux<Mqtt5Publish>, Integer> getConnectionAndSubscription(
             Val topic, JsonNode pipMqttClientConfig, Tuple2<Val, Val> params) {
-        var mqttBrokerConfig = params.getT2().getObjectNode();
-        var brokerConfigHash = mqttBrokerConfig.hashCode();
-        var clientValues     = getOrBuildMqttClientValues(mqttBrokerConfig, brokerConfigHash, pipMqttClientConfig);
-        var qos              = params.getT1();
-        var mqttSubscription = buildMqttSubscription(brokerConfigHash, topic, qos);
+        final var mqttBrokerConfig = params.getT2().getObjectNode();
+        final var brokerConfigHash = mqttBrokerConfig.hashCode();
+        final var clientValues     = getOrBuildMqttClientValues(mqttBrokerConfig, brokerConfigHash,
+                pipMqttClientConfig);
+        final var qos              = params.getT1();
+        final var mqttSubscription = buildMqttSubscription(brokerConfigHash, topic, qos);
 
         return Tuples.of(clientValues.getMqttReactorClient(), clientValues.getClientConnection(), mqttSubscription,
                 brokerConfigHash);
@@ -240,17 +241,17 @@ public class SaplMqttClient {
 
     private Flux<Mqtt5Publish> connectAndSubscribe(
             Tuple4<Mqtt5ReactorClient, Mono<Mqtt5ConnAck>, Flux<Mqtt5Publish>, Integer> buildParams) {
-        var clientConnection = buildParams.getT2();
-        var mqttSubscription = buildParams.getT3();
-        var brokerConfigHash = buildParams.getT4();
+        final var clientConnection = buildParams.getT2();
+        final var mqttSubscription = buildParams.getT3();
+        final var brokerConfigHash = buildParams.getT4();
         return clientConnection.thenMany(mqttSubscription).doOnError(ErrorUtility::isErrorRelevantToRemoveClientCache,
                 throwable -> MQTT_CLIENT_CACHE.remove(brokerConfigHash));
     }
 
     private Flux<Mqtt5Publish> buildMqttSubscription(int brokerConfigHash, Val topic, Val qos) {
-        var topicSubscription = buildTopicSubscription(topic, qos);
-        var mqttClientValues  = Objects.requireNonNull(MQTT_CLIENT_CACHE.get(brokerConfigHash));
-        var mqttClientReactor = mqttClientValues.getMqttReactorClient();
+        final var topicSubscription = buildTopicSubscription(topic, qos);
+        final var mqttClientValues  = Objects.requireNonNull(MQTT_CLIENT_CACHE.get(brokerConfigHash));
+        final var mqttClientReactor = mqttClientValues.getMqttReactorClient();
         return mqttClientReactor
                 // FluxWithSingle is a combination of the single 'subscription acknowledgement'
                 // message
@@ -280,11 +281,11 @@ public class SaplMqttClient {
 
     private MqttClientValues buildClientValues(ObjectNode mqttBrokerConfig, int brokerConfigHash,
             JsonNode pipMqttClientConfig) {
-        var clientId             = getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_CLIENT_ID,
+        final var clientId             = getConfigValueOrDefault(mqttBrokerConfig, ENVIRONMENT_CLIENT_ID,
                 getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_CLIENT_ID, DEFAULT_CLIENT_ID));
-        var mqttClientReactor    = buildMqttReactorClient(mqttBrokerConfig, pipMqttClientConfig);
-        var mqttClientConnection = buildClientConnection(mqttClientReactor).share();
-        var clientValues         = new MqttClientValues(clientId, mqttClientReactor, mqttBrokerConfig,
+        final var mqttClientReactor    = buildMqttReactorClient(mqttBrokerConfig, pipMqttClientConfig);
+        final var mqttClientConnection = buildClientConnection(mqttClientReactor).share();
+        final var clientValues         = new MqttClientValues(clientId, mqttClientReactor, mqttBrokerConfig,
                 mqttClientConnection);
         MQTT_CLIENT_CACHE.put(brokerConfigHash, clientValues);
         return clientValues;
@@ -327,24 +328,24 @@ public class SaplMqttClient {
 
     private void handleMessageFluxCancel(int brokerConfigHash, Val topic) {
         unsubscribeTopics(brokerConfigHash, topic);
-        var mqttClientValuesDisconnect = MQTT_CLIENT_CACHE.get(brokerConfigHash);
+        final var mqttClientValuesDisconnect = MQTT_CLIENT_CACHE.get(brokerConfigHash);
         if (mqttClientValuesDisconnect != null && mqttClientValuesDisconnect.isTopicSubscriptionsCountMapEmpty()) {
             disconnectClient(brokerConfigHash, mqttClientValuesDisconnect);
         }
     }
 
     private void unsubscribeTopics(int brokerConfigHash, Val topics) {
-        var mqttClientValues = MQTT_CLIENT_CACHE.get(brokerConfigHash);
+        final var mqttClientValues = MQTT_CLIENT_CACHE.get(brokerConfigHash);
         if (mqttClientValues != null) {
-            var mqttTopicFilters   = getMqttTopicFiltersToUnsubscribeAndReduceCount(topics, mqttClientValues);
-            var unsubscribeMessage = Mqtt5Unsubscribe.builder().addTopicFilters(mqttTopicFilters).build();
+            final var mqttTopicFilters   = getMqttTopicFiltersToUnsubscribeAndReduceCount(topics, mqttClientValues);
+            final var unsubscribeMessage = Mqtt5Unsubscribe.builder().addTopicFilters(mqttTopicFilters).build();
             unsubscribeWithMessage(mqttClientValues, unsubscribeMessage);
         }
     }
 
     private void disconnectClient(int brokerConfigHash, MqttClientValues mqttClientValues) {
         MQTT_CLIENT_CACHE.remove(brokerConfigHash);
-        var clientId = mqttClientValues.getClientId();
+        final var clientId = mqttClientValues.getClientId();
         mqttClientValues.getMqttReactorClient().disconnect()
                 .onErrorResume(MqttClientStateException.class, e -> Mono.empty()) // if client already disconnected
                 .doOnSuccess(success -> log.debug("Client '{}' disconnected successfully.", clientId)).subscribe();
@@ -355,15 +356,15 @@ public class SaplMqttClient {
         Collection<MqttTopicFilter> mqttTopicFilters = new LinkedList<>();
         if (topics.isArray()) {
             for (var topicNode : topics.getArrayNode()) {
-                var topic           = topicNode.asText();
-                var isTopicExisting = mqttClientValues.countTopicSubscriptionsCountMapDown(topic);
+                final var topic           = topicNode.asText();
+                final var isTopicExisting = mqttClientValues.countTopicSubscriptionsCountMapDown(topic);
                 if (!isTopicExisting) {
                     mqttTopicFilters.add(MqttTopicFilter.of(topic));
                 }
             }
         } else {
-            var topic           = topics.getText();
-            var isTopicExisting = mqttClientValues.countTopicSubscriptionsCountMapDown(topic);
+            final var topic           = topics.getText();
+            final var isTopicExisting = mqttClientValues.countTopicSubscriptionsCountMapDown(topic);
             if (!isTopicExisting) {
                 mqttTopicFilters.add(MqttTopicFilter.of(topic));
             }

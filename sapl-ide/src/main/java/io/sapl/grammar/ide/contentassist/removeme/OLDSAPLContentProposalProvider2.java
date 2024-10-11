@@ -41,10 +41,10 @@ import com.google.common.base.Splitter;
 
 import io.sapl.grammar.ide.contentassist.NewLibraryProposalsGenerator;
 import io.sapl.grammar.ide.contentassist.NewLibraryProposalsGenerator.DocumentedProposal;
-import io.sapl.grammar.ide.contentassist.removeme.LibraryProposalsGenerator.Proposal;
 import io.sapl.grammar.ide.contentassist.SpringContext;
 import io.sapl.grammar.ide.contentassist.TreeNavigationUtil;
 import io.sapl.grammar.ide.contentassist.VariablesProposalsGenerator;
+import io.sapl.grammar.ide.contentassist.removeme.LibraryProposalsGenerator.Proposal;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
@@ -212,7 +212,7 @@ public class OLDSAPLContentProposalProvider2 extends IdeContentProposalProvider 
 //            log.trace("RuleCall: '{}'", ruleCall);
 //            log.trace("CurNode : '{}'", context.getCurrentNode());
 //        log.trace("traverse to parents");
-//        var node = context.getCurrentNode();
+//        final var node = context.getCurrentNode();
 //        do {
 //            // log.trace("- N '{}'", node);
 //            log.trace("  S '{}'", node.getSemanticElement());

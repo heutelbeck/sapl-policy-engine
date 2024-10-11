@@ -40,7 +40,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                final var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -53,7 +53,7 @@ class AttributeProposalTests extends CompletionTests {
             String policy = """
                     policy "test" deny where
                     subject.<
-                    var bar = 2;""";
+                    final var bar = 2;""";
 
             String cursor = "subject.<";
             it.setModel(policy);
@@ -61,7 +61,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                final var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -81,7 +81,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                final var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertDoesNotContainProposals(unwanted, completionList);
             });
         });
@@ -94,7 +94,7 @@ class AttributeProposalTests extends CompletionTests {
             String policy = """
                     policy "test" deny where
                     subject.
-                    var bar = 1;""";
+                    final var bar = 1;""";
 
             String cursor = "subject.";
             it.setModel(policy);
@@ -102,7 +102,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                final var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertDoesNotContainProposals(unwanted, completionList);
             });
         });
@@ -114,7 +114,7 @@ class AttributeProposalTests extends CompletionTests {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
                     policy "test" deny where
-                    var foo = 1;
+                    final var foo = 1;
                     foo.<""";
 
             String cursor = "foo.<";
@@ -123,7 +123,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                final var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -135,9 +135,9 @@ class AttributeProposalTests extends CompletionTests {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
                     policy "test" deny where
-                    var foo = 1;
+                    final var foo = 1;
                     foo.<
-                    var bar = 2;""";
+                    final var bar = 2;""";
 
             String cursor = "foo.<";
             it.setModel(policy);
@@ -145,7 +145,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                final var expected = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -157,7 +157,7 @@ class AttributeProposalTests extends CompletionTests {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
                     policy "test" deny where
-                    var foo = 1;
+                    final var foo = 1;
                     subject.""";
 
             String cursor = "foo.";
@@ -166,7 +166,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                final var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertDoesNotContainProposals(unwanted, completionList);
             });
         });
@@ -178,9 +178,9 @@ class AttributeProposalTests extends CompletionTests {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
                     policy "test" deny where
-                    var foo = 1;
+                    final var foo = 1;
                     foo.
-                    var bar = 1;""";
+                    final var bar = 1;""";
 
             String cursor = "foo.";
             it.setModel(policy);
@@ -188,7 +188,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                final var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertDoesNotContainProposals(unwanted, completionList);
             });
         });
@@ -202,7 +202,7 @@ class AttributeProposalTests extends CompletionTests {
                     subject schema general_schema
                     policy "test" deny where
                     subject
-                    var foo = 1;""";
+                    final var foo = 1;""";
 
             String cursor = "subject";
             it.setModel(policy);
@@ -210,7 +210,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
+                final var unwanted = List.of("<temperature.now>.unit", "<temperature.mean(a1, a2)>.value");
                 assertDoesNotContainProposals(unwanted, completionList);
             });
         });
@@ -222,7 +222,7 @@ class AttributeProposalTests extends CompletionTests {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
                     policy "test" deny where
-                    var foo = <temperature.now()>;
+                    final var foo = <temperature.now()>;
                     fo""";
 
             String cursor = "fo";
@@ -231,7 +231,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo.unit");
+                final var expected = List.of("foo.unit");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -243,9 +243,9 @@ class AttributeProposalTests extends CompletionTests {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
                     policy "test" deny where
-                    var foo = <temperature.now()>;
+                    final var foo = <temperature.now()>;
                     fo
-                    var bar = 1;""";
+                    final var bar = 1;""";
 
             String cursor = "fo";
             it.setModel(policy);
@@ -253,7 +253,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo.unit");
+                final var expected = List.of("foo.unit");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -266,7 +266,7 @@ class AttributeProposalTests extends CompletionTests {
             String policy = """
                     import temperature.now
                     policy "test" deny where
-                    var foo = <now>;
+                    final var foo = <now>;
                     fo""";
 
             String cursor = "fo";
@@ -275,7 +275,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo.unit");
+                final var expected = List.of("foo.unit");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -288,7 +288,7 @@ class AttributeProposalTests extends CompletionTests {
             String policy = """
                     import temperature as abc
                     policy "test" deny where
-                    var foo = <ab""";
+                    final var foo = <ab""";
 
             String cursor = "var foo = <ab";
             it.setModel(policy);
@@ -296,7 +296,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("<abc.mean(a1, a2)>", "<abc.now>", "<abc.predicted(a2)>");
+                final var expected = List.of("<abc.mean(a1, a2)>", "<abc.now>", "<abc.predicted(a2)>");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -317,7 +317,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("<abc.mean(a1, a2)>", "<abc.now>", "<abc.predicted(a2)>");
+                final var expected = List.of("<abc.mean(a1, a2)>", "<abc.now>", "<abc.predicted(a2)>");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -338,7 +338,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("<abc.now>.unit", "<abc.now>.value");
+                final var expected = List.of("<abc.now>.unit", "<abc.now>.value");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -351,7 +351,7 @@ class AttributeProposalTests extends CompletionTests {
             String policy = """
                     import temperature as temp
                     policy "test" deny where
-                    var foo = <temp.now()>;
+                    final var foo = <temp.now()>;
                     fo""";
 
             String cursor = "fo";
@@ -360,7 +360,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo.unit");
+                final var expected = List.of("foo.unit");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -373,7 +373,7 @@ class AttributeProposalTests extends CompletionTests {
             String policy = """
                     import temperature.*
                     policy "test" deny where
-                    var foo = <now>;
+                    final var foo = <now>;
                     fo""";
 
             String cursor = "fo";
@@ -382,7 +382,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("foo.unit");
+                final var expected = List.of("foo.unit");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -394,7 +394,7 @@ class AttributeProposalTests extends CompletionTests {
         testCompletion((TestCompletionConfiguration it) -> {
             String policy = """
                     policy "test" deny where
-                    var foo = 1;
+                    final var foo = 1;
                     foo.<temperature""";
 
             String cursor = "foo.<temperature";
@@ -403,7 +403,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("<temperature.now>.unit");
+                final var expected = List.of("<temperature.now>.unit");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -423,7 +423,7 @@ class AttributeProposalTests extends CompletionTests {
             it.setColumn(cursor.length());
 
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("<temperature.now>.unit");
+                final var expected = List.of("<temperature.now>.unit");
                 assertProposalsSimple(expected, completionList);
             });
         });

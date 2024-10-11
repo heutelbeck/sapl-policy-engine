@@ -71,7 +71,7 @@ class TestFunctionContext implements FunctionContext {
     public Boolean isProvidedFunction(String function) {
         List<String> availableFunctions = new ArrayList<>();
         for (var lib : availableLibraries.entrySet()) {
-            var key = lib.getKey();
+            final var key = lib.getKey();
             for (var value : lib.getValue()) {
                 availableFunctions.add(key.concat(".").concat(value));
             }
@@ -134,7 +134,7 @@ class TestFunctionContext implements FunctionContext {
     @Override
     @SneakyThrows
     public Map<String, JsonNode> getFunctionSchemas() {
-        var schemas = new HashMap<String, JsonNode>();
+        final var schemas = new HashMap<String, JsonNode>();
         schemas.put("schemaTest.person", MAPPER.readValue(PERSON_SCHEMA, JsonNode.class));
         schemas.put("schemaTest.dog", MAPPER.readValue(DOG_SCHEMA, JsonNode.class));
         schemas.put("schemaTest.location", schemaFromResource("geographical_location_schema.json"));

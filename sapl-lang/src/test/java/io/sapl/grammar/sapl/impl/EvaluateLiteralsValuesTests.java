@@ -60,7 +60,7 @@ class EvaluateLiteralsValuesTests {
 
     @Test
     void evaluateObject() {
-        var json = "{ \"key1\" : null, \"key2\" : true }";
+        final var json = "{ \"key1\" : null, \"key2\" : true }";
         assertExpressionEvaluatesTo(json, json);
     }
 
@@ -71,7 +71,7 @@ class EvaluateLiteralsValuesTests {
 
     @Test
     void evaluateArray() {
-        var json = "[null,true,false]";
+        final var json = "[null,true,false]";
         assertExpressionEvaluatesTo(json, json);
     }
 

@@ -81,10 +81,10 @@ public class StandardFunctionLibrary {
 
     @Function(docs = CONCATENATE_DOC)
     public static Val concatenate(@Array Val... arrays) {
-        var newArray = Val.JSON.arrayNode();
+        final var newArray = Val.JSON.arrayNode();
         for (var array : arrays) {
-            var jsonArray        = array.getArrayNode();
-            var elementsIterator = jsonArray.elements();
+            final var jsonArray        = array.getArrayNode();
+            final var elementsIterator = jsonArray.elements();
             while (elementsIterator.hasNext()) {
                 newArray.add(elementsIterator.next().deepCopy());
             }
@@ -94,11 +94,11 @@ public class StandardFunctionLibrary {
 
     @Function(docs = DIFFERENCE_DOC)
     public static Val difference(@Array Val array1, @Array Val array2) {
-        var newArray         = Val.JSON.arrayNode();
-        var jsonArray        = array1.getArrayNode();
-        var elementsIterator = jsonArray.elements();
+        final var newArray         = Val.JSON.arrayNode();
+        final var jsonArray        = array1.getArrayNode();
+        final var elementsIterator = jsonArray.elements();
         while (elementsIterator.hasNext()) {
-            var nextElement = elementsIterator.next();
+            final var nextElement = elementsIterator.next();
             if (!contains(nextElement, array2.getArrayNode(), (a, b) -> a.equals(b))
                     && !contains(nextElement, newArray, (a, b) -> a.equals(b))) {
                 newArray.add(nextElement.deepCopy());
@@ -109,12 +109,12 @@ public class StandardFunctionLibrary {
 
     @Function(docs = UNION_DOC)
     public static Val union(@Array Val... arrays) {
-        var newArray = Val.JSON.arrayNode();
+        final var newArray = Val.JSON.arrayNode();
         for (var array : arrays) {
-            var jsonArray        = array.getArrayNode();
-            var elementsIterator = jsonArray.elements();
+            final var jsonArray        = array.getArrayNode();
+            final var elementsIterator = jsonArray.elements();
             while (elementsIterator.hasNext()) {
-                var nextElement = elementsIterator.next();
+                final var nextElement = elementsIterator.next();
                 if (!contains(nextElement, newArray, (a, b) -> a.equals(b))) {
                     newArray.add(nextElement.deepCopy());
                 }
@@ -125,11 +125,11 @@ public class StandardFunctionLibrary {
 
     @Function(docs = TO_SET_DOC)
     public static Val toSet(@Array Val array) {
-        var newArray         = Val.JSON.arrayNode();
-        var jsonArray        = array.getArrayNode();
-        var elementsIterator = jsonArray.elements();
+        final var newArray         = Val.JSON.arrayNode();
+        final var jsonArray        = array.getArrayNode();
+        final var elementsIterator = jsonArray.elements();
         while (elementsIterator.hasNext()) {
-            var nextElement = elementsIterator.next();
+            final var nextElement = elementsIterator.next();
             if (!contains(nextElement, newArray, (a, b) -> a.equals(b))) {
                 newArray.add(nextElement.deepCopy());
             }
@@ -155,11 +155,11 @@ public class StandardFunctionLibrary {
     }
 
     private static Val intersect(Val array1, Val array2, BiFunction<JsonNode, JsonNode, Boolean> equalityValidator) {
-        var newArray         = Val.JSON.arrayNode();
-        var jsonArray        = array1.getArrayNode();
-        var elementsIterator = jsonArray.elements();
+        final var newArray         = Val.JSON.arrayNode();
+        final var jsonArray        = array1.getArrayNode();
+        final var elementsIterator = jsonArray.elements();
         while (elementsIterator.hasNext()) {
-            var nextElement = elementsIterator.next();
+            final var nextElement = elementsIterator.next();
             if (contains(nextElement, array2.getArrayNode(), equalityValidator)) {
                 newArray.add(nextElement.deepCopy());
             }
@@ -169,9 +169,9 @@ public class StandardFunctionLibrary {
 
     private static boolean contains(JsonNode element, ArrayNode array,
             BiFunction<JsonNode, JsonNode, Boolean> equalityValidator) {
-        var elementsIterator = array.elements();
+        final var elementsIterator = array.elements();
         while (elementsIterator.hasNext()) {
-            var nextElement = elementsIterator.next();
+            final var nextElement = elementsIterator.next();
             if (equalityValidator.apply(element, nextElement)) {
                 return true;
             }

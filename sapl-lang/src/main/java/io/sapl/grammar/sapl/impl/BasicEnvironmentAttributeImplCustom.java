@@ -38,7 +38,7 @@ public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttribu
     @Override
     public Flux<Val> evaluate() {
         return Flux.deferContextual(ctxView -> {
-            var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdentifier(),
+            final var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdentifier(),
                     AuthorizationContext.getImports(ctxView));
 
             if (TargetExpressionUtil.isInTargetExpression(this))

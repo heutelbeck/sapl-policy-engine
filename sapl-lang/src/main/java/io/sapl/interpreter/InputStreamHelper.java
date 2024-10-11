@@ -91,14 +91,14 @@ public class InputStreamHelper {
 
         @Override
         public int read() throws IOException {
-            var b = source.read();
+            final var b = source.read();
             checkByte(b);
             return b;
         }
 
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
-            var numberOfBytesRead = source.read(b, off, len);
+            final var numberOfBytesRead = source.read(b, off, len);
             if (numberOfBytesRead == EOF) {
                 return EOF;
             }
@@ -136,11 +136,11 @@ public class InputStreamHelper {
                 if (buffer[currentIndex] != 0xE2)
                     return false;
 
-                var second = buffer[(currentIndex + 1) % BUFFER_SIZE];
+                final var second = buffer[(currentIndex + 1) % BUFFER_SIZE];
                 if (second != 0x81 && second != 0x80)
                     return false;
 
-                var third = buffer[(currentIndex + 2) % BUFFER_SIZE];
+                final var third = buffer[(currentIndex + 2) % BUFFER_SIZE];
                 return third == 0xA6 || third == 0xA7 || third == 0xA9 || third == 0xAE;
             }
         }

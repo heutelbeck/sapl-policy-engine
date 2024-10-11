@@ -62,7 +62,7 @@ public class HasObligation extends TypeSafeDiagnosingMatcher<AuthorizationDecisi
 
     @Override
     protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-        var obligations = decision.getObligations();
+        final var obligations = decision.getObligations();
         if (obligations.isEmpty()) {
             mismatchDescription.appendText("decision didn't contain any obligations");
             return false;

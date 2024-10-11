@@ -36,7 +36,7 @@ class PRPAutoConfigurationTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withBean(PrpUpdateEventSource.class, () -> {
-                var mock = mock(PrpUpdateEventSource.class);
+                final var mock = mock(PrpUpdateEventSource.class);
                 when(mock.getUpdates()).thenReturn(Flux.empty());
                 return mock;
             }).withBean(FunctionContext.class, () -> mock(FunctionContext.class))

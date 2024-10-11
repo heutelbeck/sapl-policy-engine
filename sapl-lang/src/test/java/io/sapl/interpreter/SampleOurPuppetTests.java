@@ -452,7 +452,7 @@ class SampleOurPuppetTests {
     void evaluateOurPuppetTestCase(String testCase, String description, String authorizationSubscription, String policy,String expectedResource) {
         assertThat(testCase, is(notNullValue()));
         assertThat(description, is(notNullValue()));
-        var expectedDecision = AuthorizationDecision.PERMIT
+        final var expectedDecision = AuthorizationDecision.PERMIT
                 .withResource(MAPPER.readValue(expectedResource, JsonNode.class));
         assertThat(INTERPRETER.evaluate(MAPPER.readValue(authorizationSubscription, AuthorizationSubscription.class),
                 policy, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(), equalTo(expectedDecision));

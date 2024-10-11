@@ -97,9 +97,9 @@ public class PDPFuzzer {
 
     public static void assertFuzzedSubscriptionReturns(PolicyDecisionPoint pdp, FuzzedDataProvider data,
                                                        AuthorizationDecision expectedAuthorizationDecision) {
-        var asciiString = data.consumeAsciiString(100);
-        var result = splitStringIntoThreeParts(asciiString);
-        var subscription = AuthorizationSubscription.of(result[0], result[1], result[2]);
+        final var asciiString = data.consumeAsciiString(100);
+        final var result = splitStringIntoThreeParts(asciiString);
+        final var subscription = AuthorizationSubscription.of(result[0], result[1], result[2]);
 
         StepVerifier.create(pdp.decide(subscription)).expectNext(expectedAuthorizationDecision).verifyComplete();
     }

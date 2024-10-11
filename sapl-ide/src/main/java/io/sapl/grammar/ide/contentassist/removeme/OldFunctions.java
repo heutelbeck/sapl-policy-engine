@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 public class OldFunctions {
 //    private Optional<String> generateCurrentExpressionString(ContentAssistContext context) {
 //        final var currentNode = context.getCurrentNode();
-//        var       startNode   = NodeModelUtils.findLeafNodeAtOffset(currentNode, currentNode.getOffset());
+//        final var       startNode   = NodeModelUtils.findLeafNodeAtOffset(currentNode, currentNode.getOffset());
 //
 //        if (null == startNode) {
 //            return Optional.empty();
@@ -63,7 +63,7 @@ public class OldFunctions {
 //
 //    private Optional<String> generateExtendedPrefixForAttributes(ContentAssistContext context) {
 //        final var currentNode = context.getCurrentNode();
-//        var       startNode   = NodeModelUtils.findLeafNodeAtOffset(currentNode, currentNode.getOffset());
+//        final var       startNode   = NodeModelUtils.findLeafNodeAtOffset(currentNode, currentNode.getOffset());
 //
 //        if (null == startNode) {
 //            return Optional.empty();
@@ -181,7 +181,7 @@ public class OldFunctions {
 //
 //    private INode rightOf(INode n) {
 //        INode leftNode = null;
-//        var   offset   = n.getOffset();
+//        final var   offset   = n.getOffset();
 //        do {
 //            offset++;
 //            leftNode = NodeModelUtils.findLeafNodeAtOffset(n.getRootNode(), offset);

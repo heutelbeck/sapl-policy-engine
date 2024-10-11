@@ -68,15 +68,15 @@ public class PublishedPoliciesView extends VerticalLayout {
     public PublishedPoliciesView(SaplDocumentService saplDocumentService) {
         this.saplDocumentService = saplDocumentService;
 
-        var editorConfig = new SaplEditorConfiguration();
+        final var editorConfig = new SaplEditorConfiguration();
         editorConfig.setDarkTheme(true);
         saplEditor = new SaplEditor(editorConfig);
-        var metadataLayout              = new HorizontalLayout(policyIdTextField, publishedVersionTextField);
-        var openEditPageForPolicyButton = new Button("Manage Policy");
+        final var metadataLayout              = new HorizontalLayout(policyIdTextField, publishedVersionTextField);
+        final var openEditPageForPolicyButton = new Button("Manage Policy");
 
         layoutForSelectedPublishedDocument.add(metadataLayout, openEditPageForPolicyButton, saplEditor);
         layoutForSelectedPublishedDocument.setSizeFull();
-        var mainLayout = new SplitLayout(grid, layoutForSelectedPublishedDocument);
+        final var mainLayout = new SplitLayout(grid, layoutForSelectedPublishedDocument);
         mainLayout.setSizeFull();
         add(mainLayout);
 

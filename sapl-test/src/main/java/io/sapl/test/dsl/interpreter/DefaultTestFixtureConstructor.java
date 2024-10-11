@@ -18,6 +18,11 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import java.lang.annotation.Annotation;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.interpreter.InitializationException;
@@ -30,10 +35,6 @@ import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
 import io.sapl.test.grammar.sapltest.PdpVariables;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
-import java.lang.annotation.Annotation;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 

@@ -96,8 +96,8 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
 
     @Override
     public UpdateEventDrivenPolicyRetrievalPoint apply(PrpUpdateEvent event) {
-        var newDocuments        = new HashMap<>(documents);
-        var newConsistencyState = consistent;
+        final var newDocuments        = new HashMap<>(documents);
+        var       newConsistencyState = consistent;
         for (var update : event.getUpdates()) {
             if (update.getType() == Type.CONSISTENT) {
                 newConsistencyState = true;
@@ -112,7 +112,7 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
 
     // only PUBLISH or WITHDRAW
     void applyUpdate(Map<String, Document> newDocuments, PrpUpdateEvent.Update update) {
-        var name = update.getDocument().sapl().getPolicyElement().getSaplName();
+        final var name = update.getDocument().sapl().getPolicyElement().getSaplName();
         if (update.getType() == Type.WITHDRAW) {
             newDocuments.remove(name);
         } else {
@@ -125,12 +125,12 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
     }
 
     private DisjunctiveFormula retainTarget(Document document) {
-        var                targetExpression = document.sapl().getImplicitTargetExpression();
+        final var          targetExpression = document.sapl().getImplicitTargetExpression();
         DisjunctiveFormula targetFormula;
         if (null == targetExpression) {
             targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
         } else {
-            var imports = ImportsUtil.fetchImports(document.sapl(), attributeCtx, functionCtx);
+            final var imports = ImportsUtil.fetchImports(document.sapl(), attributeCtx, functionCtx);
             targetFormula = TreeWalker.walk(targetExpression, imports);
         }
 

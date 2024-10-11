@@ -53,12 +53,12 @@ public class MqttFunctionLibrary {
      */
     @Function(name = "isMatchingAllTopics", docs = "Checks whether all the topics match the wildcard.")
     public Val isMatchingAllTopics(@Text Val wildcardTopic, @Text @Array Val topics) {
-        var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
+        final var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
 
         if (topics.isTextual()) {
             return isMatchingSingleTopic(mqttTopicFilter, topics);
         } else {
-            var topicsArray = topics.getArrayNode();
+            final var topicsArray = topics.getArrayNode();
             return isMatchingAllTopics(mqttTopicFilter, topicsArray);
         }
     }
@@ -73,12 +73,12 @@ public class MqttFunctionLibrary {
      */
     @Function(name = "isMatchingAtLeastOneTopic", docs = "Checks whether at least one topic matches the wildcard.")
     public Val isMatchingAtLeastOneTopic(@Text Val wildcardTopic, @Text @Array Val topics) {
-        var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
+        final var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
 
         if (topics.isTextual()) {
             return isMatchingSingleTopic(mqttTopicFilter, topics);
         } else {
-            var topicsArray = topics.getArrayNode();
+            final var topicsArray = topics.getArrayNode();
             return isMatchingAtLeastOneTopic(mqttTopicFilter, topicsArray);
         }
     }
@@ -87,7 +87,7 @@ public class MqttFunctionLibrary {
         if (MqttTopicFilter.of(topic.getText()).containsWildcards()) {
             throw new PolicyEvaluationException(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
         } else {
-            var mqttTopic = MqttTopic.of(topic.getText());
+            final var mqttTopic = MqttTopic.of(topic.getText());
             return Val.of(mqttTopicFilter.matches(mqttTopic));
         }
     }
@@ -98,7 +98,7 @@ public class MqttFunctionLibrary {
             if (MqttTopicFilter.of(topic.asText()).containsWildcards()) {
                 throw new PolicyEvaluationException(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
             }
-            var mqttTopic = MqttTopic.of(topic.asText());
+            final var mqttTopic = MqttTopic.of(topic.asText());
             if (!mqttTopicFilter.matches(mqttTopic)) {
                 isMatching = false;
             }
@@ -112,7 +112,7 @@ public class MqttFunctionLibrary {
             if (MqttTopicFilter.of(topic.asText()).containsWildcards()) {
                 throw new PolicyEvaluationException(TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE);
             }
-            var mqttTopic = MqttTopic.of(topic.asText());
+            final var mqttTopic = MqttTopic.of(topic.asText());
             if (mqttTopicFilter.matches(mqttTopic)) {
                 isMatching = true;
             }

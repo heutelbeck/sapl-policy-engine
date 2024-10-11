@@ -48,7 +48,7 @@ public class PolicyRetrievalResult {
     }
 
     public PolicyRetrievalResult withMatch(DocumentMatch match) {
-        var targetExpressionResult = match.targetExpressionResult();
+        final var targetExpressionResult = match.targetExpressionResult();
         if (targetExpressionResult.isError()) {
             retrievalWithErrors = true;
             nonMatchingDocuments.add(match);
@@ -63,14 +63,14 @@ public class PolicyRetrievalResult {
     }
 
     public static PolicyRetrievalResult invalidPrpResult() {
-        var result = new PolicyRetrievalResult();
+        final var result = new PolicyRetrievalResult();
         result.prpInconsistent     = true;
         result.retrievalWithErrors = false;
         return result;
     }
 
     public static PolicyRetrievalResult retrievalErrorResult(String errorMessage) {
-        var result = new PolicyRetrievalResult();
+        final var result = new PolicyRetrievalResult();
         result.errorMessage        = errorMessage;
         result.prpInconsistent     = false;
         result.retrievalWithErrors = true;
@@ -86,7 +86,7 @@ public class PolicyRetrievalResult {
     }
 
     public List<Val> getErrors() {
-        var errors = new ArrayList<Val>();
+        final var errors = new ArrayList<Val>();
         if (errorMessage != null) {
             errors.add(ErrorFactory.error(errorMessage));
         }

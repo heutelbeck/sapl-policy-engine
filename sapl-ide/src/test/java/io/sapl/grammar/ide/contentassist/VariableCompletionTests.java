@@ -38,7 +38,7 @@ class VariableCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("action", "environment", "foo", "resource", "subject", "bar");
+                final var expected = List.of("action", "environment", "foo", "resource", "subject", "bar");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -51,7 +51,7 @@ class VariableCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("action", "bar", "environment", "foo", "resource", "subject");
+                final var expected = List.of("action", "bar", "environment", "foo", "resource", "subject");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -65,8 +65,8 @@ class VariableCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("action", "environment", "foo", "resource", "subject");
-                var unwanted = List.of("bar");
+                final var expected = List.of("action", "environment", "foo", "resource", "subject");
+                final var unwanted = List.of("bar");
                 assertProposalsSimple(expected, completionList);
                 assertDoesNotContainProposals(unwanted, completionList);
             });
@@ -81,8 +81,8 @@ class VariableCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("action", "environment", "foo", "resource", "subject");
-                var unwanted = List.of("bar");
+                final var expected = List.of("action", "environment", "foo", "resource", "subject");
+                final var unwanted = List.of("bar");
                 assertProposalsSimple(expected, completionList);
                 assertDoesNotContainProposals(unwanted, completionList);
             });
@@ -98,7 +98,7 @@ class VariableCompletionTests extends CompletionTests {
             it.setLine(1);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("dog()", "dog().race", "food()", "food(String species)", "location()",
+                final var expected = List.of("dog()", "dog().race", "food()", "food(String species)", "location()",
                         "location().latitude", "location().longitude", "person()", "person().name");
                 assertProposalsSimple(expected, completionList);
             });
@@ -114,7 +114,7 @@ class VariableCompletionTests extends CompletionTests {
             it.setLine(1);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("abc.dog()", "abc.dog().race", "abc.food()", "abc.food(String species)",
+                final var expected = List.of("abc.dog()", "abc.dog().race", "abc.food()", "abc.food(String species)",
                         "abc.location()", "abc.location().latitude", "abc.location().longitude", "abc.person()",
                         "abc.person().name");
                 assertProposalsSimple(expected, completionList);

@@ -47,12 +47,12 @@ class R2dbcBeanPostProcessorTests {
     @Test
     void when_postProcessBeforeInitialization_then_addRepositoryFactoryCustomizer() {
         // GIVEN
-        var mongoPostProcessor = new R2dbcBeanPostProcessor(r2dbcRepositoryFactoryCustomizerProviderMock);
+        final var mongoPostProcessor = new R2dbcBeanPostProcessor(r2dbcRepositoryFactoryCustomizerProviderMock);
 
         // WHEN
         when(r2dbcRepositoryFactoryCustomizerProviderMock.getObject()).thenReturn(r2dbcRepositoryFactoryCustomizerMock);
 
-        var result = mongoPostProcessor.postProcessBeforeInitialization(r2dbcRepositoryFactoryBeanMock,
+        final var result = mongoPostProcessor.postProcessBeforeInitialization(r2dbcRepositoryFactoryBeanMock,
                 "R2dbcRepositoryFactoryBean");
 
         // THEN
@@ -64,11 +64,11 @@ class R2dbcBeanPostProcessorTests {
     @Test
     void when_postProcessBeforeInitialization_then_findNoFittingBean() {
         // GIVEN
-        var mongoPostProcessor        = new R2dbcBeanPostProcessor(r2dbcRepositoryFactoryCustomizerProviderMock);
-        var mongoDbRepositoryTestMock = mock(PersonR2dbcRepository.class);
+        final var mongoPostProcessor        = new R2dbcBeanPostProcessor(r2dbcRepositoryFactoryCustomizerProviderMock);
+        final var mongoDbRepositoryTestMock = mock(PersonR2dbcRepository.class);
 
         // WHEN
-        var result = mongoPostProcessor.postProcessBeforeInitialization(mongoDbRepositoryTestMock,
+        final var result = mongoPostProcessor.postProcessBeforeInitialization(mongoDbRepositoryTestMock,
                 "R2dbcRepositoryFactoryBean");
 
         // THEN

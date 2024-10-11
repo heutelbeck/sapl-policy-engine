@@ -52,7 +52,7 @@ public class EquivalenceAndHashUtil {
                                                         // HASH_SEED_PRIME and collide
         EList<EStructuralFeature> features = thiz.eClass().getEAllStructuralFeatures();
         for (EStructuralFeature feature : features) {
-            var featureInstance = thiz.eGet(feature);
+            final var featureInstance = thiz.eGet(feature);
             if ("nameFragments".equals(feature.getName())) {
                 hash = PRIME * hash + hashFStepRespectingImports(featureInstance, imports);
             } else {
@@ -94,8 +94,8 @@ public class EquivalenceAndHashUtil {
         }
         EList<EStructuralFeature> features = thiz.eClass().getEAllStructuralFeatures();
         for (EStructuralFeature feature : features) {
-            var thisFeatureInstance = thiz.eGet(feature);
-            var thatFeatureInstance = that.eGet(feature, true);
+            final var thisFeatureInstance = thiz.eGet(feature);
+            final var thatFeatureInstance = that.eGet(feature, true);
             if ("nameFragments".equals(feature.getName())) {
                 return fStepsAreEquivalentWithRegardsToImports(thisFeatureInstance, thizImports, thatFeatureInstance,
                         thatImports);
@@ -111,14 +111,14 @@ public class EquivalenceAndHashUtil {
     private boolean fStepsAreEquivalentWithRegardsToImports(Object thisFeatureInstance,
             @NonNull Map<String, String> thisImports, Object thatFeatureInstance,
             @NonNull Map<String, String> thatImports) {
-        var thisFull = resolveStepsToFullyQualifiedName((EList<Object>) thisFeatureInstance, thisImports);
-        var thatFull = resolveStepsToFullyQualifiedName((EList<Object>) thatFeatureInstance, thatImports);
+        final var thisFull = resolveStepsToFullyQualifiedName((EList<Object>) thisFeatureInstance, thisImports);
+        final var thatFull = resolveStepsToFullyQualifiedName((EList<Object>) thatFeatureInstance, thatImports);
         return Objects.equal(thisFull, thatFull);
     }
 
     private String resolveStepsToFullyQualifiedName(EList<Object> steps, @NonNull Map<String, String> imports) {
-        var baseString = steps.stream().map(String.class::cast).collect(Collectors.joining("."));
-        var importBase = imports.get(baseString);
+        final var baseString = steps.stream().map(String.class::cast).collect(Collectors.joining("."));
+        final var importBase = imports.get(baseString);
         if (importBase != null) {
             return importBase;
         }
@@ -137,8 +137,8 @@ public class EquivalenceAndHashUtil {
             if (thizList.size() != thatList.size()) {
                 return false;
             }
-            var thizIterator = thizList.iterator();
-            var thatIterator = thatList.iterator();
+            final var thizIterator = thizList.iterator();
+            final var thatIterator = thatList.iterator();
             while (thizIterator.hasNext()) {
                 // While this is Iterator<EObject>, it may return String
                 Object thizElement = thizIterator.next();

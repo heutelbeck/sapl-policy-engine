@@ -25,7 +25,7 @@ class SAPLGeneratorTests {
 
     @Test
     void generatorTest() {
-        var generator = new SAPLGenerator();
+        final var generator = new SAPLGenerator();
         assertDoesNotThrow(() -> generator.doGenerate(null, null, null));
     }
 

@@ -52,7 +52,8 @@ public class GenericCoverageReporter {
         List<SaplDocumentCoverageInformation> documentsWithCoveringInfo = new LinkedList<>();
 
         for (SaplDocument saplDoc : documents) {
-            var coveredDoc = new SaplDocumentCoverageInformation(saplDoc.getPathToDocument(), saplDoc.getLineCount());
+            final var coveredDoc = new SaplDocumentCoverageInformation(saplDoc.getPathToDocument(),
+                    saplDoc.getLineCount());
 
             PolicyElement element = saplDoc.getDocument().getPolicyElement();
 
@@ -209,8 +210,8 @@ public class GenericCoverageReporter {
 
     void markConditionFULLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
         for (int i = linesStart; i <= linesEnd; i++) {
-            var line         = coverage.getLine(i);
-            var coveredValue = line.getCoveredValue();
+            final var line         = coverage.getLine(i);
+            final var coveredValue = line.getCoveredValue();
             assertValidCoveredValue(coveredValue);
             switch (coveredValue) {
             case PARTLY ->
@@ -239,8 +240,8 @@ public class GenericCoverageReporter {
 
     void markConditionPARTLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
         for (int i = linesStart; i <= linesEnd; i++) {
-            var line         = coverage.getLine(i);
-            var coveredValue = line.getCoveredValue();
+            final var line         = coverage.getLine(i);
+            final var coveredValue = line.getCoveredValue();
             assertValidCoveredValue(coveredValue);
             // if this condition or the condition evaluated before on the same line
             // was never hit, then this or the next condition cannot be evaluated too
@@ -258,8 +259,8 @@ public class GenericCoverageReporter {
 
     void markConditionNEVER(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
         for (int i = linesStart; i <= linesEnd; i++) {
-            var line         = coverage.getLine(i);
-            var coveredValue = line.getCoveredValue();
+            final var line         = coverage.getLine(i);
+            final var coveredValue = line.getCoveredValue();
             assertValidCoveredValue(coveredValue);
             switch (coveredValue) {
             case FULLY, PARTLY, NEVER ->
@@ -273,8 +274,8 @@ public class GenericCoverageReporter {
 
     void markValueFULLY(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
         for (int i = linesStart; i <= linesEnd; i++) {
-            var line         = coverage.getLine(i);
-            var coveredValue = line.getCoveredValue();
+            final var line         = coverage.getLine(i);
+            final var coveredValue = line.getCoveredValue();
             assertValidCoveredValue(coveredValue);
             switch (coveredValue) {
             case FULLY, PARTLY:
@@ -296,8 +297,8 @@ public class GenericCoverageReporter {
 
     void markValueNEVER(SaplDocumentCoverageInformation coverage, int linesStart, int linesEnd) {
         for (int i = linesStart; i <= linesEnd; i++) {
-            var line         = coverage.getLine(i);
-            var coveredValue = line.getCoveredValue();
+            final var line         = coverage.getLine(i);
+            final var coveredValue = line.getCoveredValue();
             assertValidCoveredValue(coveredValue);
             switch (coveredValue) {
             case FULLY:

@@ -42,8 +42,8 @@ public class PlusImplCustom extends PlusImpl {
             return Val.of(left.get().decimalValue().add(right.get().decimalValue())).withTrace(Plus.class, false,
                     Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 
-        var lStr = left.orElse(UNDEFINED).asText();
-        var rStr = right.orElse(UNDEFINED).asText();
+        final var lStr = left.orElse(UNDEFINED).asText();
+        final var rStr = right.orElse(UNDEFINED).asText();
         return Val.of(lStr.concat(rStr)).withTrace(Plus.class, false, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 

@@ -50,7 +50,7 @@ public class FunctionContextAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     FunctionContext functionContext() throws InitializationException {
-        var functionContext = new AnnotationFunctionContext();
+        final var functionContext = new AnnotationFunctionContext();
         for (var supplier : functionLibrarySuppliers) {
             for (var library : supplier.get()) {
                 log.trace("loading function library: {}", library.getClass().getSimpleName());

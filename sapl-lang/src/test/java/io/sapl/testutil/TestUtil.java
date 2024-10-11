@@ -58,12 +58,12 @@ public class TestUtil {
 
     @SneakyThrows
     public static void assertExpressionEvaluatesTo(String expression, String... expected) {
-        var expectations = new Val[expected.length];
-        var i            = 0;
+        final var expectations = new Val[expected.length];
+        var       i            = 0;
         for (var ex : expected) {
             expectations[i++] = Val.ofJson(ex);
         }
-        var parsedExpression = ParserUtil.expression(expression);
+        final var parsedExpression = ParserUtil.expression(expression);
         if (DEBUG_TESTS) {
             log.debug("Expression: {}", expression);
             for (var e : expected)

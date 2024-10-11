@@ -33,7 +33,7 @@ class R2dbcRepositoryFactoryCustomizerTests {
     @Test
     void when_usingMongoEnforcementPointIsDesired_then_customizeRepositoryFactorySupport() {
         // GIVEN
-        var customizer = new R2dbcRepositoryFactoryCustomizer(r2dbcRepositoryProxyPostProcessorMock);
+        final var customizer = new R2dbcRepositoryFactoryCustomizer(r2dbcRepositoryProxyPostProcessorMock);
 
         // WHEN
         customizer.customize(repositoryFactorySupportMock);

@@ -98,7 +98,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
     void return_empty_result_on_policy_evaluation_exception() {
         try (MockedStatic<CanonicalIndexAlgorithm> mock = mockStatic(CanonicalIndexAlgorithm.class)) {
             mock.when(() -> CanonicalIndexAlgorithm.match(any())).thenThrow(new PolicyEvaluationException());
-            var result = emptyIndex.retrievePolicies().block();
+            final var result = emptyIndex.retrievePolicies().block();
 
             assertNotNull(result);
             assertTrue(result.getMatchingDocuments().isEmpty());
@@ -178,11 +178,11 @@ class CanonicalImmutableParsedDocumentIndexTests {
                 new AnnotationAttributeContext(), new AnnotationFunctionContext());
         List<Update> updates = new ArrayList<>(3);
 
-        var doc1 = INTERPERETER.parseDocument("policy \"p_0\" permit !resource.x1");
+        final var doc1 = INTERPERETER.parseDocument("policy \"p_0\" permit !resource.x1");
         updates.add(new Update(Type.PUBLISH, doc1));
-        var doc2 = INTERPERETER.parseDocument("policy \"p_1\" permit !(resource.x0 | resource.x1)");
+        final var doc2 = INTERPERETER.parseDocument("policy \"p_1\" permit !(resource.x0 | resource.x1)");
         updates.add(new Update(Type.PUBLISH, doc2));
-        var doc3 = INTERPERETER.parseDocument("policy \"p_2\" permit (resource.x1 | resource.x2)");
+        final var doc3 = INTERPERETER.parseDocument("policy \"p_2\" permit (resource.x1 | resource.x2)");
         updates.add(new Update(Type.PUBLISH, doc3));
 
         PrpUpdateEvent                        prpUpdateEvent = new PrpUpdateEvent(updates);
@@ -222,11 +222,11 @@ class CanonicalImmutableParsedDocumentIndexTests {
     @Test
     void testPutSimple() {
         // given
-        var updates  = new ArrayList<Update>(3);
-        var document = INTERPERETER.parseDocument("policy \"p_0\" permit true");
+        final var updates  = new ArrayList<Update>(3);
+        final var document = INTERPERETER.parseDocument("policy \"p_0\" permit true");
         updates.add(new Update(Type.PUBLISH, document));
-        var prpUpdateEvent = new PrpUpdateEvent(updates);
-        var updatedIndex   = emptyIndex.apply(prpUpdateEvent);
+        final var prpUpdateEvent = new PrpUpdateEvent(updates);
+        final var updatedIndex   = emptyIndex.apply(prpUpdateEvent);
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
@@ -247,11 +247,11 @@ class CanonicalImmutableParsedDocumentIndexTests {
     @Test
     void testPut() {
         // given
-        var updates  = new ArrayList<Update>(3);
-        var document = INTERPERETER.parseDocument("policy \"p_0\" permit !(resource.x0 | resource.x1)");
+        final var updates  = new ArrayList<Update>(3);
+        final var document = INTERPERETER.parseDocument("policy \"p_0\" permit !(resource.x0 | resource.x1)");
         updates.add(new Update(Type.PUBLISH, document));
-        var prpUpdateEvent = new PrpUpdateEvent(updates);
-        var updatedIndex   = emptyIndex.apply(prpUpdateEvent);
+        final var prpUpdateEvent = new PrpUpdateEvent(updates);
+        final var updatedIndex   = emptyIndex.apply(prpUpdateEvent);
         bindings.put("x0", Boolean.FALSE);
         bindings.put("x1", Boolean.FALSE);
 
@@ -276,8 +276,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
         // given
         List<Update> updates = new ArrayList<>(3);
 
-        String definition = "policy \"p_0\" permit resource.x0 & resource.x1";
-        var    document   = INTERPERETER.parseDocument(definition);
+        String    definition = "policy \"p_0\" permit resource.x0 & resource.x1";
+        final var document   = INTERPERETER.parseDocument(definition);
         updates.add(new Update(Type.PUBLISH, document));
 
         PrpUpdateEvent                        prpUpdateEvent = new PrpUpdateEvent(updates);
@@ -312,8 +312,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
         // given
         List<Update> updates = new ArrayList<>();
 
-        String definition = "policy \"p_0\" permit";
-        var    document   = INTERPERETER.parseDocument(definition);
+        String    definition = "policy \"p_0\" permit";
+        final var document   = INTERPERETER.parseDocument(definition);
         updates.add(new Update(Type.PUBLISH, document));
 
         PrpUpdateEvent                        prpUpdateEvent = new PrpUpdateEvent(updates);
@@ -340,8 +340,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
         // given
         List<Update> updates = new ArrayList<>();
 
-        String definition = "policy \"p_0\" permit !resource.x0";
-        var    document   = INTERPERETER.parseDocument(definition);
+        String    definition = "policy \"p_0\" permit !resource.x0";
+        final var document   = INTERPERETER.parseDocument(definition);
         updates.add(new Update(Type.PUBLISH, document));
 
         PrpUpdateEvent                        prpUpdateEvent = new PrpUpdateEvent(updates);
@@ -367,8 +367,8 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
     @Test
     void exception_while_retaining_Target() {
-        var document = INTERPERETER.parseDocument("id1", "policy \"p1\" permit");
-        var saplMap  = new HashMap<String, Document>();
+        final var document = INTERPERETER.parseDocument("id1", "policy \"p1\" permit");
+        final var saplMap  = new HashMap<String, Document>();
         saplMap.put("p1", document);
 
         try (MockedConstruction<CanonicalIndexDataCreationStrategy> mocked = Mockito.mockConstruction(
@@ -382,12 +382,12 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
     @Test
     void throw_exception_on_name_collision() {
-        var firstDocument = INTERPERETER.parseDocument("policy \"p1\" permit");
-        var saplMap       = new HashMap<String, Document>();
+        final var firstDocument = INTERPERETER.parseDocument("policy \"p1\" permit");
+        final var saplMap       = new HashMap<String, Document>();
         saplMap.put("p1", firstDocument);
 
-        var secondDocument = INTERPERETER.parseDocument("policy \"p1\" permit");
-        var update         = new Update(Type.PUBLISH, secondDocument);
+        final var secondDocument = INTERPERETER.parseDocument("policy \"p1\" permit");
+        final var update         = new Update(Type.PUBLISH, secondDocument);
 
         assertThrows(RuntimeException.class, () -> emptyIndex.applyUpdate(saplMap, update));
     }

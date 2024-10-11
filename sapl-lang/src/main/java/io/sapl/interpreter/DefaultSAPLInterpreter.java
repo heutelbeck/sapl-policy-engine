@@ -81,29 +81,29 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
         try {
             resource.load(policyInputStream, resourceSet.getLoadOptions());
         } catch (IOException | WrappedException e) {
-            var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
+            final var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
             log.debug(errorMessage, e);
             return new Document(id, null, null, null, errorMessage);
         }
 
         if (!resource.getErrors().isEmpty()) {
-            var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
+            final var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
             log.debug(errorMessage);
             return new Document(id, null, null, null, errorMessage);
         }
 
-        var    sapl = (SAPL) resource.getContents().get(0);
-        String name = null;
+        final var sapl = (SAPL) resource.getContents().get(0);
+        String    name = null;
         if (sapl != null && sapl.getPolicyElement() != null)
             name = sapl.getPolicyElement().getSaplName();
-        var diagnostic = Diagnostician.INSTANCE.validate(sapl);
-        var actualId   = null == id ? name : null;
+        final var diagnostic = Diagnostician.INSTANCE.validate(sapl);
+        final var actualId   = null == id ? name : null;
         return new Document(actualId, name, sapl, diagnostic, composeErrorMessage(diagnostic));
     }
 
     @Override
     public SAPL parse(InputStream saplInputStream) {
-        var document = parseDocument(saplInputStream);
+        final var document = parseDocument(saplInputStream);
         if (document.isInvalid()) {
             throw new PolicyEvaluationException(document.errorMessage());
         }
@@ -134,7 +134,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
         if (diagnostic.getSeverity() == Diagnostic.OK) {
             return "OK";
         }
-        var sb = new StringBuilder().append("SAPL Validation Error: [");
+        final var sb = new StringBuilder().append("SAPL Validation Error: [");
         for (Diagnostic d : diagnostic.getChildren()) {
             sb.append('[').append(NodeModelUtils.findActualNodeFor((EObject) d.getData().get(0)).getText()).append(": ")
                     .append(d.getMessage()).append(']');
@@ -146,11 +146,11 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
     public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authorizationSubscription,
             String saplDocumentSource, AttributeContext attributeContext, FunctionContext functionContext,
             Map<String, Val> environmentVariables) {
-        var document = parseDocument(saplDocumentSource);
+        final var document = parseDocument(saplDocumentSource);
         if (document.isInvalid()) {
             return Flux.just(AuthorizationDecision.INDETERMINATE);
         }
-        var saplDocument = document.sapl();
+        final var saplDocument = document.sapl();
         return saplDocument.matches().flux().switchMap(evaluateBodyIfMatching(saplDocument))
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, environmentVariables))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authorizationSubscription))

@@ -42,11 +42,11 @@ public class QuerySelectionUtils {
      * @return the new query with extended fields.
      */
     public static <T extends Query> T addSelectionPartToQuery(JsonNode selection, T query) {
-        var elements  = selection.get("columns").elements();
-        var fieldList = new ArrayList<String>();
+        final var elements  = selection.get("columns").elements();
+        final var fieldList = new ArrayList<String>();
 
         while (elements.hasNext()) {
-            var element = elements.next();
+            final var element = elements.next();
             fieldList.add(element.asText());
         }
 

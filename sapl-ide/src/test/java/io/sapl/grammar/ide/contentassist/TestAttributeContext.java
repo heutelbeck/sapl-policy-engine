@@ -74,7 +74,7 @@ class TestAttributeContext implements AttributeContext {
     public Boolean isProvidedFunction(String function) {
         List<String> availableFunctions = new ArrayList<>();
         for (var lib : availableLibraries.entrySet()) {
-            var key = lib.getKey();
+            final var key = lib.getKey();
             for (var value : lib.getValue()) {
                 availableFunctions.add(key.concat(".").concat(value));
             }
@@ -144,7 +144,7 @@ class TestAttributeContext implements AttributeContext {
     @Override
     @SneakyThrows
     public Map<String, JsonNode> getAttributeSchemas() {
-        var schemas = new HashMap<String, JsonNode>();
+        final var schemas = new HashMap<String, JsonNode>();
         schemas.put("temperature.now", MAPPER.readValue(TEMP_NOW_SCHEMA, JsonNode.class));
         schemas.put("temperature.mean", MAPPER.readValue(TEMP_MEAN_SCHEMA, JsonNode.class));
         return schemas;

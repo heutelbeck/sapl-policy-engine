@@ -47,9 +47,9 @@ class SAPLIdeSpringTestConfiguration {
 
     @Bean
     PDPConfigurationProvider pdpConfiguration() {
-        var attributeContext = new TestAttributeContext();
-        var functionContext  = new TestFunctionContext();
-        var variables        = new HashMap<String, Val>();
+        final var attributeContext = new TestAttributeContext();
+        final var functionContext  = new TestFunctionContext();
+        final var variables        = new HashMap<String, Val>();
 
         load("action_schema", variables);
         load("address_schema", variables);
@@ -64,7 +64,7 @@ class SAPLIdeSpringTestConfiguration {
                 "geographical_location_schema", "subject_schema", "vehicle_schema", "schema_with_additional_keywords"),
                 variables);
 
-        var staticPlaygroundConfiguration = new PDPConfiguration("testConfig", attributeContext, functionContext,
+        final var staticPlaygroundConfiguration = new PDPConfiguration("testConfig", attributeContext, functionContext,
                 variables, PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(),
                 UnaryOperator.identity(), mock(PolicyRetrievalPoint.class));
         return () -> Flux.just(staticPlaygroundConfiguration);
@@ -72,7 +72,7 @@ class SAPLIdeSpringTestConfiguration {
 
     @SneakyThrows
     private void load(List<String> schemaFiles, Map<String, Val> variables) {
-        var schemasArray = JsonNodeFactory.instance.arrayNode();
+        final var schemasArray = JsonNodeFactory.instance.arrayNode();
         for (var schemaFile : schemaFiles) {
             try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
                 if (null == is)
@@ -88,7 +88,7 @@ class SAPLIdeSpringTestConfiguration {
         try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
             if (null == is)
                 throw new RuntimeException(schemaFile + ".json not found");
-            var schema = MAPPER.readValue(is, JsonNode.class);
+            final var schema = MAPPER.readValue(is, JsonNode.class);
             variables.put(schemaFile, Val.of(schema));
         }
     }

@@ -40,11 +40,11 @@ class DisjunctiveFormulaTests {
 
     @Test
     void testImmutable() {
-        var immutableClause  = new ConjunctiveClause(new Literal(new Bool(true)));
-        var immutableFormula = new DisjunctiveFormula(immutableClause);
-        var clauseMock       = mock(ConjunctiveClause.class);
+        final var immutableClause  = new ConjunctiveClause(new Literal(new Bool(true)));
+        final var immutableFormula = new DisjunctiveFormula(immutableClause);
+        final var clauseMock       = mock(ConjunctiveClause.class);
         when(clauseMock.isImmutable()).thenReturn(Boolean.FALSE);
-        var f1 = new DisjunctiveFormula(clauseMock);
+        final var f1 = new DisjunctiveFormula(clauseMock);
 
         assertThat(immutableClause.isImmutable(), is(Boolean.TRUE));
         assertThat(immutableFormula.size(), is(1));
@@ -55,11 +55,11 @@ class DisjunctiveFormulaTests {
     @Test
     void testEvaluate() {
 
-        var trueClause  = new ConjunctiveClause(new Literal(new Bool(true)));
-        var falseClause = new ConjunctiveClause(new Literal(new Bool(false)));
-        var f1          = new DisjunctiveFormula(trueClause, falseClause);
-        var f2          = new DisjunctiveFormula(falseClause, trueClause);
-        var f3          = new DisjunctiveFormula(falseClause);
+        final var trueClause  = new ConjunctiveClause(new Literal(new Bool(true)));
+        final var falseClause = new ConjunctiveClause(new Literal(new Bool(false)));
+        final var f1          = new DisjunctiveFormula(trueClause, falseClause);
+        final var f2          = new DisjunctiveFormula(falseClause, trueClause);
+        final var f3          = new DisjunctiveFormula(falseClause);
 
         assertThat(f1.evaluate(), is(Boolean.TRUE));
         assertThat(f2.evaluate(), is(Boolean.TRUE));
@@ -69,13 +69,13 @@ class DisjunctiveFormulaTests {
     @Test
     @SuppressWarnings("unlikely-arg-type")
     void testEquals() {
-        var trueClause  = new ConjunctiveClause(new Literal(new Bool(true)));
-        var falseClause = new ConjunctiveClause(new Literal(new Bool(false)));
-        var f1          = new DisjunctiveFormula(trueClause, falseClause);
-        var f2          = new DisjunctiveFormula(falseClause, trueClause);
-        var f3          = new DisjunctiveFormula(falseClause);
-        var f4          = new DisjunctiveFormula(falseClause, falseClause);
-        var f5          = new DisjunctiveFormula(trueClause, trueClause);
+        final var trueClause  = new ConjunctiveClause(new Literal(new Bool(true)));
+        final var falseClause = new ConjunctiveClause(new Literal(new Bool(false)));
+        final var f1          = new DisjunctiveFormula(trueClause, falseClause);
+        final var f2          = new DisjunctiveFormula(falseClause, trueClause);
+        final var f3          = new DisjunctiveFormula(falseClause);
+        final var f4          = new DisjunctiveFormula(falseClause, falseClause);
+        final var f5          = new DisjunctiveFormula(trueClause, trueClause);
 
         assertThat(f1.equals(f1), is(Boolean.TRUE));
         assertThat(f1.equals(f2), is(Boolean.TRUE));

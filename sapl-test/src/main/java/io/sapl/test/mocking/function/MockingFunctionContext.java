@@ -99,7 +99,7 @@ public class MockingFunctionContext implements FunctionContext {
 
     @Override
     public Val evaluate(EObject location, String function, Val... parameters) {
-        var functionTrace = new ExpressionArgument[parameters.length + 1];
+        final var functionTrace = new ExpressionArgument[parameters.length + 1];
         functionTrace[0] = new ExpressionArgument("functionName", Val.of(function));
         for (var parameter = 0; parameter < parameters.length; parameter++) {
             functionTrace[parameter + 1] = new ExpressionArgument("parameter[" + parameter + "]",
@@ -226,7 +226,7 @@ public class MockingFunctionContext implements FunctionContext {
         String   libName      = split[0];
         String   functionName = split[1];
 
-        var existingDoc = this.functionDocumentations.get(libName);
+        final var existingDoc = this.functionDocumentations.get(libName);
         if (existingDoc != null) {
             existingDoc.getDocumentation().put(functionName, "Mocked Function");
         } else {

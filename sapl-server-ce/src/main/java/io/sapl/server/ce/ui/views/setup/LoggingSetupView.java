@@ -110,18 +110,19 @@ public class LoggingSetupView extends VerticalLayout {
             springLoggingLevel.setHelperText(e.getValue().getDescription());
         });
 
-        var pInfo = new Paragraph(
+        final var pInfo = new Paragraph(
                 "To enhance the performance of the SAPL Server CE, consider adjusting the logging level to "
                         + "`WARN`. This will reduce the number of log messages and improve latency. However, "
                         + "it is important to note that decisions made by the PDP will still be "
                         + "logged with the `INFO` level.");
 
-        var pdpLogInfo = new H3("The following options enable or disable different levels of logging for decisions.");
+        final var pdpLogInfo = new H3(
+                "The following options enable or disable different levels of logging for decisions.");
 
         HorizontalLayout printTraceLayout = new HorizontalLayout();
         printTraceLayout.setPadding(true);
         printTraceLayout.setAlignItems(FlexComponent.Alignment.BASELINE);
-        var printTrace = new Checkbox("print-trace");
+        final var printTrace = new Checkbox("print-trace");
         printTrace.setWidth("350px");
         printTrace.setValue(applicationConfigService.getLoggingConfig().isPrintTrace());
         printTrace.addValueChangeListener(e -> applicationConfigService.getLoggingConfig().setPrintTrace(e.getValue()));
@@ -134,7 +135,7 @@ public class LoggingSetupView extends VerticalLayout {
         HorizontalLayout printJsonReportLayout = new HorizontalLayout();
         printJsonReportLayout.setPadding(true);
         printJsonReportLayout.setAlignItems(FlexComponent.Alignment.BASELINE);
-        var printJsonReport = new Checkbox("print-json-report");
+        final var printJsonReport = new Checkbox("print-json-report");
         printJsonReport.setWidth("400px");
         printJsonReport.setValue(applicationConfigService.getLoggingConfig().isPrintJsonReport());
         printJsonReport.addValueChangeListener(
@@ -149,7 +150,7 @@ public class LoggingSetupView extends VerticalLayout {
         HorizontalLayout printTextReportLayout = new HorizontalLayout();
         printTextReportLayout.setPadding(true);
         printTextReportLayout.setAlignItems(FlexComponent.Alignment.BASELINE);
-        var printTextReport = new Checkbox("print-text-report");
+        final var printTextReport = new Checkbox("print-text-report");
         printTextReport.setWidth("250px");
         printTextReport.setValue(applicationConfigService.getLoggingConfig().isPrintTextReport());
         printTextReport.addValueChangeListener(
@@ -161,7 +162,7 @@ public class LoggingSetupView extends VerticalLayout {
         HorizontalLayout prettyPrintReportsLayout = new HorizontalLayout();
         prettyPrintReportsLayout.setPadding(true);
         prettyPrintReportsLayout.setAlignItems(FlexComponent.Alignment.BASELINE);
-        var prettyPrintReports = new Checkbox("pretty-print-reports");
+        final var prettyPrintReports = new Checkbox("pretty-print-reports");
         prettyPrintReports.setWidth("250px");
         prettyPrintReports.setValue(applicationConfigService.getLoggingConfig().isPrettyPrintReports());
         prettyPrintReports.addValueChangeListener(
@@ -170,7 +171,7 @@ public class LoggingSetupView extends VerticalLayout {
         prettyPrintReportsLayout.add(new Text("This option can enable formatting of JSON data while "
                 + "printing JSON during reporting and tracing."));
 
-        var loggingLayout = new FormLayout(saplLoggingLevel, saplServerLoggingLevel, springLoggingLevel, pInfo,
+        final var loggingLayout = new FormLayout(saplLoggingLevel, saplServerLoggingLevel, springLoggingLevel, pInfo,
                 pdpLogInfo, printTraceLayout, printJsonReportLayout, printTextReportLayout, prettyPrintReportsLayout,
                 saveConfig);
         loggingLayout.setResponsiveSteps(

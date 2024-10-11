@@ -51,16 +51,16 @@ class SaplServerLTAuthenticationTests {
 
     @Test
     void whenConnectingThoughtHttp_withApiKey_thenAuthenticationIsProvided() {
-        var pdpProperties                       = mock(SAPLServerLTProperties.class);
-        var cacheManager                        = mock(CacheManager.class);
-        var apiKeyReactiveAuthenticationManager = new ApiKeyReactiveAuthenticationManager();
+        final var pdpProperties                       = mock(SAPLServerLTProperties.class);
+        final var cacheManager                        = mock(CacheManager.class);
+        final var apiKeyReactiveAuthenticationManager = new ApiKeyReactiveAuthenticationManager();
 
         when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
-        var exchange = MockServerWebExchange
+        final var exchange = MockServerWebExchange
                 .from(MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + API_KEY));
 
-        var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
-        var result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
+        final var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
+        final var result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
         assertThat(result).isNotNull();
         assertThat(result.isAuthenticated()).isTrue();
         assertThat(result.getDetails()).isNull();
@@ -71,17 +71,17 @@ class SaplServerLTAuthenticationTests {
 
         // test ApiKeyReactiveAuthenticationManager
         assertThat(apiKeyReactiveAuthenticationManager.authenticate(result)).isNotNull();
-        var authentication = apiKeyReactiveAuthenticationManager.authenticate(result).block();
+        final var authentication = apiKeyReactiveAuthenticationManager.authenticate(result).block();
         assertThat(authentication).isNotNull();
         assertThat(authentication.isAuthenticated()).isTrue();
     }
 
     @Test
     void whenConnectingThoughtRSocket_withApiKey_thenAuthenticationIsProvided() {
-        var pdpProperties   = mock(SAPLServerLTProperties.class);
-        var cacheManager    = mock(CacheManager.class);
-        var cache           = mock(Cache.class);
-        var payloadExchange = mock(PayloadExchange.class);
+        final var pdpProperties   = mock(SAPLServerLTProperties.class);
+        final var cacheManager    = mock(CacheManager.class);
+        final var cache           = mock(Cache.class);
+        final var payloadExchange = mock(PayloadExchange.class);
         // test with empty cache
         when(cacheManager.getCache("ApiKeyCache")).thenReturn(cache);
         when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
@@ -91,23 +91,24 @@ class SaplServerLTAuthenticationTests {
         CompositeMetadataCodec.encodeAndAddMetadata(metadata, ByteBufAllocator.DEFAULT, "messaging/Bearer",
                 Unpooled.buffer().writeBytes(API_KEY.getBytes(StandardCharsets.UTF_8)));
 
-        var payload = DefaultPayload.create(Unpooled.buffer().writeBytes(API_KEY.getBytes(StandardCharsets.UTF_8)),
-                metadata);
+        final var payload = DefaultPayload
+                .create(Unpooled.buffer().writeBytes(API_KEY.getBytes(StandardCharsets.UTF_8)), metadata);
         when(payloadExchange.getPayload()).thenReturn(payload);
 
         // execute unit test
-        var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
-        var result        = apiKeyService.getRsocketApiKeyAuthenticationConverter().convert(payloadExchange).block();
+        final var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
+        final var result        = apiKeyService.getRsocketApiKeyAuthenticationConverter().convert(payloadExchange)
+                .block();
         assertThat(result).isNotNull();
         assertThat(result.isAuthenticated()).isTrue();
     }
 
     @Test
     void whenConnectingThoughtHttp_withCachedApiKey_thenAuthenticationIsProvided() {
-        var pdpProperties = mock(SAPLServerLTProperties.class);
-        var cacheManager  = mock(CacheManager.class);
-        var cache         = mock(Cache.class);
-        var cacheEntry    = mock(Cache.ValueWrapper.class);
+        final var pdpProperties = mock(SAPLServerLTProperties.class);
+        final var cacheManager  = mock(CacheManager.class);
+        final var cache         = mock(Cache.class);
+        final var cacheEntry    = mock(Cache.ValueWrapper.class);
 
         // mock cache manager
         when(cacheManager.getCache("ApiKeyCache")).thenReturn(cache);
@@ -115,35 +116,35 @@ class SaplServerLTAuthenticationTests {
         when(cacheEntry.get()).thenReturn(ENCODED_API_KEY);
 
         when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
-        var exchange = MockServerWebExchange
+        final var exchange = MockServerWebExchange
                 .from(MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + API_KEY));
 
-        var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
-        var result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
+        final var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
+        final var result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
         assertThat(result).isNotNull();
         assertThat(result.isAuthenticated()).isTrue();
     }
 
     @Test
     void whenConnectingThoughtHttp_withInvalidApiKey_thenAuthenticationIsNotProvided() {
-        var pdpProperties = mock(SAPLServerLTProperties.class);
-        var cacheManager  = mock(CacheManager.class);
+        final var pdpProperties = mock(SAPLServerLTProperties.class);
+        final var cacheManager  = mock(CacheManager.class);
 
         when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
-        var exchange = MockServerWebExchange.from(
+        final var exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + INVALIC_API_KEY));
 
-        var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
-        var result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
+        final var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
+        final var result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
         assertThat(result).isNull();
     }
 
     @Test
     void whenConnectingThoughtRsocket_withInvalidApiKey_thenAuthenticationIsNotProvided() {
-        var pdpProperties   = mock(SAPLServerLTProperties.class);
-        var cacheManager    = mock(CacheManager.class);
-        var cache           = mock(Cache.class);
-        var payloadExchange = mock(PayloadExchange.class);
+        final var pdpProperties   = mock(SAPLServerLTProperties.class);
+        final var cacheManager    = mock(CacheManager.class);
+        final var cache           = mock(Cache.class);
+        final var payloadExchange = mock(PayloadExchange.class);
         // test with empty cache
         when(cacheManager.getCache("ApiKeyCache")).thenReturn(cache);
         when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
@@ -153,37 +154,38 @@ class SaplServerLTAuthenticationTests {
         CompositeMetadataCodec.encodeAndAddMetadata(metadata, ByteBufAllocator.DEFAULT, "messaging/unknown",
                 Unpooled.buffer().writeBytes(INVALIC_API_KEY.getBytes(StandardCharsets.UTF_8)));
 
-        var payload = DefaultPayload.create(Unpooled.buffer().writeBytes(API_KEY.getBytes(StandardCharsets.UTF_8)),
-                metadata);
+        final var payload = DefaultPayload
+                .create(Unpooled.buffer().writeBytes(API_KEY.getBytes(StandardCharsets.UTF_8)), metadata);
         when(payloadExchange.getPayload()).thenReturn(payload);
 
         // execute unit test
-        var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
-        var result        = apiKeyService.getRsocketApiKeyAuthenticationConverter().convert(payloadExchange).block();
+        final var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
+        final var result        = apiKeyService.getRsocketApiKeyAuthenticationConverter().convert(payloadExchange)
+                .block();
         assertThat(result).isNull();
     }
 
     @Test
     void whenConnectingThoughtHttp_withInvalidSaplApiKey_thenExceptionIsRaised() {
-        var pdpProperties = mock(SAPLServerLTProperties.class);
-        var cacheManager  = mock(CacheManager.class);
+        final var pdpProperties = mock(SAPLServerLTProperties.class);
+        final var cacheManager  = mock(CacheManager.class);
 
         when(pdpProperties.getAllowedApiKeys()).thenReturn(List.of(ENCODED_API_KEY));
-        var exchange = MockServerWebExchange.from(
+        final var exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + API_KEY + "XYZ"));
 
-        var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
-        var action        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange);
+        final var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
+        final var action        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange);
         assertThatThrownBy(() -> action.block()).isInstanceOf(ApiKeyAuthenticationException.class);
     }
 
     @Test
     void whenConnectingThoughtRSocket_withInvalidApiKey_thenAuthenticationIsProvided() {
-        var pdpProperties         = mock(SAPLServerLTProperties.class);
-        var argon2PasswordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
-        var cacheManager          = mock(CacheManager.class);
-        var cache                 = mock(Cache.class);
-        var payloadExchange       = mock(PayloadExchange.class);
+        final var pdpProperties         = mock(SAPLServerLTProperties.class);
+        final var argon2PasswordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+        final var cacheManager          = mock(CacheManager.class);
+        final var cache                 = mock(Cache.class);
+        final var payloadExchange       = mock(PayloadExchange.class);
 
         // test with empty cache
         when(cacheManager.getCache("ApiKeyCache")).thenReturn(cache);
@@ -194,13 +196,13 @@ class SaplServerLTAuthenticationTests {
         CompositeMetadataCodec.encodeAndAddMetadata(metadata, ByteBufAllocator.DEFAULT, "messaging/Bearer",
                 Unpooled.buffer().writeBytes(INVALIC_API_KEY.getBytes(StandardCharsets.UTF_8)));
 
-        var payload = DefaultPayload
+        final var payload = DefaultPayload
                 .create(Unpooled.buffer().writeBytes(INVALIC_API_KEY.getBytes(StandardCharsets.UTF_8)), metadata);
         when(payloadExchange.getPayload()).thenReturn(payload);
 
         // execute unit test
-        var apiKeyService = new ApiKeyService(pdpProperties, argon2PasswordEncoder, cacheManager);
-        var action        = apiKeyService.getRsocketApiKeyAuthenticationConverter().convert(payloadExchange);
+        final var apiKeyService = new ApiKeyService(pdpProperties, argon2PasswordEncoder, cacheManager);
+        final var action        = apiKeyService.getRsocketApiKeyAuthenticationConverter().convert(payloadExchange);
         assertThatThrownBy(() -> action.block()).isInstanceOf(ApiKeyAuthenticationException.class);
     }
 }

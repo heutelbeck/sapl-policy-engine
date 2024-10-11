@@ -72,44 +72,44 @@ class AttributeFinderStepImplCustomTests {
 
     @Test
     void evaluateBasicAttributeInTargetPolicy() throws IOException {
-        var expression = ParserUtil.expression("\"\".<test.numbers>");
+        final var expression = ParserUtil.expression("\"\".<test.numbers>");
         MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
         assertExpressionErrors(expression);
     }
 
     @Test
     void evaluateBasicAttributeInTargetPolicySet() throws IOException {
-        var expression = ParserUtil.expression("\"\".<test.numbers>");
+        final var expression = ParserUtil.expression("\"\".<test.numbers>");
         MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
         assertExpressionErrors(expression);
     }
 
     @Test
     void exceptionDuringEvaluation() {
-        var step = attributeFinderStep();
-        var sut  = step.apply(Val.NULL).contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
+        final var step = attributeFinderStep();
+        final var sut  = step.apply(Val.NULL).contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
                 mockAttributeContext(Flux.just(ErrorFactory.error("ERROR")))));
         StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
     }
 
     @Test
     void applyWithSomeStreamData() {
-        Val[] data = { Val.FALSE, ErrorFactory.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
-        var   step = attributeFinderStep();
-        var   sut  = step.apply(Val.NULL).contextWrite(
+        Val[]     data = { Val.FALSE, ErrorFactory.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
+        final var step = attributeFinderStep();
+        final var sut  = step.apply(Val.NULL).contextWrite(
                 ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContext(Flux.just(data))));
         StepVerifier.create(sut).expectNext(data).verifyComplete();
     }
 
     private static AttributeContext mockAttributeContext(Flux<Val> stream) {
-        var attributeCtx = mock(AttributeContext.class);
+        final var attributeCtx = mock(AttributeContext.class);
         when(attributeCtx.evaluateAttribute(any(), eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any()))
                 .thenReturn(stream);
         return attributeCtx;
     }
 
     private static AttributeFinderStep attributeFinderStep() {
-        var step = FACTORY.createAttributeFinderStep();
+        final var step = FACTORY.createAttributeFinderStep();
         step.eSet(step.eClass().getEStructuralFeature("identifier"), FACTORY.createFunctionIdentifier());
         step.getIdentifier().getNameFragments().add(FULLY_QUALIFIED_ATTRIBUTE);
         return step;

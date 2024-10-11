@@ -113,18 +113,18 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
     @Override
     public Val evaluate(EObject location, String function, Val... parameters) {
-        var functionTrace = new ExpressionArgument[parameters.length + 1];
+        final var functionTrace = new ExpressionArgument[parameters.length + 1];
         functionTrace[0] = new ExpressionArgument("functionName", Val.of(function));
         for (var parameter = 0; parameter < parameters.length; parameter++) {
             functionTrace[parameter + 1] = new ExpressionArgument("parameter[" + parameter + "]",
                     parameters[parameter]);
         }
-        var metadata = functions.get(function);
+        final var metadata = functions.get(function);
         if (metadata == null)
             return ErrorFactory.error(location, UNKNOWN_FUNCTION_ERROR, function).withTrace(FunctionContext.class,
                     false, functionTrace);
 
-        var funParams = metadata.getFunction().getParameters();
+        final var funParams = metadata.getFunction().getParameters();
 
         if (metadata.isVarArgsParameters()) {
             return evaluateVarArgsFunction(location, metadata, funParams, parameters).withTrace(FunctionContext.class,
@@ -173,7 +173,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
     private Val invocationExceptionToError(Throwable e, EObject location, LibraryEntryMetadata metadata,
             Object... parameters) {
-        var params = new StringBuilder();
+        final var params = new StringBuilder();
         for (var i = 0; i < parameters.length; i++) {
             params.append(parameters[i]);
             if (i < parameters.length - 2)
@@ -198,7 +198,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
     }
 
     public final void loadLibrary(Object library, Class<?> libraryType) throws InitializationException {
-        var libAnnotation = libraryType.getAnnotation(FunctionLibrary.class);
+        final var libAnnotation = libraryType.getAnnotation(FunctionLibrary.class);
 
         if (libAnnotation == null) {
             throw new InitializationException(CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR);
@@ -226,13 +226,13 @@ public final class AnnotationFunctionContext implements FunctionContext {
         if (library == null)
             assertMethodIsStatic(method);
 
-        var funAnnotation = method.getAnnotation(Function.class);
-        var funName       = funAnnotation.name();
+        final var funAnnotation = method.getAnnotation(Function.class);
+        var       funName       = funAnnotation.name();
         if (funName.isEmpty())
             funName = method.getName();
 
-        var funSchema       = funAnnotation.schema();
-        var funPathToSchema = funAnnotation.pathToSchema();
+        final var funSchema       = funAnnotation.schema();
+        final var funPathToSchema = funAnnotation.pathToSchema();
         if (!funSchema.isEmpty() && !funPathToSchema.isEmpty())
             throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
 
@@ -258,8 +258,8 @@ public final class AnnotationFunctionContext implements FunctionContext {
             }
         }
 
-        var funMeta = new FunctionMetadata(libName, funName, processedSchemaDefinition, library, parameters, method,
-                funAnnotation.docs());
+        final var funMeta = new FunctionMetadata(libName, funName, processedSchemaDefinition, library, parameters,
+                method, funAnnotation.docs());
         functions.put(funMeta.fullyQualifiedName(), funMeta);
         libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
@@ -332,7 +332,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
         @Override
         public String getCodeTemplate(String alias) {
-            var sb = new StringBuilder();
+            final var sb = new StringBuilder();
             sb.append(alias);
             appendParameterList(sb, 0, this::getParameterName);
             if (getNumberOfParameters() == 0)
@@ -342,7 +342,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
         @Override
         public String getDocumentationCodeTemplate(String alias) {
-            var sb = new StringBuilder();
+            final var sb = new StringBuilder();
             sb.append(alias);
             appendParameterList(sb, 0, this::describeParameterForDocumentation);
             if (getNumberOfParameters() == 0)
@@ -371,7 +371,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
     @Override
     public Map<String, JsonNode> getFunctionSchemas() {
-        var schemas = new HashMap<String, JsonNode>();
+        final var schemas = new HashMap<String, JsonNode>();
         for (var entry : functions.entrySet()) {
             schemas.put(entry.getKey(), entry.getValue().functionSchema);
         }
@@ -385,9 +385,9 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
     @Override
     public Map<String, String> getDocumentedCodeTemplates() {
-        var documentedCodeTemplates = new HashMap<String, String>();
+        final var documentedCodeTemplates = new HashMap<String, String>();
         for (var entry : functions.entrySet()) {
-            var documentationCodeTemplate = entry.getValue().getDocumentationCodeTemplate();
+            final var documentationCodeTemplate = entry.getValue().getDocumentationCodeTemplate();
             for (var library : documentation) {
                 documentedCodeTemplates.putIfAbsent(library.name, library.description);
                 Optional.ofNullable(library.getDocumentation().get(documentationCodeTemplate)).ifPresent(template -> {

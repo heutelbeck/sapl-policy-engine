@@ -240,7 +240,7 @@ public class MockingAttributeContext implements AttributeContext {
         String   pipName       = split[0];
         String   attributeName = split[1];
 
-        var existingDoc = this.pipDocumentations.get(pipName);
+        final var existingDoc = this.pipDocumentations.get(pipName);
         if (existingDoc != null) {
             existingDoc.getDocumentation().put(attributeName, "Mocked Attribute");
         } else {

@@ -44,8 +44,8 @@ public class AttributeFinderMetadata implements LibraryEntryMetadata {
 
     @Override
     public String getDocumentationCodeTemplate(String alias) {
-        var sb                             = new StringBuilder();
-        var indexOfParameterBeingDescribed = 0;
+        final var sb                             = new StringBuilder();
+        var       indexOfParameterBeingDescribed = 0;
 
         if (!isEnvironmentAttribute())
             sb.append(describeParameterForDocumentation(indexOfParameterBeingDescribed++)).append('.');

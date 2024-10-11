@@ -95,11 +95,13 @@ public class FilterFunctionLibrary {
     @Function(docs = BLACKEN_DOC)
     public static Val blacken(Val... parameters) {
         validateNumberOfParametersIsNotLongerThanMaximalAllowedNumberOfParameters(parameters);
-        var originalString = extractOriginalTextFromParameters(parameters);
-        var replacement    = extractReplacementStringFromParametersOrUseDefault(parameters);
-        var discloseRight  = extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(parameters);
-        var discloseLeft   = extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(parameters);
-        var blackenLength  = extractLengthOfBlackenOrUseDefault(parameters);
+        final var originalString = extractOriginalTextFromParameters(parameters);
+        final var replacement    = extractReplacementStringFromParametersOrUseDefault(parameters);
+        final var discloseRight  = extractNumberOfCharactersToDiscloseOnTheRightSideFromParametersOrUseDefault(
+                parameters);
+        final var discloseLeft   = extractNumberOfCharactersToDiscloseOnTheLeftSideFromParametersOrUseDefault(
+                parameters);
+        final var blackenLength  = extractLengthOfBlackenOrUseDefault(parameters);
         return blacken(originalString, replacement, discloseRight, discloseLeft, blackenLength);
     }
 

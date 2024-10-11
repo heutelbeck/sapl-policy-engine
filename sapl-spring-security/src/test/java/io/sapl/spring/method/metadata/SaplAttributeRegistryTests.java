@@ -31,8 +31,8 @@ class SaplAttributeRegistryTests {
 
     @Test
     void whenInspectedIsObject_ThenReturnsEmptyCollection() {
-        var sut = new SaplAttributeRegistry();
-        var mi  = MethodInvocationUtils.createFromClass(Object.class, "toString");
+        final var sut = new SaplAttributeRegistry();
+        final var mi  = MethodInvocationUtils.createFromClass(Object.class, "toString");
         assertThat(sut.getAllSaplAttributes(mi), anEmptyMap());
     }
 
@@ -46,8 +46,8 @@ class SaplAttributeRegistryTests {
             }
         }
 
-        var sut = new SaplAttributeRegistry();
-        var mi  = MethodInvocationUtils.createFromClass(NoAnnotations.class, "doSomething");
+        final var sut = new SaplAttributeRegistry();
+        final var mi  = MethodInvocationUtils.createFromClass(NoAnnotations.class, "doSomething");
         assertThat(sut.getAllSaplAttributes(mi), anEmptyMap());
     }
 
@@ -255,9 +255,9 @@ class SaplAttributeRegistryTests {
     }
 
     private void expectSubjectExpressionStringInAttribute(Class<?> clazz, String expectedExpressionString) {
-        var sut        = new SaplAttributeRegistry();
-        var mi         = MethodInvocationUtils.createFromClass(clazz, "doSomething");
-        var attributes = sut.getAllSaplAttributes(mi);
+        final var sut        = new SaplAttributeRegistry();
+        final var mi         = MethodInvocationUtils.createFromClass(clazz, "doSomething");
+        final var attributes = sut.getAllSaplAttributes(mi);
         assertThat(attributes, hasValue(is(pojo(SaplAttribute.class).where("subjectExpression",
                 is(pojo(Expression.class).where("getExpressionString", is(expectedExpressionString)))))));
     }

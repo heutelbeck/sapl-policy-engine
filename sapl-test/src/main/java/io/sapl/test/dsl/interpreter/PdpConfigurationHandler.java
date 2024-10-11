@@ -54,7 +54,7 @@ public class PdpConfigurationHandler {
     }
 
     private Map<String, Val> packageJsonNodesInVal(Map<String, JsonNode> originalMap) {
-        var newMap = new HashMap<String, Val>();
+        final var newMap = new HashMap<String, Val>();
         originalMap.forEach((key, json) -> newMap.put(key, Val.of(json)));
         return newMap;
     }

@@ -39,7 +39,7 @@ class TreeNavigatorHelperTests {
 
     @Test
     void test_goToFirstParent_classTypeIsNull_throwsIllegalArgumentException() {
-        var testObject = new TestEObject();
+        final var testObject = new TestEObject();
         assertThrows(IllegalArgumentException.class, () -> TreeNavigationUtil.goToFirstParent(testObject, null));
     }
 
@@ -51,8 +51,8 @@ class TreeNavigatorHelperTests {
 
     @Test
     void test_goToFirstParent_objectHasRequestedClass_returnsObject() {
-        var    expectedObject = new TestEObject();
-        Object result         = TreeNavigationUtil.goToFirstParent(expectedObject, TestEObject.class);
+        final var expectedObject = new TestEObject();
+        Object    result         = TreeNavigationUtil.goToFirstParent(expectedObject, TestEObject.class);
         assertSame(expectedObject, result);
     }
 
@@ -63,7 +63,7 @@ class TreeNavigatorHelperTests {
 
     @Test
     void test_goToLastParent_classTypeIsNull_throwsIllegalArgumentException() {
-        var testObject = new TestEObject();
+        final var testObject = new TestEObject();
         assertThrows(IllegalArgumentException.class, () -> TreeNavigationUtil.goToLastParent(testObject, null));
     }
 
@@ -75,8 +75,8 @@ class TreeNavigatorHelperTests {
 
     @Test
     void test_goToLastParent_objectHasRequestedClass_returnsObject() {
-        var    expectedObject = new TestEObject();
-        Object result         = TreeNavigationUtil.goToLastParent(expectedObject, TestEObject.class);
+        final var expectedObject = new TestEObject();
+        Object    result         = TreeNavigationUtil.goToLastParent(expectedObject, TestEObject.class);
         assertSame(expectedObject, result);
     }
 

@@ -38,16 +38,16 @@ public class ErrorFactory {
         if (errorSource == null) {
             return Val.error(SaplError.of(formattedMessage));
         }
-        var nodeSet = NodeModelUtils.getNode(errorSource);
+        final var nodeSet = NodeModelUtils.getNode(errorSource);
         if (nodeSet == null) {
             return Val.error(SaplError.of(formattedMessage));
         }
-        var    start          = nodeSet.getOffset();
-        var    end            = nodeSet.getEndOffset();
-        var    row            = nodeSet.getStartLine();
-        var    root           = nodeSet.getRootNode();
-        var    documentSource = root.getText();
-        String documentName   = null;
+        final var start          = nodeSet.getOffset();
+        final var end            = nodeSet.getEndOffset();
+        final var row            = nodeSet.getStartLine();
+        final var root           = nodeSet.getRootNode();
+        final var documentSource = root.getText();
+        String    documentName   = null;
         if (root.getSemanticElement() instanceof SAPL sapl) {
             documentName = sapl.getPolicyElement().getSaplName();
         }
@@ -69,7 +69,7 @@ public class ErrorFactory {
     }
 
     public static Val causeOrMessage(EObject location, Throwable t) {
-        var cause = t.getCause();
+        final var cause = t.getCause();
         return error(location, Objects.requireNonNullElse(cause, t).getMessage());
     }
 

@@ -45,7 +45,7 @@ public class CoverageAPIFactory {
      * @return {@link CoverageHitRecorder}
      */
     public static CoverageHitRecorder constructCoverageHitRecorder(Path basedir) {
-        var recorder = new CoverageHitAPIFile(basedir);
+        final var recorder = new CoverageHitAPIFile(basedir);
         recorder.createCoverageHitFiles();
         return recorder;
     }

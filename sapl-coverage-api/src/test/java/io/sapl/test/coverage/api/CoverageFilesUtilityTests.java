@@ -36,9 +36,9 @@ class CoverageFilesUtilityTests {
 
     @Test
     void test_DirectoryNotEmptyException(@TempDir Path tempDir) throws IOException {
-        var reader          = CoverageAPIFactory.constructCoverageHitReader(tempDir);
-        var pathToErrorFile = tempDir.resolve("hits").resolve("_policySetHits.txt").resolve("test.txt");
-        var parent          = pathToErrorFile.getParent();
+        final var reader          = CoverageAPIFactory.constructCoverageHitReader(tempDir);
+        final var pathToErrorFile = tempDir.resolve("hits").resolve("_policySetHits.txt").resolve("test.txt");
+        final var parent          = pathToErrorFile.getParent();
         if (null != parent) {
             Files.createDirectories(parent);
             Files.createFile(pathToErrorFile);
@@ -48,8 +48,8 @@ class CoverageFilesUtilityTests {
 
     @Test
     void test_FileAlreadyExists(@TempDir Path tempDir) throws IOException {
-        Path pathToErrorFile = tempDir.resolve("hits").resolve("_policySetHits.txt");
-        var  parent          = pathToErrorFile.getParent();
+        Path      pathToErrorFile = tempDir.resolve("hits").resolve("_policySetHits.txt");
+        final var parent          = pathToErrorFile.getParent();
         if (null != parent) {
             Files.createDirectories(parent);
             Files.createFile(pathToErrorFile);
@@ -97,8 +97,8 @@ class CoverageFilesUtilityTests {
         when(path.getParent()).thenReturn(null);
         when(path.resolve(Mockito.anyString())).thenReturn(path).thenReturn(null).thenReturn(path).thenReturn(null)
                 .thenReturn(path).thenReturn(null);
-        var recorder = new CoverageHitAPIFile(path);
-        var hit      = new PolicySetHit("");
+        final var recorder = new CoverageHitAPIFile(path);
+        final var hit      = new PolicySetHit("");
         assertThrows(NullPointerException.class, () -> recorder.recordPolicySetHit(hit));
     }
 

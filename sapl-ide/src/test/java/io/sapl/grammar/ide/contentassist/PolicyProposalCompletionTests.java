@@ -31,7 +31,7 @@ class PolicyProposalCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("\"\"");
+                final var expected = List.of("\"\"");
                 assertProposalsSimple(expected, completionList);
             });
         });

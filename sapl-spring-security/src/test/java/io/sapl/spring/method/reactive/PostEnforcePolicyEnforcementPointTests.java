@@ -115,7 +115,7 @@ class PostEnforcePolicyEnforcementPointTests {
         mapper.registerModule(module);
         subscriptionBuilderService = new WebfluxAuthorizationSubscriptionBuilderService(
                 new DefaultMethodSecurityExpressionHandler(), mapper);
-        var testClass = new TestClass();
+        final var testClass = new TestClass();
         resourceAccessPoint = testClass.publicInteger();
         invocation          = MethodInvocationUtils.createFromClass(testClass, TestClass.class, "publicInteger", null,
                 null);
@@ -143,12 +143,13 @@ class PostEnforcePolicyEnforcementPointTests {
 
     @Test
     void when_Deny_ErrorIsRaisedAndStreamCompleteEvenWithOnErrorContinue() {
-        var constraintsService = buildConstraintHandlerService();
-        var decisions          = Flux.just(AuthorizationDecision.DENY);
+        final var constraintsService = buildConstraintHandlerService();
+        final var decisions          = Flux.just(AuthorizationDecision.DENY);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-        var onErrorContinue = errorAndCauseConsumer();
-        var doOnError       = errorConsumer();
-        var sut             = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+        final var onErrorContinue = errorAndCauseConsumer();
+        final var doOnError       = errorConsumer();
+        final var sut             = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService,
+                subscriptionBuilderService)
                 .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute);
 
         StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
@@ -160,10 +161,10 @@ class PostEnforcePolicyEnforcementPointTests {
 
     @Test
     void when_Permit_AccessIsGranted() {
-        var constraintsService = buildConstraintHandlerService();
-        var decisions          = Flux.just(AuthorizationDecision.PERMIT);
+        final var constraintsService = buildConstraintHandlerService();
+        final var decisions          = Flux.just(AuthorizationDecision.PERMIT);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-        var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+        final var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
                 .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
                 .cast(Integer.class);
         StepVerifier.create(sut).expectNext(420).verifyComplete();
@@ -171,7 +172,7 @@ class PostEnforcePolicyEnforcementPointTests {
 
     @Test
     void when_PermitWithObligations_and_allObligationsSucceed_then_AccessIsGranted() {
-        var handler = spy(new SubscriptionHandlerProvider() {
+        final var handler = spy(new SubscriptionHandlerProvider() {
 
             @Override
             public boolean isResponsible(JsonNode constraint) {
@@ -189,10 +190,10 @@ class PostEnforcePolicyEnforcementPointTests {
 
         });
         this.globalSubscriptionHandlerProviders.add(handler);
-        var constraintsService = buildConstraintHandlerService();
-        var decisions          = decisionFluxOnePermitWithObligation();
+        final var constraintsService = buildConstraintHandlerService();
+        final var decisions          = decisionFluxOnePermitWithObligation();
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-        var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+        final var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
                 .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
                 .cast(Integer.class);
 
@@ -203,7 +204,7 @@ class PostEnforcePolicyEnforcementPointTests {
 
     @Test
     void when_PermitWithObligations_then_ObligationsAreApplied_and_AccessIsGranted() {
-        var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
+        final var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
             @Override
             public boolean isResponsible(JsonNode constraint) {
@@ -221,10 +222,10 @@ class PostEnforcePolicyEnforcementPointTests {
             }
         });
         this.globalMappingHandlerProviders.add(handler);
-        var constraintsService = buildConstraintHandlerService();
-        var decisions          = decisionFluxOnePermitWithObligation();
+        final var constraintsService = buildConstraintHandlerService();
+        final var decisions          = decisionFluxOnePermitWithObligation();
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-        var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+        final var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
                 .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
                 .cast(Integer.class);
 
@@ -235,7 +236,7 @@ class PostEnforcePolicyEnforcementPointTests {
 
     @Test
     void when_PermitWithObligations_and_oneObligationFails_thenAccessIsDeniedOnFailure() {
-        var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
+        final var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
             @Override
             public boolean isResponsible(JsonNode constraint) {
@@ -255,12 +256,13 @@ class PostEnforcePolicyEnforcementPointTests {
             }
         });
         this.globalMappingHandlerProviders.add(handler);
-        var constraintsService = buildConstraintHandlerService();
-        var decisions          = decisionFluxOnePermitWithObligation();
+        final var constraintsService = buildConstraintHandlerService();
+        final var decisions          = decisionFluxOnePermitWithObligation();
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-        var onErrorContinue = errorAndCauseConsumer();
-        var doOnError       = errorConsumer();
-        var sut             = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+        final var onErrorContinue = errorAndCauseConsumer();
+        final var doOnError       = errorConsumer();
+        final var sut             = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService,
+                subscriptionBuilderService)
                 .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute);
 
         StepVerifier.create(sut.doOnError(doOnError).onErrorContinue(onErrorContinue))
@@ -272,7 +274,7 @@ class PostEnforcePolicyEnforcementPointTests {
 
     @Test
     void when_PermitWithResource_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
-        var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
+        final var handler = spy(new MappingConstraintHandlerProvider<Integer>() {
 
             @Override
             public boolean isResponsible(JsonNode constraint) {
@@ -290,16 +292,16 @@ class PostEnforcePolicyEnforcementPointTests {
             }
         });
         this.globalMappingHandlerProviders.add(handler);
-        var constraintsService = buildConstraintHandlerService();
-        var obligations        = JSON.arrayNode();
+        final var constraintsService = buildConstraintHandlerService();
+        final var obligations        = JSON.arrayNode();
         obligations.add(JSON.numberNode(-69));
-        var decisions       = Flux
+        final var decisions       = Flux
                 .just(AuthorizationDecision.PERMIT.withObligations(obligations).withResource(JSON.numberNode(69)));
-        var onErrorContinue = errorAndCauseConsumer();
-        var doOnError       = errorConsumer();
+        final var onErrorContinue = errorAndCauseConsumer();
+        final var doOnError       = errorConsumer();
 
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-        var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+        final var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
                 .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
                 .cast(Integer.class);
 
@@ -312,14 +314,14 @@ class PostEnforcePolicyEnforcementPointTests {
     @Test
     void when_PermitWithResource_and_typeMismatch_thenAccessIsGrantedAndOnlyResourceFromPolicyInStream() {
 
-        var constraintsService = buildConstraintHandlerService();
-        var decisions          = Flux
+        final var constraintsService = buildConstraintHandlerService();
+        final var decisions          = Flux
                 .just(AuthorizationDecision.PERMIT.withResource(JSON.textNode("I CAUSE A TYPE MISMATCH")));
-        var onErrorContinue    = errorAndCauseConsumer();
-        var doOnError          = errorConsumer();
+        final var onErrorContinue    = errorAndCauseConsumer();
+        final var doOnError          = errorConsumer();
 
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(decisions);
-        var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
+        final var sut = new PostEnforcePolicyEnforcementPoint(pdp, constraintsService, subscriptionBuilderService)
                 .postEnforceOneDecisionOnResourceAccessPoint(resourceAccessPoint, invocation, defaultAttribute)
                 .doOnError(doOnError).onErrorContinue(onErrorContinue).cast(Integer.class);
 
@@ -330,8 +332,8 @@ class PostEnforcePolicyEnforcementPointTests {
     }
 
     public Flux<AuthorizationDecision> decisionFluxOnePermitWithObligation() {
-        var plus10000  = JSON.numberNode(10000L);
-        var obligation = JSON.arrayNode();
+        final var plus10000  = JSON.numberNode(10000L);
+        final var obligation = JSON.arrayNode();
         obligation.add(plus10000);
         return Flux.just(AuthorizationDecision.PERMIT.withObligations(obligation));
     }

@@ -85,7 +85,7 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
 
     public EditSaplDocumentView(SaplDocumentService saplDocumentService) {
         this.saplDocumentService = saplDocumentService;
-        var saplConfig = new SaplEditorConfiguration();
+        final var saplConfig = new SaplEditorConfiguration();
         saplConfig.setHasLineNumbers(true);
         saplConfig.setTextUpdateDelay(500);
         saplConfig.setDarkTheme(true);
@@ -93,11 +93,11 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
         this.saplEditor.addClassName("sapl-editor");
         this.setSizeFull();
         this.setHeightFull();
-        var metadataRowOne   = new HorizontalLayout(policyIdField, currentVersionField, lastModifiedField);
-        var metadataRowTwo   = new HorizontalLayout(publishedVersionField, publishedNameField);
-        var metadataRowThree = new HorizontalLayout(versionSelection, publishButton, unpublishButton);
+        final var metadataRowOne   = new HorizontalLayout(policyIdField, currentVersionField, lastModifiedField);
+        final var metadataRowTwo   = new HorizontalLayout(publishedVersionField, publishedNameField);
+        final var metadataRowThree = new HorizontalLayout(versionSelection, publishButton, unpublishButton);
         metadataRowThree.setAlignItems(Alignment.BASELINE);
-        var editActionsRow = new HorizontalLayout(saveVersionButton, cancelButton);
+        final var editActionsRow = new HorizontalLayout(saveVersionButton, cancelButton);
         editActionsRow.setWidthFull();
         editActionsRow.setJustifyContentMode(JustifyContentMode.END);
         add(metadataRowOne, metadataRowTwo, metadataRowThree, saplEditor, editActionsRow);
@@ -143,7 +143,7 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
                 return;
             }
 
-            var document = saplEditor.getDocument();
+            final var document = saplEditor.getDocument();
 
             if (selectedSaplDocumentVersion != null
                     && selectedSaplDocumentVersion.getDocumentContent().equals(document)) {

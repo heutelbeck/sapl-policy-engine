@@ -61,8 +61,8 @@ public class IndexStepImplCustom extends IndexStepImpl {
         if (!parentValue.isArray()) {
             return ErrorFactory.error(this, TYPE_MISMATCH_S_ERROR, parentValue);
         }
-        var array = parentValue.getArrayNode();
-        var idx   = normalizeIndex(index, array);
+        final var array = parentValue.getArrayNode();
+        final var idx   = normalizeIndex(index, array);
         if (idx < 0 || idx >= array.size()) {
             return ErrorFactory.error(this, INDEX_OUT_OF_BOUNDS_D_D_ERROR, array.size(), idx);
         }
@@ -71,7 +71,7 @@ public class IndexStepImplCustom extends IndexStepImpl {
 
     private static int normalizeIndex(BigDecimal index, TreeNode array) {
         // handle negative index values
-        var idx = index.intValue();
+        final var idx = index.intValue();
         return idx < 0 ? array.size() + idx : idx;
     }
 
@@ -87,17 +87,17 @@ public class IndexStepImplCustom extends IndexStepImpl {
             return Flux.just(parentValue.withTrace(IndexStep.class, true,
                     Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(index))));
         }
-        var array = parentValue.getArrayNode();
-        var idx   = normalizeIndex(index, array);
+        final var array = parentValue.getArrayNode();
+        final var idx   = normalizeIndex(index, array);
         if (idx < 0 || idx >= array.size()) {
             // this means the element does not get selected does not get filtered
             return Flux.just(parentValue.withTrace(IndexStep.class, true,
                     Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(index))));
         }
-        var elementFluxes = new ArrayList<Flux<Val>>(array.size());
+        final var elementFluxes = new ArrayList<Flux<Val>>(array.size());
         for (var i = 0; i < array.size(); i++) {
-            var element = Val.of(array.get(i)).withTrace(IndexStep.class, true, Map.of(Trace.PARENT_VALUE, parentValue,
-                    Trace.ELEMENT_INDEX, Val.of(i), Trace.SELECTED_INDEX, Val.of(index)));
+            final var element = Val.of(array.get(i)).withTrace(IndexStep.class, true, Map.of(Trace.PARENT_VALUE,
+                    parentValue, Trace.ELEMENT_INDEX, Val.of(i), Trace.SELECTED_INDEX, Val.of(index)));
             if (i == idx) {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter

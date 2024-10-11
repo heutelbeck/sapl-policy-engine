@@ -97,7 +97,8 @@ public class SecurityConfiguration {
                 log.warn(
                         "No API keys for clients defined. Please set: 'io.sapl.server-lt.key.allowedApiKeys'. With a list of valid keys.");
             }
-            var customAuthenticationWebFilter = new AuthenticationWebFilter(new ApiKeyReactiveAuthenticationManager());
+            final var customAuthenticationWebFilter = new AuthenticationWebFilter(
+                    new ApiKeyReactiveAuthenticationManager());
             customAuthenticationWebFilter
                     .setServerAuthenticationConverter(apiKeyService.getHttpApiKeyAuthenticationConverter());
             http = http.addFilterAt(customAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);
@@ -141,17 +142,17 @@ public class SecurityConfiguration {
         if (!pdpProperties.isAllowBasicAuth()) {
             return null;
         }
-        var key = pdpProperties.getKey();
+        final var key = pdpProperties.getKey();
         if (key == null) {
             throw new IllegalStateException(
                     "If Basic authentication is active, a client key must be supplied. Please set: 'io.sapl.server-lt.key'.");
         }
-        var secret = pdpProperties.getSecret();
+        final var secret = pdpProperties.getSecret();
         if (secret == null) {
             throw new IllegalStateException(
                     "If Basic authentication is active, a client secret must be supplied. Please set: 'io.sapl.server-lt.secret'. As a BCrypt encoded secret.");
         }
-        var client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
+        final var client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
         return new MapReactiveUserDetailsService(client);
     }
 
@@ -162,7 +163,7 @@ public class SecurityConfiguration {
      */
     @Bean
     RSocketMessageHandler rsocketMessageHandler(RSocketStrategies rSocketStrategies) {
-        var rSocketMessageHandler = new RSocketMessageHandler();
+        final var rSocketMessageHandler = new RSocketMessageHandler();
         rSocketMessageHandler.getArgumentResolverConfigurer()
                 .addCustomResolver(new AuthenticationPrincipalArgumentResolver());
         rSocketMessageHandler.setRSocketStrategies(rSocketStrategies);
@@ -210,18 +211,20 @@ public class SecurityConfiguration {
             jwtManager = new JwtReactiveAuthenticationManager(ReactiveJwtDecoders.fromIssuerLocation(jwtIssuerURI));
         }
 
-        var finalSimpleManager = simpleManager;
-        var finalJwtManager    = jwtManager;
-        var auth               = new AuthenticationPayloadInterceptor(a -> {
-                                   if (finalSimpleManager != null && a instanceof UsernamePasswordAuthenticationToken) {
-                                       return finalSimpleManager.authenticate(a);
-                                   } else if (finalJwtManager != null && a instanceof BearerTokenAuthenticationToken) {
-                                       return finalJwtManager.authenticate(a);
-                                   } else {
-                                       throw new IllegalArgumentException(
-                                               "Unsupported Authentication Type " + a.getClass().getSimpleName());
-                                   }
-                               });
+        final var finalSimpleManager = simpleManager;
+        final var finalJwtManager    = jwtManager;
+        final var auth               = new AuthenticationPayloadInterceptor(a -> {
+                                         if (finalSimpleManager != null
+                                                 && a instanceof UsernamePasswordAuthenticationToken) {
+                                             return finalSimpleManager.authenticate(a);
+                                         } else if (finalJwtManager != null
+                                                 && a instanceof BearerTokenAuthenticationToken) {
+                                             return finalJwtManager.authenticate(a);
+                                         } else {
+                                             throw new IllegalArgumentException(
+                                                     "Unsupported Authentication Type " + a.getClass().getSimpleName());
+                                         }
+                                     });
         auth.setAuthenticationConverter(new AuthenticationPayloadExchangeConverter());
         auth.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
         security.addPayloadInterceptor(auth);

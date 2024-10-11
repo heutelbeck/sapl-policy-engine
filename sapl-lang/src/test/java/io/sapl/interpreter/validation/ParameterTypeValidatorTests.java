@@ -79,16 +79,17 @@ class ParameterTypeValidatorTests {
 	// @formatter:on
 
     static Collection<ValidationTestSpecification> data() {
-        var testData = new LinkedList<ValidationTestSpecification>();
+        final var testData = new LinkedList<ValidationTestSpecification>();
         for (var testCase : TEST_CASES.entrySet()) {
-            var           givenValue                          = testCase.getKey();
+            final var     givenValue                          = testCase.getKey();
             Set<Class<?>> annotationsImplyingValidityForGiven = Stream.of(testCase.getValue())
                     .collect(Collectors.toCollection(HashSet::new));
             for (var givenAnnotations : ANOTATION_POWERSET) {
-                var intersection                      = Sets.intersection(annotationsImplyingValidityForGiven,
+                final var intersection                      = Sets.intersection(annotationsImplyingValidityForGiven,
                         givenAnnotations);
-                var givenWithoutUnrelated             = Sets.difference(givenAnnotations, UNRELATED_ANNOTATIONS);
-                var expectedToBeSuccessfullyValidated = givenWithoutUnrelated.isEmpty() || !intersection.isEmpty();
+                final var givenWithoutUnrelated             = Sets.difference(givenAnnotations, UNRELATED_ANNOTATIONS);
+                final var expectedToBeSuccessfullyValidated = givenWithoutUnrelated.isEmpty()
+                        || !intersection.isEmpty();
                 testData.add(new ValidationTestSpecification(givenValue, givenAnnotations,
                         expectedToBeSuccessfullyValidated));
             }
@@ -99,7 +100,7 @@ class ParameterTypeValidatorTests {
     @ParameterizedTest
     @MethodSource("data")
     void theGivenValue_YieldsExpectedValidation(ValidationTestSpecification testSpec) {
-        var parameter = mockParameter(testSpec.getGivenAnnotations());
+        final var parameter = mockParameter(testSpec.getGivenAnnotations());
         if (testSpec.expectedToBeSuccessfullyValidated)
             assertDoesNotThrow(() -> validateType(testSpec.getGivenValue(), parameter));
         else
@@ -107,12 +108,12 @@ class ParameterTypeValidatorTests {
     }
 
     private static Parameter mockParameter(Set<Class<?>> annotationClasses) {
-        var parameter         = mock(Parameter.class);
-        var mockedAnnotations = new ArrayList<Annotation>(annotationClasses.size());
+        final var parameter         = mock(Parameter.class);
+        final var mockedAnnotations = new ArrayList<Annotation>(annotationClasses.size());
         for (var clazz : annotationClasses) {
             mockedAnnotations.add((Annotation) mock(clazz));
         }
-        var annotationArray = mockedAnnotations.toArray();
+        final var annotationArray = mockedAnnotations.toArray();
         when(parameter.getAnnotations())
                 .thenReturn(Arrays.copyOf(annotationArray, annotationArray.length, Annotation[].class));
         return parameter;

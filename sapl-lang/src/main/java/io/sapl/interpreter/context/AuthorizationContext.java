@@ -94,7 +94,7 @@ public class AuthorizationContext {
     public static Context setVariables(@NonNull Context ctx, Map<String, Val> environmentVariables) {
         Map<String, Val> variables = new HashMap<>(ctx.getOrDefault(VARIABLES, new HashMap<>()));
         for (var variable : environmentVariables.entrySet()) {
-            var name = variable.getKey();
+            final var name = variable.getKey();
             assertVariableNameNotReserved(name);
             variables.put(name, variable.getValue());
         }
@@ -150,7 +150,7 @@ public class AuthorizationContext {
     }
 
     public static Val getVariable(ContextView ctx, String name) {
-        var value = getVariables(ctx).get(name);
+        final var value = getVariables(ctx).get(name);
         if (value == null)
             return Val.UNDEFINED;
         return value;

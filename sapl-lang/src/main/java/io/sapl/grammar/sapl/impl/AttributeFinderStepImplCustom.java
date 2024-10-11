@@ -49,7 +49,7 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
     public Flux<Val> apply(@NonNull Val parentValue) {
 
         return Flux.deferContextual(ctxView -> {
-            var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdentifier(), getImports(ctxView));
+            final var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdentifier(), getImports(ctxView));
 
             if (parentValue.isError()) {
                 return Flux.just(parentValue.withTrace(AttributeFinderStep.class, false,
@@ -65,8 +65,8 @@ public class AttributeFinderStepImplCustom extends AttributeFinderStepImpl {
                         false, Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
             }
 
-            var attributeContext = getAttributeContext(ctxView);
-            var variables        = getVariables(ctxView);
+            final var attributeContext = getAttributeContext(ctxView);
+            final var variables        = getVariables(ctxView);
             // @formatter:off
 			return attributeContext
 					.evaluateAttribute(this, attributeName, parentValue, getArguments(), variables)

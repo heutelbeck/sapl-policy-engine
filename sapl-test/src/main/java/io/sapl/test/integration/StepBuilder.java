@@ -87,22 +87,22 @@ public class StepBuilder {
 
         @Override
         protected void createStepVerifier(AuthorizationSubscription authzSub) {
-            var prpSource             = new PolicyRetrievalPointSource() {
+            final var prpSource             = new PolicyRetrievalPointSource() {
 
-                                          @Override
-                                          public void dispose() {
-                                              // NOOP
-                                          }
+                                                @Override
+                                                public void dispose() {
+                                                    // NOOP
+                                                }
 
-                                          @Override
-                                          public Flux<PolicyRetrievalPoint> policyRetrievalPoint() {
-                                              return Flux.just(prp);
-                                          }
-                                      };
-            var configurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(
+                                                @Override
+                                                public Flux<PolicyRetrievalPoint> policyRetrievalPoint() {
+                                                    return Flux.just(prp);
+                                                }
+                                            };
+            final var configurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(
                     this.mockingAttributeContext, this.mockingFunctionContext, this.pdpConfig, List.of(), List.of(),
                     prpSource);
-            var pdp                   = new EmbeddedPolicyDecisionPoint(configurationProvider);
+            final var pdp                   = new EmbeddedPolicyDecisionPoint(configurationProvider);
 
             if (this.withVirtualTime) {
                 this.steps = StepVerifier.withVirtualTime(() -> pdp.decide(authzSub));
@@ -111,7 +111,7 @@ public class StepBuilder {
             }
 
             for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
-                var fullName = mock.getFullName();
+                final var fullName = mock.getFullName();
                 for (Val val : mock.getMockReturnValues()) {
                     this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullName, val));
                 }

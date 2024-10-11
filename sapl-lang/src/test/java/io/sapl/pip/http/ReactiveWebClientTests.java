@@ -68,7 +68,7 @@ class ReactiveWebClientTests {
     }
 
     private Val defaultRequest(String mimeType) throws JsonProcessingException {
-        var template = """
+        final var template = """
                 {
                     "baseUrl" : "%s",
                     "accept" : "%s",
@@ -83,8 +83,8 @@ class ReactiveWebClientTests {
     void testGet() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        var response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(Val::toString);
+        final var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
+        final var response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(Val::toString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
     }
 
@@ -92,7 +92,7 @@ class ReactiveWebClientTests {
     void when_UrlParamsAndHeaders_then_paramsAndHeadersInReqest() throws JsonProcessingException, InterruptedException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        var template        = """
+        final var template        = """
                 {
                     "baseUrl" : "%s",
                     "path" : "rainbow",
@@ -108,13 +108,13 @@ class ReactiveWebClientTests {
                     }
                 }
                 """;
-        var httpTestRequest = Val.ofJson(String.format(template, baseUrl, MediaType.APPLICATION_JSON_VALUE));
+        final var httpTestRequest = Val.ofJson(String.format(template, baseUrl, MediaType.APPLICATION_JSON_VALUE));
         clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(Val::toString).blockFirst();
-        var recordedRequest = mockBackEnd.takeRequest(1, TimeUnit.SECONDS);
-        var url             = recordedRequest.getRequestUrl().toString();
-        var headers         = recordedRequest.getHeaders().toMultimap();
+        final var recordedRequest = mockBackEnd.takeRequest(1, TimeUnit.SECONDS);
+        final var url             = recordedRequest.getRequestUrl().toString();
+        final var headers         = recordedRequest.getHeaders().toMultimap();
 
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(url).contains("willi=wurst");
         sa.assertThat(url).contains("h%C3%A4nschen=klein");
         sa.assertThat(url).contains("rainbow?");
@@ -125,12 +125,12 @@ class ReactiveWebClientTests {
 
     @Test
     void when_httpError_then_valError() throws JsonProcessingException {
-        var mockResponse = new MockResponse().setResponseCode(500).setHeader("content-type", "application/json")
+        final var mockResponse = new MockResponse().setResponseCode(500).setHeader("content-type", "application/json")
                 .setBody("{}");
         mockBackEnd.enqueue(mockResponse);
         mockBackEnd.enqueue(mockResponse);
-        var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        var response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest);
+        final var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
+        final var response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest);
         // @formatter:off
         StepVerifier.create(response)
                     .expectNextMatches(this::isServerError)
@@ -145,25 +145,25 @@ class ReactiveWebClientTests {
 
     @Test
     void when_fetchingXML_then_isInTextVal() throws JsonProcessingException {
-        var minimalXML   = "<a/>";
-        var mockResponse = new MockResponse().setBody(minimalXML).addHeader("Content-Type",
+        final var minimalXML   = "<a/>";
+        final var mockResponse = new MockResponse().setBody(minimalXML).addHeader("Content-Type",
                 MediaType.APPLICATION_XML_VALUE);
         mockBackEnd.enqueue(mockResponse);
         mockBackEnd.enqueue(mockResponse);
-        var httpTestRequest = defaultRequest(MediaType.APPLICATION_XML_VALUE);
-        var response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(Val::getText);
+        final var httpTestRequest = defaultRequest(MediaType.APPLICATION_XML_VALUE);
+        final var response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(Val::getText);
         StepVerifier.create(response).expectNext(minimalXML).expectNext(minimalXML).expectComplete().verify();
     }
 
     @Test
     void when_returningXMLWhenExpectingJson_then_isInTextVal() throws JsonProcessingException {
-        var minimalXML   = "<a/>";
-        var mockResponse = new MockResponse().setBody(minimalXML).addHeader("Content-Type",
+        final var minimalXML   = "<a/>";
+        final var mockResponse = new MockResponse().setBody(minimalXML).addHeader("Content-Type",
                 MediaType.APPLICATION_XML_VALUE);
         mockBackEnd.enqueue(mockResponse);
         mockBackEnd.enqueue(mockResponse);
-        var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        var response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest);
+        final var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
+        final var response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest);
         StepVerifier.create(response).expectNextMatches(this::isContentTypeError)
                 .expectNextMatches(this::isContentTypeError).verifyComplete();
     }
@@ -176,15 +176,15 @@ class ReactiveWebClientTests {
     void when_pollingIntervallNotDefined_fallsBackToDefaultAndWorks() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        var template        = """
+        final var template        = """
                 {
                     "baseUrl" : "%s",
                     "accept" : "%s",
                     "repetitions" : 2
                 }
                 """;
-        var httpTestRequest = Val.ofJson(String.format(template, baseUrl, MediaType.APPLICATION_JSON_VALUE));
-        var response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(Val::toString);
+        final var httpTestRequest = Val.ofJson(String.format(template, baseUrl, MediaType.APPLICATION_JSON_VALUE));
+        final var response        = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(Val::toString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
     }
 
@@ -192,8 +192,8 @@ class ReactiveWebClientTests {
     void testPost() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        var response        = clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest).map(Val::toString);
+        final var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
+        final var response        = clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest).map(Val::toString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
     }
 
@@ -201,7 +201,7 @@ class ReactiveWebClientTests {
     void testPostWithBody() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        var template        = """
+        final var template        = """
                 {
                     "baseUrl" : "%s",
                     "body" : {
@@ -213,28 +213,28 @@ class ReactiveWebClientTests {
                     "repetitions" : 2
                 }
                 """;
-        var httpTestRequest = Val.ofJson(String.format(template, baseUrl));
-        var response        = clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest).map(Val::toString);
+        final var httpTestRequest = Val.ofJson(String.format(template, baseUrl));
+        final var response        = clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest).map(Val::toString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
     }
 
     @Test
     void when_intervallNotANumber_then_error() throws JsonProcessingException {
-        var template        = """
+        final var template        = """
                 {
                     "baseUrl" : "%s",
                     "accept" : "application/json",
                     "pollingIntervalMs" : null
                 }
                 """;
-        var httpTestRequest = Val.ofJson(String.format(template, baseUrl));
+        final var httpTestRequest = Val.ofJson(String.format(template, baseUrl));
         assertThatThrownBy(() -> clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest))
                 .hasMessage("pollingIntervalMs must be an integer in HTTP requestSpecification, but was: NULL");
     }
 
     @Test
     void when_noBaseUrl_thenError() {
-        var httpTestRequest = Val.ofEmptyObject();
+        final var httpTestRequest = Val.ofEmptyObject();
         assertThatThrownBy(() -> clientUnderTest.httpRequest(HttpMethod.POST, httpTestRequest))
                 .hasMessage(ReactiveWebClient.NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR);
     }
@@ -243,8 +243,8 @@ class ReactiveWebClientTests {
     void testPut() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        var response        = clientUnderTest.httpRequest(HttpMethod.PUT, httpTestRequest).map(Val::toString);
+        final var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
+        final var response        = clientUnderTest.httpRequest(HttpMethod.PUT, httpTestRequest).map(Val::toString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
     }
 
@@ -252,8 +252,8 @@ class ReactiveWebClientTests {
     void testPatch() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        var response        = clientUnderTest.httpRequest(HttpMethod.PATCH, httpTestRequest).map(Val::toString);
+        final var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
+        final var response        = clientUnderTest.httpRequest(HttpMethod.PATCH, httpTestRequest).map(Val::toString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
     }
 
@@ -261,18 +261,18 @@ class ReactiveWebClientTests {
     void testDelete() throws JsonProcessingException {
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
         mockBackEnd.enqueue(DEFAULT_RESPONSE);
-        var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
-        var response        = clientUnderTest.httpRequest(HttpMethod.DELETE, httpTestRequest).map(Val::toString);
+        final var httpTestRequest = defaultRequest(MediaType.APPLICATION_JSON_VALUE);
+        final var response        = clientUnderTest.httpRequest(HttpMethod.DELETE, httpTestRequest).map(Val::toString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectComplete().verify();
     }
 
     @Test
     void testSSE() throws JsonProcessingException {
-        var eventStream = "id:id1\nevent:event1\ndata:" + DEFAULT_BODY + "\n\n" + "id:id2\nevent:event2\ndata:"
+        final var eventStream = "id:id1\nevent:event1\ndata:" + DEFAULT_BODY + "\n\n" + "id:id2\nevent:event2\ndata:"
                 + DEFAULT_BODY + "\n\n" + "id:id3\nevent:event3\ndata:" + DEFAULT_BODY + "\n\n";
         mockBackEnd.enqueue(new MockResponse().setBody(eventStream).addHeader("Content-Type", "text/event-stream"));
 
-        var template        = """
+        final var template        = """
                 {
                     "baseUrl" : "%s",
                     "accept" : "text/event-stream",
@@ -280,9 +280,9 @@ class ReactiveWebClientTests {
                     "repetitions" : 2
                 }
                 """;
-        var httpTestRequest = Val.ofJson(String.format(template, baseUrl));
+        final var httpTestRequest = Val.ofJson(String.format(template, baseUrl));
 
-        var response = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(Val::toString);
+        final var response = clientUnderTest.httpRequest(HttpMethod.GET, httpTestRequest).map(Val::toString);
         StepVerifier.create(response).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY).expectNext(DEFAULT_BODY)
                 .expectComplete().verify();
     }

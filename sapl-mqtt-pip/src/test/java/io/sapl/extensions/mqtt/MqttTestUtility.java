@@ -77,9 +77,9 @@ class MqttTestUtility {
     }
 
     public static Mqtt5BlockingClient startClient() {
-        var mqttClient     = Mqtt5Client.builder().identifier(CLIENT_ID).serverHost(BROKER_HOST).serverPort(BROKER_PORT)
-                .buildBlocking();
-        var connAckMessage = mqttClient.connect();
+        final var mqttClient     = Mqtt5Client.builder().identifier(CLIENT_ID).serverHost(BROKER_HOST)
+                .serverPort(BROKER_PORT).buildBlocking();
+        final var connAckMessage = mqttClient.connect();
         if (connAckMessage.getReasonCode() != Mqtt5ConnAckReasonCode.SUCCESS) {
             throw new IllegalStateException(
                     "Connection to the mqtt broker couldn't be established:" + connAckMessage.getReasonCode());

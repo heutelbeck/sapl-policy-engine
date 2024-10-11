@@ -72,7 +72,7 @@ class StepsDefaultImplTests {
               resource == "heartBeatData"
             where
               subject == "ROLE_DOCTOR";
-              var interval = 2;
+              final var interval = 2;
               time.secondOf(<time.now(interval)>) > 4;""";
 
     private static final String POLICY_INDETERMINATE = """
@@ -90,27 +90,27 @@ class StepsDefaultImplTests {
 
     @Test
     void test_mockFunction_withParameters_withTimesVerification() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
         steps.givenFunction("time.dayOfWeek", whenFunctionParams(anyVal()), Val.of("SATURDAY"), times(1))
                 .when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
     }
 
     @Test
     void test_mockFunction_Function_withTimesVerification() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
         steps.givenFunction("time.dayOfWeek", call -> Val.of("SATURDAY"), times(1))
                 .when(AuthorizationSubscription.of("willi", "read", "something")).expectPermit().verify();
     }
 
     @Test
     void test_mockAttribute_withParentValue() {
-        var policyAttributeWithAttributeAsParentValue = """
+        final var policyAttributeWithAttributeAsParentValue = """
                 policy "policy"
                 permit
                 where
-                  var test = true;
+                  final var test = true;
                   test.<pip.attribute1>.<pip.attribute2> < 50;""";
-        var steps                                     = new StepsDefaultImplTestsImpl(
+        final var steps                                     = new StepsDefaultImplTestsImpl(
                 policyAttributeWithAttributeAsParentValue, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1", Val.of(true), Val.of(false))
                 .givenAttribute("pip.attribute2", parentValue(val(true)), thenReturn(Val.of(0)))
@@ -121,13 +121,13 @@ class StepsDefaultImplTests {
 
     @Test
     void test_mockAttribute_withParentValueAndArguments() {
-        var policyAttributeWithAttributeAsParentValueAndArguments = """
+        final var policyAttributeWithAttributeAsParentValueAndArguments = """
                 policy "policy"
                 permit
                 where
-                  var parentValue = true;
+                  final var parentValue = true;
                   parentValue.<pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;""";
-        var steps                                                 = new StepsDefaultImplTestsImpl(
+        final var steps                                                 = new StepsDefaultImplTestsImpl(
                 policyAttributeWithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
                 .givenAttribute("pip.attributeWithParams",
@@ -147,13 +147,13 @@ class StepsDefaultImplTests {
 
     @Test
     void test_mockAttribute_withParentValueAndArguments_ForEnvironmentAttribute() {
-        var policyEnvironmentAttributeWithAttributeAsParentValueAndArguments = """
+        final var policyEnvironmentAttributeWithAttributeAsParentValueAndArguments = """
                 policy "policy"
                 permit
                 where
-                  var parentValue = true;
+                  final var parentValue = true;
                   <pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;""";
-        var steps                                                            = new StepsDefaultImplTestsImpl(
+        final var steps                                                            = new StepsDefaultImplTestsImpl(
                 policyEnvironmentAttributeWithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
                 .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(2))),
@@ -170,7 +170,7 @@ class StepsDefaultImplTests {
 
     @Test
     void test_when_fromJsonString() throws JsonProcessingException {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
         steps.givenFunction("time.dayOfWeek", Val.of("SATURDAY"))
                 .when("{\"subject\":\"willi\", \"action\":\"read\", \"resource\":\"something\", \"environment\":{}}")
                 .expectPermit().verify();
@@ -178,35 +178,35 @@ class StepsDefaultImplTests {
 
     @Test
     void test_when_fromJsonNode() {
-        var mapper   = new ObjectMapper();
-        var authzSub = mapper.createObjectNode().put("subject", "willi").put("action", "read")
+        final var mapper   = new ObjectMapper();
+        final var authzSub = mapper.createObjectNode().put("subject", "willi").put("action", "read")
                 .put("resource", "something").put("environment", "test");
-        var steps    = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
+        final var steps    = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
         steps.givenFunction("time.dayOfWeek", Val.of("SATURDAY")).when(authzSub).expectPermit().verify();
     }
 
     @Test
     void test_when_fromJsonNode_null() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> steps.when((JsonNode) null));
     }
 
     @Test
     void test_expectIndeterminate() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_INDETERMINATE, attrCtx, funcCtx, variables);
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_INDETERMINATE, attrCtx, funcCtx, variables);
         steps.when(AuthorizationSubscription.of("willi", "read", "something")).expectIndeterminate().verify();
     }
 
     @Test
     void test_expectNextPermit_XTimes_0() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables)
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables)
                 .when(AuthorizationSubscription.of("willi", "read", "something"));
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> steps.expectNextPermit(0));
     }
 
     @Test
     void test_expectNextPermit_XTimes_Greater1() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_STREAMING_PERMIT, attrCtx, funcCtx, variables);
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_STREAMING_PERMIT, attrCtx, funcCtx, variables);
         steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
                 .givenFunctionOnce("time.secondOf", Val.of(5), Val.of(6), Val.of(7))
                 .when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextPermit(3)
@@ -215,22 +215,22 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNextDeny_XTimes_0() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables)
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables)
                 .when(AuthorizationSubscription.of("willi", "read", "something"));
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> steps.expectNextDeny(0));
     }
 
     @Test
     void test_expectNextDeny_XTimes_Greater1() {
-        var policyStreamingDeny = """
+        final var policyStreamingDeny = """
                 policy "policyStreaming"
                 deny
                   resource == "heartBeatData"
                 where
                   subject == "ROLE_DOCTOR";
-                  var interval = 2;
+                  final var interval = 2;
                   time.secondOf(<time.now(interval)>) > 4;""";
-        var steps               = new StepsDefaultImplTestsImpl(policyStreamingDeny, attrCtx, funcCtx, variables);
+        final var steps               = new StepsDefaultImplTestsImpl(policyStreamingDeny, attrCtx, funcCtx, variables);
         steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
                 .givenFunctionOnce("time.secondOf", Val.of(5), Val.of(6), Val.of(7))
                 .when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextDeny(3).verify();
@@ -238,23 +238,23 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNextIndeterminate_XTimes_0() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables)
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables)
                 .when(AuthorizationSubscription.of("willi", "read", "something"));
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> steps.expectNextIndeterminate(0));
     }
 
     @Test
     void test_expectNextIndeterminate_XTimes_Greater1() {
-        var policyStreamingIndeterminate = """
+        final var policyStreamingIndeterminate = """
                 policy "policyStreaming"
                 permit
                   resource == "heartBeatData"
                 where
                   subject == "ROLE_DOCTOR";
-                  var interval = 2;
+                  final var interval = 2;
                   time.secondOf(<time.now(interval)>) > 4;  17 / 0;""";
-        var steps                        = new StepsDefaultImplTestsImpl(policyStreamingIndeterminate, attrCtx, funcCtx,
-                variables);
+        final var steps                        = new StepsDefaultImplTestsImpl(policyStreamingIndeterminate, attrCtx,
+                funcCtx, variables);
         steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
                 .givenFunctionOnce("time.secondOf", Val.of(5), Val.of(6), Val.of(7))
                 .when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "heartBeatData")).expectNextIndeterminate(3)
@@ -263,27 +263,27 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNextNotApplicable_XTimes_0() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables)
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables)
                 .when(AuthorizationSubscription.of("willi", "read", "something"));
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> steps.expectNextNotApplicable(0));
     }
 
     @Test
     void test_expectNextNotApplicable_XTimes_Greater1() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_STREAMING_PERMIT, attrCtx, funcCtx, variables);
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_STREAMING_PERMIT, attrCtx, funcCtx, variables);
         steps.when(AuthorizationSubscription.of("ROLE_DOCTOR", "read", "somethingDifferent")).expectNextNotApplicable(1)
                 .verify();
     }
 
     @Test
     void test_expectNextIndeterminate() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_INDETERMINATE, attrCtx, funcCtx, variables);
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_INDETERMINATE, attrCtx, funcCtx, variables);
         steps.when(AuthorizationSubscription.of("willi", "read", "something")).expectNextIndeterminate().verify();
     }
 
     @Test
     void test_expectNext_Equals() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
         steps.givenFunction("time.dayOfWeek", Val.of("SATURDAY"))
                 .when(AuthorizationSubscription.of("will", "read", "something"))
                 .expectNext(AuthorizationDecision.PERMIT).verify();
@@ -291,7 +291,7 @@ class StepsDefaultImplTests {
 
     @Test
     void test_expectNext_Predicate() {
-        var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
+        final var steps = new StepsDefaultImplTestsImpl(POLICY_SIMPLE_FUNCTION, attrCtx, funcCtx, variables);
         steps.givenFunction("time.dayOfWeek", Val.of("SATURDAY"))
                 .when(AuthorizationSubscription.of("will", "read", "something"))
                 .expectNext(authzDec -> authzDec.getDecision() == Decision.PERMIT).verify();

@@ -90,7 +90,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
     }
 
     private Val extractValueAt(Val parentValue, Val index) {
-        var trace = Map.<String, Val>of("parentValue", parentValue, "expressionResult", index);
+        final var trace = Map.<String, Val>of("parentValue", parentValue, "expressionResult", index);
         if (index.isError()) {
             return index.withTrace(ExpressionStep.class, false, trace);
         }
@@ -98,8 +98,8 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
             return ErrorFactory.error(this, ARRAY_ACCESS_TYPE_MISMATCH_EXPECT_AN_INTEGER_WAS_S_ERROR, index)
                     .withTrace(ExpressionStep.class, false, trace);
         }
-        var idx   = index.get().asInt();
-        var array = parentValue.get();
+        final var idx   = index.get().asInt();
+        final var array = parentValue.get();
         if (idx < 0 || idx > array.size()) {
             return ErrorFactory
                     .error(this, INDEX_OUT_OF_BOUNDS_INDEX_MUST_BE_BETWEEN_0_AND_D_WAS_D_ERROR, array.size(), idx)
@@ -109,7 +109,7 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
     }
 
     private Val extractKey(Val parentValue, Val key) {
-        var trace = Map.<String, Val>of("parentValue", parentValue, "expressionResult", key);
+        final var trace = Map.<String, Val>of("parentValue", parentValue, "expressionResult", key);
         if (key.isError()) {
             return key.withTrace(ExpressionStep.class, false, trace);
         }
@@ -117,8 +117,8 @@ public class ExpressionStepImplCustom extends ExpressionStepImpl {
             return ErrorFactory.error(this, OBJECT_ACCESS_TYPE_MISMATCH_EXPECT_A_STRING_WAS_S_ERROR, key)
                     .withTrace(ExpressionStep.class, false, trace);
         }
-        var fieldName = key.get().asText();
-        var object    = parentValue.getObjectNode();
+        final var fieldName = key.get().asText();
+        final var object    = parentValue.getObjectNode();
         if (!object.has(fieldName)) {
             return Val.UNDEFINED.withTrace(ExpressionStep.class, true, trace);
         }

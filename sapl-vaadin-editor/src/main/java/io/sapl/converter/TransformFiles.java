@@ -50,8 +50,8 @@ public class TransformFiles {
      * @throws IOException in case of conversion errors
      */
     public void main(String[] args) throws IOException {
-        var classPathDir     = new File(TransformFiles.class.getResource("/").getPath());
-        var targetFolderPath = classPathDir + FRONTEND_FOLDER_PATH;
+        final var classPathDir     = new File(TransformFiles.class.getResource("/").getPath());
+        final var targetFolderPath = classPathDir + FRONTEND_FOLDER_PATH;
 
         convertFileToESM(targetFolderPath + SAPL_MODE_FILENAME, SaplModeConverter::convertToESM);
         convertFileToESM(targetFolderPath + SAPL_TEST_MODE_FILENAME, SaplModeConverter::convertToESM);

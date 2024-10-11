@@ -38,7 +38,7 @@ class ImportCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("clock", "clock.millis", "clock.now", "clock.ticker", "temperature",
+                final var expected = List.of("clock", "clock.millis", "clock.now", "clock.ticker", "temperature",
                         "temperature.mean", "temperature.now", "temperature.predicted");
                 assertProposalsSimple(expected, completionList);
             });
@@ -52,7 +52,7 @@ class ImportCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("time");
+                final var expected = List.of("time");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -65,7 +65,7 @@ class ImportCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("time.*", "time.after", "time.before", "time.between");
+                final var expected = List.of("time.*", "time.after", "time.before", "time.between");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -78,7 +78,7 @@ class ImportCompletionTests extends CompletionTests {
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("time.before", "time.between");
+                final var expected = List.of("time.before", "time.between");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -96,7 +96,7 @@ class ImportCompletionTests extends CompletionTests {
             it.setLine(2);
             it.setColumn(1);
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("time.before", "time.between");
+                final var expected = List.of("time.before", "time.between");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -114,7 +114,7 @@ class ImportCompletionTests extends CompletionTests {
             it.setLine(1);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("time.before", "time.between");
+                final var expected = List.of("time.before", "time.between");
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -133,7 +133,7 @@ class ImportCompletionTests extends CompletionTests {
             it.setLine(1);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                var expected = List.of("time.before", "time.between");
+                final var expected = List.of("time.before", "time.between");
                 assertProposalsSimple(expected, completionList);
             });
         });

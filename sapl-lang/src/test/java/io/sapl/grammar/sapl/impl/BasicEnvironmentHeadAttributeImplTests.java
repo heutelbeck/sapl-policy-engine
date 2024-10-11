@@ -49,44 +49,44 @@ class BasicEnvironmentHeadAttributeImplTests {
 
     @Test
     void evaluateBasicAttributeFlux() {
-        var expression = "|<test.numbers>";
-        var expected   = new String[] { "0" };
+        final var expression = "|<test.numbers>";
+        final var expected   = new String[] { "0" };
         assertExpressionEvaluatesTo(expression, expected);
     }
 
     @Test
     void evaluateBasicAttributeInTargetPolicy() throws IOException {
-        var expression = ParserUtil.expression("|<test.numbers>");
+        final var expression = ParserUtil.expression("|<test.numbers>");
         MockUtil.mockPolicyTargetExpressionContainerExpression(expression);
         assertExpressionErrors(expression);
     }
 
     @Test
     void evaluateBasicAttributeInTargetPolicySet() throws IOException {
-        var expression = ParserUtil.expression("|<test.numbers>");
+        final var expression = ParserUtil.expression("|<test.numbers>");
         MockUtil.mockPolicySetTargetExpressionContainerExpression(expression);
         assertExpressionErrors(expression);
     }
 
     @Test
     void exceptionDuringEvaluation() {
-        var step = headAttributeFinderStep();
-        var sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
+        final var step = headAttributeFinderStep();
+        final var sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
                 mockAttributeContextWithStream(Flux.just(ErrorFactory.error("ERROR")))));
         StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
     }
 
     @Test
     void applyWithSomeStreamData() {
-        Val[] data = { Val.FALSE, ErrorFactory.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
-        var   step = headAttributeFinderStep();
-        var   sut  = step.evaluate().contextWrite(
+        Val[]     data = { Val.FALSE, ErrorFactory.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
+        final var step = headAttributeFinderStep();
+        final var sut  = step.evaluate().contextWrite(
                 ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContextWithStream(Flux.just(data))));
         StepVerifier.create(sut).expectNext(Val.FALSE).verifyComplete();
     }
 
     private static AttributeContext mockAttributeContextWithStream(Flux<Val> stream) {
-        var attributeCtx = mock(AttributeContext.class);
+        final var attributeCtx = mock(AttributeContext.class);
         when(attributeCtx.evaluateAttribute(any(), eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any()))
                 .thenReturn(stream);
         when(attributeCtx.evaluateEnvironmentAttribute(any(), eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any()))
@@ -95,7 +95,7 @@ class BasicEnvironmentHeadAttributeImplTests {
     }
 
     private static BasicEnvironmentHeadAttribute headAttributeFinderStep() {
-        var step = FACTORY.createBasicEnvironmentHeadAttribute();
+        final var step = FACTORY.createBasicEnvironmentHeadAttribute();
         step.eSet(step.eClass().getEStructuralFeature("identifier"), FACTORY.createFunctionIdentifier());
         step.getIdentifier().getNameFragments().add(FULLY_QUALIFIED_ATTRIBUTE);
         return step;

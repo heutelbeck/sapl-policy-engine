@@ -144,7 +144,7 @@ public class BlockingConstraintHandlerBundle<T> {
      */
     @SuppressWarnings("unchecked")
     public Object handleAllOnNextConstraints(Object value) {
-        var newValue = handleFilterPredicateHandlers((T) value);
+        final var newValue = handleFilterPredicateHandlers((T) value);
         handleOnNextConstraints(newValue);
         return handleOnNextMapConstraints(newValue);
     }
@@ -160,8 +160,8 @@ public class BlockingConstraintHandlerBundle<T> {
         if (value instanceof Set)
             return (T) ((Set<Object>) value).stream().filter(filterPredicateHandlers).collect(Collectors.toSet());
         if (value.getClass().isArray()) {
-            var filteredAsList = Arrays.stream((Object[]) value).filter(filterPredicateHandlers).toList();
-            var resultArray    = Array.newInstance(value.getClass().getComponentType(), filteredAsList.size());
+            final var filteredAsList = Arrays.stream((Object[]) value).filter(filterPredicateHandlers).toList();
+            final var resultArray    = Array.newInstance(value.getClass().getComponentType(), filteredAsList.size());
 
             var i = 0;
             for (var x : filteredAsList)
@@ -173,7 +173,7 @@ public class BlockingConstraintHandlerBundle<T> {
     }
 
     private T handleOnNextMapConstraints(T value) {
-        var mapped = onNextMapHandlers.apply(value);
+        final var mapped = onNextMapHandlers.apply(value);
         return replaceResourceHandler.apply(mapped);
     }
 

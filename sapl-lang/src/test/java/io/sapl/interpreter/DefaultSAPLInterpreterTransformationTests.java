@@ -57,8 +57,8 @@ class DefaultSAPLInterpreterTransformationTests {
     public void setUp() throws InitializationException {
         FUNCTION_CTX.loadLibrary(SimpleFunctionLibrary.class);
         FUNCTION_CTX.loadLibrary(FilterFunctionLibrary.class);
-        var systemUTC                   = Clock.systemUTC();
-        var simpleFilterFunctionLibrary = new SimpleFilterFunctionLibrary(systemUTC);
+        final var systemUTC                   = Clock.systemUTC();
+        final var simpleFilterFunctionLibrary = new SimpleFilterFunctionLibrary(systemUTC);
         FUNCTION_CTX.loadLibrary(simpleFilterFunctionLibrary);
     }
 
@@ -68,9 +68,9 @@ class DefaultSAPLInterpreterTransformationTests {
     void validSaplDocumentsParseWithoutError(String testCase, String authorizationSubscription, String saplDocument,
             String expectedResource) {
         assertThat(testCase).isNotNull();
-        var expectedDecision = new AuthorizationDecision(Decision.PERMIT,
+        final var expectedDecision = new AuthorizationDecision(Decision.PERMIT,
                 Optional.of(MAPPER.readValue(expectedResource, JsonNode.class)), Optional.empty(), Optional.empty());
-        var subscription     = MAPPER.readValue(authorizationSubscription, AuthorizationSubscription.class);
+        final var subscription     = MAPPER.readValue(authorizationSubscription, AuthorizationSubscription.class);
         assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(subscription, saplDocument,
                 expectedDecision);
     }

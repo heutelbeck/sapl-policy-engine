@@ -100,7 +100,7 @@ public class LibraryProposalsGenerator {
         final var schema = schemas.get(fullyQualifiedName);
         if (null != schema) {
             for (var prefix : proposalStrings) {
-                var extendedProposals = SchemaProposalsGenerator.getCodeTemplates(prefix, schema,
+                final var extendedProposals = SchemaProposalsGenerator.getCodeTemplates(prefix, schema,
                         pdpConfiguration.variables());
                 extendedProposals.forEach(p -> proposals.add(new Proposal(fullyQualifiedName, p, documentation)));
             }

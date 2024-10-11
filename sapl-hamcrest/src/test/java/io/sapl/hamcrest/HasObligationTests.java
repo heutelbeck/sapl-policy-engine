@@ -48,7 +48,7 @@ class HasObligationTests {
         AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
                 Optional.of(obligations), Optional.empty());
 
-        var sut = hasObligation(obligation);
+        final var sut = hasObligation(obligation);
 
         assertThat(dec, is(sut));
     }
@@ -66,7 +66,7 @@ class HasObligationTests {
         AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
                 Optional.of(obligations), Optional.empty());
 
-        var sut = hasObligation(expectedObligation);
+        final var sut = hasObligation(expectedObligation);
 
         assertThat(dec, not(is(sut)));
     }
@@ -76,7 +76,7 @@ class HasObligationTests {
         ObjectMapper mapper     = new ObjectMapper();
         ObjectNode   obligation = mapper.createObjectNode();
         obligation.put("foo", "bar");
-        var sut = hasObligation(obligation);
+        final var sut = hasObligation(obligation);
         assertThat(null, not(is(sut)));
     }
 
@@ -85,7 +85,7 @@ class HasObligationTests {
         ObjectMapper mapper     = new ObjectMapper();
         ObjectNode   obligation = mapper.createObjectNode();
         obligation.put("foo", "bar");
-        var                   sut = hasObligation(obligation);
+        final var             sut = hasObligation(obligation);
         AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
                 Optional.empty());
         assertThat(dec, not(is(sut)));
@@ -103,7 +103,7 @@ class HasObligationTests {
         AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
                 Optional.of(actualObligations), Optional.empty());
 
-        var sut = hasObligation(expectedObligation);
+        final var sut = hasObligation(expectedObligation);
 
         assertThat(dec, is(sut));
     }
@@ -118,7 +118,7 @@ class HasObligationTests {
         AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
                 Optional.of(actualObligations), Optional.empty());
 
-        var sut = new HasObligation();
+        final var sut = new HasObligation();
 
         assertThat(dec, is(sut));
     }
@@ -130,7 +130,7 @@ class HasObligationTests {
 
     @Test
     void testDescriptionForEmptyMatcher() {
-        var                     sut         = new HasObligation();
+        final var               sut         = new HasObligation();
         final StringDescription description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(), is("the decision has an obligation equals any obligation"));
@@ -138,7 +138,7 @@ class HasObligationTests {
 
     @Test
     void testDescriptionForMatcher() {
-        var                     sut         = hasObligation(jsonText("value"));
+        final var               sut         = hasObligation(jsonText("value"));
         final StringDescription description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(),
