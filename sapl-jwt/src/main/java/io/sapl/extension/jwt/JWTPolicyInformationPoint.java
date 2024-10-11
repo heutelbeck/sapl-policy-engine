@@ -26,7 +26,6 @@ import java.util.function.Function;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -162,7 +161,7 @@ public class JWTPolicyInformationPoint {
 
     private Flux<ValidityState> validityState(@Text Val rawToken, Map<String, Val> variables) {
 
-        if (rawToken == null || !rawToken.isTextual())
+        if (null == rawToken || !rawToken.isTextual())
             return Flux.just(ValidityState.MALFORMED);
 
         SignedJWT    signedJwt;
@@ -193,29 +192,29 @@ public class JWTPolicyInformationPoint {
 
     private Mono<Boolean> validateSignature(SignedJWT signedJwt, Map<String, Val> variables) {
 
-        var jwtConfig = variables.get(JWT_KEY);
-        if (jwtConfig == null || !jwtConfig.isDefined()) {
+        final var jwtConfig = variables.get(JWT_KEY);
+        if (null == jwtConfig || !jwtConfig.isDefined()) {
             log.error(JWT_CONFIG_MISSING_ERROR);
             return Mono.just(Boolean.FALSE);
         }
 
-        var keyId = signedJwt.getHeader().getKeyID();
+        final var keyId = signedJwt.getHeader().getKeyID();
 
         Mono<RSAPublicKey> publicKey       = null;
-        var                whitelist       = jwtConfig.get().get(WHITELIST_VARIABLES_KEY);
+        final var                whitelist       = jwtConfig.get().get(WHITELIST_VARIABLES_KEY);
         var                isFromWhitelist = false;
         if (null != whitelist && null != whitelist.get(keyId)) {
-            var key = JWTEncodingDecodingUtils.jsonNodeToKey(whitelist.get(keyId));
+            final var key = JWTEncodingDecodingUtils.jsonNodeToKey(whitelist.get(keyId));
             if (key.isPresent()) {
                 publicKey       = Mono.just(key.get());
                 isFromWhitelist = true;
             }
         }
 
-        if (publicKey == null) {
-            var jPublicKeyServer = jwtConfig.get().get(PUBLIC_KEY_VARIABLES_KEY);
+        if (null == publicKey) {
+            final var jPublicKeyServer = jwtConfig.get().get(PUBLIC_KEY_VARIABLES_KEY);
 
-            if (jPublicKeyServer == null)
+            if (null == jPublicKeyServer)
                 return Mono.just(Boolean.FALSE);
 
             try {
@@ -232,9 +231,9 @@ public class JWTPolicyInformationPoint {
     private Function<RSAPublicKey, Boolean> signatureOfTokenIsValid(String keyId, SignedJWT signedJwt,
             boolean isFromWhitelist) {
         return publicKey -> {
-            JWSVerifier verifier = new RSASSAVerifier(publicKey);
+            final var verifier = new RSASSAVerifier(publicKey);
             try {
-                var isValid = signedJwt.verify(verifier);
+                final var isValid = signedJwt.verify(verifier);
                 if (isValid && !isFromWhitelist)
                     keyProvider.cache(keyId, publicKey);
                 return isValid;
@@ -286,7 +285,7 @@ public class JWTPolicyInformationPoint {
 
         // at this point the token is definitely mature
         // (either nbf==null or nbf<=now)
-        if (exp == null) {
+        if (null == exp) {
             // the token is eternally valid (no expiration)
             return Flux.just(ValidityState.VALID);
         } else {
@@ -331,7 +330,7 @@ public class JWTPolicyInformationPoint {
         // now: no critical parameters compatible, return false
         // done this way in order to cover all possible cases with tests (eg. null &&
         // isEmpty() not testable)
-        return header.getCriticalParams() == null;
+        return null == header.getCriticalParams();
 
         // all claims are compatible with requirements
     }

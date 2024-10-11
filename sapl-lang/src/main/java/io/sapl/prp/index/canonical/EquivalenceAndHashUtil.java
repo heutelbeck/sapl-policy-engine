@@ -68,7 +68,7 @@ public class EquivalenceAndHashUtil {
     }
 
     private static int hash(Object featureInstance, @NonNull Map<String, String> imports) {
-        if (featureInstance == null) {
+        if (null == featureInstance) {
             return 0;
         }
         int hash = HASH_SEED_PRIME;
@@ -130,7 +130,7 @@ public class EquivalenceAndHashUtil {
         if (thisFeatureInstance == thatFeatureInstance) {
             return true;
         }
-        if (thatFeatureInstance == null) {
+        if (null == thatFeatureInstance) {
             return false;
         }
         if (thisFeatureInstance instanceof EList<?> thizList && thatFeatureInstance instanceof EList<?> thatList) {

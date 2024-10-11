@@ -127,7 +127,7 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
     private DisjunctiveFormula retainTarget(Document document) {
         var                targetExpression = document.sapl().getImplicitTargetExpression();
         DisjunctiveFormula targetFormula;
-        if (targetExpression == null) {
+        if (null == targetExpression) {
             targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
         } else {
             var imports = ImportsUtil.fetchImports(document.sapl(), attributeCtx, functionCtx);

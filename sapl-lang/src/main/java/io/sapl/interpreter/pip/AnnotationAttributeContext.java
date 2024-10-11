@@ -127,7 +127,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     public Flux<Val> evaluateAttribute(EObject location, String attributeName, Val leftHandValue, Arguments arguments,
             Map<String, Val> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), false);
-        if (attributeMetadata == null)
+        if (null == attributeMetadata)
             return Flux.just(ErrorFactory.error(location, UNKNOWN_ATTRIBUTE_ERROR, attributeName));
         return evaluateAttribute(attributeName, attributeMetadata, leftHandValue, arguments, variables);
     }
@@ -136,7 +136,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     public Flux<Val> evaluateEnvironmentAttribute(EObject location, String attributeName, Arguments arguments,
             Map<String, Val> variables) {
         var attributeMetadata = lookupAttribute(attributeName, numberOfArguments(arguments), true);
-        if (attributeMetadata == null)
+        if (null == attributeMetadata)
             return Flux.just(ErrorFactory.error(location, UNKNOWN_ATTRIBUTE_ERROR, attributeName));
         return evaluateEnvironmentAttribute(attributeName, attributeMetadata, arguments, variables);
     }
@@ -152,7 +152,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     private AttributeFinderMetadata lookupAttribute(String attributeName, int numberOfParameters,
             boolean environmentAttribute) {
         var nameMatches = attributeMetadataByAttributeName.get(attributeName);
-        if (nameMatches == null)
+        if (null == nameMatches)
             return null;
         AttributeFinderMetadata varArgsMatch = null;
         for (var candidate : nameMatches) {
@@ -225,7 +225,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
 
         var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
-        if (arguments == null) {
+        if (null == arguments) {
             var invocationArguments = new Object[numberOfInvocationParameters];
             var argumentIndex       = 0;
             if (attributeMetadata.isAttributeWithVariableParameter())
@@ -278,7 +278,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
 
         var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(attributeMetadata, arguments);
 
-        if (arguments == null) {
+        if (null == arguments) {
             var invocationArguments = new Object[numberOfInvocationParameters];
             var argumentIndex       = 0;
             invocationArguments[argumentIndex++] = leftHandValue;
@@ -317,7 +317,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     }
 
     private int numberOfArguments(Arguments arguments) {
-        return arguments == null ? 0 : arguments.getArgs().size();
+        return null == arguments ? 0 : arguments.getArgs().size();
     }
 
     /**
@@ -347,7 +347,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     private void loadPolicyInformationPoint(Object pip, Class<?> pipClass) throws InitializationException {
         var pipAnnotation = pipClass.getAnnotation(PolicyInformationPoint.class);
 
-        if (pipAnnotation == null)
+        if (null == pipAnnotation)
             throw new InitializationException(NO_POLICY_INFORMATION_POINT_ANNOTATION_ERROR);
 
         var pipName = pipAnnotation.name();
@@ -390,7 +390,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
             String attributeName, String attributeSchema, String attributePathToSchema, String documentation)
             throws InitializationException {
 
-        if (policyInformationPoint == null)
+        if (null == policyInformationPoint)
             assertMethodIsStatic(method);
 
         if (attributeName.isBlank())

@@ -126,7 +126,7 @@ public class PredicateInfo implements Comparable<PredicateInfo> {
     public boolean equals(Object o) {
         if (this == o)
             return true;
-        if (o == null || getClass() != o.getClass())
+        if (null == o || getClass() != o.getClass())
             return false;
         PredicateInfo that = (PredicateInfo) o;
         return compareTo(that) == 0;

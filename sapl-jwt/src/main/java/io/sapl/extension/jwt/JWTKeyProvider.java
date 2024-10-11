@@ -88,7 +88,7 @@ public class JWTKeyProvider {
     public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
 
         var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
-        if (jUri == null)
+        if (null == jUri)
             return Mono.empty();
 
         var sMethod = "GET";

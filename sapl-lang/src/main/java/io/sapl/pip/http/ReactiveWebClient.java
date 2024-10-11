@@ -218,7 +218,7 @@ public class ReactiveWebClient {
     }
 
     private Mono<Void> sendAndListen(WebSocketSession session, JsonNode body, Many<Val> receiveBuffer) {
-        var send   = body == null ? Mono.empty() : session.send(Mono.just(session.textMessage(body.asText())));
+        var send   = null == body ? Mono.empty() : session.send(Mono.just(session.textMessage(body.asText())));
         var listen = listenAndSendEventsToSink(session, receiveBuffer);
         return send.and(listen);
     }

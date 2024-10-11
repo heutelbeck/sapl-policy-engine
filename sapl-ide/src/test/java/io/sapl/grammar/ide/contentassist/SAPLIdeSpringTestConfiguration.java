@@ -75,7 +75,7 @@ class SAPLIdeSpringTestConfiguration {
         var schemasArray = JsonNodeFactory.instance.arrayNode();
         for (var schemaFile : schemaFiles) {
             try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
-                if (is == null)
+                if (null == is)
                     throw new RuntimeException(schemaFile + ".json not found");
                 schemasArray.add(MAPPER.readValue(is, JsonNode.class));
             }
@@ -86,7 +86,7 @@ class SAPLIdeSpringTestConfiguration {
     @SneakyThrows
     private void load(String schemaFile, Map<String, Val> variables) {
         try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
-            if (is == null)
+            if (null == is)
                 throw new RuntimeException(schemaFile + ".json not found");
             var schema = MAPPER.readValue(is, JsonNode.class);
             variables.put(schemaFile, Val.of(schema));

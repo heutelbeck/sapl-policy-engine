@@ -125,29 +125,40 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     protected void _createProposals(final Assignment assignment, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
         lazyLoadDependencies();
-        if(     saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().equals(assignment)) {
-            log.error("HEUREKA");
+        if (saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().equals(assignment)) {
+            log.error("IdentifierAssignment {}",
+                    saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().getFeature());
+        } else if (saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_1().equals(assignment)) {
+            log.info("getNameFragmentsAssignment_1");
+            /* This is the start of a function name or a PIP name */
+        } else if (saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_2_1().equals(assignment)) {
+            log.info("getNameFragmentsAssignment_2_1");
+            /* This is at least the second element of a function name or a PIP name */
+            var n = context.getCurrentNode();
+            this.dumpSiblings(context);
         }
-//        log.trace("Assignment: '{}' '{}' '{}'", assignment.getFeature(), assignment.getOperator(),
-//                assignment.getTerminal().eClass().getName());
-     
+        log.trace("Assignment: '{}' '{}' '{}' '{}'", assignment.getFeature(), assignment.getOperator(),
+                assignment.getTerminal().eClass().getName(),context.getPrefix());
+
     }
 
     @Override
     protected void _createProposals(final RuleCall ruleCall, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
-        if(true)
-            return;
         lazyLoadDependencies();
 
-        if(true)
+        if (saplAccess.getBasicFunctionAccess().getIdentifierFunctionIdentifierParserRuleCall_0_0().equals(ruleCall)) {
+            log.error("FunctionIdentifierParserRuleCall {}",
+                    saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().getFeature());
+        }
+
+        if (true)
             return;
         log.error("->{}", this.saplAccess);
 
         final var configurationId  = extractConfigurationIdFromRequest();
         final var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration(configurationId).blockFirst();
-        
-        
+
 //        dumpCurrentState(ruleCall, context);
         // dumpParents(context);
         /*
@@ -245,7 +256,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     private boolean isChildOrEqual(EObject needle, EObject haystack) {
-        if (haystack == null) {
+        if (null == haystack) {
             return false;
         }
         if (haystack == needle) {

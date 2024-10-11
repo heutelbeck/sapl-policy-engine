@@ -97,7 +97,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
         if (sapl != null && sapl.getPolicyElement() != null)
             name = sapl.getPolicyElement().getSaplName();
         var diagnostic = Diagnostician.INSTANCE.validate(sapl);
-        var actualId   = id == null ? name : null;
+        var actualId   = null == id ? name : null;
         return new Document(actualId, name, sapl, diagnostic, composeErrorMessage(diagnostic));
     }
 

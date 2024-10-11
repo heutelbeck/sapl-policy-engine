@@ -89,15 +89,15 @@ class JsonTestUtility {
      */
     static Map<String, Val> publicKeyUriVariables(MockWebServer server, String method) {
 
-        ObjectNode keyNode   = MAPPER.createObjectNode();
-        ObjectNode valueNode = serverNode(server, method, null);
+        final var keyNode   = MAPPER.createObjectNode();
+        final var valueNode = serverNode(server, method, null);
 
         keyNode.set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY, valueNode);
         return Map.of("jwt", Val.of(keyNode));
     }
 
     static ObjectNode serverNode(MockWebServer server, String method, Object ttl) {
-        ObjectNode valueNode = MAPPER.createObjectNode();
+        final var valueNode = MAPPER.createObjectNode();
 
         if (null != server) {
             valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/") + "public-keys/{id}");
@@ -114,7 +114,7 @@ class JsonTestUtility {
     }
 
     private static void putTTL(ObjectNode valueNode, Object ttl) {
-        if (ttl == null)
+        if (null == ttl)
             return;
         if (ttl instanceof Long)
             valueNode.put(JWTKeyProvider.KEY_CACHING_TTL_MILLIS, ((Long) ttl).longValue());
