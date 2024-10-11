@@ -45,12 +45,12 @@ PolicySet:
                 policies+=Policy+;
 
 enum CombiningAlgorithm:
-	  DENY_OVERRIDES='deny-overrides'
-	| PERMIT_OVERRIDES='permit-overrides'
-	| FIRST_APPLICABLE='first-applicable'
-	| ONLY_ONE_APPLICABLE='only-one-applicable'
-	| DENY_UNLESS_PERMIT='deny-unless-permit'
-	| PERMIT_UNLESS_DENY='permit-unless-deny';
+	  DENY_OVERRIDES      = 'deny-overrides'
+	| PERMIT_OVERRIDES    = 'permit-overrides'
+	| FIRST_APPLICABLE    = 'first-applicable'
+	| ONLY_ONE_APPLICABLE = 'only-one-applicable'
+	| DENY_UNLESS_PERMIT  = 'deny-unless-permit'
+	| PERMIT_UNLESS_DENY  = 'permit-unless-deny';
 
 Policy:
 	{Policy} 'policy' saplName=STRING
@@ -234,7 +234,7 @@ Array returns Value:
 	{Array} '[' (items+=Expression (',' items+=Expression)*)? ']';
 
 BooleanLiteral returns Value:
-	{TrueLiteral} 'true'
+	  {TrueLiteral}  'true'
 	| {FalseLiteral} 'false';
 
 NullLiteral returns Value:
