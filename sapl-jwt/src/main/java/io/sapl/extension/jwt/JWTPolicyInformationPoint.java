@@ -201,7 +201,7 @@ public class JWTPolicyInformationPoint {
         final var keyId = signedJwt.getHeader().getKeyID();
 
         Mono<RSAPublicKey> publicKey       = null;
-        final var                whitelist       = jwtConfig.get().get(WHITELIST_VARIABLES_KEY);
+        final var          whitelist       = jwtConfig.get().get(WHITELIST_VARIABLES_KEY);
         var                isFromWhitelist = false;
         if (null != whitelist && null != whitelist.get(keyId)) {
             final var key = JWTEncodingDecodingUtils.jsonNodeToKey(whitelist.get(keyId));

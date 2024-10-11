@@ -138,7 +138,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             this.dumpSiblings(context);
         }
         log.trace("Assignment: '{}' '{}' '{}' '{}'", assignment.getFeature(), assignment.getOperator(),
-                assignment.getTerminal().eClass().getName(),context.getPrefix());
+                assignment.getTerminal().eClass().getName(), context.getPrefix());
 
     }
 
