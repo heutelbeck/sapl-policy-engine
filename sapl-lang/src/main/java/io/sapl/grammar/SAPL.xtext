@@ -27,9 +27,9 @@ SAPL:
 	policyElement=PolicyElement;
 
 Import:
-	'import' ({WildcardImport} libSteps+=SaplID ('.' libSteps+=SaplID)* '.' '*'
-	| {LibraryImport} (libSteps+=SaplID '.')* libSteps+=SaplID 'as' libAlias=SaplID
-	| libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID);
+	'import' ( {WildcardImport} libSteps+=SaplID ('.' libSteps+=SaplID)* '.' '*'
+	         | {LibraryImport} (libSteps+=SaplID '.')* libSteps+=SaplID 'as' libAlias=SaplID
+	         |                  libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID);
 
 Schema:
 	subscriptionElement=ReservedID (enforced?='enforced')? 'schema' schemaExpression=Expression;
@@ -39,12 +39,13 @@ PolicyElement:
 
 PolicySet:
 	{PolicySet} 'set' saplName=STRING
-	algorithm=CombiningAlgorithm ('for' targetExpression=Expression)?
-	(valueDefinitions+=ValueDefinition ';')*
-	policies+=Policy+;
+                algorithm=CombiningAlgorithm 
+                ('for' targetExpression=Expression)?
+                (valueDefinitions+=ValueDefinition ';')*
+                policies+=Policy+;
 
 enum CombiningAlgorithm:
-	DENY_OVERRIDES='deny-overrides'
+	  DENY_OVERRIDES='deny-overrides'
 	| PERMIT_OVERRIDES='permit-overrides'
 	| FIRST_APPLICABLE='first-applicable'
 	| ONLY_ONE_APPLICABLE='only-one-applicable'
@@ -53,26 +54,25 @@ enum CombiningAlgorithm:
 
 Policy:
 	{Policy} 'policy' saplName=STRING
-	entitlement=Entitlement (targetExpression=Expression)?
-	(body=PolicyBody)?
-	('obligation' obligations+=Expression)*
-	('advice' advice+=Expression)*
-	('transform' transformation=Expression)?;
+              entitlement=Entitlement (targetExpression=Expression)?
+              (body=PolicyBody)?
+              ('obligation' obligations+=Expression)*
+              ('advice' advice+=Expression)*
+              ('transform' transformation=Expression)?;
 
 Entitlement:
-	{Permit} 'permit'
-	| {Deny} 'deny';
+	  {Permit} 'permit'
+	| {Deny}   'deny';
 
 PolicyBody:
 	'where' (statements+=Statement ';')+;
 
 Statement:
-	ValueDefinition |
-	{Condition} expression=Expression;
+	             ValueDefinition
+	|{Condition} expression=Expression;
 
 ValueDefinition:
-	'var' name=ID '=' eval=Expression
-	('schema' schemaVarExpression+=Expression (',' schemaVarExpression+=Expression)*)?;
+	'var' name=ID '=' eval=Expression ('schema' schemaVarExpression+=Expression (',' schemaVarExpression+=Expression)*)?;
 
 Expression:
 	LazyOr;
@@ -93,35 +93,37 @@ EagerAnd returns Expression:
 	Equality ({EagerAnd.left=current} '&' right=Equality)*;
 
 Equality returns Expression:
-	Comparison (({Equals.left=current} '=='
+	  Comparison (({Equals.left=current} '=='
 	| {NotEquals.left=current} '!='
 	| {Regex.left=current} '=~') right=Comparison)?;
 
 Comparison returns Expression:
-	Addition (({Less.left=current} '<'
+	  Addition (({Less.left=current} '<'
 	| {LessEquals.left=current} '<='
 	| {More.left=current} '>'
 	| {MoreEquals.left=current} '>='
 	| {ElementOf.left=current} 'in') right=Addition)?;
 
 Addition returns Expression:
-	Multiplication (({Plus.left=current} '+' | {Minus.left=current} '-') right=Multiplication)*;
+	Multiplication (( {Plus.left=current}  '+' 
+		            | {Minus.left=current} '-' ) right=Multiplication)*;
 
 Multiplication returns Expression:
-	UnaryExpression (({Multi.left=current} '*' | {Div.left=current} '/' | {Modulo.left=current} '%')
-	right=UnaryExpression)*;
+	UnaryExpression (( {Multi.left=current}  '*'
+		             | {Div.left=current}    '/' 
+		             | {Modulo.left=current} '%' ) right=UnaryExpression)*;
 
 UnaryExpression returns Expression:
-	{Not} '!' expression=UnaryExpression
+	  {Not}        '!' expression=UnaryExpression
 	| {UnaryMinus} '-' expression=UnaryExpression
-	| {UnaryPlus} '+' expression=UnaryExpression
+	| {UnaryPlus}  '+' expression=UnaryExpression
 	| BasicExpression;
 
 BasicExpression returns Expression:
 	Basic (FILTER filter=FilterComponent | SUBTEMPLATE subtemplate=BasicExpression)?;
 
 Basic returns BasicExpression:
-	BasicGroup
+	  BasicGroup
 	| BasicValue
 	| BasicFunction
 	| BasicEnvironmentAttribute
@@ -139,7 +141,7 @@ BasicFunction:
 	identifier=FunctionIdentifier arguments=Arguments steps+=Step*;
 
 BasicEnvironmentAttribute:
-	{BasicEnvironmentAttribute} '<' identifier=FunctionIdentifier arguments=Arguments? '>' steps+=Step*;
+	{BasicEnvironmentAttribute}      '<' identifier=FunctionIdentifier arguments=Arguments? '>' steps+=Step*;
 
 BasicEnvironmentHeadAttribute:
 	{BasicEnvironmentHeadAttribute} '|<' identifier=FunctionIdentifier arguments=Arguments? '>' steps+=Step*;
@@ -157,18 +159,18 @@ Arguments:
 	{Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
 
 Step:
-	'.' (KeyStep
-	| EscapedKeyStep
-	| WildcardStep
-	| AttributeFinderStep
-	| HeadAttributeFinderStep)
+	'.' ( KeyStep
+	    | EscapedKeyStep
+	    | WildcardStep
+	    | AttributeFinderStep
+	    | HeadAttributeFinderStep )
 	| '[' Subscript ']'
 	| '..' (RecursiveKeyStep
 	| RecursiveWildcardStep
-	| RecursiveIndexStep);
+	| RecursiveIndexStep );
 
 Subscript returns Step:
-	EscapedKeyStep
+	  EscapedKeyStep
 	| WildcardStep
 	| IndexStep
 	| ArraySlicingStep

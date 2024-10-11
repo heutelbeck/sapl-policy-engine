@@ -126,20 +126,22 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             final IIdeContentProposalAcceptor acceptor) {
         lazyLoadDependencies();
         if (saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().equals(assignment)) {
-            log.error("IdentifierAssignment {}",
+            log.trace("A: getBasicFunctionAccess().getIdentifierAssignment_0() {}",
                     saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().getFeature());
         } else if (saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_1().equals(assignment)) {
-            log.info("getNameFragmentsAssignment_1");
+            log.trace("A: getNameFragmentsAssignment_1");
             /* This is the start of a function name or a PIP name */
         } else if (saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_2_1().equals(assignment)) {
-            log.info("getNameFragmentsAssignment_2_1");
+            log.trace("A: getFunctionIdentifierAccess().getNameFragmentsAssignment_2_1()");
             /* This is at least the second element of a function name or a PIP name */
             final var n = context.getCurrentNode();
-            this.dumpSiblings(context);
+            // this.dumpSiblings(context);
+        } else if (saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().equals(assignment)) {
+            log.trace("A: getBasicFunctionAccess().getIdentifierAssignment_0()");
+        } else {
+//            log.trace("Assignment: '{}' '{}' '{}' '{}'", assignment.getFeature(), assignment.getOperator(),
+//                    assignment.getTerminal().eClass().getName(), context.getPrefix());
         }
-        log.trace("Assignment: '{}' '{}' '{}' '{}'", assignment.getFeature(), assignment.getOperator(),
-                assignment.getTerminal().eClass().getName(), context.getPrefix());
-
     }
 
     @Override
@@ -148,7 +150,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         lazyLoadDependencies();
 
         if (saplAccess.getBasicFunctionAccess().getIdentifierFunctionIdentifierParserRuleCall_0_0().equals(ruleCall)) {
-            log.error("FunctionIdentifierParserRuleCall {}",
+            log.trace("R: getBasicFunctionAccess().getIdentifierFunctionIdentifierParserRuleCall_0_0()",
                     saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().getFeature());
         }
 
