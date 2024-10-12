@@ -72,7 +72,7 @@ class StepsDefaultImplTests {
               resource == "heartBeatData"
             where
               subject == "ROLE_DOCTOR";
-              final var interval = 2;
+              var interval = 2;
               time.secondOf(<time.now(interval)>) > 4;""";
 
     private static final String POLICY_INDETERMINATE = """
@@ -108,7 +108,7 @@ class StepsDefaultImplTests {
                 policy "policy"
                 permit
                 where
-                  final var test = true;
+                  var test = true;
                   test.<pip.attribute1>.<pip.attribute2> < 50;""";
         final var steps                                     = new StepsDefaultImplTestsImpl(
                 policyAttributeWithAttributeAsParentValue, attrCtx, funcCtx, variables);
@@ -125,7 +125,7 @@ class StepsDefaultImplTests {
                 policy "policy"
                 permit
                 where
-                  final var parentValue = true;
+                  var parentValue = true;
                   parentValue.<pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;""";
         final var steps                                                 = new StepsDefaultImplTestsImpl(
                 policyAttributeWithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
@@ -151,7 +151,7 @@ class StepsDefaultImplTests {
                 policy "policy"
                 permit
                 where
-                  final var parentValue = true;
+                  var parentValue = true;
                   <pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;""";
         final var steps                                                            = new StepsDefaultImplTestsImpl(
                 policyEnvironmentAttributeWithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
@@ -228,7 +228,7 @@ class StepsDefaultImplTests {
                   resource == "heartBeatData"
                 where
                   subject == "ROLE_DOCTOR";
-                  final var interval = 2;
+                  var interval = 2;
                   time.secondOf(<time.now(interval)>) > 4;""";
         final var steps               = new StepsDefaultImplTestsImpl(policyStreamingDeny, attrCtx, funcCtx, variables);
         steps.givenAttribute("time.now", Val.of("value"), Val.of("doesn't"), Val.of("matter"))
@@ -251,7 +251,7 @@ class StepsDefaultImplTests {
                   resource == "heartBeatData"
                 where
                   subject == "ROLE_DOCTOR";
-                  final var interval = 2;
+                  var interval = 2;
                   time.secondOf(<time.now(interval)>) > 4;  17 / 0;""";
         final var steps                        = new StepsDefaultImplTestsImpl(policyStreamingIndeterminate, attrCtx,
                 funcCtx, variables);
