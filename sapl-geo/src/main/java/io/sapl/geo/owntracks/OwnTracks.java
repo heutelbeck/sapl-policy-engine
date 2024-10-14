@@ -96,9 +96,7 @@ public final class OwnTracks extends TrackerConnectionBase {
 
     private String getRequest(String url) {
 
-        var settings = """
-                {"baseUrl" : "%s", "accept" : "%s"
-                """;
+        var settings = "{\"baseUrl\" : \"%s\", \"accept\" : \"%s\""; 
         settings = String.format(settings, url, MediaType.APPLICATION_JSON_VALUE);
         if (authSettings != null) {
 

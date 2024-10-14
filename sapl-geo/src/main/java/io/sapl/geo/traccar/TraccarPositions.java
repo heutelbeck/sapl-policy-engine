@@ -77,9 +77,7 @@ public final class TraccarPositions extends TraccarBase {
             boolean latitudeFirst) throws JsonProcessingException {
 
         var client       = new ReactiveWebClient(mapper);
-        var template     = """
-                { "baseUrl" : "%s", "accept" : "%s", "headers" : { "cookie": "%s" } }
-                """;
+        var template     = "{ \"baseUrl\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\": \"%s\" } }";
         var request      = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
         var responseFlux = client.consumeWebSocket(request).map(Val::get)
                 .flatMap(msg -> mapPosition(msg, format, latitudeFirst, deviceId))

@@ -96,28 +96,20 @@ public final class TraccarGeofences extends TraccarBase {
         var webClient = new ReactiveWebClient(mapper);
         var baseURL   = protocol + "://" + server;
 
-        var template = new StringBuilder("""
-                {"baseUrl" : "%s", "path" : "%s", "accept" : "%s", "headers" : { "cookie" : "%s" }
-                """);
+        var template = new StringBuilder("{\"baseUrl\" : \"%s\", \"path\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\" : \"%s\" }");
         template = new StringBuilder(String.format(template.toString(), baseURL, "api/geofences",
                 MediaType.APPLICATION_JSON_VALUE, sessionCookie));
 
         if (pollingInterval != null) {
-            template.append(String.format("""
-                        , "pollingIntervalMs" : %s
-                    """, pollingInterval));
+            template.append(String.format(", \"pollingIntervalMs\" : %s", pollingInterval));
         }
 
         if (repetitions != null) {
-            template.append(String.format("""
-                        , "repetitions" : %s
-                    """, repetitions));
+            template.append(String.format(", \"repetitions\" : %s", repetitions));
         }
 
         if (deviceId != null) {
-            template.append(String.format("""
-                        , "urlParameters" : { "deviceId":%s }
-                    """, deviceId));
+            template.append(String.format(",\"urlParameters\" : { \"deviceId\":%s }", deviceId));
         }
         template.append('}');
 
