@@ -445,14 +445,14 @@ public class GeoFunctions {
     }
 
     public Boolean isClosed(@JsonObject JsonNode jsonGeometry) throws ParseException, OperationNotSupportedException {
-        
+
         var geometry = JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString());
         if (Geometry.TYPENAME_POINT.equals(geometry.getGeometryType())
                 || Geometry.TYPENAME_MULTIPOINT.equals(geometry.getGeometryType())) {
 
             return true;
         }
-        
+
         switch (geometry.getGeometryType()) {
         case Geometry.TYPENAME_LINESTRING:
             return ((LineString) geometry).isClosed();

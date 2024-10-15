@@ -17,28 +17,27 @@
  */
 package io.sapl.geo.traccar;
 
+import java.net.URISyntaxException;
 import org.springframework.http.MediaType;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.pip.http.ReactiveWebClient;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
-@Slf4j
 public final class TraccarPositions extends TraccarBase {
 
     private static final String DEVICE_ID = "deviceId";
     private static final String POSITIONS = "positions";
 
     /**
-     * @param auth   a {@link JsonNode} containing the settings for authorization
+     * @param auth a {@link JsonNode} containing the settings for authorization
      * @param mapper an {@link ObjectMapper}
      */
     public TraccarPositions(JsonNode auth, ObjectMapper mapper) {
@@ -59,8 +58,10 @@ public final class TraccarPositions extends TraccarBase {
 
     /**
      * @param settings a {@link JsonNode} containing the settings
+     * @throws URISyntaxException
+     * @throws PolicyEvaluationException
      */
-    public Flux<Val> getPositions(JsonNode settings) {
+    public Flux<Val> getPositions(JsonNode settings) throws URISyntaxException {
 
         var url = (String.format("ws://%s/api/socket", server));
         return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
@@ -76,18 +77,15 @@ public final class TraccarPositions extends TraccarBase {
     private Flux<ObjectNode> getPositionFlux(String url, String cookie, GeoPipResponseFormat format, String deviceId,
             boolean latitudeFirst) throws JsonProcessingException {
 
-        var client       = new ReactiveWebClient(mapper);
-        var template     = "{ \"baseUrl\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\": \"%s\" } }";
-        var request      = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
-        var responseFlux = client.consumeWebSocket(request).map(Val::get)
+        var client   = new ReactiveWebClient(mapper);
+        var template = "{ \"baseUrl\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\": \"%s\" } }";
+        var request  = Val.ofJson(String.format(template, url, MediaType.APPLICATION_JSON_VALUE, cookie));
+        return client.consumeWebSocket(request).map(Val::get)
                 .flatMap(msg -> mapPosition(msg, format, latitudeFirst, deviceId))
                 .map(res -> mapper.convertValue(res, ObjectNode.class));
-
-        log.info("Traccar-Client connected.");
-        return responseFlux;
     }
 
-    public Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst,
+    private Flux<GeoPipResponse> mapPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst,
             String deviceId) {
 
         if (in.has(POSITIONS)) {
@@ -98,7 +96,7 @@ public final class TraccarPositions extends TraccarBase {
                         try {
                             var response = mapPosition(deviceId, pos, format, latitudeFirst);
                             return Flux.just(response);
-                        } catch (JsonProcessingException e) {
+                        } catch (JsonProcessingException e) { // cannot occure but im forced to catch
                             return Flux.error(e);
                         }
                     });

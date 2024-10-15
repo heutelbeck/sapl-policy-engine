@@ -78,7 +78,7 @@ class JsonConverterTest extends TestBase {
 
     @Test
     void geoJsonToGeometryFactoryTest() throws ParseException {
-        
+
         var factory    = new GeometryFactory(new PrecisionModel(), 4326);
         var result     = (Point) JsonConverter.geoJsonToGeometry(point, factory);
         var result1    = (Polygon) JsonConverter.geoJsonToGeometry(polygon, factory);
@@ -88,7 +88,7 @@ class JsonConverterTest extends TestBase {
         assertEquals(expPoint, result);
         assertEquals(expPolygon, result1);
     }
-    
+
     @Test
     void geoJsonToGMLTest() throws TransformerException, ParseException {
 

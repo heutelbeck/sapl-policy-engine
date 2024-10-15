@@ -91,7 +91,7 @@ class WktConverterTest extends TestBase {
         assertEquals(expPoint, result);
         assertEquals(expPolygon, result1);
     }
-    
+
     @Test
     void wktToGMLTest() throws TransformerException, ParseException {
 

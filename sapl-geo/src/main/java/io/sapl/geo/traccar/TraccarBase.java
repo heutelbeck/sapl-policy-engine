@@ -18,11 +18,11 @@
 package io.sapl.geo.traccar;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.stream.Collectors;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.interpreter.PolicyEvaluationException;
@@ -42,52 +42,37 @@ abstract class TraccarBase extends TrackerConnectionBase {
     protected String protocol;
 
     protected Mono<String> establishSession(String user, String password, String serverName, String protocol)
-            throws PolicyEvaluationException {
+            throws URISyntaxException {
 
-        try {
-            uri = new URI(String.format("%s://%s/api/session", protocol, serverName));
-            var bodyProperties = new HashMap<String, String>() {
-                private static final long serialVersionUID = 1L;
-            };
+        uri = new URI(String.format("%s://%s/api/session", protocol, serverName));
+        var bodyProperties = new HashMap<String, String>() {
+            private static final long serialVersionUID = 1L;
+        };
 
-            bodyProperties.put("email", user);
-            bodyProperties.put("password", password);
-            var form   = bodyProperties.entrySet().stream().map(
-                    e -> String.format("%s=%s", e.getKey(), URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8)))
-                    .collect(Collectors.joining("&"));
-            var client = WebClient.builder().build();
-            return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
-                    .retrieve()
-                    .onStatus(HttpStatusCode::isError,
-                            response -> Mono.error(new PolicyEvaluationException(
-                                    "Session could not be established. Server responded with "
-                                            + response.statusCode().value())))
-                    .toEntity(String.class).flatMap(response -> {
-                        if (response.getStatusCode().is2xxSuccessful()) {
-                            var setCookieHeader = response.getHeaders().getFirst("set-cookie");
-                            if (setCookieHeader != null) {
-                                sessionCookie = setCookieHeader;
-                                try {
-                                    setSessionId(response.getBody());
-                                } catch (Exception e) {
-                                    return Mono.error(e);
-                                }
-                                log.info("Traccar Session {} established.", sessionId);
-                                return Mono.just(setCookieHeader);
-                            } else {
-                                return Mono.error(
-                                        new PolicyEvaluationException("No session cookie found in the response."));
-                            }
-                        } else {
-                            return Mono.error(new PolicyEvaluationException(
-                                    "Session could not be established. Server responded with "
-                                            + response.getStatusCode().value()));
+        bodyProperties.put("email", user);
+        bodyProperties.put("password", password);
+        var form   = bodyProperties.entrySet().stream()
+                .map(e -> String.format("%s=%s", e.getKey(), URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8)))
+                .collect(Collectors.joining("&"));
+        var client = WebClient.builder().build();
+        return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
+                .retrieve().toEntity(String.class).flatMap(response -> {
+                    if (response.getStatusCode().is2xxSuccessful()) {
+                        var setCookieHeader = response.getHeaders().getFirst("set-cookie");
+                        sessionCookie = setCookieHeader;
+                        try {
+                            setSessionId(response.getBody());
+                        } catch (JsonProcessingException e) {
+                            throw new PolicyEvaluationException(e);
                         }
-                    });
+                        return Mono.just(setCookieHeader);
 
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
+                    } else {
+                        throw new PolicyEvaluationException("Session could not be established. Server responded with "
+                                + response.getStatusCode().value());
+                    }
+                });
+
     }
 
     private void setSessionId(String json) throws JsonProcessingException {
@@ -101,20 +86,8 @@ abstract class TraccarBase extends TrackerConnectionBase {
     protected void disconnect() throws PolicyEvaluationException {
 
         WebClient client = WebClient.builder().defaultHeader("cookie", sessionCookie).build();
-        client.delete().uri(uri).retrieve().toBodilessEntity().flatMap(response -> {
-            if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("Traccar Session {} closed successfully.", sessionId);
-                return Mono.empty();
-            } else {
-                var errorMsg2 = String.format("Failed to close Traccar Session %s. Status code: %s", sessionId,
-                        response.getStatusCode());
-                log.error(errorMsg2);
-                throw (new PolicyEvaluationException(errorMsg2));
-            }
-        }).onErrorResume(error -> {
-            var errorMsg1 = String.format("Failed to close Traccar Session %s", sessionId);
-            log.error(errorMsg1);
-            return Mono.just(error);
-        }).subscribe();
+        client.delete().uri(uri).retrieve().toBodilessEntity()
+                .doOnError(error -> log.error("Failed to close Traccar Session {}: {}", sessionId, error.getMessage()))
+                .subscribe();
     }
 }

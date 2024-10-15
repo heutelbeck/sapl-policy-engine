@@ -18,7 +18,9 @@
 package io.sapl.geo.functionlibraries;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -70,7 +72,9 @@ class GeoParserTest {
 
     @AfterEach
     void stopBackEnd() throws IOException {
-        mockBackEnd.shutdown();
+        if (mockBackEnd != null) {
+            mockBackEnd.shutdown();
+        }
     }
 
     @Test
@@ -81,7 +85,7 @@ class GeoParserTest {
     }
 
     @Test
-    void kmlTest2() throws IOException {
+    void kmlTestHttp() throws IOException {
 
         mockBackEnd = new MockWebServer();
         mockBackEnd.start();
@@ -108,6 +112,52 @@ class GeoParserTest {
                 return Val.ofEmptyObject();
             }
         })).expectNext(Val.ofJson(exp)).expectNext(Val.ofJson(exp)).expectComplete().verify();
+    }
+
+    @Test
+    void testConvertToObjectsWithNullName() throws XMLStreamException, IOException, SAXException {
+        String kmlInput = """
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                    <Document>
+                        <Placemark>
+                            <!--No Name -->
+                            <Point>
+                                <coordinates>-122.0822035425683,37.42228990140251,0.0</coordinates>
+                            </Point>
+                        </Placemark>
+                    </Document>
+                </kml>
+                """;
+
+        var result = parser.parseKML(Val.of(kmlInput)).get();
+
+        assertNotNull(result);
+        assertTrue(result.isArray());
+        assertEquals(1, result.size());
+        var firstElement = result.get(0);
+        assertEquals("unnamed geometry", firstElement.get("name").asText());
+        assertNotNull(firstElement.get("Geometry"));
+    }
+
+    @Test
+    void testConvertToObjectsWithNullGeometry() throws XMLStreamException, IOException, SAXException {
+
+        String kmlInput = """
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                    <Document>
+                        <Placemark>
+                            <name>Valid Name</name>
+                            <!-- No geometry -->
+                        </Placemark>
+                    </Document>
+                </kml>
+                """;
+
+        var result = parser.parseKML(Val.of(kmlInput)).get();
+
+        assertNotNull(result);
+        assertTrue(result.isArray());
+        assertEquals(0, result.size());
     }
 
     @Test

@@ -75,10 +75,10 @@ class KmlConverterTest extends TestBase {
         assertEquals(expPoint, result);
         assertEquals(expPolygon, result1);
     }
-    
+
     @Test
     void kmlToGeometryFactoryTest() throws ParseException {
-        
+
         var factory    = new GeometryFactory(new PrecisionModel(), 4326);
         var result     = (Point) KmlConverter.kmlToGeometry(point, factory);
         var result1    = (Polygon) KmlConverter.kmlToGeometry(polygon, factory);

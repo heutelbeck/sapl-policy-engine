@@ -38,7 +38,7 @@ public final class WktConverter {
     }
 
     /**
-     * @param wkt     a {@link Val} containing the WKT-String
+     * @param wkt a {@link Val} containing the WKT-String
      * @param factory a {@link GeometryFactory}
      * @return a {@link Geometry}
      */
@@ -57,7 +57,7 @@ public final class WktConverter {
     }
 
     /**
-     * @param wkt     a WKT-String
+     * @param wkt a WKT-String
      * @param factory a {@link GeometryFactory}
      * @return a {@link Geometry}
      */

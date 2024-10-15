@@ -38,7 +38,7 @@ public final class KmlConverter {
     }
 
     /**
-     * @param kml     a {@link Val} containing the KML-String
+     * @param kml a {@link Val} containing the KML-String
      * @param factory a {@link GeometryFactory}
      * @return a {@link Geometry}
      */
@@ -57,7 +57,7 @@ public final class KmlConverter {
     }
 
     /**
-     * @param kml     a KML-String
+     * @param kml a KML-String
      * @param factory a {@link GeometryFactory}
      * @return a {@link Geometry}
      */

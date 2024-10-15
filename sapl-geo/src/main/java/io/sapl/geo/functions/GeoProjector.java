@@ -34,21 +34,18 @@ public final class GeoProjector {
         // standard configuration
         this(CrsConst.WGS84_CRS.getValue(), true, CrsConst.WEB_MERCATOR_CRS.getValue(), false);
     }
-   
 
     /**
-     * @param srcCrs             sets the coordinate reference system for the source
-     *                           geometry, e. g. "EPSG:4326". see
-     *                           {@link #project(Geometry)} and
-     *                           <a href="https://epsg.io/?q=">epsg.io</a>
-     * @param srcLongitudeFirst  a {@link Boolean} to set latitude/longitude as
-     *                           first coordinate
-     * @param destCrs            sets the coordinate reference system for the
-     *                           destination geometry,e. g. "EPSG:4326". see
-     *                           {@link #project(Geometry)} and
-     *                           <a href="https://epsg.io/?q=">epsg.io</a>
+     * @param srcCrs sets the coordinate reference system for the source geometry,
+     * e. g. "EPSG:4326". see {@link #project(Geometry)} and
+     * <a href="https://epsg.io/?q=">epsg.io</a>
+     * @param srcLongitudeFirst a {@link Boolean} to set latitude/longitude as first
+     * coordinate
+     * @param destCrs sets the coordinate reference system for the destination
+     * geometry,e. g. "EPSG:4326". see {@link #project(Geometry)} and
+     * <a href="https://epsg.io/?q=">epsg.io</a>
      * @param destLongitudeFirst a {@link Boolean} to set latitude/longitude as
-     *                           first coordinate
+     * first coordinate
      */
     public GeoProjector(String srcCrs, Boolean srcLongitudeFirst, String destCrs, Boolean destLongitudeFirst)
             throws FactoryException {
@@ -57,12 +54,10 @@ public final class GeoProjector {
     }
 
     /**
-     * @param srcCrs  a {@link CoordinateReferenceSystem} to set the coordinate
-     *                reference system for the source geometry. see
-     *                {@link #project(Geometry)}
+     * @param srcCrs a {@link CoordinateReferenceSystem} to set the coordinate
+     * reference system for the source geometry. see {@link #project(Geometry)}
      * @param destCrs a {@link CoordinateReferenceSystem} to set the coordinate
-     *                reference system for the destination geometry. see
-     *                {@link #project(Geometry)}
+     * reference system for the destination geometry. see {@link #project(Geometry)}
      */
     public GeoProjector(CoordinateReferenceSystem srcCrs, CoordinateReferenceSystem destCrs) throws FactoryException {
 

@@ -36,15 +36,16 @@ import org.locationtech.jts.geom.Point;
 class GeoProjectorTest {
 
     static Stream<GeoProjector> projectorProvider() throws FactoryException {
-        return Stream.of(new GeoProjector(CrsConst.WGS84_CRS.getValue(), true, CrsConst.WEB_MERCATOR_CRS.getValue(), false),
+        return Stream.of(
+                new GeoProjector(CrsConst.WGS84_CRS.getValue(), true, CrsConst.WEB_MERCATOR_CRS.getValue(), false),
                 new GeoProjector());
     }
 
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
     @MethodSource("projectorProvider")
-    void testProjectValidGeometry(GeoProjector geoProjector) throws MismatchedDimensionException,
-            org.geotools.api.referencing.operation.TransformException {
+    void testProjectValidGeometry(GeoProjector geoProjector)
+            throws MismatchedDimensionException, org.geotools.api.referencing.operation.TransformException {
 
         GeometryFactory geometryFactory = new GeometryFactory();
         Point           point           = geometryFactory.createPoint(new Coordinate(10.0, 20.0));
@@ -58,8 +59,8 @@ class GeoProjectorTest {
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
     @MethodSource("projectorProvider")
-    void testReProjectValidGeometry(GeoProjector geoProjector) throws MismatchedDimensionException,
-            org.geotools.api.referencing.operation.TransformException {
+    void testReProjectValidGeometry(GeoProjector geoProjector)
+            throws MismatchedDimensionException, org.geotools.api.referencing.operation.TransformException {
 
         GeometryFactory geometryFactory = new GeometryFactory();
         Point           point           = geometryFactory

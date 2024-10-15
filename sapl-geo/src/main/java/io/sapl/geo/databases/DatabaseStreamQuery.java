@@ -71,7 +71,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
     private ConnectionFactory           connectionFactory;
 
     /**
-     * @param auth   a {@link JsonNode} containing the settings for authorization
+     * @param auth a {@link JsonNode} containing the settings for authorization
      * @param mapper a {@link ObjectMapper}
      */
     public DatabaseStreamQuery(JsonNode auth, ObjectMapper mapper, DataBaseTypes dataBaseType) {

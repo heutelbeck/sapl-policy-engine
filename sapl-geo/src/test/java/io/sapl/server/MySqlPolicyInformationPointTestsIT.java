@@ -74,9 +74,8 @@ class MySqlPolicyInformationPointTestsIT extends MySqlTestBase {
     @CsvSource({ "mysqlTest", "mysqlTestEnvironmentVariable" })
     void MySqlPipTest(String pdpPath) throws InitializationException {
 
-        var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, pdpPath), () -> List.of(new MySqlPolicyInformationPoint(new ObjectMapper())),
-                List::of, List::of, List::of);
+        var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, pdpPath),
+                () -> List.of(new MySqlPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
         var subject           = new Subject(mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
         var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");

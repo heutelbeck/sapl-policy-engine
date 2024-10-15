@@ -40,7 +40,7 @@ public final class GmlConverter {
     }
 
     /**
-     * @param gml     a {@link Val} containing the GML-String
+     * @param gml a {@link Val} containing the GML-String
      * @param factory a {@link GeometryFactory}
      * @return a {@link Geometry}
      */
@@ -60,7 +60,7 @@ public final class GmlConverter {
     }
 
     /**
-     * @param gml     a GML-String
+     * @param gml a GML-String
      * @param factory a {@link GeometryFactory}
      * @return a {@link Geometry}
      */

@@ -49,7 +49,7 @@ public final class OwnTracks extends TrackerConnectionBase {
     private String            protocol;
 
     /**
-     * @param auth   a {@link JsonNode} containing the settings for authorization
+     * @param auth a {@link JsonNode} containing the settings for authorization
      * @param mapper a {@link ObjectMapper}
      */
     public OwnTracks(JsonNode auth, ObjectMapper mapper) {
@@ -96,7 +96,7 @@ public final class OwnTracks extends TrackerConnectionBase {
 
     private String getRequest(String url) {
 
-        var settings = "{\"baseUrl\" : \"%s\", \"accept\" : \"%s\""; 
+        var settings = "{\"baseUrl\" : \"%s\", \"accept\" : \"%s\"";
         settings = String.format(settings, url, MediaType.APPLICATION_JSON_VALUE);
         if (authSettings != null) {
 
