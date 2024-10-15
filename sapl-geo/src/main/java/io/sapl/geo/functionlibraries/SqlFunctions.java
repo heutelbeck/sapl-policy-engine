@@ -39,7 +39,7 @@ public class SqlFunctions {
 
     // true if sql contains sth. except numbers, letters, less and greater than,
     // star, equal, prime, whitespace, brackets, comma, minus
-    private static final String REGEX_CONTROL_CHARS = "^(?![0-9a-zA-Z<>*='\s(),-]*$).*$";
+    private static final String REGEX_CONTROL_CHARS = "(?i)^(?![0-9a-z<>*='\\s(),-]*$).*$";  
 
     // true if sql contains update, delete...
     private static final String REGEX_KEYWORDS = """
