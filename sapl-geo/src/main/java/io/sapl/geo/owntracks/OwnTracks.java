@@ -34,10 +34,8 @@ import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.geo.shared.TrackerConnectionBase;
 import io.sapl.pip.http.ReactiveWebClient;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
-@Slf4j
 public final class OwnTracks extends TrackerConnectionBase {
 
     protected static final String HTTP_BASIC_AUTH_USER = "httpUser";
@@ -107,15 +105,13 @@ public final class OwnTracks extends TrackerConnectionBase {
             boolean latitudeFirst) throws JsonProcessingException {
             var request = Val.ofJson(requestString);
 
-        var flux = client.httpRequest(HttpMethod.GET, request).flatMap(v -> {
+        return client.httpRequest(HttpMethod.GET, request).flatMap(v -> {
             try {
                 return mapResponse(v.get(), format, mapper, latitudeFirst);
             } catch (JsonProcessingException e) {
                 return Flux.error(e);
             }
         }).map(res -> mapper.convertValue(res, ObjectNode.class));
-        log.info("OwnTracks-Client connected.");
-        return flux;
     }
 
     public Flux<GeoPipResponse> mapResponse(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
