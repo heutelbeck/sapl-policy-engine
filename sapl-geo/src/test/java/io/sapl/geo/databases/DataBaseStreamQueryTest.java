@@ -31,6 +31,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import reactor.test.StepVerifier;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class DataBaseStreamQueryTest {
@@ -95,44 +96,28 @@ class DataBaseStreamQueryTest {
 	}
 
 	@Test
-	void getTableErrorTest()
-			throws JsonProcessingException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-		var template = "{\"table\":\"test\"}";
-		var request = Val.ofJson(template).get();
-		var templateEmpty = "{ }";
-		var requestEmpty = Val.ofJson(templateEmpty).get();
+	void getTableErrorTest() throws JsonProcessingException {
+
+		var templateWithoutTable = "{\"geoColumn\":\"test\"}";
+		var requestWithoutTable = Val.ofJson(templateWithoutTable).get();
 		var auth = Val.ofJson(authenticationTemplate).get();
 		databaseStreamQuery = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
-		var method = DatabaseStreamQuery.class.getDeclaredMethod("getTable", JsonNode.class);
-		method.setAccessible(true);
-		var result = (String) method.invoke(databaseStreamQuery, request);
-		var exception = assertThrows(InvocationTargetException.class,
-				() -> method.invoke(databaseStreamQuery, requestEmpty));
-		var cause = exception.getCause();
-		assertTrue(cause instanceof PolicyEvaluationException);
-		assertEquals("No table-name found", cause.getMessage());
-		assertEquals("test", result);
+		var errorVal = Val.error("No table-name found");
+		var response = databaseStreamQuery.sendQuery(requestWithoutTable);
+		StepVerifier.create(response).expectNext(errorVal).thenCancel().verify();
+
 	}
 
 	@Test
-	void getGeoColumnErrorTest()
-			throws JsonProcessingException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+	void getGeoColumnErrorTest() throws JsonProcessingException {
 
-		var templateEmpty = "{}";
-		var requestEmpty = Val.ofJson(templateEmpty).get();
-		var template = "{\"geoColumn\":\"test\"}";
-		var request = Val.ofJson(template).get();
+		var templateWithoutTable = "{\"dataBase\":\"test\"}";
+		var requestWithoutTable = Val.ofJson(templateWithoutTable).get();
 		var auth = Val.ofJson(authenticationTemplate).get();
 		databaseStreamQuery = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
-		var method = DatabaseStreamQuery.class.getDeclaredMethod("getGeoColumn", JsonNode.class);
-		method.setAccessible(true);
-		var result = (String) method.invoke(databaseStreamQuery, request);
-		var exception = assertThrows(InvocationTargetException.class,
-				() -> method.invoke(databaseStreamQuery, requestEmpty));
-		var cause = exception.getCause();
-		assertTrue(cause instanceof PolicyEvaluationException);
-		assertEquals("No geoColumn-name found", cause.getMessage());
-		assertEquals("test", result);
+		var errorVal = Val.error("No geoColumn-name found");
+		var response = databaseStreamQuery.sendQuery(requestWithoutTable);
+		StepVerifier.create(response).expectNext(errorVal).thenCancel().verify();
 	}
 
 	@Test
@@ -204,8 +189,8 @@ class DataBaseStreamQueryTest {
 	}
 
 	@Test
-	void longOrDefaultTest() throws JsonProcessingException, NoSuchMethodException,
-			IllegalAccessException, InvocationTargetException {
+	void longOrDefaultTest()
+			throws JsonProcessingException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
 
 		var auth = Val.ofJson(authenticationTemplate).get();
 		databaseStreamQuery = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
