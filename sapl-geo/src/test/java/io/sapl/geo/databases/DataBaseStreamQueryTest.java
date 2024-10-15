@@ -204,7 +204,7 @@ class DataBaseStreamQueryTest {
 	}
 
 	@Test
-	void longOrDefaultTest() throws JsonProcessingException, NoSuchMethodException, SecurityException,
+	void longOrDefaultTest() throws JsonProcessingException, NoSuchMethodException,
 			IllegalAccessException, InvocationTargetException {
 
 		var auth = Val.ofJson(authenticationTemplate).get();
