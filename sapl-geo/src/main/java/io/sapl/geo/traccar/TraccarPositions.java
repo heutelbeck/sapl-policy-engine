@@ -68,7 +68,7 @@ public final class TraccarPositions extends TraccarBase {
             try {
                 return getPositionFlux(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
                         getLatitudeFirst(settings)).map(Val::of).doFinally(s -> disconnect());
-            } catch (Exception e) {
+            } catch (JsonProcessingException e) {
                 return Flux.error(e);
             }
         });

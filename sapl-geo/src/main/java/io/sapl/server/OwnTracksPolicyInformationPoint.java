@@ -18,6 +18,8 @@
 package io.sapl.server;
 
 import java.util.Map;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.EnvironmentAttribute;
@@ -37,13 +39,13 @@ public class OwnTracksPolicyInformationPoint {
     private static final String OWNTRACKS_DEFAULT_CONFIG = "OWNTRACKS_DEFAULT_CONFIG";
 
     @EnvironmentAttribute(name = "positionAndFences")
-    public Flux<Val> positionAndFences(Map<String, Val> auth, @JsonObject Val variables) {
+    public Flux<Val> positionAndFences(Map<String, Val> auth, @JsonObject Val variables) throws JsonProcessingException {
 
         return new OwnTracks(auth.get(OWNTRACKS_DEFAULT_CONFIG).get(), mapper).connect(variables.get());
     }
 
     @EnvironmentAttribute(name = "positionAndFences")
-    public Flux<Val> positionAndFences(@JsonObject Val auth, @JsonObject Val variables) {
+    public Flux<Val> positionAndFences(@JsonObject Val auth, @JsonObject Val variables) throws JsonProcessingException {
 
         return new OwnTracks(auth.get(), mapper).connect(variables.get());
     }

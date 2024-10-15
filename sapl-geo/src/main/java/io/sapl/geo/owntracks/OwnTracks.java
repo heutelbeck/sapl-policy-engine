@@ -78,20 +78,16 @@ public final class OwnTracks extends TrackerConnectionBase {
 
     /**
      * @param settings a {@link JsonNode} containing the settings
+     * @throws JsonProcessingException 
      */
-    public Flux<Val> connect(JsonNode settings) {
+    public Flux<Val> connect(JsonNode settings) throws JsonProcessingException {
 
         deviceId = getDeviceId(settings);
         client   = new ReactiveWebClient(mapper);
         var url = String.format("%s://%s/api/0/last?user=%s&device=%s", protocol, server, getUser(settings), deviceId);
-        try {
             var request = getRequest(url);
             return getFlux(request, getResponseFormat(settings, mapper), mapper, getLatitudeFirst(settings))
                     .map(Val::of);
-
-        } catch (Exception e) {
-            return Flux.just(Val.error(e.getMessage()));
-        }
     }
 
     private String getRequest(String url) {
@@ -107,15 +103,10 @@ public final class OwnTracks extends TrackerConnectionBase {
     }
 
     private Flux<ObjectNode> getFlux(String requestString, GeoPipResponseFormat format, ObjectMapper mapper,
-            boolean latitudeFirst) {
+            
+            boolean latitudeFirst) throws JsonProcessingException {
+            var request = Val.ofJson(requestString);
 
-        Val request;
-        try {
-            request = Val.ofJson(requestString);
-
-        } catch (Exception e) {
-            return Flux.error(e);
-        }
         var flux = client.httpRequest(HttpMethod.GET, request).flatMap(v -> {
             try {
                 return mapResponse(v.get(), format, mapper, latitudeFirst);

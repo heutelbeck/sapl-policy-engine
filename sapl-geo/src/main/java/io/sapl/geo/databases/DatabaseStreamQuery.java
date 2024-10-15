@@ -204,7 +204,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
     }
 
     private Flux<JsonNode> poll(Mono<JsonNode> mono, long repeatTimes, long pollingInterval) {
-        return mono // .onErrorResume(Mono::error)
+        return mono 
                 .repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
                 .doFinally(this::disconnect);
     }
@@ -243,7 +243,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
         return String.format(str, frmt, geoColumn, geoColumn, clms, table, where);
     }
 
-    protected String getDataBaseName(JsonNode requestSettings) throws PolicyEvaluationException {
+    private String getDataBaseName(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(DATABASE)) {
             return requestSettings.findValue(DATABASE).asText();
         } else {
