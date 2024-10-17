@@ -77,12 +77,12 @@ public final class OwnTracks extends TrackerConnectionBase {
 	 */
 	public Flux<Val> getPositionWithInregions(JsonNode settings) throws JsonProcessingException {
 		deviceId = getDeviceId(settings);
-		return getOwnTracksResponse(getResponseFormat(settings, mapper), getUser(settings), getPollingInterval(settings),
-				getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of);
+		return getOwnTracksResponse(getResponseFormat(settings, mapper), getUser(settings),
+				getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of);
 	}
 
-	private Flux<ObjectNode> getOwnTracksResponse(GeoPipResponseFormat format, String user, Long pollingInterval, Long repetitions,
-			boolean latitudeFirst) throws JsonProcessingException {
+	private Flux<ObjectNode> getOwnTracksResponse(GeoPipResponseFormat format, String user, Long pollingInterval,
+			Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
 
 		var webClient = new ReactiveWebClient(mapper);
 		var baseUrl = protocol + "://" + server;
@@ -93,25 +93,26 @@ public final class OwnTracks extends TrackerConnectionBase {
 			var urlParams = String.format("\"deviceId\": \"%s\"", deviceId);
 			urlParamArray = new String[] { urlParams };
 		}
-		var requesttemplate = createRequestTemplate(baseUrl, "api/0/last", MediaType.APPLICATION_JSON_VALUE,
+		var requestTemplate = createRequestTemplate(baseUrl, "api/0/last", MediaType.APPLICATION_JSON_VALUE,
 				urlParamArray, new String[] { urlParamUser, urlParamDevice }, pollingInterval, repetitions);
 
-		return webClient.httpRequest(HttpMethod.GET, requesttemplate).flatMap(v -> {
+		return webClient.httpRequest(HttpMethod.GET, requestTemplate).flatMap(v -> {
 			try {
-				return mapResponse(v.get(), format, mapper, latitudeFirst);
+				var response = mapResponse(v.get(), format, mapper, latitudeFirst);
+				return Flux.just(mapper.convertValue(response, ObjectNode.class));
 			} catch (JsonProcessingException e) {
-				return Flux.error(e);
+				return Flux.error(new PolicyEvaluationException(e));
 			}
-		}).map(res -> mapper.convertValue(res, ObjectNode.class));
+		});
 	}
 
-	private Flux<GeoPipResponse> mapResponse(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
+	private GeoPipResponse mapResponse(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
 			boolean latitudeFirst) throws JsonProcessingException {
 
 		var response = mapPosition(deviceId, in.get(0), format, latitudeFirst);
 		var res = in.findValue("inregions");
 		response.setGeoFences(mapOwnTracksInRegions(res, mapper));
-		return Flux.just(response);
+		return response;
 	}
 
 	private List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws JsonProcessingException {

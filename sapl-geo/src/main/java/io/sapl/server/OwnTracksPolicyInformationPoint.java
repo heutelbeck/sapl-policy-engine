@@ -39,9 +39,11 @@ public class OwnTracksPolicyInformationPoint {
     private static final String OWNTRACKS_DEFAULT_CONFIG = "OWNTRACKS_DEFAULT_CONFIG";
 
     @EnvironmentAttribute(name = "positionAndFences")
-    public Flux<Val> positionAndFences(Map<String, Val> auth, @JsonObject Val variables) throws JsonProcessingException {
+    public Flux<Val> positionAndFences(Map<String, Val> auth, @JsonObject Val variables)
+            throws JsonProcessingException {
 
-        return new OwnTracks(auth.get(OWNTRACKS_DEFAULT_CONFIG).get(), mapper).getPositionWithInregions(variables.get());
+        return new OwnTracks(auth.get(OWNTRACKS_DEFAULT_CONFIG).get(), mapper)
+                .getPositionWithInregions(variables.get());
     }
 
     @EnvironmentAttribute(name = "positionAndFences")
