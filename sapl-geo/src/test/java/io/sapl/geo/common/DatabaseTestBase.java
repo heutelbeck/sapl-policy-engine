@@ -37,8 +37,7 @@ public abstract class DatabaseTestBase extends TestBase {
 
     protected String template = """
              {
-                "responseFormat":"GEOJSON",
-                "defaultCRS": 4326,
+                "responseFormat":"GEOJSON",                
                 "pollingIntervalMs":1000,
                 "repetitions":2,
                 "responseFormat":"%s"
@@ -46,10 +45,10 @@ public abstract class DatabaseTestBase extends TestBase {
 
     protected String templateAll1 = ("""
                 ,
+                "defaultCRS": 4326,
                 "table":"%s",
                 "geoColumn":"%s",
-            	"singleResult": false,
-            	"columns": ["name"]
+            	"columns": "name"
              }
             """);
 

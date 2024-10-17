@@ -21,7 +21,6 @@ import java.time.Duration;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import org.geotools.api.geometry.MismatchedDimensionException;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.TransformException;
@@ -46,13 +45,10 @@ import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.JsonConverter;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 import io.sapl.geo.shared.ConnectionBase;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.retry.Repeat;
 
-@Slf4j
 public final class DatabaseStreamQuery extends ConnectionBase {
 
 	private static final String DATABASE = "dataBase";
@@ -64,8 +60,6 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 	private static final String SINGLE_RESULT = "singleResult";
 	private static final String EPSG = "EPSG:";
 	private static final String PORT = "port";
-
-	private AtomicReference<Connection> connectionReference = new AtomicReference<>();
 	private String[] selectColumns;
 	private DataBaseTypes dataBaseType;
 	private ConnectionFactory connectionFactory;
@@ -116,26 +110,28 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		}
 	}
 
-    private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
+	private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
 
-        return Flux.usingWhen(connectionFactory.create(), conn -> Flux.from(conn.createStatement(sql).execute())
-                .flatMap(result -> result.map((row, rowMetadata) -> {
-                    try {
-                        return mapResult(row, format, defaultCrs, latitudeFirst);
-                    } catch (MismatchedDimensionException | JsonProcessingException | ParseException | FactoryException
-                            | TransformException e) {
-                        throw new PolicyEvaluationException(e);
-                    }
-                })), Connection::close);
-    }
+		return Flux.usingWhen(connectionFactory.create(), conn -> Flux.from(conn.createStatement(sql).execute())
+				.flatMap(result -> result.map((row, rowMetadata) -> {
+					try {
+						return mapResult(row, format, defaultCrs, latitudeFirst);
+					} catch (MismatchedDimensionException | JsonProcessingException | ParseException | FactoryException
+							| TransformException e) {
+						throw new PolicyEvaluationException(e);
+					}
+				})), Connection::close);
+	}
 
-	private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) throws MismatchedDimensionException, JsonProcessingException, ParseException, FactoryException, TransformException {
+	private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst)
+			throws MismatchedDimensionException, JsonProcessingException, ParseException, FactoryException,
+			TransformException {
 
 		var resultNode = mapper.createObjectNode();
 		JsonNode geoNode;
 		var resValue = row.get("res", String.class);
 		var srid = row.get("srid", Integer.class);
-		if (srid != null && srid != 0) {
+		if (srid != null) {
 			geoNode = convertResponse(resValue, format, srid, latitudeFirst);
 		} else {
 			geoNode = convertResponse(resValue, format, defaultCrs, latitudeFirst);
@@ -148,7 +144,9 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		return resultNode;
 	}
 
-	private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) throws ParseException, FactoryException, MismatchedDimensionException, TransformException, JsonProcessingException {
+	private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst)
+			throws ParseException, FactoryException, MismatchedDimensionException, TransformException,
+			JsonProcessingException {
 
 		var res = (JsonNode) mapper.createObjectNode();
 		var crs = EPSG + srid;
@@ -195,18 +193,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 	}
 
 	private Flux<JsonNode> poll(Mono<JsonNode> mono, long repeatTimes, long pollingInterval) {
-		return mono.repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))))
-				.doFinally(this::disconnect);
-	}
-
-	private void disconnect(SignalType s) {
-
-		var conn = connectionReference.get();
-		if (conn != null) {
-			Mono.from(conn.close()).doOnError(err -> log.error(String.format("Error closing connection %s ", s), err))
-					.doOnSuccess(aVoid -> log.info("Database-Client disconnected."))
-					.subscribe(null, err -> log.error(String.format("Error during close subscription %s ", s), err));
-		}
+		return mono.repeatWhen((Repeat.times(repeatTimes - 1).fixedBackoff(Duration.ofMillis(pollingInterval))));
 	}
 
 	private final void createPostgresqlConnectionFactory(JsonNode auth, int port) {
