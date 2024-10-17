@@ -116,15 +116,20 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		}
 	}
 
-	private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
+    private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
 
-		return Flux.usingWhen(connectionFactory.create(), conn -> Flux.from(conn.createStatement(sql).execute())
-				.flatMap(result -> result.map((row, rowMetadata) -> {
-					return mapResult(row, format, defaultCrs, latitudeFirst);
-				})), Connection::close);
-	}
+        return Flux.usingWhen(connectionFactory.create(), conn -> Flux.from(conn.createStatement(sql).execute())
+                .flatMap(result -> result.map((row, rowMetadata) -> {
+                    try {
+                        return mapResult(row, format, defaultCrs, latitudeFirst);
+                    } catch (MismatchedDimensionException | JsonProcessingException | ParseException | FactoryException
+                            | TransformException e) {
+                        throw new PolicyEvaluationException(e);
+                    }
+                })), Connection::close);
+    }
 
-	private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
+	private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) throws MismatchedDimensionException, JsonProcessingException, ParseException, FactoryException, TransformException {
 
 		var resultNode = mapper.createObjectNode();
 		JsonNode geoNode;
@@ -143,42 +148,38 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		return resultNode;
 	}
 
-	private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) {
+	private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) throws ParseException, FactoryException, MismatchedDimensionException, TransformException, JsonProcessingException {
 
 		var res = (JsonNode) mapper.createObjectNode();
 		var crs = EPSG + srid;
-		try {
-			var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
-			if (dataBaseType == DataBaseTypes.MYSQL && !latitudeFirst) {
-				var geoProjector = new GeoProjector(crs, false, crs, true);
-				geo = geoProjector.project(geo);
-			} else if (dataBaseType == DataBaseTypes.POSTGIS && latitudeFirst) {
-				var geoProjector = new GeoProjector(crs, true, crs, false);
-				geo = geoProjector.project(geo);
-			}
 
-			switch (format) {
-			case GEOJSON:
-				res = GeometryConverter.geometryToGeoJsonNode(geo).get();
-				break;
-
-			case WKT:
-				res = GeometryConverter.geometryToWKT(geo).get();
-				break;
-
-			case GML:
-				res = GeometryConverter.geometryToGML(geo).get();
-				break;
-
-			case KML:
-				res = GeometryConverter.geometryToKML(geo).get();
-				break;
-			}
-		} catch (MismatchedDimensionException | JsonProcessingException | ParseException | FactoryException
-				| TransformException e) {
-
-			throw new PolicyEvaluationException(e);
+		var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
+		if (dataBaseType == DataBaseTypes.MYSQL && !latitudeFirst) {
+			var geoProjector = new GeoProjector(crs, false, crs, true);
+			geo = geoProjector.project(geo);
+		} else if (dataBaseType == DataBaseTypes.POSTGIS && latitudeFirst) {
+			var geoProjector = new GeoProjector(crs, true, crs, false);
+			geo = geoProjector.project(geo);
 		}
+
+		switch (format) {
+		case GEOJSON:
+			res = GeometryConverter.geometryToGeoJsonNode(geo).get();
+			break;
+
+		case WKT:
+			res = GeometryConverter.geometryToWKT(geo).get();
+			break;
+
+		case GML:
+			res = GeometryConverter.geometryToGML(geo).get();
+			break;
+
+		case KML:
+			res = GeometryConverter.geometryToKML(geo).get();
+			break;
+		}
+
 		return res;
 	}
 
@@ -256,7 +257,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		}
 	}
 
-	private String[] getColumns(JsonNode requestSettings, ObjectMapper mapper) throws PolicyEvaluationException {
+	private String[] getColumns(JsonNode requestSettings, ObjectMapper mapper) {
 		if (requestSettings.has(COLUMNS)) {
 			var columns = requestSettings.findValue(COLUMNS);
 			if (columns.isArray()) {

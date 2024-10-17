@@ -64,24 +64,22 @@ public final class TraccarPositions extends TraccarBase {
 
 		var url = (String.format("ws://%s/api/socket", server));
 		return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
-
-			return getTraccarResponse(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
-					getLatitudeFirst(settings)).map(Val::of).doFinally(s -> disconnect());
+			try {
+				return getTraccarResponse(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
+						getLatitudeFirst(settings)).map(Val::of).doFinally(s -> disconnect());
+			} catch (JsonProcessingException e) {
+				return Flux.error(e);
+			}
 		});
 	}
 
 	private Flux<ObjectNode> getTraccarResponse(String url, String cookie, GeoPipResponseFormat format, String deviceId,
-			boolean latitudeFirst) {
+			boolean latitudeFirst) throws JsonProcessingException {
 
 		var webClient = new ReactiveWebClient(mapper);
 		var requestTemplate = "{ \"baseUrl\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\": \"%s\" } }";
 		Val request;
-		try {
-			request = Val.ofJson(String.format(requestTemplate, url, MediaType.APPLICATION_JSON_VALUE, cookie));
-
-		} catch (JsonProcessingException e) {
-			throw new PolicyEvaluationException(e);
-		}
+		request = Val.ofJson(String.format(requestTemplate, url, MediaType.APPLICATION_JSON_VALUE, cookie));
 
 		return webClient.consumeWebSocket(request).flatMap(v -> {
 			try {
