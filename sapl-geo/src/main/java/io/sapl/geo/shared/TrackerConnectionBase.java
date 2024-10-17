@@ -111,14 +111,16 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
 	}
 
 	private void appendUrlParameters(StringBuilder template, String[] urlParameters) {
-		template.append(", \"urlParameters\" : {");
-		for (int i = 0; i < urlParameters.length; i++) {
-			template.append(urlParameters[i]);
-			if (i < urlParameters.length - 1) {
-				template.append(", ");
+		if (urlParameters != null && urlParameters.length > 0) {
+			template.append(", \"urlParameters\" : {");
+			for (int i = 0; i < urlParameters.length; i++) {
+				template.append(urlParameters[i]);
+				if (i < urlParameters.length - 1) {
+					template.append(", ");
+				}
 			}
+			template.append('}');
 		}
-		template.append('}');
 	}
 
 	protected String getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
