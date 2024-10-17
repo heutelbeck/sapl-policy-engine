@@ -30,7 +30,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
     void testCompletion_PolicyBody_environmentattribute_without_import() {
         final var policy   = """
                 policy "test" deny where <t#""";
-        final var expected = List.of("emperature.now>", "emperature.mean(a1, a2)>", "emperature.predicted(a1)>");
+        final var expected = List.of("temperature.now>", "temperature.mean(a1, a2)>", "temperature.predicted(a1)>");
         assertProposalsContain(policy, expected);
     }
 
@@ -46,7 +46,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
         final var policy   = """
                 import temperature.*
                 policy "test" deny where <m#""";
-        final var expected = List.of("ean(a1, a2)>");
+        final var expected = List.of("mean(a1, a2)>");
         assertProposalsContain(policy, expected);
     }
 
@@ -55,7 +55,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
         final var policy   = """
                 import temperature.predicted
                 policy "test" deny where <p#""";
-        final var expected = List.of("redicted(a1)>");
+        final var expected = List.of("predicted(a1)>");
         assertProposalsContain(policy, expected);
     }
 
@@ -64,7 +64,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
         final var policy   = """
                 import temperature as weather
                 policy "test" deny where <w#""";
-        final var expected = List.of("eather.now>", "eather.mean(a1, a2)>", "eather.predicted(a1)>");
+        final var expected = List.of("weather.now>", "weather.mean(a1, a2)>", "weather.predicted(a1)>");
         assertProposalsContain(policy, expected);
     }
 
@@ -79,7 +79,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
     void testCompletion_PolicyBody_environmentheadattribute_without_import() {
         final var policy   = """
                 policy "test" deny where |<t#""";
-        final var expected = List.of("emperature.now>", "emperature.mean(a1, a2)>", "emperature.predicted(a1)>");
+        final var expected = List.of("temperature.now>", "temperature.mean(a1, a2)>", "temperature.predicted(a1)>");
         assertProposalsContain(policy, expected);
     }
 
@@ -88,7 +88,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
         final var policy   = """
                 import temperature.*
                 policy "test" deny where |<m#""";
-        final var expected = List.of("ean(a1, a2)>");
+        final var expected = List.of("mean(a1, a2)>");
         assertProposalsContain(policy, expected);
     }
 
@@ -97,7 +97,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
         final var policy   = """
                 import temperature.predicted
                 policy "test" deny where |<p#""";
-        final var expected = List.of("redicted(a1)>");
+        final var expected = List.of("predicted(a1)>");
         assertProposalsContain(policy, expected);
     }
 
@@ -106,7 +106,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
         final var policy   = """
                 import temperature as weather
                 policy "test" deny where |<w#""";
-        final var expected = List.of("eather.now>", "eather.mean(a1, a2)>", "eather.predicted(a1)>");
+        final var expected = List.of("weather.now>", "weather.mean(a1, a2)>", "weather.predicted(a1)>");
         assertProposalsContain(policy, expected);
     }
 

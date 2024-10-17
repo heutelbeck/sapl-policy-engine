@@ -79,6 +79,16 @@ class SAPLIdeSpringTestConfiguration {
                 "geographical_location_schema", "subject_schema", "vehicle_schema", "schema_with_additional_keywords"),
                 variables);
 
+        variables.put("abba", Val.ofJson("""
+                {
+                  "a": {
+                    "x": 0,
+                    "y": 1
+                  },
+                  "b": "y"
+                }
+                """));
+
         final var staticPlaygroundConfiguration = new PDPConfiguration("testConfig", attributeContext, functionContext,
                 variables, PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(),
                 UnaryOperator.identity(), mock(PolicyRetrievalPoint.class));

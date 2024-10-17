@@ -37,7 +37,7 @@ class AttributeStepIdentifierTests extends CompletionTests {
     void testCompletion_PolicyBody_attributequery_without_import() {
         final var policy   = """
                 policy "test" deny where subject.<p#""";
-        final var expected = List.of("erson.age>");
+        final var expected = List.of("person.age>");
         assertProposalsContain(policy, expected);
     }
 
@@ -45,7 +45,7 @@ class AttributeStepIdentifierTests extends CompletionTests {
     void testCompletion_PolicyBody_attributequery_without_import_longerprefix() {
         final var policy   = """
                 policy "test" deny where subject.<person.a#""";
-        final var expected = List.of("ge>");
+        final var expected = List.of("age>");
         assertProposalsContain(policy, expected);
     }
 
@@ -54,7 +54,7 @@ class AttributeStepIdentifierTests extends CompletionTests {
         final var policy   = """
                 import person.age
                 policy "test" deny where subject.<a#""";
-        final var expected = List.of("ge>");
+        final var expected = List.of("age>");
         assertProposalsContain(policy, expected);
     }
 
@@ -63,7 +63,7 @@ class AttributeStepIdentifierTests extends CompletionTests {
         final var policy   = """
                 import person.*
                 policy "test" deny where subject.<a#""";
-        final var expected = List.of("ge>");
+        final var expected = List.of("age>");
         assertProposalsContain(policy, expected);
     }
 
@@ -72,7 +72,7 @@ class AttributeStepIdentifierTests extends CompletionTests {
         final var policy   = """
                 import person as humans
                 policy "test" deny where subject.<h#""";
-        final var expected = List.of("umans.age>");
+        final var expected = List.of("humans.age>");
         assertProposalsContain(policy, expected);
     }
 

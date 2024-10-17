@@ -39,9 +39,7 @@ import io.sapl.interpreter.pip.AttributeFinderMetadata;
 import io.sapl.interpreter.pip.LibraryEntryMetadata;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @UtilityClass
 public class LibraryProposalsGenerator {
 
@@ -87,10 +85,8 @@ public class LibraryProposalsGenerator {
             Map<String, Val> variables) {
         final var proposals = new ArrayList<ContentAssistEntry>();
         final var schema    = metadata.getFunctionSchema();
-        // log.trace("schema: {}", schema);
         if (null != schema) {
             SchemaProposalsGenerator.getCodeTemplates("", schema, variables).forEach(proposal -> {
-                log.trace("proposal: '{}'", proposal);
                 ProposalCreator.createNormalizedEntry(proposal, analysis.prefix(), analysis.ctxPrefix())
                         .ifPresent(proposals::add);
             });
@@ -162,9 +158,6 @@ public class LibraryProposalsGenerator {
             ContentAssistContext context, PDPConfiguration pdpConfiguration) {
         final var proposals = new ArrayList<ContentAssistEntry>();
         final var functions = pdpConfiguration.functionContext().getFunctionMetatata();
-        functions.forEach(f -> {
-            log.error("--> fun: {}", f.getCodeTemplate());
-        });
         functions.forEach(function -> proposals.addAll(
                 documentedProposalsForLibraryEntry(analysis.prefix(), analysis.ctxPrefix(), function, context)));
         return proposals;
@@ -187,7 +180,6 @@ public class LibraryProposalsGenerator {
             LibraryEntryMetadata function, ContentAssistContext context) {
         final var proposals = new ArrayList<ContentAssistEntry>();
         final var aliases   = aliasNamesOfFunctionFromImports(function.fullyQualifiedName(), context);
-        log.trace("aliases: {}", aliases);
         aliases.forEach(alias -> ProposalCreator
                 .createNormalizedEntry(function.getCodeTemplate(alias), prefix, ctxPrefix).ifPresent(proposals::add));
         return proposals;
@@ -211,7 +203,6 @@ public class LibraryProposalsGenerator {
         if (context.getRootModel() instanceof SAPL sapl) {
             final var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
             for (var anImport : imports) {
-                log.trace("Import: {}", anImport.getClass().getSimpleName());
                 if (anImport instanceof WildcardImport wildcardImport) {
                     wildcardAlias(wildcardImport, fullyQualifiedName).ifPresent(aliases::add);
                 } else if (anImport instanceof LibraryImport libraryImport) {

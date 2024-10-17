@@ -223,8 +223,9 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             this.addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), acceptor);
         } else if (isVariableAssignment(assignment, analysis)) {
             log.trace("Variable assignment for {}", analysis.prefix());
-//            this.addProposals(VariablesProposalsGenerator.variableProposalsForContext(analysis.prefix(), context,
-//                    pdpConfiguration), acceptor);
+            this.addProposals(
+                    VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration),
+                    acceptor);
         } else if (analysis.type() == ProposalType.FUNCTION) {
             this.addProposals(
                     LibraryProposalsGenerator.allFunctionSchemaExtensions(analysis, context, pdpConfiguration),

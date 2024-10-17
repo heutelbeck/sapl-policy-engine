@@ -36,9 +36,11 @@ import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
 import io.sapl.grammar.sapl.BasicFunction;
 import io.sapl.grammar.sapl.FunctionIdentifier;
 import io.sapl.grammar.sapl.HeadAttributeFinderStep;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@UtilityClass
 public class ContextAnalyzer {
     public enum ProposalType {
         ATTRIBUTE, ENVIRONMENT_ATTRIBUTE, FUNCTION, VARIABLE_OR_FUNCTION_NAME, INDETERMINATE
@@ -176,9 +178,6 @@ public class ContextAnalyzer {
 
     private static void dump(final ContentAssistContext context) {
         var n = firstNodeForAnalysis(context);
-        if (null == n) {
-            return;
-        }
         String t = "";
         String c = "";
         String g = "";

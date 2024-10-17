@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SAPL;
@@ -52,16 +53,16 @@ public class VariablesProposalsGenerator {
      * Creates all possible variables proposals, including expansions based on
      * content or schema.
      *
-     * @param prefix only add proposals starting with this prefix, but remove prefix
-     * from proposal.
+     * @param analysis only add proposals starting with this prefix, but remove
+     * prefix from proposal.
      * @param ctxPrefix actual Prefix in Context
      * @param context the ContentAssistContext
      * @param pdpConfiguration the configuration containing the environment
      * variables
      * @return a List of proposals.
      */
-    public static List<ContentAssistEntry> variableProposalsForContext(String prefix, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+    public static List<ContentAssistEntry> variableProposalsForContext(ContextAnalysisResult analysis,
+            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
         /* first add environment variables and their expansions */
         final var proposals = createEnvironmentVariableProposals(pdpConfiguration);
         /*
@@ -84,14 +85,14 @@ public class VariablesProposalsGenerator {
              */
         }
 
-        return toListOfNormalizedEntries(proposals, prefix, context.getPrefix());
+        return toListOfNormalizedEntries(proposals, analysis);
     }
 
-    private List<ContentAssistEntry> toListOfNormalizedEntries(Collection<String> proposals, String prefix,
-            String ctxPrefix) {
+    private List<ContentAssistEntry> toListOfNormalizedEntries(Collection<String> proposals,
+            ContextAnalysisResult analysis) {
         var entries = new ArrayList<ContentAssistEntry>(proposals.size());
-        proposals.forEach(
-                proposal -> ProposalCreator.createNormalizedEntry(proposal, prefix, ctxPrefix).ifPresent(entries::add));
+        proposals.forEach(proposal -> ProposalCreator
+                .createNormalizedEntry(proposal, analysis.prefix(), analysis.ctxPrefix()).ifPresent(entries::add));
         return entries;
     }
 

@@ -53,13 +53,12 @@ public class ProposalCreator {
         if (proposal.startsWith("<") && !prefix.startsWith("<")) {
             proposal = proposal.substring(1);
         }
-        if (!proposal.startsWith(prefix) || prefix.equals(proposal)) {
+        if (!proposal.startsWith(prefix) || !prefix.endsWith(ctxPrefix) || prefix.equals(proposal)) {
             log.trace("prefix: '{}' ctxPrefix: '{}': proposal: '{}' normalized: <empty> no proposal!", prefix,
                     ctxPrefix, proposal);
             return Optional.empty();
         } else {
-            final var normalizedProposal = proposal.substring(Math.max(prefix.length(), ctxPrefix.length()),
-                    proposal.length());
+            final var normalizedProposal = proposal.substring(prefix.length() - ctxPrefix.length(), proposal.length());
             log.trace("prefix: '{}' ctxPrefix: '{}': proposal: '{}' normalized: '{}'", prefix, ctxPrefix, proposal,
                     normalizedProposal);
             return Optional.of(normalizedProposal);
