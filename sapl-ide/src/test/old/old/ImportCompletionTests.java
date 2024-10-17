@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.contentassist;
+package io.sapl.grammar.ide.contentassist.old;
 
 import java.util.List;
 
@@ -25,98 +25,115 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
 /**
- * Tests regarding the auto-completion of variables
+ * Tests regarding the auto-completion of import statements
  */
 @SpringBootTest
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
-class VariableCompletionTests extends CompletionTests {
+class ImportCompletionTests extends CompletionTests {
 
     @Test
-    void testCompletion_SuggestVariableInBody() {
+    void testCompletion_AtTheBeginningImportStatement_ReturnsLibraries() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where var foo = 5; var bar = 6; ";
+            String policy = "import ";
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                final var expected = List.of("action", "environment", "foo", "resource", "subject", "bar");
+                final var expected = List.of("clock", "clock.millis", "clock.now", "clock.ticker", "temperature",
+                        "temperature.mean", "temperature.now", "temperature.predicted");
                 assertProposalsSimple(expected, completionList);
             });
         });
     }
 
     @Test
-    void testCompletion_SuggestVariableInBodyAfterSubject() {
+    void testCompletion_WithPartialLibrary_ReturnsLibrary() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where var foo = 5; var bar = 6; subject.attribute == ";
+            String policy = "import ti";
             it.setModel(policy);
             it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                final var expected = List.of("action", "bar", "environment", "foo", "resource", "subject");
+                final var expected = List.of("time");
                 assertProposalsSimple(expected, completionList);
             });
         });
     }
 
     @Test
-    void testCompletion_SuggestVariableInBody_NotSuggestOutOfScopeVariable() {
+    void testCompletion_WithFullLibrary_ReturnsFunction() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where var foo = 5; var bar = 6;";
-            String cursor = "policy \"test\" permit where var foo = 5; ";
+            String policy = "import time.";
             it.setModel(policy);
-            it.setColumn(cursor.length());
+            it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                final var expected = List.of("action", "environment", "foo", "resource", "subject");
-                final var unwanted = List.of("bar");
+                final var expected = List.of("time.*", "time.after", "time.before", "time.between");
                 assertProposalsSimple(expected, completionList);
-                assertDoesNotContainProposals(unwanted, completionList);
             });
         });
     }
 
     @Test
-    void testCompletion_SuggestVariableInBodyAfterSubject_NotSuggestOutOfScopeVariable() {
+    void testCompletion_WithFullLibraryAndPartialFunction_ReturnsFunction() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == var bar = 6;";
-            String cursor = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == ";
+            String policy = "import time.b";
             it.setModel(policy);
-            it.setColumn(cursor.length());
+            it.setColumn(policy.length());
             it.setAssertCompletionList(completionList -> {
-                final var expected = List.of("action", "environment", "foo", "resource", "subject");
-                final var unwanted = List.of("bar");
+                final var expected = List.of("time.before", "time.between");
                 assertProposalsSimple(expected, completionList);
-                assertDoesNotContainProposals(unwanted, completionList);
             });
         });
     }
 
     @Test
-    void testCompletion_SuggestFunctionsFromWildcardImport() {
+    void testCompletion_WithFullLibraryAndPartialFunctionAndNewLinesInBetween_ReturnsFunction() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "import schemaTest.*\npolicy \"test policy\" deny where var foo = 5;";
-            String cursor = "policy \"test policy\" deny where var foo = 5;";
+            String policy = """
+                    import
+                    time.
+                    b
+                    """;
+            it.setModel(policy);
+            it.setLine(2);
+            it.setColumn(1);
+            it.setAssertCompletionList(completionList -> {
+                final var expected = List.of("time.before", "time.between");
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    @Test
+    void testCompletion_WithPrecedingTextAndFullLibraryAndPartialFunction_ReturnsFunction() {
+        testCompletion((TestCompletionConfiguration it) -> {
+            String policy = """
+                    import time.yesterday
+                    import time.b
+                    """;
+            String cursor = "import time.b";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                final var expected = List.of("dog()", "dog().race", "food()", "food(String species)", "location()",
-                        "location().latitude", "location().longitude", "person()", "person().name");
+                final var expected = List.of("time.before", "time.between");
                 assertProposalsSimple(expected, completionList);
             });
         });
     }
 
     @Test
-    void testCompletion_SuggestFunctionsFromLibraryImport() {
+    void testCompletion_WithPrecedingAndSucceedingAndFullLibraryAndPartialFunction_ReturnsFunction() {
         testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "import schemaTest as abc\npolicy \"test policy\" deny where var foo = 5;";
-            String cursor = "policy \"test policy\" deny where var foo = 5;";
+            String policy = """
+                    import time.yesterday
+                    import time.b
+                    policy "test policy" deny
+                    """;
+            String cursor = "import time.b";
             it.setModel(policy);
             it.setLine(1);
             it.setColumn(cursor.length());
             it.setAssertCompletionList(completionList -> {
-                final var expected = List.of("abc.dog()", "abc.dog().race", "abc.food()", "abc.food(String species)",
-                        "abc.location()", "abc.location().latitude", "abc.location().longitude", "abc.person()",
-                        "abc.person().name");
+                final var expected = List.of("time.before", "time.between");
                 assertProposalsSimple(expected, completionList);
             });
         });

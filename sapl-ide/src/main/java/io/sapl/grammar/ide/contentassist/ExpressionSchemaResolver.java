@@ -51,9 +51,6 @@ import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
 
-/**
- * This class is responsible for inferring the
- */
 @UtilityClass
 public class ExpressionSchemaResolver {
 

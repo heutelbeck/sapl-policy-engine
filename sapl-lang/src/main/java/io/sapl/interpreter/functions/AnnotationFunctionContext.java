@@ -20,6 +20,7 @@ package io.sapl.interpreter.functions;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,13 +58,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public final class AnnotationFunctionContext implements FunctionContext {
 
-    private static final int    VAR_ARGS                                       = -1;
-    private static final String UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
-    private static final String ILLEGAL_NUMBER_OF_PARAMETERS_ERROR             = "Illegal number of parameters. Function expected %d but got %d";
-    private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
-    private static final String ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
-    private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
-    private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED        = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
+    private static final int VAR_ARGS                                       = -1;
+    static final String      UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
+    static final String      ILLEGAL_NUMBER_OF_PARAMETERS_ERROR             = "Illegal number of parameters. Function expected %d but got %d";
+    static final String      CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
+    static final String      ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
+    static final String      ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
+    static final String      MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED_ERROR  = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
+    static final String      FUNCTION_NAME_COLLISION_ERROR                  = "Function name collision %s";
 
     private final Collection<LibraryDocumentation> documentation = new ConcurrentLinkedQueue<>();
     private final Map<String, FunctionMetadata>    functions     = new ConcurrentHashMap<>();
@@ -234,7 +236,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
         final var funSchema       = funAnnotation.schema();
         final var funPathToSchema = funAnnotation.pathToSchema();
         if (!funSchema.isEmpty() && !funPathToSchema.isEmpty())
-            throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
+            throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED_ERROR);
 
         JsonNode processedSchemaDefinition = null;
         if (!funPathToSchema.isEmpty()) {
@@ -260,6 +262,9 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
         final var funMeta = new FunctionMetadata(libName, funName, processedSchemaDefinition, library, parameters,
                 method, funAnnotation.docs());
+        if (functions.containsKey(funMeta.fullyQualifiedName())) {
+            throw new InitializationException(FUNCTION_NAME_COLLISION_ERROR, funMeta.fullyQualifiedName());
+        }
         functions.put(funMeta.fullyQualifiedName(), funMeta);
         libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
@@ -401,6 +406,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
     @Override
     public Collection<FunctionMetadata> getFunctionMetatata() {
-        return functions.values();
+        return new ArrayList<FunctionMetadata>(functions.values());
     }
+
 }

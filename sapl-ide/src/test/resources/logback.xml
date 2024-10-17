@@ -7,7 +7,7 @@
         </encoder>
     </appender>
 
-    <root level="ERROR">
+    <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
     <logger name="io.sapl" level="TRACE"/>

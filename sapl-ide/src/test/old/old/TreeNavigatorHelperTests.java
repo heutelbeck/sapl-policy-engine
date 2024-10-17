@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.contentassist;
+package io.sapl.grammar.ide.contentassist.old;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -24,22 +24,24 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.eclipse.emf.ecore.impl.MinimalEObjectImpl;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.grammar.ide.contentassist.TreeNavigationUtil;
 import io.sapl.grammar.sapl.impl.SAPLImpl;
 
 class TreeNavigatorHelperTests {
 
     public static class TestEObject extends MinimalEObjectImpl.Container {
+
     }
 
     @Test
-    void test_goToFirstParent_objectIsNull_throwsNullPointerException() {
-        assertThrows(NullPointerException.class, () -> TreeNavigationUtil.goToFirstParent(null, Object.class));
+    void test_goToFirstParent_objectIsNull_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> TreeNavigationUtil.goToFirstParent(null, Object.class));
     }
 
     @Test
-    void test_goToFirstParent_classTypeIsNull_throwsNullPointerException() {
+    void test_goToFirstParent_classTypeIsNull_throwsIllegalArgumentException() {
         final var testObject = new TestEObject();
-        assertThrows(NullPointerException.class, () -> TreeNavigationUtil.goToFirstParent(testObject, null));
+        assertThrows(IllegalArgumentException.class, () -> TreeNavigationUtil.goToFirstParent(testObject, null));
     }
 
     @Test
@@ -56,14 +58,14 @@ class TreeNavigatorHelperTests {
     }
 
     @Test
-    void test_goToLastParent_objectIsNull_throwsNullPointerException() {
-        assertThrows(NullPointerException.class, () -> TreeNavigationUtil.goToLastParent(null, Object.class));
+    void test_goToLastParent_objectIsNull_throwsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> TreeNavigationUtil.goToLastParent(null, Object.class));
     }
 
     @Test
-    void test_goToLastParent_classTypeIsNull_throwsNullPointerException() {
+    void test_goToLastParent_classTypeIsNull_throwsIllegalArgumentException() {
         final var testObject = new TestEObject();
-        assertThrows(NullPointerException.class, () -> TreeNavigationUtil.goToLastParent(testObject, null));
+        assertThrows(IllegalArgumentException.class, () -> TreeNavigationUtil.goToLastParent(testObject, null));
     }
 
     @Test

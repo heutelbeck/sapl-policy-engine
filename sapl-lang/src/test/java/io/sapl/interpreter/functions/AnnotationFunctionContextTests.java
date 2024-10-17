@@ -430,6 +430,29 @@ class AnnotationFunctionContextTests {
                 .isInstanceOf(InitializationException.class);
     }
 
+    @Test
+    void when_overloading_then_collision() throws InitializationException {
+        @FunctionLibrary(name = "lib")
+        class OverloadingLibrary {
+            private OverloadingLibrary() {
+            }
+
+            @Function
+            public static Val fun(Val param) {
+                return param;
+            }
+
+            @Function
+            public static Val fun(Val param1, Val param2) {
+                return param1;
+            }
+
+        }
+        final var sut = new AnnotationFunctionContext();
+        assertThatThrownBy(() -> sut.loadLibrary(OverloadingLibrary.class)).isInstanceOf(InitializationException.class)
+                .hasMessage(String.format(AnnotationFunctionContext.FUNCTION_NAME_COLLISION_ERROR, "lib.fun"));
+    }
+
     @FunctionLibrary(name = MockLibrary.LIBRARY_NAME, description = MockLibrary.LIBRARY_DOC)
     public static class MockLibrary {
 

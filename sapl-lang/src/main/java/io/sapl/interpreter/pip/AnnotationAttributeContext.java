@@ -617,7 +617,6 @@ public final class AnnotationAttributeContext implements AttributeContext {
     @Override
     public Map<String, String> getDocumentedAttributeCodeTemplates() {
         final var documentedAttributeCodeTemplates = new HashMap<String, String>();
-
         for (var entry : attributeMetadataByAttributeName.entrySet()) {
             for (var attribute : entry.getValue()) {
                 final var attributeCodeTemplate = attribute.getDocumentationCodeTemplate();

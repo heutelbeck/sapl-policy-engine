@@ -29,9 +29,6 @@
 	</parent>
 	<artifactId>sapl-ide</artifactId>
 	<name>SAPL Generic IDE Integration</name>
-	<properties>
-		<maven.test.skip>true</maven.test.skip>
-	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>

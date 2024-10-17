@@ -17,36 +17,38 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.Collection;
-import java.util.stream.Collectors;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.lsp4j.CompletionItem;
+import java.util.Collection;
+import java.util.List;
+
 import org.eclipse.lsp4j.CompletionList;
+import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
 import io.sapl.grammar.ide.AbstractSaplLanguageServerTests;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class uses the xtext test classes to test auto-completion results.
  */
+@Slf4j
 @SpringBootTest
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 public class CompletionTests extends AbstractSaplLanguageServerTests {
 
     protected void assertProposalsSimple(final Collection<String> expectedProposals,
             final CompletionList completionList) {
-        final var actualMethods = completionList.getItems().stream().map(CompletionItem::getLabel).toList();
+        final var actualMethods = toProposalsList(completionList);
         if (!actualMethods.containsAll(expectedProposals))
             throw new AssertionError("Expected: " + expectedProposals + " but got " + actualMethods);
     }
 
     protected void assertDoesNotContainProposals(final Collection<String> unwantedProposals,
             final CompletionList completionList) {
-        Collection<CompletionItem> completionItems    = completionList.getItems();
-        Collection<String>         availableProposals = completionItems.stream().map(CompletionItem::getLabel)
-                .collect(Collectors.toSet());
-
+        final var availableProposals = toProposalsList(completionList);
         for (String unwantedProposal : unwantedProposals) {
             if (availableProposals.contains(unwantedProposal))
                 throw new AssertionError(
@@ -54,4 +56,97 @@ public class CompletionTests extends AbstractSaplLanguageServerTests {
         }
     }
 
+    protected void assertProposalsEmpty(String documentWithCursor) {
+        final var testCase = parseTestCase(documentWithCursor);
+        testCompletion((TestCompletionConfiguration it) -> {
+            it.setModel(testCase.document());
+            it.setLine(testCase.line());
+            it.setColumn(testCase.column());
+            it.setAssertCompletionList(completionList -> {
+                final var proposals = toProposalsList(completionList);
+                log.trace("Actual   completion: {}", proposals);
+                log.trace("Actual   labels    : {}", toLabelsList(completionList));
+                assertThat(proposals).isEmpty();
+            });
+        });
+    }
+
+    protected void assertProposalsContain(String documentWithCursor, List<String> expected) {
+        final var testCase = parseTestCase(documentWithCursor);
+        testCompletion((TestCompletionConfiguration it) -> {
+            it.setModel(testCase.document());
+            it.setLine(testCase.line());
+            it.setColumn(testCase.column());
+            it.setAssertCompletionList(completionList -> {
+                log.trace("Expected completion: {}", expected);
+                log.trace("Actual   completion: {}", toProposalsList(completionList));
+                log.trace("Actual   labels    : {}", toLabelsList(completionList));
+                assertProposalsSimple(expected, completionList);
+            });
+        });
+    }
+
+    protected void assertProposalsDoNotContain(String documentWithCursor, List<String> unwanted) {
+        final var testCase = parseTestCase(documentWithCursor);
+        testCompletion((TestCompletionConfiguration it) -> {
+            it.setModel(testCase.document());
+            it.setLine(testCase.line());
+            it.setColumn(testCase.column());
+            it.setAssertCompletionList(completionList -> {
+                log.trace("Unwanted completion: {}", unwanted);
+                log.trace("Actual   completion: {}", toProposalsList(completionList));
+                log.trace("Actual   labels    : {}", toLabelsList(completionList));
+                assertDoesNotContainProposals(unwanted, completionList);
+            });
+        });
+    }
+
+    private List<String> toLabelsList(CompletionList cl) {
+        return cl.getItems().stream().map(item -> item.getLabel()).toList();
+    }
+
+    private List<String> toProposalsList(CompletionList cl) {
+        return cl.getItems().stream().map(item -> ((TextEdit) item.getTextEdit().getLeft()).getNewText()).toList();
+    }
+
+    private record DocumentAndCursor(String document, int line, int column) {}
+
+    private static DocumentAndCursor parseTestCase(String testCase) {
+        final var sb            = new StringBuilder();
+        var       line          = 0;
+        var       column        = 0;
+        var       currentLine   = 0;
+        var       currentColumn = 0;
+        var       foundACursor  = false;
+        for (int i = 0; i < testCase.length(); i++) {
+            char c = testCase.charAt(i);
+            if (c == '#') {
+                line   = currentLine;
+                column = currentColumn;
+                if (foundACursor) {
+                    throw new IllegalArgumentException(String.format("""
+                            The test case does contain more than one cursor marker. \
+                            Second cursor found at: (line=%d, column=%d). \
+                            The position of the cursor is indicated by the '#' character \
+                            in the input String, and more than one was encountered.""", line, column));
+                }
+                foundACursor = true;
+            } else {
+                sb.append(c);
+            }
+            if (c == '\n') {
+                currentColumn = 0;
+                currentLine++;
+            } else {
+                currentColumn++;
+            }
+        }
+        if (!foundACursor) {
+            throw new IllegalArgumentException("""
+                    The test case does not contain a cursor marker. \
+                    The position of the cursor is indicated by the '#' \
+                    character in the input String.""");
+        }
+        return new DocumentAndCursor(sb.toString(), line, column);
+    }
 }

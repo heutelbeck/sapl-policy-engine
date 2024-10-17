@@ -17,8 +17,8 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.ecore.EObject;
@@ -26,19 +26,25 @@ import org.eclipse.xtext.Assignment;
 import org.eclipse.xtext.Keyword;
 import org.eclipse.xtext.RuleCall;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
+import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
+import org.eclipse.xtext.nodemodel.INode;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.google.common.base.Splitter;
 import com.google.inject.Inject;
 
-import io.sapl.grammar.ide.contentassist.NewLibraryProposalsGenerator.DocumentedProposal;
+import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
+import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ProposalType;
+import io.sapl.grammar.sapl.AttributeFinderStep;
+import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
+import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
+import io.sapl.grammar.sapl.HeadAttributeFinderStep;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.grammar.services.SAPLGrammarAccess;
-import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import lombok.extern.slf4j.Slf4j;
 
@@ -121,26 +127,110 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         return "";
     }
 
+    // @formatter:off
+    private boolean isAttributeIdentifierAssignment(Assignment a, ContextAnalysisResult analysis) {
+        return    analysis.type() == ProposalType.ATTRIBUTE
+               && "+=".equals(a.getOperator())
+               && isInsideOfPolicyBody(analysis.startNode())
+               && !isInsideOfSchemaExpression(analysis.startNode())
+               && (    saplAccess.getAttributeFinderStepAccess().getIdentifierAssignment_1().equals(a)
+                    || saplAccess.getHeadAttributeFinderStepAccess().getIdentifierAssignment_1().equals(a)
+                    || isIn(analysis.startNode(), AttributeFinderStep.class)
+                    || isIn(analysis.startNode(), HeadAttributeFinderStep.class));
+    }
+    // @formatter:on
+
+    // @formatter:off
+    private boolean isEnvironmentAttributeIdentifierAssignment(Assignment a, ContextAnalysisResult analysis) {
+        final var isAttributeAnalysis = analysis.type() == ProposalType.ENVIRONMENT_ATTRIBUTE;
+        final var isInsideOfPolicyBody = isInsideOfPolicyBody(analysis.startNode());
+        final var isNotInSchemaDefinition = !isInsideOfSchemaExpression(analysis.startNode());
+        final var isPlusEqualOperator = "+=".equals(a.getOperator());
+        final var isAssignmentToIdentifier =
+                    saplAccess.getBasicEnvironmentAttributeAccess().getIdentifierAssignment_2().equals(a)
+                 || saplAccess.getBasicEnvironmentHeadAttributeAccess().getIdentifierAssignment_2().equals(a);
+        final var isSomewhereUnderEnvironmentAttributeNode =
+                    isIn(analysis.startNode(), BasicEnvironmentAttribute.class)
+                 || isIn(analysis.startNode(), BasicEnvironmentHeadAttribute.class);
+       return    isAttributeAnalysis && isInsideOfPolicyBody && isNotInSchemaDefinition && isPlusEqualOperator
+              && (isAssignmentToIdentifier || isSomewhereUnderEnvironmentAttributeNode);
+    }
+    // @formatter:on
+
+    // @formatter:off
+    private List<Assignment> functionIdentifierAssignments() {
+        return List.of(saplAccess.getBasicFunctionAccess()     .getIdentifierAssignment_0(),
+                       saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_1(),
+                       saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_2_1());
+    }
+    // @formatter:on
+
+    private boolean isFunctionIdentifierAssignment(Assignment a, ContextAnalysisResult analysis) {
+        return analysis.type() == ProposalType.VARIABLE_OR_FUNCTION_NAME && functionIdentifierAssignments().contains(a);
+    }
+
+    private boolean isIn(INode startNode, Class<?> clazz) {
+        if (null == startNode) {
+            return false;
+        }
+        final var semanticElement = startNode.getSemanticElement();
+        if (semanticElement == null) {
+            return false;
+        } else if (clazz.isAssignableFrom(semanticElement.getClass())) {
+            return true;
+        } else {
+            return isIn(startNode.getParent(), clazz);
+        }
+    }
+
+    private boolean isVariableAssignment(final Assignment assignment, final ContextAnalysisResult analysis) {
+        return analysis.type() == ProposalType.VARIABLE_OR_FUNCTION_NAME
+                && saplAccess.getBasicIdentifierAccess().getStepsAssignment_2().equals(assignment);
+    }
+
+    private boolean isEnvironmentAttributeSchemaExtension(Assignment assignment, ContextAnalysisResult analysis) {
+        return analysis.type() == ProposalType.ENVIRONMENT_ATTRIBUTE;
+    }
+
+    private boolean isAttributeSchemaExtension(Assignment assignment, ContextAnalysisResult analysis) {
+        return analysis.type() == ProposalType.ATTRIBUTE;
+    }
+
     @Override
     protected void _createProposals(final Assignment assignment, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
         lazyLoadDependencies();
-        if (saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().equals(assignment)) {
-            log.trace("A: getBasicFunctionAccess().getIdentifierAssignment_0() {}",
-                    saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().getFeature());
-        } else if (saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_1().equals(assignment)) {
-            log.trace("A: getNameFragmentsAssignment_1");
-            /* This is the start of a function name or a PIP name */
-        } else if (saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_2_1().equals(assignment)) {
-            log.trace("A: getFunctionIdentifierAccess().getNameFragmentsAssignment_2_1()");
-            /* This is at least the second element of a function name or a PIP name */
-            final var n = context.getCurrentNode();
-            // this.dumpSiblings(context);
-        } else if (saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().equals(assignment)) {
-            log.trace("A: getBasicFunctionAccess().getIdentifierAssignment_0()");
+
+        final var configurationId  = extractConfigurationIdFromRequest();
+        final var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration(configurationId).blockFirst();
+        final var analysis         = ContextAnalyzer.analyze(context);
+
+        if (isAttributeIdentifierAssignment(assignment, analysis)) {
+            this.addProposals(NewLibraryProposalsGenerator.allAttributeFinders(analysis, context, pdpConfiguration),
+                    acceptor);
+        } else if (isEnvironmentAttributeIdentifierAssignment(assignment, analysis)) {
+            this.addProposals(
+                    NewLibraryProposalsGenerator.allEnvironmentAttributeFinders(analysis, context, pdpConfiguration),
+                    acceptor);
+        } else if (isAttributeSchemaExtension(assignment, analysis)) {
+            this.addProposals(
+                    NewLibraryProposalsGenerator.allAttributeSchemaExtensions(analysis, context, pdpConfiguration),
+                    acceptor);
+        } else if (isEnvironmentAttributeSchemaExtension(assignment, analysis)) {
+            this.addProposals(NewLibraryProposalsGenerator.allEnvironmentAttributeSchemaExtensions(analysis, context,
+                    pdpConfiguration), acceptor);
+        } else if (isFunctionIdentifierAssignment(assignment, analysis)) {
+            this.addProposals(NewLibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), acceptor);
+        } else if (isVariableAssignment(assignment, analysis)) {
+            log.trace("Variable assignment for {}", analysis.prefix());
+//            this.addProposals(VariablesProposalsGenerator.variableProposalsForContext(analysis.prefix(), context,
+//                    pdpConfiguration), acceptor);
+        } else if (analysis.type() == ProposalType.FUNCTION) {
+            this.addProposals(
+                    NewLibraryProposalsGenerator.allFunctionSchemaExtensions(analysis, context, pdpConfiguration),
+                    acceptor);
         } else {
-//            log.trace("Assignment: '{}' '{}' '{}' '{}'", assignment.getFeature(), assignment.getOperator(),
-//                    assignment.getTerminal().eClass().getName(), context.getPrefix());
+            log.trace("NO RULE APPLIES");
         }
     }
 
@@ -154,86 +244,19 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
                     saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().getFeature());
         }
 
-        if (true)
-            return;
-        log.error("->{}", this.saplAccess);
-
-        final var configurationId  = extractConfigurationIdFromRequest();
-        final var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration(configurationId).blockFirst();
-
-//        dumpCurrentState(ruleCall, context);
-        // dumpParents(context);
-        /*
-         * found no simple rule to detect this scenario. there are too many
-         * false-positives. e.g. <time.xxx(<[CURSOR])> the offset will be at cursor, but
-         * the current node is the ')'.
-         */
-//        if ( !(context.getCurrentNode() instanceof LeafNodeWithSyntaxError)&&!(context.getCurrentNode() instanceof HiddenLeafNode) && context.getOffset() < currentNode.getEndOffset()) {
-//            final var t = currentNode.getRootNode().getText();
-//            log.trace(t.substring(0, context.getOffset()) + "~"
-//                    + t.substring(context.getOffset(), currentNode.getEndOffset()) + "#"
-//                    + t.substring(currentNode.getEndOffset(), t.length()));
-//            /* Cursor not at end of token. No proposals! */
-//            return;
-//        }
-        final var ruleName = ruleCall.getRule().getName();
-        final var feature  = ruleCall.eContainingFeature().getName();
-
-        log.trace("rule {} feature {} for {}", ruleName, feature, ruleCall.getRule().getClass().getSimpleName());
-
-        switch (ruleName) {
-        case "BasicIdentifier"                                            -> {
-            // createBasicIdentifierProposals(context, acceptor, pdpConfiguration);
-        }
-        case "BasicFunction"                                              -> {
-            // createBasicFunctionProposals(context, acceptor, pdpConfiguration);
-        }
-        case "BasicEnvironmentAttribute", "BasicEnvironmentHeadAttribute" -> {
-            if (isInsideOfPolicyBody(context) && !isInsideOfSchemaExpression(context)) {
-                /*
-                 * Attribute access is only allowed in policy bodies after a 'where' keyword,
-                 * but not in schema expressions of variable definitions.
-                 */
-                // createBasicEnvironmentAttributeProposals(context, acceptor,
-                // pdpConfiguration);
-            }
-        }
-        case "KeyStep", "EscapedKeyStep"                                  -> {
-//            createKeyStepProposals(context, acceptor, pdpConfiguration);
-        }
-        case "AttributeFinderStep"                                        -> {
-            // createAttributeFinderStepProposals(context, acceptor, pdpConfiguration);
-        }
-        case "Step"                                                       -> {
-            //
-        }
-        case "SaplID"                                                     -> {
-//            final var grammarElement  = context.getCurrentNode().getGrammarElement();
-//            final var semanticElement = context.getCurrentNode().getSemanticElement();
-//            log.trace("#S {} in container {}", semanticElement);
-//            log.trace("#G {} in container {}", grammarElement);
-            //
-        }
-        default                                                           -> {/* NOOP */}
-        }
     }
 
-    private void createAttributeFinderStepProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
-            PDPConfiguration pdpConfiguration) {
-        // TODO Auto-generated method stub
-
+    private boolean isInsideOfPolicyBody(final INode n) {
+        return isInsideOf(n, PolicyBody.class);
     }
 
-    private void createKeyStepProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
-            PDPConfiguration pdpConfiguration) {
-        log.trace("creating key step proposals...");
-
-    }
-
-    private boolean isInsideOfPolicyBody(final ContentAssistContext context) {
-        var node = context.getCurrentNode();
+    private boolean isInsideOf(final INode n, Class<?> clazz) {
+        if (null == n) {
+            return false;
+        }
+        var node = n;
         do {
-            if (node.getSemanticElement() instanceof PolicyBody) {
+            if (clazz.isAssignableFrom(node.getSemanticElement().getClass())) {
                 return true;
             }
             node = node.getParent();
@@ -241,9 +264,12 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         return false;
     }
 
-    private boolean isInsideOfSchemaExpression(final ContentAssistContext context) {
+    private boolean isInsideOfSchemaExpression(INode n) {
+        if (null == n) {
+            return false;
+        }
         ValueDefinition valueDefinition = null;
-        var             node            = context.getCurrentNode();
+        var             node            = n;
         do {
             if (node.getSemanticElement() instanceof ValueDefinition definition) {
                 valueDefinition = definition;
@@ -254,7 +280,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         if (null == valueDefinition) {
             return false;
         }
-        return !isChildOrEqual(context.getCurrentNode().getSemanticElement(), valueDefinition.getEval());
+        return !isChildOrEqual(n.getSemanticElement(), valueDefinition.getEval());
     }
 
     private boolean isChildOrEqual(EObject needle, EObject haystack) {
@@ -273,137 +299,9 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         return false;
     }
 
-    private void createBasicEnvironmentAttributeProposals(ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        final var proposals = NewLibraryProposalsGenerator.allEnvironmentAttributeFinders(context, pdpConfiguration);
-        if (context.getPrefix().startsWith("|")) {
-            final var prefixAdjustedProposals = new ArrayList<DocumentedProposal>();
-            proposals.forEach(proposal -> prefixAdjustedProposals.add(new DocumentedProposal("|" + proposal.proposal(),
-                    "|" + proposal.label(), proposal.documentation())));
-            addDocumentedProposals(prefixAdjustedProposals, context, acceptor);
-        } else {
-            addDocumentedProposals(proposals, context, acceptor);
-        }
-    }
-
-    /*
-     * This method generates proposals for an initial identifier
-     *
-     * Should return: subscription variables, previously defined variable names in
-     * the document, names of environment variables
-     */
-    private void createBasicIdentifierProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
-            PDPConfiguration pdpConfiguration) {
-        /*
-         * Prefix is OK. BasicIdentifier only occurs at the beginning of a
-         * BasicExpression.
-         */
-        addProposals(VariablesProposalsGenerator.variableProposalsForContext(context, pdpConfiguration), context,
-                acceptor);
-    }
-
-    /*
-     * This method generates all possible functions as proposals (based on the code
-     * templates).
-     */
-    private void createBasicFunctionProposals(ContentAssistContext context, IIdeContentProposalAcceptor acceptor,
-            PDPConfiguration pdpConfiguration) {
-        /*
-         * Prefix is OK. BasicFunction only occurs at the beginning of a
-         * BasicExpression.
-         */
-        addDocumentedProposals(NewLibraryProposalsGenerator.allFunctions(context, pdpConfiguration), context, acceptor);
-    }
-
-    private void dumpParents(final RuleCall ruleCall) {
-        log.trace("traverse to parents");
-        EObject node = ruleCall;
-        do {
-            log.trace("- N '{}'", node);
-// log.trace("  S '{}'", node.eContainer());
-// log.trace(" G '{}'", node.getGrammarElement());
-            node = node.eContainer();
-        } while (node != null);
-    }
-
-    private void dumpParents(final ContentAssistContext context) {
-        var node = context.getCurrentNode();
-        do {
-            // log.trace("- N '{}'", node);
-            log.trace("  S '{}'", node.getSemanticElement());
-            // log.trace(" G '{}'", node.getGrammarElement());
-            node = node.getParent();
-        } while (node != null);
-    }
-
-    private void dumpSiblings(final ContentAssistContext context) {
-        var node = context.getCurrentNode();
-        log.trace("traverse to previous siblings");
-        do {
-            // log.trace("+ N '{}'", node);
-            log.trace("  S '{}'", node.getSemanticElement());
-            // log.trace(" G '{}'", node.getGrammarElement());
-            node = node.getPreviousSibling();
-        } while (node != null);
-    }
-
-    private void dumpCurrentState(final RuleCall ruleCall, final ContentAssistContext context) {
-
-        final var feature = ruleCall.eContainingFeature().getName();
-        log.trace(
-                "Prefix: '{}' Rule: '{}' CurrentModel: '{}' Feature: '{}' cFeature: '{}' eContainer rc: '{}' eContainer cn-sem: '{}' ",
-                context.getPrefix(), ruleCall.getRule().getName(), context.getCurrentModel().eClass().getName(),
-                ruleCall.eContainmentFeature().getName(), ruleCall.eContainer().eClass().getName(),
-                context.getCurrentNode().getSemanticElement().eContainer().eClass().getName());
-    }
-
-    private void addProposals(final Collection<String> proposals, ContentAssistContext context,
+    private void addProposals(final Collection<ContentAssistEntry> proposals,
             final IIdeContentProposalAcceptor acceptor) {
-        proposals.forEach(proposal -> addProposal(proposal, context, acceptor));
-    }
-
-    private void addProposal(final String proposal, final ContentAssistContext context,
-            final IIdeContentProposalAcceptor acceptor) {
-        if (!proposal.startsWith(context.getPrefix())) {
-            /*
-             * Add this check even, if the acceptor already is filtering, because there are
-             * proposals, that are accepted, if the prefix is present after a '.'.
-             *
-             * E.g.: "import time.* ...... where a" the acceptor would accept "time.after"
-             * and display it.
-             */
-            return;
-        }
-        // log.trace("prefix: '{}' proposal: '{}'", context.getPrefix(), proposal);
-        final var entry = getProposalCreator().createProposal(proposal, context);
-        acceptor.accept(entry, 0);
-    }
-
-    private void addDocumentedProposals(Collection<DocumentedProposal> proposals, ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor) {
-        proposals.forEach(proposal -> addDocumentedProposal(proposal, context, acceptor));
-    }
-
-    private void addDocumentedProposal(DocumentedProposal proposal, ContentAssistContext context,
-            IIdeContentProposalAcceptor acceptor) {
-        if (!proposal.proposal().startsWith(context.getPrefix())) {
-            /*
-             * Add this check even, if the acceptor already is filtering, because there are
-             * proposals, that are accepted, if the prefix is present after a '.'.
-             *
-             * E.g.: "import time.* ...... where a" the acceptor would accept "time.after"
-             * and display it.
-             */
-            return;
-        }
-
-//        log.trace("prefix: '{}' proposal: '{}' - '{}' - '{}'", context.getPrefix(), proposal.proposal(),
-//                proposal.label(), proposal.documentation());
-        final var entry = getProposalCreator().createProposal(proposal.proposal(), context, e -> {
-            e.setLabel(proposal.label());
-            e.setDocumentation(proposal.documentation());
-        });
-        acceptor.accept(entry, 0);
+        proposals.forEach(p -> acceptor.accept(p, 0));
     }
 
 }

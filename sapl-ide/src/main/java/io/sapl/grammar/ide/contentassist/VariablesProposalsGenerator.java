@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
+import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -39,7 +40,9 @@ import io.sapl.grammar.sapl.Schema;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @UtilityClass
 public class VariablesProposalsGenerator {
     public static final Collection<String> AUTHORIZATION_SUBSCRIPTION_VARIABLES = Set.of("subject", "action",
@@ -49,12 +52,15 @@ public class VariablesProposalsGenerator {
      * Creates all possible variables proposals, including expansions based on
      * content or schema.
      *
+     * @param prefix only add proposals starting with this prefix, but remove prefix
+     * from proposal.
+     * @param ctxPrefix actual Prefix in Context
      * @param context the ContentAssistContext
      * @param pdpConfiguration the configuration containing the environment
      * variables
      * @return a List of proposals.
      */
-    public static List<String> variableProposalsForContext(ContentAssistContext context,
+    public static List<ContentAssistEntry> variableProposalsForContext(String prefix, ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         /* first add environment variables and their expansions */
         final var proposals = createEnvironmentVariableProposals(pdpConfiguration);
@@ -77,7 +83,16 @@ public class VariablesProposalsGenerator {
              * proposals on the calculated content.
              */
         }
-        return proposals;
+
+        return toListOfNormalizedEntries(proposals, prefix, context.getPrefix());
+    }
+
+    private List<ContentAssistEntry> toListOfNormalizedEntries(Collection<String> proposals, String prefix,
+            String ctxPrefix) {
+        var entries = new ArrayList<ContentAssistEntry>(proposals.size());
+        proposals.forEach(
+                proposal -> ProposalCreator.createNormalizedEntry(proposal, prefix, ctxPrefix).ifPresent(entries::add));
+        return entries;
     }
 
     /**

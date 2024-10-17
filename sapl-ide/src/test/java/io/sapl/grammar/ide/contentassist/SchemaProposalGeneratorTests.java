@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.contentassist.schema;
+package io.sapl.grammar.ide.contentassist;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,7 +33,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.ide.contentassist.SchemaProposalsGenerator;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.SneakyThrows;
 
