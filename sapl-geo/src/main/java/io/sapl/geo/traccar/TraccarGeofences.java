@@ -41,152 +41,116 @@ import reactor.core.publisher.Mono;
 
 public final class TraccarGeofences extends TraccarBase {
 
-    private static final String FENCENAME   = "name";
-    private static final String AREA        = "area";
-    private static final String ATTRIBUTES  = "attributes";
-    private static final String DESCRIPTION = "description";
-    private static final String CALENDARID  = "calendarId";
-    private static final String ID          = "id";
-    private static final String EPSG        = "EPSG:4326";
+	private static final String FENCENAME = "name";
+	private static final String AREA = "area";
+	private static final String ATTRIBUTES = "attributes";
+	private static final String DESCRIPTION = "description";
+	private static final String CALENDARID = "calendarId";
+	private static final String ID = "id";
+	private static final String EPSG = "EPSG:4326";
 
-    /**
-     * @param auth a {@link JsonNode} containing the settings for authorization
-     */
-    public TraccarGeofences(JsonNode auth, ObjectMapper mapper) {
+	/**
+	 * @param auth a {@link JsonNode} containing the settings for authorization
+	 */
+	public TraccarGeofences(JsonNode auth, ObjectMapper mapper) {
 
-        user        = getUser(auth);
-        password    = getPassword(auth);
-        server      = getServer(auth);
-        protocol    = getProtocol(auth);
-        this.mapper = mapper;
-    }
+		user = getUser(auth);
+		password = getPassword(auth);
+		server = getServer(auth);
+		protocol = getProtocol(auth);
+		baseUrl = protocol + "://" + server;
 
-    /**
-     * @param settings a {@link JsonNode} containing the settings
-     * @return a {@link Flux} of {@link Val}
-     * @throws URISyntaxException
-     * @throws PolicyEvaluationException
-     */
-    public Flux<Val> getGeofences(JsonNode settings) throws URISyntaxException {
+		this.mapper = mapper;
+	}
 
-        var deviceId = getDeviceId(settings);
-        return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
-            try {
-                return getFlux(getResponseFormat(settings, mapper), deviceId, protocol, server,
-                        getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
-                        .onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
-            } catch (JsonProcessingException e) {
-                return Flux.error(e);
-            }
-        });
-    }
+	/**
+	 * @param settings a {@link JsonNode} containing the settings
+	 * @return a {@link Flux} of {@link Val}
+	 * @throws URISyntaxException
+	 * @throws PolicyEvaluationException
+	 */
+	public Flux<Val> getGeofences(JsonNode settings) throws URISyntaxException {
+		return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
+			try {
+				return getTraccarResponse(getResponseFormat(settings, mapper), getDeviceId(settings),
+						getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
+						.onErrorResume(e -> Flux.just(Val.error(e.getMessage()))).doFinally(s -> disconnect());
+			} catch (JsonProcessingException e) {
+				return Flux.error(new PolicyEvaluationException(e));
+			}
+		});
+	}
 
-    private Flux<JsonNode> getFlux(GeoPipResponseFormat format, String deviceId, String protocol, String server,
-            Long pollingInterval, Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
+	private Flux<JsonNode> getTraccarResponse(GeoPipResponseFormat format, String deviceId, Long pollingInterval,
+			Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
 
-        return getGeofences(format, deviceId, protocol, server, pollingInterval, repetitions, latitudeFirst)
-                .map(res -> mapper.convertValue(res, JsonNode.class));
+		var webClient = new ReactiveWebClient(mapper);
+		var header = String.format("\"cookie\" : \"%s\"", sessionCookie);
+		String[] urlParamArray = null;
+		if (deviceId != null) {			
+			var urlParams = String.format("\"deviceId\": \"%s\"", deviceId);
+			urlParamArray = new String[] { urlParams };
+		}
+		
+		var requestTemplate = createRequestTemplate(baseUrl, "api/geofences", MediaType.APPLICATION_JSON_VALUE,
+				new String[] { header }, urlParamArray, pollingInterval, repetitions);
 
-    }
+		return webClient.httpRequest(HttpMethod.GET, requestTemplate).map(Val::get)
+				.flatMap(fences -> mapGeofences(format, fences, latitudeFirst))
+				.map(res -> mapper.convertValue(res, JsonNode.class));
+	}
 
-    private Flux<List<Geofence>> getGeofences(GeoPipResponseFormat format, String deviceId, String protocol,
-            String server, Long pollingInterval, Long repetitions, boolean latitudeFirst)
-            throws JsonProcessingException {
+	private Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
+		try {
+			List<Geofence> fenceRes = new ArrayList<>();
+			var fences = mapper.readTree(in.toString());
 
-        var webClient = new ReactiveWebClient(mapper);
-        var baseURL   = protocol + "://" + server;
+			for (JsonNode geoFence : fences) {
+				var factory = new GeometryFactory(new PrecisionModel(), 4326);
+				Geometry geo = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
 
-        var template = new StringBuilder(
-                "{\"baseUrl\" : \"%s\", \"path\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\" : \"%s\" }");
-        template = new StringBuilder(String.format(template.toString(), baseURL, "api/geofences",
-                MediaType.APPLICATION_JSON_VALUE, sessionCookie));
+				if (!latitudeFirst) {
+					var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
+					geo = geoProjector.project(geo);
+				}
 
-        if (pollingInterval != null) {
-            template.append(String.format(", \"pollingIntervalMs\" : %s", pollingInterval));
-        }
+				switch (format) {
+				case GEOJSON:
+					fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
+					break;
+				case WKT:
+					fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
+					break;
+				case GML:
+					fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
+					break;
+				case KML:
+					fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
+					break;
+				default:
+					break;
+				}
+			}
 
-        if (repetitions != null) {
-            template.append(String.format(", \"repetitions\" : %s", repetitions));
-        }
+			return Mono.just(fenceRes);
+		} catch (Exception e) {
+			return Mono.error(e);
+		}
+	}
 
-        if (deviceId != null) {
-            template.append(String.format(",\"urlParameters\" : { \"deviceId\":%s }", deviceId));
-        }
-        template.append('}');
+	private Geofence mapFence(JsonNode geoFence, JsonNode area) {
+		return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
+				.calendarId(geoFence.findValue(CALENDARID).asText()).name(geoFence.findValue(FENCENAME).asText())
+				.description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
+	}
 
-        var request = Val.ofJson(template.toString());
+	@Override
+	protected String getDeviceId(JsonNode requestSettings) {
+		if (requestSettings.has(DEVICEID_CONST)) {
+			return requestSettings.findValue(DEVICEID_CONST).asText();
+		} else {
+			return null;
+		}
+	}
 
-        return webClient.httpRequest(HttpMethod.GET, request).map(Val::get)
-                .flatMap(fences -> mapGeofences(format, fences, latitudeFirst));
-    }
-
-    private Mono<List<Geofence>> mapGeofences(GeoPipResponseFormat format, JsonNode in, boolean latitudeFirst) {
-        try {
-            List<Geofence> fenceRes = new ArrayList<>();
-            var            fences   = mapper.readTree(in.toString());
-
-            for (JsonNode geoFence : fences) {
-                var      factory = new GeometryFactory(new PrecisionModel(), 4326);
-                Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
-
-                if (!latitudeFirst) {
-                    var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
-                    geo = geoProjector.project(geo);
-                }
-
-                switch (format) {
-                case GEOJSON:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
-                    break;
-                case WKT:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
-                    break;
-                case GML:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
-                    break;
-                case KML:
-                    fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
-                    break;
-                default:
-                    break;
-                }
-            }
-
-            return Mono.just(fenceRes);
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
-    }
-
-    private Geofence mapFence(JsonNode geoFence, JsonNode area) {
-        return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
-                .calendarId(geoFence.findValue(CALENDARID).asText()).name(geoFence.findValue(FENCENAME).asText())
-                .description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
-    }
-
-    @Override
-    protected String getDeviceId(JsonNode requestSettings) {
-        if (requestSettings.has(DEVICEID_CONST)) {
-            return requestSettings.findValue(DEVICEID_CONST).asText();
-        } else {
-            return null;
-        }
-    }
-
-    protected Long getPollingInterval(JsonNode requestSettings) {
-        if (requestSettings.has(POLLING_INTERVAL_CONST)) {
-            return requestSettings.findValue(POLLING_INTERVAL_CONST).asLong();
-        } else {
-            return null;
-        }
-    }
-
-    protected Long getRepetitions(JsonNode requestSettings) {
-        if (requestSettings.has(REPEAT_TIMES_CONST)) {
-            return requestSettings.findValue(REPEAT_TIMES_CONST).asLong();
-        } else {
-
-            return null;
-        }
-    }
 }

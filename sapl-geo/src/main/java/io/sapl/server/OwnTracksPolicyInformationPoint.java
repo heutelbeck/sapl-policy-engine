@@ -41,12 +41,12 @@ public class OwnTracksPolicyInformationPoint {
     @EnvironmentAttribute(name = "positionAndFences")
     public Flux<Val> positionAndFences(Map<String, Val> auth, @JsonObject Val variables) throws JsonProcessingException {
 
-        return new OwnTracks(auth.get(OWNTRACKS_DEFAULT_CONFIG).get(), mapper).connect(variables.get());
+        return new OwnTracks(auth.get(OWNTRACKS_DEFAULT_CONFIG).get(), mapper).getPositionWithInregions(variables.get());
     }
 
     @EnvironmentAttribute(name = "positionAndFences")
     public Flux<Val> positionAndFences(@JsonObject Val auth, @JsonObject Val variables) throws JsonProcessingException {
 
-        return new OwnTracks(auth.get(), mapper).connect(variables.get());
+        return new OwnTracks(auth.get(), mapper).getPositionWithInregions(variables.get());
     }
 }
