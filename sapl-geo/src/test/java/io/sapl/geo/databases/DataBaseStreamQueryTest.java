@@ -32,7 +32,6 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 class DataBaseStreamQueryTest {
 
-    private DatabaseStreamQuery databaseStreamQuery;
     private String              authenticationTemplate;
     private ObjectMapper        mapper;
 
@@ -62,10 +61,9 @@ class DataBaseStreamQueryTest {
                 	"port": 123
                  }
                 """;
-
         var error     = Val.ofJson(authenticationTemplateError).get();
         var exception = assertThrows(PolicyEvaluationException.class,
-                () -> databaseStreamQuery = new DatabaseStreamQuery(error, mapper, DataBaseTypes.POSTGIS));
+                () -> new DatabaseStreamQuery(error, mapper, DataBaseTypes.POSTGIS));
         assertEquals("No database-name found", exception.getMessage());
     }
 
@@ -75,7 +73,7 @@ class DataBaseStreamQueryTest {
         var templateWithoutTable = "{\"geoColumn\":\"test\"}";
         var requestWithoutTable  = Val.ofJson(templateWithoutTable).get();
         var auth                 = Val.ofJson(authenticationTemplate).get();
-        databaseStreamQuery = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
+        var databaseStreamQuery = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
         var errorVal = Val.error("No table-name found");
         var response = databaseStreamQuery.sendQuery(requestWithoutTable);
         StepVerifier.create(response).expectNext(errorVal).thenCancel().verify();
@@ -88,7 +86,7 @@ class DataBaseStreamQueryTest {
         var templateWithoutTable = "{\"dataBase\":\"test\"}";
         var requestWithoutTable  = Val.ofJson(templateWithoutTable).get();
         var auth                 = Val.ofJson(authenticationTemplate).get();
-        databaseStreamQuery = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
+        var databaseStreamQuery = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
         var errorVal = Val.error("No geoColumn-name found");
         var response = databaseStreamQuery.sendQuery(requestWithoutTable);
         StepVerifier.create(response).expectNext(errorVal).thenCancel().verify();

@@ -101,7 +101,7 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
                     template.append(", ");
                 }
             }
-            template.append("}");
+            template.append('}');
         }
     }
 
@@ -126,7 +126,7 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
                     template.append(", ");
                 }
             }
-            template.append("}");
+            template.append('}');
         }
     }
 
