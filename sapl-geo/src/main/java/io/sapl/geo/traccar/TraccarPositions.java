@@ -70,7 +70,7 @@ public final class TraccarPositions extends TraccarBase {
                 return getTraccarResponse(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
                         getLatitudeFirst(settings)).map(Val::of).doFinally(s -> disconnect());
             } catch (JsonProcessingException e) {
-                return Flux.error(new PolicyEvaluationException(e));
+                return Flux.error(new PolicyEvaluationException(e)); //cannot occure but i am forced to catch
             }
         });
     }

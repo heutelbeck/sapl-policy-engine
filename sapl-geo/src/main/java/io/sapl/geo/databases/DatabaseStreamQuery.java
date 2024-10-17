@@ -69,6 +69,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 	private String[] selectColumns;
 	private DataBaseTypes dataBaseType;
 	private ConnectionFactory connectionFactory;
+	private JsonNode auth;
 
 	/**
 	 * @param auth   a {@link JsonNode} containing the settings for authorization
@@ -76,13 +77,10 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 	 */
 	public DatabaseStreamQuery(JsonNode auth, ObjectMapper mapper, DataBaseTypes dataBaseType) {
 
+		this.auth = auth;
 		this.dataBaseType = dataBaseType;
-		if (dataBaseType == DataBaseTypes.MYSQL) {
-			createMySqlConnectionFactory(auth, getPort(auth));
-		} else {
-			createPostgresqlConnectionFactory(auth, getPort(auth));
-		}
 		this.mapper = mapper;
+		
 	}
 
 	/**
@@ -91,6 +89,12 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 	 */
 	public Flux<Val> sendQuery(JsonNode settings) {
 
+		if (dataBaseType == DataBaseTypes.MYSQL) {
+			createMySqlConnectionFactory(auth, getPort(auth));
+		} else {
+			createPostgresqlConnectionFactory(auth, getPort(auth));
+		}
+		
 		try {
 			selectColumns = getColumns(settings, mapper);
 			return createConnection(getResponseFormat(settings, mapper),

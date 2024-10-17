@@ -91,7 +91,7 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
 	}
 
 	private void appendHeader(StringBuilder template, String header) {
-		if (header != null && !header.isEmpty()) {
+		if (header != null) {
 			template.append(", \"headers\" : {");
 			template.append(header);
 			template.append('}');
@@ -111,7 +111,7 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
 	}
 
 	private void appendUrlParameters(StringBuilder template, String[] urlParameters) {
-		if (urlParameters != null && urlParameters.length > 0) {
+		if (urlParameters != null) {
 			template.append(", \"urlParameters\" : {");
 			for (int i = 0; i < urlParameters.length; i++) {
 				template.append(urlParameters[i]);

@@ -52,7 +52,7 @@ class DataBaseStreamQueryTest {
     }
 
     @Test
-    void getDatabasenNameErrorTest() throws JsonProcessingException {
+    void getDatabaseNameErrorTest() throws JsonProcessingException {
         var authenticationTemplateError = """
                  {
                     "user":"test",
@@ -62,8 +62,9 @@ class DataBaseStreamQueryTest {
                  }
                 """;
         var error     = Val.ofJson(authenticationTemplateError).get();
+        var databaseStreamQuery = new DatabaseStreamQuery(error, mapper, DataBaseTypes.POSTGIS);
         var exception = assertThrows(PolicyEvaluationException.class,
-                () -> new DatabaseStreamQuery(error, mapper, DataBaseTypes.POSTGIS));
+                () -> databaseStreamQuery.sendQuery(null));
         assertEquals("No database-name found", exception.getMessage());
     }
 
