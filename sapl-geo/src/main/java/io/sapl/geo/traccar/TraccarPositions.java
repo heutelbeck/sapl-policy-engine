@@ -34,75 +34,78 @@ import reactor.core.publisher.Mono;
 
 public final class TraccarPositions extends TraccarBase {
 
-    private static final String DEVICE_ID = "deviceId";
-    private static final String POSITIONS = "positions";
+	private static final String DEVICE_ID = "deviceId";
+	private static final String POSITIONS = "positions";
 
-    /**
-     * @param auth a {@link JsonNode} containing the settings for authorization
-     * @param mapper an {@link ObjectMapper}
-     */
-    public TraccarPositions(JsonNode auth, ObjectMapper mapper) {
+	/**
+	 * @param auth   a {@link JsonNode} containing the settings for authorization
+	 * @param mapper an {@link ObjectMapper}
+	 */
+	public TraccarPositions(JsonNode auth, ObjectMapper mapper) {
 
-        altitude   = "altitude";
-        lastupdate = "fixTime";
-        accuracy   = "accuracy";
-        latitude   = "latitude";
-        longitude  = "longitude";
+		altitude = "altitude";
+		lastupdate = "fixTime";
+		accuracy = "accuracy";
+		latitude = "latitude";
+		longitude = "longitude";
 
-        this.mapper = mapper;
+		this.mapper = mapper;
 
-        user     = getUser(auth);
-        password = getPassword(auth);
-        server   = getServer(auth);
-        protocol = getProtocol(auth);
-    }
+		user = getUser(auth);
+		password = getPassword(auth);
+		server = getServer(auth);
+		protocol = getProtocol(auth);
+	}
 
-    /**
-     * @param settings a {@link JsonNode} containing the settings
-     * @throws URISyntaxException
-     * @throws PolicyEvaluationException
-     */
-    public Flux<Val> getPositions(JsonNode settings) throws URISyntaxException {
+	/**
+	 * @param settings a {@link JsonNode} containing the settings
+	 * @throws URISyntaxException
+	 * @throws PolicyEvaluationException
+	 */
+	public Flux<Val> getPositions(JsonNode settings) throws URISyntaxException {
 
-        var url = (String.format("ws://%s/api/socket", server));
-        return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
-            try {
-                return getTraccarResponse(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
-                        getLatitudeFirst(settings)).map(Val::of).doFinally(s -> disconnect());
-            } catch (JsonProcessingException e) {
-                return Flux.error(new PolicyEvaluationException(e)); //cannot occure but i am forced to catch
-            }
-        });
-    }
+		var url = (String.format("ws://%s/api/socket", server));
+		return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
 
-    private Flux<ObjectNode> getTraccarResponse(String url, String cookie, GeoPipResponseFormat format, String deviceId,
-            boolean latitudeFirst) throws JsonProcessingException {
+			return getTraccarResponse(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
+					getLatitudeFirst(settings)).map(Val::of).doFinally(s -> disconnect());
+		});
+	}
 
-        var webClient       = new ReactiveWebClient(mapper);
-        var requestTemplate = "{ \"baseUrl\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\": \"%s\" } }";
-        var request         = Val.ofJson(String.format(requestTemplate, url, MediaType.APPLICATION_JSON_VALUE, cookie));
+	private Flux<ObjectNode> getTraccarResponse(String url, String cookie, GeoPipResponseFormat format, String deviceId,
+			boolean latitudeFirst) {
 
-        return webClient.consumeWebSocket(request).flatMap(v -> {
-            try {
-                var response = getPosition(v.get(), format, latitudeFirst, deviceId);
-                return Mono.justOrEmpty(response).map(r -> mapper.convertValue(r, ObjectNode.class));
-            } catch (JsonProcessingException e) {
-                return Flux.error(new PolicyEvaluationException(e));
-            }
-        });
-    }
+		var webClient = new ReactiveWebClient(mapper);
+		var requestTemplate = "{ \"baseUrl\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\": \"%s\" } }";
+		Val request;
+		try {
+			request = Val.ofJson(String.format(requestTemplate, url, MediaType.APPLICATION_JSON_VALUE, cookie));
 
-    private GeoPipResponse getPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, String deviceId)
-            throws JsonProcessingException {
+		} catch (JsonProcessingException e) {
+			throw new PolicyEvaluationException(e);
+		}
 
-        if (in.has(POSITIONS)) {
-            var posArray = (ArrayNode) in.get(POSITIONS);
-            for (JsonNode pos : posArray) {
-                if (pos.has(DEVICE_ID) && pos.get(DEVICE_ID).asText().equals(deviceId)) {
-                    return mapPosition(deviceId, pos, format, latitudeFirst);
-                }
-            }
-        }
-        return null;
-    }
+		return webClient.consumeWebSocket(request).flatMap(v -> {
+			try {
+				var response = getPosition(v.get(), format, latitudeFirst, deviceId);
+				return Mono.justOrEmpty(response).map(r -> mapper.convertValue(r, ObjectNode.class));
+			} catch (JsonProcessingException e) {
+				throw new PolicyEvaluationException(e);
+			}
+		});
+	}
+
+	private GeoPipResponse getPosition(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst, String deviceId)
+			throws JsonProcessingException {
+
+		if (in.has(POSITIONS)) {
+			var posArray = (ArrayNode) in.get(POSITIONS);
+			for (JsonNode pos : posArray) {
+				if (pos.has(DEVICE_ID) && pos.get(DEVICE_ID).asText().equals(deviceId)) {
+					return mapPosition(deviceId, pos, format, latitudeFirst);
+				}
+			}
+		}
+		return null;
+	}
 }

@@ -96,7 +96,7 @@ public final class OwnTracks extends TrackerConnectionBase {
                 var response = mapResponse(v.get(), format, mapper, latitudeFirst);
                 return Flux.just(mapper.convertValue(response, ObjectNode.class));
             } catch (JsonProcessingException e) {
-                return Flux.error(new PolicyEvaluationException(e));
+                throw new PolicyEvaluationException(e);
             }
         });
     }

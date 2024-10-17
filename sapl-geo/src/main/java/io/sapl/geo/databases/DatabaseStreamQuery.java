@@ -80,7 +80,6 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		this.auth = auth;
 		this.dataBaseType = dataBaseType;
 		this.mapper = mapper;
-		
 	}
 
 	/**
@@ -94,25 +93,20 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		} else {
 			createPostgresqlConnectionFactory(auth, getPort(auth));
 		}
-		
-		try {
-			selectColumns = getColumns(settings, mapper);
-			return createConnection(getResponseFormat(settings, mapper),
-					buildSql(getGeoColumn(settings), selectColumns, getTable(settings), getWhere(settings)),
-					getSingleResult(settings), getDefaultCRS(settings),
-					longOrDefault(settings, REPEAT_TIMES_CONST, DEFAULT_REPETITIONS_CONST),
-					longOrDefault(settings, POLLING_INTERVAL_CONST, DEFAULT_POLLING_INTERVALL_MS_CONST),
-					getLatitudeFirst(settings)).map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage())));
 
-		} catch (PolicyEvaluationException e) {
-			return Flux.just(Val.error(e.getMessage()));
-		}
+		selectColumns = getColumns(settings, mapper);
+		return createConnection(getResponseFormat(settings, mapper),
+				buildSql(getGeoColumn(settings), selectColumns, getTable(settings), getWhere(settings)),
+				getSingleResult(settings), getDefaultCRS(settings),
+				longOrDefault(settings, REPEAT_TIMES_CONST, DEFAULT_REPETITIONS_CONST),
+				longOrDefault(settings, POLLING_INTERVAL_CONST, DEFAULT_POLLING_INTERVALL_MS_CONST),
+				getLatitudeFirst(settings)).map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage())));
+
 	}
 
 	private Flux<JsonNode> createConnection(GeoPipResponseFormat format, String sql, boolean singleResult,
 			int defaultCrs, long repeatTimes, long pollingInterval, boolean latitudeFirst) {
 
-		log.info("Database-Client connected.");
 		if (singleResult) {
 			sql = sql.concat(" LIMIT 1");
 			return poll(getResults(sql, format, defaultCrs, latitudeFirst).next(), repeatTimes, pollingInterval);
@@ -126,24 +120,16 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 
 		return Flux.usingWhen(connectionFactory.create(), conn -> Flux.from(conn.createStatement(sql).execute())
 				.flatMap(result -> result.map((row, rowMetadata) -> {
-					try {
-						return mapResult(row, format, defaultCrs, latitudeFirst);
-					} catch (MismatchedDimensionException | JsonProcessingException | ParseException | FactoryException
-							| TransformException e) {
-						throw new PolicyEvaluationException(e);
-					}
+					return mapResult(row, format, defaultCrs, latitudeFirst);
 				})), Connection::close);
 	}
 
-	private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst)
-			throws MismatchedDimensionException, JsonProcessingException, ParseException, FactoryException,
-			TransformException {
+	private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
 
 		var resultNode = mapper.createObjectNode();
 		JsonNode geoNode;
 		var resValue = row.get("res", String.class);
 		var srid = row.get("srid", Integer.class);
-
 		if (srid != null && srid != 0) {
 			geoNode = convertResponse(resValue, format, srid, latitudeFirst);
 		} else {
@@ -152,45 +138,47 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		resultNode.put("srid", srid);
 		resultNode.set("geo", geoNode);
 		for (String column : selectColumns) {
-
 			resultNode.put(column, row.get(column, String.class));
 		}
 		return resultNode;
 	}
 
-	private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst)
-			throws ParseException, FactoryException, MismatchedDimensionException, TransformException,
-			JsonProcessingException {
+	private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst) {
 
 		var res = (JsonNode) mapper.createObjectNode();
 		var crs = EPSG + srid;
-		var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
-		if (dataBaseType == DataBaseTypes.MYSQL && !latitudeFirst) {
-			var geoProjector = new GeoProjector(crs, false, crs, true);
-			geo = geoProjector.project(geo);
-		} else if (dataBaseType == DataBaseTypes.POSTGIS && latitudeFirst) {
-			var geoProjector = new GeoProjector(crs, true, crs, false);
-			geo = geoProjector.project(geo);
+		try {
+			var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
+			if (dataBaseType == DataBaseTypes.MYSQL && !latitudeFirst) {
+				var geoProjector = new GeoProjector(crs, false, crs, true);
+				geo = geoProjector.project(geo);
+			} else if (dataBaseType == DataBaseTypes.POSTGIS && latitudeFirst) {
+				var geoProjector = new GeoProjector(crs, true, crs, false);
+				geo = geoProjector.project(geo);
+			}
+
+			switch (format) {
+			case GEOJSON:
+				res = GeometryConverter.geometryToGeoJsonNode(geo).get();
+				break;
+
+			case WKT:
+				res = GeometryConverter.geometryToWKT(geo).get();
+				break;
+
+			case GML:
+				res = GeometryConverter.geometryToGML(geo).get();
+				break;
+
+			case KML:
+				res = GeometryConverter.geometryToKML(geo).get();
+				break;
+			}
+		} catch (MismatchedDimensionException | JsonProcessingException | ParseException | FactoryException
+				| TransformException e) {
+
+			throw new PolicyEvaluationException(e);
 		}
-
-		switch (format) {
-		case GEOJSON:
-			res = GeometryConverter.geometryToGeoJsonNode(geo).get();
-			break;
-
-		case WKT:
-			res = GeometryConverter.geometryToWKT(geo).get();
-			break;
-
-		case GML:
-			res = GeometryConverter.geometryToGML(geo).get();
-			break;
-
-		case KML:
-			res = GeometryConverter.geometryToKML(geo).get();
-			break;
-		}
-
 		return res;
 	}
 

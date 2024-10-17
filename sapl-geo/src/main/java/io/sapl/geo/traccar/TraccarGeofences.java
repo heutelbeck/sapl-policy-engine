@@ -74,18 +74,14 @@ public final class TraccarGeofences extends TraccarBase {
 	 */
 	public Flux<Val> getGeofences(JsonNode settings) throws URISyntaxException {
 		return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
-			try {
-				return getTraccarResponse(getResponseFormat(settings, mapper), getDeviceId(settings),
-						getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
-						.doFinally(s -> disconnect());
-			} catch (JsonProcessingException e) {
-				return Flux.error(new PolicyEvaluationException(e));
-			}
+			return getTraccarResponse(getResponseFormat(settings, mapper), getDeviceId(settings),
+					getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
+					.doFinally(s -> disconnect());
 		});
 	}
 
 	private Flux<JsonNode> getTraccarResponse(GeoPipResponseFormat format, String deviceId, Long pollingInterval,
-			Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
+			Long repetitions, boolean latitudeFirst) {
 
 		var webClient = new ReactiveWebClient(mapper);
 		var header = String.format("\"cookie\" : \"%s\"", sessionCookie);
@@ -95,8 +91,13 @@ public final class TraccarGeofences extends TraccarBase {
 			urlParamArray = new String[] { urlParams };
 		}
 
-		var requestTemplate = createRequestTemplate(baseUrl, "api/geofences", MediaType.APPLICATION_JSON_VALUE, header,
-				urlParamArray, pollingInterval, repetitions);
+		Val requestTemplate;
+		try {
+			requestTemplate = createRequestTemplate(baseUrl, "api/geofences", MediaType.APPLICATION_JSON_VALUE, header,
+					urlParamArray, pollingInterval, repetitions);
+		} catch (JsonProcessingException e) {
+			throw new PolicyEvaluationException(e);
+		}
 
 		return webClient.httpRequest(HttpMethod.GET, requestTemplate).flatMap(v -> {
 			try {
@@ -104,7 +105,7 @@ public final class TraccarGeofences extends TraccarBase {
 				return Flux.just(mapper.convertValue(response, JsonNode.class));
 			} catch (JsonProcessingException | MismatchedDimensionException | ParseException | FactoryException
 					| TransformException e) {
-				return Flux.error(new PolicyEvaluationException(e));
+				throw new PolicyEvaluationException(e);
 			}
 		});
 
