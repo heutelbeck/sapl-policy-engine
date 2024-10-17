@@ -17,6 +17,8 @@
  */
 package io.sapl.geo.postgis;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.PostgisTestBase;
 import io.sapl.geo.databases.DataBaseTypes;
@@ -42,83 +45,84 @@ import reactor.test.StepVerifier;
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 class PostGisTestsIT extends PostgisTestBase {
 
-    @BeforeAll
-    void setUp() {
+	@BeforeAll
+	void setUp() {
 
-        commonSetUp();
-    }
+		commonSetUp();
+	}
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,ExpectedAllWKT", "GEOJSON,ExpectedAllGeoJson", "GML,ExpectedAllGML", "KML,ExpectedAllKML" })
-    void Test01PostGisConnectionGeometry(String responseFormat, String expectedJsonKey) throws JsonProcessingException {
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "WKT,ExpectedAllWKT", "GEOJSON,ExpectedAllGeoJson", "GML,ExpectedAllGML", "KML,ExpectedAllKML" })
+	void Test01PostGisConnectionGeometry(String responseFormat, String expectedJsonKey) throws JsonProcessingException {
 
-        var queryString = String.format(templateAll, responseFormat, "geometries", "geom");
-        var expected    = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
-                .map(JsonNode::toPrettyString);
-        StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
-    }
+		var queryString = String.format(templateAll, responseFormat, "geometries", "geom");
+		var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
+				.sendQuery(Val.ofJson(queryString).get()).map(Val::get).map(JsonNode::toPrettyString);
+		StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
+	}
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,ExpectedPointWKT", "GEOJSON,ExpectedPointGeoJson", "GML,ExpectedPointGML",
-            "KML,ExpectedPointKML" })
-    void Test02PostGisConnectionGeometrySingleResult(String responseFormat, String expectedJsonKey)
-            throws JsonProcessingException {
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "WKT,ExpectedPointWKT", "GEOJSON,ExpectedPointGeoJson", "GML,ExpectedPointGML",
+			"KML,ExpectedPointKML" })
+	void Test02PostGisConnectionGeometrySingleResult(String responseFormat, String expectedJsonKey)
+			throws JsonProcessingException {
 
-        var queryString = String.format(templatePoint, responseFormat, "geometries", "geom");
-        var expected    = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
-                .map(JsonNode::toPrettyString);
-        StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
-    }
+		var queryString = String.format(templatePoint, responseFormat, "geometries", "geom");
+		var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
+				.sendQuery(Val.ofJson(queryString).get()).map(Val::get).map(JsonNode::toPrettyString);
+		StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
+	}
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,ExpectedAllWKT", "GEOJSON,ExpectedAllGeoJson", "GML,ExpectedAllGML", "KML,ExpectedAllKML" })
-    void Test03PostGisConnectionGeography(String responseFormat, String expectedJsonKey)
-            throws JsonProcessingException {
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "WKT,ExpectedAllWKT", "GEOJSON,ExpectedAllGeoJson", "GML,ExpectedAllGML", "KML,ExpectedAllKML" })
+	void Test03PostGisConnectionGeography(String responseFormat, String expectedJsonKey)
+			throws JsonProcessingException {
 
-        var queryString = String.format(templateAll, responseFormat, "geographies", "geog");
-        var expected    = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
-                .map(JsonNode::toPrettyString);
-        StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
-    }
+		var queryString = String.format(templateAll, responseFormat, "geographies", "geog");
+		var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
+				.sendQuery(Val.ofJson(queryString).get()).map(Val::get).map(JsonNode::toPrettyString);
+		StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
+	}
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,ExpectedPointWKT", "GEOJSON,ExpectedPointGeoJson", "GML,ExpectedPointGML",
-            "KML,ExpectedPointKML" })
-    void Test04PostGisConnectionGeographySingleResult(String responseFormat, String expectedJsonKey)
-            throws JsonProcessingException {
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "WKT,ExpectedPointWKT", "GEOJSON,ExpectedPointGeoJson", "GML,ExpectedPointGML",
+			"KML,ExpectedPointKML" })
+	void Test04PostGisConnectionGeographySingleResult(String responseFormat, String expectedJsonKey)
+			throws JsonProcessingException {
 
-        var str      = String.format(templatePoint, responseFormat, "geographies", "geog");
-        var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var postgis  = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(str).get()).map(Val::get).map(JsonNode::toPrettyString);
-        StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
-    }
+		var str = String.format(templatePoint, responseFormat, "geographies", "geog");
+		var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
+				.sendQuery(Val.ofJson(str).get()).map(Val::get).map(JsonNode::toPrettyString);
+		StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
+	}
 
-    @Test
-    void Test05ErrorNonExistantTable() throws JsonProcessingException {
+	@Test
+	void Test05ErrorNonExistantTable() throws JsonProcessingException {
 
-        var str     = String.format(templatePoint, "WKT", "nonExistantTable", "geog");
-        var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
-                .sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
-        StepVerifier.create(postgis).expectNext("relation \"nonexistanttable\" does not exist").verifyComplete();
-    }
+		var str = String.format(templatePoint, "WKT", "nonExistantTable", "geog");
+		var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
+				.sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
+		StepVerifier.create(postgis).expectNext("relation \"nonexistanttable\" does not exist").verifyComplete();
+	}
 
-    @Test
-    void Test06ErrorInvalidTemplate() throws JsonProcessingException {
+	@Test
+	void Test06ErrorInvalidTemplate() throws JsonProcessingException {
 
-        var str     = "{\"invalid\":\"Template\"}";
-        var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.POSTGIS)
-                .sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
-        StepVerifier.create(postgis).expectNext("No geoColumn-name found").verifyComplete();
-    }
+		var queryString = "{\"invalid\":\"Template\"}";
+		var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+				DataBaseTypes.POSTGIS);
+		var query = Val.ofJson(queryString).get();
+		var exception = assertThrows(PolicyEvaluationException.class, () -> {
+			postgis.sendQuery(query);
+		});
+		assertEquals("No geoColumn-name found", exception.getMessage());
+	}
 }

@@ -48,9 +48,7 @@ public final class TraccarPositions extends TraccarBase {
 		accuracy = "accuracy";
 		latitude = "latitude";
 		longitude = "longitude";
-
 		this.mapper = mapper;
-
 		user = getUser(auth);
 		password = getPassword(auth);
 		server = getServer(auth);

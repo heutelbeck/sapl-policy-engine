@@ -17,6 +17,8 @@
  */
 package io.sapl.geo.mysql;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.MySqlTestBase;
 import io.sapl.geo.databases.DataBaseTypes;
@@ -42,65 +45,68 @@ import reactor.test.StepVerifier;
 @TestMethodOrder(MethodOrderer.DisplayName.class)
 class MySqlTestsIT extends MySqlTestBase {
 
-    @BeforeAll
-    void setUp() {
+	@BeforeAll
+	void setUp() {
 
-        commonSetUp();
-    }
+		commonSetUp();
+	}
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,ExpectedAllWKT", "GEOJSON,ExpectedAllGeoJson", "GML,ExpectedAllGML", "KML,ExpectedAllKML" })
-    void Test01MySqlConnection(String responseFormat, String expectedJsonKey) throws JsonProcessingException {
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "WKT,ExpectedAllWKT", "GEOJSON,ExpectedAllGeoJson", "GML,ExpectedAllGML", "KML,ExpectedAllKML" })
+	void Test01MySqlConnection(String responseFormat, String expectedJsonKey) throws JsonProcessingException {
 
-        var queryString   = String.format(templateAll, responseFormat, "geometries", "geom");
-        var expected      = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
-                .map(JsonNode::toPrettyString);
-        StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
-    }
+		var queryString = String.format(templateAll, responseFormat, "geometries", "geom");
+		var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+				DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+				.map(JsonNode::toPrettyString);
+		StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
+	}
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,ExpectedPointWKT", "GEOJSON,ExpectedPointGeoJson", "GML,ExpectedPointGML",
-            "KML,ExpectedPointKML" })
-    void Test02MySqlConnectionSingleResult(String responseFormat, String expectedJsonKey)
-            throws JsonProcessingException {
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "WKT,ExpectedPointWKT", "GEOJSON,ExpectedPointGeoJson", "GML,ExpectedPointGML",
+			"KML,ExpectedPointKML" })
+	void Test02MySqlConnectionSingleResult(String responseFormat, String expectedJsonKey)
+			throws JsonProcessingException {
 
-        var queryString   = String.format(templatePoint, responseFormat, "geometries", "geom");
-        var expected      = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
-                .map(JsonNode::toPrettyString);
-        StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
+		var queryString = String.format(templatePoint, responseFormat, "geometries", "geom");
+		var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+				DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+				.map(JsonNode::toPrettyString);
+		StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
 
-    }
+	}
 
-    @Test
-    void Test03ErrorNonexistantTable() throws JsonProcessingException {
+	@Test
+	void Test03ErrorNonexistantTable() throws JsonProcessingException {
 
-        var errorTemplate = template.concat("""
-                    ,
-                    "table":"%s",
-                    "geoColumn":"%s",
-                	"singleResult": true,
-                	"columns": ["name", "text"],
-                	"where": "name = 'point'"
-                }
-                """);
-        var queryString   = String.format(errorTemplate, "WKT", "nonExistant", "geog");
-        var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
-        StepVerifier.create(mysqlResponse).expectError();
-    }
+		var errorTemplate = template.concat("""
+				    ,
+				    "table":"%s",
+				    "geoColumn":"%s",
+					"singleResult": true,
+					"columns": ["name", "text"],
+					"where": "name = 'point'"
+				}
+				""");
+		var queryString = String.format(errorTemplate, "WKT", "nonExistant", "geog");
+		var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+				DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
+		StepVerifier.create(mysqlResponse).expectError();
+	}
 
-    @Test
-    void Test04ErrorInvalidTemplate() throws JsonProcessingException {
+	@Test
+	void Test04ErrorInvalidTemplate() throws JsonProcessingException {
 
-        var queryString   = "{\"invalid\":\"Template\"}";
-        var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::getMessage);
-        StepVerifier.create(mysqlResponse).expectNext("No geoColumn-name found").verifyComplete();
-    }
+		var queryString = "{\"invalid\":\"Template\"}";
+		var mysql = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.MYSQL);
+		var query = Val.ofJson(queryString).get();
+		var exception = assertThrows(PolicyEvaluationException.class, () -> {
+			mysql.sendQuery(query);
+		});
+		assertEquals("No geoColumn-name found", exception.getMessage());
+	}
 }
