@@ -206,28 +206,28 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         final var analysis         = ContextAnalyzer.analyze(context);
 
         if (isAttributeIdentifierAssignment(assignment, analysis)) {
-            this.addProposals(NewLibraryProposalsGenerator.allAttributeFinders(analysis, context, pdpConfiguration),
+            this.addProposals(LibraryProposalsGenerator.allAttributeFinders(analysis, context, pdpConfiguration),
                     acceptor);
         } else if (isEnvironmentAttributeIdentifierAssignment(assignment, analysis)) {
             this.addProposals(
-                    NewLibraryProposalsGenerator.allEnvironmentAttributeFinders(analysis, context, pdpConfiguration),
+                    LibraryProposalsGenerator.allEnvironmentAttributeFinders(analysis, context, pdpConfiguration),
                     acceptor);
         } else if (isAttributeSchemaExtension(assignment, analysis)) {
             this.addProposals(
-                    NewLibraryProposalsGenerator.allAttributeSchemaExtensions(analysis, context, pdpConfiguration),
+                    LibraryProposalsGenerator.allAttributeSchemaExtensions(analysis, context, pdpConfiguration),
                     acceptor);
         } else if (isEnvironmentAttributeSchemaExtension(assignment, analysis)) {
-            this.addProposals(NewLibraryProposalsGenerator.allEnvironmentAttributeSchemaExtensions(analysis, context,
+            this.addProposals(LibraryProposalsGenerator.allEnvironmentAttributeSchemaExtensions(analysis, context,
                     pdpConfiguration), acceptor);
         } else if (isFunctionIdentifierAssignment(assignment, analysis)) {
-            this.addProposals(NewLibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), acceptor);
+            this.addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), acceptor);
         } else if (isVariableAssignment(assignment, analysis)) {
             log.trace("Variable assignment for {}", analysis.prefix());
 //            this.addProposals(VariablesProposalsGenerator.variableProposalsForContext(analysis.prefix(), context,
 //                    pdpConfiguration), acceptor);
         } else if (analysis.type() == ProposalType.FUNCTION) {
             this.addProposals(
-                    NewLibraryProposalsGenerator.allFunctionSchemaExtensions(analysis, context, pdpConfiguration),
+                    LibraryProposalsGenerator.allFunctionSchemaExtensions(analysis, context, pdpConfiguration),
                     acceptor);
         } else {
             log.trace("NO RULE APPLIES");

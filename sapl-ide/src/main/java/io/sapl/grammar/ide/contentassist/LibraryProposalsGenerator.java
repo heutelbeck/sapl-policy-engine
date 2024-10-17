@@ -43,7 +43,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @UtilityClass
-public class NewLibraryProposalsGenerator {
+public class LibraryProposalsGenerator {
 
     public record DocumentedProposal(String proposal, String label, String documentation) {}
 
