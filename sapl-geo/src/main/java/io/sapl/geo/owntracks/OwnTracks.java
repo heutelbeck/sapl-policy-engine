@@ -88,13 +88,8 @@ public final class OwnTracks extends TrackerConnectionBase {
         var      baseUrl        = protocol + "://" + server;
         var      urlParamUser   = String.format("\"user\": \"%s\"", user);
         var      urlParamDevice = String.format("\"device\": \"%s\"", deviceId);
-        String[] urlParamArray  = null;
-        if (authHeader != null) {
-            var urlParams = String.format("\"deviceId\": \"%s\"", deviceId);
-            urlParamArray = new String[] { urlParams };
-        }
         var requestTemplate = createRequestTemplate(baseUrl, "api/0/last", MediaType.APPLICATION_JSON_VALUE,
-                urlParamArray, new String[] { urlParamUser, urlParamDevice }, pollingInterval, repetitions);
+        		authHeader, new String[] { urlParamUser, urlParamDevice }, pollingInterval, repetitions);
 
         return webClient.httpRequest(HttpMethod.GET, requestTemplate).flatMap(v -> {
             try {

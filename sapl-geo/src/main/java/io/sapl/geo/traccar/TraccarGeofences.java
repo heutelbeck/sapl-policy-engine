@@ -44,123 +44,121 @@ import reactor.core.publisher.Flux;
 
 public final class TraccarGeofences extends TraccarBase {
 
-    private static final String FENCENAME   = "name";
-    private static final String AREA        = "area";
-    private static final String ATTRIBUTES  = "attributes";
-    private static final String DESCRIPTION = "description";
-    private static final String CALENDARID  = "calendarId";
-    private static final String ID          = "id";
-    private static final String EPSG        = "EPSG:4326";
+	private static final String FENCENAME = "name";
+	private static final String AREA = "area";
+	private static final String ATTRIBUTES = "attributes";
+	private static final String DESCRIPTION = "description";
+	private static final String CALENDARID = "calendarId";
+	private static final String ID = "id";
+	private static final String EPSG = "EPSG:4326";
 
-    /**
-     * @param auth a {@link JsonNode} containing the settings for authorization
-     */
-    public TraccarGeofences(JsonNode auth, ObjectMapper mapper) {
+	/**
+	 * @param auth a {@link JsonNode} containing the settings for authorization
+	 */
+	public TraccarGeofences(JsonNode auth, ObjectMapper mapper) {
 
-        user     = getUser(auth);
-        password = getPassword(auth);
-        server   = getServer(auth);
-        protocol = getProtocol(auth);
-        baseUrl  = protocol + "://" + server;
+		user = getUser(auth);
+		password = getPassword(auth);
+		server = getServer(auth);
+		protocol = getProtocol(auth);
+		baseUrl = protocol + "://" + server;
 
-        this.mapper = mapper;
-    }
+		this.mapper = mapper;
+	}
 
-    /**
-     * @param settings a {@link JsonNode} containing the settings
-     * @return a {@link Flux} of {@link Val}
-     * @throws URISyntaxException
-     * @throws PolicyEvaluationException
-     */
-    public Flux<Val> getGeofences(JsonNode settings) throws URISyntaxException {
-        return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
-            try {
-                return getTraccarResponse(getResponseFormat(settings, mapper), getDeviceId(settings),
-                        getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
-                        .doFinally(s -> disconnect());
-            } catch (JsonProcessingException e) {
-                return Flux.error(new PolicyEvaluationException(e));
-            }
-        });
-    }
+	/**
+	 * @param settings a {@link JsonNode} containing the settings
+	 * @return a {@link Flux} of {@link Val}
+	 * @throws URISyntaxException
+	 * @throws PolicyEvaluationException
+	 */
+	public Flux<Val> getGeofences(JsonNode settings) throws URISyntaxException {
+		return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
+			try {
+				return getTraccarResponse(getResponseFormat(settings, mapper), getDeviceId(settings),
+						getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of)
+						.doFinally(s -> disconnect());
+			} catch (JsonProcessingException e) {
+				return Flux.error(new PolicyEvaluationException(e));
+			}
+		});
+	}
 
-    private Flux<JsonNode> getTraccarResponse(GeoPipResponseFormat format, String deviceId, Long pollingInterval,
-            Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
+	private Flux<JsonNode> getTraccarResponse(GeoPipResponseFormat format, String deviceId, Long pollingInterval,
+			Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
 
-        var      webClient     = new ReactiveWebClient(mapper);
-        var      header        = String.format("\"cookie\" : \"%s\"", sessionCookie);
-        String[] urlParamArray = null;
-        if (deviceId != null) {
-            var urlParams = String.format("\"deviceId\": \"%s\"", deviceId);
-            urlParamArray = new String[] { urlParams };
-        }
+		var webClient = new ReactiveWebClient(mapper);
+		var header = String.format("\"cookie\" : \"%s\"", sessionCookie);
+		String[] urlParamArray = null;
+		if (deviceId != null) {
+			var urlParams = String.format("\"deviceId\": \"%s\"", deviceId);
+			urlParamArray = new String[] { urlParams };
+		}
 
-        var requestTemplate = createRequestTemplate(baseUrl, "api/geofences", MediaType.APPLICATION_JSON_VALUE,
-                new String[] { header }, urlParamArray, pollingInterval, repetitions);
+		var requestTemplate = createRequestTemplate(baseUrl, "api/geofences", MediaType.APPLICATION_JSON_VALUE, header,
+				urlParamArray, pollingInterval, repetitions);
 
-        return webClient.httpRequest(HttpMethod.GET, requestTemplate).flatMap(v -> {
-            try {
-                var response = mapGeofences(v.get(), format, latitudeFirst);
-                return Flux.just(mapper.convertValue(response, JsonNode.class));
-            } catch (JsonProcessingException | MismatchedDimensionException | ParseException | FactoryException
-                    | TransformException e) {
-                return Flux.error(new PolicyEvaluationException(e));
-            }
-        });
+		return webClient.httpRequest(HttpMethod.GET, requestTemplate).flatMap(v -> {
+			try {
+				var response = mapGeofences(v.get(), format, latitudeFirst);
+				return Flux.just(mapper.convertValue(response, JsonNode.class));
+			} catch (JsonProcessingException | MismatchedDimensionException | ParseException | FactoryException
+					| TransformException e) {
+				return Flux.error(new PolicyEvaluationException(e));
+			}
+		});
 
-    }
+	}
 
-    private List<Geofence> mapGeofences(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst)
-            throws JsonProcessingException, ParseException, FactoryException, MismatchedDimensionException,
-            TransformException {
+	private List<Geofence> mapGeofences(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst)
+			throws JsonProcessingException, ParseException, FactoryException, MismatchedDimensionException,
+			TransformException {
 
-        List<Geofence> fenceRes = new ArrayList<>();
-        var            fences   = mapper.readTree(in.toString());
+		List<Geofence> fenceRes = new ArrayList<>();
+		var fences = mapper.readTree(in.toString());
 
-        for (JsonNode geoFence : fences) {
-            var      factory = new GeometryFactory(new PrecisionModel(), 4326);
-            Geometry geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
+		for (JsonNode geoFence : fences) {
+			var factory = new GeometryFactory(new PrecisionModel(), 4326);
+			Geometry geo = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
 
-            if (!latitudeFirst) {
-                var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
-                geo = geoProjector.project(geo);
-            }
+			if (!latitudeFirst) {
+				var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
+				geo = geoProjector.project(geo);
+			}
 
-            switch (format) {
-            case GEOJSON:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
-                break;
-            case WKT:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
-                break;
-            case GML:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
-                break;
-            case KML:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
-                break;
-            default:
-                break;
-            }
-        }
+			switch (format) {
+			case GEOJSON:
+				fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
+				break;
+			case WKT:
+				fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
+				break;
+			case GML:
+				fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
+				break;
+			case KML:
+				fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
+				break;
+			}
+		}
 
-        return fenceRes;
+		return fenceRes;
 
-    }
+	}
 
-    private Geofence mapFence(JsonNode geoFence, JsonNode area) {
-        return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
-                .calendarId(geoFence.findValue(CALENDARID).asText()).name(geoFence.findValue(FENCENAME).asText())
-                .description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
-    }
+	private Geofence mapFence(JsonNode geoFence, JsonNode area) {
+		return Geofence.builder().id(geoFence.findValue(ID).asInt()).attributes(geoFence.findValue(ATTRIBUTES))
+				.calendarId(geoFence.findValue(CALENDARID).asText()).name(geoFence.findValue(FENCENAME).asText())
+				.description(geoFence.findValue(DESCRIPTION).asText()).area(area).build();
+	}
 
-    @Override
-    protected String getDeviceId(JsonNode requestSettings) {
-        if (requestSettings.has(DEVICEID_CONST)) {
-            return requestSettings.findValue(DEVICEID_CONST).asText();
-        } else {
-            return null;
-        }
-    }
+	@Override
+	protected String getDeviceId(JsonNode requestSettings) {
+		if (requestSettings.has(DEVICEID_CONST)) {
+			return requestSettings.findValue(DEVICEID_CONST).asText();
+		} else {
+			return null;
+		}
+	}
 
 }
