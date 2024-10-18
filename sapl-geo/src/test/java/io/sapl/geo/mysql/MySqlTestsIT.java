@@ -100,7 +100,7 @@ class MySqlTestsIT extends MySqlTestBase {
 					"where": "name = 'point2'",
 					"srcLatitudeFirst": true
 					}
-				"""; // mysql delivers lat/lon if srid == 0
+				"""; // mysql delivers lat/lon if srid == 4326
 		var templatePoint3 = template.concat(templatePoint2);
 		var queryString = String.format(templatePoint3, responseFormat);
 		var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
