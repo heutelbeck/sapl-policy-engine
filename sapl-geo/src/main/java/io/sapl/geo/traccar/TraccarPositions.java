@@ -97,7 +97,7 @@ public final class TraccarPositions extends TraccarBase {
 		if (in.has(POSITIONS)) {
 			var posArray = (ArrayNode) in.get(POSITIONS);
 			for (JsonNode pos : posArray) {
-				if (pos.has(DEVICE_ID) && pos.get(DEVICE_ID).asText().equals(deviceId)) {
+				if (pos.get(DEVICE_ID).asText().equals(deviceId)) {
 					return mapPosition(deviceId, pos, format, latitudeFirst);
 				}
 			}
