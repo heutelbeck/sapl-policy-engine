@@ -62,7 +62,6 @@ public final class TraccarPositions extends TraccarBase {
 	 */
 	public Flux<Val> getPositions(JsonNode settings) throws URISyntaxException {
 
-//		final var url = (String.format("ws://%s/api/socket", server));
 		final var baseUrl = (String.format("ws://%s", server));
 		return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
 			try {
@@ -78,8 +77,6 @@ public final class TraccarPositions extends TraccarBase {
 			boolean latitudeFirst) throws JsonProcessingException {
 
 		final var webClient = new ReactiveWebClient(mapper);
-//		final var requestTemplate = "{ \"baseUrl\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\": \"%s\" } }";
-//		final var request = Val.ofJson(String.format(requestTemplate, url, MediaType.APPLICATION_JSON_VALUE, cookie));
 		final var header = String.format(COOKIE_HEADER_CONST, cookie);
 		final var requestTemplate = createRequestTemplate(url, "/api/socket", MediaType.APPLICATION_JSON_VALUE,
 				header, null, null, null);
