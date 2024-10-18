@@ -45,20 +45,20 @@ abstract class TraccarBase extends TrackerConnectionBase {
 			throws URISyntaxException {
 
 		uri = new URI(String.format("%s://%s/api/session", protocol, serverName));
-		var bodyProperties = new HashMap<String, String>() {
+		final var bodyProperties = new HashMap<String, String>() {
 			private static final long serialVersionUID = 1L;
 		};
 
 		bodyProperties.put("email", user);
 		bodyProperties.put("password", password);
-		var form = bodyProperties.entrySet().stream()
+		final var form = bodyProperties.entrySet().stream()
 				.map(e -> String.format("%s=%s", e.getKey(), URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8)))
 				.collect(Collectors.joining("&"));
-		var client = WebClient.builder().build();
+		final var client = WebClient.builder().build();
 		return client.post().uri(uri).header("Content-Type", "application/x-www-form-urlencoded").bodyValue(form)
 				.retrieve().toEntity(String.class).flatMap(response -> {
 					if (response.getStatusCode().is2xxSuccessful()) {
-						var setCookieHeader = response.getHeaders().getFirst("set-cookie");
+						final var setCookieHeader = response.getHeaders().getFirst("set-cookie");
 						sessionCookie = setCookieHeader;
 						try {
 							setSessionId(response.getBody());

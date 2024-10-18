@@ -59,9 +59,9 @@ class MySqlTestsIT extends MySqlTestBase {
 	@CsvSource({ "WKT,ExpectedAllWKT", "GEOJSON,ExpectedAllGeoJson", "GML,ExpectedAllGML", "KML,ExpectedAllKML" })
 	void Test01MySqlConnection(String responseFormat, String expectedJsonKey) throws JsonProcessingException {
 
-		var queryString = String.format(templateAll, responseFormat, "geometries", "geom");
-		var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-		var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+		final var queryString = String.format(templateAll, responseFormat, "geometries", "geom");
+		final var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		final var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
 				DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
 				.map(JsonNode::toPrettyString);
 		StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
@@ -74,9 +74,9 @@ class MySqlTestsIT extends MySqlTestBase {
 	void Test02MySqlConnectionSingleResult(String responseFormat, String expectedJsonKey)
 			throws JsonProcessingException {
 
-		var queryString = String.format(templatePoint, responseFormat, "geometries", "geom");
-		var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-		var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+		final var queryString = String.format(templatePoint, responseFormat, "geometries", "geom");
+		final var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		final var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
 				DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
 				.map(JsonNode::toPrettyString);
 		StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
@@ -91,7 +91,7 @@ class MySqlTestsIT extends MySqlTestBase {
 			throws JsonProcessingException {
 
 		insertMySqlPointInGeometries(connectionFactory);
-		var templatePoint2 = """
+		final var templatePoint2 = """
 				    ,
 				    "table":"geometries",
 				    "geoColumn":"geom",
@@ -101,10 +101,10 @@ class MySqlTestsIT extends MySqlTestBase {
 					"srcLatitudeFirst": true
 					}
 				"""; // mysql delivers lat/lon if srid == 4326
-		var templatePoint3 = template.concat(templatePoint2);
-		var queryString = String.format(templatePoint3, responseFormat);
-		var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-		var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+		final var templatePoint3 = template.concat(templatePoint2);
+		final var queryString = String.format(templatePoint3, responseFormat);
+		final var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		final var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
 				DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
 				.map(JsonNode::toPrettyString);
 		StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
@@ -114,7 +114,7 @@ class MySqlTestsIT extends MySqlTestBase {
 	@Test
 	void Test04ErrorNonexistantTable() throws JsonProcessingException {
 
-		var errorTemplate = template.concat("""
+		final var errorTemplate = template.concat("""
 				    ,
 				    "table":"%s",
 				    "geoColumn":"%s",
@@ -123,8 +123,8 @@ class MySqlTestsIT extends MySqlTestBase {
 					"where": "name = 'point'"
 				}
 				""");
-		var queryString = String.format(errorTemplate, "WKT", "nonExistant", "geog");
-		var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+		final var queryString = String.format(errorTemplate, "WKT", "nonExistant", "geog");
+		final var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
 				DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
 		StepVerifier.create(mysqlResponse).expectError();
 	}
@@ -132,10 +132,11 @@ class MySqlTestsIT extends MySqlTestBase {
 	@Test
 	void Test05ErrorInvalidTemplate() throws JsonProcessingException {
 
-		var queryString = "{\"invalid\":\"Template\"}";
-		var mysql = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.MYSQL);
-		var query = Val.ofJson(queryString).get();
-		var exception = assertThrows(PolicyEvaluationException.class, () -> {
+		final var queryString = "{\"invalid\":\"Template\"}";
+		final var mysql = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+				DataBaseTypes.MYSQL);
+		final var query = Val.ofJson(queryString).get();
+		final var exception = assertThrows(PolicyEvaluationException.class, () -> {
 			mysql.sendQuery(query);
 		});
 		assertEquals("No geoColumn-name found", exception.getMessage());

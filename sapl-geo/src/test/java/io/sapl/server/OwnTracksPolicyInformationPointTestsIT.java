@@ -45,9 +45,9 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
 
-    private String path = "src/test/resources/policies/%s";
-    private String server;
-    // @formatter:off
+	private String path = "src/test/resources/policies/%s";
+	private String server;
+	// @formatter:off
     public static final GenericContainer<?> owntracksRecorder =
             new GenericContainer<>(DockerImageName.parse("owntracks/recorder:latest"))
                 .withExposedPorts(8083)
@@ -55,70 +55,69 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
                 .withReuse(false);
     // @formatter:on
 
-    @BeforeAll
-    void setUp() throws IOException {
-        owntracksRecorder.start();
-        var webClient = WebClient.builder().build();
-        server = String.format("%s:%s", owntracksRecorder.getHost(), owntracksRecorder.getMappedPort(8083));
-        var urlString = String.format("http://%s/pub", server);             // URL des OwnTracks Servers
-        var json      = """
-                	{
-                	"_type": "location",
-                	"tid": "TD",
-                	"lat": 47,
-                	"lon": 13,
-                	"tst": %s,
-                	"batt": 99,
-                	"acc": 14,
-                	"alt": 100,
-                	"created_at":"2023-07-09T13:34:19.000+00:00",
-                	"inregions":[]}
-                """;
-        var payload   = String.format(json, Instant.now().getEpochSecond());
-        webClient.post().uri(urlString).header("X-Limit-U", "user").header("X-Limit-D", "device").bodyValue(payload)
-                .exchangeToMono(response -> {
-                    return response.bodyToMono(String.class);
-                }).block();
+	@BeforeAll
+	void setUp() throws IOException {
+		owntracksRecorder.start();
+		final var webClient = WebClient.builder().build();
+		server = String.format("%s:%s", owntracksRecorder.getHost(), owntracksRecorder.getMappedPort(8083));
+		final var urlString = String.format("http://%s/pub", server); // URL des OwnTracks Servers
+		final var json = """
+					{
+					"_type": "location",
+					"tid": "TD",
+					"lat": 47,
+					"lon": 13,
+					"tst": %s,
+					"batt": 99,
+					"acc": 14,
+					"alt": 100,
+					"created_at":"2023-07-09T13:34:19.000+00:00",
+					"inregions":[]}
+				""";
+		final var payload = String.format(json, Instant.now().getEpochSecond());
+		webClient.post().uri(urlString).header("X-Limit-U", "user").header("X-Limit-D", "device").bodyValue(payload)
+				.exchangeToMono(response -> {
+					return response.bodyToMono(String.class);
+				}).block();
 
-        var template = """
-                   {
-                    "algorithm": "DENY_OVERRIDES",
-                    "variables":
-                    	{
-                    		"OWNTRACKS_DEFAULT_CONFIG":
-                    		{
-                    			"server":"%s",
-                    			"protocol": "%s"
-                    		}
-                    	}
-                    }
-                """;
-        var pdp      = String.format(template, server, "http");
-        writePdp(pdp, String.format(path, "/owntracksTestEnvironmentVariable/pdp.json"));
-    }
+		final var template = """
+				   {
+				    "algorithm": "DENY_OVERRIDES",
+				    "variables":
+				    	{
+				    		"OWNTRACKS_DEFAULT_CONFIG":
+				    		{
+				    			"server":"%s",
+				    			"protocol": "%s"
+				    		}
+				    	}
+				    }
+				""";
+		final var pdp = String.format(template, server, "http");
+		writePdp(pdp, String.format(path, "/owntracksTestEnvironmentVariable/pdp.json"));
+	}
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "owntracksTest", "owntracksTestEnvironmentVariable" })
-    void OwnTracksPipTest(String pdpPath) throws InitializationException {
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "owntracksTest", "owntracksTestEnvironmentVariable" })
+	void OwnTracksPipTest(String pdpPath) throws InitializationException {
 
-        var                       pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, pdpPath), () -> List.of(new OwnTracksPolicyInformationPoint(new ObjectMapper())),
-                List::of, List::of, List::of);
-        var                       subject           = new Subject("user", "device", server);
-        AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
-        var                       pdpDecisionFlux   = pdp.decide(authzSubscription);
+		final var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, pdpPath),
+				() -> List.of(new OwnTracksPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
+		final var subject = new Subject("user", "device", server);
+		final var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
+		final var pdpDecisionFlux = pdp.decide(authzSubscription);
 
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
-    }
+		StepVerifier.create(pdpDecisionFlux)
+				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
+				.verify();
+	}
 
-    @Getter
-    @RequiredArgsConstructor
-    static class Subject {
-        private final String user;
-        private final String deviceId;
-        private final String server;
-    }
+	@Getter
+	@RequiredArgsConstructor
+	static class Subject {
+		private final String user;
+		private final String deviceId;
+		private final String server;
+	}
 }

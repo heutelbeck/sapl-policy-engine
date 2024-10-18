@@ -40,61 +40,59 @@ import java.util.List;
 @TestInstance(Lifecycle.PER_CLASS)
 class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
 
-    private String path = "src/test/resources/policies/%s";
+	private String path = "src/test/resources/policies/%s";
 
-    @BeforeAll
-    void setUp() throws Exception {
+	@BeforeAll
+	void setUp() throws Exception {
 
-        commonSetUp();
-        var template = """
-                    {
-                      "algorithm": "DENY_OVERRIDES",
-                      "variables":
-                      	{
-                      		"POSTGIS_DEFAULT_CONFIG":
-                      		{
-                      			"user":"%s",
-                      			"password":"%s",
-                      			"server":"%s",
-                      			"port": %s,
-                      			"dataBase":"%s",
-                      			"dataBaseType" : "POSTGIS"
-                      		}
-                      	}
-                      }
-                """;
-        var json     = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(),
-                postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
+		commonSetUp();
+		final var template = """
+				    {
+				      "algorithm": "DENY_OVERRIDES",
+				      "variables":
+				      	{
+				      		"POSTGIS_DEFAULT_CONFIG":
+				      		{
+				      			"user":"%s",
+				      			"password":"%s",
+				      			"server":"%s",
+				      			"port": %s,
+				      			"dataBase":"%s",
+				      			"dataBaseType" : "POSTGIS"
+				      		}
+				      	}
+				      }
+				""";
+		final var json = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(),
+				postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
 
-        writePdp(json, String.format(path, "/postgisTestEnvironmentVariable/pdp.json"));
-    }
+		writePdp(json, String.format(path, "/postgisTestEnvironmentVariable/pdp.json"));
+	}
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "postgisTest", "postgisTestEnvironmentVariable" })
-    void PostGisPipTest(String pdpPath) throws InitializationException {
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "postgisTest", "postgisTestEnvironmentVariable" })
+	void PostGisPipTest(String pdpPath) throws InitializationException {
 
-        var                       pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, pdpPath), () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())),
-                List::of, List::of, List::of);
-        var                       subject           = new Subject(postgisContainer.getUsername(),
-                postgisContainer.getPassword(), postgisContainer.getHost(), postgisContainer.getMappedPort(5432),
-                postgisContainer.getDatabaseName());
-        AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
-        var                       pdpDecisionFlux   = pdp.decide(authzSubscription);
+		final var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(String.format(path, pdpPath),
+				() -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
+		final var subject = new Subject(postgisContainer.getUsername(), postgisContainer.getPassword(),
+				postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
+		final var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
+		final var pdpDecisionFlux = pdp.decide(authzSubscription);
 
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
-    }
+		StepVerifier.create(pdpDecisionFlux)
+				.expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
+				.verify();
+	}
 
-    @Getter
-    @RequiredArgsConstructor
-    static class Subject {
-        private final String user;
-        private final String password;
-        private final String server;
-        private final int    port;
-        private final String dataBase;
-    }
+	@Getter
+	@RequiredArgsConstructor
+	static class Subject {
+		private final String user;
+		private final String password;
+		private final String server;
+		private final int port;
+		private final String dataBase;
+	}
 }

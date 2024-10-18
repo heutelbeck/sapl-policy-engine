@@ -33,7 +33,6 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @TestInstance(Lifecycle.PER_CLASS)
@@ -66,8 +65,8 @@ class TraccarTests {
 			throws JsonProcessingException, URISyntaxException {
 
 		mockWebServer.enqueue(new MockResponse().setResponseCode(300));
-		var geofences = new TraccarGeofences(Val.ofJson(authenticationTemp).get(), mapper);
-		Mono<String> session = geofences.establishSession("user", "password", serverUrl, "http");
+		final var geofences = new TraccarGeofences(Val.ofJson(authenticationTemp).get(), mapper);
+		final var session = geofences.establishSession("user", "password", serverUrl, "http");
 		StepVerifier.create(session).expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -75,8 +74,8 @@ class TraccarTests {
 	void testEstablishSessionWithWebClientResponseException() throws JsonProcessingException, URISyntaxException {
 
 		mockWebServer.enqueue(new MockResponse().setResponseCode(500));
-		var geofences = new TraccarGeofences(Val.ofJson(authenticationTemp).get(), mapper);
-		Mono<String> session = geofences.establishSession("user", "password", serverUrl, "http");
+		final var geofences = new TraccarGeofences(Val.ofJson(authenticationTemp).get(), mapper);
+		final var session = geofences.establishSession("user", "password", serverUrl, "http");
 		StepVerifier.create(session).expectError(WebClientResponseException.class).verify();
 	}
 
@@ -86,8 +85,8 @@ class TraccarTests {
 
 		mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("set-cookie", "some-cookie-value")
 				.setBody("invalid_json"));
-		var geofences = new TraccarGeofences(Val.ofJson(authenticationTemp).get(), mapper);
-		Mono<String> sessionGeoFences = geofences.establishSession("user", "password", serverUrl, "http");
+		final var geofences = new TraccarGeofences(Val.ofJson(authenticationTemp).get(), mapper);
+		final var sessionGeoFences = geofences.establishSession("user", "password", serverUrl, "http");
 		StepVerifier.create(sessionGeoFences).expectError(PolicyEvaluationException.class).verify();
 	}
 
@@ -97,17 +96,17 @@ class TraccarTests {
 
 		mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("set-cookie", "some-cookie-value")
 				.setBody("invalid_json"));
-		var positions = new TraccarPositions(Val.ofJson(authenticationTemp).get(), mapper);
-		Mono<String> sessionPosition = positions.establishSession("user", "password", serverUrl, "http");
+		final var positions = new TraccarPositions(Val.ofJson(authenticationTemp).get(), mapper);
+		final var sessionPosition = positions.establishSession("user", "password", serverUrl, "http");
 		StepVerifier.create(sessionPosition).expectError(PolicyEvaluationException.class).verify();
 	}
 
 	@Test
 	void testEstablishSessionUriSyntaxException() throws JsonProcessingException {
 
-		var authenticationTemplate = "{\"user\":\"test\",\"password\":\"test\",\"server\":\"abc<>()\"}";
-		var responseTemplate = "{\"responseFormat\":\"WKT\",\"repetitions\" : 3,\"pollingIntervalMs\" : 1000}";
-		var val = Val.ofJson(responseTemplate);
+		final var authenticationTemplate = "{\"user\":\"test\",\"password\":\"test\",\"server\":\"abc<>()\"}";
+		final var responseTemplate = "{\"responseFormat\":\"WKT\",\"repetitions\" : 3,\"pollingIntervalMs\" : 1000}";
+		final var val = Val.ofJson(responseTemplate);
 		TraccarGeofences traccarGeofences = new TraccarGeofences(Val.ofJson(authenticationTemplate).get(),
 				new ObjectMapper());
 		assertThrows(URISyntaxException.class, () -> {

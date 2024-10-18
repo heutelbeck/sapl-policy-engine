@@ -23,7 +23,6 @@ import java.util.List;
 import org.geotools.api.geometry.MismatchedDimensionException;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.TransformException;
-import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.ParseException;
@@ -87,21 +86,20 @@ public final class TraccarGeofences extends TraccarBase {
 	private Flux<JsonNode> getTraccarResponse(GeoPipResponseFormat format, String deviceId, Long pollingInterval,
 			Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
 
-		var webClient = new ReactiveWebClient(mapper);
-		var header = String.format("\"cookie\" : \"%s\"", sessionCookie);
+		final var webClient = new ReactiveWebClient(mapper);
+		final var header = String.format("\"cookie\" : \"%s\"", sessionCookie);
 		String[] urlParamArray = null;
 		if (deviceId != null) {
-			var urlParams = String.format("\"deviceId\": \"%s\"", deviceId);
+			final var urlParams = String.format("\"deviceId\": \"%s\"", deviceId);
 			urlParamArray = new String[] { urlParams };
 		}
 
-		Val requestTemplate;
-		requestTemplate = createRequestTemplate(baseUrl, "api/geofences", MediaType.APPLICATION_JSON_VALUE, header,
-				urlParamArray, pollingInterval, repetitions);
+		final var requestTemplate = createRequestTemplate(baseUrl, "api/geofences", MediaType.APPLICATION_JSON_VALUE,
+				header, urlParamArray, pollingInterval, repetitions);
 
 		return webClient.httpRequest(HttpMethod.GET, requestTemplate).flatMap(v -> {
 			try {
-				var response = mapGeofences(v.get(), format, latitudeFirst);
+				final var response = mapGeofences(v.get(), format, latitudeFirst);
 				return Flux.just(mapper.convertValue(response, JsonNode.class));
 			} catch (JsonProcessingException | MismatchedDimensionException | ParseException | FactoryException
 					| TransformException e) {
@@ -116,14 +114,14 @@ public final class TraccarGeofences extends TraccarBase {
 			TransformException {
 
 		List<Geofence> fenceRes = new ArrayList<>();
-		var fences = mapper.readTree(in.toString());
+		final var fences = mapper.readTree(in.toString());
 
 		for (JsonNode geoFence : fences) {
-			var factory = new GeometryFactory(new PrecisionModel(), 4326);
-			Geometry geo = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
+			final var factory = new GeometryFactory(new PrecisionModel(), 4326);
+			var geo = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);
 
 			if (!latitudeFirst) {
-				var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
+				final var geoProjector = new GeoProjector(EPSG, false, EPSG, true);
 				geo = geoProjector.project(geo);
 			}
 

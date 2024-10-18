@@ -52,7 +52,7 @@ class DataBaseStreamQueryTest {
 
 	@Test
 	void getDatabaseNameErrorTest() throws JsonProcessingException {
-		var authenticationTemplateError = """
+		final var authenticationTemplateError = """
 				 {
 				    "user":"test",
 				    "password":"test",
@@ -60,20 +60,20 @@ class DataBaseStreamQueryTest {
 					"port": 123
 				 }
 				""";
-		var error = Val.ofJson(authenticationTemplateError).get();
-		var databaseStreamQuery = new DatabaseStreamQuery(error, mapper, DataBaseTypes.POSTGIS);
-		var exception = assertThrows(PolicyEvaluationException.class, () -> databaseStreamQuery.sendQuery(null));
+		final var error = Val.ofJson(authenticationTemplateError).get();
+		final var databaseStreamQuery = new DatabaseStreamQuery(error, mapper, DataBaseTypes.POSTGIS);
+		final var exception = assertThrows(PolicyEvaluationException.class, () -> databaseStreamQuery.sendQuery(null));
 		assertEquals("No database-name found", exception.getMessage());
 	}
 
 	@Test
 	void getTableErrorTest() throws JsonProcessingException {
 
-		var templateWithoutTable = "{\"geoColumn\":\"test\"}";
-		var requestWithoutTable = Val.ofJson(templateWithoutTable).get();
-		var auth = Val.ofJson(authenticationTemplate).get();
-		var databaseStreamQuery = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
-		var exception = assertThrows(PolicyEvaluationException.class, () -> {
+		final var templateWithoutTable = "{\"geoColumn\":\"test\"}";
+		final var requestWithoutTable = Val.ofJson(templateWithoutTable).get();
+		final var auth = Val.ofJson(authenticationTemplate).get();
+		final var databaseStreamQuery = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
+		final var exception = assertThrows(PolicyEvaluationException.class, () -> {
 			databaseStreamQuery.sendQuery(requestWithoutTable);
 		});
 		assertEquals("No table-name found", exception.getMessage());
@@ -82,11 +82,11 @@ class DataBaseStreamQueryTest {
 	@Test
 	void getGeoColumnErrorTest() throws JsonProcessingException {
 
-		var templateWithoutTable = "{\"dataBase\":\"test\"}";
-		var requestWithoutTable = Val.ofJson(templateWithoutTable).get();
-		var auth = Val.ofJson(authenticationTemplate).get();
-		var databaseStreamQuery = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
-		var exception = assertThrows(PolicyEvaluationException.class, () -> {
+		final var templateWithoutTable = "{\"dataBase\":\"test\"}";
+		final var requestWithoutTable = Val.ofJson(templateWithoutTable).get();
+		final var auth = Val.ofJson(authenticationTemplate).get();
+		final var databaseStreamQuery = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
+		final var exception = assertThrows(PolicyEvaluationException.class, () -> {
 			databaseStreamQuery.sendQuery(requestWithoutTable);
 		});
 		assertEquals("No geoColumn-name found", exception.getMessage());

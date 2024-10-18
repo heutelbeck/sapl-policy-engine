@@ -62,7 +62,7 @@ public final class TraccarPositions extends TraccarBase {
 	 */
 	public Flux<Val> getPositions(JsonNode settings) throws URISyntaxException {
 
-		var url = (String.format("ws://%s/api/socket", server));
+		final var url = (String.format("ws://%s/api/socket", server));
 		return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
 			try {
 				return getTraccarResponse(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
@@ -76,14 +76,13 @@ public final class TraccarPositions extends TraccarBase {
 	private Flux<ObjectNode> getTraccarResponse(String url, String cookie, GeoPipResponseFormat format, String deviceId,
 			boolean latitudeFirst) throws JsonProcessingException {
 
-		var webClient = new ReactiveWebClient(mapper);
-		var requestTemplate = "{ \"baseUrl\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\": \"%s\" } }";
-		Val request;
-		request = Val.ofJson(String.format(requestTemplate, url, MediaType.APPLICATION_JSON_VALUE, cookie));
+		final var webClient = new ReactiveWebClient(mapper);
+		final var requestTemplate = "{ \"baseUrl\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\": \"%s\" } }";
+		final var request = Val.ofJson(String.format(requestTemplate, url, MediaType.APPLICATION_JSON_VALUE, cookie));
 
 		return webClient.consumeWebSocket(request).flatMap(v -> {
 			try {
-				var response = getPosition(v.get(), format, latitudeFirst, deviceId);
+				final var response = getPosition(v.get(), format, latitudeFirst, deviceId);
 				return Mono.justOrEmpty(response).map(r -> mapper.convertValue(r, ObjectNode.class));
 			} catch (JsonProcessingException e) {
 				throw new PolicyEvaluationException(e);
@@ -95,8 +94,8 @@ public final class TraccarPositions extends TraccarBase {
 			throws JsonProcessingException {
 
 		if (in.has(POSITIONS)) {
-			var posArray = (ArrayNode) in.get(POSITIONS);
-			for (JsonNode pos : posArray) {
+			final var posArray = (ArrayNode) in.get(POSITIONS);
+			for (final var pos : posArray) {
 				if (pos.get(DEVICE_ID).asText().equals(deviceId)) {
 					return mapPosition(deviceId, pos, format, latitudeFirst);
 				}

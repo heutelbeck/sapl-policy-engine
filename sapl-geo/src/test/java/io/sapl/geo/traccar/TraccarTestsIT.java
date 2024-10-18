@@ -36,156 +36,156 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 class TraccarTestsIT extends TraccarTestBase {
 
-    private String authenticationTemplate = """
-                {
-                "user":"%s",
-                "password":"%s",
-            	"server":"%s",
-            	"protocol":"http"
-            	}
-            """;
-    private String authTemplate;
+	private String authenticationTemplate = """
+			    {
+			    "user":"%s",
+			    "password":"%s",
+				"server":"%s",
+				"protocol":"http"
+				}
+			""";
+	private String authTemplate;
 
-    @BeforeAll
-    void setup() throws Exception {
-        traccarContainer.start();
+	@BeforeAll
+	void setup() throws Exception {
+		traccarContainer.start();
 
-        email    = "test@fake.de";
-        password = "1234";
-        registerUser(email, password);
-        var sessionCookie = establishSession(email, password);
-        deviceId = createDevice(sessionCookie);
-        var body  = """
-                    {
-                     "name":"fence1",
-                     "description": "description1",
-                     "area":"POLYGON ((29.031502836569203 33.089228694845474, 29.00276317262039 33.09128276117099, 29.016684945926443 33.13356229304324, 29.031502836569203 33.089228694845474))"
-                    }
-                """;
-        var body2 = """
-                    {
-                     "name":"fence2",
-                     "description": "description2",
-                     "area":"POLYGON ((29.042083035750323 32.98056450865346, 28.946694589751544 32.987488754266934, 28.95426831559641 33.09568009197196, 29.03678598719543 33.05673121039777, 29.042083035750323 32.98056450865346))"
-                    }
-                """;
+		email = "test@fake.de";
+		password = "1234";
+		registerUser(email, password);
+		final var sessionCookie = establishSession(email, password);
+		deviceId = createDevice(sessionCookie);
+		final var body = """
+				    {
+				     "name":"fence1",
+				     "description": "description1",
+				     "area":"POLYGON ((29.031502836569203 33.089228694845474, 29.00276317262039 33.09128276117099, 29.016684945926443 33.13356229304324, 29.031502836569203 33.089228694845474))"
+				    }
+				""";
+		final var body2 = """
+				    {
+				     "name":"fence2",
+				     "description": "description2",
+				     "area":"POLYGON ((29.042083035750323 32.98056450865346, 28.946694589751544 32.987488754266934, 28.95426831559641 33.09568009197196, 29.03678598719543 33.05673121039777, 29.042083035750323 32.98056450865346))"
+				    }
+				""";
 
-        var body3 = """
-                    {
-                     "name":"fence3",
-                     "description": "description3",
-                     "area":"POLYGON ((29.144943123387407 32.68974619290327, 28.998185000516372 32.7183087060568, 29.135115352003865 32.85246596481156, 29.144943123387407 32.68974619290327))"
-                    }
-                """;
+		final var body3 = """
+				    {
+				     "name":"fence3",
+				     "description": "description3",
+				     "area":"POLYGON ((29.144943123387407 32.68974619290327, 28.998185000516372 32.7183087060568, 29.135115352003865 32.85246596481156, 29.144943123387407 32.68974619290327))"
+				    }
+				""";
 
-        var traccarGeofences = new String[] { body, body2 };
-        for (var fence : traccarGeofences) {
-            var fenceRes = postTraccarGeofence(sessionCookie, fence).blockOptional();
-            if (fenceRes.isPresent()) {
-                linkGeofenceToDevice(deviceId, fenceRes.get().get("id").asInt(), sessionCookie);
-            } else {
-                throw new RuntimeException("Response was null");
-            }
-        }
-        postTraccarGeofence(sessionCookie, body3).block();
-        addTraccarPosition("1234567890", 29D, 33D).block();
-        var address = traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082);
-        authTemplate = String.format(authenticationTemplate, email, password, address);
-    }
+		final var traccarGeofences = new String[] { body, body2 };
+		for (final var fence : traccarGeofences) {
+			final var fenceRes = postTraccarGeofence(sessionCookie, fence).blockOptional();
+			if (fenceRes.isPresent()) {
+				linkGeofenceToDevice(deviceId, fenceRes.get().get("id").asInt(), sessionCookie);
+			} else {
+				throw new RuntimeException("Response was null");
+			}
+		}
+		postTraccarGeofence(sessionCookie, body3).block();
+		addTraccarPosition("1234567890", 29D, 33D).block();
+		final var address = traccarContainer.getHost() + ":" + traccarContainer.getMappedPort(8082);
+		authTemplate = String.format(authenticationTemplate, email, password, address);
+	}
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,PositionWKT,true", "GEOJSON,PositionGeoJsonSwitchedCoordinates,false", "GML,PositionGML,true",
-            "KML,PositionKML,true" })
-    void testTraccarPositions(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "WKT,PositionWKT,true", "GEOJSON,PositionGeoJsonSwitchedCoordinates,false", "GML,PositionGML,true",
+			"KML,PositionKML,true" })
+	void testTraccarPositions(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
 
-        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var str              = """
-                {
-                   "responseFormat":"%s",
-                   "deviceId":"%s"
-                   """;
-        var responseTemplate = String.format(str, responseFormat, deviceId);
-        if (!latitudeFirst) {
-            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
-        }
-        responseTemplate = responseTemplate.concat("}");
-        var val    = Val.ofJson(responseTemplate);
-        var result = new TraccarPositions(Val.ofJson(authTemplate).get(), new ObjectMapper()).getPositions(val.get())
-                .map(Val::get).map(JsonNode::toPrettyString);
+		final var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		final var str = """
+				{
+				   "responseFormat":"%s",
+				   "deviceId":"%s"
+				   """;
+		var responseTemplate = String.format(str, responseFormat, deviceId);
+		if (!latitudeFirst) {
+			responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
+		}
+		responseTemplate = responseTemplate.concat("}");
+		final var val = Val.ofJson(responseTemplate);
+		final var result = new TraccarPositions(Val.ofJson(authTemplate).get(), new ObjectMapper())
+				.getPositions(val.get()).map(Val::get).map(JsonNode::toPrettyString);
 
-        StepVerifier.create(result).expectNext(expected).thenCancel().verify();
-    }
+		StepVerifier.create(result).expectNext(expected).thenCancel().verify();
+	}
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,TraccarGeofencesDeviceWKT,true", "GEOJSON,TraccarGeofencesDeviceGeoJsonSwitchedCoordinates,false",
-            "GML,TraccarGeofencesDeviceGML,true", "KML,TraccarGeofencesDeviceKML,true" })
-    void testTraccarGeofencesWithDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
-            throws Exception {
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "WKT,TraccarGeofencesDeviceWKT,true", "GEOJSON,TraccarGeofencesDeviceGeoJsonSwitchedCoordinates,false",
+			"GML,TraccarGeofencesDeviceGML,true", "KML,TraccarGeofencesDeviceKML,true" })
+	void testTraccarGeofencesWithDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
+			throws Exception {
 
-        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var str              = """
-                {
-                   "responseFormat":"%s",
-                   "deviceId":"%s"
-                   """;
-        var responseTemplate = String.format(str, responseFormat, deviceId);
-        if (!latitudeFirst) {
-            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
-        }
-        responseTemplate = responseTemplate.concat("}");
-        var val    = Val.ofJson(responseTemplate);
-        var result = new TraccarGeofences(Val.ofJson(authTemplate).get(), new ObjectMapper()).getGeofences(val.get())
-                .map(Val::get).map(JsonNode::toPrettyString);
+		final var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		final var str = """
+				{
+				   "responseFormat":"%s",
+				   "deviceId":"%s"
+				   """;
+		var responseTemplate = String.format(str, responseFormat, deviceId);
+		if (!latitudeFirst) {
+			responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
+		}
+		responseTemplate = responseTemplate.concat("}");
+		final var val = Val.ofJson(responseTemplate);
+		final var result = new TraccarGeofences(Val.ofJson(authTemplate).get(), new ObjectMapper())
+				.getGeofences(val.get()).map(Val::get).map(JsonNode::toPrettyString);
 
-        StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
-    }
+		StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
+	}
 
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "WKT,TraccarGeofencesWKT,true", "GEOJSON,TraccarGeofencesGeoJsonSwitchedCoordinates,false",
-            "GML,TraccarGeofencesGML,true", "KML,TraccarGeofencesKML,true" })
-    void testTraccarGeofencesWithoutDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
-            throws Exception {
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "WKT,TraccarGeofencesWKT,true", "GEOJSON,TraccarGeofencesGeoJsonSwitchedCoordinates,false",
+			"GML,TraccarGeofencesGML,true", "KML,TraccarGeofencesKML,true" })
+	void testTraccarGeofencesWithoutDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
+			throws Exception {
 
-        var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-        var str              = """
-                {
-                   "responseFormat":"%s"
-                   """;
-        var responseTemplate = String.format(str, responseFormat);
-        if (!latitudeFirst) {
-            responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
+		final var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		final var str = """
+				{
+				   "responseFormat":"%s"
+				   """;
+		var responseTemplate = String.format(str, responseFormat);
+		if (!latitudeFirst) {
+			responseTemplate = responseTemplate.concat(",\"latitudeFirst\":false");
 
-        }
-        responseTemplate = responseTemplate.concat("}");
-        var val    = Val.ofJson(responseTemplate);
-        var result = new TraccarGeofences(Val.ofJson(authTemplate).get(), new ObjectMapper()).getGeofences(val.get())
-                .map(Val::get).map(JsonNode::toPrettyString);
+		}
+		responseTemplate = responseTemplate.concat("}");
+		final var val = Val.ofJson(responseTemplate);
+		final var result = new TraccarGeofences(Val.ofJson(authTemplate).get(), new ObjectMapper())
+				.getGeofences(val.get()).map(Val::get).map(JsonNode::toPrettyString);
 
-        StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
-    }
+		StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
+	}
 
-    @Test
-    void testTraccarGeofencesRepetitionsAndPollingInterval() throws Exception {
+	@Test
+	void testTraccarGeofencesRepetitionsAndPollingInterval() throws Exception {
 
-        var expected         = source.getJsonSource().get("TraccarGeofencesWKT").toPrettyString();
-        var str              = """
-                {
-                   "responseFormat":"WKT"
-                   """;
-        var responseTemplate = str.concat("""
-                   ,"repetitions" : 3
-                   ,"pollingIntervalMs" : 1000
-                }
-                """);
-        var val              = Val.ofJson(responseTemplate);
-        var result           = new TraccarGeofences(Val.ofJson(authTemplate).get(), new ObjectMapper())
-                .getGeofences(val.get()).map(Val::get).map(JsonNode::toPrettyString);
+		final var expected = source.getJsonSource().get("TraccarGeofencesWKT").toPrettyString();
+		final var str = """
+				{
+				   "responseFormat":"WKT"
+				   """;
+		final var responseTemplate = str.concat("""
+				   ,"repetitions" : 3
+				   ,"pollingIntervalMs" : 1000
+				}
+				""");
+		final var val = Val.ofJson(responseTemplate);
+		final var result = new TraccarGeofences(Val.ofJson(authTemplate).get(), new ObjectMapper())
+				.getGeofences(val.get()).map(Val::get).map(JsonNode::toPrettyString);
 
-        StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
-                .verify();
-    }
+		StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
+				.verify();
+	}
 
 }

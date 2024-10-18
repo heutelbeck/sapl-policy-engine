@@ -20,7 +20,6 @@ package io.sapl.geo.common;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
@@ -40,42 +39,42 @@ import lombok.Getter;
 
 public final class SourceProvider {
 
-    GeometryFactory geometryFactory = new GeometryFactory();
-    Coordinate[]    coordinates     = new Coordinate[] { new Coordinate(10, 12), new Coordinate(10, 14),
-            new Coordinate(12, 10), new Coordinate(13, 14), new Coordinate(10, 12) };
+	GeometryFactory geometryFactory = new GeometryFactory();
+	Coordinate[] coordinates = new Coordinate[] { new Coordinate(10, 12), new Coordinate(10, 14),
+			new Coordinate(12, 10), new Coordinate(13, 14), new Coordinate(10, 12) };
 
-    @Getter
-    Point   point   = geometryFactory.createPoint(coordinates[0]);
-    @Getter
-    Polygon polygon = geometryFactory.createPolygon(coordinates);
+	@Getter
+	Point point = geometryFactory.createPoint(coordinates[0]);
+	@Getter
+	Polygon polygon = geometryFactory.createPolygon(coordinates);
 
-    @Getter
-    Document    xmlSource;
-    @Getter
-    JsonNode    jsonSource;
-    @Getter
-    Transformer transform;
+	@Getter
+	Document xmlSource;
+	@Getter
+	JsonNode jsonSource;
+	@Getter
+	Transformer transform;
 
-    final String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
+	final String resourceDirectory = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
 
-    public SourceProvider() {
-        try {
-            setUp();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize SourceProvider", e);
-        }
-    }
+	public SourceProvider() {
+		try {
+			setUp();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to initialize SourceProvider", e);
+		}
+	}
 
-    public final void setUp() throws TransformerConfigurationException, TransformerFactoryConfigurationError,
-            ParserConfigurationException, SAXException, IOException {
+	public final void setUp() throws TransformerConfigurationException, TransformerFactoryConfigurationError,
+			ParserConfigurationException, SAXException, IOException {
 
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        transform = TransformerFactory.newInstance().newTransformer();
-        transform.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-        File            f       = new File(resourceDirectory + "/xmlSource.xml");
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        xmlSource = builder.parse(f);
-        var mapper = new ObjectMapper();
-        jsonSource = mapper.readTree(new File(resourceDirectory + "/jsonSource.json"));
-    }
+		final var factory = DocumentBuilderFactory.newInstance();
+		transform = TransformerFactory.newInstance().newTransformer();
+		transform.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+		final var f = new File(resourceDirectory + "/xmlSource.xml");
+		final var builder = factory.newDocumentBuilder();
+		xmlSource = builder.parse(f);
+		final var mapper = new ObjectMapper();
+		jsonSource = mapper.readTree(new File(resourceDirectory + "/jsonSource.json"));
+	}
 }

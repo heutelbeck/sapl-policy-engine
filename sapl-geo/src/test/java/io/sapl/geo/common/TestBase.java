@@ -38,7 +38,7 @@ public abstract class TestBase {
     protected void writePdp(String json, String path) throws IOException {
 
         Path filePath = Paths.get(path);
-        try (var writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
+        try (final var writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
             writer.write(json);
         }
     }

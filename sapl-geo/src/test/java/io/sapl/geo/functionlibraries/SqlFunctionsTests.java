@@ -24,59 +24,62 @@ import io.sapl.api.interpreter.Val;
 
 class SqlFunctionsTests {
 
-    private SqlFunctions sqlFunctions = new SqlFunctions();
-    private Val          errorVal     = Val.error("Error validating input. Input-string failed sanitization");
+	private SqlFunctions sqlFunctions = new SqlFunctions();
+	private Val errorVal = Val.error("Error validating input. Input-string failed sanitization");
 
-    @Test
-    void CheckForControlCharactersPass() {
+	@Test
+	void CheckForControlCharactersPass() {
 
-        var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
-        var checkedSql = sqlFunctions.assertNoSqlControlChars(sql);
-        Assert.equals(Val.TRUE, checkedSql);
-    }
+		final var sql = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
+		final var checkedSql = sqlFunctions.assertNoSqlControlChars(sql);
+		Assert.equals(Val.TRUE, checkedSql);
+	}
 
-    @Test
-    void CheckForControlCharacters2() {
+	@Test
+	void CheckForControlCharacters2() {
 
-        var sql    = Val.of(
-                "SELECT id, value FROM table WHERE name IN (SELECT name, someField FROM table2 WHERE id = 'someNumber')");
-        var result = sqlFunctions.assertNoSqlControlChars(sql);
-        assertEquals(Val.TRUE, result);
-    }
+		final var sql = Val.of(
+				"SELECT id, value FROM table WHERE name IN (SELECT name, someField FROM table2 WHERE id = 'someNumber')");
+		final var result = sqlFunctions.assertNoSqlControlChars(sql);
+		assertEquals(Val.TRUE, result);
+	}
 
-    @Test
-    void CheckForControlCharactersError() {
+	@Test
+	void CheckForControlCharactersError() {
 
-        var sql = sqlFunctions.assertNoSqlControlChars(Val.of("Select * from table where name = 'test;drop table'"));
-        assertEquals(errorVal, sql);
-    }
+		final var sql = sqlFunctions
+				.assertNoSqlControlChars(Val.of("Select * from table where name = 'test;drop table'"));
+		assertEquals(errorVal, sql);
+	}
 
-    @Test
-    void CheckForControlCharactersError2() {
+	@Test
+	void CheckForControlCharactersError2() {
 
-        var sql = sqlFunctions.assertNoSqlControlChars(Val.of("Select * from table where name = @setvalue = 1"));
-        assertEquals(errorVal, sql);
-    }
+		final var sql = sqlFunctions.assertNoSqlControlChars(Val.of("Select * from table where name = @setvalue = 1"));
+		assertEquals(errorVal, sql);
+	}
 
-    @Test
-    void CheckForKeywordsPass() {
+	@Test
+	void CheckForKeywordsPass() {
 
-        var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
-        var checkedSql = sqlFunctions.assertNoSqlKeywords(sql);
-        Assert.equals(Val.TRUE, checkedSql);
-    }
+		final var sql = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
+		final var checkedSql = sqlFunctions.assertNoSqlKeywords(sql);
+		Assert.equals(Val.TRUE, checkedSql);
+	}
 
-    @Test
-    void CheckForKeywordsError() {
+	@Test
+	void CheckForKeywordsError() {
 
-        var sql = sqlFunctions.assertNoSqlKeywords(Val.of("Select (drop table table1) from table where name = 'test'"));
-        assertEquals(errorVal, sql);
-    }
+		final var sql = sqlFunctions
+				.assertNoSqlKeywords(Val.of("Select (drop table table1) from table where name = 'test'"));
+		assertEquals(errorVal, sql);
+	}
 
-    @Test
-    void CheckForKeywordsError2() {
+	@Test
+	void CheckForKeywordsError2() {
 
-        var sql = sqlFunctions.assertNoSqlKeywords(Val.of("Select * from table where name in (TRUNCATE table table1)"));
-        assertEquals(errorVal, sql);
-    }
+		final var sql = sqlFunctions
+				.assertNoSqlKeywords(Val.of("Select * from table where name in (TRUNCATE table table1)"));
+		assertEquals(errorVal, sql);
+	}
 }

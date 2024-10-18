@@ -42,51 +42,50 @@ import lombok.RequiredArgsConstructor;
 @FunctionLibrary(name = "geoParser", description = "")
 public class GeoParser {
 
-    private static final JsonNodeFactory JSON      = JsonNodeFactory.instance;
-    private static final String          PARSE_KML = "parses kml to Geometries";
-    private static final String          NAME      = "name";
-    private static final String          GEOMETRY  = "Geometry";
+	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+	private static final String PARSE_KML = "parses kml to Geometries";
+	private static final String NAME = "name";
+	private static final String GEOMETRY = "Geometry";
+	private final ObjectMapper mapper;
 
-    private final ObjectMapper mapper;
+	@Function(name = "parseKml", docs = PARSE_KML)
+	public Val parseKML(Val kml) throws XMLStreamException, IOException, SAXException {
 
-    @Function(name = "parseKml", docs = PARSE_KML)
-    public Val parseKML(Val kml) throws XMLStreamException, IOException, SAXException {
+		return Val.of(parseKML(kml.getText()));
+	}
 
-        return Val.of(parseKML(kml.getText()));
-    }
+	public ArrayNode parseKML(String kmlString) throws XMLStreamException, IOException, SAXException {
 
-    public ArrayNode parseKML(String kmlString) throws XMLStreamException, IOException, SAXException {
+		final var features = new ArrayList<SimpleFeature>();
+		final var stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
+		final var config = new KMLConfiguration();
+		final var parser = new PullParser(config, stream, KML.Placemark);
+		SimpleFeature f = null;
+		while ((f = (SimpleFeature) parser.parse()) != null) {
 
-        var           features = new ArrayList<SimpleFeature>();
-        var           stream   = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
-        var           config   = new KMLConfiguration();
-        var           parser   = new PullParser(config, stream, KML.Placemark);
-        SimpleFeature f        = null;
-        while ((f = (SimpleFeature) parser.parse()) != null) {
+			features.add(f);
+		}
+		return convertToObjects(features);
+	}
 
-            features.add(f);
-        }
-        return convertToObjects(features);
-    }
+	protected ArrayNode convertToObjects(ArrayList<SimpleFeature> placeMarks) {
 
-    protected ArrayNode convertToObjects(ArrayList<SimpleFeature> placeMarks) {
-
-        var arrayNode = mapper.createArrayNode();
-        for (SimpleFeature feature : placeMarks) {
-            var name         = "unnamed geometry";
-            var nameProperty = feature.getAttribute(NAME);
-            if (nameProperty != null) {
-                name = nameProperty.toString();
-            }
-            var geom = (Geometry) feature.getAttribute(GEOMETRY);
-            var geo  = JSON.objectNode();
-            if (geom != null) {
-                geo.set(NAME, new TextNode(name));
-                var json = new TextNode(GeometryConverter.geometryToKML(geom).getText());
-                geo.set(GEOMETRY, json);
-                arrayNode.add(geo);
-            }
-        }
-        return arrayNode;
-    }
+		final var arrayNode = mapper.createArrayNode();
+		for (SimpleFeature feature : placeMarks) {
+			var name = "unnamed geometry";
+			final var nameProperty = feature.getAttribute(NAME);
+			if (nameProperty != null) {
+				name = nameProperty.toString();
+			}
+			final var geom = (Geometry) feature.getAttribute(GEOMETRY);
+			final var geo = JSON.objectNode();
+			if (geom != null) {
+				geo.set(NAME, new TextNode(name));
+				final var json = new TextNode(GeometryConverter.geometryToKML(geom).getText());
+				geo.set(GEOMETRY, json);
+				arrayNode.add(geo);
+			}
+		}
+		return arrayNode;
+	}
 }

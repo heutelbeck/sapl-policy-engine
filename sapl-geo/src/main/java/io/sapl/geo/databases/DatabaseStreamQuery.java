@@ -129,9 +129,9 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 			boolean latitudeFirst) throws MismatchedDimensionException, JsonProcessingException, ParseException,
 			FactoryException, TransformException {
 
-		var resultNode = mapper.createObjectNode();
+		final var resultNode = mapper.createObjectNode();
 		JsonNode geoNode;
-		var resValue = row.get("res", String.class);
+		final var resValue = row.get("res", String.class);
 		var srid = row.get("srid", Integer.class);
 		if (srid == null || srid == 0) {
 			srid = defaultCrs;
@@ -139,7 +139,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		geoNode = convertResponse(resValue, format, srid, srcLatitudeFirst, latitudeFirst);
 		resultNode.put("srid", srid);
 		resultNode.set("geo", geoNode);
-		for (String column : selectColumns) {
+		for (final var column : selectColumns) {
 			resultNode.put(column, row.get(column, String.class));
 		}
 		return resultNode;
@@ -150,10 +150,10 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 			TransformException, JsonProcessingException {
 
 		var res = (JsonNode) mapper.createObjectNode();
-		var crs = EPSG + srid;
+		final var crs = EPSG + srid;
 
 		var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
-		var geoProjector = new GeoProjector(crs, !srcLatitudeFirst, crs, !latitudeFirst);
+		final var geoProjector = new GeoProjector(crs, !srcLatitudeFirst, crs, !latitudeFirst);
 		geo = geoProjector.project(geo);
 
 		switch (format) {
@@ -180,8 +180,8 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 	private Mono<JsonNode> collectMultipleResults(Flux<JsonNode> resultFlux) {
 
 		return resultFlux.collect(ArrayList::new, List::add).map(results -> {
-			var arrayNode = mapper.createArrayNode();
-			for (var node : results) {
+			final var arrayNode = mapper.createArrayNode();
+			for (final var node : results) {
 				arrayNode.add((JsonNode) node);
 			}
 			return (JsonNode) arrayNode;
@@ -206,12 +206,12 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 
 	private String buildSql(String geoColumn, String[] columns, String table, String where) {
 
-		var frmt = "ST_AsGeoJSON";
-		var builder = new StringBuilder();
-		for (String c : columns) {
+		final var frmt = "ST_AsGeoJSON";
+		final var builder = new StringBuilder();
+		for (final var c : columns) {
 			builder.append(String.format(", %s AS %s", c, c));
 		}
-		var clms = builder.toString();
+		final var clms = builder.toString();
 		var str = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid%s FROM %s %s";
 		if (singleResult) {
 			str = str.concat(" LIMIT 1");
@@ -245,7 +245,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 
 	private String[] getColumns(JsonNode requestSettings, ObjectMapper mapper) {
 		if (requestSettings.has(COLUMNS)) {
-			var columns = requestSettings.findValue(COLUMNS);
+			final var columns = requestSettings.findValue(COLUMNS);
 			if (columns.isArray()) {
 				return mapper.convertValue((ArrayNode) columns, String[].class);
 			}
@@ -290,7 +290,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 	private long longOrDefault(JsonNode requestSettings, String fieldName, long defaultValue) {
 
 		if (requestSettings.has(fieldName)) {
-			var value = requestSettings.findValue(fieldName);
+			final var value = requestSettings.findValue(fieldName);
 
 			if (!value.isNumber())
 				throw new PolicyEvaluationException(fieldName + " must be an integer, but was: " + value.getNodeType());

@@ -43,10 +43,10 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
 	protected GeoPipResponse mapPosition(String deviceId, JsonNode in, GeoPipResponseFormat format,
 			boolean latitudeFirst) throws JsonProcessingException {
 
-		var geometryFactory = new GeometryFactory(new PrecisionModel(), WGS84);
+		final var geometryFactory = new GeometryFactory(new PrecisionModel(), WGS84);
 		Point position;
-		var lat = in.findValue(latitude).asDouble();
-		var lon = in.findValue(longitude).asDouble();
+		final var lat = in.findValue(latitude).asDouble();
+		final var lon = in.findValue(longitude).asDouble();
 		if (!latitudeFirst) {
 			position = geometryFactory.createPoint(new Coordinate(lon, lat));
 		} else {
@@ -78,8 +78,8 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
 	protected Val createRequestTemplate(String baseUrl, String path, String mediaType, String header,
 			String[] urlParameters, Long pollingInterval, Long repetitions) throws JsonProcessingException {
 
-		var template = new StringBuilder(String.format("{\"baseUrl\" : \"%s\", \"path\" : \"%s\", \"accept\" : \"%s\"",
-				baseUrl, path, mediaType));
+		final var template = new StringBuilder(String
+				.format("{\"baseUrl\" : \"%s\", \"path\" : \"%s\", \"accept\" : \"%s\"", baseUrl, path, mediaType));
 
 		appendHeader(template, header);
 		appendPollingInterval(template, pollingInterval);

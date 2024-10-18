@@ -38,102 +38,102 @@ import reactor.core.publisher.Flux;
 
 public final class OwnTracks extends TrackerConnectionBase {
 
-    protected static final String HTTP_BASIC_AUTH_USER = "httpUser";
-    private String                deviceId;
-    private String                authHeader;
-    private String                server;
-    private String                protocol;
+	protected static final String HTTP_BASIC_AUTH_USER = "httpUser";
+	private String deviceId;
+	private String authHeader;
+	private String server;
+	private String protocol;
 
-    /**
-     * @param auth a {@link JsonNode} containing the settings for authorization
-     * @param mapper a {@link ObjectMapper}
-     */
-    public OwnTracks(JsonNode auth, ObjectMapper mapper) {
+	/**
+	 * @param auth   a {@link JsonNode} containing the settings for authorization
+	 * @param mapper a {@link ObjectMapper}
+	 */
+	public OwnTracks(JsonNode auth, ObjectMapper mapper) {
 
-        this.mapper = mapper;
-        altitude    = "alt";
-        lastupdate  = "created_at";
-        accuracy    = "acc";
-        latitude    = "lat";
-        longitude   = "lon";
-        server      = getServer(auth);
-        protocol    = getProtocol(auth);
-        baseUrl     = protocol + "://" + server;
+		this.mapper = mapper;
+		altitude = "alt";
+		lastupdate = "created_at";
+		accuracy = "acc";
+		latitude = "lat";
+		longitude = "lon";
+		server = getServer(auth);
+		protocol = getProtocol(auth);
+		baseUrl = protocol + "://" + server;
 
-        var authUser = getHttpBasicAuthUser(auth);
-        var password = getPassword(auth);
-        if (authUser != null && password != null) {
-            var valueToEncode   = String.format("%s:%s", authUser, password);
-            var basicAuthHeader = "Basic "
-                    + Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
-            authHeader = String.format("\"Authorization\": \"%s\"", basicAuthHeader);
-        }
+		final var authUser = getHttpBasicAuthUser(auth);
+		final var password = getPassword(auth);
+		if (authUser != null && password != null) {
+			final var valueToEncode = String.format("%s:%s", authUser, password);
+			final var basicAuthHeader = "Basic "
+					+ Base64.getEncoder().encodeToString(valueToEncode.getBytes(StandardCharsets.UTF_8));
+			authHeader = String.format("\"Authorization\": \"%s\"", basicAuthHeader);
+		}
 
-    }
+	}
 
-    /**
-     * @param settings a {@link JsonNode} containing the settings
-     * @throws JsonProcessingException
-     */
-    public Flux<Val> getPositionWithInregions(JsonNode settings) throws JsonProcessingException {
-        deviceId = getDeviceId(settings);
-        return getOwnTracksResponse(getResponseFormat(settings, mapper), getUser(settings),
-                getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of);
-    }
+	/**
+	 * @param settings a {@link JsonNode} containing the settings
+	 * @throws JsonProcessingException
+	 */
+	public Flux<Val> getPositionWithInregions(JsonNode settings) throws JsonProcessingException {
+		deviceId = getDeviceId(settings);
+		return getOwnTracksResponse(getResponseFormat(settings, mapper), getUser(settings),
+				getPollingInterval(settings), getRepetitions(settings), getLatitudeFirst(settings)).map(Val::of);
+	}
 
-    private Flux<ObjectNode> getOwnTracksResponse(GeoPipResponseFormat format, String user, Long pollingInterval,
-            Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
+	private Flux<ObjectNode> getOwnTracksResponse(GeoPipResponseFormat format, String user, Long pollingInterval,
+			Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
 
-        var      webClient      = new ReactiveWebClient(mapper);
-        var      baseUrl        = protocol + "://" + server;
-        var      urlParamUser   = String.format("\"user\": \"%s\"", user);
-        var      urlParamDevice = String.format("\"device\": \"%s\"", deviceId);
-        var requestTemplate = createRequestTemplate(baseUrl, "api/0/last", MediaType.APPLICATION_JSON_VALUE,
-        		authHeader, new String[] { urlParamUser, urlParamDevice }, pollingInterval, repetitions);
+		final var webClient = new ReactiveWebClient(mapper);
+		final var baseUrl = protocol + "://" + server;
+		final var urlParamUser = String.format("\"user\": \"%s\"", user);
+		final var urlParamDevice = String.format("\"device\": \"%s\"", deviceId);
+		final var requestTemplate = createRequestTemplate(baseUrl, "api/0/last", MediaType.APPLICATION_JSON_VALUE,
+				authHeader, new String[] { urlParamUser, urlParamDevice }, pollingInterval, repetitions);
 
-        return webClient.httpRequest(HttpMethod.GET, requestTemplate).flatMap(v -> {
-            try {
-                var response = mapResponse(v.get(), format, mapper, latitudeFirst);
-                return Flux.just(mapper.convertValue(response, ObjectNode.class));
-            } catch (JsonProcessingException e) {
-                throw new PolicyEvaluationException(e);
-            }
-        });
-    }
+		return webClient.httpRequest(HttpMethod.GET, requestTemplate).flatMap(v -> {
+			try {
+				final var response = mapResponse(v.get(), format, mapper, latitudeFirst);
+				return Flux.just(mapper.convertValue(response, ObjectNode.class));
+			} catch (JsonProcessingException e) {
+				throw new PolicyEvaluationException(e);
+			}
+		});
+	}
 
-    private GeoPipResponse mapResponse(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
-            boolean latitudeFirst) throws JsonProcessingException {
+	private GeoPipResponse mapResponse(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
+			boolean latitudeFirst) throws JsonProcessingException {
 
-        var response = mapPosition(deviceId, in.get(0), format, latitudeFirst);
-        var res      = in.findValue("inregions");
-        response.setGeoFences(mapOwnTracksInRegions(res, mapper));
-        return response;
-    }
+		final var response = mapPosition(deviceId, in.get(0), format, latitudeFirst);
+		final var res = in.findValue("inregions");
+		response.setGeoFences(mapOwnTracksInRegions(res, mapper));
+		return response;
+	}
 
-    private List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws JsonProcessingException {
+	private List<Geofence> mapOwnTracksInRegions(JsonNode in, ObjectMapper mapper) throws JsonProcessingException {
 
-        List<Geofence> fenceRes = new ArrayList<>();
-        var            fences   = mapper.readTree(in.toString());
-        for (var geoFence : fences) {
-            fenceRes.add(Geofence.builder().name(geoFence.asText()).build());
-        }
-        return fenceRes;
-    }
+		List<Geofence> fenceRes = new ArrayList<>();
+		final var fences = mapper.readTree(in.toString());
+		for (final var geoFence : fences) {
+			fenceRes.add(Geofence.builder().name(geoFence.asText()).build());
+		}
+		return fenceRes;
+	}
 
-    private String getHttpBasicAuthUser(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(HTTP_BASIC_AUTH_USER)) {
-            return requestSettings.findValue(HTTP_BASIC_AUTH_USER).asText();
-        } else {
-            return null;
-        }
-    }
+	private String getHttpBasicAuthUser(JsonNode requestSettings) throws PolicyEvaluationException {
+		if (requestSettings.has(HTTP_BASIC_AUTH_USER)) {
+			return requestSettings.findValue(HTTP_BASIC_AUTH_USER).asText();
+		} else {
+			return null;
+		}
+	}
 
-    @Override
-    protected String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
-        if (requestSettings.has(PASSWORD_CONST)) {
-            return requestSettings.findValue(PASSWORD_CONST).asText();
-        } else {
-            return null;
-        }
-    }
+	@Override
+	protected String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
+		if (requestSettings.has(PASSWORD_CONST)) {
+			return requestSettings.findValue(PASSWORD_CONST).asText();
+		} else {
+			return null;
+		}
+	}
 }

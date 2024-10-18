@@ -38,85 +38,85 @@ import io.sapl.geo.common.TestBase;
 @TestInstance(Lifecycle.PER_CLASS)
 class JsonConverterTest extends TestBase {
 
-    @BeforeAll
-    void setup() {
-        point   = Val.of(source.getJsonSource().get("Point").toPrettyString());
-        polygon = Val.of(source.getJsonSource().get("Polygon").toPrettyString());
+	@BeforeAll
+	void setup() {
+		point = Val.of(source.getJsonSource().get("Point").toPrettyString());
+		polygon = Val.of(source.getJsonSource().get("Polygon").toPrettyString());
 
-    }
+	}
 
-    @Test
-    void geoJsonToKmlTest() throws TransformerException, ParseException {
+	@Test
+	void geoJsonToKmlTest() throws TransformerException, ParseException {
 
-        var result  = geoConverter.geoJsonToKml(point);
-        var result1 = geoConverter.geoJsonToKml(polygon);
-        var point   = source.getXmlSource().getElementsByTagName("Point").item(0);
-        var polygon = source.getXmlSource().getElementsByTagName("Polygon").item(0);
+		final var result = geoConverter.geoJsonToKml(point);
+		final var result1 = geoConverter.geoJsonToKml(polygon);
+		final var point = source.getXmlSource().getElementsByTagName("Point").item(0);
+		final var polygon = source.getXmlSource().getElementsByTagName("Polygon").item(0);
 
-        var stringWriter = new StringWriter();
-        source.getTransform().transform(new DOMSource(point), new StreamResult(stringWriter));
-        var expPoint = stringWriter.toString();
-        stringWriter.getBuffer().setLength(0);// clean buffer
-        source.getTransform().transform(new DOMSource(polygon), new StreamResult(stringWriter));
-        var expPolygon = stringWriter.toString();
+		final var stringWriter = new StringWriter();
+		source.getTransform().transform(new DOMSource(point), new StreamResult(stringWriter));
+		final var expPoint = stringWriter.toString();
+		stringWriter.getBuffer().setLength(0);// clean buffer
+		source.getTransform().transform(new DOMSource(polygon), new StreamResult(stringWriter));
+		final var expPolygon = stringWriter.toString();
 
-        assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
-        assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
-    }
+		assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
+		assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
+	}
 
-    @Test
-    void geoJsonToGeometryTest() throws ParseException {
+	@Test
+	void geoJsonToGeometryTest() throws ParseException {
 
-        var result     = (Point) JsonConverter.geoJsonToGeometry(point);
-        var result1    = (Polygon) JsonConverter.geoJsonToGeometry(polygon);
-        var expPoint   = source.getPoint();
-        var expPolygon = source.getPolygon();
+		final var result = (Point) JsonConverter.geoJsonToGeometry(point);
+		final var result1 = (Polygon) JsonConverter.geoJsonToGeometry(polygon);
+		final var expPoint = source.getPoint();
+		final var expPolygon = source.getPolygon();
 
-        assertEquals(expPoint, result);
-        assertEquals(expPolygon, result1);
-    }
+		assertEquals(expPoint, result);
+		assertEquals(expPolygon, result1);
+	}
 
-    @Test
-    void geoJsonToGeometryFactoryTest() throws ParseException {
+	@Test
+	void geoJsonToGeometryFactoryTest() throws ParseException {
 
-        var factory    = new GeometryFactory(new PrecisionModel(), 4326);
-        var result     = (Point) JsonConverter.geoJsonToGeometry(point, factory);
-        var result1    = (Polygon) JsonConverter.geoJsonToGeometry(polygon, factory);
-        var expPoint   = source.getPoint();
-        var expPolygon = source.getPolygon();
+		final var factory = new GeometryFactory(new PrecisionModel(), 4326);
+		final var result = (Point) JsonConverter.geoJsonToGeometry(point, factory);
+		final var result1 = (Polygon) JsonConverter.geoJsonToGeometry(polygon, factory);
+		final var expPoint = source.getPoint();
+		final var expPolygon = source.getPolygon();
 
-        assertEquals(expPoint, result);
-        assertEquals(expPolygon, result1);
-    }
+		assertEquals(expPoint, result);
+		assertEquals(expPolygon, result1);
+	}
 
-    @Test
-    void geoJsonToGMLTest() throws TransformerException, ParseException {
+	@Test
+	void geoJsonToGMLTest() throws TransformerException, ParseException {
 
-        var result  = geoConverter.geoJsonToGml(point);
-        var result1 = geoConverter.geoJsonToGml(polygon);
-        var point   = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
-        var polygon = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
+		final var result = geoConverter.geoJsonToGml(point);
+		final var result1 = geoConverter.geoJsonToGml(polygon);
+		final var point = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
+		final var polygon = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
 
-        var stringWriter = new StringWriter();
-        source.getTransform().transform(new DOMSource(point), new StreamResult(stringWriter));
-        var expPoint = stringWriter.toString();
-        stringWriter.getBuffer().setLength(0);// clean buffer
-        source.getTransform().transform(new DOMSource(polygon), new StreamResult(stringWriter));
-        var expPolygon = stringWriter.toString();
+		final var stringWriter = new StringWriter();
+		source.getTransform().transform(new DOMSource(point), new StreamResult(stringWriter));
+		final var expPoint = stringWriter.toString();
+		stringWriter.getBuffer().setLength(0);// clean buffer
+		source.getTransform().transform(new DOMSource(polygon), new StreamResult(stringWriter));
+		final var expPolygon = stringWriter.toString();
 
-        assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
-        assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
-    }
+		assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
+		assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
+	}
 
-    @Test
-    void geoJsonToWktTest() throws ParseException {
+	@Test
+	void geoJsonToWktTest() throws ParseException {
 
-        var result     = geoConverter.geoJsonToWkt(point);
-        var result1    = geoConverter.geoJsonToWkt(polygon);
-        var expPoint   = source.getJsonSource().get("WktPoint").asText();
-        var expPolygon = source.getJsonSource().get("WktPolygon").asText();
+		final var result = geoConverter.geoJsonToWkt(point);
+		final var result1 = geoConverter.geoJsonToWkt(polygon);
+		final var expPoint = source.getJsonSource().get("WktPoint").asText();
+		final var expPolygon = source.getJsonSource().get("WktPolygon").asText();
 
-        assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
-        assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
-    }
+		assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
+		assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
+	}
 }

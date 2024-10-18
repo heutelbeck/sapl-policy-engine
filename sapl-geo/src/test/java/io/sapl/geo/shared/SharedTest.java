@@ -33,153 +33,153 @@ import io.sapl.geo.pip.GeoPipResponseFormat;
 @TestInstance(Lifecycle.PER_CLASS)
 class SharedTest {
 
-    private ConnectionBaseTestClass        connectionBaseTestClass;
-    private TrackerConnectionBaseTestClass trackerConnectionBaseTestClass;
-    private ObjectMapper                   mapper;
+	private ConnectionBaseTestClass connectionBaseTestClass;
+	private TrackerConnectionBaseTestClass trackerConnectionBaseTestClass;
+	private ObjectMapper mapper;
 
-    @BeforeAll
-    void setup() {
+	@BeforeAll
+	void setup() {
 
-        connectionBaseTestClass        = new ConnectionBaseTestClass();
-        trackerConnectionBaseTestClass = new TrackerConnectionBaseTestClass();
-        mapper                         = new ObjectMapper();
-    }
+		connectionBaseTestClass = new ConnectionBaseTestClass();
+		trackerConnectionBaseTestClass = new TrackerConnectionBaseTestClass();
+		mapper = new ObjectMapper();
+	}
 
-    @Test
-    void getUserTest() throws JsonProcessingException {
+	@Test
+	void getUserTest() throws JsonProcessingException {
 
-        var requestSettings = """
-                {
-                            "user":"test"
-                }
-                """;
-        var missing         = """
-                {
-                            "noUser":"test"
-                }
-                """;
+		final var requestSettings = """
+				{
+				            "user":"test"
+				}
+				""";
+		final var missing = """
+				{
+				            "noUser":"test"
+				}
+				""";
 
-        var request      = mapper.readTree(requestSettings);
-        var errorRequest = mapper.readTree(missing);
-        var response     = connectionBaseTestClass.getUser(request);
+		final var request = mapper.readTree(requestSettings);
+		final var errorRequest = mapper.readTree(missing);
+		final var response = connectionBaseTestClass.getUser(request);
 
-        assertEquals("test", response);
-        assertThrows(PolicyEvaluationException.class, () -> connectionBaseTestClass.getUser(errorRequest));
-    }
+		assertEquals("test", response);
+		assertThrows(PolicyEvaluationException.class, () -> connectionBaseTestClass.getUser(errorRequest));
+	}
 
-    @Test
-    void getPasswordTest() throws JsonProcessingException {
+	@Test
+	void getPasswordTest() throws JsonProcessingException {
 
-        var requestSettings = """
-                {
-                            "password":"test"
-                }
-                """;
-        var missing         = """
-                {
-                            "noPassword":"test"
-                }
-                """;
+		final var requestSettings = """
+				{
+				            "password":"test"
+				}
+				""";
+		final var missing = """
+				{
+				            "noPassword":"test"
+				}
+				""";
 
-        var request      = mapper.readTree(requestSettings);
-        var errorRequest = mapper.readTree(missing);
-        var response     = connectionBaseTestClass.getPassword(request);
+		final var request = mapper.readTree(requestSettings);
+		final var errorRequest = mapper.readTree(missing);
+		final var response = connectionBaseTestClass.getPassword(request);
 
-        assertEquals("test", response);
-        assertThrows(PolicyEvaluationException.class, () -> connectionBaseTestClass.getPassword(errorRequest));
-    }
+		assertEquals("test", response);
+		assertThrows(PolicyEvaluationException.class, () -> connectionBaseTestClass.getPassword(errorRequest));
+	}
 
-    @Test
-    void getServerTest() throws JsonProcessingException {
+	@Test
+	void getServerTest() throws JsonProcessingException {
 
-        var requestSettings = """
-                {
-                            "server":"test"
-                }
-                """;
-        var missing         = """
-                {
-                            "noServer":"test"
-                }
-                """;
+		final var requestSettings = """
+				{
+				            "server":"test"
+				}
+				""";
+		final var missing = """
+				{
+				            "noServer":"test"
+				}
+				""";
 
-        var request      = mapper.readTree(requestSettings);
-        var errorRequest = mapper.readTree(missing);
-        var response     = connectionBaseTestClass.getServer(request);
+		final var request = mapper.readTree(requestSettings);
+		final var errorRequest = mapper.readTree(missing);
+		final var response = connectionBaseTestClass.getServer(request);
 
-        assertEquals("test", response);
-        assertThrows(PolicyEvaluationException.class, () -> connectionBaseTestClass.getServer(errorRequest));
-    }
+		assertEquals("test", response);
+		assertThrows(PolicyEvaluationException.class, () -> connectionBaseTestClass.getServer(errorRequest));
+	}
 
-    @Test
-    void getResponseFormatTest() throws JsonProcessingException {
+	@Test
+	void getResponseFormatTest() throws JsonProcessingException {
 
-        var requestSettings = """
-                {
-                            "responseFormat":"WKT"
-                }
-                """;
-        var deflt           = """
-                {
-                            "noResponseFormat":"test"
-                }
-                """;
+		final var requestSettings = """
+				{
+				            "responseFormat":"WKT"
+				}
+				""";
+		final var deflt = """
+				{
+				            "noResponseFormat":"test"
+				}
+				""";
 
-        var request         = mapper.readTree(requestSettings);
-        var defaultRequest  = mapper.readTree(deflt);
-        var response        = connectionBaseTestClass.getResponseFormat(request, mapper);
-        var defaultResponse = connectionBaseTestClass.getResponseFormat(defaultRequest, mapper);
-        assertEquals(GeoPipResponseFormat.WKT, response);
-        assertEquals(GeoPipResponseFormat.GEOJSON, defaultResponse);
-    }
+		final var request = mapper.readTree(requestSettings);
+		final var defaultRequest = mapper.readTree(deflt);
+		final var response = connectionBaseTestClass.getResponseFormat(request, mapper);
+		final var defaultResponse = connectionBaseTestClass.getResponseFormat(defaultRequest, mapper);
+		assertEquals(GeoPipResponseFormat.WKT, response);
+		assertEquals(GeoPipResponseFormat.GEOJSON, defaultResponse);
+	}
 
-    @Test
-    void getLatitudeFirstTest() throws JsonProcessingException {
+	@Test
+	void getLatitudeFirstTest() throws JsonProcessingException {
 
-        var requestSettings = """
-                {
-                            "latitudeFirst":"false"
-                }
-                """;
-        var deflt           = """
-                {
-                            "noLatitudeFirst":"test"
-                }
-                """;
+		final var requestSettings = """
+				{
+				            "latitudeFirst":"false"
+				}
+				""";
+		final var deflt = """
+				{
+				            "noLatitudeFirst":"test"
+				}
+				""";
 
-        var request         = mapper.readTree(requestSettings);
-        var defaultRequest  = mapper.readTree(deflt);
-        var response        = connectionBaseTestClass.getLatitudeFirst(request);
-        var defaultResponse = connectionBaseTestClass.getLatitudeFirst(defaultRequest);
-        assertFalse(response);
-        assertTrue(defaultResponse);
+		final var request = mapper.readTree(requestSettings);
+		final var defaultRequest = mapper.readTree(deflt);
+		final var response = connectionBaseTestClass.getLatitudeFirst(request);
+		final var defaultResponse = connectionBaseTestClass.getLatitudeFirst(defaultRequest);
+		assertFalse(response);
+		assertTrue(defaultResponse);
 
-    }
+	}
 
-    @Test
-    void getDeviceIdTest() throws JsonProcessingException {
+	@Test
+	void getDeviceIdTest() throws JsonProcessingException {
 
-        var requestSettings = """
-                {
-                            "deviceId":"test"
-                }
-                """;
-        var missing         = """
-                {
-                            "noDeviceId":"test"
-                }
-                """;
+		final var requestSettings = """
+				{
+				            "deviceId":"test"
+				}
+				""";
+		final var missing = """
+				{
+				            "noDeviceId":"test"
+				}
+				""";
 
-        var request      = mapper.readTree(requestSettings);
-        var errorRequest = mapper.readTree(missing);
-        var response     = trackerConnectionBaseTestClass.getDeviceId(request);
-        assertEquals("test", response);
-        assertThrows(PolicyEvaluationException.class, () -> trackerConnectionBaseTestClass.getDeviceId(errorRequest));
-    }
+		final var request = mapper.readTree(requestSettings);
+		final var errorRequest = mapper.readTree(missing);
+		final var response = trackerConnectionBaseTestClass.getDeviceId(request);
+		assertEquals("test", response);
+		assertThrows(PolicyEvaluationException.class, () -> trackerConnectionBaseTestClass.getDeviceId(errorRequest));
+	}
 
-    static class ConnectionBaseTestClass extends ConnectionBase {
-    }
+	static class ConnectionBaseTestClass extends ConnectionBase {
+	}
 
-    static class TrackerConnectionBaseTestClass extends TrackerConnectionBase {
-    }
+	static class TrackerConnectionBaseTestClass extends TrackerConnectionBase {
+	}
 }
