@@ -33,11 +33,14 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.r2dbc.spi.ConnectionFactory;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.MySqlTestBase;
 import io.sapl.geo.databases.DataBaseTypes;
 import io.sapl.geo.databases.DatabaseStreamQuery;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @Testcontainers
@@ -80,8 +83,36 @@ class MySqlTestsIT extends MySqlTestBase {
 
 	}
 
+	@ParameterizedTest
+	@Execution(ExecutionMode.CONCURRENT)
+	@CsvSource({ "WKT,ExpectedPointWKT2", "GEOJSON,ExpectedPointGeoJson2", "GML,ExpectedPointGML2",
+			"KML,ExpectedPointKML2" })
+	void Test03MySqlConnectionSingleResultSrcLatitudeFirst(String responseFormat, String expectedJsonKey)
+			throws JsonProcessingException {
+
+		insertMySqlPointInGeometries(connectionFactory);
+		var templatePoint2 = """
+				    ,
+				    "table":"geometries",
+				    "geoColumn":"geom",
+					"singleResult": true,
+					"columns": ["name","text"],
+					"where": "name = 'point2'",
+					"srcLatitudeFirst": true
+					}
+				"""; // mysql delivers lat/lon if srid == 0
+		var templatePoint3 = template.concat(templatePoint2);
+		var queryString = String.format(templatePoint3, responseFormat);
+		var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+		var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
+				DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+				.map(JsonNode::toPrettyString);
+		StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
+
+	}
+
 	@Test
-	void Test03ErrorNonexistantTable() throws JsonProcessingException {
+	void Test04ErrorNonexistantTable() throws JsonProcessingException {
 
 		var errorTemplate = template.concat("""
 				    ,
@@ -99,7 +130,7 @@ class MySqlTestsIT extends MySqlTestBase {
 	}
 
 	@Test
-	void Test04ErrorInvalidTemplate() throws JsonProcessingException {
+	void Test05ErrorInvalidTemplate() throws JsonProcessingException {
 
 		var queryString = "{\"invalid\":\"Template\"}";
 		var mysql = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(), DataBaseTypes.MYSQL);
@@ -108,5 +139,14 @@ class MySqlTestsIT extends MySqlTestBase {
 			mysql.sendQuery(query);
 		});
 		assertEquals("No geoColumn-name found", exception.getMessage());
+	}
+
+	private void insertMySqlPointInGeometries(ConnectionFactory connectionFactory) {
+
+		Mono.from(connectionFactory.create()).flatMap(connection -> {
+			String insertQuery = "INSERT INTO geometries VALUES (3, ST_GeomFromText('POINT(1 0)', 4326), 'point2', 'text point2');";
+			// insert is (lon lat)
+			return Mono.from(connection.createStatement(insertQuery).execute());
+		}).block();
 	}
 }

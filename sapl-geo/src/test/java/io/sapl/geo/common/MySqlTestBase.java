@@ -23,26 +23,28 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.DockerImageName;
 import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
 import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
+import io.r2dbc.spi.ConnectionFactory;
 
 public abstract class MySqlTestBase extends DatabaseTestBase {
 
-    @Container
-    protected static final MySQLContainer<?> mySqlContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.2.0")) // 8.3.0
-                                                                                                                         // isbuggy
-            .withUsername("test").withPassword("test").withDatabaseName("test");
+	@Container
+	protected static final MySQLContainer<?> mySqlContainer = new MySQLContainer<>(DockerImageName.parse("mysql:8.2.0")) 
+			.withUsername("test").withPassword("test").withDatabaseName("test");
+	// 8.3.0 isbuggy
+	
+	protected ConnectionFactory connectionFactory;
 
-    protected void commonSetUp() {
-        authTemplate  = String.format(authenticationTemplate, mySqlContainer.getUsername(),
-                mySqlContainer.getPassword(), mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306),
-                mySqlContainer.getDatabaseName());
-        templateAll   = template.concat(templateAll1);
-        templatePoint = template.concat(templatePoint1);
-        var connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
-                .username(mySqlContainer.getUsername()).password(mySqlContainer.getPassword())
-                .host(mySqlContainer.getHost()).port(mySqlContainer.getMappedPort(3306))
-                .database(mySqlContainer.getDatabaseName()).serverZoneId(ZoneId.of("UTC")).build());
+	protected void commonSetUp() {
+		authTemplate = String.format(authenticationTemplate, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
+				mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
+		templateAll = template.concat(templateAll1);
+		templatePoint = template.concat(templatePoint1);
+		connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
+				.username(mySqlContainer.getUsername()).password(mySqlContainer.getPassword())
+				.host(mySqlContainer.getHost()).port(mySqlContainer.getMappedPort(3306))
+				.database(mySqlContainer.getDatabaseName()).serverZoneId(ZoneId.of("UTC")).build());
 
-        createTable(connectionFactory);
-        insert(connectionFactory);
-    }
+		createGeometryTable(connectionFactory);
+		insertGeometries(connectionFactory);
+	}
 }

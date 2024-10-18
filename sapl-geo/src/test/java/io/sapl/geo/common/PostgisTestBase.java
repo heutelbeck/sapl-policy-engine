@@ -25,22 +25,25 @@ import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 
 public abstract class PostgisTestBase extends DatabaseTestBase {
 
-    @Container
-    protected static final PostgreSQLContainer<?> postgisContainer = new PostgreSQLContainer<>(
-            DockerImageName.parse("postgis/postgis:16-3.4-alpine").asCompatibleSubstituteFor("postgres"))
-            .withUsername("test").withPassword("test").withDatabaseName("test");
+	@Container
+	protected static final PostgreSQLContainer<?> postgisContainer = new PostgreSQLContainer<>(
+			DockerImageName.parse("postgis/postgis:16-3.4-alpine").asCompatibleSubstituteFor("postgres"))
+			.withUsername("test").withPassword("test").withDatabaseName("test");
 
-    protected void commonSetUp() {
-        authTemplate  = String.format(authenticationTemplate, postgisContainer.getUsername(),
-                postgisContainer.getPassword(), postgisContainer.getHost(), postgisContainer.getMappedPort(5432),
-                postgisContainer.getDatabaseName());
-        templateAll   = template.concat(templateAll1);
-        templatePoint = template.concat(templatePoint1);
-        var connectionFactory = new PostgresqlConnectionFactory(
-                PostgresqlConnectionConfiguration.builder().host(postgisContainer.getHost())
-                        .port(postgisContainer.getMappedPort(5432)).database(postgisContainer.getDatabaseName())
-                        .username(postgisContainer.getUsername()).password(postgisContainer.getPassword()).build());
-        createTable(connectionFactory);
-        insert(connectionFactory);
-    }
+	protected void commonSetUp() {
+		authTemplate = String.format(authenticationTemplate, postgisContainer.getUsername(),
+				postgisContainer.getPassword(), postgisContainer.getHost(), postgisContainer.getMappedPort(5432),
+				postgisContainer.getDatabaseName());
+		templateAll = template.concat(templateAll1);
+		templatePoint = template.concat(templatePoint1);
+		var connectionFactory = new PostgresqlConnectionFactory(
+				PostgresqlConnectionConfiguration.builder().host(postgisContainer.getHost())
+						.port(postgisContainer.getMappedPort(5432)).database(postgisContainer.getDatabaseName())
+						.username(postgisContainer.getUsername()).password(postgisContainer.getPassword()).build());
+
+		createGeometryTable(connectionFactory);
+		createGeographyTable(connectionFactory);
+		insertGeometries(connectionFactory);
+		insertGeographies(connectionFactory);
+	}
 }

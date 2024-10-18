@@ -58,9 +58,11 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 	private static final String WHERE = "where";
 	private static final String DEFAULTCRS = "defaultCRS";
 	private static final String SINGLE_RESULT = "singleResult";
+	private static final String SRC_LATITUDE_FIRST = "srcLatitudeFirst";
 	private static final String EPSG = "EPSG:";
 	private static final String PORT = "port";
 	private String[] selectColumns;
+	private boolean singleResult;
 	private DataBaseTypes dataBaseType;
 	private ConnectionFactory connectionFactory;
 	private JsonNode auth;
@@ -89,33 +91,33 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		}
 
 		selectColumns = getColumns(settings, mapper);
+		singleResult = getSingleResult(settings);
 		return createConnection(getResponseFormat(settings, mapper),
 				buildSql(getGeoColumn(settings), selectColumns, getTable(settings), getWhere(settings)),
-				getSingleResult(settings), getDefaultCRS(settings),
-				longOrDefault(settings, REPEAT_TIMES_CONST, DEFAULT_REPETITIONS_CONST),
+				getDefaultCRS(settings), longOrDefault(settings, REPEAT_TIMES_CONST, DEFAULT_REPETITIONS_CONST),
 				longOrDefault(settings, POLLING_INTERVAL_CONST, DEFAULT_POLLING_INTERVALL_MS_CONST),
-				getLatitudeFirst(settings)).map(Val::of).onErrorResume(e -> Flux.just(Val.error(e.getMessage())));
-
+				getSourceLatitudeFirst(settings), getLatitudeFirst(settings)).map(Val::of)
+				.onErrorResume(e -> Flux.just(Val.error(e.getMessage())));
 	}
 
-	private Flux<JsonNode> createConnection(GeoPipResponseFormat format, String sql, boolean singleResult,
-			int defaultCrs, long repeatTimes, long pollingInterval, boolean latitudeFirst) {
-
+	private Flux<JsonNode> createConnection(GeoPipResponseFormat format, String sql, int defaultCrs, long repeatTimes,
+			long pollingInterval, boolean srcLatitudeFirst, boolean latitudeFirst) {
 		if (singleResult) {
-			sql = sql.concat(" LIMIT 1");
-			return poll(getResults(sql, format, defaultCrs, latitudeFirst).next(), repeatTimes, pollingInterval);
-		} else {
-			return poll(collectMultipleResults(getResults(sql, format, defaultCrs, latitudeFirst)), repeatTimes,
+			return poll(getResults(sql, format, defaultCrs, srcLatitudeFirst, latitudeFirst).next(), repeatTimes,
 					pollingInterval);
+		} else {
+			return poll(collectMultipleResults(getResults(sql, format, defaultCrs, srcLatitudeFirst, latitudeFirst)),
+					repeatTimes, pollingInterval);
 		}
 	}
 
-	private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst) {
+	private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format, int defaultCrs, boolean srcLatitudeFirst,
+			boolean latitudeFirst) {
 
 		return Flux.usingWhen(connectionFactory.create(), conn -> Flux.from(conn.createStatement(sql).execute())
 				.flatMap(result -> result.map((row, rowMetadata) -> {
 					try {
-						return mapResult(row, format, defaultCrs, latitudeFirst);
+						return mapResult(row, format, defaultCrs, srcLatitudeFirst, latitudeFirst);
 					} catch (MismatchedDimensionException | JsonProcessingException | ParseException | FactoryException
 							| TransformException e) {
 						throw new PolicyEvaluationException(e);
@@ -123,19 +125,18 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 				})), Connection::close);
 	}
 
-	private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean latitudeFirst)
-			throws MismatchedDimensionException, JsonProcessingException, ParseException, FactoryException,
-			TransformException {
+	private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean srcLatitudeFirst,
+			boolean latitudeFirst) throws MismatchedDimensionException, JsonProcessingException, ParseException,
+			FactoryException, TransformException {
 
 		var resultNode = mapper.createObjectNode();
 		JsonNode geoNode;
 		var resValue = row.get("res", String.class);
 		var srid = row.get("srid", Integer.class);
-		if (srid != null) {
-			geoNode = convertResponse(resValue, format, srid, latitudeFirst);
-		} else {
-			geoNode = convertResponse(resValue, format, defaultCrs, latitudeFirst);
+		if (srid == null || srid == 0) {
+			srid = defaultCrs;
 		}
+		geoNode = convertResponse(resValue, format, srid, srcLatitudeFirst, latitudeFirst);
 		resultNode.put("srid", srid);
 		resultNode.set("geo", geoNode);
 		for (String column : selectColumns) {
@@ -144,21 +145,16 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		return resultNode;
 	}
 
-	private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean latitudeFirst)
-			throws ParseException, FactoryException, MismatchedDimensionException, TransformException,
-			JsonProcessingException {
+	private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean srcLatitudeFirst,
+			boolean latitudeFirst) throws ParseException, FactoryException, MismatchedDimensionException,
+			TransformException, JsonProcessingException {
 
 		var res = (JsonNode) mapper.createObjectNode();
 		var crs = EPSG + srid;
 
 		var geo = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
-		if (dataBaseType == DataBaseTypes.MYSQL && !latitudeFirst) {
-			var geoProjector = new GeoProjector(crs, false, crs, true);
-			geo = geoProjector.project(geo);
-		} else if (dataBaseType == DataBaseTypes.POSTGIS && latitudeFirst) {
-			var geoProjector = new GeoProjector(crs, true, crs, false);
-			geo = geoProjector.project(geo);
-		}
+		var geoProjector = new GeoProjector(crs, !srcLatitudeFirst, crs, !latitudeFirst);
+		geo = geoProjector.project(geo);
 
 		switch (format) {
 		case GEOJSON:
@@ -217,6 +213,9 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 		}
 		var clms = builder.toString();
 		var str = "SELECT %s(%s) AS res, ST_SRID(%s) AS srid%s FROM %s %s";
+		if (singleResult) {
+			str = str.concat(" LIMIT 1");
+		}
 		return String.format(str, frmt, geoColumn, geoColumn, clms, table, where);
 	}
 
@@ -275,6 +274,14 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 	private boolean getSingleResult(JsonNode requestSettings) {
 		if (requestSettings.has(SINGLE_RESULT)) {
 			return requestSettings.findValue(SINGLE_RESULT).asBoolean();
+		} else {
+			return false;
+		}
+	}
+
+	private boolean getSourceLatitudeFirst(JsonNode requestSettings) {
+		if (requestSettings.has(SRC_LATITUDE_FIRST)) {
+			return requestSettings.findValue(SRC_LATITUDE_FIRST).asBoolean();
 		} else {
 			return false;
 		}

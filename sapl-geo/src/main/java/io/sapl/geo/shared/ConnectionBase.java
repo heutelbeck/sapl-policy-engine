@@ -68,7 +68,7 @@ public abstract class ConnectionBase {
             return GeoPipResponseFormat.GEOJSON;
         }
     }
-
+    
     protected boolean getLatitudeFirst(JsonNode requestSettings) {
         if (requestSettings.has(LATITUDE_FIRST_CONST)) {
             return requestSettings.findValue(LATITUDE_FIRST_CONST).asBoolean();
