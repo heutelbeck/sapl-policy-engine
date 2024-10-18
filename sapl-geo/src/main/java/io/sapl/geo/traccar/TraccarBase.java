@@ -40,7 +40,8 @@ abstract class TraccarBase extends TrackerConnectionBase {
 	protected String password;
 	protected String server;
 	protected String protocol;
-
+	protected static final String COOKIE_HEADER_CONST = "\"cookie\" : \"%s\"";
+	
 	protected Mono<String> establishSession(String user, String password, String serverName, String protocol)
 			throws URISyntaxException {
 

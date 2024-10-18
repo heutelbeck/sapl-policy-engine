@@ -87,7 +87,7 @@ public final class TraccarGeofences extends TraccarBase {
 			Long repetitions, boolean latitudeFirst) throws JsonProcessingException {
 
 		final var webClient = new ReactiveWebClient(mapper);
-		final var header = String.format("\"cookie\" : \"%s\"", sessionCookie);
+		final var header = String.format(COOKIE_HEADER_CONST, sessionCookie);
 		String[] urlParamArray = null;
 		if (deviceId != null) {
 			final var urlParams = String.format("\"deviceId\": \"%s\"", deviceId);

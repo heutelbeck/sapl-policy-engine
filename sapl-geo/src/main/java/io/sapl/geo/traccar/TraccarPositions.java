@@ -62,10 +62,11 @@ public final class TraccarPositions extends TraccarBase {
 	 */
 	public Flux<Val> getPositions(JsonNode settings) throws URISyntaxException {
 
-		final var url = (String.format("ws://%s/api/socket", server));
+//		final var url = (String.format("ws://%s/api/socket", server));
+		final var baseUrl = (String.format("ws://%s", server));
 		return establishSession(user, password, server, protocol).flatMapMany(cookie -> {
 			try {
-				return getTraccarResponse(url, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
+				return getTraccarResponse(baseUrl, cookie, getResponseFormat(settings, mapper), getDeviceId(settings),
 						getLatitudeFirst(settings)).map(Val::of).doFinally(s -> disconnect());
 			} catch (JsonProcessingException e) {
 				return Flux.error(e);
@@ -77,10 +78,12 @@ public final class TraccarPositions extends TraccarBase {
 			boolean latitudeFirst) throws JsonProcessingException {
 
 		final var webClient = new ReactiveWebClient(mapper);
-		final var requestTemplate = "{ \"baseUrl\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\": \"%s\" } }";
-		final var request = Val.ofJson(String.format(requestTemplate, url, MediaType.APPLICATION_JSON_VALUE, cookie));
-
-		return webClient.consumeWebSocket(request).flatMap(v -> {
+//		final var requestTemplate = "{ \"baseUrl\" : \"%s\", \"accept\" : \"%s\", \"headers\" : { \"cookie\": \"%s\" } }";
+//		final var request = Val.ofJson(String.format(requestTemplate, url, MediaType.APPLICATION_JSON_VALUE, cookie));
+		final var header = String.format(COOKIE_HEADER_CONST, cookie);
+		final var requestTemplate = createRequestTemplate(url, "/api/socket", MediaType.APPLICATION_JSON_VALUE,
+				header, null, null, null);
+		return webClient.consumeWebSocket(requestTemplate).flatMap(v -> {
 			try {
 				final var response = getPosition(v.get(), format, latitudeFirst, deviceId);
 				return Mono.justOrEmpty(response).map(r -> mapper.convertValue(r, ObjectNode.class));
