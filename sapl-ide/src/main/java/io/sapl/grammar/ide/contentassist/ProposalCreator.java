@@ -19,6 +19,7 @@ package io.sapl.grammar.ide.contentassist;
 
 import java.util.Optional;
 
+import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 
 import lombok.experimental.UtilityClass;
@@ -39,6 +40,10 @@ public class ProposalCreator {
         return entry;
     }
 
+    public static ContentAssistEntry createSimpleEntry(String proposal, ContentAssistContext context) {
+        return createEntry(proposal, context.getPrefix(), proposal, null, ContentAssistEntry.KIND_VALUE);
+    }
+
     public static Optional<ContentAssistEntry> createNormalizedEntry(String proposal, String prefix, String ctxPrefix) {
         return createNormalizedEntry(proposal, prefix, ctxPrefix, null);
     }
@@ -50,6 +55,7 @@ public class ProposalCreator {
     }
 
     public static Optional<String> normalize(String proposal, String prefix, String ctxPrefix) {
+        log.trace("normalize: '{}' prefix: '{}' ctxPrefix: '{}'", proposal, prefix, ctxPrefix);
         if (proposal.startsWith("<") && !prefix.startsWith("<")) {
             proposal = proposal.substring(1);
         }
@@ -58,7 +64,7 @@ public class ProposalCreator {
                     ctxPrefix, proposal);
             return Optional.empty();
         } else {
-            final var normalizedProposal = proposal.substring(prefix.length() - ctxPrefix.length(), proposal.length());
+            final var normalizedProposal = proposal.substring(prefix.length() - ctxPrefix.length());
             log.trace("prefix: '{}' ctxPrefix: '{}': proposal: '{}' normalized: '{}'", prefix, ctxPrefix, proposal,
                     normalizedProposal);
             return Optional.of(normalizedProposal);

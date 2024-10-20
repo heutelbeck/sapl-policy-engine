@@ -29,51 +29,51 @@ class AttributeStepIdentifierTests extends CompletionTests {
     @Test
     void testCompletion_NotPolicyBody_attributequery_without_import() {
         final var policy = """
-                policy "test" deny subject.<p#""";
+                policy "test" deny subject.<p§""";
         assertProposalsEmpty(policy);
     }
 
     @Test
     void testCompletion_PolicyBody_attributequery_without_import() {
-        final var policy   = """
-                policy "test" deny where subject.<p#""";
+        final var document = """
+                policy "test" deny where subject.<p§""";
         final var expected = List.of("person.age>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_attributequery_without_import_longerprefix() {
-        final var policy   = """
-                policy "test" deny where subject.<person.a#""";
+        final var document = """
+                policy "test" deny where subject.<person.a§""";
         final var expected = List.of("age>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_attributequery_with_import() {
-        final var policy   = """
+        final var document = """
                 import person.age
-                policy "test" deny where subject.<a#""";
+                policy "test" deny where subject.<a§""";
         final var expected = List.of("age>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_attributequery_with_wildcard() {
-        final var policy   = """
+        final var document = """
                 import person.*
-                policy "test" deny where subject.<a#""";
+                policy "test" deny where subject.<a§""";
         final var expected = List.of("age>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_attributequery_with_alias_import() {
-        final var policy   = """
+        final var document = """
                 import person as humans
-                policy "test" deny where subject.<h#""";
+                policy "test" deny where subject.<h§""";
         final var expected = List.of("humans.age>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
 }

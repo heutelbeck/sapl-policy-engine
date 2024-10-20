@@ -28,26 +28,26 @@ class AttributeSchemaTests extends CompletionTests {
 
     @Test
     void testCompletion_PolicyBody_environmentAttribute() {
-        final var policy   = """
-                policy "test" deny where <temperature.now>.#""";
+        final var document = """
+                policy "test" deny where <temperature.now>.§""";
         final var expected = List.of("value", "unit");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_environmentAttribute_wildcard_import() {
-        final var policy   = """
+        final var document = """
                 import temperature.*
-                policy "test" deny where <now>.#""";
+                policy "test" deny where <now>.§""";
         final var expected = List.of("value", "unit");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_attributeStep() {
-        final var policy   = """
-                policy "test" deny where subject.<person.age>.#""";
+        final var document = """
+                policy "test" deny where subject.<person.age>.§""";
         final var expected = List.of("years", "days");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 }

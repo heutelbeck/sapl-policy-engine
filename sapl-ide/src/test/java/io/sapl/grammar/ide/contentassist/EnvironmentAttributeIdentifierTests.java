@@ -28,92 +28,92 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
 
     @Test
     void testCompletion_PolicyBody_environmentattribute_without_import() {
-        final var policy   = """
-                policy "test" deny where <t#""";
+        final var document = """
+                policy "test" deny where <t§""";
         final var expected = List.of("temperature.now>", "temperature.mean(a1, a2)>", "temperature.predicted(a1)>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_NotPolicyBody_environmentattribute_without_import() {
         final var policy = """
-                policy "test" deny <t#""";
+                policy "test" deny <t§""";
         assertProposalsEmpty(policy);
     }
 
     @Test
     void testCompletion_PolicyBody_environmentattribute_with_wildcardimport() {
-        final var policy   = """
+        final var document = """
                 import temperature.*
-                policy "test" deny where <m#""";
+                policy "test" deny where <m§""";
         final var expected = List.of("mean(a1, a2)>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_environmentattribute_with_import() {
-        final var policy   = """
+        final var document = """
                 import temperature.predicted
-                policy "test" deny where <p#""";
+                policy "test" deny where <p§""";
         final var expected = List.of("predicted(a1)>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_environmentattribute_with_alias() {
-        final var policy   = """
+        final var document = """
                 import temperature as weather
-                policy "test" deny where <w#""";
+                policy "test" deny where <w§""";
         final var expected = List.of("weather.now>", "weather.mean(a1, a2)>", "weather.predicted(a1)>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_atBracketEmpty() {
         final var policy = """
-                policy "test" deny where <#""";
+                policy "test" deny where <§""";
         assertProposalsEmpty(policy);
     }
 
     @Test
     void testCompletion_PolicyBody_environmentheadattribute_without_import() {
-        final var policy   = """
-                policy "test" deny where |<t#""";
+        final var document = """
+                policy "test" deny where |<t§""";
         final var expected = List.of("temperature.now>", "temperature.mean(a1, a2)>", "temperature.predicted(a1)>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_environmentheadattribute_with_wildcardimport() {
-        final var policy   = """
+        final var document = """
                 import temperature.*
-                policy "test" deny where |<m#""";
+                policy "test" deny where |<m§""";
         final var expected = List.of("mean(a1, a2)>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_environmentheadattribute_with_import() {
-        final var policy   = """
+        final var document = """
                 import temperature.predicted
-                policy "test" deny where |<p#""";
+                policy "test" deny where |<p§""";
         final var expected = List.of("predicted(a1)>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_environmentheadattribute_with_alias() {
-        final var policy   = """
+        final var document = """
                 import temperature as weather
-                policy "test" deny where |<w#""";
+                policy "test" deny where |<w§""";
         final var expected = List.of("weather.now>", "weather.mean(a1, a2)>", "weather.predicted(a1)>");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_atHeadBracketEmpty() {
         final var policy = """
-                policy "test" deny where |<#""";
+                policy "test" deny where |<§""";
         assertProposalsEmpty(policy);
     }
 

@@ -47,12 +47,11 @@ public class ContextAnalyzer {
     }
 
     public record ContextAnalysisResult(String prefix, String ctxPrefix, String functionName, ProposalType type,
-            INode startNode) {};
+            INode startNode) {}
 
     public static ContextAnalysisResult analyze(final ContentAssistContext context) {
-        dump(context);
+        // dump(context);
         final var result = prefixAnalysis(context);
-        log.trace("analysis: {}", result);
         return result;
     }
 
@@ -70,47 +69,47 @@ public class ContextAnalyzer {
             final var grammarElement  = n.getGrammarElement();
             final var semanticElement = n.getSemanticElement();
             if (".".equals(n.getText())) {
-//                log.trace("accept '.'");
-            } else if (grammarElement instanceof TerminalRule terminalRule) {
+                // log.trace("accept '.'");
+            } else if (grammarElement instanceof final TerminalRule terminalRule) {
                 if ("WS".equals(terminalRule.getName())) {
-//                    log.trace("Stop at WS {}", StringEscapeUtils.escapeJava(n.getText()));
+                    // log.trace("Stop at WS {}", StringEscapeUtils.escapeJava(n.getText()));
                     break;
                 }
-            } else if (semanticElement instanceof Arguments arguments) {
-//                log.trace("found arguments: {}", arguments);
+            } else if (semanticElement instanceof final Arguments arguments) {
+                // log.trace("found arguments: {}", arguments);
                 final var parent = arguments.eContainer();
-//                log.trace("parent of arguments: {}");
-                if (parent instanceof BasicFunction basicFunction) {
+                // log.trace("parent of arguments: {}");
+                if (parent instanceof final BasicFunction basicFunction) {
                     functionName = nameOf(basicFunction.getIdentifier());
-//                    log.trace("functionName: {}", functionName);
+                    // log.trace("functionName: {}", functionName);
                     type = ProposalType.FUNCTION;
                     break;
                 } else {
                     type = ProposalType.INDETERMINATE;
                     break;
                 }
-            } else if (semanticElement instanceof AttributeFinderStep attribute) {
+            } else if (semanticElement instanceof final AttributeFinderStep attribute) {
                 type         = ProposalType.ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-//                log.trace("functionName (afs): {}", functionName);
+                // log.trace("functionName (afs): {}", functionName);
                 break;
-            } else if (semanticElement instanceof HeadAttributeFinderStep attribute) {
+            } else if (semanticElement instanceof final HeadAttributeFinderStep attribute) {
                 type         = ProposalType.ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-//                log.trace("functionName (hafs): {}", functionName);
+                // log.trace("functionName (hafs): {}", functionName);
                 break;
-            } else if (semanticElement instanceof BasicEnvironmentAttribute attribute) {
+            } else if (semanticElement instanceof final BasicEnvironmentAttribute attribute) {
                 type         = ProposalType.ENVIRONMENT_ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-//              log.trace("functionName (bea): {}", functionName);
+                // log.trace("functionName (bea): {}", functionName);
                 break;
-            } else if (semanticElement instanceof BasicEnvironmentHeadAttribute attribute) {
+            } else if (semanticElement instanceof final BasicEnvironmentHeadAttribute attribute) {
                 type         = ProposalType.ENVIRONMENT_ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-//                log.trace("functionName (beha): {}", functionName);
+                // log.trace("functionName (beha): {}", functionName);
                 break;
             }
-//            log.trace("add: '{}' {}", n.getText(), n.getClass().getSimpleName());
+            // log.trace("add: '{}' {}", n.getText(), n.getClass().getSimpleName());
             sb.insert(0, n.getText());
             n = leftOf(n);
         } while (n != null);
@@ -129,13 +128,13 @@ public class ContextAnalyzer {
         final var offset         = context.getOffset();
         var       n              = skipCompositeNodes(context.getCurrentNode());
         final var grammarElement = n.getGrammarElement();
-        if (grammarElement instanceof TerminalRule terminalRule) {
+        if (grammarElement instanceof final TerminalRule terminalRule) {
             if ("WS".equals(terminalRule.getName())) {
                 if (offset > n.getOffset()) {
-                    log.trace("whitespace left of cursor. Stop");
+                    // log.trace("whitespace left of cursor. Stop");
                     n = null;
                 } else {
-                    log.trace("At start of Whitespace. Step left");
+                    // log.trace("At start of Whitespace. Step left");
                     n = leftOf(n);
                 }
             }
@@ -178,27 +177,27 @@ public class ContextAnalyzer {
 
     private static void dump(final ContentAssistContext context) {
         var n = firstNodeForAnalysis(context);
-        String t = "";
-        String c = "";
-        String g = "";
-        String r = "";
-        String s = "";
+        var t = "";
+        var c = "";
+        var g = "";
+        var r = "";
+        var s = "";
         while (null != n) {
-            var text  = StringEscapeUtils.escapeJava(n.getText());
-            var clazz = StringEscapeUtils.escapeJava(n.getClass().getSimpleName());
-            var ge    = StringEscapeUtils
+            final var text  = StringEscapeUtils.escapeJava(n.getText());
+            final var clazz = StringEscapeUtils.escapeJava(n.getClass().getSimpleName());
+            final var ge    = StringEscapeUtils
                     .escapeJava(n.getGrammarElement() == null ? "null" : n.getGrammarElement().eClass().getName());
-            var ru    = "";
-            if (n.getGrammarElement() instanceof RuleCall ruleCall) {
+            var       ru    = "";
+            if (n.getGrammarElement() instanceof final RuleCall ruleCall) {
                 ru = ruleCall.getRule().getName();
-            } else if (n.getGrammarElement() instanceof TerminalRule rule) {
+            } else if (n.getGrammarElement() instanceof final TerminalRule rule) {
                 ru = rule.getName();
             }
-            var se     = StringEscapeUtils
+            final var se     = StringEscapeUtils
                     .escapeJava(n.getSemanticElement() == null ? "null" : n.getSemanticElement().eClass().getName());
-            var length = Math.max(Math.max(Math.max(text.length(), clazz.length()), Math.max(ge.length(), se.length())),
-                    ru.length());
-            var format = "%" + length + "s|";
+            final var length = Math.max(
+                    Math.max(Math.max(text.length(), clazz.length()), Math.max(ge.length(), se.length())), ru.length());
+            final var format = "%" + length + "s|";
             t = String.format(format, text) + t;
             c = String.format(format, clazz) + c;
             g = String.format(format, ge) + g;

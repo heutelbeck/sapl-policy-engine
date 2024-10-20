@@ -15,13 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.contentassist.old;
+package io.sapl.grammar.ide.old;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
+
+import io.sapl.grammar.ide.contentassist.CompletionTests;
 
 class IdeStepCompletionTests extends CompletionTests {
 

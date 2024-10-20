@@ -52,7 +52,7 @@ import reactor.core.publisher.Flux;
 
 @ComponentScan
 @Configuration
-class SAPLIdeSpringTestConfiguration {
+public class SAPLIdeSpringTestConfiguration {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Bean
@@ -64,6 +64,7 @@ class SAPLIdeSpringTestConfiguration {
 
         final var functionContext = new AnnotationFunctionContext();
         functionContext.loadLibrary(SchemaTestFunctionLibrary.class);
+        functionContext.loadLibrary(TimeLibrary.class);
 
         final var variables = new HashMap<String, Val>();
         load("action_schema", variables);
@@ -97,10 +98,11 @@ class SAPLIdeSpringTestConfiguration {
 
     private void load(List<String> schemaFiles, Map<String, Val> variables) throws IOException {
         final var schemasArray = JsonNodeFactory.instance.arrayNode();
-        for (var schemaFile : schemaFiles) {
+        for (final var schemaFile : schemaFiles) {
             try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
-                if (null == is)
+                if (null == is) {
                     throw new RuntimeException(schemaFile + ".json not found");
+                }
                 schemasArray.add(MAPPER.readValue(is, JsonNode.class));
             }
         }
@@ -109,8 +111,9 @@ class SAPLIdeSpringTestConfiguration {
 
     private void load(String schemaFile, Map<String, Val> variables) throws IOException {
         try (var is = this.getClass().getClassLoader().getResourceAsStream(schemaFile + ".json")) {
-            if (null == is)
+            if (null == is) {
                 throw new RuntimeException(schemaFile + ".json not found");
+            }
             final var schema = MAPPER.readValue(is, JsonNode.class);
             variables.put(schemaFile, Val.of(schema));
         }
@@ -194,8 +197,37 @@ class SAPLIdeSpringTestConfiguration {
         }
 
         @EnvironmentAttribute(docs = "current temp")
-        public Flux<Val> predicted(Val a1) throws JsonProcessingException {
+        public Flux<Val> predicted(Val a1) {
             return Flux.just(Val.of(789));
+        }
+
+        @Attribute(docs = "temp at location", schema = """
+                {
+                  "value" : 500,
+                  "unit" : "K"
+                }
+                """)
+        public Flux<Val> atLocation(Val leftHandLocation) {
+            return Flux.just(Val.of(123));
+        }
+    }
+
+    @UtilityClass
+    @FunctionLibrary(name = "time")
+    public static class TimeLibrary {
+        @Function
+        public Val after(Val t1, Val t2) {
+            return Val.TRUE;
+        }
+
+        @Function
+        public Val before(Val t1, Val t2) {
+            return Val.TRUE;
+        }
+
+        @Function
+        public Val between(Val t1, Val t2) {
+            return Val.TRUE;
         }
     }
 

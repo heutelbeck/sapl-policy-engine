@@ -28,18 +28,18 @@ class FunctionSchemaTests extends CompletionTests {
 
     @Test
     void testCompletion_PolicyBody_function() {
-        final var policy   = """
-                policy "test" deny where schemaTest.person("willi", "french", 23).#""";
+        final var document = """
+                policy "test" deny where schemaTest.person("willi", "french", 23).§""";
         final var expected = List.of("name", "nationality", "age");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_function_wildcard_import() {
-        final var policy   = """
+        final var document = """
                 import schemaTest.*
-                policy "test" deny where person("willi", "french", 23).#""";
+                policy "test" deny where person("willi", "french", 23).§""";
         final var expected = List.of("name", "nationality", "age");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 }

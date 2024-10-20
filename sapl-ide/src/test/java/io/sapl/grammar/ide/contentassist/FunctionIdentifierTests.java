@@ -27,57 +27,57 @@ import lombok.extern.slf4j.Slf4j;
 class FunctionIdentifierTests extends CompletionTests {
 
     @Test
-    void testCompletion_PolicyBody_functionId_without_import() {
-        final var policy   = """
-                policy "test" deny where schem#""";
-        final var expected = List.of("schemaTest.person(name, nationality, age)", "schemaTest.dog(dogRegistryRecord)",
-                "schemaTest.food(species)", "schemaTest.foodPrice(food)", "schemaTest.location()");
-        assertProposalsContain(policy, expected);
+    void testCompletion_documentBody_functionId_without_import() {
+        final var document = """
+                policy "test" deny where schem§""";
+        final var expected = List.of("aTest.person(name, nationality, age)", "aTest.dog(dogRegistryRecord)",
+                "aTest.food(species)", "aTest.foodPrice(food)", "aTest.location()");
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_TargetExpression_functionId_without_import() {
-        final var policy   = """
-                policy "test" deny schem# where""";
-        final var expected = List.of("schemaTest.person(name, nationality, age)", "schemaTest.dog(dogRegistryRecord)",
-                "schemaTest.food(species)", "schemaTest.foodPrice(food)", "schemaTest.location()");
-        assertProposalsContain(policy, expected);
+        final var document = """
+                policy "test" deny schem§ where""";
+        final var expected = List.of("aTest.person(name, nationality, age)", "aTest.dog(dogRegistryRecord)",
+                "aTest.food(species)", "aTest.foodPrice(food)", "aTest.location()");
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_schemaExpression_functionId_without_import() {
-        final var policy   = """
-                subject schema enforced { "key": schem# }
+        final var document = """
+                subject schema enforced { "key": schem§ }
                 policy "test" deny where""";
         final var expected = List.of("schemaTest.person(name, nationality, age)", "schemaTest.dog(dogRegistryRecord)",
                 "schemaTest.food(species)", "schemaTest.foodPrice(food)", "schemaTest.location()");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
     @Test
-    void testCompletion_PolicyBody_functionId_without_import_longerPrefix() {
-        final var policy   = """
-                policy "test" deny where schemaTest#""";
-        final var expected = List.of("schemaTest.person(name, nationality, age)", "schemaTest.dog(dogRegistryRecord)",
-                "schemaTest.food(species)", "schemaTest.foodPrice(food)", "schemaTest.location()");
-        assertProposalsContain(policy, expected);
+    void testCompletion_documentBody_functionId_without_import_longerPrefix() {
+        final var document = """
+                policy "test" deny where schemaTest§""";
+        final var expected = List.of(".person(name, nationality, age)", ".dog(dogRegistryRecord)", ".food(species)",
+                ".foodPrice(food)", ".location()");
+        assertProposalsContain(document, expected);
     }
 
     @Test
-    void testCompletion_PolicyBody_functionId_without_import_longerPrefix_after_dot() {
-        final var policy   = """
-                policy "test" deny where schemaTest.#""";
-        final var expected = List.of("person(name, nationality, age)", "dog(dogRegistryRecord)", "food(species)",
-                "foodPrice(food)", "location()");
-        assertProposalsContain(policy, expected);
+    void testCompletion_documentBody_functionId_without_import_longerPrefix_after_dot() {
+        final var document = """
+                policy "test" deny where schemaTest.§""";
+        final var expected = List.of(".person(name, nationality, age)", ".dog(dogRegistryRecord)", ".food(species)",
+                ".foodPrice(food)", ".location()");
+        assertProposalsContain(document, expected);
     }
 
     @Test
-    void testCompletion_PolicyBody_functionId_without_import_longerPrefix_after_dot_and_fragment() {
-        final var policy   = """
-                policy "test" deny where schemaTest.f#""";
+    void testCompletion_documentBody_functionId_without_import_longerPrefix_after_dot_and_fragment() {
+        final var document = """
+                policy "test" deny where schemaTest.f§""";
         final var expected = List.of("food(species)", "foodPrice(food)");
-        assertProposalsContain(policy, expected);
+        assertProposalsContain(document, expected);
     }
 
 }

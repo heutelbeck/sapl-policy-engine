@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.contentassist.old;
+package io.sapl.grammar.ide.old;
 
 import java.util.List;
 
@@ -23,6 +23,9 @@ import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
+
+import io.sapl.grammar.ide.contentassist.CompletionTests;
+import io.sapl.grammar.ide.contentassist.SAPLIdeSpringTestConfiguration;
 
 /**
  * Tests regarding the auto-completion of the keywords subject, resource,

@@ -17,12 +17,14 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.Assignment;
+import org.eclipse.xtext.GrammarUtil;
 import org.eclipse.xtext.Keyword;
 import org.eclipse.xtext.RuleCall;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
@@ -42,9 +44,12 @@ import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
 import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
 import io.sapl.grammar.sapl.HeadAttributeFinderStep;
+import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicyBody;
+import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.grammar.services.SAPLGrammarAccess;
+import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import lombok.extern.slf4j.Slf4j;
 
@@ -114,11 +119,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     private static String extractConfigurationIdFromRequest() {
         try {
             Class.forName("org.springframework.web.context.request.ServletRequestAttributes");
-        } catch (ClassNotFoundException e) {
+        } catch (final ClassNotFoundException e) {
             return "";
         }
         final var requestAttributes = RequestContextHolder.getRequestAttributes();
-        if (requestAttributes instanceof ServletRequestAttributes servletRequestAttributes) {
+        if (requestAttributes instanceof final ServletRequestAttributes servletRequestAttributes) {
             final var httpServletRequest = servletRequestAttributes.getRequest();
             final var query              = httpServletRequest.getQueryString();
             final var queryParameters    = Splitter.on('&').trimResults().withKeyValueSeparator('=').split(query);
@@ -130,13 +135,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     // @formatter:off
     private boolean isAttributeIdentifierAssignment(Assignment a, ContextAnalysisResult analysis) {
         return    analysis.type() == ProposalType.ATTRIBUTE
-               && "+=".equals(a.getOperator())
-               && isInsideOfPolicyBody(analysis.startNode())
-               && !isInsideOfSchemaExpression(analysis.startNode())
-               && (    saplAccess.getAttributeFinderStepAccess().getIdentifierAssignment_1().equals(a)
-                    || saplAccess.getHeadAttributeFinderStepAccess().getIdentifierAssignment_1().equals(a)
-                    || isIn(analysis.startNode(), AttributeFinderStep.class)
-                    || isIn(analysis.startNode(), HeadAttributeFinderStep.class));
+                && "+=".equals(a.getOperator())
+                && isInsideOfPolicyBody(analysis.startNode())
+                && !isInsideOfSchemaExpression(analysis.startNode())
+                && (    saplAccess.getAttributeFinderStepAccess().getIdentifierAssignment_1().equals(a)
+                        || saplAccess.getHeadAttributeFinderStepAccess().getIdentifierAssignment_1().equals(a)
+                        || isIn(analysis.startNode(), AttributeFinderStep.class)
+                        || isIn(analysis.startNode(), HeadAttributeFinderStep.class));
     }
     // @formatter:on
 
@@ -147,21 +152,21 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         final var isNotInSchemaDefinition = !isInsideOfSchemaExpression(analysis.startNode());
         final var isPlusEqualOperator = "+=".equals(a.getOperator());
         final var isAssignmentToIdentifier =
-                    saplAccess.getBasicEnvironmentAttributeAccess().getIdentifierAssignment_2().equals(a)
-                 || saplAccess.getBasicEnvironmentHeadAttributeAccess().getIdentifierAssignment_2().equals(a);
+                saplAccess.getBasicEnvironmentAttributeAccess().getIdentifierAssignment_2().equals(a)
+                || saplAccess.getBasicEnvironmentHeadAttributeAccess().getIdentifierAssignment_2().equals(a);
         final var isSomewhereUnderEnvironmentAttributeNode =
-                    isIn(analysis.startNode(), BasicEnvironmentAttribute.class)
-                 || isIn(analysis.startNode(), BasicEnvironmentHeadAttribute.class);
-       return    isAttributeAnalysis && isInsideOfPolicyBody && isNotInSchemaDefinition && isPlusEqualOperator
-              && (isAssignmentToIdentifier || isSomewhereUnderEnvironmentAttributeNode);
+                isIn(analysis.startNode(), BasicEnvironmentAttribute.class)
+                || isIn(analysis.startNode(), BasicEnvironmentHeadAttribute.class);
+        return    isAttributeAnalysis && isInsideOfPolicyBody && isNotInSchemaDefinition && isPlusEqualOperator
+                && (isAssignmentToIdentifier || isSomewhereUnderEnvironmentAttributeNode);
     }
     // @formatter:on
 
     // @formatter:off
     private List<Assignment> functionIdentifierAssignments() {
         return List.of(saplAccess.getBasicFunctionAccess()     .getIdentifierAssignment_0(),
-                       saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_1(),
-                       saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_2_1());
+                saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_1(),
+                saplAccess.getFunctionIdentifierAccess().getNameFragmentsAssignment_2_1());
     }
     // @formatter:on
 
@@ -200,51 +205,110 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     protected void _createProposals(final Assignment assignment, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
         lazyLoadDependencies();
-
         final var configurationId  = extractConfigurationIdFromRequest();
         final var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration(configurationId).blockFirst();
-        final var analysis         = ContextAnalyzer.analyze(context);
+        final var feature          = assignment.getFeature();
+        final var parserRule       = GrammarUtil.containingParserRule(assignment).getName().toLowerCase();
+        log.trace(">start assignment {} {}{}", GrammarUtil.containingParserRule(assignment).getName(), feature,
+                assignment.getOperator());
+        final var analysis = ContextAnalyzer.analyze(context);
+        log.trace("> prefix: '{}' ctxPrefix: '{}' functionName: '{}' type: {} node: {}", analysis.prefix(),
+                analysis.ctxPrefix(), analysis.functionName(), analysis.type(), analysis.startNode());
 
         if (isAttributeIdentifierAssignment(assignment, analysis)) {
+            log.trace("A");
             this.addProposals(LibraryProposalsGenerator.allAttributeFinders(analysis, context, pdpConfiguration),
                     acceptor);
         } else if (isEnvironmentAttributeIdentifierAssignment(assignment, analysis)) {
+            log.trace("B");
             this.addProposals(
                     LibraryProposalsGenerator.allEnvironmentAttributeFinders(analysis, context, pdpConfiguration),
                     acceptor);
         } else if (isAttributeSchemaExtension(assignment, analysis)) {
+            log.trace("C");
             this.addProposals(
                     LibraryProposalsGenerator.allAttributeSchemaExtensions(analysis, context, pdpConfiguration),
                     acceptor);
         } else if (isEnvironmentAttributeSchemaExtension(assignment, analysis)) {
+            log.trace("D");
             this.addProposals(LibraryProposalsGenerator.allEnvironmentAttributeSchemaExtensions(analysis, context,
                     pdpConfiguration), acceptor);
         } else if (isFunctionIdentifierAssignment(assignment, analysis)) {
+            log.trace("E");
             this.addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), acceptor);
         } else if (isVariableAssignment(assignment, analysis)) {
-            log.trace("Variable assignment for {}", analysis.prefix());
+            log.trace("F");
             this.addProposals(
                     VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration),
                     acceptor);
         } else if (analysis.type() == ProposalType.FUNCTION) {
+            log.trace("G");
             this.addProposals(
                     LibraryProposalsGenerator.allFunctionSchemaExtensions(analysis, context, pdpConfiguration),
                     acceptor);
+        } else if ("saplName".equals(feature)) {
+            log.trace("H");
+            acceptor.accept(ProposalCreator.createSimpleEntry("\"\"", context), 0);
+        } else if ("import".equals(parserRule) && ("libSteps".equals(feature) || "functionName".equals(feature))) {
+            log.trace("I");
+            createImportProposals(analysis, context, acceptor, pdpConfiguration);
+        } else if ("basic".equals(parserRule)) {
+            log.trace("J");
+            log.trace("BASIC");
+            log.trace("BASIC");
+            log.trace("BASIC");
         } else {
-            log.trace("NO RULE APPLIES");
+            log.trace(">assignment no match");
         }
+        log.trace(">end assignment");
     }
 
     @Override
     protected void _createProposals(final RuleCall ruleCall, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
         lazyLoadDependencies();
-
-        if (saplAccess.getBasicFunctionAccess().getIdentifierFunctionIdentifierParserRuleCall_0_0().equals(ruleCall)) {
-            log.trace("R: getBasicFunctionAccess().getIdentifierFunctionIdentifierParserRuleCall_0_0()",
-                    saplAccess.getBasicFunctionAccess().getIdentifierAssignment_0().getFeature());
+        final var ruleName = ruleCall.getRule().getName();
+        log.trace("#rule call: '{}'", ruleName);
+        final var configurationId  = extractConfigurationIdFromRequest();
+        final var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration(configurationId).blockFirst();
+        final var analysis         = ContextAnalyzer.analyze(context);
+        log.trace("# prefix: '{}' ctxPrefix: '{}' functionName: '{}' type: {} node: {}", analysis.prefix(),
+                analysis.ctxPrefix(), analysis.functionName(), analysis.type(), analysis.startNode());
+        switch (analysis.type()) {
+        case VARIABLE_OR_FUNCTION_NAME: {
+            if (isInsideOf(context.getCurrentNode(), Policy.class)
+                    || isInsideOf(context.getCurrentNode(), PolicySet.class)) {
+                addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), acceptor);
+                addProposals(
+                        VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration),
+                        acceptor);
+            }
         }
+        default: {
+            log.trace("#rule call - No match");
+            /* NOOP */
+        }
+        }
+        log.trace("#end rule call");
+    }
 
+    /*
+     * Adds the fully qualified names and library names for attributes and functions
+     * as completion options in import statements.
+     */
+    private void createImportProposals(ContextAnalysisResult analysis, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
+        final var attributeContext = pdpConfiguration.attributeContext();
+        final var proposals        = new ArrayList<>(attributeContext.getAllFullyQualifiedFunctions());
+        proposals.addAll(attributeContext.getAvailableLibraries());
+        final var functionContext = pdpConfiguration.functionContext();
+        proposals.addAll(functionContext.getAllFullyQualifiedFunctions());
+        proposals.addAll(functionContext.getAvailableLibraries());
+        if (analysis.prefix().endsWith(".")) {
+            proposals.add(analysis.prefix() + "*");
+        }
+        proposals.forEach(pText -> ProposalCreator.createNormalizedEntry(pText, analysis.prefix(), analysis.ctxPrefix())
+                .ifPresent(p -> acceptor.accept(p, 0)));
     }
 
     private boolean isInsideOfPolicyBody(final INode n) {
@@ -272,7 +336,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         ValueDefinition valueDefinition = null;
         var             node            = n;
         do {
-            if (node.getSemanticElement() instanceof ValueDefinition definition) {
+            if (node.getSemanticElement() instanceof final ValueDefinition definition) {
                 valueDefinition = definition;
                 break;
             }
@@ -302,6 +366,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private void addProposals(final Collection<ContentAssistEntry> proposals,
             final IIdeContentProposalAcceptor acceptor) {
+        proposals.forEach(p -> log.trace("add: '{}' -> '{}'", p.getPrefix(), p.getProposal()));
         proposals.forEach(p -> acceptor.accept(p, 0));
     }
 
