@@ -37,9 +37,9 @@ public class InputStreamHelper {
     private static final String PARSING_ERRORS = "Parsing errors: %s";
 
     public static InputStream detectAndConvertEncodingOfStream(InputStream policyInputStream) throws IOException {
-
-        BOMInputStream bomIn = new BOMInputStream(policyInputStream, ByteOrderMark.UTF_16LE, ByteOrderMark.UTF_16BE,
-                ByteOrderMark.UTF_32LE, ByteOrderMark.UTF_32BE, ByteOrderMark.UTF_8);
+        BOMInputStream bomIn = BOMInputStream.builder().setByteOrderMarks(ByteOrderMark.UTF_16LE,
+                ByteOrderMark.UTF_16BE, ByteOrderMark.UTF_32LE, ByteOrderMark.UTF_32BE, ByteOrderMark.UTF_8)
+                .setInputStream(policyInputStream).get();
 
         if (!bomIn.hasBOM()) {
             // InputStream without BOM is treated as UTF-8
@@ -70,8 +70,8 @@ public class InputStreamHelper {
         return getUtf8InputStream(new InputStreamReader(bomIn, StandardCharsets.UTF_8));
     }
 
-    private static ReaderInputStream getUtf8InputStream(Reader origin) {
-        return new ReaderInputStream(origin, StandardCharsets.UTF_8);
+    private static ReaderInputStream getUtf8InputStream(Reader origin) throws IOException {
+        return ReaderInputStream.builder().setReader(origin).setCharset(StandardCharsets.UTF_8).get();
     }
 
     public static InputStream convertToTrojanSourceSecureStream(InputStream source) {
