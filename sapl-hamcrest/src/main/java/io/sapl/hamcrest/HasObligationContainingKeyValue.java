@@ -72,7 +72,7 @@ public class HasObligationContainingKeyValue extends TypeSafeDiagnosingMatcher<A
 
     @Override
     protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-        var obligations = decision.getObligations();
+        final var obligations = decision.getObligations();
         if (obligations.isEmpty()) {
             mismatchDescription.appendText("decision didn't contain any obligations");
             return false;
@@ -82,10 +82,10 @@ public class HasObligationContainingKeyValue extends TypeSafeDiagnosingMatcher<A
 
         // iterate over all obligations
         for (JsonNode obligation : obligations.get()) {
-            var iterator = obligation.fields();
+            final var iterator = obligation.fields();
             // iterate over fields in this obligation
             while (iterator.hasNext()) {
-                var entry = iterator.next();
+                final var entry = iterator.next();
                 // check if key/value exists
                 if (entry.getKey().equals(this.key)
                         && (this.valueMatcher.isEmpty() || this.valueMatcher.get().matches(entry.getValue()))) {

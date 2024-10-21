@@ -73,28 +73,28 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> {
      */
     private Function<AuthorizationDecision, Flux<T>> enforceDecision(Class<T> domainType, MethodInvocation invocation) {
 
-        var baseQuery = QueryCreation.createBaselineQuery(invocation);
+        final var baseQuery = QueryCreation.createBaselineQuery(invocation);
 
         return decision -> {
 
             Flux<T> resourceAccessPoint;
 
-            var decisionIsPermit = Decision.PERMIT == decision.getDecision();
+            final var decisionIsPermit = Decision.PERMIT == decision.getDecision();
 
             if (!decisionIsPermit) {
                 resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
             } else {
-                var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
+                final var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
                         .queryManipulationForR2dbc(decision);
 
-                var obligations     = queryManipulationHandler.getQueryManipulationObligations();
-                var conditions      = queryManipulationHandler.getConditions();
-                var selections      = queryManipulationHandler.getSelections();
-                var transformations = queryManipulationHandler.getTransformations();
-                var alias           = queryManipulationHandler.getAlias();
+                final var obligations     = queryManipulationHandler.getQueryManipulationObligations();
+                final var conditions      = queryManipulationHandler.getConditions();
+                final var selections      = queryManipulationHandler.getSelections();
+                final var transformations = queryManipulationHandler.getTransformations();
+                final var alias           = queryManipulationHandler.getAlias();
 
-                var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, domainType,
-                        obligations);
+                final var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision,
+                        domainType, obligations);
 
                 constraintHandlerBundle.handleMethodInvocationHandlers(invocation);
                 resourceAccessPoint = retrieveData(conditions, selections, transformations, alias, baseQuery,
@@ -123,8 +123,8 @@ public class R2dbcAnnotationQueryManipulationEnforcementPoint<T> {
     private Flux<T> retrieveData(ArrayNode conditions, ArrayNode selections, ArrayNode transformations, String alias,
             String basicQuery, Class<T> domainType) {
 
-        var manipulatedCondition = QueryCreation.manipulateQuery(basicQuery, conditions, selections, transformations,
-                alias, domainType);
+        final var manipulatedCondition = QueryCreation.manipulateQuery(basicQuery, conditions, selections,
+                transformations, alias, domainType);
 
         return queryManipulationExecutorProvider.getObject().execute(manipulatedCondition, domainType);
     }

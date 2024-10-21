@@ -74,11 +74,11 @@ public class BasicExpressionImplCustom extends BasicExpressionImpl {
             return subtemplate.evaluate().contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx,
                     value.withTrace(BasicExpression.class, true, value)));
         }
-        var array = value.getArrayNode();
+        final var array = value.getArrayNode();
         if (array.isEmpty()) {
             return Flux.just(value.withTrace(BasicExpression.class, true, value));
         }
-        var itemFluxes = new ArrayList<Flux<Val>>(array.size());
+        final var itemFluxes = new ArrayList<Flux<Val>>(array.size());
         for (var element : array) {
             itemFluxes.add(subtemplate.evaluate().contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx,
                     Val.of(element).withTrace(BasicExpression.class, true, value))));

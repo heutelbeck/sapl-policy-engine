@@ -41,25 +41,25 @@ import lombok.experimental.UtilityClass;
 public class TestSetupUtil {
 
     public static ObjectMapper objectMapperWithSerializers() {
-        var module = new SimpleModule();
+        final var module = new SimpleModule();
         module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
         module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
         module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
-        var mapper = new ObjectMapper();
+        final var mapper = new ObjectMapper();
         mapper.registerModule(module);
         return mapper;
     }
 
     @SuppressWarnings("unchecked")
     public static WebAuthorizationSubscriptionBuilderService subscriptionBuilderService() {
-        var mapper                        = objectMapperWithSerializers();
-        var mockExpressionHandlerProvider = mock(ObjectProvider.class);
+        final var mapper                        = objectMapperWithSerializers();
+        final var mockExpressionHandlerProvider = mock(ObjectProvider.class);
         when(mockExpressionHandlerProvider.getIfAvailable(any()))
                 .thenReturn(new DefaultMethodSecurityExpressionHandler());
-        var mockMapperProvider = mock(ObjectProvider.class);
+        final var mockMapperProvider = mock(ObjectProvider.class);
         when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
-        var mockDefaultsProvider = mock(ObjectProvider.class);
-        var mockContext          = mock(ApplicationContext.class);
+        final var mockDefaultsProvider = mock(ObjectProvider.class);
+        final var mockContext          = mock(ApplicationContext.class);
         return new WebAuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider, mockMapperProvider,
                 mockDefaultsProvider, mockContext);
     }

@@ -27,21 +27,21 @@ class SaplTestExceptionTests {
 
     @Test
     void defaultConstructor() {
-        var exception = new SaplTestException();
+        final var exception = new SaplTestException();
         assertThat(exception.getMessage()).isNull();
         assertThat(exception.getCause()).isNull();
     }
 
     @Test
     void messageConstructor() {
-        var exception = new SaplTestException("Test");
+        final var exception = new SaplTestException("Test");
         assertThat(exception.getMessage()).isEqualTo("Test");
         assertThat(exception.getCause()).isNull();
     }
 
     @Test
     void messageAndCauseConstructor() {
-        var exception = new SaplTestException("Test", new IOException());
+        final var exception = new SaplTestException("Test", new IOException());
         assertThat(exception.getMessage()).isEqualTo("Test");
         assertThat(exception.getCause()).isInstanceOfAny(IOException.class);
     }

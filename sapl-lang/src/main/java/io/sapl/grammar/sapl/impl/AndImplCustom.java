@@ -44,7 +44,7 @@ public class AndImplCustom extends AndImpl {
             // indexing implies: lazy evaluation is not allowed in target expressions.
             return Flux.just(ErrorFactory.error(this, LAZY_OPERATOR_IN_TARGET_ERROR).withTrace(And.class));
         }
-        var left = getLeft().evaluate().map(v -> OperatorUtil.requireBoolean(this, v));
+        final var left = getLeft().evaluate().map(v -> OperatorUtil.requireBoolean(this, v));
         return left.switchMap(leftResult -> {
             if (leftResult.isError()) {
                 // Errors short circuit evaluation. Do not add further traces.

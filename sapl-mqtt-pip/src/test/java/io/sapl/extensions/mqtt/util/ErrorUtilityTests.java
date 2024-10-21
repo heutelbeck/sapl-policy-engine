@@ -73,7 +73,7 @@ class ErrorUtilityTests {
     @Test
     void when_evaluatingIfDisconnectWasCausedByClientAndWasCausedByServer_then_returnFalse() {
         // GIVEN
-        var mqtt5DisconnectExceptionMock = mock(Mqtt5DisconnectException.class);
+        final var mqtt5DisconnectExceptionMock = mock(Mqtt5DisconnectException.class);
         when(mqtt5DisconnectExceptionMock.getMessage()).thenReturn("Server sent " + Mqtt5MessageType.DISCONNECT);
 
         // WHEN
@@ -86,9 +86,9 @@ class ErrorUtilityTests {
     @Test
     void when_clientSendDisconnect_then_clientCausedTheDisconnect() {
         // GIVEN
-        var disconnectException        = new Mqtt5DisconnectException(Mqtt5Disconnect.builder().build(),
+        final var disconnectException        = new Mqtt5DisconnectException(Mqtt5Disconnect.builder().build(),
                 "Client sent " + Mqtt5MessageType.DISCONNECT);
-        var wrappedDisconnectException = new RuntimeException(disconnectException);
+        final var wrappedDisconnectException = new RuntimeException(disconnectException);
 
         // WHEN
         boolean isCausedByClient = isClientCausedDisconnect(wrappedDisconnectException);
@@ -100,7 +100,7 @@ class ErrorUtilityTests {
     @Test
     void when_errorIsNoSuchElementException_then_doNotRetry() {
         // GIVEN
-        var errorFlux = Flux.error(new NoSuchElementException("No element")).retryWhen(getRetrySpec(null));
+        final var errorFlux = Flux.error(new NoSuchElementException("No element")).retryWhen(getRetrySpec(null));
 
         // THEN
         StepVerifier.create(errorFlux).expectError(NoSuchElementException.class).verify();

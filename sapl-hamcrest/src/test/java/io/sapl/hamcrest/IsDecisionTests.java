@@ -36,7 +36,7 @@ class IsDecisionTests {
 
     @Test
     void testPermit() {
-        var sut = isPermit();
+        final var sut = isPermit();
         assertThat(new AuthorizationDecision(Decision.PERMIT), is(sut));
         assertThat(new AuthorizationDecision(Decision.DENY), not(is(sut)));
         assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
@@ -45,7 +45,7 @@ class IsDecisionTests {
 
     @Test
     void testDeny() {
-        var sut = isDeny();
+        final var sut = isDeny();
         assertThat(new AuthorizationDecision(Decision.PERMIT), not(is(sut)));
         assertThat(new AuthorizationDecision(Decision.DENY), is(sut));
         assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
@@ -54,7 +54,7 @@ class IsDecisionTests {
 
     @Test
     void testIsNotApplicable() {
-        var sut = isNotApplicable();
+        final var sut = isNotApplicable();
         assertThat(new AuthorizationDecision(Decision.PERMIT), not(is(sut)));
         assertThat(new AuthorizationDecision(Decision.DENY), not(is(sut)));
         assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), is(sut));
@@ -63,7 +63,7 @@ class IsDecisionTests {
 
     @Test
     void testIndeterminate() {
-        var sut = isIndeterminate();
+        final var sut = isIndeterminate();
         assertThat(new AuthorizationDecision(Decision.PERMIT), not(is(sut)));
         assertThat(new AuthorizationDecision(Decision.DENY), not(is(sut)));
         assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), not(is(sut)));
@@ -72,7 +72,7 @@ class IsDecisionTests {
 
     @Test
     void testAnyDec() {
-        var sut = anyDecision();
+        final var sut = anyDecision();
         assertThat(new AuthorizationDecision(Decision.PERMIT), is(sut));
         assertThat(new AuthorizationDecision(Decision.DENY), is(sut));
         assertThat(new AuthorizationDecision(Decision.NOT_APPLICABLE), is(sut));
@@ -81,7 +81,7 @@ class IsDecisionTests {
 
     @Test
     void testDescriptionForEmptyConstructor() {
-        var                     sut         = new IsDecision();
+        final var               sut         = new IsDecision();
         final StringDescription description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(), is("the decision is any decision"));
@@ -89,7 +89,7 @@ class IsDecisionTests {
 
     @Test
     void testDescriptionForDecisionConstructor() {
-        var                     sut         = isPermit();
+        final var               sut         = isPermit();
         final StringDescription description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(), is("the decision is PERMIT"));

@@ -81,7 +81,7 @@ public class ClientDetailsService implements UserDetailsService {
                     .password(encodedAdminPassword).roles(ADMIN).build();
         }
 
-        var clientCredentials = clientCredentialsRepository.findByKey(username)
+        final var clientCredentials = clientCredentialsRepository.findByKey(username)
                 .orElseThrow(() -> new UsernameNotFoundException(
                         String.format("client credentials with key \"%s\" not found", username)));
 
@@ -107,9 +107,9 @@ public class ClientDetailsService implements UserDetailsService {
     }
 
     public Tuple2<ClientCredentials, String> createBasicDefault() {
-        var key               = Base64Id.randomID();
-        var secret            = generateSecret();
-        var clientCredentials = clientCredentialsRepository
+        final var key               = Base64Id.randomID();
+        final var secret            = generateSecret();
+        final var clientCredentials = clientCredentialsRepository
                 .save(new ClientCredentials(key, AuthType.BASIC, encodeSecret(secret)));
         return Tuples.of(clientCredentials, secret);
     }
@@ -117,8 +117,8 @@ public class ClientDetailsService implements UserDetailsService {
     public String createApiKeyDefault() {
         // apiKey needs to be a combination of <key>_<secret> to identify the client in
         // the authentication process. We need to avoid underscores in the key value.
-        var key    = Base64Id.randomID().replace('_', '-');
-        var apiKey = "sapl_" + key + "_" + generateSecret();
+        final var key    = Base64Id.randomID().replace('_', '-');
+        final var apiKey = "sapl_" + key + "_" + generateSecret();
         clientCredentialsRepository.save(new ClientCredentials(key, AuthType.APIKEY, encodeSecret(apiKey)));
         return apiKey;
     }

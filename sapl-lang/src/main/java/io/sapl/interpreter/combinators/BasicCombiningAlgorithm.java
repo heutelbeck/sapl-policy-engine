@@ -42,7 +42,7 @@ public class BasicCombiningAlgorithm {
             AuthorizationDecision defaultDecisionIfEmpty) {
         if (matchingDocuments.isEmpty())
             return Flux.just(CombinedDecision.of(defaultDecisionIfEmpty, algorithm));
-        var policyDecisions = eagerMatchingDocumentsDecisionFluxes(matchingDocuments);
+        final var policyDecisions = eagerMatchingDocumentsDecisionFluxes(matchingDocuments);
         return Flux.combineLatest(policyDecisions, decisionObjects -> combinator
                 .apply(Arrays.copyOf(decisionObjects, decisionObjects.length, DocumentEvaluationResult[].class)));
     }
@@ -53,14 +53,14 @@ public class BasicCombiningAlgorithm {
             AuthorizationDecision defaultDecisionIfEmpty) {
         if (policyElements.isEmpty())
             return Flux.just(CombinedDecision.of(defaultDecisionIfEmpty, algorithm));
-        var policyDecisions = eagerPolicyElementDecisionFluxes(policyElements);
+        final var policyDecisions = eagerPolicyElementDecisionFluxes(policyElements);
         return Flux.combineLatest(policyDecisions, decisionObjects -> combinator
                 .apply(Arrays.copyOf(decisionObjects, decisionObjects.length, DocumentEvaluationResult[].class)));
     }
 
     private static List<Flux<DocumentEvaluationResult>> eagerMatchingDocumentsDecisionFluxes(
             Collection<DocumentMatch> matchingDocuments) {
-        var documentDecisions = new ArrayList<Flux<DocumentEvaluationResult>>(matchingDocuments.size());
+        final var documentDecisions = new ArrayList<Flux<DocumentEvaluationResult>>(matchingDocuments.size());
         for (var matchingDocument : matchingDocuments) {
             documentDecisions.add(matchingDocument.document().sapl().getPolicyElement().evaluate()
                     .map(result -> result.withTargetResult(matchingDocument.targetExpressionResult())));
@@ -70,7 +70,7 @@ public class BasicCombiningAlgorithm {
 
     private static List<Flux<DocumentEvaluationResult>> eagerPolicyElementDecisionFluxes(
             Collection<? extends PolicyElement> policyElements) {
-        var policyDecisions = new ArrayList<Flux<DocumentEvaluationResult>>(policyElements.size());
+        final var policyDecisions = new ArrayList<Flux<DocumentEvaluationResult>>(policyElements.size());
         for (var policyElement : policyElements) {
             policyDecisions.add(evaluatePolicyElementTargetAndPolicyIfApplicable(policyElement));
         }
@@ -79,7 +79,8 @@ public class BasicCombiningAlgorithm {
 
     private static Flux<DocumentEvaluationResult> evaluatePolicyElementTargetAndPolicyIfApplicable(
             PolicyElement policyElement) {
-        var matches = policyElement.matches().map(BasicCombiningAlgorithm::requireTargetExpressionEvaluatesToBoolean);
+        final var matches = policyElement.matches()
+                .map(BasicCombiningAlgorithm::requireTargetExpressionEvaluatesToBoolean);
         return matches.flatMapMany(evaluatePolicyIfApplicable(policyElement));
     }
 

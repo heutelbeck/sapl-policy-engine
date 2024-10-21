@@ -69,7 +69,7 @@ class MockingFunctionContextTests {
     @Test
     void test_FunctionMockAlwaysSameValue_duplicateRegistration() {
         this.ctx.loadFunctionMockAlwaysSameValue("foo.bar", Val.of(1));
-        var val1 = Val.of(1);
+        final var val1 = Val.of(1);
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> this.ctx.loadFunctionMockAlwaysSameValue("foo.bar", val1));
     }
@@ -77,7 +77,7 @@ class MockingFunctionContextTests {
     @Test
     void test_alreadyDefinedMock_NotFunctionMockSequence() {
         this.ctx.loadFunctionMockAlwaysSameValue("foo.bar", Val.of(1));
-        var val1 = Val.of(1);
+        final var val1 = Val.of(1);
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> this.ctx.loadFunctionMockReturnsSequence("foo.bar", new Val[] { val1 }));
     }
@@ -85,8 +85,8 @@ class MockingFunctionContextTests {
     @Test
     void test_alreadyDefinedMock_NotFunctionMockAlwaysSameForParameters() {
         this.ctx.loadFunctionMockAlwaysSameValue("foo.bar", Val.of(1));
-        var val1   = Val.of(1);
-        var params = whenFunctionParams(is(Val.of(1)));
+        final var val1   = Val.of(1);
+        final var params = whenFunctionParams(is(Val.of(1)));
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> this.ctx.loadFunctionMockAlwaysSameValueForParameters("foo.bar", val1, params));
     }
@@ -140,18 +140,18 @@ class MockingFunctionContextTests {
     @Test
     void test_documentation() {
         this.ctx.addNewLibraryDocumentation("foo.bar");
-        var unmockedDoc = new LibraryDocumentation("test", "Test");
+        final var unmockedDoc = new LibraryDocumentation("test", "Test");
         unmockedDoc.getDocumentation().put("upper", "blabla");
         when(this.unmockedCtx.getDocumentation()).thenReturn(List.of(unmockedDoc));
 
-        var result = this.ctx.getDocumentation();
+        final var result = this.ctx.getDocumentation();
 
         assertThat(result).hasSize(2);
-        var iterator = result.iterator();
-        var doc1     = iterator.next();
+        final var iterator = result.iterator();
+        final var doc1     = iterator.next();
         assertThat(doc1.getName()).isEqualTo("foo");
         assertThat(doc1.getDocumentation()).containsKey("bar");
-        var doc2 = iterator.next();
+        final var doc2 = iterator.next();
         assertThat(doc2.getName()).isEqualTo("test");
         assertThat(doc2.getDocumentation()).containsKey("upper");
     }

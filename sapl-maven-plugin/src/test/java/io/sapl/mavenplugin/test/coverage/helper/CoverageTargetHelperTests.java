@@ -85,8 +85,8 @@ class CoverageTargetHelperTests {
         // return SaplPackage.Literals.POLICY_ELEMENT as synonym for a new unknown
         // implementation of PolicyElement
         Mockito.when(newPolicyTypePolicyElement.eClass()).thenReturn(SaplPackage.Literals.POLICY_ELEMENT);
-        var newSaplTypeDocument = new SaplDocument(Path.of("test.sapl"), 5, newPolicyTypeSAPL);
-        var listOfDocs          = List.of(newSaplTypeDocument);
+        final var newSaplTypeDocument = new SaplDocument(Path.of("test.sapl"), 5, newPolicyTypeSAPL);
+        final var listOfDocs          = List.of(newSaplTypeDocument);
         assertThrows(SaplTestException.class, () -> helper.getCoverageTargets(listOfDocs));
     }
 

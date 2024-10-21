@@ -42,12 +42,12 @@ class RepositoryInformationCollectorServiceTests {
     @Test
     void when_add_then_addNewRepositoryInformation() {
         // GIVEN
-        var repositoryInformationMock = mock(RepositoryInformation.class);
-        var service                   = new RepositoryInformationCollectorService();
+        final var repositoryInformationMock = mock(RepositoryInformation.class);
+        final var service                   = new RepositoryInformationCollectorService();
 
         // WHEN
         service.add(repositoryInformationMock);
-        var repositories = service.getRepositories();
+        final var repositories = service.getRepositories();
 
         // THEN
         assertEquals(1, repositories.size());
@@ -56,8 +56,8 @@ class RepositoryInformationCollectorServiceTests {
 
     @Test
     void when_getRepositoryByName_then_getRepositoryByName() {
-        var person  = new RepositoryInformationImpl();
-        var service = new RepositoryInformationCollectorService();
+        final var person  = new RepositoryInformationImpl();
+        final var service = new RepositoryInformationCollectorService();
 
         service.add(person);
 

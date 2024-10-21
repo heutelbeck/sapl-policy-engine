@@ -56,7 +56,7 @@ public class TreeWalker {
     }
 
     static DisjunctiveFormula traverse(final BasicGroup node, final Map<String, String> imports) {
-        if (node.getFilter() == null && node.getSteps().isEmpty() && node.getSubtemplate() == null) {
+        if (null == node.getFilter() && node.getSteps().isEmpty() && node.getSubtemplate() == null) {
             return walk(node.getExpression(), imports);
         }
         return endRecursion(node, imports);

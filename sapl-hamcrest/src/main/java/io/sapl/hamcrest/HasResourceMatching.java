@@ -52,13 +52,13 @@ public class HasResourceMatching extends TypeSafeDiagnosingMatcher<Authorization
 
     @Override
     protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-        var resource = decision.getResource();
+        final var resource = decision.getResource();
         if (resource.isEmpty()) {
             mismatchDescription.appendText("decision didn't contain a resource");
             return false;
         }
 
-        var json = resource.get();
+        final var json = resource.get();
         if (this.predicate.test(json)) {
             return true;
         } else {

@@ -31,7 +31,7 @@ class FunctionMockSequenceTests {
 
     @Test
     void test() {
-        var mock = new FunctionMockSequence("foo");
+        final var mock = new FunctionMockSequence("foo");
         mock.loadMockReturnValue(seq);
         assertThat(mock.evaluateFunctionCall(Val.of("do"))).isEqualTo(seq[0]);
         assertThat(mock.evaluateFunctionCall(Val.of("not"))).isEqualTo(seq[1]);
@@ -40,8 +40,8 @@ class FunctionMockSequenceTests {
 
     @Test
     void test_tooManyCalls() {
-        var aVal = Val.of("returnValueUndefined");
-        var mock = new FunctionMockSequence("foo");
+        final var aVal = Val.of("returnValueUndefined");
+        final var mock = new FunctionMockSequence("foo");
         mock.loadMockReturnValue(seq);
         assertThat(mock.evaluateFunctionCall(Val.of("do"))).isEqualTo(seq[0]);
         assertThat(mock.evaluateFunctionCall(Val.of("not"))).isEqualTo(seq[1]);
@@ -51,7 +51,7 @@ class FunctionMockSequenceTests {
 
     @Test
     void test_tooFewCalls() {
-        var mock = new FunctionMockSequence("foo");
+        final var mock = new FunctionMockSequence("foo");
         mock.loadMockReturnValue(seq);
         assertThat(mock.evaluateFunctionCall(Val.of("do"))).isEqualTo(seq[0]);
         assertThat(mock.evaluateFunctionCall(Val.of("not"))).isEqualTo(seq[1]);
@@ -61,7 +61,7 @@ class FunctionMockSequenceTests {
 
     @Test
     void test_errorMessage() {
-        var mock = new FunctionMockSequence("foo");
+        final var mock = new FunctionMockSequence("foo");
         assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
     }
 

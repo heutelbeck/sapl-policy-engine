@@ -44,12 +44,12 @@ class EPolicyStreamingTests {
 
     @Test
     void test_streamingPolicy() {
-        var timestamp0 = Val.of("2021-02-08T16:16:01.000Z");
-        var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");
-        var timestamp2 = Val.of("2021-02-08T16:16:03.000Z");
-        var timestamp3 = Val.of("2021-02-08T16:16:04.000Z");
-        var timestamp4 = Val.of("2021-02-08T16:16:05.000Z");
-        var timestamp5 = Val.of("2021-02-08T16:16:06.000Z");
+        final var timestamp0 = Val.of("2021-02-08T16:16:01.000Z");
+        final var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");
+        final var timestamp2 = Val.of("2021-02-08T16:16:03.000Z");
+        final var timestamp3 = Val.of("2021-02-08T16:16:04.000Z");
+        final var timestamp4 = Val.of("2021-02-08T16:16:05.000Z");
+        final var timestamp5 = Val.of("2021-02-08T16:16:06.000Z");
 
         fixture.constructTestCaseWithMocks()
                 .givenAttribute("time.now", timestamp0, timestamp1, timestamp2, timestamp3, timestamp4, timestamp5)
@@ -60,12 +60,12 @@ class EPolicyStreamingTests {
 
     @Test
     void test_streamingPolicy_TimingAttributeMock() {
-        var timestamp0 = Val.of("2021-02-08T16:16:01.000Z");
-        var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");
-        var timestamp2 = Val.of("2021-02-08T16:16:03.000Z");
-        var timestamp3 = Val.of("2021-02-08T16:16:04.000Z");
-        var timestamp4 = Val.of("2021-02-08T16:16:05.000Z");
-        var timestamp5 = Val.of("2021-02-08T16:16:06.000Z");
+        final var timestamp0 = Val.of("2021-02-08T16:16:01.000Z");
+        final var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");
+        final var timestamp2 = Val.of("2021-02-08T16:16:03.000Z");
+        final var timestamp3 = Val.of("2021-02-08T16:16:04.000Z");
+        final var timestamp4 = Val.of("2021-02-08T16:16:05.000Z");
+        final var timestamp5 = Val.of("2021-02-08T16:16:06.000Z");
 
         fixture.constructTestCaseWithMocks().withVirtualTime()
                 .givenAttribute("time.now", Duration.ofSeconds(10), timestamp0, timestamp1, timestamp2, timestamp3,
@@ -80,14 +80,14 @@ class EPolicyStreamingTests {
 
     @Test
     void test_streamingPolicy_TimingAttributeMock_WithoutVirtualTime() {
-        var timestamp0       = Val.of("2021-02-08T16:16:01.000Z");
-        var timestamp1       = Val.of("2021-02-08T16:16:02.000Z");
-        var timestamp2       = Val.of("2021-02-08T16:16:03.000Z");
-        var timestamp3       = Val.of("2021-02-08T16:16:04.000Z");
-        var timestamp4       = Val.of("2021-02-08T16:16:05.000Z");
-        var timestamp5       = Val.of("2021-02-08T16:16:06.000Z");
-        var tenSeconds       = Duration.ofSeconds(10L);
-        var fixtureWithMocks = fixture.constructTestCaseWithMocks();
+        final var timestamp0       = Val.of("2021-02-08T16:16:01.000Z");
+        final var timestamp1       = Val.of("2021-02-08T16:16:02.000Z");
+        final var timestamp2       = Val.of("2021-02-08T16:16:03.000Z");
+        final var timestamp3       = Val.of("2021-02-08T16:16:04.000Z");
+        final var timestamp4       = Val.of("2021-02-08T16:16:05.000Z");
+        final var timestamp5       = Val.of("2021-02-08T16:16:06.000Z");
+        final var tenSeconds       = Duration.ofSeconds(10L);
+        final var fixtureWithMocks = fixture.constructTestCaseWithMocks();
         Assertions.assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> fixtureWithMocks.givenAttribute("time.now", tenSeconds, timestamp0, timestamp1,
                         timestamp2, timestamp3, timestamp4, timestamp5));
@@ -96,8 +96,8 @@ class EPolicyStreamingTests {
 
     @Test
     void test_streamingPolicyWithSimpleMockedFunction_ConsecutiveCalls() {
-        var timestamp0 = Val.of("2021-02-08T16:16:01.000Z");
-        var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");
+        final var timestamp0 = Val.of("2021-02-08T16:16:01.000Z");
+        final var timestamp1 = Val.of("2021-02-08T16:16:02.000Z");
 
         fixture.constructTestCaseWithMocks().givenAttribute("time.now", timestamp0, timestamp1)
                 .givenFunctionOnce("time.secondOf", Val.of(4)).givenFunctionOnce("time.secondOf", Val.of(5))

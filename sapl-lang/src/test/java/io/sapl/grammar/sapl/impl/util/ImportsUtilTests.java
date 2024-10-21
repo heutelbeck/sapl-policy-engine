@@ -33,7 +33,8 @@ class ImportsUtilTests {
     @Test
     @SuppressWarnings("unchecked")
     void nullReturnsEmptyImportMap() {
-        var ctx = Context.of("attributeCtx", mock(AttributeContext.class), "functionCtx", mock(FunctionContext.class));
+        final var ctx = Context.of("attributeCtx", mock(AttributeContext.class), "functionCtx",
+                mock(FunctionContext.class));
         assertThat((Map<String, Object>) ImportsUtil.loadImportsIntoContext(null, ctx).get("imports")).isEmpty();
     }
 

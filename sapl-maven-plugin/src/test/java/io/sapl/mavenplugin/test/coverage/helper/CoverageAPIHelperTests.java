@@ -32,14 +32,14 @@ class CoverageAPIHelperTests {
 
     @Test
     void test(@TempDir Path tempDir) throws IOException {
-        var helper = new CoverageAPIHelper();
-        var writer = CoverageAPIFactory.constructCoverageHitRecorder(tempDir);
+        final var helper = new CoverageAPIHelper();
+        final var writer = CoverageAPIFactory.constructCoverageHitRecorder(tempDir);
 
-        var hits1 = helper.readHits(tempDir);
+        final var hits1 = helper.readHits(tempDir);
         assertEquals(0, hits1.getPolicySets().size());
 
         writer.recordPolicySetHit(new PolicySetHit("testSet"));
-        var hits2 = helper.readHits(tempDir);
+        final var hits2 = helper.readHits(tempDir);
         assertEquals(1, hits2.getPolicySets().size());
     }
 

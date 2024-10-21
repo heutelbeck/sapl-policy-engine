@@ -36,10 +36,10 @@ public class NotEqualsImplCustom extends NotEqualsImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, this, this::notEqual);
+        return operator(this, this, NotEqualsImplCustom::notEqual);
     }
 
-    private Val notEqual(Val left, Val right) {
+    public static Val notEqual(Val left, Val right) {
         return Val.notEqual(left, right).withTrace(NotEquals.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 

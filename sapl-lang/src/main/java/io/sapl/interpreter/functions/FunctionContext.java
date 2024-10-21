@@ -26,6 +26,7 @@ import org.eclipse.emf.ecore.EObject;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.functions.AnnotationFunctionContext.FunctionMetadata;
 import io.sapl.interpreter.pip.LibraryFunctionProvider;
 
 public interface FunctionContext extends LibraryFunctionProvider {
@@ -40,4 +41,5 @@ public interface FunctionContext extends LibraryFunctionProvider {
 
     Map<String, JsonNode> getFunctionSchemas();
 
+    Collection<FunctionMetadata> getFunctionMetatata();
 }

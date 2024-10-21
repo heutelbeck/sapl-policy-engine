@@ -52,7 +52,7 @@ class MongoReactiveRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> UserReactiveMongoRepository.class);
 
-        var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
+        final var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
                 mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
 
         // WHEN
@@ -70,7 +70,7 @@ class MongoReactiveRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> MethodInvocationForTesting.class);
 
-        var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
+        final var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
                 mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
 
         // WHEN
@@ -88,7 +88,7 @@ class MongoReactiveRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> UserReactiveCrudRepository.class);
 
-        var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
+        final var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
                 mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
 
         // WHEN
@@ -106,7 +106,7 @@ class MongoReactiveRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> UserReactiveSortingRepository.class);
 
-        var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
+        final var postProcessor = new MongoReactiveRepositoryProxyPostProcessor<TestUser>(
                 mongoReactivePolicyEnforcementPointMock, repositoryInformationCollectorServiceMock);
 
         // WHEN

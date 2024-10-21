@@ -106,7 +106,7 @@ class RemoteHttpPolicyDecisionPointTests {
         prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.NOT_APPLICABLE, null,
                 AuthorizationDecision.PERMIT });
 
-        var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+        final var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
@@ -117,17 +117,17 @@ class RemoteHttpPolicyDecisionPointTests {
 
     @Test
     void whenSubscribingMultiDecideAll_thenGetResults() throws JsonProcessingException {
-        var decision1 = new MultiAuthorizationDecision();
+        final var decision1 = new MultiAuthorizationDecision();
         decision1.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.PERMIT);
-        var decision2 = new MultiAuthorizationDecision();
+        final var decision2 = new MultiAuthorizationDecision();
         decision2.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.DENY);
-        var indeterminate = MultiAuthorizationDecision.indeterminate();
+        final var indeterminate = MultiAuthorizationDecision.indeterminate();
 
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
 
-        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
-                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        final var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decideAll(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
@@ -135,15 +135,15 @@ class RemoteHttpPolicyDecisionPointTests {
 
     @Test
     void whenSubscribingMultiDecide_thenGetResults() throws JsonProcessingException {
-        var decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
-        var decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
-        var indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
+        final var decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
+        final var decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
+        final var indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
 
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
 
-        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
-                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        final var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
@@ -159,7 +159,7 @@ class RemoteHttpPolicyDecisionPointTests {
                 body.append("data: ").append(MAPPER.writeValueAsString(decision)).append("\n\n");
             }
         }
-        var response = new MockResponse()
+        final var response = new MockResponse()
                 .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_EVENT_STREAM_VALUE /* .APPLICATION_NDJSON_VALUE */)
                 .setResponseCode(HttpStatus.OK.value()).setBody(body.toString());
         server.enqueue(response);
@@ -167,22 +167,23 @@ class RemoteHttpPolicyDecisionPointTests {
 
     @Test
     void construct() {
-        var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void constructWithSslContext() throws SSLException {
-        var sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-        var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        final var sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build();
+        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").secure(sslContext).build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void settersAndGetters() {
-        var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
+        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").build();
         pdpUnderTest.setBackoffFactor(999);
         pdpUnderTest.setFirstBackoffMillis(998);

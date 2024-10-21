@@ -24,10 +24,21 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.api.functions.Function;
+import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.InitializationException;
+import lombok.experimental.UtilityClass;
 
 class PolicyDecisionPointFactoryTests {
+    @UtilityClass
+    @FunctionLibrary(name = "lib")
+    public static class TestFunLib {
+        @Function
+        public Val person(Val name, Val nationality, Val age) {
+            return Val.UNDEFINED;
+        }
+    }
 
     @Test
     void test_factory_methods() throws InitializationException {
@@ -36,10 +47,8 @@ class PolicyDecisionPointFactoryTests {
                 notNullValue());
         assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/main/resources/policies",
                 () -> List.of(new TestPIP()), List::of, List::of, List::of), notNullValue());
-
         assertThat(PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(() -> List.of(new TestPIP()), List::of,
-                List::of, () -> List.of(FilterFunctionLibrary.class)), notNullValue());
-
+                List::of, () -> List.of(TestFunLib.class)), notNullValue());
         assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(), notNullValue());
         assertThat(PolicyDecisionPointFactory.resourcesPolicyDecisionPoint(() -> List.of(new TestPIP()), List::of,
                 List::of, List::of), notNullValue());

@@ -53,9 +53,9 @@ public class FileMonitorUtil {
 
     public static Flux<FileEvent> monitorDirectory(final Path watchDir, final FileFilter fileFilter) {
         return Flux.push(emitter -> {
-            var adaptor  = new FileEventAdaptor(emitter);
-            var monitor  = new FileAlterationMonitor(POLL_INTERVAL_IN_MS);
-            var observer = new FileAlterationObserver(watchDir.toFile(), fileFilter);
+            final var adaptor  = new FileEventAdaptor(emitter);
+            final var monitor  = new FileAlterationMonitor(POLL_INTERVAL_IN_MS);
+            final var observer = new FileAlterationObserver(watchDir.toFile(), fileFilter);
             monitor.addObserver(observer);
             observer.addListener(adaptor);
             emitter.onDispose(() -> {
@@ -75,7 +75,7 @@ public class FileMonitorUtil {
     }
 
     public static List<Path> findSaplDocuments(String rawPath) throws IOException {
-        var path = Paths.get(rawPath);
+        final var path = Paths.get(rawPath);
         return findSaplDocuments(path);
     }
 

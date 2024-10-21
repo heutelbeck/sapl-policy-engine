@@ -111,7 +111,7 @@ public class HttpPolicyInformationPoint {
 
     private Val withBaseUrl(Val baseUrl, Val requestSettings) {
         // unchecked cast is OK, @JsonObject => requestSettings is non-null ObjectNode
-        var newSettings = (ObjectNode) requestSettings.get().deepCopy();
+        final var newSettings = (ObjectNode) requestSettings.get().deepCopy();
         newSettings.set(ReactiveWebClient.BASE_URL, baseUrl.get());
         return Val.of(newSettings);
     }

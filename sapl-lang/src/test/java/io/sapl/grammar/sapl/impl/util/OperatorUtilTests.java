@@ -27,16 +27,16 @@ class OperatorUtilTests {
 
     @Test
     void requireBoolean() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(OperatorUtil.requireBoolean(null, Val.TRUE)).isEqualTo(Val.TRUE);
-        var value = OperatorUtil.requireBoolean(null, Val.UNDEFINED);
+        final var value = OperatorUtil.requireBoolean(null, Val.UNDEFINED);
         sa.assertThat(value.isError()).isTrue();
         sa.assertAll();
     }
 
     @Test
     void requireJsonNode() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(OperatorUtil.requireJsonNode(null, Val.TRUE)).isEqualTo(Val.TRUE);
         sa.assertThat(OperatorUtil.requireJsonNode(null, Val.error(SaplError.UNKNOWN_ERROR)).isError()).isTrue();
         sa.assertThat(OperatorUtil.requireJsonNode(null, Val.UNDEFINED).isError()).isTrue();
@@ -45,7 +45,7 @@ class OperatorUtilTests {
 
     @Test
     void requireArrayNode() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(OperatorUtil.requireArrayNode(null, Val.ofEmptyArray())).isEqualTo(Val.ofEmptyArray());
         sa.assertThat(OperatorUtil.requireArrayNode(null, Val.of(1)).isError()).isTrue();
         sa.assertThat(OperatorUtil.requireArrayNode(null, Val.error(SaplError.UNKNOWN_ERROR)).isError()).isTrue();
@@ -55,7 +55,7 @@ class OperatorUtilTests {
 
     @Test
     void requireObjectNode() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(OperatorUtil.requireObjectNode(null, Val.ofEmptyObject())).isEqualTo(Val.ofEmptyObject());
         sa.assertThat(OperatorUtil.requireObjectNode(null, Val.of(1)).isError()).isTrue();
         sa.assertThat(OperatorUtil.requireObjectNode(null, Val.error(SaplError.UNKNOWN_ERROR)).isError()).isTrue();
@@ -65,7 +65,7 @@ class OperatorUtilTests {
 
     @Test
     void requireText() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(OperatorUtil.requireText(null, Val.of(""))).isEqualTo(Val.of(""));
         sa.assertThat(OperatorUtil.requireText(null, Val.of(1)).isError()).isTrue();
         sa.assertThat(OperatorUtil.requireText(null, Val.error(SaplError.UNKNOWN_ERROR)).isError()).isTrue();
@@ -75,7 +75,7 @@ class OperatorUtilTests {
 
     @Test
     void requireNumber() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(OperatorUtil.requireNumber(null, Val.of(1))).isEqualTo(Val.of(1));
         sa.assertThat(OperatorUtil.requireNumber(null, Val.of(1)).isError()).isFalse();
         sa.assertThat(OperatorUtil.requireNumber(null, Val.of("")).isError()).isTrue();

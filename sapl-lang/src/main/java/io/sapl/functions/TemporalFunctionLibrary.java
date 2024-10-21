@@ -151,9 +151,9 @@ public class TemporalFunctionLibrary {
 
     @Function(docs = BETWEEN_DOC)
     public static Val between(@Text Val time, @Text Val intervalStart, @Text Val intervalEnd) {
-        var t     = instantOf(time);
-        var start = instantOf(intervalStart);
-        var end   = instantOf(intervalEnd);
+        final var t     = instantOf(time);
+        final var start = instantOf(intervalStart);
+        final var end   = instantOf(intervalEnd);
 
         if (t.equals(start))
             return Val.TRUE;
@@ -165,14 +165,14 @@ public class TemporalFunctionLibrary {
 
     @Function(docs = TIME_BETWEEN_DOC)
     public static Val timeBetween(@Text Val timeA, @Text Val timeB, @Text Val chronoUnit) {
-        var unit        = ChronoUnit.valueOf(chronoUnit.getText().toUpperCase());
-        var instantFrom = instantOf(timeA);
-        var instantTo   = instantOf(timeB);
+        final var unit        = ChronoUnit.valueOf(chronoUnit.getText().toUpperCase());
+        final var instantFrom = instantOf(timeA);
+        final var instantTo   = instantOf(timeB);
         try {
             return Val.of(unit.between(instantFrom, instantTo));
         } catch (UnsupportedTemporalTypeException e) {
-            var dateFrom = LocalDate.ofInstant(instantFrom, ZoneId.systemDefault());
-            var dateTo   = LocalDate.ofInstant(instantTo, ZoneId.systemDefault());
+            final var dateFrom = LocalDate.ofInstant(instantFrom, ZoneId.systemDefault());
+            final var dateTo   = LocalDate.ofInstant(instantTo, ZoneId.systemDefault());
             return Val.of(unit.between(dateFrom, dateTo));
         }
     }
@@ -279,23 +279,23 @@ public class TemporalFunctionLibrary {
 
     @Function(docs = "Parses the given string as local date time (ISO) and converts it from the given offset to the respective time in UTC.")
     public static Val dateTimeAtOffset(@Text Val localDateTime, @Text Val offsetId) {
-        var ldt = DateTimeFormatter.ISO_LOCAL_DATE_TIME.parse(localDateTime.getText(), LocalDateTime::from);
-        var odt = OffsetDateTime.of(ldt, ZoneOffset.of(offsetId.getText()));
+        final var ldt = DateTimeFormatter.ISO_LOCAL_DATE_TIME.parse(localDateTime.getText(), LocalDateTime::from);
+        final var odt = OffsetDateTime.of(ldt, ZoneOffset.of(offsetId.getText()));
 
         return Val.of(odt.withOffsetSameInstant(ZoneOffset.UTC).toInstant().toString());
     }
 
     @Function(docs = "Parses the given string as local date time (ISO) and converts it from the given time zone to the respective time in UTC.")
     public static Val dateTimeAtZone(@Text Val localDateTime, @Text Val zoneId) {
-        var ldt = DateTimeFormatter.ISO_LOCAL_DATE_TIME.parse(localDateTime.getText(), LocalDateTime::from);
-        var zdt = ZonedDateTime.of(ldt, zoneIdOf(zoneId));
+        final var ldt = DateTimeFormatter.ISO_LOCAL_DATE_TIME.parse(localDateTime.getText(), LocalDateTime::from);
+        final var zdt = ZonedDateTime.of(ldt, zoneIdOf(zoneId));
 
         return Val.of(zdt.withZoneSameInstant(ZoneId.of("UTC")).toInstant().toString());
     }
 
     @Function(docs = "Parses the given string as an ISO date time with offset and converts it to the respective date time in UTC.")
     public static Val offsetDateTime(@Text Val isoDateTime) {
-        var offsetDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.getText(), OffsetDateTime::from);
+        final var offsetDateTime = DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.getText(), OffsetDateTime::from);
         return Val.of(offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC).toInstant().toString());
     }
 
@@ -310,13 +310,13 @@ public class TemporalFunctionLibrary {
     @Function(docs = "Parses the given string as local time at the given offset and converts it to the respective time in UTC.")
     public static Val timeAtOffset(@Text Val localTime, @Text Val offsetId) {
         LocalTime lt     = DateTimeFormatter.ISO_LOCAL_TIME.parse(localTime.getText(), LocalTime::from);
-        var       offset = ZoneOffset.of(offsetId.getText());
+        final var offset = ZoneOffset.of(offsetId.getText());
         return Val.of(OffsetTime.of(lt, offset).withOffsetSameInstant(ZoneOffset.UTC).toLocalTime().toString());
     }
 
     @Function(docs = "Parses the given string as local time in the given zone and converts it to the respective time in UTC.")
     public static Val timeInZone(@Text Val localTime, @Text Val localDate, @Text Val zoneId) {
-        var       zone = zoneIdOf(zoneId);
+        final var zone = zoneIdOf(zoneId);
         LocalTime lt   = DateTimeFormatter.ISO_LOCAL_TIME.parse(localTime.getText(), LocalTime::from);
 
         ZonedDateTime zonedDateTime = ZonedDateTime.of(lt.atDate(LocalDate.parse(localDate.getText())), zone);
@@ -360,7 +360,7 @@ public class TemporalFunctionLibrary {
     }
 
     private static Instant instantOf(Val time) {
-        var text = time.getText();
+        final var text = time.getText();
         try {
             return Instant.parse(text);
         } catch (DateTimeParseException e) {
@@ -369,7 +369,7 @@ public class TemporalFunctionLibrary {
     }
 
     private static ZoneId zoneIdOf(Val zone) {
-        var zoneIdStr = zone.getText().trim();
+        final var zoneIdStr = zone.getText().trim();
         if (zoneIdStr.isBlank())
             return ZoneId.systemDefault();
 

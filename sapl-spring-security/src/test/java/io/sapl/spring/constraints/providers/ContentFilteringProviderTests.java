@@ -48,35 +48,35 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_getSupportedType_then_isObject() {
-        var sut = new ContentFilteringProvider(MAPPER);
+        final var sut = new ContentFilteringProvider(MAPPER);
         assertThat(sut.getSupportedType(), is(Object.class));
     }
 
     @Test
     void when_constraintIsNull_then_notResponsible() {
-        var      sut        = new ContentFilteringProvider(MAPPER);
-        JsonNode constraint = null;
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        JsonNode  constraint = null;
         assertThat(sut.isResponsible(constraint), is(false));
     }
 
     @Test
     void when_constraintNonObject_then_notResponsible() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("123");
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("123");
         assertThat(sut.isResponsible(constraint), is(false));
     }
 
     @Test
     void when_constraintNoType_then_notResponsible() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("{ }");
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("{ }");
         assertThat(sut.isResponsible(constraint), is(false));
     }
 
     @Test
     void when_constraintTypeNonTextual_then_notResponsible() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type" : 123
                 }
@@ -86,8 +86,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_constraintWrongType_then_notResponsible() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type" : "unrelatedType"
                 }
@@ -97,8 +97,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_constraintTypeCorrect_then_isResponsible() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type" : "filterJsonContent"
                 }
@@ -108,14 +108,14 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_noActionsSpecified_then_isIdentity() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type" : "filterJsonContent"
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1"
                 }
@@ -125,15 +125,15 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_noActionType_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [ { "path" : "$.key1"} ]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -144,15 +144,15 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_noActionPath_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                   	"actions" : [ { "type" : "delete" } ]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -163,15 +163,15 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_actionNotAnObject_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type" : "filterJsonContent",
                 	"actions" : [ 123 ]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -182,15 +182,15 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_actionsNotAnArray_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : 123
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -201,8 +201,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_actionPathNotTextual_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [ {
@@ -211,8 +211,8 @@ class ContentFilteringProviderTests {
                 				  } ]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -223,8 +223,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_actionTypeNotTextual_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [ {
@@ -233,8 +233,8 @@ class ContentFilteringProviderTests {
                 				  } ]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -245,8 +245,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_unknownAction_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [ {
@@ -255,8 +255,8 @@ class ContentFilteringProviderTests {
                 				  } ]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -267,8 +267,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_blackenHasNonTextualReplacement_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -280,8 +280,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -292,8 +292,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_blackenTargetsNonTextualNode_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -304,8 +304,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : 123,
                 	"key2" : "value2"
@@ -316,8 +316,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_blackenDiscloseRightNonInteger_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -331,8 +331,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -343,8 +343,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_blackenDiscloseLeftNonInteger_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -358,8 +358,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -370,8 +370,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_blacken_then_textIsBlackened() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -385,8 +385,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -397,8 +397,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_blackenWithDefinedLengthAndNegativeInteger_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -413,8 +413,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -426,8 +426,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_blackenWithDefinedLengthAndStringValue_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -442,8 +442,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -455,8 +455,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_blackenWithDefinedLength_then_textIsBlackened() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -471,8 +471,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -483,8 +483,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_multipleActions_then_allAreExecuted() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -502,8 +502,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -515,8 +515,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_blackenWithDefaultReplacement_then_textIsBlackened() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -529,8 +529,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -541,8 +541,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_stringToBlackenIsShorterThanDisclosedRange_then_textDoesNotChange() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -555,8 +555,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -567,8 +567,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_blackenWithNoParameters_then_textIsBlackenedNoCharsDisclosed() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -579,8 +579,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -591,8 +591,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_deleteActionSpecified_then_dataIsRemovedFromJson() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -603,14 +603,14 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
                 }
                 """);
-        var expected   = MAPPER.readTree("""
+        final var expected   = MAPPER.readTree("""
                 {
                 	"key2" : "value2"
                 }
@@ -621,8 +621,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_pathNotExisting_then_AccessDeniedException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -633,8 +633,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -645,8 +645,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_malformedConditionNotObject_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -663,8 +663,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_malformedConditionNoPath_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -681,8 +681,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_malformedConditionGEQNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -705,8 +705,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_malformedConditionLeqNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -729,8 +729,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_malformedConditionLtNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -753,8 +753,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_malformedConditionGtNotANumber_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -778,8 +778,8 @@ class ContentFilteringProviderTests {
     @Test
     void when_malformedConditionEqNotNumberOrText_then_AccessConstraintViolationException()
             throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -802,8 +802,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_malformedConditionRegexNotText_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -826,15 +826,15 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_constraintNull_then_AccessConstraintViolationException() {
-        var sut = new ContentFilteringProvider(MAPPER);
+        final var sut = new ContentFilteringProvider(MAPPER);
         assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(null));
     }
 
     @Test
     void when_malformedConditionTypeNonTextual_then_AccessConstraintViolationException()
             throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -857,16 +857,16 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_malformedConstraintNonObject_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("123");
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("123");
         assertThrows(AccessConstraintViolationException.class, () -> sut.getHandler(constraint));
     }
 
     @Test
     void when_malformedConstraintConditionsNotArray_then_AccessConstraintViolationException()
             throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -884,8 +884,8 @@ class ContentFilteringProviderTests {
     @Test
     void when_malformedConstraintConditionsEmpty_then_actionAppliedAndConditionAlwaysTrue()
             throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -897,14 +897,14 @@ class ContentFilteringProviderTests {
                 	"conditions" : [ ]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
                 }
                 """);
-        var expected   = MAPPER.readTree("""
+        final var expected   = MAPPER.readTree("""
                 {
                 	"key2" : "value2"
                 }
@@ -915,8 +915,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_malformedConditionTypeUnknown_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -939,8 +939,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_malformedConditionValueMissing_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -963,8 +963,8 @@ class ContentFilteringProviderTests {
     @Test
     void when_malformedConditionPathValueMissing_then_AccessConstraintViolationException()
             throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -986,8 +986,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_malformedConditionTypeMissing_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1010,8 +1010,8 @@ class ContentFilteringProviderTests {
     @Test
     void when_malformedConditionPathNonTextual_then_AccessConstraintViolationException()
             throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1034,8 +1034,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_predicatePathNotExisting_then_AccessConstraintViolationException() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1053,8 +1053,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -1065,8 +1065,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_predicateNotMatching_then_noModification() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1084,8 +1084,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -1096,8 +1096,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesNull_handlerReturnsNull() throws JsonProcessingException {
-        var    sut        = new ContentFilteringProvider(MAPPER);
-        var    constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1108,16 +1108,16 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var    handler    = sut.getHandler(constraint);
-        Object original   = null;
-        Object expected   = null;
+        final var handler    = sut.getHandler(constraint);
+        Object    original   = null;
+        Object    expected   = null;
         assertThat(handler.apply(original), is(expected));
     }
 
     @Test
     void when_handlerHandlesOptional_handlerReturnsModifiedOptional() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1128,14 +1128,14 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = Optional.ofNullable(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = Optional.ofNullable(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
                 }
                 """));
-        var expected   = Optional.ofNullable(MAPPER.readTree("""
+        final var expected   = Optional.ofNullable(MAPPER.readTree("""
                 {
                 	"key2" : "value2"
                 }
@@ -1145,8 +1145,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesList_handlerReturnsModifiedListContents() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1157,14 +1157,14 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
                 }
                 """));
-        var expected   = List.of(MAPPER.readTree("""
+        final var expected   = List.of(MAPPER.readTree("""
                 {
                 	"key2" : "value2"
                 }
@@ -1174,8 +1174,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesListMultipleConditions_handlerReturnsModifiedListContents() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1197,8 +1197,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2",
@@ -1211,7 +1211,7 @@ class ContentFilteringProviderTests {
                 	"key3" : "value3"
                 }
                 """));
-        var expected   = List.of(MAPPER.readTree("""
+        final var expected   = List.of(MAPPER.readTree("""
                 {
                 	"key2" : "value2",
                 	"key3" : "value3"
@@ -1227,8 +1227,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesListEqNumberDataNotNumber_handlerNoModification() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1246,8 +1246,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2",
@@ -1265,8 +1265,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerNumEq_handlerModifiedMatching() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1284,8 +1284,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1298,7 +1298,7 @@ class ContentFilteringProviderTests {
                 	"key3" : "value3"
                 }
                 """));
-        var expected   = List.of(MAPPER.readTree("""
+        final var expected   = List.of(MAPPER.readTree("""
                 {
                 	"key2" : 2,
                 	"key3" : "value3"
@@ -1316,8 +1316,8 @@ class ContentFilteringProviderTests {
     @Test
     void when_handlerHandlesListMultipleConditionsAndOnlyOneHoldsInverted_noModifications()
             throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1339,8 +1339,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2",
@@ -1358,8 +1358,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesListMultipleConditionsAndOnlyOneHolds_noModifications() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1381,8 +1381,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2",
@@ -1400,8 +1400,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesListNumberAndTextComparisons_makeModifications() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1423,8 +1423,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1437,7 +1437,7 @@ class ContentFilteringProviderTests {
                 	"key3" : 3
                 }
                 """));
-        var expected   = List.of(MAPPER.readTree("""
+        final var expected   = List.of(MAPPER.readTree("""
                 {
                 	"key2" : 2,
                 	"key3" : 3
@@ -1453,8 +1453,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesListNumberAndNeqCondition_makeModificationsAtMatch() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1472,8 +1472,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1486,7 +1486,7 @@ class ContentFilteringProviderTests {
                 	"key3" : 3
                 }
                 """));
-        var expected   = List.of(MAPPER.readTree("""
+        final var expected   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1503,8 +1503,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesListNumberAndEqCondition_makeModificationsAtMatch() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1522,8 +1522,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1536,7 +1536,7 @@ class ContentFilteringProviderTests {
                 	"key3" : 3
                 }
                 """));
-        var expected   = List.of(MAPPER.readTree("""
+        final var expected   = List.of(MAPPER.readTree("""
                 {
                 	"key2" : 2,
                 	"key3" : 3
@@ -1553,8 +1553,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesListNumberAndRegexCondition_makeModificationsAtMatch() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1572,8 +1572,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1586,7 +1586,7 @@ class ContentFilteringProviderTests {
                 	"key3" : 3
                 }
                 """));
-        var expected   = List.of(MAPPER.readTree("""
+        final var expected   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1604,8 +1604,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesGeqCondition_makeModificationsAtMatch() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1623,8 +1623,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1649,7 +1649,7 @@ class ContentFilteringProviderTests {
                 	"key3" : 4
                 }
                 """));
-        var expected   = List.of(MAPPER.readTree("""
+        final var expected   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1677,8 +1677,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesLeqCondition_makeModificationsAtMatch() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1696,8 +1696,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1722,7 +1722,7 @@ class ContentFilteringProviderTests {
                 	"key3" : 4
                 }
                 """));
-        var expected   = List.of(MAPPER.readTree("""
+        final var expected   = List.of(MAPPER.readTree("""
                 {
                 	"key2" : 2,
                 	"key3" : 1
@@ -1750,8 +1750,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesLtCondition_makeModificationsAtMatch() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1769,8 +1769,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1795,7 +1795,7 @@ class ContentFilteringProviderTests {
                 	"key3" : 4
                 }
                 """));
-        var expected   = List.of(MAPPER.readTree("""
+        final var expected   = List.of(MAPPER.readTree("""
                 {
                 	"key2" : 2,
                 	"key3" : 1
@@ -1824,8 +1824,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesGtCondition_makeModificationsAtMatch() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1843,8 +1843,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = List.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1869,7 +1869,7 @@ class ContentFilteringProviderTests {
                 	"key3" : 4
                 }
                 """));
-        var expected   = List.of(MAPPER.readTree("""
+        final var expected   = List.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : 2,
@@ -1898,8 +1898,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesSet_handlerReturnsModifiedSetContents() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1910,14 +1910,14 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = Set.of(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = Set.of(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
                 }
                 """));
-        var expected   = Set.of(MAPPER.readTree("""
+        final var expected   = Set.of(MAPPER.readTree("""
                 {
                 	"key2" : "value2"
                 }
@@ -1927,8 +1927,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_handlerHandlesArray_handlerReturnsModifiedArrayContents() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1939,14 +1939,14 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = new JsonNode[] { MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = new JsonNode[] { MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
                 }
                 """) };
-        var expected   = new JsonNode[] { MAPPER.readTree("""
+        final var expected   = new JsonNode[] { MAPPER.readTree("""
                 {
                 	"key2" : "value2"
                 }
@@ -1957,8 +1957,8 @@ class ContentFilteringProviderTests {
     @Test
     @SuppressWarnings("unchecked")
     void when_handlerHandlesMono_handlerModifiesMonoEvent() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1969,14 +1969,14 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = Mono.just(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = Mono.just(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
                 }
                 """));
-        var expected   = MAPPER.readTree("""
+        final var expected   = MAPPER.readTree("""
                 {
                 	"key2" : "value2"
                 }
@@ -1987,8 +1987,8 @@ class ContentFilteringProviderTests {
     @Test
     @SuppressWarnings("unchecked")
     void when_handlerHandlesFlux_handlerModifiesFluxEvents() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -1999,14 +1999,14 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = Flux.just(MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = Flux.just(MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
                 }
                 """));
-        var expected   = MAPPER.readTree("""
+        final var expected   = MAPPER.readTree("""
                 {
                 	"key2" : "value2"
                 }
@@ -2016,8 +2016,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_replaceActionHasNoReplacement_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -2028,8 +2028,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -2040,8 +2040,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_replaceActionSpecified_then_dataIsReplaced() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -2056,14 +2056,14 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
                 }
                 """);
-        var expected   = MAPPER.readTree("""
+        final var expected   = MAPPER.readTree("""
                 {
                 	"key1"  : {
                 		"I"        : "am",
@@ -2077,8 +2077,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_replaceInMap_then_dataIsReplaced() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -2090,9 +2090,9 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = Map.of("key1", "value1", "key2", "value2");
-        var expected   = Map.of("key1", "replaced", "key2", "value2");
+        final var handler    = sut.getHandler(constraint);
+        final var original   = Map.of("key1", "value1", "key2", "value2");
+        final var expected   = Map.of("key1", "replaced", "key2", "value2");
         assertThat(handler.apply(original), is(expected));
     }
 
@@ -2106,8 +2106,8 @@ class ContentFilteringProviderTests {
 
     @Test
     void when_replaceInPoJo_then_dataIsReplaced() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -2119,17 +2119,17 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = new Person("Bob", 32);
-        var expected   = new Person("Alice", 32);
-        var actual     = handler.apply(original);
+        final var handler    = sut.getHandler(constraint);
+        final var original   = new Person("Bob", 32);
+        final var expected   = new Person("Alice", 32);
+        final var actual     = handler.apply(original);
         assertThat(actual, is(expected));
     }
 
     @Test
     void when_replaceInPoJoAndMarshallingFails_then_Error() throws JsonProcessingException {
-        var sut        = new ContentFilteringProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -2141,8 +2141,8 @@ class ContentFilteringProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = new Person("Bob", 32);
+        final var handler    = sut.getHandler(constraint);
+        final var original   = new Person("Bob", 32);
         assertThrows(RuntimeException.class, () -> handler.apply(original));
     }
 

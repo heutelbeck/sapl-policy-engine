@@ -77,7 +77,7 @@ public class LibrariesDocumentationView extends VerticalLayout {
         functionLibsGrid.setWidthFull();
         functionLibsGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
         showCurrentFunctionLibLayout.add(descriptionOfCurrentFunctionLibDiv, functionsOfCurrentFunctionLibGrid);
-        var functionsLayout = new SplitLayout(functionLibsGrid, showCurrentFunctionLibLayout);
+        final var functionsLayout = new SplitLayout(functionLibsGrid, showCurrentFunctionLibLayout);
         functionsLayout.setWidthFull();
         add(functionsLayout);
 
@@ -85,7 +85,7 @@ public class LibrariesDocumentationView extends VerticalLayout {
         pipsGrid.setWidthFull();
         pipsGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
         showCurrentPipLayout.add(descriptionOfCurrentPipDiv, functionsOfCurrentPipGrid);
-        var pipsLayout = new SplitLayout(pipsGrid, showCurrentPipLayout);
+        final var pipsLayout = new SplitLayout(pipsGrid, showCurrentPipLayout);
         pipsLayout.setWidthFull();
         add(pipsLayout);
 
@@ -126,9 +126,9 @@ public class LibrariesDocumentationView extends VerticalLayout {
 
                 descriptionOfCurrentFunctionLibDiv.setText(selectedFunctionLib.getDescription());
 
-                var                                               documentation                                    = selectedFunctionLib
+                final var                                         documentation                                    = selectedFunctionLib
                         .getDocumentation();
-                var                                               documentationAsEntrySet                          = documentation
+                final var                                         documentationAsEntrySet                          = documentation
                         .entrySet();
                 CallbackDataProvider<Entry<String, String>, Void> dataProviderForFunctionsOfCurrentFunctionLibGrid = DataProvider
                         .fromCallbacks(query -> {

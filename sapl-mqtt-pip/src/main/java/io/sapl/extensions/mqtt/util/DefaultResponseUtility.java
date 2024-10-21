@@ -56,9 +56,9 @@ public class DefaultResponseUtility {
      */
     public static DefaultResponseConfig getDefaultResponseConfig(JsonNode pipMqttClientConfig, Val pipConfigParams) {
         // broker config from attribute finder or broker config in pdp.json
-        var mqttBrokerConfig       = getMqttBrokerConfig(pipMqttClientConfig, pipConfigParams);
-        var defaultResponseType    = getDefaultResponseType(pipMqttClientConfig, mqttBrokerConfig);
-        var defaultResponseTimeout = getDefaultResponseTimeout(pipMqttClientConfig, mqttBrokerConfig);
+        final var mqttBrokerConfig       = getMqttBrokerConfig(pipMqttClientConfig, pipConfigParams);
+        final var defaultResponseType    = getDefaultResponseType(pipMqttClientConfig, mqttBrokerConfig);
+        final var defaultResponseTimeout = getDefaultResponseTimeout(pipMqttClientConfig, mqttBrokerConfig);
 
         return new DefaultResponseConfig(defaultResponseTimeout, defaultResponseType);
     }

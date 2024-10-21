@@ -66,9 +66,9 @@ public class JWTFunctionLibrary {
     @Function
     @SneakyThrows
     public Val parseJwt(@Text Val rawToken) {
-        var signedJwt = SignedJWT.parse(rawToken.getText());
-        var jsonToken = JSON.objectNode();
-        var payload   = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
+        final var signedJwt = SignedJWT.parse(rawToken.getText());
+        final var jsonToken = JSON.objectNode();
+        final var payload   = mapper.convertValue(signedJwt.getPayload().toJSONObject(), JsonNode.class);
         ifPresentReplaceEpocFieldWithIsoTime(payload, "nbf");
         ifPresentReplaceEpocFieldWithIsoTime(payload, "exp");
         ifPresentReplaceEpocFieldWithIsoTime(payload, "iat");
@@ -81,8 +81,8 @@ public class JWTFunctionLibrary {
         if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber()))
             return;
 
-        var epocSeconds = payload.get(key).asLong();
-        var isoString   = Instant.ofEpochSecond(epocSeconds).toString();
+        final var epocSeconds = payload.get(key).asLong();
+        final var isoString   = Instant.ofEpochSecond(epocSeconds).toString();
 
         ((ObjectNode) payload).set(key, JSON.textNode(isoString));
     }

@@ -87,21 +87,21 @@ public class JWTKeyProvider {
      */
     public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
 
-        var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
-        if (jUri == null)
+        final var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
+        if (null == jUri)
             return Mono.empty();
 
-        var sMethod = "GET";
-        var jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
-        if (jMethod != null && jMethod.isTextual())
+        final var jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
+        var       sMethod = "GET";
+        if (null != jMethod && jMethod.isTextual())
             sMethod = jMethod.textValue();
 
-        var sUri = jUri.textValue();
-        var lTTL = DEFAULT_CACHING_TTL;
-        var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
+        final var sUri = jUri.textValue();
+        final var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
+        var       lTTL = DEFAULT_CACHING_TTL;
         // nested if-statement in order to cover all possible branches during testing
         // (e.g. null && canConvertToLong not possible)
-        if (jTTL != null) {
+        if (null != jTTL) {
             if (jTTL.canConvertToLong()) {
                 lTTL = jTTL.longValue();
             } else {
@@ -186,9 +186,9 @@ public class JWTKeyProvider {
      * remove all keys from cache, that are older than ttlMillis before now
      */
     private void pruneCache() {
-        var pruneTime   = Instant.now().minusMillis(lastTTL);
-        var oldestEntry = cachingTimes.peek();
-        while (oldestEntry != null && oldestEntry.wasCachedBefore(pruneTime)) {
+        final var pruneTime   = Instant.now().minusMillis(lastTTL);
+        var       oldestEntry = cachingTimes.peek();
+        while (null != oldestEntry && oldestEntry.wasCachedBefore(pruneTime)) {
             keyCache.remove(oldestEntry.getKeyId());
             cachingTimes.poll();
             oldestEntry = cachingTimes.peek();

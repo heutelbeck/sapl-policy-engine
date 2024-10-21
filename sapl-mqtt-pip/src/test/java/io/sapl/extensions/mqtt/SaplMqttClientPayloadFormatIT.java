@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Objects;
 
+import org.eclipse.xtext.util.Strings;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -82,11 +83,11 @@ class SaplMqttClientPayloadFormatIT {
     @Timeout(15)
     void when_mqttMessageContentTypeIsJson_then_getValOfJson() {
         // GIVEN
-        var topic       = JSON.arrayNode().add(JSON_TOPIC);
-        var jsonMessage = JSON.arrayNode().add("message1").add(JSON.objectNode().put("key", "value"));
+        final var topic       = JSON.arrayNode().add(JSON_TOPIC);
+        final var jsonMessage = JSON.arrayNode().add("message1").add(JSON.objectNode().put("key", "value"));
 
         // WHEN
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
+        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
                 .filter(val -> !val.isUndefined());
 
         // THEN
@@ -99,14 +100,14 @@ class SaplMqttClientPayloadFormatIT {
     @Timeout(10)
     void when_inconsistentMqttMessageIsPublished_then_getValOfError() {
         // GIVEN
-        var topic       = JSON.arrayNode().add("topic");
-        var jsonMessage = "{test}";
-        var mqttMessage = Mqtt5Publish.builder().topic("topic").qos(MqttQos.AT_MOST_ONCE).retain(true)
+        final var topic       = JSON.arrayNode().add("topic");
+        final var jsonMessage = "{test}";
+        final var mqttMessage = Mqtt5Publish.builder().topic("topic").qos(MqttQos.AT_MOST_ONCE).retain(true)
                 .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8)
                 .payload(jsonMessage.getBytes(StandardCharsets.UTF_8)).contentType("application/json").build();
 
         // WHEN
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
+        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
                 .filter(val -> !val.isUndefined());
 
         // THEN
@@ -120,11 +121,11 @@ class SaplMqttClientPayloadFormatIT {
     @Timeout(10)
     void when_mqttMessagePayloadIsFormatIsByteArray_then_getArrayOfBytesAsIntegers() {
         // GIVEN
-        var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
-        var message = "byteArray";
+        final var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
+        final var message = "byteArray";
 
         // WHEN
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
+        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
                 .filter(val -> !val.isUndefined());
 
         // THEN
@@ -139,28 +140,29 @@ class SaplMqttClientPayloadFormatIT {
     @Timeout(10)
     void when_mqttMessagePayloadIsUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsText() {
         // GIVEN
-        var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
-        var message = "byteArray";
+        final var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
+        final var message = "byteArray";
 
         // WHEN
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
+        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
                 .filter(val -> !val.isUndefined());
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1500))
                 .then(() -> mqttClient.publish(buildMqttPublishByteArrayMessageWithoutIndicator(message)))
-                .expectNextMatches(valueArray -> valueArray.get().textValue().equals(message)).thenCancel().verify();
+                .expectNextMatches(valueArray -> Strings.equal(valueArray.get().textValue(), message)).thenCancel()
+                .verify();
     }
 
     @Test
     @Timeout(10)
     void when_mqttMessagePayloadIsNonValidUtf8EncodedAndNoFormatIndicatorSet_then_getPayloadAsBytes() {
         // GIVEN
-        var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
-        var message = "ßß";
+        final var topic   = JSON.arrayNode().add(BYTE_ARRAY_TOPIC);
+        final var message = "ßß";
 
         // WHEN
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
+        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topic), buildVariables())
                 .filter(val -> !val.isUndefined());
 
         // THEN

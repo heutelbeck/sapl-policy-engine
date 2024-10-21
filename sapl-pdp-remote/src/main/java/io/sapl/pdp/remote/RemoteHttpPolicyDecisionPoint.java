@@ -105,7 +105,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-        var type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
+        final var type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
         return decide(DECIDE, type, authzSubscription)
                 .onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -113,7 +113,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
-        var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
+        final var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
         return client.post().uri(DECIDE_ONCE).accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(authzSubscription).retrieve().bodyToMono(type)
                 .doOnError(error -> log.error("Error : {}", error.getMessage()));
@@ -121,7 +121,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
-        var type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
+        final var type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
         return decide(MULTI_DECIDE, type, multiAuthzSubscription)
                 .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -129,7 +129,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
-        var type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
+        final var type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
         return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
                 .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -156,7 +156,8 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
             log.warn("------------------------------------------------------------------");
             log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
             log.warn("------------------------------------------------------------------");
-            var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+            final var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .build();
             return this.secure(sslContext);
         }
 
@@ -211,7 +212,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
                     clientRegistrationRepository);
             AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager authorizedClientManager = new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
                     clientRegistrationRepository, clientService);
-            var                                                          oauth2FilterFunction    = new ServerOAuth2AuthorizedClientExchangeFilterFunction(
+            final var                                                    oauth2FilterFunction    = new ServerOAuth2AuthorizedClientExchangeFilterFunction(
                     authorizedClientManager);
             oauth2FilterFunction.setDefaultClientRegistrationId(registrationId);
             setApplyAuthenticationFunction(builder -> builder.filter(oauth2FilterFunction));

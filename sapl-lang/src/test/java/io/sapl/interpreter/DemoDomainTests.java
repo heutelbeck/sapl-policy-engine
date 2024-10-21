@@ -51,14 +51,14 @@ class DemoDomainTests {
     public void setUp() throws InitializationException {
         FUNCTION_CTX.loadLibrary(SimpleFunctionLibrary.class);
         FUNCTION_CTX.loadLibrary(FilterFunctionLibrary.class);
-        var systemUTC                   = Clock.systemUTC();
-        var simpleFilterFunctionLibrary = new SimpleFilterFunctionLibrary(systemUTC);
+        final var systemUTC                   = Clock.systemUTC();
+        final var simpleFilterFunctionLibrary = new SimpleFilterFunctionLibrary(systemUTC);
         FUNCTION_CTX.loadLibrary(simpleFilterFunctionLibrary);
     }
 
     @Test
     void recursiveDescendTest() throws JsonProcessingException {
-        var authorizationSubscription = MAPPER.readValue("""
+        final var authorizationSubscription = MAPPER.readValue("""
                    {
                        "subject":{
                                      "authorities"   : [{"authority":"DOCTOR"}],
@@ -73,12 +73,12 @@ class DemoDomainTests {
                         "environment"    : null
                    }
                 """, AuthorizationSubscription.class);
-        var policy                    = """
+        final var policy                    = """
                    policy "all authenticated users may see patient list"
                    permit "getPatients" in action..java.name
                 """;
 
-        var expectedDecision = AuthorizationDecision.NOT_APPLICABLE;
+        final var expectedDecision = AuthorizationDecision.NOT_APPLICABLE;
 
         assertThat(
                 INTERPRETER.evaluate(authorizationSubscription, policy, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)

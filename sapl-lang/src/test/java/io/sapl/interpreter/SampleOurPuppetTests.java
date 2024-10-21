@@ -52,14 +52,16 @@ class SampleOurPuppetTests {
             .enable(SerializationFeature.INDENT_OUTPUT);
     private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
     private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
-    private static final AnnotationFunctionContext  FUNCTION_CTX     = new AnnotationFunctionContext();
     private static final Map<String, Val>           SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+
+    private AnnotationFunctionContext functionCtx;
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        FUNCTION_CTX.loadLibrary(SimpleFunctionLibrary.class);
-        FUNCTION_CTX.loadLibrary(FilterFunctionLibrary.class);
-        FUNCTION_CTX.loadLibrary(new SimpleFilterFunctionLibrary(
+        functionCtx = new AnnotationFunctionContext();
+        functionCtx.loadLibrary(SimpleFunctionLibrary.class);
+        functionCtx.loadLibrary(FilterFunctionLibrary.class);
+        functionCtx.loadLibrary(new SimpleFilterFunctionLibrary(
                 Clock.fixed(Instant.parse("2017-05-03T18:25:43.511Z"), ZoneId.of("Europe/Berlin"))));
     }
 
@@ -452,10 +454,10 @@ class SampleOurPuppetTests {
     void evaluateOurPuppetTestCase(String testCase, String description, String authorizationSubscription, String policy,String expectedResource) {
         assertThat(testCase, is(notNullValue()));
         assertThat(description, is(notNullValue()));
-        var expectedDecision = AuthorizationDecision.PERMIT
+        final var expectedDecision = AuthorizationDecision.PERMIT
                 .withResource(MAPPER.readValue(expectedResource, JsonNode.class));
         assertThat(INTERPRETER.evaluate(MAPPER.readValue(authorizationSubscription, AuthorizationSubscription.class),
-                policy, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(), equalTo(expectedDecision));
+                policy, ATTRIBUTE_CTX, functionCtx, SYSTEM_VARIABLES).blockFirst(), equalTo(expectedDecision));
     }
 
 }

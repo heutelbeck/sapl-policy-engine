@@ -87,18 +87,20 @@ public class ReactiveWebClient {
      * @return a @see Flux&lt;@see Val&gt;
      */
     public Flux<Val> httpRequest(HttpMethod method, Val requestSettings) {
-        var baseUrl            = baseUrl(requestSettings);
-        var path               = requestSettings.fieldValOrElse(PATH, Val.of("")).get().asText();
-        var urlParameters      = toStringMap(requestSettings.fieldJsonNodeOrElse(URL_PARAMS, JSON::objectNode));
-        var requestHeaders     = requestSettings.fieldJsonNodeOrElse(HEADERS, JSON::objectNode);
-        var pollingIntervallMs = longOrDefault(requestSettings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS);
-        var repetitions        = longOrDefault(requestSettings, REPEAT_TIMES, DEFAULT_REPETITIONS);
-        var accept             = toMediaType(requestSettings.fieldJsonNodeOrElse(ACCEPT_MEDIATYPE, APPLICATION_JSON));
-        var contentType        = toMediaType(requestSettings.fieldJsonNodeOrElse(CONTENT_MEDIATYPE, APPLICATION_JSON));
-        var body               = requestSettings.fieldJsonNodeOrElse(BODY, (JsonNode) null);
+        final var baseUrl            = baseUrl(requestSettings);
+        final var path               = requestSettings.fieldValOrElse(PATH, Val.of("")).get().asText();
+        final var urlParameters      = toStringMap(requestSettings.fieldJsonNodeOrElse(URL_PARAMS, JSON::objectNode));
+        final var requestHeaders     = requestSettings.fieldJsonNodeOrElse(HEADERS, JSON::objectNode);
+        final var pollingIntervallMs = longOrDefault(requestSettings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVALL_MS);
+        final var repetitions        = longOrDefault(requestSettings, REPEAT_TIMES, DEFAULT_REPETITIONS);
+        final var accept             = toMediaType(
+                requestSettings.fieldJsonNodeOrElse(ACCEPT_MEDIATYPE, APPLICATION_JSON));
+        final var contentType        = toMediaType(
+                requestSettings.fieldJsonNodeOrElse(CONTENT_MEDIATYPE, APPLICATION_JSON));
+        final var body               = requestSettings.fieldJsonNodeOrElse(BODY, (JsonNode) null);
 
         // @formatter:off
-        var spec = WebClient.builder()
+        final var spec = WebClient.builder()
                             .baseUrl(baseUrl).build()
                             .method(method)
                             .uri(u -> setUrlParams(u, urlParameters).path(path).build())
@@ -128,17 +130,17 @@ public class ReactiveWebClient {
      * @return a Flux of incoming messages
      */
     public Flux<Val> consumeWebSocket(Val requestSettings) {
-        var baseUrl        = baseUrl(requestSettings);
-        var path           = requestSettings.fieldValOrElse(PATH, Val.of("")).get().asText();
-        var requestHeaders = requestSettings.fieldJsonNodeOrElse(HEADERS, JSON::objectNode);
-        var uri            = URI.create(baseUrl + path);
-        var body           = requestSettings.fieldJsonNodeOrElse(BODY, (JsonNode) null);
-        var client         = new ReactorNettyWebSocketClient();
+        final var baseUrl        = baseUrl(requestSettings);
+        final var path           = requestSettings.fieldValOrElse(PATH, Val.of("")).get().asText();
+        final var requestHeaders = requestSettings.fieldJsonNodeOrElse(HEADERS, JSON::objectNode);
+        final var uri            = URI.create(baseUrl + path);
+        final var body           = requestSettings.fieldJsonNodeOrElse(BODY, (JsonNode) null);
+        final var client         = new ReactorNettyWebSocketClient();
 
-        var headers = new HttpHeaders();
+        final var headers = new HttpHeaders();
         setHeaders(headers, requestHeaders);
 
-        var             sessionReference = new AtomicReference<WebSocketSession>();
+        final var       sessionReference = new AtomicReference<WebSocketSession>();
         Sinks.Many<Val> receiveBuffer    = Sinks.many().unicast().onBackpressureBuffer();
         client.execute(uri, headers, session -> {
             sessionReference.set(session);
@@ -153,10 +155,10 @@ public class ReactiveWebClient {
 
     private void setHeaders(HttpHeaders headers, JsonNode requestHeaders) {
         requestHeaders.fields().forEachRemaining(field -> {
-            var key   = field.getKey();
-            var value = field.getValue();
+            final var key   = field.getKey();
+            final var value = field.getValue();
             if (value.isArray()) {
-                var elements = new ArrayList<String>();
+                final var elements = new ArrayList<String>();
                 value.elements().forEachRemaining(e -> elements.add(e.asText()));
                 headers.put(key, elements);
             } else {
@@ -171,7 +173,7 @@ public class ReactiveWebClient {
     }
 
     private long longOrDefault(Val requestSettings, String fieldName, long defaultValue) {
-        var value = requestSettings.fieldJsonNodeOrElse(fieldName, () -> JSON.numberNode(defaultValue));
+        final var value = requestSettings.fieldJsonNodeOrElse(fieldName, () -> JSON.numberNode(defaultValue));
         if (!value.isNumber())
             throw new PolicyEvaluationException(
                     fieldName + " must be an integer in HTTP requestSpecification, but was: " + value.getNodeType());
@@ -218,8 +220,8 @@ public class ReactiveWebClient {
     }
 
     private Mono<Void> sendAndListen(WebSocketSession session, JsonNode body, Many<Val> receiveBuffer) {
-        var send   = body == null ? Mono.empty() : session.send(Mono.just(session.textMessage(body.asText())));
-        var listen = listenAndSendEventsToSink(session, receiveBuffer);
+        final var send   = null == body ? Mono.empty() : session.send(Mono.just(session.textMessage(body.asText())));
+        final var listen = listenAndSendEventsToSink(session, receiveBuffer);
         return send.and(listen);
     }
 

@@ -50,7 +50,7 @@ class AttributeMockForParentValueAndArgumentsTests {
         mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(2))),
                 Val.of(false));
 
-        var arguments = new LinkedList<Flux<Val>>();
+        final var arguments = new LinkedList<Flux<Val>>();
         arguments.add(Flux.just(Val.of(1)));
         arguments.add(Flux.just(Val.of(1), Val.of(2)));
 
@@ -65,7 +65,7 @@ class AttributeMockForParentValueAndArgumentsTests {
         mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1))),
                 Val.of(true));
 
-        var arguments = new LinkedList<Flux<Val>>();
+        final var arguments = new LinkedList<Flux<Val>>();
         arguments.add(Flux.just(Val.of(1)));
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> mock.evaluate("test.attribute", Val.FALSE, null, arguments));
@@ -76,7 +76,7 @@ class AttributeMockForParentValueAndArgumentsTests {
         mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(1))),
                 Val.of(true));
 
-        var arguments = new LinkedList<Flux<Val>>();
+        final var arguments = new LinkedList<Flux<Val>>();
         arguments.add(Flux.just(Val.of(99)));
         arguments.add(Flux.just(Val.of(99)));
 
@@ -88,7 +88,7 @@ class AttributeMockForParentValueAndArgumentsTests {
         mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(1))),
                 Val.of(true));
 
-        var arguments = new LinkedList<Flux<Val>>();
+        final var arguments = new LinkedList<Flux<Val>>();
         arguments.add(Flux.just(Val.of(1)));
 
         StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectError().verify();

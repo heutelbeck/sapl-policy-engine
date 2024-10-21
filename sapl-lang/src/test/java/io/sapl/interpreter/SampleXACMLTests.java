@@ -61,7 +61,7 @@ public class SampleXACMLTests {
 
     @Test
     void exampleOne() throws JsonProcessingException {
-        var authzSubscriptionObject = MAPPER.readValue("""
+        final var authzSubscriptionObject = MAPPER.readValue("""
                 {
                     "subject": "bs@simpsons.com",
                     "resource": "file://example/med/record/patient/BartSimpson",
@@ -69,7 +69,7 @@ public class SampleXACMLTests {
                 }
                 """, AuthorizationSubscription.class);
 
-        var policyExampleOne = """
+        final var policyExampleOne = """
                 policy "SimplePolicy1"
                 /* Any subject with an e-mail name in the med.example.com
                     domain can perform any action on any resource. */
@@ -77,7 +77,7 @@ public class SampleXACMLTests {
                 """;
 
         INTERPRETER.parse(policyExampleOne);
-        var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
+        final var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
 
         assertThat(INTERPRETER
                 .evaluate(authzSubscriptionObject, policyExampleOne, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
@@ -86,7 +86,7 @@ public class SampleXACMLTests {
 
     @Test
     void exampleOnePermit() throws JsonProcessingException {
-        var authzSubscriptionObject = MAPPER.readValue("""
+        final var authzSubscriptionObject = MAPPER.readValue("""
                 {
                     "subject": "abc@Med.example.com",
                     "resource": "file://example/med/record/patient/BartSimpson",
@@ -94,13 +94,13 @@ public class SampleXACMLTests {
                 }
                     """, AuthorizationSubscription.class);
 
-        var policyExampleOne      = """
+        final var policyExampleOne      = """
                 policy "SimplePolicy1"
                 /* Any subject with an e-mail name in the med.example.com
                    domain can perform any action on any resource. */
                 permit subject =~ "(?i).*@med\\\\.example\\\\.com"
                 """;
-        var expectedAuthzDecision = AuthorizationDecision.PERMIT;
+        final var expectedAuthzDecision = AuthorizationDecision.PERMIT;
 
         assertThat(
                 "XACML example one not working as expected", INTERPRETER.evaluate(authzSubscriptionObject,
@@ -156,7 +156,7 @@ public class SampleXACMLTests {
 
     @Test
     void exampleTwoRule1() {
-        var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
+        final var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
         assertThat(
                 "XACML example two rule 1 not working as expected", INTERPRETER.evaluate(authzSubscriptionExampleTwo(),
                         policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
@@ -165,7 +165,7 @@ public class SampleXACMLTests {
 
     @Test
     void exampleTwoRule1Permit() throws JsonProcessingException {
-        var authzSubscription = MAPPER.readValue("""
+        final var authzSubscription = MAPPER.readValue("""
                     {
                         "subject": {
                             "id": "alice",
@@ -192,7 +192,7 @@ public class SampleXACMLTests {
                     }
                 """, AuthorizationSubscription.class);
 
-        var expectedAuthzDecision = AuthorizationDecision.PERMIT;
+        final var expectedAuthzDecision = AuthorizationDecision.PERMIT;
 
         assertThat(
                 "XACML example two rule 1 not working as expected", INTERPRETER.evaluate(authzSubscription,
@@ -221,7 +221,7 @@ public class SampleXACMLTests {
 
     @Test
     void exampleTwoRule2() {
-        var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
+        final var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
 
         assertThat(
                 "XACML example two rule 2 not working as expected", INTERPRETER.evaluate(authzSubscriptionExampleTwo(),
@@ -231,7 +231,7 @@ public class SampleXACMLTests {
 
     @Test
     void exampleTwoRule2Permit() throws JsonProcessingException {
-        var authzSubscription = MAPPER.readValue("""
+        final var authzSubscription = MAPPER.readValue("""
                     {
                         "subject": {
                             "id": "john",
@@ -258,7 +258,7 @@ public class SampleXACMLTests {
                     }
                 """, AuthorizationSubscription.class);
 
-        var expectedAuthzDecision = AuthorizationDecision.PERMIT;
+        final var expectedAuthzDecision = AuthorizationDecision.PERMIT;
 
         assertThat(
                 "XACML example two rule 2 not working as expected", INTERPRETER.evaluate(authzSubscription,
@@ -290,7 +290,7 @@ public class SampleXACMLTests {
 
     @Test
     void exampleTwoRule3() {
-        var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
+        final var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
 
         assertThat(
                 "XACML example two rule 3 not working as expected", INTERPRETER.evaluate(authzSubscriptionExampleTwo(),
@@ -330,7 +330,7 @@ public class SampleXACMLTests {
                     }
                 """, AuthorizationSubscription.class);
 
-        var expectedObligation = MAPPER.readValue("""
+        final var expectedObligation = MAPPER.readValue("""
                     [
                         {
                             "id": "email",
@@ -340,7 +340,7 @@ public class SampleXACMLTests {
                     ]
                 """, ArrayNode.class);
 
-        var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
+        final var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
                 Optional.of(expectedObligation), Optional.empty());
 
         assertThat(

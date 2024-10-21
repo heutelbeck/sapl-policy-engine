@@ -36,10 +36,10 @@ public class EagerAndImplCustom extends EagerAndImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return booleanOperator(this, this, this::and);
+        return booleanOperator(this, this, EagerAndImplCustom::and);
     }
 
-    private Val and(Val left, Val right) {
+    public static Val and(Val left, Val right) {
         return Val.of(left.getBoolean() && right.getBoolean()).withTrace(EagerAnd.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }

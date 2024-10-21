@@ -63,12 +63,12 @@ public class ObjectImplCustom extends ObjectImpl {
         // combineLatest() preserves the order of the given list of fluxes in the array
         // of values passed to the combinator function
         return Flux.combineLatest(valueFluxes, values -> {
-            var result       = Val.JSON.objectNode();
-            var tracedValues = new HashMap<String, Val>();
+            final var result       = Val.JSON.objectNode();
+            final var tracedValues = new HashMap<String, Val>();
             // omit undefined fields
             for (var idx = 0; idx < values.length; idx++) {
-                var key   = keys.get(idx);
-                var value = ((Val) values[idx]);
+                final var key   = keys.get(idx);
+                final var value = ((Val) values[idx]);
                 if (value.isError()) {
                     // propagate errors
                     return value.withTrace(Object.class, true, tracedValues);

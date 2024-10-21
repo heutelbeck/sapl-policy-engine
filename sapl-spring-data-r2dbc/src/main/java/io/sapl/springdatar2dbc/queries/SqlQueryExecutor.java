@@ -30,7 +30,7 @@ public class SqlQueryExecutor {
     private final ObjectProvider<BeanFactory> beanFactoryProvider;
 
     public <T> Flux<T> executeQuery(String sqlQuery, Class<T> domainType) {
-        var r2dbcEntityTemplate = beanFactoryProvider.getObject().getBean(R2dbcEntityTemplate.class);
+        final var r2dbcEntityTemplate = beanFactoryProvider.getObject().getBean(R2dbcEntityTemplate.class);
 
         return r2dbcEntityTemplate.getDatabaseClient().sql(sqlQuery)
                 .map((row, metadata) -> r2dbcEntityTemplate.getConverter().read(domainType, row, metadata)).all();

@@ -34,8 +34,8 @@ class SaplAttributeTests {
 
     @Test
     void whenToStringCalled_thenStringContainsTheKeywords() {
-        var sut         = new SaplAttribute(null, null, null, null, null, null);
-        var stringValue = sut.toString();
+        final var sut         = new SaplAttribute(null, null, null, null, null, null);
+        final var stringValue = sut.toString();
         assertAll(() -> assertThat(stringValue, containsString("subject")),
                 () -> assertThat(stringValue, containsString("action")),
                 () -> assertThat(stringValue, containsString("resource")),
@@ -45,10 +45,10 @@ class SaplAttributeTests {
 
     @Test
     void whenPassingNonNull_thenStringContainsTheKeywords() {
-        var sut         = new SaplAttribute(PreEnforce.class, toExpression("19 + 1"), toExpression("1 ne 1"),
+        final var sut         = new SaplAttribute(PreEnforce.class, toExpression("19 + 1"), toExpression("1 ne 1"),
                 toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"),
                 Integer.class);
-        var stringValue = sut.toString();
+        final var stringValue = sut.toString();
         assertAll(() -> assertThat(stringValue, containsString("subject")),
                 () -> assertThat(stringValue, containsString("action")),
                 () -> assertThat(stringValue, containsString("resource")),
@@ -58,7 +58,7 @@ class SaplAttributeTests {
 
     @Test
     void whenPassingNull_thenExpressionsAreNull() {
-        var sut = new SaplAttribute(null, null, null, null, null, null);
+        final var sut = new SaplAttribute(null, null, null, null, null, null);
         assertAll(() -> assertThat(sut.subjectExpression(), is(nullValue())),
                 () -> assertThat(sut.actionExpression(), is(nullValue())),
                 () -> assertThat(sut.resourceExpression(), is(nullValue())),
@@ -68,7 +68,7 @@ class SaplAttributeTests {
 
     @Test
     void whenExpressions_thenExpressionsAreSet() {
-        var sut = new SaplAttribute(PostEnforce.class, toExpression("19 + 1"), toExpression("1 ne 1"),
+        final var sut = new SaplAttribute(PostEnforce.class, toExpression("19 + 1"), toExpression("1 ne 1"),
                 toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), String.class);
         assertAll(() -> assertThat(sut.subjectExpression(), is(notNullValue())),
                 () -> assertThat(sut.actionExpression(), is(notNullValue())),
@@ -80,9 +80,10 @@ class SaplAttributeTests {
 
     @Test
     void whenExpressionsSet_thenToStringContainsThem() {
-        var sut         = new SaplAttribute(EnforceTillDenied.class, toExpression("19 + 1"), toExpression("1 ne 1"),
-                toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), Map.class);
-        var stringValue = sut.toString();
+        final var sut         = new SaplAttribute(EnforceTillDenied.class, toExpression("19 + 1"),
+                toExpression("1 ne 1"), toExpression("2 > 1 ? 'a' : 'b'"),
+                toExpression("workersHolder.salaryByWorkers['John']"), Map.class);
+        final var stringValue = sut.toString();
         assertAll(() -> assertThat(stringValue, containsString("19 + 1")),
                 () -> assertThat(stringValue, containsString("1 ne 1")),
                 () -> assertThat(stringValue, containsString("2 > 1 ? 'a' : 'b'")),

@@ -33,12 +33,12 @@ class AnnotationUtilitiesTests {
     @Test
     void when_hasAnnotationQueryReactiveMongo_then_returnTrue() {
         // GIVEN
-        var methodInvocation = new MongoReactiveMethodInvocation("findAllUsersTest",
+        final var methodInvocation = new MongoReactiveMethodInvocation("findAllUsersTest",
                 new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Aaron")), null);
-        var method           = methodInvocation.getMethod();
+        final var method           = methodInvocation.getMethod();
 
         // WHEN
-        var result = AnnotationUtilities.hasAnnotationQueryReactiveMongo(method);
+        final var result = AnnotationUtilities.hasAnnotationQueryReactiveMongo(method);
 
         // THEN
         assertTrue(result);
@@ -47,12 +47,12 @@ class AnnotationUtilitiesTests {
     @Test
     void when_hasAnnotationQueryReactiveMongo_then_returnFalsee() {
         // GIVEN
-        var methodInvocation = new MongoReactiveMethodInvocation("findAllByFirstname",
+        final var methodInvocation = new MongoReactiveMethodInvocation("findAllByFirstname",
                 new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Aaron")), null);
-        var method           = methodInvocation.getMethod();
+        final var method           = methodInvocation.getMethod();
 
         // WHEN
-        var result = AnnotationUtilities.hasAnnotationQueryReactiveMongo(method);
+        final var result = AnnotationUtilities.hasAnnotationQueryReactiveMongo(method);
 
         // THEN
         assertFalse(result);
@@ -61,12 +61,12 @@ class AnnotationUtilitiesTests {
     @Test
     void when_hasAnnotationQueryR2dbc_then_returnTrue() {
         // GIVEN
-        var methodInvocation = new R2dbcMethodInvocation("findAllUsersTest", new ArrayList<>(List.of()),
+        final var methodInvocation = new R2dbcMethodInvocation("findAllUsersTest", new ArrayList<>(List.of()),
                 new ArrayList<>(List.of()), null);
-        var method           = methodInvocation.getMethod();
+        final var method           = methodInvocation.getMethod();
 
         // WHEN
-        var result = AnnotationUtilities.hasAnnotationQueryR2dbc(method);
+        final var result = AnnotationUtilities.hasAnnotationQueryR2dbc(method);
 
         // THEN
         assertTrue(result);
@@ -75,12 +75,12 @@ class AnnotationUtilitiesTests {
     @Test
     void when_hasAnnotationQueryR2dbc_then_returnFalse() {
         // GIVEN
-        var methodInvocation = new R2dbcMethodInvocation("findByAge", new ArrayList<>(List.of(int.class)),
+        final var methodInvocation = new R2dbcMethodInvocation("findByAge", new ArrayList<>(List.of(int.class)),
                 new ArrayList<>(List.of(123)), null);
-        var method           = methodInvocation.getMethod();
+        final var method           = methodInvocation.getMethod();
 
         // WHEN
-        var result = AnnotationUtilities.hasAnnotationQueryR2dbc(method);
+        final var result = AnnotationUtilities.hasAnnotationQueryR2dbc(method);
 
         // THEN
         assertFalse(result);
@@ -89,12 +89,12 @@ class AnnotationUtilitiesTests {
     @Test
     void when_hasAnnotationQueryEnforce_then_returnTrue() {
         // GIVEN
-        var methodInvocation = new R2dbcMethodInvocation("findAllByFirstname", new ArrayList<>(List.of(String.class)),
-                new ArrayList<>(List.of("Aaron")), null);
-        var method           = methodInvocation.getMethod();
+        final var methodInvocation = new R2dbcMethodInvocation("findAllByFirstname",
+                new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Aaron")), null);
+        final var method           = methodInvocation.getMethod();
 
         // WHEN
-        var result = AnnotationUtilities.hasAnnotationQueryEnforce(method);
+        final var result = AnnotationUtilities.hasAnnotationQueryEnforce(method);
 
         // THEN
         assertTrue(result);
@@ -103,12 +103,12 @@ class AnnotationUtilitiesTests {
     @Test
     void when_hasAnnotationQueryEnforce_then_returnFalsee() {
         // GIVEN
-        var methodInvocation = new R2dbcMethodInvocation("findAllUsersTest", new ArrayList<>(List.of()),
+        final var methodInvocation = new R2dbcMethodInvocation("findAllUsersTest", new ArrayList<>(List.of()),
                 new ArrayList<>(List.of()), null);
-        var method           = methodInvocation.getMethod();
+        final var method           = methodInvocation.getMethod();
 
         // WHEN
-        var result = AnnotationUtilities.hasAnnotationQueryEnforce(method);
+        final var result = AnnotationUtilities.hasAnnotationQueryEnforce(method);
 
         // THEN
         assertFalse(result);

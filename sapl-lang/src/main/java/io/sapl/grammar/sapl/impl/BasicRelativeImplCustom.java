@@ -39,7 +39,7 @@ public class BasicRelativeImplCustom extends BasicRelativeImpl {
     }
 
     private Flux<Val> evaluateRelativeNode(ContextView ctx) {
-        var relativeNode = AuthorizationContext.getRelativeNode(ctx);
+        final var relativeNode = AuthorizationContext.getRelativeNode(ctx);
 
         if (relativeNode.isUndefined())
             return Flux.just(ErrorFactory.error(this, NO_RELATIVE_NODE_ERROR).withTrace(BasicRelative.class));

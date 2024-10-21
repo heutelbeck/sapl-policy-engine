@@ -86,13 +86,13 @@ public class WebfluxAuthorizationSubscriptionBuilderService {
     private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
             Optional<ServerHttpRequest> serverHttpRequest, MethodInvocation methodInvocation, SaplAttribute attribute,
             Optional<Object> returnedObject) {
-        var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
+        final var evaluationCtx = expressionHandler.createEvaluationContext(authentication, methodInvocation);
         returnedObject.ifPresent(returnObject -> expressionHandler.setReturnObject(returnObject, evaluationCtx));
 
-        var subject     = retrieveSubject(authentication, attribute, evaluationCtx);
-        var action      = retrieveAction(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
-        var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
-        var environment = retrieveEnvironment(attribute, evaluationCtx);
+        final var subject     = retrieveSubject(authentication, attribute, evaluationCtx);
+        final var action      = retrieveAction(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
+        final var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx, serverHttpRequest);
+        final var environment = retrieveEnvironment(attribute, evaluationCtx);
         return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
                 mapper.valueToTree(resource), mapper.valueToTree(environment));
     }
@@ -108,7 +108,7 @@ public class WebfluxAuthorizationSubscriptionBuilderService {
         // sent over the wire to the PDP
 
         subject.remove("credentials");
-        var principal = subject.get("principal");
+        final var principal = subject.get("principal");
         if (principal instanceof ObjectNode objectPrincipal)
             objectPrincipal.remove("password");
 
@@ -131,12 +131,12 @@ public class WebfluxAuthorizationSubscriptionBuilderService {
     }
 
     private Object retrieveAction(MethodInvocation mi, Optional<?> requestObject) {
-        var actionNode = mapper.createObjectNode();
+        final var actionNode = mapper.createObjectNode();
         requestObject.ifPresent(request -> actionNode.set("http", mapper.valueToTree(request)));
-        var java      = (ObjectNode) mapper.valueToTree(mi);
-        var arguments = mi.getArguments();
+        final var java      = (ObjectNode) mapper.valueToTree(mi);
+        final var arguments = mi.getArguments();
         if (arguments.length > 0) {
-            var array = JSON.arrayNode();
+            final var array = JSON.arrayNode();
             for (Object o : arguments) {
                 try {
                     array.add(mapper.valueToTree(o));
@@ -159,10 +159,10 @@ public class WebfluxAuthorizationSubscriptionBuilderService {
     }
 
     private Object retrieveResource(MethodInvocation mi, Optional<ServerHttpRequest> serverHttpRequest) {
-        var resourceNode = mapper.createObjectNode();
+        final var resourceNode = mapper.createObjectNode();
         // The action is in the context of an HTTP request. Adding it to the resource.
         serverHttpRequest.ifPresent(request -> resourceNode.set("http", mapper.valueToTree(request)));
-        var java = (ObjectNode) mapper.valueToTree(mi);
+        final var java = (ObjectNode) mapper.valueToTree(mi);
         resourceNode.set("java", java);
         return resourceNode;
     }

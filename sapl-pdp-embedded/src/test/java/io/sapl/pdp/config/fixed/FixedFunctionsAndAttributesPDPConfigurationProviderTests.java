@@ -41,13 +41,13 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
     @Test
     void do_test() {
 
-        var source    = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
-        var prpSource = constructFilesystemPolicyRetrievalPointSource("src/test/resources/policies");
-        var attrCtx   = new AnnotationAttributeContext();
-        var funcCtx   = new AnnotationFunctionContext();
-        var provider  = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source, List.of(),
-                List.of(), prpSource);
-        var config    = provider.pdpConfiguration().blockFirst();
+        final var source    = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
+        final var prpSource = constructFilesystemPolicyRetrievalPointSource("src/test/resources/policies");
+        final var attrCtx   = new AnnotationAttributeContext();
+        final var funcCtx   = new AnnotationFunctionContext();
+        final var provider  = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source,
+                List.of(), List.of(), prpSource);
+        final var config    = provider.pdpConfiguration().blockFirst();
         provider.destroy();
         assertThat(config.documentsCombinator() == PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT,
                 is(Boolean.TRUE));
@@ -57,8 +57,8 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
     }
 
     public static PolicyRetrievalPointSource constructFilesystemPolicyRetrievalPointSource(String policiesFolder) {
-        var seedIndex = constructDocumentIndex();
-        var source    = new FileSystemPrpUpdateEventSource(policiesFolder, new DefaultSAPLInterpreter());
+        final var seedIndex = constructDocumentIndex();
+        final var source    = new FileSystemPrpUpdateEventSource(policiesFolder, new DefaultSAPLInterpreter());
         return new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, source);
     }
 

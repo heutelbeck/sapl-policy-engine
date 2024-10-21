@@ -37,7 +37,7 @@ class ConjunctiveClauseTests {
 
     @Test
     void testConstruction() {
-        var clause = new ConjunctiveClause(new Literal(new Bool(true)));
+        final var clause = new ConjunctiveClause(new Literal(new Bool(true)));
         assertThat(clause, is(notNullValue()));
         assertThat(clause.size(), is(1));
 
@@ -50,13 +50,13 @@ class ConjunctiveClauseTests {
     @Test
     @SuppressWarnings("unlikely-arg-type")
     void testEquals() {
-        var l1 = new Literal(new Bool(true));
-        var c1 = new ConjunctiveClause(new Literal(new Bool(true)));
-        var c2 = new ConjunctiveClause(new Literal(new Bool(true)));
-        var c3 = new ConjunctiveClause(new Literal(new Bool(false)));
-        var c4 = new ConjunctiveClause(l1, l1);
-        var c5 = new ConjunctiveClause(new Literal(new Bool(false)), new Literal(new Bool(false)));
-        var c6 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
+        final var l1 = new Literal(new Bool(true));
+        final var c1 = new ConjunctiveClause(new Literal(new Bool(true)));
+        final var c2 = new ConjunctiveClause(new Literal(new Bool(true)));
+        final var c3 = new ConjunctiveClause(new Literal(new Bool(false)));
+        final var c4 = new ConjunctiveClause(l1, l1);
+        final var c5 = new ConjunctiveClause(new Literal(new Bool(false)), new Literal(new Bool(false)));
+        final var c6 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
 
         assertThat(c1.equals(c1), is(true));
         assertThat(c1.equals(c2), is(true)); // true, true
@@ -73,8 +73,8 @@ class ConjunctiveClauseTests {
 
     @Test
     void testReduce() {
-        var c1 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
-        var c2 = new ConjunctiveClause(new Literal(new Bool(true)));
+        final var c1 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
+        final var c2 = new ConjunctiveClause(new Literal(new Bool(true)));
 
         try (MockedStatic<ConjunctiveClauseReductionSupport> mock = mockStatic(
                 ConjunctiveClauseReductionSupport.class)) {
@@ -90,10 +90,10 @@ class ConjunctiveClauseTests {
 
     @Test
     void testIsImmutable() {
-        var c1       = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
-        var boolMock = mock(Bool.class);
+        final var c1       = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
+        final var boolMock = mock(Bool.class);
         when(boolMock.isImmutable()).thenReturn(Boolean.FALSE);
-        var c2 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(boolMock));
+        final var c2 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(boolMock));
 
         assertThat(c1.isImmutable(), is(true));
         assertThat(c2.isImmutable(), is(false));
@@ -101,11 +101,11 @@ class ConjunctiveClauseTests {
 
     @Test
     void testEvaluate() {
-        var c1 = new ConjunctiveClause(new Literal(new Bool(true)));
-        var c2 = new ConjunctiveClause(new Literal(new Bool(true)));
-        var c3 = new ConjunctiveClause(new Literal(new Bool(false)));
-        var c4 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
-        var c5 = new ConjunctiveClause(new Literal(new Bool(false)), new Literal(new Bool(true)));
+        final var c1 = new ConjunctiveClause(new Literal(new Bool(true)));
+        final var c2 = new ConjunctiveClause(new Literal(new Bool(true)));
+        final var c3 = new ConjunctiveClause(new Literal(new Bool(false)));
+        final var c4 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
+        final var c5 = new ConjunctiveClause(new Literal(new Bool(false)), new Literal(new Bool(true)));
 
         assertThat(c1.evaluate(), is(true));
         assertThat(c2.evaluate(), is(true));
@@ -116,11 +116,11 @@ class ConjunctiveClauseTests {
 
     @Test
     void testIsSubsetOf() {
-        var c1 = new ConjunctiveClause(new Literal(new Bool(true)));
-        var c2 = new ConjunctiveClause(new Literal(new Bool(true)));
-        var c3 = new ConjunctiveClause(new Literal(new Bool(false)));
-        var c4 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
-        var c5 = new ConjunctiveClause(new Literal(new Bool(false)), new Literal(new Bool(true)));
+        final var c1 = new ConjunctiveClause(new Literal(new Bool(true)));
+        final var c2 = new ConjunctiveClause(new Literal(new Bool(true)));
+        final var c3 = new ConjunctiveClause(new Literal(new Bool(false)));
+        final var c4 = new ConjunctiveClause(new Literal(new Bool(true)), new Literal(new Bool(false)));
+        final var c5 = new ConjunctiveClause(new Literal(new Bool(false)), new Literal(new Bool(true)));
 
         assertThat(c1.isSubsetOf(c1), is(true));
         assertThat(c1.isSubsetOf(c2), is(true));

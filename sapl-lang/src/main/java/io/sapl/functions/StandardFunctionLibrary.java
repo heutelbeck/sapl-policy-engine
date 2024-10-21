@@ -17,7 +17,7 @@
  */
 package io.sapl.functions;
 
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -81,10 +81,10 @@ public class StandardFunctionLibrary {
 
     @Function(docs = CONCATENATE_DOC)
     public static Val concatenate(@Array Val... arrays) {
-        var newArray = Val.JSON.arrayNode();
+        final var newArray = Val.JSON.arrayNode();
         for (var array : arrays) {
-            var jsonArray        = array.getArrayNode();
-            var elementsIterator = jsonArray.elements();
+            final var jsonArray        = array.getArrayNode();
+            final var elementsIterator = jsonArray.elements();
             while (elementsIterator.hasNext()) {
                 newArray.add(elementsIterator.next().deepCopy());
             }
@@ -94,13 +94,13 @@ public class StandardFunctionLibrary {
 
     @Function(docs = DIFFERENCE_DOC)
     public static Val difference(@Array Val array1, @Array Val array2) {
-        var newArray         = Val.JSON.arrayNode();
-        var jsonArray        = array1.getArrayNode();
-        var elementsIterator = jsonArray.elements();
+        final var newArray         = Val.JSON.arrayNode();
+        final var jsonArray        = array1.getArrayNode();
+        final var elementsIterator = jsonArray.elements();
         while (elementsIterator.hasNext()) {
-            var nextElement = elementsIterator.next();
-            if (!contains(nextElement, array2.getArrayNode(), (a, b) -> a.equals(b))
-                    && !contains(nextElement, newArray, (a, b) -> a.equals(b))) {
+            final var nextElement = elementsIterator.next();
+            if (!contains(nextElement, array2.getArrayNode(), Object::equals)
+                    && !contains(nextElement, newArray, Object::equals)) {
                 newArray.add(nextElement.deepCopy());
             }
         }
@@ -109,13 +109,13 @@ public class StandardFunctionLibrary {
 
     @Function(docs = UNION_DOC)
     public static Val union(@Array Val... arrays) {
-        var newArray = Val.JSON.arrayNode();
+        final var newArray = Val.JSON.arrayNode();
         for (var array : arrays) {
-            var jsonArray        = array.getArrayNode();
-            var elementsIterator = jsonArray.elements();
+            final var jsonArray        = array.getArrayNode();
+            final var elementsIterator = jsonArray.elements();
             while (elementsIterator.hasNext()) {
-                var nextElement = elementsIterator.next();
-                if (!contains(nextElement, newArray, (a, b) -> a.equals(b))) {
+                final var nextElement = elementsIterator.next();
+                if (!contains(nextElement, newArray, Object::equals)) {
                     newArray.add(nextElement.deepCopy());
                 }
             }
@@ -125,12 +125,12 @@ public class StandardFunctionLibrary {
 
     @Function(docs = TO_SET_DOC)
     public static Val toSet(@Array Val array) {
-        var newArray         = Val.JSON.arrayNode();
-        var jsonArray        = array.getArrayNode();
-        var elementsIterator = jsonArray.elements();
+        final var newArray         = Val.JSON.arrayNode();
+        final var jsonArray        = array.getArrayNode();
+        final var elementsIterator = jsonArray.elements();
         while (elementsIterator.hasNext()) {
-            var nextElement = elementsIterator.next();
-            if (!contains(nextElement, newArray, (a, b) -> a.equals(b))) {
+            final var nextElement = elementsIterator.next();
+            if (!contains(nextElement, newArray, Object::equals)) {
                 newArray.add(nextElement.deepCopy());
             }
         }
@@ -139,10 +139,10 @@ public class StandardFunctionLibrary {
 
     @Function(docs = INTERSECT_DOC)
     public static Val intersect(@Array Val... arrays) {
-        return intersect(arrays, (a, b) -> a.equals(b));
+        return intersect(arrays, Object::equals);
     }
 
-    private static Val intersect(Val[] arrays, BiFunction<JsonNode, JsonNode, Boolean> equalityValidator) {
+    private static Val intersect(Val[] arrays, BiPredicate<JsonNode, JsonNode> equalityValidator) {
         if (arrays.length == 0) {
             return Val.ofEmptyArray();
         }
@@ -154,12 +154,12 @@ public class StandardFunctionLibrary {
         return intersection;
     }
 
-    private static Val intersect(Val array1, Val array2, BiFunction<JsonNode, JsonNode, Boolean> equalityValidator) {
-        var newArray         = Val.JSON.arrayNode();
-        var jsonArray        = array1.getArrayNode();
-        var elementsIterator = jsonArray.elements();
+    private static Val intersect(Val array1, Val array2, BiPredicate<JsonNode, JsonNode> equalityValidator) {
+        final var newArray         = Val.JSON.arrayNode();
+        final var jsonArray        = array1.getArrayNode();
+        final var elementsIterator = jsonArray.elements();
         while (elementsIterator.hasNext()) {
-            var nextElement = elementsIterator.next();
+            final var nextElement = elementsIterator.next();
             if (contains(nextElement, array2.getArrayNode(), equalityValidator)) {
                 newArray.add(nextElement.deepCopy());
             }
@@ -168,11 +168,11 @@ public class StandardFunctionLibrary {
     }
 
     private static boolean contains(JsonNode element, ArrayNode array,
-            BiFunction<JsonNode, JsonNode, Boolean> equalityValidator) {
-        var elementsIterator = array.elements();
+            BiPredicate<JsonNode, JsonNode> equalityValidator) {
+        final var elementsIterator = array.elements();
         while (elementsIterator.hasNext()) {
-            var nextElement = elementsIterator.next();
-            if (equalityValidator.apply(element, nextElement)) {
+            final var nextElement = elementsIterator.next();
+            if (equalityValidator.test(element, nextElement)) {
                 return true;
             }
         }

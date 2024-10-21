@@ -71,18 +71,17 @@ public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<Autho
 
     @Override
     protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-        var optionalAdvice = decision.getAdvice();
+        final var optionalAdvice = decision.getAdvice();
         if (optionalAdvice.isEmpty()) {
             mismatchDescription.appendText("decision didn't contain any advice");
             return false;
         }
 
         var containsAdvice = false;
-
         for (JsonNode advice : optionalAdvice.get()) {
-            var iterator = advice.fields();
+            final var iterator = advice.fields();
             while (iterator.hasNext()) {
-                var entry = iterator.next();
+                final var entry = iterator.next();
                 if (entry.getKey().equals(this.key)
                         && (this.valueMatcher.isEmpty() || this.valueMatcher.get().matches(entry.getValue()))) {
                     containsAdvice = true;

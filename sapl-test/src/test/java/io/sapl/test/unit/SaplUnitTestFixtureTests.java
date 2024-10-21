@@ -34,49 +34,49 @@ class SaplUnitTestFixtureTests {
 
     @Test
     void test_invalidSaplDocumentName1() {
-        var fixture = new SaplUnitTestFixture("");
+        final var fixture = new SaplUnitTestFixture("");
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
     }
 
     @Test
     void test_invalidSaplDocumentName2() {
-        var fixture = new SaplUnitTestFixture("");
+        final var fixture = new SaplUnitTestFixture("");
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
     }
 
     @Test
     void test_invalidSaplDocumentName3() {
-        var fixture = new SaplUnitTestFixture(null);
+        final var fixture = new SaplUnitTestFixture(null);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
     }
 
     @Test
     void test_invalidSaplDocumentName4() {
-        var fixture = new SaplUnitTestFixture(null);
+        final var fixture = new SaplUnitTestFixture(null);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
     }
 
     @Test
     void test_invalidSaplInputString1() {
-        var fixture = new SaplUnitTestFixture("", false);
+        final var fixture = new SaplUnitTestFixture("", false);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
     }
 
     @Test
     void test_invalidSaplInputString2() {
-        var fixture = new SaplUnitTestFixture("", false);
+        final var fixture = new SaplUnitTestFixture("", false);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
     }
 
     @Test
     void test_invalidSaplInputString3() {
-        var fixture = new SaplUnitTestFixture(null, false);
+        final var fixture = new SaplUnitTestFixture(null, false);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCase);
     }
 
     @Test
     void test_invalidSaplInputString4() {
-        var fixture = new SaplUnitTestFixture(null, false);
+        final var fixture = new SaplUnitTestFixture(null, false);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(fixture::constructTestCaseWithMocks);
     }
 

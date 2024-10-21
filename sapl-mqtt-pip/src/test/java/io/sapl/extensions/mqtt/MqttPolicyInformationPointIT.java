@@ -92,7 +92,7 @@ class MqttPolicyInformationPointIT {
         AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(SUBJECT, action, RESOURCE);
 
         // WHEN
-        var pdpDecisionFlux = pdp.decide(authzSubscription);
+        final var pdpDecisionFlux = pdp.decide(authzSubscription);
 
         // THEN
         StepVerifier.create(pdpDecisionFlux).thenAwait(Duration.ofMillis(1000))

@@ -20,6 +20,7 @@ package io.sapl.interpreter.functions;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,13 +58,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public final class AnnotationFunctionContext implements FunctionContext {
 
-    private static final int    VAR_ARGS                                       = -1;
-    private static final String UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
-    private static final String ILLEGAL_NUMBER_OF_PARAMETERS_ERROR             = "Illegal number of parameters. Function expected %d but got %d";
-    private static final String CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
-    private static final String ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
-    private static final String ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
-    private static final String MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED        = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
+    private static final int VAR_ARGS                                       = -1;
+    static final String      UNKNOWN_FUNCTION_ERROR                         = "Unknown function %s";
+    static final String      ILLEGAL_NUMBER_OF_PARAMETERS_ERROR             = "Illegal number of parameters. Function expected %d but got %d";
+    static final String      CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR = "Provided class has no @FunctionLibrary annotation.";
+    static final String      ILLEGAL_PARAMETER_FOR_IMPORT_ERROR             = "Function has parameters that are not a Val. Cannot be loaded. Type was: %s.";
+    static final String      ILLEGAL_RETURN_TYPE_FOR_IMPORT_ERROR           = "Function does not return a Val. Cannot be loaded. Type was: %s.";
+    static final String      MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED_ERROR  = "Function has both a schema and a schemaPath annotation. Multiple schema annotations are not allowed.";
+    static final String      FUNCTION_NAME_COLLISION_ERROR                  = "Function name collision %s";
 
     private final Collection<LibraryDocumentation> documentation = new ConcurrentLinkedQueue<>();
     private final Map<String, FunctionMetadata>    functions     = new ConcurrentHashMap<>();
@@ -113,18 +115,18 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
     @Override
     public Val evaluate(EObject location, String function, Val... parameters) {
-        var functionTrace = new ExpressionArgument[parameters.length + 1];
+        final var functionTrace = new ExpressionArgument[parameters.length + 1];
         functionTrace[0] = new ExpressionArgument("functionName", Val.of(function));
         for (var parameter = 0; parameter < parameters.length; parameter++) {
             functionTrace[parameter + 1] = new ExpressionArgument("parameter[" + parameter + "]",
                     parameters[parameter]);
         }
-        var metadata = functions.get(function);
+        final var metadata = functions.get(function);
         if (metadata == null)
             return ErrorFactory.error(location, UNKNOWN_FUNCTION_ERROR, function).withTrace(FunctionContext.class,
                     false, functionTrace);
 
-        var funParams = metadata.getFunction().getParameters();
+        final var funParams = metadata.getFunction().getParameters();
 
         if (metadata.isVarArgsParameters()) {
             return evaluateVarArgsFunction(location, metadata, funParams, parameters).withTrace(FunctionContext.class,
@@ -173,7 +175,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
     private Val invocationExceptionToError(Throwable e, EObject location, LibraryEntryMetadata metadata,
             Object... parameters) {
-        var params = new StringBuilder();
+        final var params = new StringBuilder();
         for (var i = 0; i < parameters.length; i++) {
             params.append(parameters[i]);
             if (i < parameters.length - 2)
@@ -198,7 +200,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
     }
 
     public final void loadLibrary(Object library, Class<?> libraryType) throws InitializationException {
-        var libAnnotation = libraryType.getAnnotation(FunctionLibrary.class);
+        final var libAnnotation = libraryType.getAnnotation(FunctionLibrary.class);
 
         if (libAnnotation == null) {
             throw new InitializationException(CLASS_HAS_NO_FUNCTION_LIBRARY_ANNOTATION_ERROR);
@@ -226,15 +228,15 @@ public final class AnnotationFunctionContext implements FunctionContext {
         if (library == null)
             assertMethodIsStatic(method);
 
-        var funAnnotation = method.getAnnotation(Function.class);
-        var funName       = funAnnotation.name();
+        final var funAnnotation = method.getAnnotation(Function.class);
+        var       funName       = funAnnotation.name();
         if (funName.isEmpty())
             funName = method.getName();
 
-        var funSchema       = funAnnotation.schema();
-        var funPathToSchema = funAnnotation.pathToSchema();
+        final var funSchema       = funAnnotation.schema();
+        final var funPathToSchema = funAnnotation.pathToSchema();
         if (!funSchema.isEmpty() && !funPathToSchema.isEmpty())
-            throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED);
+            throw new InitializationException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED_ERROR);
 
         JsonNode processedSchemaDefinition = null;
         if (!funPathToSchema.isEmpty()) {
@@ -258,7 +260,11 @@ public final class AnnotationFunctionContext implements FunctionContext {
             }
         }
 
-        var funMeta = new FunctionMetadata(libName, funName, processedSchemaDefinition, library, parameters, method);
+        final var funMeta = new FunctionMetadata(libName, funName, processedSchemaDefinition, library, parameters,
+                method, funAnnotation.docs());
+        if (functions.containsKey(funMeta.fullyQualifiedName())) {
+            throw new InitializationException(FUNCTION_NAME_COLLISION_ERROR, funMeta.fullyQualifiedName());
+        }
         functions.put(funMeta.fullyQualifiedName(), funMeta);
         libMeta.documentation.put(funMeta.getDocumentationCodeTemplate(), funAnnotation.docs());
 
@@ -312,6 +318,8 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
         Method function;
 
+        String documentation;
+
         @Override
         public boolean isVarArgsParameters() {
             return numberOfParameters == VAR_ARGS;
@@ -319,8 +327,18 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
         @Override
         public String getCodeTemplate() {
-            var sb = new StringBuilder();
-            sb.append(fullyQualifiedName());
+            return getCodeTemplate(fullyQualifiedName());
+        }
+
+        @Override
+        public String getDocumentationCodeTemplate() {
+            return getDocumentationCodeTemplate(fullyQualifiedName());
+        }
+
+        @Override
+        public String getCodeTemplate(String alias) {
+            final var sb = new StringBuilder();
+            sb.append(alias);
             appendParameterList(sb, 0, this::getParameterName);
             if (getNumberOfParameters() == 0)
                 sb.append("()");
@@ -328,9 +346,9 @@ public final class AnnotationFunctionContext implements FunctionContext {
         }
 
         @Override
-        public String getDocumentationCodeTemplate() {
-            var sb = new StringBuilder();
-            sb.append(fullyQualifiedName());
+        public String getDocumentationCodeTemplate(String alias) {
+            final var sb = new StringBuilder();
+            sb.append(alias);
             appendParameterList(sb, 0, this::describeParameterForDocumentation);
             if (getNumberOfParameters() == 0)
                 sb.append("()");
@@ -358,7 +376,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
     @Override
     public Map<String, JsonNode> getFunctionSchemas() {
-        var schemas = new HashMap<String, JsonNode>();
+        final var schemas = new HashMap<String, JsonNode>();
         for (var entry : functions.entrySet()) {
             schemas.put(entry.getKey(), entry.getValue().functionSchema);
         }
@@ -372,9 +390,9 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
     @Override
     public Map<String, String> getDocumentedCodeTemplates() {
-        var documentedCodeTemplates = new HashMap<String, String>();
+        final var documentedCodeTemplates = new HashMap<String, String>();
         for (var entry : functions.entrySet()) {
-            var documentationCodeTemplate = entry.getValue().getDocumentationCodeTemplate();
+            final var documentationCodeTemplate = entry.getValue().getDocumentationCodeTemplate();
             for (var library : documentation) {
                 documentedCodeTemplates.putIfAbsent(library.name, library.description);
                 Optional.ofNullable(library.getDocumentation().get(documentationCodeTemplate)).ifPresent(template -> {
@@ -385,4 +403,10 @@ public final class AnnotationFunctionContext implements FunctionContext {
         }
         return documentedCodeTemplates;
     }
+
+    @Override
+    public Collection<FunctionMetadata> getFunctionMetatata() {
+        return new ArrayList<>(functions.values());
+    }
+
 }

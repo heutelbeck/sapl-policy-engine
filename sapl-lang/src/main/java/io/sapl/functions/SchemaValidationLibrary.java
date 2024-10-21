@@ -69,7 +69,7 @@ public class SchemaValidationLibrary {
             return Val.FALSE;
         }
 
-        var schemaMap = new HashMap<String, String>();
+        final var schemaMap = new HashMap<String, String>();
         if (externals.isArray()) {
             for (var externalSchema : externals.getArrayNode()) {
                 if (externalSchema.has(ID)) {
@@ -78,14 +78,14 @@ public class SchemaValidationLibrary {
             }
         }
 
-        var schemaLoader  = new MapSchemaLoader(schemaMap);
-        var schemaFactory = JsonSchemaFactory.builder().schemaLoaders(schemaLoaders -> schemaLoaders.add(schemaLoader))
-                .metaSchema(JsonMetaSchema.getV202012()).defaultMetaSchemaIri(JsonMetaSchema.getV202012().getIri())
-                .build();
+        final var schemaLoader  = new MapSchemaLoader(schemaMap);
+        final var schemaFactory = JsonSchemaFactory.builder()
+                .schemaLoaders(schemaLoaders -> schemaLoaders.add(schemaLoader)).metaSchema(JsonMetaSchema.getV202012())
+                .defaultMetaSchemaIri(JsonMetaSchema.getV202012().getIri()).build();
 
         try {
-            var validator = schemaFactory.getSchema(jsonSchema.getJsonNode());
-            var messages  = validator.validate(validationSubject.get());
+            final var validator = schemaFactory.getSchema(jsonSchema.getJsonNode());
+            final var messages  = validator.validate(validationSubject.get());
             return Val.of(messages.isEmpty());
         } catch (JsonSchemaException e) {
             return Val.FALSE;

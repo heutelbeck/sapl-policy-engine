@@ -41,9 +41,9 @@ class ResourcesVariablesAndCombinatorSourceTests {
 
     @Test
     void ifExecutedDuringUnitTests_thenLoadConfigurationFileFromFileSystem() throws Exception {
-        var configProvider = new ResourcesVariablesAndCombinatorSource("/valid_config");
-        var algo           = configProvider.getCombiningAlgorithm().blockFirst();
-        var variables      = configProvider.getVariables().blockFirst();
+        final var configProvider = new ResourcesVariablesAndCombinatorSource("/valid_config");
+        final var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+        final var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
         assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY, is(Boolean.TRUE));
@@ -52,9 +52,9 @@ class ResourcesVariablesAndCombinatorSourceTests {
 
     @Test
     void ifExecutedDuringUnitTestsAndNoConfigFilePresent_thenLoadDefaultConfiguration() throws Exception {
-        var configProvider = new ResourcesVariablesAndCombinatorSource("");
-        var algo           = configProvider.getCombiningAlgorithm().blockFirst();
-        var variables      = configProvider.getVariables().blockFirst();
+        final var configProvider = new ResourcesVariablesAndCombinatorSource("");
+        final var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+        final var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
         assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, is(Boolean.TRUE));

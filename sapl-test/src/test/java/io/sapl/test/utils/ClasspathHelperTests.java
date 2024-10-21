@@ -52,7 +52,7 @@ class ClasspathHelperTests {
 
     @Test
     void test_NothingFound() {
-        var classLoader = Mockito.mock(URLClassLoader.class);
+        final var classLoader = Mockito.mock(URLClassLoader.class);
         Mockito.when(classLoader.getResource(Mockito.any())).thenReturn(null);
         Mockito.when(classLoader.getURLs()).thenReturn(new URL[0]);
 
@@ -64,7 +64,7 @@ class ClasspathHelperTests {
 
     @Test
     void test_NothingFound_WithClasspathURLs() throws MalformedURLException {
-        var classLoader = Mockito.mock(URLClassLoader.class);
+        final var classLoader = Mockito.mock(URLClassLoader.class);
         Mockito.when(classLoader.getResource(Mockito.any())).thenReturn(null);
         Mockito.when(classLoader.getURLs()).thenReturn(new URL[] { new URL("file://test") });
 
@@ -77,8 +77,8 @@ class ClasspathHelperTests {
 
     @Test
     void test_FoundInJar() throws MalformedURLException {
-        var classLoader = Mockito.mock(URLClassLoader.class);
-        var url         = new URL("jar:file:///C:/test.jar!/test");
+        final var classLoader = Mockito.mock(URLClassLoader.class);
+        final var url         = new URL("jar:file:///C:/test.jar!/test");
         Mockito.when(classLoader.getResource(Mockito.any())).thenReturn(url);
 
         assertThatExceptionOfType(SaplTestException.class)
@@ -88,8 +88,8 @@ class ClasspathHelperTests {
 
     @Test
     void test_MalformedURI() throws URISyntaxException {
-        var classLoader = Mockito.mock(URLClassLoader.class);
-        var url         = mock(URL.class);
+        final var classLoader = Mockito.mock(URLClassLoader.class);
+        final var url         = mock(URL.class);
         when(url.toURI()).thenThrow(new URISyntaxException("XXX", "YYY"));
         Mockito.when(classLoader.getResource(Mockito.any())).thenReturn(url);
 

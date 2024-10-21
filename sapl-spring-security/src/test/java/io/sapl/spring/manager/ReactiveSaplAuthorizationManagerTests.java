@@ -69,7 +69,7 @@ class ReactiveSaplAuthorizationManagerTests {
         mapper.registerModule(module);
 
         pdp = mock(PolicyDecisionPoint.class);
-        var constraintHandlers = mock(ConstraintEnforcementService.class);
+        final var constraintHandlers = mock(ConstraintEnforcementService.class);
 
         bundle = mock(BlockingConstraintHandlerBundle.class);
         doReturn(bundle).when(constraintHandlers).accessManagerBundleFor(any());
@@ -77,8 +77,8 @@ class ReactiveSaplAuthorizationManagerTests {
         sut = new ReactiveSaplAuthorizationManager(pdp, constraintHandlers, mapper);
 
         ctx = mock(AuthorizationContext.class);
-        var request  = MockServerHttpRequest.get("http://localhost").build();
-        var exchange = MockServerWebExchange.from(request);
+        final var request  = MockServerHttpRequest.get("http://localhost").build();
+        final var exchange = MockServerWebExchange.from(request);
         doReturn(exchange).when(ctx).getExchange();
     }
 

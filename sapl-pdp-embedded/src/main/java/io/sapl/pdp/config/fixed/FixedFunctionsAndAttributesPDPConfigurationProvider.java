@@ -73,9 +73,9 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 
     @SuppressWarnings("unchecked")
     private PDPConfiguration createConfiguration(Object[] values) {
-        var combiningAlgorithm = ((Optional<PolicyDocumentCombiningAlgorithm>) values[0]).orElse(null);
-        var variables          = ((Optional<Map<String, Val>>) values[1]).orElse(null);
-        var prp                = (PolicyRetrievalPoint) values[2];
+        final var combiningAlgorithm = ((Optional<PolicyDocumentCombiningAlgorithm>) values[0]).orElse(null);
+        final var variables          = ((Optional<Map<String, Val>>) values[1]).orElse(null);
+        final var prp                = (PolicyRetrievalPoint) values[2];
         return new PDPConfiguration("defaultConfiguration", attributeCtx, functionCtx, variables, combiningAlgorithm,
                 decisionInterceptorChain(), subscriptionInterceptorChain(), prp);
     }
