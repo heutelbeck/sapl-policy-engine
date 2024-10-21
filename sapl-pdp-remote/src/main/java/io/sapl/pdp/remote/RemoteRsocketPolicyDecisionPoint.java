@@ -130,7 +130,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
     private <T> Flux<T> decide(String path, ParameterizedTypeReference<T> type, Object authzSubscription) {
         return rSocketRequester.route(path).data(authzSubscription).retrieveFlux(type)
-                .doOnError(error -> log.error("RSocket Connect Error : error {}", error.getMessage(), error));
+                .doOnError(error -> log.error("RSocket connect error: {}", error.getMessage(), error));
     }
 
     public void dispose() {
@@ -209,16 +209,6 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
                         .map(OAuth2AccessTokenResponse::getAccessToken).map(OAuth2AccessToken::getTokenValue).block();
                 final var token                  = AuthMetadataCodec.encodeMetadata(ByteBufAllocator.DEFAULT,
                         WellKnownAuthType.BEARER, Unpooled.copiedBuffer(tokenStr, CharsetUtil.UTF_8));
-                MimeType  authenticationMimeType = MimeTypeUtils
-                        .parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
-                return builder.setupMetadata(token, authenticationMimeType);
-            });
-        }
-
-        public RemoteRsocketPolicyDecisionPointBuilder accessToken(String accessToken) {
-            return setApplyAuthenticationFunction(builder -> {
-                final var token                  = AuthMetadataCodec.encodeBearerMetadata(ByteBufAllocator.DEFAULT,
-                        accessToken.toCharArray());
                 MimeType  authenticationMimeType = MimeTypeUtils
                         .parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
                 return builder.setupMetadata(token, authenticationMimeType);
