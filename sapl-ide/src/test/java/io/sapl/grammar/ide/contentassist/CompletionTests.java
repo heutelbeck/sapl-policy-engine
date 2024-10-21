@@ -28,12 +28,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
 import io.sapl.grammar.ide.AbstractSaplLanguageServerTests;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class uses the xtext test classes to test auto-completion results.
  */
-@Slf4j
 @SpringBootTest
 @ContextConfiguration(classes = SAPLIdeSpringTestConfiguration.class)
 public class CompletionTests extends AbstractSaplLanguageServerTests {
@@ -65,8 +63,6 @@ public class CompletionTests extends AbstractSaplLanguageServerTests {
             it.setColumn(testCase.column());
             it.setAssertCompletionList(completionList -> {
                 final var proposals = toProposalsList(completionList);
-                log.trace("Actual   completion: {}", proposals);
-                log.trace("Actual   labels    : {}", toLabelsList(completionList));
                 assertThat(proposals).isEmpty();
             });
         });
@@ -79,9 +75,6 @@ public class CompletionTests extends AbstractSaplLanguageServerTests {
             it.setLine(testCase.line());
             it.setColumn(testCase.column());
             it.setAssertCompletionList(completionList -> {
-                log.trace("Expected completion: {}", expected);
-                log.trace("Actual   completion: {}", toProposalsList(completionList));
-                log.trace("Actual   labels    : {}", toLabelsList(completionList));
                 assertProposalsSimple(expected, completionList);
             });
         });
@@ -95,10 +88,6 @@ public class CompletionTests extends AbstractSaplLanguageServerTests {
             it.setLine(testCase.line());
             it.setColumn(testCase.column());
             it.setAssertCompletionList(completionList -> {
-                log.trace("Expected completion: {}", expected);
-                log.trace("Unwanted completion: {}", unwanted);
-                log.trace("Actual   completion: {}", toProposalsList(completionList));
-                log.trace("Actual   labels    : {}", toLabelsList(completionList));
                 assertProposalsSimple(expected, completionList);
                 assertDoesNotContainProposals(unwanted, completionList);
             });
@@ -112,19 +101,16 @@ public class CompletionTests extends AbstractSaplLanguageServerTests {
             it.setLine(testCase.line());
             it.setColumn(testCase.column());
             it.setAssertCompletionList(completionList -> {
-                log.trace("Unwanted completion: {}", unwanted);
-                log.trace("Actual   completion: {}", toProposalsList(completionList));
-                log.trace("Actual   labels    : {}", toLabelsList(completionList));
                 assertDoesNotContainProposals(unwanted, completionList);
             });
         });
     }
 
-    private List<String> toLabelsList(CompletionList cl) {
+    protected List<String> toLabelsList(CompletionList cl) {
         return cl.getItems().stream().map(item -> item.getLabel()).toList();
     }
 
-    private List<String> toProposalsList(CompletionList cl) {
+    protected List<String> toProposalsList(CompletionList cl) {
         return cl.getItems().stream().map(item -> item.getTextEdit().getLeft().getNewText()).toList();
     }
 
@@ -163,7 +149,7 @@ public class CompletionTests extends AbstractSaplLanguageServerTests {
         if (!foundACursor) {
             throw new IllegalArgumentException("""
                     The test case does not contain a cursor marker. \
-                    The position of the cursor is indicated by the '#' \
+                    The position of the cursor is indicated by the '§' \
                     character in the input String.""");
         }
         return new DocumentAndCursor(sb.toString(), line, column);

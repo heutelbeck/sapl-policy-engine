@@ -27,10 +27,10 @@ import java.util.Optional;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
-import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
+import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.SAPL;
@@ -45,9 +45,9 @@ public class LibraryProposalsGenerator {
 
     public record DocumentedProposal(String proposal, String label, String documentation) {}
 
-    public static Collection<ContentAssistEntry> allEnvironmentAttributeSchemaExtensions(ContextAnalysisResult analysis,
+    public static Collection<Proposal> allEnvironmentAttributeSchemaExtensions(ContextAnalysisResult analysis,
             ContentAssistContext context, PDPConfiguration pdpConfiguration) {
-        final var proposals  = new HashSet<ContentAssistEntry>();
+        final var proposals  = new HashSet<Proposal>();
         final var attributes = pdpConfiguration.attributeContext().getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
         attributes.stream().filter(AttributeFinderMetadata::isEnvironmentAttribute)
@@ -57,9 +57,9 @@ public class LibraryProposalsGenerator {
         return proposals;
     }
 
-    public static Collection<ContentAssistEntry> allAttributeSchemaExtensions(ContextAnalysisResult analysis,
+    public static Collection<Proposal> allAttributeSchemaExtensions(ContextAnalysisResult analysis,
             ContentAssistContext context, PDPConfiguration pdpConfiguration) {
-        final var proposals  = new HashSet<ContentAssistEntry>();
+        final var proposals  = new HashSet<Proposal>();
         final var attributes = pdpConfiguration.attributeContext().getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
         attributes.stream().filter(attribute -> !attribute.isEnvironmentAttribute())
@@ -69,9 +69,9 @@ public class LibraryProposalsGenerator {
         return proposals;
     }
 
-    public static Collection<ContentAssistEntry> allFunctionSchemaExtensions(ContextAnalysisResult analysis,
+    public static Collection<Proposal> allFunctionSchemaExtensions(ContextAnalysisResult analysis,
             ContentAssistContext context, PDPConfiguration pdpConfiguration) {
-        final var proposals = new HashSet<ContentAssistEntry>();
+        final var proposals = new HashSet<Proposal>();
         final var functions = pdpConfiguration.functionContext().getFunctionMetatata();
         final var variables = pdpConfiguration.variables();
         functions.stream()
@@ -81,9 +81,9 @@ public class LibraryProposalsGenerator {
         return proposals;
     }
 
-    private List<ContentAssistEntry> entryForMetadata(ContextAnalysisResult analysis, LibraryEntryMetadata metadata,
+    private List<Proposal> entryForMetadata(ContextAnalysisResult analysis, LibraryEntryMetadata metadata,
             Map<String, Val> variables) {
-        final var proposals = new ArrayList<ContentAssistEntry>();
+        final var proposals = new ArrayList<Proposal>();
         final var schema    = metadata.getFunctionSchema();
         if (null != schema) {
             SchemaProposalsGenerator.getCodeTemplates("", schema, variables).forEach(proposal -> {
@@ -107,9 +107,9 @@ public class LibraryProposalsGenerator {
      * @return a List of all attribute finder proposals with their aliased
      * alternatives based on imports.
      */
-    public static Collection<ContentAssistEntry> allAttributeFinders(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
-        final var proposals  = new ArrayList<ContentAssistEntry>();
+    public static Collection<Proposal> allAttributeFinders(ContextAnalysisResult analysis, ContentAssistContext context,
+            PDPConfiguration pdpConfiguration) {
+        final var proposals  = new ArrayList<Proposal>();
         final var attributes = pdpConfiguration.attributeContext().getAttributeMetatata();
         attributes.stream().filter(a -> !a.isEnvironmentAttribute()).forEach(attribute -> proposals.addAll(
                 documentedProposalsForLibraryEntry(analysis.prefix(), analysis.ctxPrefix(), attribute, context)));
@@ -129,9 +129,9 @@ public class LibraryProposalsGenerator {
      * @return a List of all attribute finder proposals with their aliased
      * alternatives based on imports.
      */
-    public static Collection<ContentAssistEntry> allEnvironmentAttributeFinders(ContextAnalysisResult analysis,
+    public static Collection<Proposal> allEnvironmentAttributeFinders(ContextAnalysisResult analysis,
             ContentAssistContext context, PDPConfiguration pdpConfiguration) {
-        final var proposals  = new ArrayList<ContentAssistEntry>();
+        final var proposals  = new ArrayList<Proposal>();
         final var attributes = pdpConfiguration.attributeContext().getAttributeMetatata();
         attributes.stream().filter(AttributeFinderMetadata::isEnvironmentAttribute)
                 .forEach(attribute -> proposals.addAll(documentedProposalsForLibraryEntry(analysis.prefix(),
@@ -154,9 +154,9 @@ public class LibraryProposalsGenerator {
      * @return a List of all function proposals with their aliased alternatives
      * based on imports.
      */
-    public static Collection<ContentAssistEntry> allFunctions(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
-        final var proposals = new ArrayList<ContentAssistEntry>();
+    public static Collection<Proposal> allFunctions(ContextAnalysisResult analysis, ContentAssistContext context,
+            PDPConfiguration pdpConfiguration) {
+        final var proposals = new ArrayList<Proposal>();
         final var functions = pdpConfiguration.functionContext().getFunctionMetatata();
         functions.forEach(function -> proposals.addAll(
                 documentedProposalsForLibraryEntry(analysis.prefix(), analysis.ctxPrefix(), function, context)));
@@ -176,9 +176,9 @@ public class LibraryProposalsGenerator {
      * @return a List of all proposals for the supplied function with their aliased
      * alternatives based on imports.
      */
-    private static Collection<ContentAssistEntry> documentedProposalsForLibraryEntry(String prefix, String ctxPrefix,
+    private static Collection<Proposal> documentedProposalsForLibraryEntry(String prefix, String ctxPrefix,
             LibraryEntryMetadata function, ContentAssistContext context) {
-        final var proposals = new ArrayList<ContentAssistEntry>();
+        final var proposals = new ArrayList<Proposal>();
         final var aliases   = aliasNamesOfFunctionFromImports(function.fullyQualifiedName(), context);
         aliases.forEach(alias -> ProposalCreator
                 .createNormalizedEntry(function.getCodeTemplate(alias), prefix, ctxPrefix).ifPresent(proposals::add));
@@ -200,12 +200,12 @@ public class LibraryProposalsGenerator {
             ContentAssistContext context) {
         final var aliases = new ArrayList<String>();
         aliases.add(fullyQualifiedName);
-        if (context.getRootModel() instanceof SAPL sapl) {
+        if (context.getRootModel() instanceof final SAPL sapl) {
             final var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
-            for (var anImport : imports) {
-                if (anImport instanceof WildcardImport wildcardImport) {
+            for (final var anImport : imports) {
+                if (anImport instanceof final WildcardImport wildcardImport) {
                     wildcardAlias(wildcardImport, fullyQualifiedName).ifPresent(aliases::add);
-                } else if (anImport instanceof LibraryImport libraryImport) {
+                } else if (anImport instanceof final LibraryImport libraryImport) {
                     libraryImportAlias(libraryImport, fullyQualifiedName).ifPresent(aliases::add);
                 } else {
                     importAlias(anImport, fullyQualifiedName).ifPresent(aliases::add);

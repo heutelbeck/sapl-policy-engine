@@ -30,8 +30,8 @@ class FunctionIdentifierTests extends CompletionTests {
     void testCompletion_documentBody_functionId_without_import() {
         final var document = """
                 policy "test" deny where schem§""";
-        final var expected = List.of("aTest.person(name, nationality, age)", "aTest.dog(dogRegistryRecord)",
-                "aTest.food(species)", "aTest.foodPrice(food)", "aTest.location()");
+        final var expected = List.of("schemaTest.person(name, nationality, age)", "schemaTest.dog(dogRegistryRecord)",
+                "schemaTest.food(species)", "schemaTest.foodPrice(food)", "schemaTest.location()");
         assertProposalsContain(document, expected);
     }
 
@@ -39,8 +39,8 @@ class FunctionIdentifierTests extends CompletionTests {
     void testCompletion_TargetExpression_functionId_without_import() {
         final var document = """
                 policy "test" deny schem§ where""";
-        final var expected = List.of("aTest.person(name, nationality, age)", "aTest.dog(dogRegistryRecord)",
-                "aTest.food(species)", "aTest.foodPrice(food)", "aTest.location()");
+        final var expected = List.of("schemaTest.person(name, nationality, age)", "schemaTest.dog(dogRegistryRecord)",
+                "schemaTest.food(species)", "schemaTest.foodPrice(food)", "schemaTest.location()");
         assertProposalsContain(document, expected);
     }
 

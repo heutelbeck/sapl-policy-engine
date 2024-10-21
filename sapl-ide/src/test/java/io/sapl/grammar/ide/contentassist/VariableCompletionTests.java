@@ -39,7 +39,7 @@ class VariableCompletionTests extends CompletionTests {
                   var foo = 5;
                   var bar = 6;
                   a§""";
-        final var expected = List.of("ction");
+        final var expected = List.of("action");
         assertProposalsContain(document, expected);
     }
 
@@ -52,7 +52,7 @@ class VariableCompletionTests extends CompletionTests {
                   var foo = 5;
                   var bar = 6;
                   e§""";
-        final var expected = List.of("nvironment");
+        final var expected = List.of("environment");
         assertProposalsContain(document, expected);
     }
 
@@ -65,7 +65,7 @@ class VariableCompletionTests extends CompletionTests {
                   var foo = 5;
                   var bar = 6;
                   f§""";
-        final var expected = List.of("oo");
+        final var expected = List.of("foo");
         assertProposalsContain(document, expected);
     }
 
@@ -78,7 +78,7 @@ class VariableCompletionTests extends CompletionTests {
                   var foo = 5;
                   var bar = 6;
                   b§""";
-        final var expected = List.of("ar");
+        final var expected = List.of("bar");
         assertProposalsContain(document, expected);
     }
 
@@ -91,7 +91,7 @@ class VariableCompletionTests extends CompletionTests {
                   var foo = 5;
                   var bar = 6;
                   s§""";
-        final var expected = List.of("ubject");
+        final var expected = List.of("subject");
         assertProposalsContain(document, expected);
     }
 
@@ -104,7 +104,7 @@ class VariableCompletionTests extends CompletionTests {
                   var foo = 5;
                   var bar = 6;
                   r§""";
-        final var expected = List.of("esource");
+        final var expected = List.of("resource");
         assertProposalsContain(document, expected);
     }
 
@@ -130,8 +130,8 @@ class VariableCompletionTests extends CompletionTests {
                   var foo = 5;
                   f§
                   var bar = 6;""";
-        final var expected = List.of("oo");
-        final var unwanted = List.of("ar");
+        final var expected = List.of("foo");
+        final var unwanted = List.of("bar");
         assertProposalsContainWantedAndDoNotContainUnwanted(document, expected, unwanted);
     }
 
@@ -159,7 +159,7 @@ class VariableCompletionTests extends CompletionTests {
                 where
                   var foo = 5;
                   d§""";
-        final var expected = List.of("og(dogRegistryRecord)");
+        final var expected = List.of("dog(dogRegistryRecord)");
         assertProposalsContain(document, expected);
     }
 
@@ -172,7 +172,7 @@ class VariableCompletionTests extends CompletionTests {
                 where
                   var foo = 5;
                   a§""";
-        final var expected = List.of("bc.dog(dogRegistryRecord)");
+        final var expected = List.of("abc.dog(dogRegistryRecord)");
         assertProposalsContain(document, expected);
     }
 

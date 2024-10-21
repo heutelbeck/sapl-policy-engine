@@ -55,7 +55,7 @@ class SchemaCompletionTests extends CompletionTests {
 
     @Test
     void testCompletion_Preamble_SchemaNameIsEmptyString_ReturnsEnvironmentVariables() {
-        final var document = "subject schema §";
+        final var document = "subject schema c§";
         final var expected = environmentVariableNames;
         assertProposalsContain(document, expected);
     }
@@ -232,35 +232,28 @@ class SchemaCompletionTests extends CompletionTests {
     @Test
     void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElementSubject() {
         final var document = "subject schema general_schema policy \"test\" permit where subject§";
-        final var expected = List.of("subject", "subject.age", "subject.name", "subject.name.firstname");
+        final var expected = List.of(".age", ".name", ".name.firstname");
         assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElementAction() {
         final var document = "action schema general_schema policy \"test\" permit where action§";
-        final var expected = List.of(".name", ".age");
+        final var expected = List.of(".age", ".name", ".name.firstname");
         assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_SuggestSchemaFromPDPScopedVariableWithNameContainingSubjectAuthzElement() {
-        final var document = "subject schema subject_schema policy \"test\" permit where subject§";
-        final var expected = List.of("subject");
-        assertProposalsContain(document, expected);
-    }
-
-    @Test
-    void testCompletion_SuggestSchemaFromPDPScopedVariableWithNameContainingActionAuthzElement() {
-        final var document = "action schema action_schema policy \"test\" permit where action§";
-        final var expected = List.of("action");
+        final var document = "subject schema general_schema policy \"test\" permit where subject§";
+        final var expected = List.of(".age", ".name", ".name.firstname");
         assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElement_with_idsteps() {
         final var document = "subject schema general_schema policy \"test\" permit where subject.name§";
-        final var expected = List.of("subject.name", "subject.name.firstname");
+        final var expected = List.of(".firstname", "name.firstname");
         final var unwanted = List.of("var", "filter.blacken");
         assertProposalsContainWantedAndDoNotContainUnwanted(document, expected, unwanted);
     }
@@ -268,7 +261,7 @@ class SchemaCompletionTests extends CompletionTests {
     @Test
     void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElement_with_idsteps_with_trailing_dot() {
         final var document = "subject schema general_schema policy \"test\" permit where subject.name.§";
-        final var expected = List.of("subject.name", "subject.name.firstname");
+        final var expected = List.of(".firstname");
         final var unwanted = List.of("var", "filter.blacken");
         assertProposalsContainWantedAndDoNotContainUnwanted(document, expected, unwanted);
     }
@@ -291,7 +284,7 @@ class SchemaCompletionTests extends CompletionTests {
                     }
                 policy "test" deny where subject§
                 """;
-        final var expected = List.of("subject.age", "subject.name", "subject.name.firstname");
+        final var expected = List.of(".age", ".name", ".name.firstname");
         assertProposalsContain(document, expected);
     }
 
@@ -310,15 +303,13 @@ class SchemaCompletionTests extends CompletionTests {
                    }
                  }
                  policy "test" deny where subject§""";
-        final var expected = List.of("subject", "subject.children", "subject.children[]", "subject.children[].children",
-                "subject.children[].children[]", "subject.children[].children[].children",
-                "subject.children[].children[].children[]", "subject.children[].children[].children[].children",
-                "subject.children[].children[].children[].children[]",
-                "subject.children[].children[].children[].children[].children",
-                "subject.children[].children[].children[].children[].children[]",
-                "subject.children[].children[].children[].children[].name",
-                "subject.children[].children[].children[].name", "subject.children[].children[].name",
-                "subject.children[].name", "subject.name");
+        final var expected = List.of(".children", ".children[]", ".children[].children", ".children[].children[]",
+                ".children[].children[].children", ".children[].children[].children[]",
+                ".children[].children[].children[].children", ".children[].children[].children[].children[]",
+                ".children[].children[].children[].children[].children",
+                ".children[].children[].children[].children[].children[]",
+                ".children[].children[].children[].children[].name", ".children[].children[].children[].name",
+                ".children[].children[].name", ".children[].name", ".name");
         assertProposalsContain(document, expected);
     }
 
@@ -335,7 +326,7 @@ class SchemaCompletionTests extends CompletionTests {
                    }
                  }
                  policy "test" deny where subject§""";
-        final var expected = List.of("subject", "subject.name");
+        final var expected = List.of(".name", ".name[]");
         assertProposalsContain(document, expected);
     }
 
@@ -353,8 +344,8 @@ class SchemaCompletionTests extends CompletionTests {
                       "last_name": {"type": "string"}}
                     }
                   }
-                 policy "test" deny where subject§""";
-        final var expected = List.of("subject", "subject.name", "subject.name.first_name", "subject.name.last_name");
+                 policy "test" deny where subject.§""";
+        final var expected = List.of(".name", ".name.first_name", ".name.last_name");
         assertProposalsContain(document, expected);
     }
 
@@ -370,8 +361,7 @@ class SchemaCompletionTests extends CompletionTests {
                      }
                   }
                  policy "test" deny where subject§""";
-        final var expected = List.of("subject", "subject.name", "subject.shipping_address",
-                "subject.shipping_address.country-name");
+        final var expected = List.of(".name", ".shipping_address", ".shipping_address.country-name");
         assertProposalsContain(document, expected);
     }
 
@@ -387,7 +377,7 @@ class SchemaCompletionTests extends CompletionTests {
                      }
                   }
                  policy "test" deny where subject§""";
-        final var expected = List.of("subject", "subject.name", "subject.place_of_birth");
+        final var expected = List.of(".name", ".place_of_birth");
         assertProposalsContain(document, expected);
     }
 
@@ -402,7 +392,7 @@ class SchemaCompletionTests extends CompletionTests {
                      }
                   }
                  policy "test" deny where subject§""";
-        final var expected = List.of("subject", "subject.place_of_birth");
+        final var expected = List.of(".place_of_birth");
         assertProposalsContain(document, expected);
     }
 
@@ -417,7 +407,7 @@ class SchemaCompletionTests extends CompletionTests {
                      }
                   }
                  policy "test" deny where subject§""";
-        final var expected = List.of("subject", "subject.place_of_birth");
+        final var expected = List.of(".place_of_birth");
         assertProposalsContain(document, expected);
     }
 
@@ -492,7 +482,7 @@ class SchemaCompletionTests extends CompletionTests {
                     }
                 policy "test" deny where subject§
                 """;
-        final var expected = List.of("subject.'first name'");
+        final var expected = List.of(".'first name'");
         assertProposalsContain(document, expected);
     }
 

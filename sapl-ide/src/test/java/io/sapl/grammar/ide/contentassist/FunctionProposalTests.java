@@ -15,13 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.old;
+package io.sapl.grammar.ide.contentassist;
 
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-
-import io.sapl.grammar.ide.contentassist.CompletionTests;
 
 class FunctionProposalTests extends CompletionTests {
 
@@ -30,7 +28,8 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where var foo = schemaTest.person();
                 schemaTe§""";
-        final var expected = List.of("st.person()", "st.dog()");
+        final var expected = List.of("schemaTest.dog(dogRegistryRecord)", "schemaTest.food(species)",
+                "schemaTest.foodPrice(food)", "schemaTest.location()", "schemaTest.person(name, nationality, age)");
         assertProposalsContain(document, expected);
     }
 
@@ -48,7 +47,8 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where var foo = schemaTest.person();
                 schemaTe§""";
-        final var expected = List.of("st.person()", "st.dog()");
+        final var expected = List.of("schemaTest.dog(dogRegistryRecord)", "schemaTest.food(species)",
+                "schemaTest.foodPrice(food)", "schemaTest.location()", "schemaTest.person(name, nationality, age)");
         assertProposalsContain(document, expected);
     }
 
@@ -58,8 +58,8 @@ class FunctionProposalTests extends CompletionTests {
                 import schemaTest as test
                 policy "test" deny where var foo = test.person();
                 tes§""";
-        final var expected = List.of("t.dog(dogRegistryRecord)", "t.food(species)", "t.foodPrice(food)", "t.location()",
-                "t.person(name, nationality, age)");
+        final var expected = List.of("test.dog(dogRegistryRecord)", "test.food(species)", "test.foodPrice(food)",
+                "test.location()", "test.person(name, nationality, age)");
         assertProposalsContain(document, expected);
     }
 
@@ -69,7 +69,7 @@ class FunctionProposalTests extends CompletionTests {
                 import schemaTest as test
                 policy "test" deny where var foo = ((test.person()));
                 foo§""";
-        final var expected = List.of("foo.name");
+        final var expected = List.of(".name");
         assertProposalsContain(document, expected);
     }
 
@@ -88,7 +88,7 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where var foo = schemaTest.dog();
                 fo§""";
-        final var expected = List.of("foo.race");
+        final var expected = List.of("foo", "foo.age", "foo.fur_color", "foo.name", "foo.species");
         assertProposalsContain(document, expected);
     }
 
@@ -98,8 +98,8 @@ class FunctionProposalTests extends CompletionTests {
                 import schemaTest as test
                 policy "test" deny where var foo = test.dog();
                 fo§""";
-        final var expected = List.of("foo.race");
-        final var unwanted = List.of("foo.name");
+        final var expected = List.of("foo", "foo.age", "foo.fur_color", "foo.name", "foo.species");
+        final var unwanted = List.of("foo.nationality");
         assertProposalsContainWantedAndDoNotContainUnwanted(document, expected, unwanted);
     }
 
@@ -109,9 +109,9 @@ class FunctionProposalTests extends CompletionTests {
                 import schemaTest as test
                 policy "test" deny where var foo = test.dog();
                 final var bar = test.dog();
-                ba§""";
-        final var expected = List.of("bar.race");
-        final var unwanted = List.of("bar.name");
+                bar.§""";
+        final var expected = List.of(".age", ".fur_color", ".name", ".species");
+        final var unwanted = List.of(".nationality");
         assertProposalsContainWantedAndDoNotContainUnwanted(document, expected, unwanted);
     }
 
@@ -121,7 +121,7 @@ class FunctionProposalTests extends CompletionTests {
                 import schemaTest as test
                 policy "test" deny where var foo = test.dog();
                 foo.§""";
-        final var expected = List.of("foo.race");
+        final var expected = List.of(".age", ".fur_color", ".name", ".species");
         final var unwanted = List.of("foo.name", "filter.blacken");
         assertProposalsContainWantedAndDoNotContainUnwanted(document, expected, unwanted);
     }
@@ -130,8 +130,17 @@ class FunctionProposalTests extends CompletionTests {
     void testCompletion_PolicyBody_function() {
         final var document = """
                 policy "test" deny where
-                final var foo = schemaTest§""";
-        final var expected = List.of("schemaTest.person().name", "schemaTest.dog().race");
+                final var foo = schemaTest.per§""";
+        final var expected = List.of("person(name, nationality, age)");
+        assertProposalsContain(document, expected);
+    }
+
+    @Test
+    void testCompletion_PolicyBody_function_extended() {
+        final var document = """
+                policy "test" deny where
+                final var foo = schemaTest.person().§""";
+        final var expected = List.of(".name", ".age", ".nationality");
         assertProposalsContain(document, expected);
     }
 
@@ -140,8 +149,8 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where
                 final var foo = schemaTest§""";
-        final var expected = List.of("schemaTest.dog()", "schemaTest.dog().race", "schemaTest.food(String species)",
-                "schemaTest.person()", "schemaTest.person().name");
+        final var expected = List.of("schemaTest.dog(dogRegistryRecord)", "schemaTest.food(species)",
+                "schemaTest.foodPrice(food)", "schemaTest.location()", "schemaTest.person(name, nationality, age)");
         assertProposalsContain(document, expected);
     }
 
@@ -150,8 +159,8 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where
                 final var foo = schemaTest.cat§""";
-        final var unwanted = List.of("schemaTest.dog()", "schemaTest.dog().race", "schemaTest.food(String species)",
-                "schemaTest.person()", "schemaTest.person().name");
+        final var unwanted = List.of(".dog(dogRegistryRecord)", ".food(species)", ".foodPrice(food)", ".location()",
+                ".person(name, nationality, age)");
         assertProposalsDoNotContain(document, unwanted);
     }
 
@@ -160,7 +169,16 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where
                 final var foo = schemaTest.dog§""";
-        final var expected = List.of("schemaTest.dog()", "schemaTest.dog().race");
+        final var expected = List.of("(dogRegistryRecord)", "dog(dogRegistryRecord)");
+        assertProposalsContain(document, expected);
+    }
+
+    @Test
+    void testCompletion_PolicyBody_function_exists_extended() {
+        final var document = """
+                policy "test" deny where
+                final var foo = schemaTest.dog(dogRegistryRecord).§""";
+        final var expected = List.of(".age", ".fur_color", ".name", ".species");
         assertProposalsContain(document, expected);
     }
 
@@ -169,7 +187,8 @@ class FunctionProposalTests extends CompletionTests {
         final var document = """
                 policy "test" deny where
                 schemaTest§""";
-        final var expected = List.of("schemaTest.dog()", "schemaTest.dog().race");
+        final var expected = List.of("schemaTest.dog(dogRegistryRecord)", "schemaTest.food(species)",
+                "schemaTest.foodPrice(food)", "schemaTest.location()", "schemaTest.person(name, nationality, age)");
         assertProposalsContain(document, expected);
     }
 
@@ -187,8 +206,8 @@ class FunctionProposalTests extends CompletionTests {
     void testCompletion_function_assignment_schema_from_path() {
         final var document = """
                 policy "test" deny where
-                final var foo = schemaTest.locatio§""";
-        final var expected = List.of("schemaTest.location()", "schemaTest.location().latitude");
+                final var foo = schemaTest.location().§""";
+        final var expected = List.of(".latitude");
         assertProposalsContain(document, expected);
     }
 

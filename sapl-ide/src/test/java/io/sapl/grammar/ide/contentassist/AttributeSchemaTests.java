@@ -47,7 +47,7 @@ class AttributeSchemaTests extends CompletionTests {
     void testCompletion_PolicyBody_attributeStep() {
         final var document = """
                 policy "test" deny where subject.<person.age>.§""";
-        final var expected = List.of("years", "days");
+        final var expected = List.of(".years", ".days");
         assertProposalsContain(document, expected);
     }
 }

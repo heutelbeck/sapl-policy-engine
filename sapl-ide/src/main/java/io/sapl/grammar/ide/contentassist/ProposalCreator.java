@@ -23,50 +23,39 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @UtilityClass
 public class ProposalCreator {
 
-    public static ContentAssistEntry createEntry(String proposal, String ctxPrefix, String label, String documentation,
-            String kind) {
-        final var entry = new ContentAssistEntry();
-        entry.setProposal(proposal);
-        entry.setPrefix(ctxPrefix);
-        entry.setDocumentation(documentation);
-        entry.setLabel(label);
-        entry.setKind(kind);
-        return entry;
+    public record Proposal(String proposal, String ctxPrefix, String documentation, String label, String kind) {}
+
+    public static Proposal createSimpleEntry(String proposal, ContentAssistContext context) {
+        return new Proposal(proposal, context.getPrefix(), proposal, null, ContentAssistEntry.KIND_VALUE);
     }
 
-    public static ContentAssistEntry createSimpleEntry(String proposal, ContentAssistContext context) {
-        return createEntry(proposal, context.getPrefix(), proposal, null, ContentAssistEntry.KIND_VALUE);
-    }
-
-    public static Optional<ContentAssistEntry> createNormalizedEntry(String proposal, String prefix, String ctxPrefix) {
+    public static Optional<Proposal> createNormalizedEntry(String proposal, String prefix, String ctxPrefix) {
         return createNormalizedEntry(proposal, prefix, ctxPrefix, null);
     }
 
-    public static Optional<ContentAssistEntry> createNormalizedEntry(String proposal, String prefix, String ctxPrefix,
+    public static Optional<Proposal> createNormalizedEntry(String proposal, String prefix, String ctxPrefix,
             String documentation) {
-        return normalize(proposal, prefix, ctxPrefix).map(normalizedProposal -> createEntry(normalizedProposal,
+        return normalize(proposal, prefix, ctxPrefix).map(normalizedProposal -> new Proposal(normalizedProposal,
                 ctxPrefix, proposal, documentation, ContentAssistEntry.KIND_METHOD));
     }
 
     public static Optional<String> normalize(String proposal, String prefix, String ctxPrefix) {
-        log.trace("normalize: '{}' prefix: '{}' ctxPrefix: '{}'", proposal, prefix, ctxPrefix);
+        //        log.trace("normalize: '{}' prefix: '{}' ctxPrefix: '{}'", proposal, prefix, ctxPrefix);
         if (proposal.startsWith("<") && !prefix.startsWith("<")) {
             proposal = proposal.substring(1);
         }
         if (!proposal.startsWith(prefix) || !prefix.endsWith(ctxPrefix) || prefix.equals(proposal)) {
-            log.trace("prefix: '{}' ctxPrefix: '{}': proposal: '{}' normalized: <empty> no proposal!", prefix,
-                    ctxPrefix, proposal);
+            //            log.trace("prefix: '{}' ctxPrefix: '{}': proposal: '{}' normalized: <empty> no proposal!", prefix,
+            //                    ctxPrefix, proposal);
             return Optional.empty();
         } else {
             final var normalizedProposal = proposal.substring(prefix.length() - ctxPrefix.length());
-            log.trace("prefix: '{}' ctxPrefix: '{}': proposal: '{}' normalized: '{}'", prefix, ctxPrefix, proposal,
-                    normalizedProposal);
+            //            log.trace("prefix: '{}' ctxPrefix: '{}': proposal: '{}' normalized: '{}'", prefix, ctxPrefix, proposal,
+            //                    normalizedProposal);
             return Optional.of(normalizedProposal);
         }
     }

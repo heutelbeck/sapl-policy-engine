@@ -143,7 +143,7 @@ class AttributeProposalTests extends CompletionTests {
                 policy "test" deny where
                 var foo = <temperature.now()>;
                 foo.§""";
-        final var expected = List.of(".unit");
+        final var expected = List.of(".unit", ".value");
         assertProposalsContain(document, expected);
     }
 
@@ -165,7 +165,7 @@ class AttributeProposalTests extends CompletionTests {
                 policy "test" deny where
                 var foo = "".<now>;
                 fo§""";
-        final var expected = List.of("o");
+        final var expected = List.of("foo");
         assertProposalsContain(document, expected);
     }
 
@@ -217,7 +217,7 @@ class AttributeProposalTests extends CompletionTests {
                 policy "test" deny where
                 var foo = <temp.now()>;
                 foo.§""";
-        final var expected = List.of("unit");
+        final var expected = List.of(".unit", ".value");
         assertProposalsContain(document, expected);
     }
 

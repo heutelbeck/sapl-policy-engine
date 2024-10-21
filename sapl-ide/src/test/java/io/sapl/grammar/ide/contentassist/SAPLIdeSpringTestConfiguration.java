@@ -203,11 +203,24 @@ public class SAPLIdeSpringTestConfiguration {
 
         @Attribute(docs = "temp at location", schema = """
                 {
+                  "type": "object",
+                  "properties": {
+                    "value": { "type": "number" },
+                    "unit": { "type": "string"}
+                  }
+                }
+                """)
+        public Flux<Val> atLocation(Val leftHandLocation) {
+            return Flux.just(Val.of(123));
+        }
+
+        @Attribute(docs = "temp at location", schema = """
+                {
                   "value" : 500,
                   "unit" : "K"
                 }
                 """)
-        public Flux<Val> atLocation(Val leftHandLocation) {
+        public Flux<Val> atTime(Val leftHandTime) {
             return Flux.just(Val.of(123));
         }
     }

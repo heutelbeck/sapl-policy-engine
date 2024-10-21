@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
-import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -34,6 +33,7 @@ import com.google.common.base.Strings;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
+import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SAPL;
@@ -41,9 +41,7 @@ import io.sapl.grammar.sapl.Schema;
 import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @UtilityClass
 public class VariablesProposalsGenerator {
     public static final Collection<String> AUTHORIZATION_SUBSCRIPTION_VARIABLES = Set.of("subject", "action",
@@ -61,7 +59,7 @@ public class VariablesProposalsGenerator {
      * variables
      * @return a List of proposals.
      */
-    public static List<ContentAssistEntry> variableProposalsForContext(ContextAnalysisResult analysis,
+    public static List<Proposal> variableProposalsForContext(ContextAnalysisResult analysis,
             ContentAssistContext context, PDPConfiguration pdpConfiguration) {
         /* first add environment variables and their expansions */
         final var proposals = createEnvironmentVariableProposals(pdpConfiguration);
@@ -88,9 +86,8 @@ public class VariablesProposalsGenerator {
         return toListOfNormalizedEntries(proposals, analysis);
     }
 
-    private List<ContentAssistEntry> toListOfNormalizedEntries(Collection<String> proposals,
-            ContextAnalysisResult analysis) {
-        var entries = new ArrayList<ContentAssistEntry>(proposals.size());
+    private List<Proposal> toListOfNormalizedEntries(Collection<String> proposals, ContextAnalysisResult analysis) {
+        final var entries = new ArrayList<Proposal>(proposals.size());
         proposals.forEach(proposal -> ProposalCreator
                 .createNormalizedEntry(proposal, analysis.prefix(), analysis.ctxPrefix()).ifPresent(entries::add));
         return entries;
@@ -122,8 +119,9 @@ public class VariablesProposalsGenerator {
     private ArrayList<String> createPolicySetHeaderVariablesProposals(ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         final var proposals = new ArrayList<String>();
-        if (context.getRootModel() instanceof SAPL sapl && sapl.getPolicyElement() instanceof PolicySet policySet) {
-            for (var valueDefinition : policySet.getValueDefinitions()) {
+        if (context.getRootModel() instanceof final SAPL sapl
+                && sapl.getPolicyElement() instanceof final PolicySet policySet) {
+            for (final var valueDefinition : policySet.getValueDefinitions()) {
                 proposals.addAll(
                         createValueDefinitionProposalsWithSchemaExtensions(valueDefinition, pdpConfiguration, context));
             }
@@ -147,11 +145,11 @@ public class VariablesProposalsGenerator {
             return proposals;
         }
 
-        for (var statement : policyBody.getStatements()) {
+        for (final var statement : policyBody.getStatements()) {
             if (offsetOf(statement) >= currentOffset) {
                 break;
             }
-            if (statement instanceof ValueDefinition valueDefinition) {
+            if (statement instanceof final ValueDefinition valueDefinition) {
                 proposals.addAll(
                         createValueDefinitionProposalsWithSchemaExtensions(valueDefinition, pdpConfiguration, context));
             }
@@ -174,7 +172,7 @@ public class VariablesProposalsGenerator {
         proposals.add(variableName);
         final var schemas = ExpressionSchemaResolver.inferValueDefinitionSchemas(valueDefinition, context,
                 pdpConfiguration);
-        for (var schema : schemas) {
+        for (final var schema : schemas) {
             proposals.addAll(
                     SchemaProposalsGenerator.getCodeTemplates(variableName, schema, pdpConfiguration.variables()));
         }
@@ -184,8 +182,8 @@ public class VariablesProposalsGenerator {
     private static List<String> createSubscriptionElementSchemaExpansionProposals(ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         final var proposals = new ArrayList<String>();
-        if (context.getRootModel() instanceof SAPL sapl) {
-            for (var schema : sapl.getSchemas()) {
+        if (context.getRootModel() instanceof final SAPL sapl) {
+            for (final var schema : sapl.getSchemas()) {
                 proposals.addAll(SchemaProposalsGenerator.getCodeTemplates(schema.getSubscriptionElement(),
                         schema.getSchemaExpression(), pdpConfiguration.variables()));
             }
@@ -201,7 +199,7 @@ public class VariablesProposalsGenerator {
     }
 
     private List<String> generatePathProposalsForJsonNode(JsonNode jsonNode) {
-        if (jsonNode instanceof ObjectNode objectNode) {
+        if (jsonNode instanceof final ObjectNode objectNode) {
             return generatePathProposalsForObjectNode(objectNode);
         } else if (jsonNode instanceof ArrayNode) {
             return List.of("[?]");

@@ -17,11 +17,10 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.text.StringEscapeUtils;
 import org.eclipse.xtext.Keyword;
-import org.eclipse.xtext.RuleCall;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
@@ -37,11 +36,11 @@ import io.sapl.grammar.sapl.BasicFunction;
 import io.sapl.grammar.sapl.FunctionIdentifier;
 import io.sapl.grammar.sapl.HeadAttributeFinderStep;
 import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @UtilityClass
 public class ContextAnalyzer {
+    private static final List<String> SKIPPABLE_KEYWORDS = List.of(".", "subject", "action", "resource", "environment");
+
     public enum ProposalType {
         ATTRIBUTE, ENVIRONMENT_ATTRIBUTE, FUNCTION, VARIABLE_OR_FUNCTION_NAME, INDETERMINATE
     }
@@ -50,7 +49,6 @@ public class ContextAnalyzer {
             INode startNode) {}
 
     public static ContextAnalysisResult analyze(final ContentAssistContext context) {
-        // dump(context);
         final var result = prefixAnalysis(context);
         return result;
     }
@@ -69,20 +67,16 @@ public class ContextAnalyzer {
             final var grammarElement  = n.getGrammarElement();
             final var semanticElement = n.getSemanticElement();
             if (".".equals(n.getText())) {
-                // log.trace("accept '.'");
+                /* NOOP */
             } else if (grammarElement instanceof final TerminalRule terminalRule) {
                 if ("WS".equals(terminalRule.getName())) {
-                    // log.trace("Stop at WS {}", StringEscapeUtils.escapeJava(n.getText()));
                     break;
                 }
             } else if (semanticElement instanceof final Arguments arguments) {
-                // log.trace("found arguments: {}", arguments);
                 final var parent = arguments.eContainer();
-                // log.trace("parent of arguments: {}");
                 if (parent instanceof final BasicFunction basicFunction) {
                     functionName = nameOf(basicFunction.getIdentifier());
-                    // log.trace("functionName: {}", functionName);
-                    type = ProposalType.FUNCTION;
+                    type         = ProposalType.FUNCTION;
                     break;
                 } else {
                     type = ProposalType.INDETERMINATE;
@@ -91,25 +85,20 @@ public class ContextAnalyzer {
             } else if (semanticElement instanceof final AttributeFinderStep attribute) {
                 type         = ProposalType.ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-                // log.trace("functionName (afs): {}", functionName);
                 break;
             } else if (semanticElement instanceof final HeadAttributeFinderStep attribute) {
                 type         = ProposalType.ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-                // log.trace("functionName (hafs): {}", functionName);
                 break;
             } else if (semanticElement instanceof final BasicEnvironmentAttribute attribute) {
                 type         = ProposalType.ENVIRONMENT_ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-                // log.trace("functionName (bea): {}", functionName);
                 break;
             } else if (semanticElement instanceof final BasicEnvironmentHeadAttribute attribute) {
                 type         = ProposalType.ENVIRONMENT_ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-                // log.trace("functionName (beha): {}", functionName);
                 break;
             }
-            // log.trace("add: '{}' {}", n.getText(), n.getClass().getSimpleName());
             sb.insert(0, n.getText());
             n = leftOf(n);
         } while (n != null);
@@ -124,36 +113,31 @@ public class ContextAnalyzer {
         return identifier.getNameFragments().stream().collect(Collectors.joining("."));
     }
 
-    private static INode firstNodeForAnalysis(ContentAssistContext context) {
+    static INode firstNodeForAnalysis(ContentAssistContext context) {
         final var offset         = context.getOffset();
         var       n              = skipCompositeNodes(context.getCurrentNode());
         final var grammarElement = n.getGrammarElement();
         if (grammarElement instanceof final TerminalRule terminalRule) {
             if ("WS".equals(terminalRule.getName())) {
                 if (offset > n.getOffset()) {
-                    // log.trace("whitespace left of cursor. Stop");
                     n = null;
                 } else {
-                    // log.trace("At start of Whitespace. Step left");
                     n = leftOf(n);
                 }
             }
         } else if (grammarElement instanceof Keyword) {
             if (offset == n.getOffset()) {
-                log.trace("At start of Keyword '{}'. Step left", n.getText());
                 n = leftOf(n);
-            } else if (!".".equals(n.getText())) {
-                log.trace("Not start of Keyword '{}'. Stop", n.getText());
+            } else if (!SKIPPABLE_KEYWORDS.contains(n.getText())) {
                 n = null;
             }
         } else if (offset < n.getEndOffset()) {
-            log.trace("Not at end of previous token. Stop.");
             n = null;
         }
         return n;
     }
 
-    private static INode leftOf(INode n) {
+    static INode leftOf(INode n) {
         if (null == n) {
             return n;
         }
@@ -173,43 +157,6 @@ public class ContextAnalyzer {
             offset--;
         }
         return n;
-    }
-
-    private static void dump(final ContentAssistContext context) {
-        var n = firstNodeForAnalysis(context);
-        var t = "";
-        var c = "";
-        var g = "";
-        var r = "";
-        var s = "";
-        while (null != n) {
-            final var text  = StringEscapeUtils.escapeJava(n.getText());
-            final var clazz = StringEscapeUtils.escapeJava(n.getClass().getSimpleName());
-            final var ge    = StringEscapeUtils
-                    .escapeJava(n.getGrammarElement() == null ? "null" : n.getGrammarElement().eClass().getName());
-            var       ru    = "";
-            if (n.getGrammarElement() instanceof final RuleCall ruleCall) {
-                ru = ruleCall.getRule().getName();
-            } else if (n.getGrammarElement() instanceof final TerminalRule rule) {
-                ru = rule.getName();
-            }
-            final var se     = StringEscapeUtils
-                    .escapeJava(n.getSemanticElement() == null ? "null" : n.getSemanticElement().eClass().getName());
-            final var length = Math.max(
-                    Math.max(Math.max(text.length(), clazz.length()), Math.max(ge.length(), se.length())), ru.length());
-            final var format = "%" + length + "s|";
-            t = String.format(format, text) + t;
-            c = String.format(format, clazz) + c;
-            g = String.format(format, ge) + g;
-            r = String.format(format, ru) + r;
-            s = String.format(format, se) + s;
-            n = leftOf(n);
-        }
-        log.trace("Text    : {}", t);
-        log.trace("Class   : {}", c);
-        log.trace("Grammar : {}", g);
-        log.trace("Rule    : {}", r);
-        log.trace("Semantic: {}", s);
     }
 
 }

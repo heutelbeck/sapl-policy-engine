@@ -17,18 +17,20 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
+import static io.sapl.grammar.ide.contentassist.ExpressionSchemaResolver.offsetOf;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.Assignment;
 import org.eclipse.xtext.GrammarUtil;
 import org.eclipse.xtext.Keyword;
 import org.eclipse.xtext.RuleCall;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
-import org.eclipse.xtext.ide.editor.contentassist.ContentAssistEntry;
 import org.eclipse.xtext.ide.editor.contentassist.IIdeContentProposalAcceptor;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 import org.eclipse.xtext.nodemodel.INode;
@@ -36,13 +38,16 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
 
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ProposalType;
+import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
 import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
+import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.HeadAttributeFinderStep;
 import io.sapl.grammar.sapl.Policy;
 import io.sapl.grammar.sapl.PolicyBody;
@@ -51,13 +56,11 @@ import io.sapl.grammar.sapl.ValueDefinition;
 import io.sapl.grammar.services.SAPLGrammarAccess;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * This class enhances the auto-completion proposals that the language server
  * offers.
  */
-@Slf4j
 public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private static final Collection<String> BLACKLIST_OF_KEYWORD_PROPOSALS = Set.of("null", "undefined", "true",
@@ -157,6 +160,14 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         final var isSomewhereUnderEnvironmentAttributeNode =
                 isIn(analysis.startNode(), BasicEnvironmentAttribute.class)
                 || isIn(analysis.startNode(), BasicEnvironmentHeadAttribute.class);
+
+        //        log.trace("isAttributeAnalysis: {}",isAttributeAnalysis);
+        //        log.trace("isInsideOfPolicyBody: {}",isInsideOfPolicyBody);
+        //        log.trace("isNotInSchemaDefinition: {}",isNotInSchemaDefinition);
+        //        log.trace("isPlusEqualOperator: {} {}",isPlusEqualOperator);
+        //        log.trace("isAssignmentToIdentifier: {}",isAssignmentToIdentifier);
+        //        log.trace("isSomewhereUnderEnvironmentAttributeNode: {}",isSomewhereUnderEnvironmentAttributeNode);
+
         return    isAttributeAnalysis && isInsideOfPolicyBody && isNotInSchemaDefinition && isPlusEqualOperator
                 && (isAssignmentToIdentifier || isSomewhereUnderEnvironmentAttributeNode);
     }
@@ -209,87 +220,118 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         final var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration(configurationId).blockFirst();
         final var feature          = assignment.getFeature();
         final var parserRule       = GrammarUtil.containingParserRule(assignment).getName().toLowerCase();
-        log.trace(">start assignment {} {}{}", GrammarUtil.containingParserRule(assignment).getName(), feature,
-                assignment.getOperator());
-        final var analysis = ContextAnalyzer.analyze(context);
-        log.trace("> prefix: '{}' ctxPrefix: '{}' functionName: '{}' type: {} node: {}", analysis.prefix(),
-                analysis.ctxPrefix(), analysis.functionName(), analysis.type(), analysis.startNode());
-
+        final var analysis         = ContextAnalyzer.analyze(context);
         if (isAttributeIdentifierAssignment(assignment, analysis)) {
-            log.trace("A");
             this.addProposals(LibraryProposalsGenerator.allAttributeFinders(analysis, context, pdpConfiguration),
-                    acceptor);
+                    context, acceptor);
         } else if (isEnvironmentAttributeIdentifierAssignment(assignment, analysis)) {
-            log.trace("B");
             this.addProposals(
                     LibraryProposalsGenerator.allEnvironmentAttributeFinders(analysis, context, pdpConfiguration),
-                    acceptor);
+                    context, acceptor);
         } else if (isAttributeSchemaExtension(assignment, analysis)) {
-            log.trace("C");
             this.addProposals(
                     LibraryProposalsGenerator.allAttributeSchemaExtensions(analysis, context, pdpConfiguration),
-                    acceptor);
+                    context, acceptor);
         } else if (isEnvironmentAttributeSchemaExtension(assignment, analysis)) {
-            log.trace("D");
             this.addProposals(LibraryProposalsGenerator.allEnvironmentAttributeSchemaExtensions(analysis, context,
-                    pdpConfiguration), acceptor);
+                    pdpConfiguration), context, acceptor);
         } else if (isFunctionIdentifierAssignment(assignment, analysis)) {
-            log.trace("E");
-            this.addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), acceptor);
+            this.addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), context,
+                    acceptor);
         } else if (isVariableAssignment(assignment, analysis)) {
-            log.trace("F");
             this.addProposals(
                     VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration),
-                    acceptor);
+                    context, acceptor);
+            this.createPolicyBodyInScopeVariableProposals(analysis, pdpConfiguration, context, acceptor);
         } else if (analysis.type() == ProposalType.FUNCTION) {
-            log.trace("G");
             this.addProposals(
-                    LibraryProposalsGenerator.allFunctionSchemaExtensions(analysis, context, pdpConfiguration),
+                    LibraryProposalsGenerator.allFunctionSchemaExtensions(analysis, context, pdpConfiguration), context,
                     acceptor);
         } else if ("saplName".equals(feature)) {
-            log.trace("H");
-            acceptor.accept(ProposalCreator.createSimpleEntry("\"\"", context), 0);
+            addProposal(ProposalCreator.createSimpleEntry("\"\"", context), context, acceptor);
         } else if ("import".equals(parserRule) && ("libSteps".equals(feature) || "functionName".equals(feature))) {
-            log.trace("I");
             createImportProposals(analysis, context, acceptor, pdpConfiguration);
-        } else if ("basic".equals(parserRule)) {
-            log.trace("J");
-            log.trace("BASIC");
-            log.trace("BASIC");
-            log.trace("BASIC");
-        } else {
-            log.trace(">assignment no match");
+        } else if ("sapl".equals(parserRule) && "schemas".equals(feature)) {
+            VariablesProposalsGenerator.AUTHORIZATION_SUBSCRIPTION_VARIABLES
+                    .forEach(s -> addProposal(ProposalCreator.createSimpleEntry(s, context), context, acceptor));
+        } else if ("schema".equals(parserRule) && "schemaExpression".equals(feature)) {
+            addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), context,
+                    acceptor);
+            addProposals(VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration),
+                    context, acceptor);
         }
-        log.trace(">end assignment");
     }
 
     @Override
     protected void _createProposals(final RuleCall ruleCall, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
         lazyLoadDependencies();
-        final var ruleName = ruleCall.getRule().getName();
-        log.trace("#rule call: '{}'", ruleName);
         final var configurationId  = extractConfigurationIdFromRequest();
         final var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration(configurationId).blockFirst();
         final var analysis         = ContextAnalyzer.analyze(context);
-        log.trace("# prefix: '{}' ctxPrefix: '{}' functionName: '{}' type: {} node: {}", analysis.prefix(),
-                analysis.ctxPrefix(), analysis.functionName(), analysis.type(), analysis.startNode());
         switch (analysis.type()) {
         case VARIABLE_OR_FUNCTION_NAME: {
             if (isInsideOf(context.getCurrentNode(), Policy.class)
                     || isInsideOf(context.getCurrentNode(), PolicySet.class)) {
-                addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), acceptor);
+                addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), context,
+                        acceptor);
                 addProposals(
                         VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration),
-                        acceptor);
+                        context, acceptor);
             }
         }
         default: {
-            log.trace("#rule call - No match");
             /* NOOP */
         }
         }
-        log.trace("#end rule call");
+    }
+
+    /*
+     * Extracts all ValueDefinitions from the current policy body in order and stops
+     * when it finds the statement where the cursor currently resides in. All
+     * variable names on the way are returned.
+     */
+    private void createPolicyBodyInScopeVariableProposals(ContextAnalysisResult analysis,
+            PDPConfiguration pdpConfiguration, ContentAssistContext context, IIdeContentProposalAcceptor acceptor) {
+        final var currentModel  = context.getCurrentModel();
+        final var currentOffset = context.getOffset();
+        final var policyBody    = TreeNavigationUtil.goToFirstParent(currentModel, PolicyBody.class);
+
+        if (policyBody == null) {
+            return;
+        }
+        for (final var statement : policyBody.getStatements()) {
+            if (offsetOf(statement) >= currentOffset) {
+                break;
+            }
+            if (statement instanceof final ValueDefinition valueDefinition) {
+                createValueDefinitionProposalsWithSchemaExtensions(analysis, valueDefinition, pdpConfiguration, context,
+                        acceptor);
+            }
+        }
+    }
+
+    /*
+     * This method adds the variable name of the value and if the value definition
+     * has an explicit schema declaration, the matching schema extensions are added.
+     */
+    private void createValueDefinitionProposalsWithSchemaExtensions(ContextAnalysisResult analysis,
+            ValueDefinition valueDefinition, PDPConfiguration pdpConfiguration, ContentAssistContext context,
+            IIdeContentProposalAcceptor acceptor) {
+        final var variableName = valueDefinition.getName();
+        if (Strings.isNullOrEmpty(variableName)) {
+            return;
+        }
+        final var schemas = ExpressionSchemaResolver.inferValueDefinitionSchemas(valueDefinition, context,
+                pdpConfiguration);
+        for (final var schema : schemas) {
+            final var proposals = SchemaProposalsGenerator.getCodeTemplates(variableName, schema,
+                    pdpConfiguration.variables());
+            proposals.forEach(
+                    pText -> ProposalCreator.createNormalizedEntry(pText, analysis.prefix(), analysis.ctxPrefix())
+                            .ifPresent(p -> addProposal(p, context, acceptor)));
+
+        }
     }
 
     /*
@@ -308,7 +350,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             proposals.add(analysis.prefix() + "*");
         }
         proposals.forEach(pText -> ProposalCreator.createNormalizedEntry(pText, analysis.prefix(), analysis.ctxPrefix())
-                .ifPresent(p -> acceptor.accept(p, 0)));
+                .ifPresent(p -> addProposal(p, context, acceptor)));
     }
 
     private boolean isInsideOfPolicyBody(final INode n) {
@@ -330,22 +372,38 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     private boolean isInsideOfSchemaExpression(INode n) {
+        // log.trace("look at: {}", n);
         if (null == n) {
             return false;
         }
         ValueDefinition valueDefinition = null;
         var             node            = n;
         do {
+            // log.trace("semantic: {}", node.getSemanticElement());
             if (node.getSemanticElement() instanceof final ValueDefinition definition) {
                 valueDefinition = definition;
                 break;
             }
             node = node.getParent();
+            // log.trace("next: {}", node);
         } while (node != null);
         if (null == valueDefinition) {
+            // log.trace("no val defini found");
             return false;
         }
-        return !isChildOrEqual(n.getSemanticElement(), valueDefinition.getEval());
+        // log.trace("Its a value definition and is it in definition: {}",
+        // !isInSchemaDefinitionsOfValueDefinition(n.getSemanticElement(),
+        // valueDefinition.getSchemaVarExpression()));
+        return isInSchemaDefinitionsOfValueDefinition(n.getSemanticElement(), valueDefinition.getSchemaVarExpression());
+    }
+
+    private boolean isInSchemaDefinitionsOfValueDefinition(EObject needle, EList<Expression> schemata) {
+        for (final var schema : schemata) {
+            if (isChildOrEqual(needle, schema)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isChildOrEqual(EObject needle, EObject haystack) {
@@ -364,10 +422,18 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         return false;
     }
 
-    private void addProposals(final Collection<ContentAssistEntry> proposals,
+    private void addProposals(final Collection<Proposal> proposals, final ContentAssistContext context,
             final IIdeContentProposalAcceptor acceptor) {
-        proposals.forEach(p -> log.trace("add: '{}' -> '{}'", p.getPrefix(), p.getProposal()));
-        proposals.forEach(p -> acceptor.accept(p, 0));
+        proposals.forEach(p -> addProposal(p, context, acceptor));
     }
 
+    private void addProposal(final Proposal proposal, final ContentAssistContext context,
+            final IIdeContentProposalAcceptor acceptor) {
+        final var entry = getProposalCreator().createProposal(proposal.proposal(), context, p -> {
+            p.setKind(proposal.kind());
+            p.setLabel(proposal.label());
+            p.setDocumentation(proposal.documentation());
+        });
+        acceptor.accept(entry, 0);
+    }
 }
