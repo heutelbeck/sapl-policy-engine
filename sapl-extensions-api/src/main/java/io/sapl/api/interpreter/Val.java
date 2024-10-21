@@ -777,7 +777,7 @@ public class Val implements Traced, Serializable {
     }
 
     /**
-     * @param val a Boolean number
+     * @param bool a Boolean number
      * @return a Val with the given value.
      */
     public static Val of(Boolean bool) {

@@ -143,9 +143,7 @@ public class LibraryProposalsGenerator {
      * Generates documented proposals for all PDP deployed functions including
      * aliased alternatives based on potential imports.
      *
-     * @param prefix only add proposals starting with this prefix, but remove prefix
-     * from proposal.
-     * @param ctxPrefix actual Prefix in Context
+     * @param analysis current context analysis
      * @param context The current ContentAssistContext context is needed to inspect
      * potentially defined imports in the document to resolve names correctly.
      * @param pdpConfiguration The PDPConfiguration pdpConfiguration supplies the

@@ -53,7 +53,6 @@ public class VariablesProposalsGenerator {
      *
      * @param analysis only add proposals starting with this prefix, but remove
      * prefix from proposal.
-     * @param ctxPrefix actual Prefix in Context
      * @param context the ContentAssistContext
      * @param pdpConfiguration the configuration containing the environment
      * variables

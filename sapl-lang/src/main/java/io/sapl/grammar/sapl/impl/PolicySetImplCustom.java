@@ -63,7 +63,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
      *
      * @param targetValue the evaluation result of the target expression (must be
      * non-Boolean or error).
-     * @Returns the matching evaluation result.
+     * @return the matching evaluation result.
      */
     @Override
     public DocumentEvaluationResult targetResult(Val targetValue) {
