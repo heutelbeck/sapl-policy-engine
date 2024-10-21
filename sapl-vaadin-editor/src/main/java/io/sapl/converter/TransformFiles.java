@@ -21,11 +21,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import lombok.experimental.UtilityClass;
@@ -60,11 +59,11 @@ public class TransformFiles {
     }
 
     private void convertFileToESM(String filePath, Converter converter) throws IOException {
-        Path     path    = Paths.get(filePath);
-        String   content = Files.readString(path);
-        String[] terms   = content.trim().split("\\s+");
+        final var path    = Paths.get(filePath);
+        final var content = Files.readString(path);
+        final var terms   = content.trim().split("\\s+");
         if (!"import".equals(terms[0])) {
-            String result = converter.convert(content);
+            final var result = converter.convert(content);
             // first remove the byte order mark, then convert to UTF-8
             Files.writeString(path, result.replaceFirst("^\uFEFF", ""));
         }
@@ -72,35 +71,34 @@ public class TransformFiles {
 
     private void addConfigIdData(String filePath, String filePathNew) throws IOException {
 
-        Path       newPath    = Paths.get(filePathNew);
-        FileReader fileReader = new FileReader(filePath);
+        final var newPath    = Paths.get(filePathNew);
+        final var fileReader = new FileReader(filePath, StandardCharsets.UTF_8);
 
-        try (BufferedReader bufferedReader = new BufferedReader(fileReader)) {
-            List<String> terms = new ArrayList<String>();
-            String       term  = null;
-
-            String payload00 = """
+        try (final var bufferedReader = new BufferedReader(fileReader)) {
+            final var terms     = new ArrayList<String>();
+            String    term      = null;
+            final var payload00 = """
 
                     import { saplPdpConfigurationId } from "./sapl-editor"; // Hello SAPL!
                     """;
-            String payload01 = """
+            final var payload01 = """
                         if (requestUrl.indexOf('?') >= 0)
                             requestUrl += '&configurationId=' + saplPdpConfigurationId;
                         else
                             requestUrl += '?configurationId=' + saplPdpConfigurationId;
                     """;
 
-            int line = 0;
+            var line = 0;
             while (null != (term = bufferedReader.readLine())) {
-                if (274 == line)
+                if (274 == line) {
                     terms.add(term + payload01);
-                else
+                } else {
                     terms.add(term);
+                }
                 line++;
             }
             terms.set(0, terms.get(0) + payload00);
-            System.out.println(payload00);
-            String result = terms.stream().collect(Collectors.joining("\n"));
+            final var result = terms.stream().collect(Collectors.joining("\n"));
             Files.writeString(newPath, result);
         }
     }
