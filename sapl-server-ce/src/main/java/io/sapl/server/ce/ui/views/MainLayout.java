@@ -75,7 +75,7 @@ public class MainLayout extends AppLayout {
     }
 
     private void addHeaderContent() {
-        var toggle = new DrawerToggle();
+        final var toggle = new DrawerToggle();
         toggle.getElement().setAttribute("aria-label", "Menu toggle");
 
         viewTitle = new H2();
@@ -86,24 +86,24 @@ public class MainLayout extends AppLayout {
 
     private void addDrawerContent() {
 
-        var logoLayout = new HorizontalLayout();
+        final var logoLayout = new HorizontalLayout();
         logoLayout.setId("logo");
         logoLayout.setAlignItems(FlexComponent.Alignment.CENTER);
         logoLayout.setPadding(true);
-        var logo = new Image("images/SAPL-Logo.png", "SAPL Logo");
+        final var logo = new Image("images/SAPL-Logo.png", "SAPL Logo");
         logo.setHeight("50px");
-        var appName = new H1("SAPL Server CE");
+        final var appName = new H1("SAPL Server CE");
         appName.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.Margin.NONE);
         logoLayout.add(logo, appName);
 
-        var header   = new Header(logoLayout);
-        var scroller = new Scroller(createNavigation());
+        final var header   = new Header(logoLayout);
+        final var scroller = new Scroller(createNavigation());
 
         addToDrawer(header, scroller, createFooter());
     }
 
     private SideNav createNavigation() {
-        var nav = new SideNav();
+        final var nav = new SideNav();
         addItem(nav, "Digital Policies", DigitalPoliciesView.class, LineAwesomeIcon.FILE_SOLID);
         addItem(nav, "Published Policies", PublishedPoliciesView.class, LineAwesomeIcon.FILE_ALT);
         addItem(nav, "PDP Config", PDPConfigView.class, LineAwesomeIcon.COG_SOLID);
@@ -119,20 +119,20 @@ public class MainLayout extends AppLayout {
     }
 
     private Footer createFooter() {
-        var layout    = new Footer();
-        var maybeUser = authenticatedUser.get();
+        final var layout    = new Footer();
+        final var maybeUser = authenticatedUser.get();
         if (maybeUser.isPresent()) {
-            var user = maybeUser.get();
+            final var user = maybeUser.get();
 
-            var avatar = new Avatar(user.getUsername());
+            final var avatar = new Avatar(user.getUsername());
             avatar.setThemeName("xsmall");
             avatar.getElement().setAttribute("tabindex", "-1");
 
-            var userMenu = new MenuBar();
+            final var userMenu = new MenuBar();
             userMenu.setThemeName("tertiary-inline contrast");
 
-            var userName = userMenu.addItem("");
-            var div      = new Div();
+            final var userName = userMenu.addItem("");
+            final var div      = new Div();
             div.add(avatar);
             div.add(user.getUsername());
             div.add(new Icon("lumo", "dropdown"));
@@ -144,7 +144,7 @@ public class MainLayout extends AppLayout {
 
             layout.add(userMenu);
         } else {
-            var loginLink = new Anchor("login", "Sign in");
+            final var loginLink = new Anchor("login", "Sign in");
             layout.add(loginLink);
         }
 
@@ -158,7 +158,7 @@ public class MainLayout extends AppLayout {
     }
 
     private String getCurrentPageTitle() {
-        var title = getContent().getClass().getAnnotation(PageTitle.class);
+        final var title = getContent().getClass().getAnnotation(PageTitle.class);
         return title == null ? "" : title.value();
     }
 }

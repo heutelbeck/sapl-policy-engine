@@ -313,7 +313,7 @@ public class ConfigUtility {
      * @return returns the mqtt quality of service level
      */
     public static MqttQos getQos(Val qosVal) {
-        var qos = qosVal.get().asInt();
+        final var qos = qosVal.get().asInt();
         return MqttQos.fromCode(qos);
     }
 

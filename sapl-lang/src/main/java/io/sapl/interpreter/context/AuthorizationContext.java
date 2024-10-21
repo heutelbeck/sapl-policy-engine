@@ -26,7 +26,9 @@ import java.util.Objects;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
+import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.interpreter.pip.AttributeContext;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -79,7 +81,10 @@ public class AuthorizationContext {
     }
 
     public static AttributeContext getAttributeContext(ContextView ctx) {
-        return ctx.get(ATTRIBUTE_CTX);
+        if (ctx.hasKey(ATTRIBUTE_CTX)) {
+            return ctx.get(ATTRIBUTE_CTX);
+        }
+        return new AnnotationAttributeContext();
     }
 
     public Context setAttributeContext(Context ctx, AttributeContext attributeContext) {
@@ -89,7 +94,7 @@ public class AuthorizationContext {
     public static Context setVariables(@NonNull Context ctx, Map<String, Val> environmentVariables) {
         Map<String, Val> variables = new HashMap<>(ctx.getOrDefault(VARIABLES, new HashMap<>()));
         for (var variable : environmentVariables.entrySet()) {
-            var name = variable.getKey();
+            final var name = variable.getKey();
             assertVariableNameNotReserved(name);
             variables.put(name, variable.getValue());
         }
@@ -145,14 +150,17 @@ public class AuthorizationContext {
     }
 
     public static Val getVariable(ContextView ctx, String name) {
-        var value = getVariables(ctx).get(name);
+        final var value = getVariables(ctx).get(name);
         if (value == null)
             return Val.UNDEFINED;
         return value;
     }
 
     public static FunctionContext functionContext(ContextView ctx) {
-        return ctx.get(FUNCTION_CTX);
+        if (ctx.hasKey(FUNCTION_CTX)) {
+            return ctx.get(FUNCTION_CTX);
+        }
+        return new AnnotationFunctionContext();
     }
 
     public Context setFunctionContext(Context ctx, FunctionContext functionContext) {

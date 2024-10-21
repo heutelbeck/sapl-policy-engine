@@ -29,7 +29,7 @@ class MockCallTests {
 
     @Test
     void test() {
-        var call = new MockCall(Val.of("foo"));
+        final var call = new MockCall(Val.of("foo"));
 
         assertThat(call.getNumberOfArguments()).isEqualTo(1);
         assertThat(call.getArgument(0)).isEqualTo(Val.of("foo"));
@@ -38,7 +38,7 @@ class MockCallTests {
 
     @Test
     void test_invalidIndex() {
-        var call = new MockCall(Val.of("foo"));
+        final var call = new MockCall(Val.of("foo"));
 
         assertThat(call.getNumberOfArguments()).isEqualTo(1);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> call.getArgument(1));
@@ -46,9 +46,9 @@ class MockCallTests {
 
     @Test
     void test_modifyParameterList() {
-        var call      = new MockCall(Val.of("foo"));
-        var barr      = Val.of("barr");
-        var arguments = call.getListOfArguments();
+        final var call      = new MockCall(Val.of("foo"));
+        final var barr      = Val.of("barr");
+        final var arguments = call.getListOfArguments();
         assertThatExceptionOfType(UnsupportedOperationException.class).isThrownBy(() -> arguments.add(barr));
     }
 

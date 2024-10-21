@@ -31,13 +31,13 @@ class FunctionMockAlwaysSameValueTests {
 
     @Test
     void test() {
-        var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
+        final var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
         assertThat(mock.evaluateFunctionCall(Val.of(1))).isEqualTo(alwaysReturnValue);
     }
 
     @Test
     void test_multipleTimes() {
-        var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(3));
+        final var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(3));
         assertThat(mock.evaluateFunctionCall(Val.of(1))).isEqualTo(alwaysReturnValue);
         assertThat(mock.evaluateFunctionCall(Val.of(2))).isEqualTo(alwaysReturnValue);
         assertThat(mock.evaluateFunctionCall(Val.of(3))).isEqualTo(alwaysReturnValue);
@@ -47,7 +47,7 @@ class FunctionMockAlwaysSameValueTests {
 
     @Test
     void test_errorMessage() {
-        var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
+        final var mock = new FunctionMockAlwaysSameValue("foo", alwaysReturnValue, times(1));
         assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
     }
 

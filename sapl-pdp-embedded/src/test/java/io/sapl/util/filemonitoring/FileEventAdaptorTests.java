@@ -34,12 +34,12 @@ class FileEventAdaptorTests {
     @Test
     void doTest() {
         @SuppressWarnings("unchecked")
-        var sinkMock = (FluxSink<FileEvent>) mock(FluxSink.class);
+        final var sinkMock = (FluxSink<FileEvent>) mock(FluxSink.class);
         when(sinkMock.next(any())).thenReturn(null);
 
-        var fileMock = mock(File.class);
+        final var fileMock = mock(File.class);
 
-        var eventAdaptor = new FileEventAdaptor(sinkMock);
+        final var eventAdaptor = new FileEventAdaptor(sinkMock);
         eventAdaptor.onFileCreate(fileMock);
         eventAdaptor.onFileChange(fileMock);
         eventAdaptor.onFileDelete(fileMock);

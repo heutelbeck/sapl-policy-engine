@@ -68,11 +68,11 @@ public final class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(policyDirectoryPath, POLICIES_FILE_GLOB_PATTERN)) {
             for (Path filePath : stream) {
                 log.info("loading policy: {}", filePath.toAbsolutePath());
-                var document = interpreter.parseDocument(Files.newInputStream(filePath));
+                final var document = interpreter.parseDocument(Files.newInputStream(filePath));
                 if (document.isInvalid()) {
                     throw new PolicyEvaluationException("Detected error in document: " + document.errorMessage());
                 }
-                var previous = documentsByName.put(document.name(), document);
+                final var previous = documentsByName.put(document.name(), document);
                 if (previous != null || document.isInvalid()) {
                     this.consistent = false;
                 }
@@ -96,12 +96,12 @@ public final class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint
 
         Map<String, Document> documentsByName = Maps.newHashMapWithExpectedSize(saplDocumentNames.size());
         for (var saplDocumentName : saplDocumentNames) {
-            var document = DocumentHelper.readSaplDocument(saplDocumentName, interpreter);
+            final var document = DocumentHelper.readSaplDocument(saplDocumentName, interpreter);
             if (document.isInvalid()) {
                 throw new PolicyEvaluationException(
                         "'" + saplDocumentName + "' is invalid. Error: " + document.errorMessage());
             }
-            var previous = documentsByName.put(document.name(), document);
+            final var previous = documentsByName.put(document.name(), document);
             if (previous != null || document.isInvalid()) {
                 this.consistent = false;
             }
@@ -111,7 +111,7 @@ public final class ClasspathPolicyRetrievalPoint implements PolicyRetrievalPoint
 
     @Override
     public Mono<PolicyRetrievalResult> retrievePolicies() {
-        var documentMatches = Flux
+        final var documentMatches = Flux
                 .merge(documents.values().stream()
                         .map(document -> document.sapl().matches()
                                 .map(targetExpressionResult -> new DocumentMatch(document, targetExpressionResult)))

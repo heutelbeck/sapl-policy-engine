@@ -108,12 +108,12 @@ class QueryCreationTests {
     @Test
     void when_manipulateQuery_then_returnQuery() {
         // GIVEN
-        var queryString = "{ \"age\": { \"$gte\": 18 } }";
-        var basicQuery  = new BasicQuery(queryString);
-        var expected    = "Query: { \"age\" : { \"$gte\" : 18}, \"firstname\" : { \"$eq\" : \"Juni\"}, \"role\" : { \"$eq\" : \"USER\"}}, Fields: { \"firstname\" : 0, \"age\" : 0}, Sort: { \"age\" : -1}";
+        final var queryString = "{ \"age\": { \"$gte\": 18 } }";
+        final var basicQuery  = new BasicQuery(queryString);
+        final var expected    = "Query: { \"age\" : { \"$gte\" : 18}, \"firstname\" : { \"$eq\" : \"Juni\"}, \"role\" : { \"$eq\" : \"USER\"}}, Fields: { \"firstname\" : 0, \"age\" : 0}, Sort: { \"age\" : -1}";
 
         // WHEN
-        var result = QueryCreation.manipulateQuery(conditions, selections, basicQuery, methodInvocationMock);
+        final var result = QueryCreation.manipulateQuery(conditions, selections, basicQuery, methodInvocationMock);
 
         // THEN
         assertEquals(result.toString(), expected);
@@ -122,17 +122,17 @@ class QueryCreationTests {
     @Test
     void when_createBaselineQuery_then_returnBasicQuery1() {
         // GIVEN
-        var methodInvocationMock2 = new MethodInvocationForTesting("findUserTest",
+        final var methodInvocationMock2 = new MethodInvocationForTesting("findUserTest",
                 new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Aaron")), null);
-        var baseQueryString       = "{ 'firstname': { '$eq': 'Juni' } }XXXXX{}XXXXX";
-        var expected              = "Query: { \"firstname\" : { \"$eq\" : \"Juni\"}}, Fields: {}, Sort: { \"age\" : -1}";
+        final var baseQueryString       = "{ 'firstname': { '$eq': 'Juni' } }XXXXX{}XXXXX";
+        final var expected              = "Query: { \"firstname\" : { \"$eq\" : \"Juni\"}}, Fields: {}, Sort: { \"age\" : -1}";
 
         // WHEN
         queryAnnotationParameterResolverMock
                 .when(() -> QueryAnnotationParameterResolver.resolveForMongoDB(any(Method.class), any(Object[].class)))
                 .thenReturn(baseQueryString);
 
-        var result = QueryCreation.createBaselineQuery(methodInvocationMock2);
+        final var result = QueryCreation.createBaselineQuery(methodInvocationMock2);
 
         // THEN
         assertEquals(result.toString(), expected);
@@ -141,17 +141,17 @@ class QueryCreationTests {
     @Test
     void when_createBaselineQuery_then_returnBasicQuery2() {
         // GIVEN
-        var methodInvocationMock2 = new MethodInvocationForTesting("findUserTest",
+        final var methodInvocationMock2 = new MethodInvocationForTesting("findUserTest",
                 new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Aaron")), null);
-        var baseQueryString       = "{ 'firstname': { '$eq': 'Juni' } }XXXXX{}XXXXX{ 'firstname' : -1}";
-        var expected              = "Query: { \"firstname\" : { \"$eq\" : \"Juni\"}}, Fields: {}, Sort: { \"firstname\" : -1, \"age\" : -1}";
+        final var baseQueryString       = "{ 'firstname': { '$eq': 'Juni' } }XXXXX{}XXXXX{ 'firstname' : -1}";
+        final var expected              = "Query: { \"firstname\" : { \"$eq\" : \"Juni\"}}, Fields: {}, Sort: { \"firstname\" : -1, \"age\" : -1}";
 
         // WHEN
         queryAnnotationParameterResolverMock
                 .when(() -> QueryAnnotationParameterResolver.resolveForMongoDB(any(Method.class), any(Object[].class)))
                 .thenReturn(baseQueryString);
 
-        var result = QueryCreation.createBaselineQuery(methodInvocationMock2);
+        final var result = QueryCreation.createBaselineQuery(methodInvocationMock2);
 
         // THEN
         assertEquals(result.toString(), expected);
@@ -161,11 +161,11 @@ class QueryCreationTests {
     @SuppressWarnings("unchecked") // List.class
     void when_createManipulatedQuery_then_returnQuery1() {
         // GIVEN
-        var expected           = "Query: { \"$and\" : [{ \"age\" : { \"$gt\" : 14}}]}, Fields: { \"firstname\" : 0, \"age\" : 0}, Sort: {}";
-        var saplConditions     = List.of(new SaplCondition("age", 22, OperatorMongoDB.SIMPLE_PROPERTY, null),
+        final var expected           = "Query: { \"$and\" : [{ \"age\" : { \"$gt\" : 14}}]}, Fields: { \"firstname\" : 0, \"age\" : 0}, Sort: {}";
+        final var saplConditions     = List.of(new SaplCondition("age", 22, OperatorMongoDB.SIMPLE_PROPERTY, null),
                 new SaplCondition("firstname", "Juni", OperatorMongoDB.SIMPLE_PROPERTY, null));
-        var modifiedMethodName = "findAllByAgeAndFirstname";
-        var criteria           = new Criteria().andOperator(Criteria.where("age").gt(14));
+        final var modifiedMethodName = "findAllByAgeAndFirstname";
+        final var criteria           = new Criteria().andOperator(Criteria.where("age").gt(14));
 
         // WHEN
         saplConditionOperationMock.when(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(ArrayNode.class)))
@@ -176,8 +176,8 @@ class QueryCreationTests {
                 .when(() -> SaplPartTreeCriteriaCreator.create(any(List.class), any(PartTree.class)))
                 .thenReturn(criteria);
 
-        var result = QueryCreation.createManipulatedQuery(conditions, selections, "findAllByFirstname", TestUser.class,
-                new Object[] { "Juni", PageRequest.of(0, 2) });
+        final var result = QueryCreation.createManipulatedQuery(conditions, selections, "findAllByFirstname",
+                TestUser.class, new Object[] { "Juni", PageRequest.of(0, 2) });
 
         // THEN
         assertEquals(result.toString(), expected);
@@ -187,11 +187,11 @@ class QueryCreationTests {
     @SuppressWarnings("unchecked") // List.class
     void when_createManipulatedQuery_then_returnQuery2() {
         // GIVEN
-        var expected           = "Query: { \"$and\" : [{ \"age\" : { \"$gt\" : 14}}]}, Fields: { \"firstname\" : 0, \"age\" : 0}, Sort: {}";
-        var saplConditions     = List.of(new SaplCondition("age", 22, OperatorMongoDB.SIMPLE_PROPERTY, null),
+        final var expected           = "Query: { \"$and\" : [{ \"age\" : { \"$gt\" : 14}}]}, Fields: { \"firstname\" : 0, \"age\" : 0}, Sort: {}";
+        final var saplConditions     = List.of(new SaplCondition("age", 22, OperatorMongoDB.SIMPLE_PROPERTY, null),
                 new SaplCondition("firstname", "Juni", OperatorMongoDB.SIMPLE_PROPERTY, null));
-        var modifiedMethodName = "findAllByAgeAndFirstname";
-        var criteria           = new Criteria().andOperator(Criteria.where("age").gt(14));
+        final var modifiedMethodName = "findAllByAgeAndFirstname";
+        final var criteria           = new Criteria().andOperator(Criteria.where("age").gt(14));
 
         // WHEN
         saplConditionOperationMock.when(() -> SaplConditionOperation.jsonNodeToSaplConditions(any(ArrayNode.class)))
@@ -202,8 +202,8 @@ class QueryCreationTests {
                 .when(() -> SaplPartTreeCriteriaCreator.create(any(List.class), any(PartTree.class)))
                 .thenReturn(criteria);
 
-        var result = QueryCreation.createManipulatedQuery(conditions, selections, "findAllByFirstname", TestUser.class,
-                new Object[] { "Juni", Sort.by(Sort.Direction.ASC, "age") });
+        final var result = QueryCreation.createManipulatedQuery(conditions, selections, "findAllByFirstname",
+                TestUser.class, new Object[] { "Juni", Sort.by(Sort.Direction.ASC, "age") });
 
         // THEN
         assertEquals(result.toString(), expected);

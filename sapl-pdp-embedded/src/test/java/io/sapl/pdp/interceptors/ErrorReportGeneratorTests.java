@@ -54,136 +54,136 @@ class ErrorReportGeneratorTests {
 
     @Test
     void whenError_then_characterAreEscapedForHTML() throws InitializationException {
-        var documents = List.of("""
+        final var documents = List.of("""
                 policy "something&to escape"
                 permit where <unknown.pip> == "test";
                 """);
 
-        var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
+        final var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
                 PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, Map.of());
-        var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
+        final var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
 
-        var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
-        var errors   = decision.getErrorsFromTrace();
+        final var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
+        final var errors   = decision.getErrorsFromTrace();
 
-        var error1 = errors.iterator().next();
+        final var error1 = errors.iterator().next();
         assertThatVal(error1).isError();
-        var errorReport1 = ErrorReportGenerator.errorReport(error1, true, OutputFormat.HTML);
+        final var errorReport1 = ErrorReportGenerator.errorReport(error1, true, OutputFormat.HTML);
         assertThat(errorReport1).contains("&amp;").contains("&lt;").contains("&gt;");
     }
 
     @Test
     void whenError_then_ansiReportMarksRegion() throws InitializationException {
-        var documents = List.of("""
+        final var documents = List.of("""
                 policy "some policy"
                 permit true == false
                      | "X" != 1 / 0
                      | 123 != "123" where true;
                 """);
 
-        var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
+        final var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
                 PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, Map.of());
-        var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
+        final var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
 
-        var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
-        var errors   = decision.getErrorsFromTrace();
+        final var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
+        final var errors   = decision.getErrorsFromTrace();
 
         assertThat(errors).hasSize(2);
-        var iter   = errors.iterator();
-        var error1 = iter.next();
+        final var iter   = errors.iterator();
+        final var error1 = iter.next();
         assertThatVal(error1).isError();
-        var error2 = iter.next();
+        final var error2 = iter.next();
         assertThatVal(error2).isError();
 
-        var errorReport1 = ErrorReportGenerator.errorReport(error1, false, OutputFormat.ANSI_TEXT);
+        final var errorReport1 = ErrorReportGenerator.errorReport(error1, false, OutputFormat.ANSI_TEXT);
         assertThat(errorReport1).contains(ANSI_ERROR_ON + "     | \"X\" != 1 / 0" + ANSI_ERROR_OFF);
 
-        var errorReport2 = ErrorReportGenerator.errorReport(error2, true, OutputFormat.ANSI_TEXT);
+        final var errorReport2 = ErrorReportGenerator.errorReport(error2, true, OutputFormat.ANSI_TEXT);
         assertThat(errorReport2).contains(ANSI_ERROR_ON + "1 / 0" + ANSI_ERROR_OFF);
     }
 
     @Test
     void whenError_then_htmlReportMarksRegion() throws InitializationException {
-        var documents = List.of("""
+        final var documents = List.of("""
                 policy "some policy"
                 permit true == false
                      | "X" != 1 / 0
                      | 123 != "123" where true;
                 """);
 
-        var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
+        final var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
                 PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, Map.of());
-        var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
+        final var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
 
-        var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
-        var errors   = decision.getErrorsFromTrace();
+        final var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
+        final var errors   = decision.getErrorsFromTrace();
 
         assertThat(errors).hasSize(2);
-        var iter   = errors.iterator();
-        var error1 = iter.next();
+        final var iter   = errors.iterator();
+        final var error1 = iter.next();
         assertThatVal(error1).isError();
-        var error2 = iter.next();
+        final var error2 = iter.next();
         assertThatVal(error2).isError();
 
-        var errorReport2 = ErrorReportGenerator.errorReport(error2, true, OutputFormat.HTML);
+        final var errorReport2 = ErrorReportGenerator.errorReport(error2, true, OutputFormat.HTML);
         assertThat(errorReport2).contains(HTML_ERROR_ON + "1 / 0" + HTML_ERROR_OFF);
     }
 
     @Test
     void whenError_then_plainTextReportMarksRegion() throws InitializationException {
-        var documents = List.of("""
+        final var documents = List.of("""
                 policy "some policy"
                 permit true == false
                      | "X" != 1 / 0
                      | 123 != "123" where true;
                 """);
 
-        var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
+        final var pdp                       = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(documents,
                 PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, Map.of());
-        var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
+        final var authorizationSubscription = AuthorizationSubscription.of("willi", "eat", "ice cream");
 
-        var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
-        var errors   = decision.getErrorsFromTrace();
+        final var decision = pdp.decideTraced(authorizationSubscription).blockFirst();
+        final var errors   = decision.getErrorsFromTrace();
 
         assertThat(errors).hasSize(2);
-        var iter   = errors.iterator();
-        var error1 = iter.next();
+        final var iter   = errors.iterator();
+        final var error1 = iter.next();
         assertThatVal(error1).isError();
-        var error2 = iter.next();
+        final var error2 = iter.next();
         assertThatVal(error2).isError();
 
-        var errorReport1 = ErrorReportGenerator.errorReport(error1, false, OutputFormat.PLAIN_TEXT);
+        final var errorReport1 = ErrorReportGenerator.errorReport(error1, false, OutputFormat.PLAIN_TEXT);
         assertThat(errorReport1).contains("     | \"X\" != 1 / 0\n-------------------\n");
 
-        var errorReport2 = ErrorReportGenerator.errorReport(error2, true, OutputFormat.PLAIN_TEXT);
+        final var errorReport2 = ErrorReportGenerator.errorReport(error2, true, OutputFormat.PLAIN_TEXT);
         assertThat(errorReport2).contains("3|     | \"X\" != 1 / 0\n |              ^---^");
     }
 
     @Test
     void when_noError_then_reportedSo() {
-        var noError     = Val.TRUE;
-        var errorReport = ErrorReportGenerator.errorReport(noError, true, OutputFormat.PLAIN_TEXT);
+        final var noError     = Val.TRUE;
+        final var errorReport = ErrorReportGenerator.errorReport(noError, true, OutputFormat.PLAIN_TEXT);
         assertThat(errorReport).isEqualTo("No error");
     }
 
     @Test
     void when_errorNoSource_then_reportedSo() {
-        var noError     = Val.error("X");
-        var errorReport = ErrorReportGenerator.errorReport(noError, true, OutputFormat.PLAIN_TEXT);
+        final var noError     = Val.error("X");
+        final var errorReport = ErrorReportGenerator.errorReport(noError, true, OutputFormat.PLAIN_TEXT);
         assertThat(errorReport).isEqualTo("Error: X");
     }
 
     @Test
     void when_errorSapl_then_noName() {
-        var result      = expression("1/0").evaluate().blockFirst();
-        var errorReport = ErrorReportGenerator.errorReport(result, true, OutputFormat.PLAIN_TEXT);
+        final var result      = expression("1/0").evaluate().blockFirst();
+        final var errorReport = ErrorReportGenerator.errorReport(result, true, OutputFormat.PLAIN_TEXT);
         assertThat(errorReport).contains("Error in document at (1,1)");
     }
 
     @SneakyThrows
     public static Expression expression(String sapl) {
-        var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-        var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
+        final var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+        final var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
         resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getExpressionRule());
         InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
         resource.load(in, resourceSet.getLoadOptions());

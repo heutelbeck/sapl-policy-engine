@@ -59,7 +59,7 @@ public class IsValError extends TypeSafeDiagnosingMatcher<Val> {
             mismatchDescription.appendText("a value that is ").appendValue(item);
             return false;
         }
-        var message = item.getMessage();
+        final var message = item.getMessage();
         if (stringMatcher.matches(message)) {
             return true;
         } else {

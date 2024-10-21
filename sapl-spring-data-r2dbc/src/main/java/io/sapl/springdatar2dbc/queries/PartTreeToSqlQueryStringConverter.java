@@ -20,6 +20,7 @@ package io.sapl.springdatar2dbc.queries;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
@@ -42,23 +43,23 @@ public class PartTreeToSqlQueryStringConverter {
      * @return SQL query of a {@link PartTree}.
      */
     public <T> String createSqlBaseQuery(MethodInvocation invocation, Class<T> domainType) {
-        var methodName = invocation.getMethod().getName();
+        final var methodName = invocation.getMethod().getName();
 
         if (Utilities.isSpringDataDefaultMethod(methodName)) {
             return "";
         }
 
-        var arguments        = invocation.getArguments();
-        var partTree         = new PartTree(methodName, domainType);
-        var baseConditions   = new ArrayList<SqlCondition>();
-        var argumentIterator = Arrays.stream(arguments).iterator();
-        var sortPart         = ConvertToSQL.prepareAndMergeSortObjects(partTree.getSort(), arguments);
+        final var arguments        = invocation.getArguments();
+        final var partTree         = new PartTree(methodName, domainType);
+        final var argumentIterator = Arrays.stream(arguments).iterator();
+        final var sortPart         = ConvertToSQL.prepareAndMergeSortObjects(partTree.getSort(), arguments);
+        var       baseConditions   = new ArrayList<SqlCondition>();
 
         for (PartTree.OrPart node : partTree) {
 
-            var partsIterator = node.iterator();
+            final var partsIterator = node.iterator();
 
-            var currentOrPart = new ArrayList<SqlCondition>();
+            final var currentOrPart = new ArrayList<SqlCondition>();
             currentOrPart.add(and(partsIterator.next(), argumentIterator.next(), domainType));
 
             while (partsIterator.hasNext()) {
@@ -78,7 +79,7 @@ public class PartTreeToSqlQueryStringConverter {
      * @return sql query.
      */
     private String toString(List<SqlCondition> conditions, String sortOrders) {
-        var whereClause = new StringBuilder();
+        final var whereClause = new StringBuilder();
 
         whereClause.append(ConvertToSQL.conditions(conditions));
         whereClause.append(sortOrders);
@@ -97,7 +98,7 @@ public class PartTreeToSqlQueryStringConverter {
      * @return the composite {@link SqlCondition}s.
      */
     private ArrayList<SqlCondition> or(ArrayList<SqlCondition> baseConditions, ArrayList<SqlCondition> currentOrPart) {
-        var conditionsSize = currentOrPart.size();
+        final var conditionsSize = currentOrPart.size();
         currentOrPart.get(conditionsSize - 1).setPropositionalConnectives(PropositionalConnectives.OR);
         baseConditions.addAll(currentOrPart);
         return baseConditions;
@@ -126,7 +127,7 @@ public class PartTreeToSqlQueryStringConverter {
             throw new IllegalStateException("Operator requires array of arguments.");
         }
 
-        var arrayList = new ArrayList<String>();
+        final var arrayList = new ArrayList<String>();
 
         for (Object argument : arguments) {
             if (argument instanceof String stringArgument) {
@@ -162,8 +163,8 @@ public class PartTreeToSqlQueryStringConverter {
             throw new NullPointerException("The appropriate argument is missing for this part of the method. ");
         }
 
-        var operator  = OperatorR2dbc.valueOf(part.getType().name());
-        var fieldType = domainType.getDeclaredField(part.getProperty().toDotPath()).getType();
+        final var operator  = OperatorR2dbc.valueOf(part.getType().name());
+        final var fieldType = domainType.getDeclaredField(part.getProperty().toDotPath()).getType();
 
         if (fieldType.isAssignableFrom(String.class) && operator.isArray()) {
             argument = createSqlArgumentArray(argument);

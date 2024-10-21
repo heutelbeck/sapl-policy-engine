@@ -92,8 +92,8 @@ public class PDPConfigView extends VerticalLayout {
                 return;
             }
 
-            var encodedEntry          = changedEvent.getValue();
-            var newCombiningAlgorithm = PolicyDocumentCombiningAlgorithmEncoding.decode(encodedEntry);
+            final var encodedEntry          = changedEvent.getValue();
+            final var newCombiningAlgorithm = PolicyDocumentCombiningAlgorithmEncoding.decode(encodedEntry);
 
             ConfirmUtils.letConfirm("",
                     "The combining algorithm describes how to come to the final decision while evaluating all published policies.\n\nPlease consider the consequences and confirm the action.",

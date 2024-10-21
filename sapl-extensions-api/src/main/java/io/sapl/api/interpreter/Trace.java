@@ -174,10 +174,10 @@ public class Trace implements Serializable {
      * @return trace as a JSON object.
      */
     public JsonNode getTrace() {
-        var jsonTrace = JSON.objectNode();
+        final var jsonTrace = JSON.objectNode();
         jsonTrace.set(OPERATOR, JSON.textNode(operation.getSimpleName()));
         if (!arguments.isEmpty()) {
-            var args = JSON.objectNode();
+            final var args = JSON.objectNode();
             for (var argument : arguments)
                 args.set(argument.name(), argument.value().getTrace());
             jsonTrace.set(ARGUMENTS_KEY, args);
@@ -194,8 +194,8 @@ public class Trace implements Serializable {
 
     public void collectErrors(List<Val> errors) {
         for (var argument : arguments) {
-            var value = argument.value();
-            if (value != null) {
+            final var value = argument.value();
+            if (null != value) {
                 value.collectErrors(errors);
             }
         }

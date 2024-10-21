@@ -36,22 +36,22 @@ class ContentFilterPredicateProviderTests {
 
     @Test
     void when_constraintIsNull_then_notResponsible() {
-        var      sut        = new ContentFilterPredicateProvider(MAPPER);
-        JsonNode constraint = null;
+        final var sut        = new ContentFilterPredicateProvider(MAPPER);
+        JsonNode  constraint = null;
         assertThat(sut.isResponsible(constraint), is(false));
     }
 
     @Test
     void when_constraintNonObject_then_notResponsible() throws JsonProcessingException {
-        var sut        = new ContentFilterPredicateProvider(MAPPER);
-        var constraint = MAPPER.readTree("123");
+        final var sut        = new ContentFilterPredicateProvider(MAPPER);
+        final var constraint = MAPPER.readTree("123");
         assertThat(sut.isResponsible(constraint), is(false));
     }
 
     @Test
     void when_constraintNoType_then_notResponsible() throws JsonProcessingException {
-        var sut        = new ContentFilterPredicateProvider(MAPPER);
-        var constraint = MAPPER.readTree("{ }");
+        final var sut        = new ContentFilterPredicateProvider(MAPPER);
+        final var constraint = MAPPER.readTree("{ }");
         assertThat(sut.isResponsible(constraint), is(false));
     }
 
@@ -83,15 +83,15 @@ class ContentFilterPredicateProviderTests {
     @ParameterizedTest
     @MethodSource("provideTestCases")
     void validateResponsibility(String constraint, boolean expectedResponsibility) throws JsonProcessingException {
-        var sut            = new ContentFilterPredicateProvider(MAPPER);
-        var jsonConstraint = MAPPER.readTree(constraint);
+        final var sut            = new ContentFilterPredicateProvider(MAPPER);
+        final var jsonConstraint = MAPPER.readTree(constraint);
         assertThat(sut.isResponsible(jsonConstraint), is(expectedResponsibility));
     }
 
     @Test
     void when_predicateNotMatching_then_False() throws JsonProcessingException {
-        var sut        = new ContentFilterPredicateProvider(MAPPER);
-        var constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilterPredicateProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -109,8 +109,8 @@ class ContentFilterPredicateProviderTests {
                 	]
                 }
                 """);
-        var handler    = sut.getHandler(constraint);
-        var original   = MAPPER.readTree("""
+        final var handler    = sut.getHandler(constraint);
+        final var original   = MAPPER.readTree("""
                 {
                 	"key1" : "value1",
                 	"key2" : "value2"
@@ -121,8 +121,8 @@ class ContentFilterPredicateProviderTests {
 
     @Test
     void when_handlerHandlesNull_handlerReturnsNull() throws JsonProcessingException {
-        var    sut        = new ContentFilteringProvider(MAPPER);
-        var    constraint = MAPPER.readTree("""
+        final var sut        = new ContentFilteringProvider(MAPPER);
+        final var constraint = MAPPER.readTree("""
                 {
                 	"type"    : "filterJsonContent",
                 	"actions" : [
@@ -133,9 +133,9 @@ class ContentFilterPredicateProviderTests {
                 	]
                 }
                 """);
-        var    handler    = sut.getHandler(constraint);
-        Object original   = null;
-        Object expected   = null;
+        final var handler    = sut.getHandler(constraint);
+        Object    original   = null;
+        Object    expected   = null;
         assertThat(handler.apply(original), is(expected));
     }
 

@@ -39,11 +39,11 @@ class ConstraintsHandlerAutoconfigurationTests {
 
     @Test
     void whenRan_thenMapperIsAvailableAndModulesAreRegistered() {
-        var contextRunner = new ApplicationContextRunner()
+        final var contextRunner = new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(ConstraintsHandlerAutoconfiguration.class))
                 .withBean(ObjectMapper.class, () -> {
-                    var mapper = new ObjectMapper();
-                    var module = new SimpleModule();
+                    final var mapper = new ObjectMapper();
+                    final var module = new SimpleModule();
                     module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
                     module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
                     module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());

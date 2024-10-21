@@ -100,7 +100,7 @@ class SAPLWebIntegrationFragmentTests {
     void getWordKeywordsReturnsEmptyList() {
         SAPLWebIntegrationFragment fragment     = new SAPLWebIntegrationFragment();
         ArrayList<String>          wordKeywords = fragment.getWordKeywords();
-        if (wordKeywords != null && !wordKeywords.isEmpty())
+        if (null != wordKeywords && !wordKeywords.isEmpty())
             fail("getWordKeywords did not return empty list.");
     }
 
@@ -108,7 +108,7 @@ class SAPLWebIntegrationFragmentTests {
     void getNonWordKeywordsReturnsEmptyList() {
         SAPLWebIntegrationFragment fragment        = new SAPLWebIntegrationFragment();
         ArrayList<String>          nonWordKeywords = fragment.getNonWordKeywords();
-        if (nonWordKeywords != null && !nonWordKeywords.isEmpty())
+        if (null != nonWordKeywords && !nonWordKeywords.isEmpty())
             fail("getNonWordKeywords did not return empty list.");
     }
 

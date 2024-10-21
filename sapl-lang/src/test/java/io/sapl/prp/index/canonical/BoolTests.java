@@ -49,7 +49,7 @@ class BoolTests {
     void setUp() {
         constantBool = new Bool(false);
 
-        var expressionMock = mock(Expression.class, RETURNS_DEEP_STUBS);
+        final var expressionMock = mock(Expression.class, RETURNS_DEEP_STUBS);
         when(expressionMock.evaluate()).thenReturn(Flux.just(Val.TRUE));
         expressionBool = new Bool(expressionMock, Collections.emptyMap());
     }
@@ -83,8 +83,8 @@ class BoolTests {
         try (MockedStatic<EquivalenceAndHashUtil> mock = mockStatic(EquivalenceAndHashUtil.class)) {
             mock.when(() -> EquivalenceAndHashUtil.semanticHash(any(), any())).thenReturn(42);
 
-            var expressionMock      = mock(Expression.class, RETURNS_DEEP_STUBS);
-            var otherExpressionBool = new Bool(expressionMock, Collections.emptyMap());
+            final var expressionMock      = mock(Expression.class, RETURNS_DEEP_STUBS);
+            final var otherExpressionBool = new Bool(expressionMock, Collections.emptyMap());
 
             assertThat(expressionBool.equals(otherExpressionBool), is(false));
         }
@@ -100,11 +100,11 @@ class BoolTests {
     @Test
     void evaluating_bool_with_error_expression_should_return_error() {
 
-        var expressionMock = mock(Expression.class);
+        final var expressionMock = mock(Expression.class);
         when(expressionMock.evaluate()).thenReturn(Flux.just(ErrorFactory.error("error")));
 
-        var bool   = new Bool(expressionMock, Collections.emptyMap());
-        var result = bool.evaluateExpression().block();
+        final var bool   = new Bool(expressionMock, Collections.emptyMap());
+        final var result = bool.evaluateExpression().block();
 
         assertThat(result.isError(), is(true));
         assertThat(result.getMessage(), is("error"));
@@ -112,11 +112,11 @@ class BoolTests {
 
     @Test
     void evaluating_bool_with_false_expression_should_return_false() {
-        var expressionMock = mock(Expression.class);
+        final var expressionMock = mock(Expression.class);
         when(expressionMock.evaluate()).thenReturn(Flux.just(Val.FALSE));
 
-        var bool   = new Bool(expressionMock, Collections.emptyMap());
-        var result = bool.evaluateExpression().block();
+        final var bool   = new Bool(expressionMock, Collections.emptyMap());
+        final var result = bool.evaluateExpression().block();
 
         assertThat(result.isBoolean(), is(true));
         assertThat(result.getBoolean(), is(false));
@@ -124,11 +124,11 @@ class BoolTests {
 
     @Test
     void evaluating_bool_with_long_expression_should_return_error() {
-        var expressionMock = mock(Expression.class);
+        final var expressionMock = mock(Expression.class);
         when(expressionMock.evaluate()).thenReturn(Flux.just(Val.of(0L)));
 
-        var bool   = new Bool(expressionMock, Collections.emptyMap());
-        var result = bool.evaluateExpression().block();
+        final var bool   = new Bool(expressionMock, Collections.emptyMap());
+        final var result = bool.evaluateExpression().block();
 
         assertThat(result.isBoolean(), is(false));
         assertThat(result.isError(), is(true));
@@ -138,15 +138,15 @@ class BoolTests {
     void evaluating_bool_with_impossible_expression_should_return_impossible_value() {
         // condition coverage requires Val to be boolean and error at the same time ->
         // impossible
-        var valMock = mock(Val.class);
+        final var valMock = mock(Val.class);
         when(valMock.isError()).thenReturn(Boolean.TRUE);
         when(valMock.isBoolean()).thenReturn(Boolean.TRUE);
 
-        var expressionMock = mock(Expression.class);
+        final var expressionMock = mock(Expression.class);
         when(expressionMock.evaluate()).thenReturn(Flux.just(valMock));
 
-        var bool   = new Bool(expressionMock, Collections.emptyMap());
-        var result = bool.evaluateExpression().block();
+        final var bool   = new Bool(expressionMock, Collections.emptyMap());
+        final var result = bool.evaluateExpression().block();
 
         assertThat(result.isError(), is(true));
         assertThat(result.isBoolean(), is(true));

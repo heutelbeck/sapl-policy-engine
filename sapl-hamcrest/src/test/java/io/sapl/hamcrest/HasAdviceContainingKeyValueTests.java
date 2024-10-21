@@ -40,15 +40,15 @@ class HasAdviceContainingKeyValueTests {
 
     @Test
     void test() throws JsonProcessingException {
-        var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
-        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        final var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
+        final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
         assertThat(decision, hasAdviceContainingKeyValue("key", jsonText("value")));
     }
 
     @Test
     void test_neg() throws JsonProcessingException {
-        var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
-        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        final var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
+        final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
         assertThat(decision, not(hasAdviceContainingKeyValue("xxx", jsonText("yyy"))));
     }
 
@@ -59,7 +59,7 @@ class HasAdviceContainingKeyValueTests {
 
     @Test
     void test_nullKey() {
-        var text = jsonText("value");
+        final var text = jsonText("value");
         assertThrows(NullPointerException.class, () -> hasAdviceContainingKeyValue(null, text));
     }
 
@@ -75,37 +75,37 @@ class HasAdviceContainingKeyValueTests {
 
     @Test
     void test_emptyMatcher() throws JsonProcessingException {
-        var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
-        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        final var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
+        final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
         assertThat(decision, hasAdviceContainingKeyValue("key"));
     }
 
     @Test
     void test_StringValueMatcher() throws JsonProcessingException {
-        var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
-        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        final var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
+        final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
         assertThat(decision, hasAdviceContainingKeyValue("key", "value"));
     }
 
     @Test
     void test_MatchingKey_NotMatchingValue() throws JsonProcessingException {
-        var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
-        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        final var advice   = MAPPER.readValue("[ {\"foo\" : \"bar\", \"key\" : \"value\"  }]", ArrayNode.class);
+        final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
         assertThat(decision, not(hasAdviceContainingKeyValue("key", "xxx")));
     }
 
     @Test
     void testDescriptionForMatcherEmptyMatcher() {
-        var sut         = Matchers.hasAdviceContainingKeyValue("key");
-        var description = new StringDescription();
+        final var sut         = Matchers.hasAdviceContainingKeyValue("key");
+        final var description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(), is("the decision has an advice containing key key with any value"));
     }
 
     @Test
     void testDescriptionForMatcher() {
-        var sut         = Matchers.hasAdviceContainingKeyValue("key", jsonText("value"));
-        var description = new StringDescription();
+        final var sut         = Matchers.hasAdviceContainingKeyValue("key", jsonText("value"));
+        final var description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(),
                 is("the decision has an advice containing key key with a text node with value that is \"value\""));

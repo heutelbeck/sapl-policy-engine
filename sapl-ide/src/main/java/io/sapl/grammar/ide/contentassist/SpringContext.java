@@ -41,7 +41,7 @@ public class SpringContext implements ApplicationContextAware {
      */
     public static <T> T getBean(Class<T> clazz) {
         ApplicationContext localContext = applicationContext;
-        if (localContext == null) {
+        if (null == localContext) {
             throw new IllegalStateException("Spring ApplicationContext was not set");
         }
         return localContext.getBean(clazz);

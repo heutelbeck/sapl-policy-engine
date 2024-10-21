@@ -28,7 +28,7 @@ class SAPLUiContentProposalProviderTest {
     @Test
     void getPDPConfigurationProvider() {
         PDPConfigurationProvider pdpConfigurationProvider = () -> null;
-        var                      sut                      = new SAPLUiContentProposalProvider(pdpConfigurationProvider);
+        final var                sut                      = new SAPLUiContentProposalProvider(pdpConfigurationProvider);
         assertThat(sut.getPDPConfigurationProvider(), is(pdpConfigurationProvider));
     }
 }

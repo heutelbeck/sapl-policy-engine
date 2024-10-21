@@ -49,7 +49,7 @@ class PolicyElementImplCustomTests {
 
     @MethodSource("provideTestCases")
     void policyElementEvaluatesToExpectedValue(String policySource, Val expected) {
-        var policy = INTERPRETER.parse(policySource);
+        final var policy = INTERPRETER.parse(policySource);
         StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext)).expectNext(expected)
                 .verifyComplete();
     }
@@ -63,7 +63,7 @@ class PolicyElementImplCustomTests {
             // nonBooleanTargetErrors
             "policy \"p\" permit \"abc\"" })
     void policyElementEvaluatesToError(String policySource) {
-        var policy = INTERPRETER.parse(policySource);
+        final var policy = INTERPRETER.parse(policySource);
         StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext))
                 .expectNextMatches(Val::isError).verifyComplete();
     }

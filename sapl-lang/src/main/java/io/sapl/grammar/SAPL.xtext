@@ -21,195 +21,262 @@ hidden(ML_COMMENT, SL_COMMENT, WS)
 import "https://sapl.io/sapl/SAPL"
 import "http://www.eclipse.org/emf/2002/Ecore" as ecore
 
-SAPL: 
+SAPL:
 	imports+=Import*
-	schemas+=Schema* 
-	policyElement=PolicyElement ;
+	schemas+=Schema*
+	policyElement=PolicyElement;
 
 Import:
 	'import' ( {WildcardImport} libSteps+=SaplID ('.' libSteps+=SaplID)* '.' '*'
-		     | {LibraryImport} (libSteps+=SaplID '.')* libSteps+=SaplID 'as' libAlias=SaplID
-		     | libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID	) ;
+	         | {LibraryImport} (libSteps+=SaplID '.')* libSteps+=SaplID 'as' libAlias=SaplID
+	         |                  libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID);
 
 Schema:
-    subscriptionElement=ReservedID (enforced?='enforced')? 'schema' schemaExpression=Expression;
+	subscriptionElement=ReservedID (enforced?='enforced')? 'schema' schemaExpression=Expression;
 
 PolicyElement:
 	PolicySet | Policy;
-	
+
 PolicySet:
 	{PolicySet} 'set' saplName=STRING
-	algorithm=CombiningAlgorithm ('for' targetExpression=Expression)?
-	(valueDefinitions+=ValueDefinition ';')*
-	policies+=Policy+ ;
+                algorithm=CombiningAlgorithm 
+                ('for' targetExpression=Expression)?
+                (valueDefinitions+=ValueDefinition ';')*
+                policies+=Policy+;
 
 enum CombiningAlgorithm:
-	  DENY_OVERRIDES      ='deny-overrides' 
-	| PERMIT_OVERRIDES    ='permit-overrides' 
-	| FIRST_APPLICABLE    ='first-applicable' 
-	| ONLY_ONE_APPLICABLE ='only-one-applicable'
-	| DENY_UNLESS_PERMIT  ='deny-unless-permit' 
-	| PERMIT_UNLESS_DENY  ='permit-unless-deny' ;
+	  DENY_OVERRIDES      = 'deny-overrides'
+	| PERMIT_OVERRIDES    = 'permit-overrides'
+	| FIRST_APPLICABLE    = 'first-applicable'
+	| ONLY_ONE_APPLICABLE = 'only-one-applicable'
+	| DENY_UNLESS_PERMIT  = 'deny-unless-permit'
+	| PERMIT_UNLESS_DENY  = 'permit-unless-deny';
 
 Policy:
 	{Policy} 'policy' saplName=STRING
-	entitlement=Entitlement (targetExpression=Expression)?
-	(body=PolicyBody)?
-	('obligation' obligations+=Expression)*
-	('advice' advice+=Expression)*
-	('transform' transformation=Expression)?;
+              entitlement=Entitlement (targetExpression=Expression)?
+              (body=PolicyBody)?
+              ('obligation' obligations+=Expression)*
+              ('advice' advice+=Expression)*
+              ('transform' transformation=Expression)?;
 
-Entitlement:	
-	  {Permit} 'permit' 
+Entitlement:
+	  {Permit} 'permit'
 	| {Deny}   'deny';
 
 PolicyBody:
-	'where' (statements+=Statement ';')+ ;
+	'where' (statements+=Statement ';')+;
 
 Statement:
-	ValueDefinition | 
-	{Condition} expression=Expression ;
+	             ValueDefinition
+	|{Condition} expression=Expression;
 
 ValueDefinition:
-	'var' name=ID '=' eval=Expression
-	('schema' schemaVarExpression+=Expression (',' schemaVarExpression+=Expression)*)? ;
+	'var' name=ID '=' eval=Expression ('schema' schemaVarExpression+=Expression (',' schemaVarExpression+=Expression)*)?;
 
 Expression:
-	LazyOr ;
+	LazyOr;
 
 LazyOr returns Expression:
-	LazyAnd ({Or.left=current} '||' right=LazyAnd)* ;
-	
+	LazyAnd ({Or.left=current} '||' right=LazyAnd)*;
+
 LazyAnd returns Expression:
-	EagerOr ({And.left=current} '&&' right=EagerOr)* ;
+	EagerOr ({And.left=current} '&&' right=EagerOr)*;
 
 EagerOr returns Expression:
-	ExclusiveOr ({EagerOr.left=current} '|' right=ExclusiveOr)* ;
-	
+	ExclusiveOr ({EagerOr.left=current} '|' right=ExclusiveOr)*;
+
 ExclusiveOr returns Expression:
-	EagerAnd ({XOr.left=current} '^' right=EagerAnd)* ;
+	EagerAnd ({XOr.left=current} '^' right=EagerAnd)*;
 
 EagerAnd returns Expression:
-	Equality ({EagerAnd.left=current} '&' right=Equality)* ;
+	Equality ({EagerAnd.left=current} '&' right=Equality)*;
 
 Equality returns Expression:
-	Comparison (( {Equals.left=current} '==' 
-	            | {NotEquals.left=current} '!=' 
-	            | {Regex.left=current} '=~'	) right=Comparison)? ;
+	  Comparison (({Equals.left=current} '=='
+	| {NotEquals.left=current} '!='
+	| {Regex.left=current} '=~') right=Comparison)?;
 
 Comparison returns Expression:
-	Addition (( {Less.left=current} '<' 
-		      | {LessEquals.left=current} '<=' 
-		      | {More.left=current} '>'
-		      | {MoreEquals.left=current} '>=' 
-		      | {ElementOf.left=current} 'in' ) right=Addition)? ;
+	  Addition (({Less.left=current} '<'
+	| {LessEquals.left=current} '<='
+	| {More.left=current} '>'
+	| {MoreEquals.left=current} '>='
+	| {ElementOf.left=current} 'in') right=Addition)?;
 
 Addition returns Expression:
-	Multiplication (({Plus.left=current} '+' | {Minus.left=current} '-') right=Multiplication)* ;
+	Multiplication (( {Plus.left=current}  '+' 
+		            | {Minus.left=current} '-' ) right=Multiplication)*;
 
 Multiplication returns Expression:
-	UnaryExpression (({Multi.left=current} '*' | {Div.left=current} '/' | {Modulo.left=current} '%') right=UnaryExpression)* ;
+	UnaryExpression (( {Multi.left=current}  '*'
+		             | {Div.left=current}    '/' 
+		             | {Modulo.left=current} '%' ) right=UnaryExpression)*;
 
 UnaryExpression returns Expression:
-	  {Not} '!' expression=UnaryExpression 
-	| {UnaryMinus} '-' expression=UnaryExpression 
-	| {UnaryPlus} '+' expression=UnaryExpression 
+	  {Not}        '!' expression=UnaryExpression
+	| {UnaryMinus} '-' expression=UnaryExpression
+	| {UnaryPlus}  '+' expression=UnaryExpression
 	| BasicExpression;
 
 BasicExpression returns Expression:
 	Basic (FILTER filter=FilterComponent | SUBTEMPLATE subtemplate=BasicExpression)?;
 
 Basic returns BasicExpression:
-	  {BasicGroup} '(' expression=Expression ')' steps+=Step* 
-	| {BasicValue} value=Value steps+=Step*  
-	| {BasicFunction} fsteps+=SaplID ('.' fsteps+=SaplID)*  arguments=Arguments steps+=Step*
-	| {BasicEnvironmentAttribute} '<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>' steps+=Step*
-	| {BasicEnvironmentHeadAttribute} '|<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>' steps+=Step*
-	| {BasicIdentifier} identifier=SaplID steps+=Step*
+	  BasicGroup
+	| BasicValue
+	| BasicFunction
+	| BasicEnvironmentAttribute
+	| BasicEnvironmentHeadAttribute
+	| BasicIdentifier
 	| BasicRelative;
 
+BasicGroup:
+    {BasicGroup} '(' expression=Expression ')' steps+=Step*;
+
+BasicValue:
+	{BasicValue} value=Value steps+=Step*;
+
+BasicFunction:
+	identifier=FunctionIdentifier arguments=Arguments steps+=Step*;
+
+BasicEnvironmentAttribute:
+	{BasicEnvironmentAttribute}      '<' identifier=FunctionIdentifier arguments=Arguments? '>' steps+=Step*;
+
+BasicEnvironmentHeadAttribute:
+	{BasicEnvironmentHeadAttribute} '|<' identifier=FunctionIdentifier arguments=Arguments? '>' steps+=Step*;
+
+FunctionIdentifier:
+	{FunctionIdentifier} nameFragments+=ID ('.' nameFragments+=SaplID)*;
+
+BasicIdentifier:
+	{BasicIdentifier} identifier=SaplID steps+=Step*;
+
 BasicRelative:
-	{BasicRelative} '@' steps+=Step* ;
+	{BasicRelative} '@' steps+=Step*;
 
 Arguments:
 	{Arguments} '(' (args+=Expression (',' args+=Expression)*)? ')';
 
 Step:
-	'.' ( {KeyStep} id=SaplID
-		| {EscapedKeyStep} id=STRING
-		| {WildcardStep} '*' 
-		| {AttributeFinderStep} '<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>'
-		| {HeadAttributeFinderStep} '|<' idSteps+=SaplID ('.' idSteps+=SaplID)* arguments=Arguments? '>' )
-	| '[' Subscript ']' 
-	| '..' ( {RecursiveKeyStep} (id=SaplID | '[' id=STRING ']' )
-		   | {RecursiveWildcardStep} ('*' | '[' '*' ']' ) 
-		   | {RecursiveIndexStep} '[' index=SignedNumber ']' ) ;
-	
+	'.' ( KeyStep
+	    | EscapedKeyStep
+	    | WildcardStep
+	    | AttributeFinderStep
+	    | HeadAttributeFinderStep )
+	| '[' Subscript ']'
+	| '..' (RecursiveKeyStep
+	| RecursiveWildcardStep
+	| RecursiveIndexStep );
+
 Subscript returns Step:
-	  {KeyStep} id=STRING 
-	| {WildcardStep} '*' 
-	| {IndexStep} index=SignedNumber 
-	| {ArraySlicingStep} index=SignedNumber? ':' to=SignedNumber? (':' step=SignedNumber)? 
-	| {ExpressionStep} '(' expression=Expression ')' 
-	| {ConditionStep} '?' '(' expression=Expression ')' 
-	| {IndexUnionStep} indices+=SignedNumber ',' indices+=SignedNumber (',' indices+=SignedNumber)* 
-	| {AttributeUnionStep} attributes+=STRING ',' attributes+=STRING (',' attributes+=STRING)* ;
+	  EscapedKeyStep
+	| WildcardStep
+	| IndexStep
+	| ArraySlicingStep
+	| ExpressionStep
+	| ConditionStep
+	| IndexUnionStep
+	| AttributeUnionStep;
+
+KeyStep:
+	id=SaplID;
+
+EscapedKeyStep:
+	id=STRING;
+
+WildcardStep:
+	{WildcardStep} '*';
+
+AttributeFinderStep:
+	'<' identifier=FunctionIdentifier arguments=Arguments? '>';
+
+HeadAttributeFinderStep:
+	'|<' identifier=FunctionIdentifier arguments=Arguments? '>';
+
+RecursiveKeyStep:
+	(id=SaplID | '[' id=STRING ']');
+
+RecursiveWildcardStep:
+	{RecursiveWildcardStep} ('*' | '[' '*' ']');
+
+RecursiveIndexStep:
+	'[' index=SignedNumber ']';
+
+IndexStep:
+	index=SignedNumber;
+
+ArraySlicingStep:
+	{ArraySlicingStep} index=SignedNumber? ':' to=SignedNumber? (':' step=SignedNumber)?;
+
+ExpressionStep:
+	'(' expression=Expression ')';
+
+ConditionStep:
+	'?' '(' expression=Expression ')';
+
+IndexUnionStep:
+	indices+=SignedNumber ',' indices+=SignedNumber (',' indices+=SignedNumber)*;
+
+AttributeUnionStep:
+	attributes+=STRING ',' attributes+=STRING (',' attributes+=STRING)*;
 
 Value:
-	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral | UndefinedLiteral ;
+	Object | Array | NumberLiteral | StringLiteral | BooleanLiteral | NullLiteral | UndefinedLiteral;
 
 Object returns Value:
-	{Object} '{' (members+=Pair (',' members+=Pair)*)? '}' ;
+	{Object} '{' (members+=Pair (',' members+=Pair)*)? '}';
 
 Pair:
 	key=STRING ':' value=Expression;
 
 Array returns Value:
-	{Array} '[' (items+=Expression (',' items+=Expression)*)? ']' ;
+	{Array} '[' (items+=Expression (',' items+=Expression)*)? ']';
 
 BooleanLiteral returns Value:
-	  {TrueLiteral} 'true' 
-	| {FalseLiteral} 'false' ;
+	  {TrueLiteral}  'true'
+	| {FalseLiteral} 'false';
 
 NullLiteral returns Value:
-	{NullLiteral} 'null' ;
+	{NullLiteral} 'null';
 
 UndefinedLiteral returns Value:
-	{UndefinedLiteral} 'undefined' ;
+	{UndefinedLiteral} 'undefined';
 
 StringLiteral returns Value:
-	{StringLiteral} string=STRING ;
+	{StringLiteral} string=STRING;
 
 NumberLiteral returns Value:
-	{NumberLiteral} number=JSONNUMBER ;
+	{NumberLiteral} number=JSONNUMBER;
 
-FilterComponent: 
-	  {FilterSimple} each?='each'? fsteps+=SaplID ('.' fsteps+=SaplID)* arguments=Arguments? 
-	| {FilterExtended} '{' statements+=FilterStatement (',' statements+=FilterStatement)* '}' ;
+FilterComponent:
+	{FilterSimple} each?='each'? identifier=FunctionIdentifier arguments=Arguments?
+	| {FilterExtended} '{' statements+=FilterStatement (',' statements+=FilterStatement)* '}';
 
 FilterStatement:
-	each?='each'? target=BasicRelative? ':' fsteps+=SaplID ('.' fsteps+=SaplID)* arguments=Arguments? ;
+	each?='each'? target=BasicRelative? ':' identifier=FunctionIdentifier arguments=Arguments?;
 
-SignedNumber returns ecore::EBigDecimal: '-'? JSONNUMBER;
+SignedNumber returns ecore::EBigDecimal:
+	'-'? JSONNUMBER;
 
 SaplID returns ecore::EString:
-    ID | ReservedID;
+	ID | ReservedID;
 
 ReservedID returns ecore::EString:
-    'subject' | 'action' | 'resource' | 'environment';
+	'subject' | 'action' | 'resource' | 'environment';
 
 @Override
-terminal ID: 
-	'^'? ('a'..'z'|'A'..'Z'|'_'|'$') ('a'..'z'|'A'..'Z'|'_'|'$'|'0'..'9')*;
+terminal ID:
+	'^'? ('a'..'z' | 'A'..'Z' | '_' | '$') ('a'..'z' | 'A'..'Z' | '_' | '$' | '0'..'9')*;
 
 terminal FILTER:
-	'|-' ;
-	
+	'|-';
+
 terminal SUBTEMPLATE:
-	'::' ;
+	'::';
 
 terminal JSONNUMBER returns ecore::EBigDecimal: // Definition according to JSON standard unary operator for negation/plus prefix
-	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)? ;
+	('0' | ('1'..'9') DIGIT*) ('.' DIGIT+)? (('E' | 'e') ('+' | '-')? DIGIT+)?;
 
 terminal fragment DIGIT:
-	('0'..'9') ;
+	('0'..'9');

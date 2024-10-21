@@ -44,7 +44,7 @@ class GenericInMemoryIndexedPolicyRetrievalPointSourceTests {
     @BeforeEach
     void beforeEach() {
         sourceMock = mock(PrpUpdateEventSource.class);
-        var eventMock = mock(PrpUpdateEvent.class);
+        final var eventMock = mock(PrpUpdateEvent.class);
         when(sourceMock.getUpdates()).thenReturn(Flux.just(eventMock));
 
         indexMock = mock(UpdateEventDrivenPolicyRetrievalPoint.class);
@@ -54,12 +54,12 @@ class GenericInMemoryIndexedPolicyRetrievalPointSourceTests {
     @Test
     void testConstructAndRetrieveWithEmptyResult() {
         // WHEN
-        var resultMock = mock(PolicyRetrievalResult.class);
+        final var resultMock = mock(PolicyRetrievalResult.class);
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(resultMock));
 
         // DO
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(indexMock, sourceMock);
-        var result = prp.policyRetrievalPoint().flatMap(PolicyRetrievalPoint::retrievePolicies).blockFirst();
+        final var prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(indexMock, sourceMock);
+        final var result = prp.policyRetrievalPoint().flatMap(PolicyRetrievalPoint::retrievePolicies).blockFirst();
         prp.dispose();
 
         // THEN
@@ -74,13 +74,13 @@ class GenericInMemoryIndexedPolicyRetrievalPointSourceTests {
     @Test
     void testConstructAndRetrieveWithResult() {
         // WHEN
-        var doc                   = INTERPRETER.parseDocument("policy \"x\" permit");
-        var policyRetrievalResult = new PolicyRetrievalResult().withMatch(new DocumentMatch(doc, Val.TRUE));
+        final var doc                   = INTERPRETER.parseDocument("policy \"x\" permit");
+        final var policyRetrievalResult = new PolicyRetrievalResult().withMatch(new DocumentMatch(doc, Val.TRUE));
         when(indexMock.retrievePolicies()).thenReturn(Mono.just(policyRetrievalResult));
 
         // DO
-        var prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(indexMock, sourceMock);
-        var result = prp.policyRetrievalPoint().flatMap(PolicyRetrievalPoint::retrievePolicies).blockFirst();
+        final var prp    = new GenericInMemoryIndexedPolicyRetrievalPointSource(indexMock, sourceMock);
+        final var result = prp.policyRetrievalPoint().flatMap(PolicyRetrievalPoint::retrievePolicies).blockFirst();
         prp.dispose();
 
         // THEN

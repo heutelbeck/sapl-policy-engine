@@ -67,7 +67,7 @@ public class AuthorizationDecisionAssert extends AbstractAssert<AuthorizationDec
 
     public @NotNull JsonListAssert hasObligations() {
         isNotNull();
-        var optionalObligations = actual.getObligations();
+        final var optionalObligations = actual.getObligations();
         if (optionalObligations.isEmpty()) {
             failWithMessage("Expected AuthorizationDecision to have obligations but it had none.");
         }
@@ -76,7 +76,7 @@ public class AuthorizationDecisionAssert extends AbstractAssert<AuthorizationDec
 
     public @NotNull AuthorizationDecisionAssert hasNoObligations() {
         isNotNull();
-        var optionalObligations = actual.getObligations();
+        final var optionalObligations = actual.getObligations();
         if (optionalObligations.isPresent()) {
             failWithMessage("Expected AuthorizationDecision to have no obligations but they were <%s>.",
                     optionalObligations.get());
@@ -86,7 +86,7 @@ public class AuthorizationDecisionAssert extends AbstractAssert<AuthorizationDec
 
     public @NotNull JsonListAssert hasAdvice() {
         isNotNull();
-        var optionalAdvice = actual.getAdvice();
+        final var optionalAdvice = actual.getAdvice();
         if (optionalAdvice.isEmpty()) {
             failWithMessage("Expected AuthorizationDecision to have advice but it had none.");
         }
@@ -95,7 +95,7 @@ public class AuthorizationDecisionAssert extends AbstractAssert<AuthorizationDec
 
     public @NotNull AuthorizationDecisionAssert hasNoAdvice() {
         isNotNull();
-        var optionalAdvice = actual.getAdvice();
+        final var optionalAdvice = actual.getAdvice();
         if (optionalAdvice.isPresent()) {
             failWithMessage("Expected AuthorizationDecision to have no advice but they were <%s>.",
                     optionalAdvice.get());
@@ -105,7 +105,7 @@ public class AuthorizationDecisionAssert extends AbstractAssert<AuthorizationDec
 
     public @NotNull ConfigurableJsonAssert hasResource() {
         isNotNull();
-        var optionalResource = actual.getResource();
+        final var optionalResource = actual.getResource();
         if (optionalResource.isEmpty()) {
             failWithMessage("Expected AuthorizationDecision to have a resource but it had none.");
         }
@@ -114,7 +114,7 @@ public class AuthorizationDecisionAssert extends AbstractAssert<AuthorizationDec
 
     public @NotNull AuthorizationDecisionAssert hasNoResource() {
         isNotNull();
-        var optionalResource = actual.getResource();
+        final var optionalResource = actual.getResource();
         if (optionalResource.isPresent()) {
             failWithMessage("Expected AuthorizationDecision to have no resource but was <%s>.", optionalResource.get());
         }

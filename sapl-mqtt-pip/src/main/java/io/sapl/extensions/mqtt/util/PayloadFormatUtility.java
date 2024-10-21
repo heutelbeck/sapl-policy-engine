@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.hivemq.client.mqtt.datatypes.MqttUtf8String;
-import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
 import io.sapl.api.interpreter.Val;
@@ -50,9 +49,8 @@ public class PayloadFormatUtility {
      * @return returns the payload format indicator as an ordinal number
      */
     public static int getPayloadFormatIndicator(Mqtt5Publish publishMessage) {
-        var                                   payloadFormatIndicator         = 0;
-        Optional<Mqtt5PayloadFormatIndicator> payloadFormatIndicatorOptional = publishMessage
-                .getPayloadFormatIndicator();
+        final var payloadFormatIndicatorOptional = publishMessage.getPayloadFormatIndicator();
+        var       payloadFormatIndicator         = 0;
         if (payloadFormatIndicatorOptional.isPresent()) {
             // specified whether the payload is utf-8 encoded
             payloadFormatIndicator = payloadFormatIndicatorOptional.get().getCode();

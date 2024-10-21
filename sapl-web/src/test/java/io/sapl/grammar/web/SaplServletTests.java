@@ -26,7 +26,7 @@ class SaplServletTests {
     @Test
     void canInitAndDestroyServletWithoutException() {
         assertDoesNotThrow(() -> {
-            var servlet = new SAPLServlet();
+            final var servlet = new SAPLServlet();
             servlet.init();
             servlet.destroy();
         });
@@ -35,7 +35,7 @@ class SaplServletTests {
     @Test
     void canJustDestroyServletWithoutException() {
         assertDoesNotThrow(() -> {
-            var servlet = new SAPLServlet();
+            final var servlet = new SAPLServlet();
             servlet.destroy();
         });
     }

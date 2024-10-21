@@ -71,14 +71,14 @@ class UserRepositoryIT {
     @Test
     void when_findAll_then_manipulateQuery() {
         // GIVEN
-        var testUser1    = new TestUser(new ObjectId("64de3bd9fbf82799677ed346"), null, 94, false);
-        var testUser2    = new TestUser(new ObjectId("64de3bd9fbf82799677ed339"), null, 33, false);
-        var testUser3    = new TestUser(new ObjectId("64de3bd9fbf82799677ed342"), null, 54, false);
-        var testUser4    = new TestUser(new ObjectId("64de3bd9fbf82799677ed336"), null, 82, false);
-        var testUserList = List.of(testUser1, testUser2, testUser3, testUser4);
+        final var testUser1    = new TestUser(new ObjectId("64de3bd9fbf82799677ed346"), null, 94, false);
+        final var testUser2    = new TestUser(new ObjectId("64de3bd9fbf82799677ed339"), null, 33, false);
+        final var testUser3    = new TestUser(new ObjectId("64de3bd9fbf82799677ed342"), null, 54, false);
+        final var testUser4    = new TestUser(new ObjectId("64de3bd9fbf82799677ed336"), null, 82, false);
+        final var testUserList = List.of(testUser1, testUser2, testUser3, testUser4);
 
         // WHEN
-        var testUserFlux = repository.findAll().collectList();
+        final var testUserFlux = repository.findAll().collectList();
 
         StepVerifier.create(testUserFlux).expectNext(testUserList);
     }
@@ -86,12 +86,12 @@ class UserRepositoryIT {
     @Test
     void when_findAllByAgeAfter_then_manipulateQuery() {
         // GIVEN
-        var testUser1    = new TestUser(new ObjectId("64de3bd9fbf82799677ed336"), "Rowat", 0, false);
-        var testUser2    = new TestUser(new ObjectId("64de3bd9fbf82799677ed346"), "Angell", 0, false);
-        var testUserList = List.of(testUser1, testUser2);
+        final var testUser1    = new TestUser(new ObjectId("64de3bd9fbf82799677ed336"), "Rowat", 0, false);
+        final var testUser2    = new TestUser(new ObjectId("64de3bd9fbf82799677ed346"), "Angell", 0, false);
+        final var testUserList = List.of(testUser1, testUser2);
 
         // WHEN
-        var testUserFlux = repository.findAllByAgeAfter(80, Pageable.ofSize(2)).collectList();
+        final var testUserFlux = repository.findAllByAgeAfter(80, Pageable.ofSize(2)).collectList();
 
         // THEN
         StepVerifier.create(testUserFlux).expectNext(testUserList);
@@ -100,12 +100,12 @@ class UserRepositoryIT {
     @Test
     void when_findAllByAgeAfter_then_fetchingByQueryMethod() {
         // GIVEN
-        var testUser1    = new TestUser(new ObjectId("64de3bd9fbf82799677ed346"), null, 94, false);
-        var testUser2    = new TestUser(new ObjectId("64de3bd9fbf82799677ed344"), null, 35, true);
-        var testUserList = List.of(testUser1, testUser2);
+        final var testUser1    = new TestUser(new ObjectId("64de3bd9fbf82799677ed346"), null, 94, false);
+        final var testUser2    = new TestUser(new ObjectId("64de3bd9fbf82799677ed344"), null, 35, true);
+        final var testUserList = List.of(testUser1, testUser2);
 
         // WHEN
-        var testUserFlux = repository.fetchingByQueryMethod("ll", Pageable.ofSize(2)).collectList();
+        final var testUserFlux = repository.fetchingByQueryMethod("ll", Pageable.ofSize(2)).collectList();
 
         // THEN
         StepVerifier.create(testUserFlux).expectNext(testUserList);
@@ -116,7 +116,7 @@ class UserRepositoryIT {
         // GIVEN
 
         // WHEN
-        var testUserFlux = repository.findAllByAgeBefore(80);
+        final var testUserFlux = repository.findAllByAgeBefore(80);
 
         // THEN
         StepVerifier.create(testUserFlux).expectError(AccessDeniedException.class).verify();

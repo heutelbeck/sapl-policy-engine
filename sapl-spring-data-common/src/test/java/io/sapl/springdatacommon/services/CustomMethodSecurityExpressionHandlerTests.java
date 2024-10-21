@@ -47,21 +47,22 @@ class CustomMethodSecurityExpressionHandlerTests {
             try (MockedConstruction<StandardEvaluationContext> mockedConstructionStandardEvaluationContext = mockConstruction(
                     StandardEvaluationContext.class)) {
 
-                var expressionHandler = new CustomMethodSecurityExpressionHandler();
+                final var expressionHandler = new CustomMethodSecurityExpressionHandler();
 
                 when(securityContextMock.getAuthentication()).thenReturn(authenticationMock);
                 when(authenticationMock.getName()).thenReturn("TestUser");
                 SecurityContextHolder.setContext(securityContextMock);
 
-                var mockSpelExpressionParser      = mockedConstructionSpelExpressionParser.constructed().get(0);
-                var mockStandardEvaluationContext = mockedConstructionStandardEvaluationContext.constructed().get(0);
+                final var mockSpelExpressionParser      = mockedConstructionSpelExpressionParser.constructed().get(0);
+                final var mockStandardEvaluationContext = mockedConstructionStandardEvaluationContext.constructed()
+                        .get(0);
 
                 when(mockSpelExpressionParser.parseExpression(anyString())).thenReturn(expressionMock);
                 when(expressionMock.getValue(any(StandardEvaluationContext.class))).thenReturn("TestValue");
 
                 doNothing().when(mockStandardEvaluationContext).setVariable(anyString(), any(Authentication.class));
 
-                var result = expressionHandler.evaluateExpression("testExpression");
+                final var result = expressionHandler.evaluateExpression("testExpression");
 
                 assertEquals("TestValue", result);
 

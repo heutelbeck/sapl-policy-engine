@@ -47,7 +47,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
         if (!policyNamesAreUnique()) {
             return Flux.just(PolicySetDecision.error(getSaplName(), NAMES_NOT_UNIQUE_ERROR));
         }
-        var combinedDecisions = evaluateValueDefinitionsAndPolicies(0)
+        final var combinedDecisions = evaluateValueDefinitionsAndPolicies(0)
                 .contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx));
         return combinedDecisions
                 .map(combined -> (DocumentEvaluationResult) PolicySetDecision.of(combined, getSaplName()))
@@ -63,7 +63,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
      *
      * @param targetValue the evaluation result of the target expression (must be
      * non-Boolean or error).
-     * @Returns the matching evaluation result.
+     * @return the matching evaluation result.
      */
     @Override
     public DocumentEvaluationResult targetResult(Val targetValue) {
@@ -78,7 +78,7 @@ public class PolicySetImplCustom extends PolicySetImpl {
     }
 
     private boolean policyNamesAreUnique() {
-        var policyNames = new HashSet<String>(policies.size(), 1.0F);
+        final var policyNames = new HashSet<String>(policies.size(), 1.0F);
         for (var policy : policies)
             if (!policyNames.add(policy.getSaplName()))
                 return false;
@@ -90,8 +90,8 @@ public class PolicySetImplCustom extends PolicySetImpl {
         if (valueDefinitions == null || valueDefinitionId == valueDefinitions.size())
             return policySetCombiningAlgorithm(getAlgorithm()).combinePoliciesInSet(this);
 
-        var valueDefinition           = valueDefinitions.get(valueDefinitionId);
-        var evaluatedValueDefinitions = valueDefinition.getEval().evaluate();
+        final var valueDefinition           = valueDefinitions.get(valueDefinitionId);
+        final var evaluatedValueDefinitions = valueDefinition.getEval().evaluate();
         return evaluatedValueDefinitions.switchMap(value -> evaluateValueDefinitionsAndPolicies(valueDefinitionId + 1)
                 .contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(),
                         value.withTrace(PolicySet.class, true, Map.of(Trace.POLICY_SET, Val.of(saplName),

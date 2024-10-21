@@ -167,7 +167,7 @@ public class ReactiveConstraintHandlerBundle<T> {
      * respective hooks.
      */
     public Flux<T> wrap(Flux<T> resourceAccessPoint) {
-        var wrapped = resourceAccessPoint.doOnRequest(onRequestHandlers).doOnSubscribe(onSubscribeHandlers)
+        final var wrapped = resourceAccessPoint.doOnRequest(onRequestHandlers).doOnSubscribe(onSubscribeHandlers)
                 .filter(filterPredicateHandlers).onErrorMap(onErrorMapHandlers).doOnError(doOnErrorHandlers)
                 .map(onNextMapHandlers).doOnNext(doOnNextHandlers).doOnCancel(onCancelHandlers)
                 .doOnComplete(onCompleteHandlers).doOnTerminate(onTerminateHandlers)

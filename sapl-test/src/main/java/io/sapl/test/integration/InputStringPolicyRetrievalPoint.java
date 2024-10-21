@@ -51,10 +51,10 @@ public final class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoi
         if (documentStrings.stream().anyMatch(documentString -> documentString == null || documentString.isEmpty())) {
             throw new SaplTestException("Encountered invalid policy input");
         }
-        var docs = new HashMap<String, Document>();
+        final var docs = new HashMap<String, Document>();
         for (var documentString : documentStrings) {
-            var document = DocumentHelper.readSaplDocumentFromInputString(documentString, saplInterpreter);
-            var previous = docs.put(document.name(), document);
+            final var document = DocumentHelper.readSaplDocumentFromInputString(documentString, saplInterpreter);
+            final var previous = docs.put(document.name(), document);
             if (previous != null) {
                 throw new SaplTestException("Encountered policy name duplication '" + document.name() + "'.");
             }
@@ -64,7 +64,7 @@ public final class InputStringPolicyRetrievalPoint implements PolicyRetrievalPoi
 
     @Override
     public Mono<PolicyRetrievalResult> retrievePolicies() {
-        var documentMatches = Flux
+        final var documentMatches = Flux
                 .merge(documents.values().stream()
                         .map(document -> document.sapl().matches()
                                 .map(targetExpressionResult -> new DocumentMatch(document, targetExpressionResult)))

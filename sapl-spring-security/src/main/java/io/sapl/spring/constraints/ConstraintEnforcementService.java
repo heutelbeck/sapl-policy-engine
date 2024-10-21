@@ -163,7 +163,7 @@ public class ConstraintEnforcementService {
     public <T> ReactiveConstraintHandlerBundle<T> reactiveTypeBundleFor(AuthorizationDecision decision, Class<T> clazz,
             JsonNode... ignoredObligations) {
 
-        var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
+        final var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
 
         // @formatter:off
 		var bundle = new ReactiveConstraintHandlerBundle<>(
@@ -205,7 +205,7 @@ public class ConstraintEnforcementService {
     public <T> BlockingConstraintHandlerBundle<T> blockingPostEnforceBundleFor(AuthorizationDecision decision,
             Class<T> clazz) {
 
-        var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
+        final var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
 
         // @formatter:off
 		var bundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
@@ -240,8 +240,8 @@ public class ConstraintEnforcementService {
      */
     public <T> BlockingConstraintHandlerBundle<T> blockingPreEnforceBundleFor(AuthorizationDecision decision,
             Class<T> clazz) {
-        var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
-        var bundle               = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(
+        final var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
+        final var bundle               = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(
                 runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations),
                 onNextHandlers(decision, unhandledObligations, clazz),
                 mapNextHandlers(decision, unhandledObligations, clazz), onErrorHandlers(decision, unhandledObligations),
@@ -266,8 +266,8 @@ public class ConstraintEnforcementService {
      * cannot be constructed.
      */
     public <T> BlockingConstraintHandlerBundle<T> accessManagerBundleFor(AuthorizationDecision decision) {
-        var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
-        var bundle               = BlockingConstraintHandlerBundle.<T>accessManagerConstraintHandlerBundle(
+        final var unhandledObligations = Sets.newHashSet(decision.getObligations().orElseGet(mapper::createArrayNode));
+        final var bundle               = BlockingConstraintHandlerBundle.<T>accessManagerConstraintHandlerBundle(
                 runnableHandlersForSignal(Signal.ON_DECISION, decision, unhandledObligations));
         if (!unhandledObligations.isEmpty())
             throw missingHandlerError(unhandledObligations);
@@ -276,9 +276,9 @@ public class ConstraintEnforcementService {
 
     private Consumer<MethodInvocation> methodInvocationHandlers(AuthorizationDecision decision,
             HashSet<JsonNode> unhandledObligations) {
-        var obligationHandlers = obligation(constructMethodInvocationHandlersForConstraints(decision.getObligations(),
-                unhandledObligations::remove));
-        var adviceHandlers     = advice(
+        final var obligationHandlers = obligation(constructMethodInvocationHandlersForConstraints(
+                decision.getObligations(), unhandledObligations::remove));
+        final var adviceHandlers     = advice(
                 constructMethodInvocationHandlersForConstraints(decision.getAdvice(), FunctionUtil.sink()));
         return consumeWithBoth(obligationHandlers, adviceHandlers);
     }
@@ -312,9 +312,9 @@ public class ConstraintEnforcementService {
 
     private Predicate<Object> filterConstraintHandlers(AuthorizationDecision decision,
             HashSet<JsonNode> unhandledObligations) {
-        var obligationHandlers = constructFilterHandlersForConstraint(decision.getObligations(),
+        final var obligationHandlers = constructFilterHandlersForConstraint(decision.getObligations(),
                 unhandledObligations::remove, this::obligation);
-        var adviceHandlers     = constructFilterHandlersForConstraint(decision.getAdvice(), FunctionUtil.sink(),
+        final var adviceHandlers     = constructFilterHandlersForConstraint(decision.getAdvice(), FunctionUtil.sink(),
                 this::advice);
         return obligationHandlers.and(adviceHandlers);
     }
@@ -340,9 +340,9 @@ public class ConstraintEnforcementService {
 
     private Consumer<Throwable> onErrorHandlers(AuthorizationDecision decision,
             HashSet<JsonNode> unhandledObligations) {
-        var obligationHandlers = obligation(
+        final var obligationHandlers = obligation(
                 constructOnErrorHandlersForConstraints(decision.getObligations(), unhandledObligations::remove));
-        var adviceHandlers     = advice(
+        final var adviceHandlers     = advice(
                 constructOnErrorHandlersForConstraints(decision.getAdvice(), FunctionUtil.sink()));
         return consumeWithBoth(obligationHandlers, adviceHandlers);
     }
@@ -368,9 +368,9 @@ public class ConstraintEnforcementService {
 
     private UnaryOperator<Throwable> mapErrorHandlers(AuthorizationDecision decision,
             HashSet<JsonNode> unhandledObligations) {
-        var obligationHandlers = constructMapNextHandlersForConstraints(decision.getObligations(),
+        final var obligationHandlers = constructMapNextHandlersForConstraints(decision.getObligations(),
                 unhandledObligations::remove, this::obligation);
-        var adviceHandlers     = constructMapNextHandlersForConstraints(decision.getAdvice(), FunctionUtil.sink(),
+        final var adviceHandlers     = constructMapNextHandlersForConstraints(decision.getAdvice(), FunctionUtil.sink(),
                 this::advice);
         return mapBoth(obligationHandlers, adviceHandlers);
     }
@@ -382,7 +382,7 @@ public class ConstraintEnforcementService {
         if (constraints.isEmpty())
             return handlers;
 
-        var prioritizedHandlers = new ArrayList<HandlerWithPriority<UnaryOperator<Throwable>>>();
+        final var prioritizedHandlers = new ArrayList<HandlerWithPriority<UnaryOperator<Throwable>>>();
 
         for (var constraint : constraints.get()) {
             for (var provider : globalErrorMappingHandlerProviders) {
@@ -405,9 +405,9 @@ public class ConstraintEnforcementService {
 
     private <T> UnaryOperator<T> mapNextHandlers(AuthorizationDecision decision, HashSet<JsonNode> unhandledObligations,
             Class<T> clazz) {
-        var obligationHandlers = constructMapNextHandlersForConstraints(decision.getObligations(),
+        final var obligationHandlers = constructMapNextHandlersForConstraints(decision.getObligations(),
                 unhandledObligations::remove, clazz, this::obligation);
-        var adviceHandlers     = constructMapNextHandlersForConstraints(decision.getAdvice(), FunctionUtil.sink(),
+        final var adviceHandlers     = constructMapNextHandlersForConstraints(decision.getAdvice(), FunctionUtil.sink(),
                 clazz, this::advice);
         return mapBoth(obligationHandlers, adviceHandlers);
     }
@@ -432,7 +432,7 @@ public class ConstraintEnforcementService {
         if (constraints.isEmpty())
             return handlers;
 
-        var prioritizedHandlers = new ArrayList<HandlerWithPriority<UnaryOperator<T>>>();
+        final var prioritizedHandlers = new ArrayList<HandlerWithPriority<UnaryOperator<T>>>();
         for (var constraint : constraints.get()) {
             for (var provider : globalMappingHandlerProviders) {
                 if (provider.supports(clazz) && provider.isResponsible(constraint)) {
@@ -454,9 +454,9 @@ public class ConstraintEnforcementService {
 
     private <T> Consumer<T> onNextHandlers(AuthorizationDecision decision, HashSet<JsonNode> unhandledObligations,
             Class<T> clazz) {
-        var obligationHandlers = obligation(
+        final var obligationHandlers = obligation(
                 constructOnNextHandlersForConstraints(decision.getObligations(), unhandledObligations::remove, clazz));
-        var adviceHandlers     = advice(
+        final var adviceHandlers     = advice(
                 constructOnNextHandlersForConstraints(decision.getAdvice(), FunctionUtil.sink(), clazz));
         return consumeWithBoth(obligationHandlers, adviceHandlers);
     }
@@ -482,9 +482,9 @@ public class ConstraintEnforcementService {
     }
 
     private LongConsumer requestHandlers(AuthorizationDecision decision, HashSet<JsonNode> unhandledObligations) {
-        var obligationHandlers = obligation(
+        final var obligationHandlers = obligation(
                 constructRequestHandlersForConstraints(decision.getObligations(), unhandledObligations::remove));
-        var adviceHandlers     = advice(
+        final var adviceHandlers     = advice(
                 constructRequestHandlersForConstraints(decision.getAdvice(), FunctionUtil.sink()));
         return consumeWithBoth(obligationHandlers, adviceHandlers);
     }
@@ -510,9 +510,9 @@ public class ConstraintEnforcementService {
 
     private Consumer<Subscription> subscriptionHandlers(AuthorizationDecision decision,
             HashSet<JsonNode> unhandledObligations) {
-        var obligationHandlers = obligation(
+        final var obligationHandlers = obligation(
                 constructSubscriptionHandlersForConstraints(decision.getObligations(), unhandledObligations::remove));
-        var adviceHandlers     = advice(
+        final var adviceHandlers     = advice(
                 constructSubscriptionHandlersForConstraints(decision.getAdvice(), FunctionUtil.sink()));
         return consumeWithBoth(obligationHandlers, adviceHandlers);
     }
@@ -538,9 +538,9 @@ public class ConstraintEnforcementService {
 
     private Runnable runnableHandlersForSignal(Signal signal, AuthorizationDecision decision,
             HashSet<JsonNode> unhandledObligations) {
-        var onDecisionObligationHandlers = obligation(constructRunnableHandlersForConstraints(signal,
+        final var onDecisionObligationHandlers = obligation(constructRunnableHandlersForConstraints(signal,
                 decision.getObligations(), unhandledObligations::remove));
-        var onDecisionAdviceHandlers     = advice(
+        final var onDecisionAdviceHandlers     = advice(
                 constructRunnableHandlersForConstraints(signal, decision.getAdvice(), FunctionUtil.sink()));
         return runBoth(onDecisionObligationHandlers, onDecisionAdviceHandlers);
     }
@@ -702,10 +702,11 @@ public class ConstraintEnforcementService {
             return UnaryOperator.identity();
 
         try {
-            var replacement = unmarshallResource(resource.get(), clazz);
+            final var replacement = unmarshallResource(resource.get(), clazz);
             return originalResult -> replacement;
         } catch (JsonProcessingException | IllegalArgumentException e) {
-            var message = String.format("Cannot map resource %s to type %s", resource.get(), clazz.getSimpleName());
+            final var message = String.format("Cannot map resource %s to type %s", resource.get(),
+                    clazz.getSimpleName());
             log.warn(message);
             throw new AccessDeniedException(message, e);
         }
@@ -729,7 +730,8 @@ public class ConstraintEnforcementService {
         try {
             return Flux.just(unmarshallResource(resource.get(), clazz));
         } catch (JsonProcessingException | IllegalArgumentException e) {
-            var message = String.format("Cannot map resource %s to type %s", resource.get(), clazz.getSimpleName());
+            final var message = String.format("Cannot map resource %s to type %s", resource.get(),
+                    clazz.getSimpleName());
             log.warn(message);
             return Flux.error(new AccessDeniedException(message, e));
         }

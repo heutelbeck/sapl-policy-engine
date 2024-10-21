@@ -165,9 +165,9 @@ class PostEnforcePolicyEnforcementPointTests {
     @Test
     @WithMockUser()
     void when_AfterAndDecideIsPermitWithResource_then_ReturnTheReplacementObject() {
-        var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
-                FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
-                FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
+        final var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
+                FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
+                UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));
@@ -177,9 +177,9 @@ class PostEnforcePolicyEnforcementPointTests {
     @Test
     @WithMockUser()
     void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject() {
-        var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
-                FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
-                FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
+        final var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
+                FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
+                UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
         when(pdp.decide(any(AuthorizationSubscription.class)))
@@ -199,12 +199,12 @@ class PostEnforcePolicyEnforcementPointTests {
     @Test
     @WithMockUser()
     void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsEmptyOptionalAndResourcePresent_then_ReturnResourceOptional() {
-        var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
-                FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
-                FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
+        final var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
+                FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
+                UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-        var expectedReturnObject = Optional.of(CHANGED_RETURN_OBJECT);
+        final var expectedReturnObject = Optional.of(CHANGED_RETURN_OBJECT);
 
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));

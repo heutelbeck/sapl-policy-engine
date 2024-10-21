@@ -80,14 +80,14 @@ class TreeWalkerTests {
 
     @Test
     void traverse_should_call_walk_when_node_has_no_filters_steps_and_subTemplate() {
-        var allFalse     = BasicGroupMockBuilder.newBuilder().noFilter().noSteps().noTemplate().build();
-        var allTrue      = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().withTemplate().build();
-        var noTemplate   = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().noTemplate().build();
-        var noSteps      = BasicGroupMockBuilder.newBuilder().withFilter().noSteps().withTemplate().build();
-        var noFilter     = BasicGroupMockBuilder.newBuilder().noFilter().withSteps().withTemplate().build();
-        var onlyTemplate = BasicGroupMockBuilder.newBuilder().noFilter().noSteps().withTemplate().build();
-        var onlySteps    = BasicGroupMockBuilder.newBuilder().noFilter().withSteps().noTemplate().build();
-        var onlyFilter   = BasicGroupMockBuilder.newBuilder().withFilter().noSteps().noTemplate().build();
+        final var allFalse     = BasicGroupMockBuilder.newBuilder().noFilter().noSteps().noTemplate().build();
+        final var allTrue      = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().withTemplate().build();
+        final var noTemplate   = BasicGroupMockBuilder.newBuilder().withFilter().withSteps().noTemplate().build();
+        final var noSteps      = BasicGroupMockBuilder.newBuilder().withFilter().noSteps().withTemplate().build();
+        final var noFilter     = BasicGroupMockBuilder.newBuilder().noFilter().withSteps().withTemplate().build();
+        final var onlyTemplate = BasicGroupMockBuilder.newBuilder().noFilter().noSteps().withTemplate().build();
+        final var onlySteps    = BasicGroupMockBuilder.newBuilder().noFilter().withSteps().noTemplate().build();
+        final var onlyFilter   = BasicGroupMockBuilder.newBuilder().withFilter().noSteps().noTemplate().build();
 
         verifyTraverseCalledWalk(allFalse);
         verifyTraverseCalledEndRecursion(allTrue);

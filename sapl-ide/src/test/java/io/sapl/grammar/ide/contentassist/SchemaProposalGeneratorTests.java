@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.contentassist.schema;
+package io.sapl.grammar.ide.contentassist;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,7 +33,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.ide.contentassist.SchemaProposalGenerator;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import lombok.SneakyThrows;
 
@@ -852,26 +851,26 @@ class SchemaProposalGeneratorTests {
     void when_givenSchemaAndVariables_then_GeneratorReturnsExpectedProposals(String test, List<String> variables,
             String schema, String[] expectedProposals) {
         assertThat(test).isNotEmpty();
-        var schemaJson   = Val.ofJson(schema).get();
-        var variablesMap = new HashMap<String, Val>();
-        var schemasArray = JsonNodeFactory.instance.arrayNode();
+        final var schemaJson   = Val.ofJson(schema).get();
+        final var variablesMap = new HashMap<String, Val>();
+        final var schemasArray = JsonNodeFactory.instance.arrayNode();
         for (var variable : variables) {
             schemasArray.add(Val.ofJson(variable).get());
         }
         variablesMap.put("SCHEMAS", Val.of(schemasArray));
-        var actualProposals = SchemaProposalGenerator.getCodeTemplates("", schemaJson, variablesMap);
+        final var actualProposals = SchemaProposalsGenerator.getCodeTemplates("", schemaJson, variablesMap);
         assertThat(actualProposals).containsExactlyInAnyOrder(expectedProposals);
     }
 
     @Test
     void when_nullSchema_then_noProposals() {
-        var proposals = SchemaProposalGenerator.getCodeTemplates("", (JsonNode) null, Map.of());
+        final var proposals = SchemaProposalsGenerator.getCodeTemplates("", (JsonNode) null, Map.of());
         assertThat(proposals).isEmpty();
     }
 
     @Test
     void when_undefinedSchema_then_proposalsEmpty() {
-        var proposals = SchemaProposalGenerator.getCodeTemplates("", ErrorFactory.error(""), Map.of());
+        final var proposals = SchemaProposalsGenerator.getCodeTemplates("", ErrorFactory.error(""), Map.of());
         assertThat(proposals).isEmpty();
     }
 

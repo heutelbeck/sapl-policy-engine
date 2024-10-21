@@ -65,16 +65,17 @@ public class StepAlgorithmUtil {
         if (parentValue.isEmpty()) {
             return Flux.just(Val.ofEmptyArray().withParentTrace(operationType, true, parentValue));
         }
-        var array   = parentValue.getArrayNode();
-        var results = new ArrayList<Flux<Val>>(array.size());
+        final var array   = parentValue.getArrayNode();
+        final var results = new ArrayList<Flux<Val>>(array.size());
         for (int i = 0; i < array.size(); i++) {
-            var element         = array.get(i);
-            var elementValue    = Val.of(element);
-            var index           = i;
-            var condition       = selector.get().contextWrite(ctx -> AuthorizationContext.setRelativeNodeWithIndex(ctx,
-                    elementValue.withTrace(operationType, true, Map.of("from", parentValue)), index));
-            var selectedElement = condition.map(applySelectionToElement(elementValue, stepParameters, operationType,
-                    parentValue, "array[" + index + "]"));
+            final var element         = array.get(i);
+            final var elementValue    = Val.of(element);
+            final var index           = i;
+            final var condition       = selector.get()
+                    .contextWrite(ctx -> AuthorizationContext.setRelativeNodeWithIndex(ctx,
+                            elementValue.withTrace(operationType, true, Map.of("from", parentValue)), index));
+            final var selectedElement = condition.map(applySelectionToElement(elementValue, stepParameters,
+                    operationType, parentValue, "array[" + index + "]"));
             results.add(selectedElement);
         }
         return Flux.combineLatest(results, RepackageUtil::recombineArray);
@@ -95,16 +96,16 @@ public class StepAlgorithmUtil {
             return Flux.just(Val.ofEmptyArray().withParentTrace(operationType, true, parentValue));
         }
 
-        var object  = parentValue.getObjectNode();
-        var results = new ArrayList<Flux<Val>>(object.size());
-        var fields  = object.fields();
+        final var object  = parentValue.getObjectNode();
+        final var results = new ArrayList<Flux<Val>>(object.size());
+        final var fields  = object.fields();
         while (fields.hasNext()) {
-            var field     = fields.next();
-            var key       = field.getKey();
-            var value     = Val.of(field.getValue());
-            var condition = selector.get().contextWrite(ctx -> AuthorizationContext.setRelativeNodeWithKey(ctx,
+            final var field     = fields.next();
+            final var key       = field.getKey();
+            final var value     = Val.of(field.getValue());
+            final var condition = selector.get().contextWrite(ctx -> AuthorizationContext.setRelativeNodeWithKey(ctx,
                     value.withTrace(operationType, true, Map.of("from", parentValue)), key));
-            var selected  = condition
+            final var selected  = condition
                     .map(applySelectionToElement(value, stepParameters, operationType, parentValue, key));
             results.add(selected);
         }
@@ -114,7 +115,7 @@ public class StepAlgorithmUtil {
     private static Function<Val, Val> applySelectionToElement(Val elementValue, String stepParameters,
             Class<?> operationType, Val parentValue, String elementIdentifier) {
         return conditionResult -> {
-            var trace = new HashMap<String, Val>();
+            final var trace = new HashMap<String, Val>();
             trace.put("parentValue", parentValue);
             trace.put("stepParameters", Val.of(stepParameters));
             trace.put(elementIdentifier, elementValue.withTrace(operationType, true, Map.of("from", parentValue)));

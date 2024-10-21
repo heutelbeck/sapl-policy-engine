@@ -36,10 +36,10 @@ public class XOrImplCustom extends XOrImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return booleanOperator(this, this, this::xor);
+        return booleanOperator(this, this, XOrImplCustom::xor);
     }
 
-    private Val xor(Val left, Val right) {
+    public static Val xor(Val left, Val right) {
         return Val.of(left.getBoolean() ^ right.getBoolean()).withTrace(XOr.class, true,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }

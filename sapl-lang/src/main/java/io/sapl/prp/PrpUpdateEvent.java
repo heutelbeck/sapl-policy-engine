@@ -29,7 +29,7 @@ public class PrpUpdateEvent {
     Update[] updates;
 
     public PrpUpdateEvent(List<Update> updates) {
-        if (updates == null) {
+        if (null == updates) {
             this.updates = new Update[] {};
         } else {
             this.updates = updates.toArray(Update[]::new);

@@ -35,7 +35,7 @@ public class ArrayUtil {
     private static final NumericAwareComparator EQ = new NumericAwareComparator();
 
     public static Val numberArray(Integer... values) {
-        var array = Val.JSON.arrayNode();
+        final var array = Val.JSON.arrayNode();
         for (var val : values) {
             array.add(val);
         }
@@ -43,7 +43,7 @@ public class ArrayUtil {
     }
 
     public static Val numberArrayRange(int from, int to) {
-        var array = Val.JSON.arrayNode();
+        final var array = Val.JSON.arrayNode();
         if (from < to) {
             for (int i = from; i <= to; i++) {
                 array.add(i);
@@ -59,9 +59,9 @@ public class ArrayUtil {
     public static boolean arraysMatchWithSetSemantics(Val result, Val expected) {
         if (result.getArrayNode().size() != expected.getArrayNode().size())
             return false;
-        var iter = expected.getArrayNode().elements();
+        final var iter = expected.getArrayNode().elements();
         while (iter.hasNext()) {
-            var element = iter.next();
+            final var element = iter.next();
             if (!containsElement(result.getArrayNode(), element))
                 return false;
         }
@@ -69,9 +69,9 @@ public class ArrayUtil {
     }
 
     private static boolean containsElement(ArrayNode arrayNode, JsonNode element) {
-        var iter = arrayNode.elements();
+        final var iter = arrayNode.elements();
         while (iter.hasNext()) {
-            var arrayElement = iter.next();
+            final var arrayElement = iter.next();
             if (element.equals(EQ, arrayElement))
                 return true;
         }

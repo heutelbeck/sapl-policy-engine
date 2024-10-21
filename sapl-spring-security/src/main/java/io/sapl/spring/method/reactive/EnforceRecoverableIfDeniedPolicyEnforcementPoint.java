@@ -84,7 +84,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
 
     public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
             ConstraintEnforcementService constraintsService, Class<V> clazz) {
-        var pep = new EnforceRecoverableIfDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
+        final var pep = new EnforceRecoverableIfDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
                 constraintsService, clazz);
         return pep.doOnTerminate(pep::handleOnTerminateConstraints)
                 .doAfterTerminate(pep::handleAfterTerminateConstraints).map(pep::handleAccessDenied)
@@ -95,7 +95,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
     public void subscribe(CoreSubscriber<? super ProtectedPayload<T>> actual) {
         if (sink != null)
             throw new IllegalStateException("Operator may only be subscribed once.");
-        var context = actual.currentContext();
+        final var context = actual.currentContext();
         sink                = new RecoverableEnforcementSink<>();
         resourceAccessPoint = resourceAccessPoint.contextWrite(context);
         Flux.create(sink).subscribe(actual);
@@ -152,7 +152,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
         // decision == Decision.PERMIT from here on
 
         latestDecision.set(decision);
-        var potentialResource = decision.getResource();
+        final var potentialResource = decision.getResource();
         if (potentialResource.isPresent()) {
             try {
                 sink.next(constraintsService.unmarshallResource(potentialResource.get(), clazz));
@@ -198,7 +198,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
         if (stopped.get())
             return;
 
-        var decision = latestDecision.get();
+        final var decision = latestDecision.get();
 
         if (decision.getDecision() != Decision.PERMIT)
             return;
@@ -208,7 +208,7 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
             return;
 
         try {
-            var transformedValue = constraintHandlerBundle.get().handleAllOnNextConstraints(value);
+            final var transformedValue = constraintHandlerBundle.get().handleAllOnNextConstraints(value);
             if (transformedValue != null)
                 sink.next(transformedValue);
         } catch (Exception t) {

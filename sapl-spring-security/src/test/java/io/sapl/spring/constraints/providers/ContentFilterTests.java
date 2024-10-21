@@ -41,7 +41,7 @@ class ContentFilterTests {
 
     @Test
     void test() throws JsonProcessingException {
-        var constraint = MAPPER.readTree("""
+        final var constraint = MAPPER.readTree("""
                 {
                 	"conditions" : [
                 		{
@@ -52,8 +52,8 @@ class ContentFilterTests {
                 	]
                 }
                 """);
-        var condition  = ContentFilter.predicateFromConditions(constraint, MAPPER);
-        var data       = new DataPoint("ABC", 100);
+        final var condition  = ContentFilter.predicateFromConditions(constraint, MAPPER);
+        final var data       = new DataPoint("ABC", 100);
         assertTrue(condition.test(data));
     }
 }

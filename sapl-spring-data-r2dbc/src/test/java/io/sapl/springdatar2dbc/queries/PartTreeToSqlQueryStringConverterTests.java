@@ -91,7 +91,7 @@ class PartTreeToSqlQueryStringConverterTests {
         when(methodInvocationMock.getMethod().getName()).thenReturn(methodName);
         when(methodInvocationMock.getArguments()).thenReturn(arguments);
 
-        var result = PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class);
+        final var result = PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class);
 
         // THEN
         Assertions.assertEquals(sqlQueryResult, result);
@@ -112,7 +112,7 @@ class PartTreeToSqlQueryStringConverterTests {
         when(methodInvocationMock.getMethod().getName()).thenReturn("");
         when(methodInvocationMock.getArguments()).thenReturn(new Object[] {});
 
-        var result = PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class);
+        final var result = PartTreeToSqlQueryStringConverter.createSqlBaseQuery(methodInvocationMock, Person.class);
 
         // THEN
         Assertions.assertEquals("", result);
@@ -165,7 +165,7 @@ class PartTreeToSqlQueryStringConverterTests {
     @Test
     void when_classIsStaticUtilityClass_then_instantiateThisTestForCoverageReasonsOfConstructor() {
         assertThrows(InvocationTargetException.class, () -> {
-            var constructor = PartTreeToSqlQueryStringConverter.class.getDeclaredConstructor();
+            final var constructor = PartTreeToSqlQueryStringConverter.class.getDeclaredConstructor();
             assertTrue(Modifier.isPrivate(constructor.getModifiers()));
             ReflectionUtils.makeAccessible(constructor);
             constructor.newInstance();

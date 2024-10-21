@@ -44,8 +44,8 @@ class StepApplyNullCheckAndErrorPropagationTests {
 
     static Collection<Step> data()
             throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
-        var        reflections = new Reflections("io.sapl.grammar.sapl.impl");
-        var        classes     = reflections.getSubTypesOf(Step.class);
+        final var  reflections = new Reflections("io.sapl.grammar.sapl.impl");
+        final var  classes     = reflections.getSubTypesOf(Step.class);
         List<Step> instances   = new ArrayList<>(classes.size());
         for (var clazz : classes) {
             if (clazz.getSimpleName().endsWith("ImplCustom")) {
@@ -64,7 +64,7 @@ class StepApplyNullCheckAndErrorPropagationTests {
     @ParameterizedTest
     @MethodSource("data")
     void stepsPropagateErrors(Step step) throws IOException {
-        var error = ErrorFactory.error("TEST");
+        final var error = ErrorFactory.error("TEST");
         if (step instanceof ConditionStep) {
             // Special case. this expression checks for expression first and that is just Ok
             ((ConditionStep) step).setExpression(ParserUtil.expression("true"));

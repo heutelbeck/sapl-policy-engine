@@ -41,18 +41,18 @@ class FileMonitorUtilTests {
 
     @Test
     void resolve_home_folder_in_valid_path() {
-        var homePath = String.format("%shome%sjohndoe", File.separator, File.separator);
+        final var homePath = String.format("%shome%sjohndoe", File.separator, File.separator);
         System.setProperty("user.home", homePath);
 
-        var path = FileMonitorUtil.resolveHomeFolderIfPresent("~" + File.separator);
+        final var path = FileMonitorUtil.resolveHomeFolderIfPresent("~" + File.separator);
 
         assertThat(path.toAbsolutePath().toString(), containsString(homePath));
     }
 
     @Test
     void resolve_home_folder_in_path_without_home() {
-        var folder = File.separator + "opt" + File.separator;
-        var path   = FileMonitorUtil.resolveHomeFolderIfPresent(folder);
+        final var folder = File.separator + "opt" + File.separator;
+        final var path   = FileMonitorUtil.resolveHomeFolderIfPresent(folder);
 
         assertThat(path.toString(), is(File.separator + "opt"));
     }

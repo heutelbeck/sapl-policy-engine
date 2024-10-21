@@ -46,7 +46,7 @@ public class EObjectUtil {
         }
         EList<EStructuralFeature> features = eObject.eClass().getEAllStructuralFeatures();
         for (EStructuralFeature feature : features) {
-            var featureInstance = eObject.eGet(feature);
+            final var featureInstance = eObject.eGet(feature);
             if (featureInstance != null) {
                 log(indent + 1, "Feature:{} {}", feature.getName(), feature.getEType().getName());
                 if (featureInstance instanceof EObject) {

@@ -50,12 +50,12 @@ public class Utilities {
     private static final Pattern DEFAULT_METHODS = Pattern.compile("^(find|read|get|query|search|stream)All$");
 
     public boolean isMethodNameValid(String methodName) {
-        var matcher = PREFIX_TEMPLATE.matcher(methodName);
+        final var matcher = PREFIX_TEMPLATE.matcher(methodName);
         return matcher.find();
     }
 
     public boolean isSpringDataDefaultMethod(String methodName) {
-        var matcher = DEFAULT_METHODS.matcher(methodName);
+        final var matcher = DEFAULT_METHODS.matcher(methodName);
         return matcher.find();
     }
 

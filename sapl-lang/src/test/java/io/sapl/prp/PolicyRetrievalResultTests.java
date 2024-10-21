@@ -34,7 +34,7 @@ class PolicyRetrievalResultTests {
 
     @Test
     void whenNoArgsConstructorUsedThenHasExpectedState() {
-        var sut = new PolicyRetrievalResult();
+        final var sut = new PolicyRetrievalResult();
         assertThat(sut.getMatchingDocuments(), is(empty()));
         assertThat(sut.isPrpInconsistent(), is(false));
         assertThat(sut.isRetrievalWithErrors(), is(false));
@@ -42,10 +42,10 @@ class PolicyRetrievalResultTests {
 
     @Test
     void whenAllArgsConstructorUsedThenHasProvidedState() {
-        var docs = new ArrayList<DocumentMatch>();
-        var doc  = INTERPRETER.parseDocument("policy \"x\" permit");
+        final var docs = new ArrayList<DocumentMatch>();
+        final var doc  = INTERPRETER.parseDocument("policy \"x\" permit");
         docs.add(new DocumentMatch(doc, Val.TRUE));
-        var sut = new PolicyRetrievalResult(docs, true);
+        final var sut = new PolicyRetrievalResult(docs, true);
         assertThat(sut.getMatchingDocuments().get(0).document(), is(doc));
         assertThat(sut.isPrpInconsistent(), is(false));
         assertThat(sut.isRetrievalWithErrors(), is(true));
@@ -53,16 +53,16 @@ class PolicyRetrievalResultTests {
 
     @Test
     void whenNoArgsConstructorUsedThenWithMatchAddsDocument() {
-        var sut = new PolicyRetrievalResult();
-        var doc = INTERPRETER.parseDocument("policy \"x\" permit");
+        final var doc = INTERPRETER.parseDocument("policy \"x\" permit");
+        var       sut = new PolicyRetrievalResult();
         sut = sut.withMatch(new DocumentMatch(doc, Val.TRUE));
         assertThat(sut.getMatchingDocuments().get(0).document(), is(doc));
     }
 
     @Test
     void whenNoArgsConstructorUsedThenWithMatchAddsDocumentWithError() {
-        var sut = new PolicyRetrievalResult();
-        var doc = INTERPRETER.parseDocument("policy \"x\" permit");
+        final var doc = INTERPRETER.parseDocument("policy \"x\" permit");
+        var       sut = new PolicyRetrievalResult();
         sut = sut.withMatch(new DocumentMatch(doc, ErrorFactory.error("")));
         assertThat(sut.getNonMatchingDocuments().get(0).document(), is(doc));
         assertThat(sut.getMatchingDocuments(), empty());
@@ -71,8 +71,8 @@ class PolicyRetrievalResultTests {
 
     @Test
     void whenNoArgsConstructorUsedThenWithMatchAddsDocumentWithFalse() {
-        var sut = new PolicyRetrievalResult();
-        var doc = INTERPRETER.parseDocument("policy \"x\" permit");
+        final var doc = INTERPRETER.parseDocument("policy \"x\" permit");
+        var       sut = new PolicyRetrievalResult();
         sut = sut.withMatch(new DocumentMatch(doc, Val.FALSE));
         assertThat(sut.getNonMatchingDocuments().get(0).document(), is(doc));
         assertThat(sut.getMatchingDocuments(), empty());
@@ -81,13 +81,13 @@ class PolicyRetrievalResultTests {
 
     @Test
     void invalidPrpResult() {
-        var sut = PolicyRetrievalResult.invalidPrpResult();
+        final var sut = PolicyRetrievalResult.invalidPrpResult();
         assertThat(sut.isPrpInconsistent(), is(true));
     }
 
     @Test
     void retrievalErrorResult() {
-        var sut = PolicyRetrievalResult.retrievalErrorResult("error");
+        final var sut = PolicyRetrievalResult.retrievalErrorResult("error");
         assertThat(sut.isPrpInconsistent(), is(false));
         assertThat(sut.isRetrievalWithErrors(), is(true));
     }

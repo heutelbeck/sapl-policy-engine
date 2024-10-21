@@ -38,7 +38,7 @@ public class BasicEnvironmentHeadAttributeImplCustom extends BasicEnvironmentHea
     @Override
     public Flux<Val> evaluate() {
         return Flux.deferContextual(ctx -> {
-            var fullyQualifiedName = FunctionUtil.resolveAbsoluteFunctionName(idSteps,
+            final var fullyQualifiedName = FunctionUtil.resolveAbsoluteFunctionName(getIdentifier(),
                     AuthorizationContext.getImports(ctx));
 
             if (TargetExpressionUtil.isInTargetExpression(this))

@@ -29,15 +29,15 @@ class ErrorFactoryTests {
 
     @Test
     void withCauseReturnsCauseMessage() throws IOException {
-        var errorSource = ParserUtil.expression("null");
-        var t           = new RuntimeException("A", new RuntimeException("B"));
+        final var errorSource = ParserUtil.expression("null");
+        final var t           = new RuntimeException("A", new RuntimeException("B"));
         assertThat(ErrorFactory.causeOrMessage(errorSource, t)).isEqualTo(ErrorFactory.error(errorSource, "B"));
     }
 
     @Test
     void withoutCauseReturnsMessage() throws IOException {
-        var errorSource = ParserUtil.expression("null");
-        var t           = new RuntimeException("A");
+        final var errorSource = ParserUtil.expression("null");
+        final var t           = new RuntimeException("A");
         assertThat(ErrorFactory.causeOrMessage(errorSource, t)).isEqualTo(ErrorFactory.error(errorSource, "A"));
     }
 }

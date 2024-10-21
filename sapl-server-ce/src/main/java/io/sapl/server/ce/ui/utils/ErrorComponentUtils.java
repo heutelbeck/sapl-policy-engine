@@ -35,7 +35,7 @@ public final class ErrorComponentUtils {
      * @param errorMessage the error message to show
      */
     public static Div getErrorDiv(@NonNull String errorMessage) {
-        var error = new Div(new Text(errorMessage));
+        final var error = new Div(new Text(errorMessage));
         error.addClassNames(LumoUtility.TextColor.ERROR_CONTRAST, LumoUtility.Padding.SMALL,
                 LumoUtility.Background.ERROR, LumoUtility.BorderRadius.LARGE);
         error.setWhiteSpace(HasText.WhiteSpace.PRE_LINE);

@@ -33,8 +33,6 @@ import org.springframework.security.oauth2.client.endpoint.WebClientReactiveClie
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
-import io.sapl.pdp.remote.metadata.SimpleAuthenticationEncoder;
-import io.sapl.pdp.remote.metadata.UsernamePasswordMetadata;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
@@ -54,6 +52,8 @@ import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.pdp.remote.metadata.SimpleAuthenticationEncoder;
+import io.sapl.pdp.remote.metadata.UsernamePasswordMetadata;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -99,7 +99,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
-        var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
+        final var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
         return decide(DECIDE, type, authzSubscription)
                 .onErrorResume(error -> Flux.just(AuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -107,14 +107,14 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
-        var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
+        final var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
         return rSocketRequester.route(DECIDE_ONCE).data(authzSubscription).retrieveMono(type)
-                .doOnError(error -> log.error("RSocket Connect Error : error {}", error.getMessage(), error));
+                .doOnError(error -> log.error("RSocket connection error: {}", error.getMessage(), error));
     }
 
     @Override
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
-        var type = new ParameterizedTypeReference<IdentifiableAuthorizationDecision>() {};
+        final var type = new ParameterizedTypeReference<IdentifiableAuthorizationDecision>() {};
         return decide(MULTI_DECIDE, type, multiAuthzSubscription)
                 .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -122,7 +122,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
     @Override
     public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
-        var type = new ParameterizedTypeReference<MultiAuthorizationDecision>() {};
+        final var type = new ParameterizedTypeReference<MultiAuthorizationDecision>() {};
         return decide(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
                 .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).repeatWhen(repeat())
                 .distinctUntilChanged();
@@ -155,7 +155,8 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
             log.warn("------------------------------------------------------------------");
             log.warn("!!! ATTENTION: don't not use insecure sslContext in production !!!");
             log.warn("------------------------------------------------------------------");
-            var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+            final var sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .build();
             return this.secure(sslContext);
         }
 
@@ -202,13 +203,23 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
         public RemoteRsocketPolicyDecisionPointBuilder oauth2(
                 ReactiveClientRegistrationRepository clientRegistrationRepository, String registrationId) {
             return setApplyAuthenticationFunction(builder -> {
-                var      client                 = new WebClientReactiveClientCredentialsTokenResponseClient();
-                var      tokenStr               = clientRegistrationRepository.findByRegistrationId(registrationId)
+                final var client                 = new WebClientReactiveClientCredentialsTokenResponseClient();
+                final var tokenStr               = clientRegistrationRepository.findByRegistrationId(registrationId)
                         .map(OAuth2ClientCredentialsGrantRequest::new).flatMap(client::getTokenResponse)
                         .map(OAuth2AccessTokenResponse::getAccessToken).map(OAuth2AccessToken::getTokenValue).block();
-                var      token                  = AuthMetadataCodec.encodeMetadata(ByteBufAllocator.DEFAULT,
+                final var token                  = AuthMetadataCodec.encodeMetadata(ByteBufAllocator.DEFAULT,
                         WellKnownAuthType.BEARER, Unpooled.copiedBuffer(tokenStr, CharsetUtil.UTF_8));
-                MimeType authenticationMimeType = MimeTypeUtils
+                MimeType  authenticationMimeType = MimeTypeUtils
+                        .parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
+                return builder.setupMetadata(token, authenticationMimeType);
+            });
+        }
+
+        public RemoteRsocketPolicyDecisionPointBuilder accessToken(String accessToken) {
+            return setApplyAuthenticationFunction(builder -> {
+                final var token                  = AuthMetadataCodec.encodeBearerMetadata(ByteBufAllocator.DEFAULT,
+                        accessToken.toCharArray());
+                MimeType  authenticationMimeType = MimeTypeUtils
                         .parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
                 return builder.setupMetadata(token, authenticationMimeType);
             });
@@ -250,7 +261,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
 
             // set keepalive and return pdp
             builder.rsocketConnector(connector -> connector.keepAlive(keepAlive, maxLifeTime));
-            var rSocketRequester = builder.transport(TcpClientTransport.create(tcpClient));
+            final var rSocketRequester = builder.transport(TcpClientTransport.create(tcpClient));
             return new RemoteRsocketPolicyDecisionPoint(rSocketRequester);
         }
     }

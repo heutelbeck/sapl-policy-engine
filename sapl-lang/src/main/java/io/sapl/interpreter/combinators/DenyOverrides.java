@@ -71,13 +71,15 @@ public class DenyOverrides {
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
-        var entitlement               = NOT_APPLICABLE;
-        var collector                 = new ObligationAdviceCollector();
+        final var collector = new ObligationAdviceCollector();
+        final var decisions = new LinkedList<DocumentEvaluationResult>();
+
         var combinedDecisionsResource = Optional.<JsonNode>empty();
-        var decisions                 = new LinkedList<DocumentEvaluationResult>();
+        var entitlement               = NOT_APPLICABLE;
+
         for (var policyDecision : policyDecisions) {
             decisions.add(policyDecision);
-            var authorizationDecision = policyDecision.getAuthorizationDecision();
+            final var authorizationDecision = policyDecision.getAuthorizationDecision();
             if (authorizationDecision.getDecision() == DENY) {
                 entitlement = DENY;
             }
@@ -88,7 +90,7 @@ public class DenyOverrides {
                 entitlement = PERMIT;
             }
             collector.add(authorizationDecision);
-            var currentDecisionsResource = authorizationDecision.getResource();
+            final var currentDecisionsResource = authorizationDecision.getResource();
             if (currentDecisionsResource.isPresent() && combinedDecisionsResource.isPresent() && entitlement != DENY) {
                 /*
                  * This is a transformation uncertainty. another policy already defined a
@@ -101,7 +103,7 @@ public class DenyOverrides {
             }
         }
 
-        var finalDecision = new AuthorizationDecision(entitlement, combinedDecisionsResource,
+        final var finalDecision = new AuthorizationDecision(entitlement, combinedDecisionsResource,
                 collector.getObligations(entitlement), collector.getAdvice(entitlement));
         return CombinedDecision.of(finalDecision, CombiningAlgorithm.DENY_OVERRIDES, decisions);
 

@@ -99,22 +99,22 @@ public class PDPDecision implements TracedDecision {
 
     @Override
     public TracedDecision modified(AuthorizationDecision authzDecision, String explanation) {
-        var modified = new PDPDecision(authorizationSubscription, prpResult, combinedDecision, timestamp, modifications,
-                metadata);
+        final var modified = new PDPDecision(authorizationSubscription, prpResult, combinedDecision, timestamp,
+                modifications, metadata);
         modified.modifications.add(new Modification(authzDecision, explanation));
         return modified;
     }
 
     @Override
     public JsonNode getTrace() {
-        var trace = Val.JSON.objectNode();
+        final var trace = Val.JSON.objectNode();
         trace.set(Trace.OPERATOR, Val.JSON.textNode("Policy Decision Point"));
         trace.set(Trace.AUTHORIZATION_SUBSCRIPTION, MAPPER.valueToTree(authorizationSubscription));
         trace.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
-        var matches = Val.JSON.arrayNode();
+        final var matches = Val.JSON.arrayNode();
         prpResult.getMatchingDocuments().forEach(doc -> matches.add(matchTrace(doc)));
         trace.set(Trace.MATCHING_DOCUMENTS, matches);
-        var nonMatches = Val.JSON.arrayNode();
+        final var nonMatches = Val.JSON.arrayNode();
         prpResult.getNonMatchingDocuments().forEach(doc -> nonMatches.add(matchTrace(doc)));
         trace.set(Trace.NON_MATCHING_DOCUMENTS, nonMatches);
         trace.set(Trace.PRP_INCONSISTENT, Val.JSON.booleanNode(prpResult.isPrpInconsistent()));
@@ -132,7 +132,7 @@ public class PDPDecision implements TracedDecision {
     }
 
     private JsonNode matchTrace(DocumentMatch matchingDocument) {
-        var trace = Val.JSON.objectNode();
+        final var trace = Val.JSON.objectNode();
         trace.set(Trace.DOCUMENT_IDENTIFIER, Val.JSON.textNode(matchingDocument.document().id()));
         trace.set(Trace.DOCUMENT_NAME,
                 Val.JSON.textNode(matchingDocument.document().sapl().getPolicyElement().getSaplName()));
@@ -141,9 +141,9 @@ public class PDPDecision implements TracedDecision {
     }
 
     private JsonNode getModificationsTrace() {
-        var modificationTrace = Val.JSON.arrayNode();
+        final var modificationTrace = Val.JSON.arrayNode();
         for (var mod : modifications) {
-            var modJson = Val.JSON.objectNode();
+            final var modJson = Val.JSON.objectNode();
             modJson.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(mod.authorizationDecision()));
             modJson.set(Trace.EXPLANATION, Val.JSON.textNode(mod.explanation()));
             modificationTrace.add(modJson);
@@ -153,7 +153,7 @@ public class PDPDecision implements TracedDecision {
 
     @Override
     public Collection<Val> getErrorsFromTrace() {
-        var all = new ArrayList<Val>();
+        final var all = new ArrayList<Val>();
         all.addAll(combinedDecision.getErrorsFromTrace());
         all.addAll(prpResult.getErrors());
         return all;

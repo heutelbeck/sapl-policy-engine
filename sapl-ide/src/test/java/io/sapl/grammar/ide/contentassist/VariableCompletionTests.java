@@ -19,7 +19,6 @@ package io.sapl.grammar.ide.contentassist;
 
 import java.util.List;
 
-import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
@@ -33,95 +32,148 @@ class VariableCompletionTests extends CompletionTests {
 
     @Test
     void testCompletion_SuggestVariableInBody() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where var foo = 5; var bar = 6; ";
-            it.setModel(policy);
-            it.setColumn(policy.length());
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("advice", "obligation", "transform", "var", "action", "bar", "environment",
-                        "foo", "resource", "subject");
-                assertProposalsSimple(expected, completionList);
-            });
-        });
+        final var document = """
+                policy "test"
+                permit
+                where
+                  var foo = 5;
+                  var bar = 6;
+                  a§""";
+        final var expected = List.of("action");
+        assertProposalsContain(document, expected);
+    }
+
+    @Test
+    void testCompletion_SuggestVariableInBody2() {
+        final var document = """
+                policy "test"
+                permit
+                where
+                  var foo = 5;
+                  var bar = 6;
+                  e§""";
+        final var expected = List.of("environment");
+        assertProposalsContain(document, expected);
+    }
+
+    @Test
+    void testCompletion_SuggestVariableInBody3() {
+        final var document = """
+                policy "test"
+                permit
+                where
+                  var foo = 5;
+                  var bar = 6;
+                  f§""";
+        final var expected = List.of("foo");
+        assertProposalsContain(document, expected);
+    }
+
+    @Test
+    void testCompletion_SuggestVariableInBody4() {
+        final var document = """
+                policy "test"
+                permit
+                where
+                  var foo = 5;
+                  var bar = 6;
+                  b§""";
+        final var expected = List.of("bar");
+        assertProposalsContain(document, expected);
+    }
+
+    @Test
+    void testCompletion_SuggestVariableInBody5() {
+        final var document = """
+                policy "test"
+                permit
+                where
+                  var foo = 5;
+                  var bar = 6;
+                  s§""";
+        final var expected = List.of("subject");
+        assertProposalsContain(document, expected);
+    }
+
+    @Test
+    void testCompletion_SuggestVariableInBody6() {
+        final var document = """
+                policy "test"
+                permit
+                where
+                  var foo = 5;
+                  var bar = 6;
+                  r§""";
+        final var expected = List.of("resource");
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_SuggestVariableInBodyAfterSubject() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where var foo = 5; var bar = 6; subject.attribute == ";
-            it.setModel(policy);
-            it.setColumn(policy.length());
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("action", "bar", "environment", "foo", "resource", "subject");
-                assertProposalsSimple(expected, completionList);
-            });
-        });
+        final var document = """
+                policy "test"
+                permit
+                where
+                  var foo = 5;
+                  var bar = 6;
+                  subject.attribute == f§""";
+        final var expected = List.of("foo");
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_SuggestVariableInBody_NotSuggestOutOfScopeVariable() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where var foo = 5; var bar = 6;";
-            String cursor = "policy \"test\" permit where var foo = 5; ";
-            it.setModel(policy);
-            it.setColumn(cursor.length());
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("advice", "obligation", "transform", "var", "action", "environment", "foo",
-                        "resource", "subject");
-                var unwanted = List.of("bar");
-                assertProposalsSimple(expected, completionList);
-                assertDoesNotContainProposals(unwanted, completionList);
-            });
-        });
+        final var document = """
+                policy "test"
+                permit
+                where
+                  var foo = 5;
+                  f§
+                  var bar = 6;""";
+        final var expected = List.of("foo");
+        final var unwanted = List.of("bar");
+        assertProposalsContainWantedAndDoNotContainUnwanted(document, expected, unwanted);
     }
 
     @Test
     void testCompletion_SuggestVariableInBodyAfterSubject_NotSuggestOutOfScopeVariable() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == var bar = 6;";
-            String cursor = "policy \"test\" permit where var foo = 5; subject.attribute == abc; subject.attribute == ";
-            it.setModel(policy);
-            it.setColumn(cursor.length());
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("action", "environment", "foo", "resource", "subject");
-                var unwanted = List.of("bar");
-                assertProposalsSimple(expected, completionList);
-                assertDoesNotContainProposals(unwanted, completionList);
-            });
-        });
+        final var document = """
+                policy "test"
+                permit
+                where
+                  var foo = 5;
+                  subject.attribute == abc;
+                  subject.attribute == f§
+                  var bar = 6;""";
+        final var expected = List.of("foo");
+        final var unwanted = List.of("bar");
+        assertProposalsContainWantedAndDoNotContainUnwanted(document, expected, unwanted);
     }
 
     @Test
     void testCompletion_SuggestFunctionsFromWildcardImport() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "import schemaTest.*\npolicy \"test policy\" deny where var foo = 5;";
-            String cursor = "policy \"test policy\" deny where var foo = 5;";
-            it.setModel(policy);
-            it.setLine(1);
-            it.setColumn(cursor.length());
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("dog()", "dog().race", "food()", "food(String species)", "location()",
-                        "location().latitude", "location().longitude", "person()", "person().name");
-                assertProposalsSimple(expected, completionList);
-            });
-        });
+        final var document = """
+                import schemaTest.*
+                policy "test policy"
+                deny
+                where
+                  var foo = 5;
+                  d§""";
+        final var expected = List.of("dog(dogRegistryRecord)");
+        assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_SuggestFunctionsFromLibraryImport() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "import schemaTest as abc\npolicy \"test policy\" deny where var foo = 5;";
-            String cursor = "policy \"test policy\" deny where var foo = 5;";
-            it.setModel(policy);
-            it.setLine(1);
-            it.setColumn(cursor.length());
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("abc.dog()", "abc.dog().race", "abc.food()", "abc.food(String species)",
-                        "abc.location()", "abc.location().latitude", "abc.location().longitude", "abc.person()",
-                        "abc.person().name");
-                assertProposalsSimple(expected, completionList);
-            });
-        });
+        final var document = """
+                import schemaTest as abc
+                policy "test policy"
+                deny
+                where
+                  var foo = 5;
+                  a§""";
+        final var expected = List.of("abc.dog(dogRegistryRecord)");
+        assertProposalsContain(document, expected);
     }
 
 }

@@ -32,7 +32,7 @@ class AttributeMockTimingTests {
 
     @Test
     void test() {
-        var mock = new AttributeMockTiming("test.test");
+        final var mock = new AttributeMockTiming("test.test");
         mock.loadAttributeMockWithTiming(Duration.ofSeconds(10), Val.of(1), Val.of(2), Val.of(3), Val.of(4));
 
         StepVerifier.withVirtualTime(() -> mock.evaluate("test.attribute", null, null, null)).expectSubscription()
@@ -45,13 +45,13 @@ class AttributeMockTimingTests {
 
     @Test
     void test_errorMessage() {
-        var mock = new AttributeMockTiming("test.test");
+        final var mock = new AttributeMockTiming("test.test");
         assertThat(mock.getErrorMessageForCurrentMode()).isNotEmpty();
     }
 
     @Test
     void test_nullReturnValue() {
-        var mock = new AttributeMockTiming("test.test");
+        final var mock = new AttributeMockTiming("test.test");
         mock.loadAttributeMockWithTiming(Duration.ofSeconds(1), (Val[]) null);
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> mock.evaluate("test.attribute", null, null, null));
@@ -59,7 +59,7 @@ class AttributeMockTimingTests {
 
     @Test
     void test_nullTiming() {
-        var mock = new AttributeMockTiming("test.test");
+        final var mock = new AttributeMockTiming("test.test");
         mock.loadAttributeMockWithTiming(null, Val.of(1));
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> mock.evaluate("test.attribute", null, null, null));

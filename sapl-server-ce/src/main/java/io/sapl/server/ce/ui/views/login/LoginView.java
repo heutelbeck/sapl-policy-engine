@@ -50,7 +50,7 @@ public class LoginView extends LoginOverlay implements BeforeEnterObserver {
     void init() {
         setAction(RouteUtil.getRoutePath(VaadinService.getCurrent().getContext(), getClass()));
 
-        var i18n = LoginI18n.createDefault();
+        final var i18n = LoginI18n.createDefault();
         i18n.setHeader(new LoginI18n.Header());
         i18n.getHeader().setTitle("SAPL Server CE");
         i18n.getHeader().setDescription("Login with administrator account.");
