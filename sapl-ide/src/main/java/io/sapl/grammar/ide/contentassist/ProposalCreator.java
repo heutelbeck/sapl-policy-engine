@@ -44,18 +44,21 @@ public class ProposalCreator {
     }
 
     public static Optional<String> normalize(String proposal, String prefix, String ctxPrefix) {
-        //        log.trace("normalize: '{}' prefix: '{}' ctxPrefix: '{}'", proposal, prefix, ctxPrefix);
+        // log.trace("normalize: '{}' prefix: '{}' ctxPrefix: '{}'", proposal, prefix,
+        // ctxPrefix);
         if (proposal.startsWith("<") && !prefix.startsWith("<")) {
             proposal = proposal.substring(1);
         }
         if (!proposal.startsWith(prefix) || !prefix.endsWith(ctxPrefix) || prefix.equals(proposal)) {
-            //            log.trace("prefix: '{}' ctxPrefix: '{}': proposal: '{}' normalized: <empty> no proposal!", prefix,
-            //                    ctxPrefix, proposal);
+            // log.trace("prefix: '{}' ctxPrefix: '{}': proposal: '{}' normalized: <empty>
+            // no proposal!", prefix,
+            // ctxPrefix, proposal);
             return Optional.empty();
         } else {
             final var normalizedProposal = proposal.substring(prefix.length() - ctxPrefix.length());
-            //            log.trace("prefix: '{}' ctxPrefix: '{}': proposal: '{}' normalized: '{}'", prefix, ctxPrefix, proposal,
-            //                    normalizedProposal);
+            // log.trace("prefix: '{}' ctxPrefix: '{}': proposal: '{}' normalized: '{}'",
+            // prefix, ctxPrefix, proposal,
+            // normalizedProposal);
             return Optional.of(normalizedProposal);
         }
     }

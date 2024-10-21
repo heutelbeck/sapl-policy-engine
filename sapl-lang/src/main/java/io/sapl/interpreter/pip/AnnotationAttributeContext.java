@@ -406,7 +406,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
     private void importAttribute(Object policyInformationPoint, String pipName,
             PolicyInformationPointDocumentation pipDocumentation, Method method, boolean isEnvironmentAttribute,
             String attributeName, String attributeSchema, String attributePathToSchema, String documentation)
-                    throws InitializationException {
+            throws InitializationException {
 
         if (null == policyInformationPoint) {
             assertMethodIsStatic(method);
@@ -460,13 +460,13 @@ public final class AnnotationAttributeContext implements AttributeContext {
                 && (existingAttribute.varArgsParameters && newAttribute.varArgsParameters
                         || existingAttribute.numberOfParameters == newAttribute.numberOfParameters)) {
             throw new InitializationException("Cannot initialize PIPs. Attribute " + newAttribute.getLibraryName()
-            + " has multiple definitions which the PDP is not able not be able to disambiguate both at runtime.");
+                    + " has multiple definitions which the PDP is not able not be able to disambiguate both at runtime.");
         }
     }
 
     private AttributeFinderMetadata metadataOf(Object policyInformationPoint, Method method, String pipName,
             String attributeName, JsonNode functionSchema, String documentation, boolean isEnvironmentAttribute)
-                    throws InitializationException {
+            throws InitializationException {
 
         assertValidReturnType(method);
 
@@ -490,9 +490,9 @@ public final class AnnotationAttributeContext implements AttributeContext {
                         functionSchema, documentation, isEnvironmentAttribute, requiresVariables, true, 0);
             } else {
                 throw new InitializationException("The method " + method.getName()
-                + " has an array of Val as a parameter, which indicates a variable number of arguments."
-                + " However the array is followed by some other parameters. This is prohibited."
-                + " The array must be the last parameter of the attribute declaration.");
+                        + " has an array of Val as a parameter, which indicates a variable number of arguments."
+                        + " However the array is followed by some other parameters. This is prohibited."
+                        + " The array must be the last parameter of the attribute declaration.");
             }
         }
 
