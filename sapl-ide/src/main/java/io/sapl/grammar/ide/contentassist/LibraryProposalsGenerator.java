@@ -86,10 +86,10 @@ public class LibraryProposalsGenerator {
         final var proposals = new ArrayList<Proposal>();
         final var schema    = metadata.getFunctionSchema();
         if (null != schema) {
-            SchemaProposalsGenerator.getCodeTemplates("", schema, variables).forEach(proposal -> {
-                ProposalCreator.createNormalizedEntry(proposal, analysis.prefix(), analysis.ctxPrefix())
-                        .ifPresent(proposals::add);
-            });
+            SchemaProposalsGenerator.getCodeTemplates("", schema, variables)
+                    .forEach(proposal -> ProposalCreator
+                            .createNormalizedEntry(proposal, analysis.prefix(), analysis.ctxPrefix())
+                            .ifPresent(proposals::add));
         }
         return proposals;
     }

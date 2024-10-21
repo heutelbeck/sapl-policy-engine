@@ -160,14 +160,6 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         final var isSomewhereUnderEnvironmentAttributeNode =
                 isIn(analysis.startNode(), BasicEnvironmentAttribute.class)
                 || isIn(analysis.startNode(), BasicEnvironmentHeadAttribute.class);
-
-        //        log.trace("isAttributeAnalysis: {}",isAttributeAnalysis);
-        //        log.trace("isInsideOfPolicyBody: {}",isInsideOfPolicyBody);
-        //        log.trace("isNotInSchemaDefinition: {}",isNotInSchemaDefinition);
-        //        log.trace("isPlusEqualOperator: {} {}",isPlusEqualOperator);
-        //        log.trace("isAssignmentToIdentifier: {}",isAssignmentToIdentifier);
-        //        log.trace("isSomewhereUnderEnvironmentAttributeNode: {}",isSomewhereUnderEnvironmentAttributeNode);
-
         return    isAttributeAnalysis && isInsideOfPolicyBody && isNotInSchemaDefinition && isPlusEqualOperator
                 && (isAssignmentToIdentifier || isSomewhereUnderEnvironmentAttributeNode);
     }
@@ -204,11 +196,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
                 && saplAccess.getBasicIdentifierAccess().getStepsAssignment_2().equals(assignment);
     }
 
-    private boolean isEnvironmentAttributeSchemaExtension(Assignment assignment, ContextAnalysisResult analysis) {
+    private boolean isEnvironmentAttributeSchemaExtension(ContextAnalysisResult analysis) {
         return analysis.type() == ProposalType.ENVIRONMENT_ATTRIBUTE;
     }
 
-    private boolean isAttributeSchemaExtension(Assignment assignment, ContextAnalysisResult analysis) {
+    private boolean isAttributeSchemaExtension(ContextAnalysisResult analysis) {
         return analysis.type() == ProposalType.ATTRIBUTE;
     }
 
@@ -221,6 +213,9 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         final var feature          = assignment.getFeature();
         final var parserRule       = GrammarUtil.containingParserRule(assignment).getName().toLowerCase();
         final var analysis         = ContextAnalyzer.analyze(context);
+        if (null == pdpConfiguration) {
+            return;
+        }
         if (isAttributeIdentifierAssignment(assignment, analysis)) {
             this.addProposals(LibraryProposalsGenerator.allAttributeFinders(analysis, context, pdpConfiguration),
                     context, acceptor);
@@ -228,11 +223,11 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             this.addProposals(
                     LibraryProposalsGenerator.allEnvironmentAttributeFinders(analysis, context, pdpConfiguration),
                     context, acceptor);
-        } else if (isAttributeSchemaExtension(assignment, analysis)) {
+        } else if (isAttributeSchemaExtension(analysis)) {
             this.addProposals(
                     LibraryProposalsGenerator.allAttributeSchemaExtensions(analysis, context, pdpConfiguration),
                     context, acceptor);
-        } else if (isEnvironmentAttributeSchemaExtension(assignment, analysis)) {
+        } else if (isEnvironmentAttributeSchemaExtension(analysis)) {
             this.addProposals(LibraryProposalsGenerator.allEnvironmentAttributeSchemaExtensions(analysis, context,
                     pdpConfiguration), context, acceptor);
         } else if (isFunctionIdentifierAssignment(assignment, analysis)) {
@@ -269,20 +264,13 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         final var configurationId  = extractConfigurationIdFromRequest();
         final var pdpConfiguration = pdpConfigurationProvider.pdpConfiguration(configurationId).blockFirst();
         final var analysis         = ContextAnalyzer.analyze(context);
-        switch (analysis.type()) {
-        case VARIABLE_OR_FUNCTION_NAME: {
-            if (isInsideOf(context.getCurrentNode(), Policy.class)
-                    || isInsideOf(context.getCurrentNode(), PolicySet.class)) {
-                addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), context,
-                        acceptor);
-                addProposals(
-                        VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration),
-                        context, acceptor);
-            }
-        }
-        default: {
-            /* NOOP */
-        }
+        if (analysis.type() == ProposalType.VARIABLE_OR_FUNCTION_NAME
+                && isInsideOf(context.getCurrentNode(), Policy.class)
+                || isInsideOf(context.getCurrentNode(), PolicySet.class)) {
+            addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), context,
+                    acceptor);
+            addProposals(VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration),
+                    context, acceptor);
         }
     }
 
@@ -372,28 +360,21 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
     }
 
     private boolean isInsideOfSchemaExpression(INode n) {
-        // log.trace("look at: {}", n);
         if (null == n) {
             return false;
         }
         ValueDefinition valueDefinition = null;
         var             node            = n;
         do {
-            // log.trace("semantic: {}", node.getSemanticElement());
             if (node.getSemanticElement() instanceof final ValueDefinition definition) {
                 valueDefinition = definition;
                 break;
             }
             node = node.getParent();
-            // log.trace("next: {}", node);
         } while (node != null);
         if (null == valueDefinition) {
-            // log.trace("no val defini found");
             return false;
         }
-        // log.trace("Its a value definition and is it in definition: {}",
-        // !isInSchemaDefinitionsOfValueDefinition(n.getSemanticElement(),
-        // valueDefinition.getSchemaVarExpression()));
         return isInSchemaDefinitionsOfValueDefinition(n.getSemanticElement(), valueDefinition.getSchemaVarExpression());
     }
 

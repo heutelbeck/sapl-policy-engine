@@ -212,9 +212,7 @@ public class VariablesProposalsGenerator {
         objectNode.fields().forEachRemaining(entry -> {
             final var key = entry.getKey();
             proposals.add(key);
-            generatePathProposalsForJsonNode(entry.getValue()).forEach(suffix -> {
-                proposals.add(key + "." + suffix);
-            });
+            generatePathProposalsForJsonNode(entry.getValue()).forEach(suffix -> proposals.add(key + "." + suffix));
         });
         return proposals;
     }

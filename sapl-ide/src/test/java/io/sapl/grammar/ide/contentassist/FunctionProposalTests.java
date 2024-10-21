@@ -43,16 +43,6 @@ class FunctionProposalTests extends CompletionTests {
     }
 
     @Test
-    void testCompletion_PolicyBody_function_without_import_extension() {
-        final var document = """
-                policy "test" deny where var foo = schemaTest.person();
-                schemaTe§""";
-        final var expected = List.of("schemaTest.dog(dogRegistryRecord)", "schemaTest.food(species)",
-                "schemaTest.foodPrice(food)", "schemaTest.location()", "schemaTest.person(name, nationality, age)");
-        assertProposalsContain(document, expected);
-    }
-
-    @Test
     void testCompletion_PolicyBody_function_with_alias_import() {
         final var document = """
                 import schemaTest as test

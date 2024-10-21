@@ -17,7 +17,7 @@
  */
 package io.sapl.grammar.ide.contentassist;
 
-import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.xtext.Keyword;
@@ -39,7 +39,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ContextAnalyzer {
-    private static final List<String> SKIPPABLE_KEYWORDS = List.of(".", "subject", "action", "resource", "environment");
+    private static final Set<String> SKIPPABLE_KEYWORDS = Set.of(".", "subject", "action", "resource", "environment");
 
     public enum ProposalType {
         ATTRIBUTE, ENVIRONMENT_ATTRIBUTE, FUNCTION, VARIABLE_OR_FUNCTION_NAME, INDETERMINATE
@@ -49,59 +49,55 @@ public class ContextAnalyzer {
             INode startNode) {}
 
     public static ContextAnalysisResult analyze(final ContentAssistContext context) {
-        final var result = prefixAnalysis(context);
-        return result;
-    }
-
-    private static ContextAnalysisResult prefixAnalysis(final ContentAssistContext context) {
-        final var startNode    = firstNodeForAnalysis(context);
+        final var startNode = firstNodeForAnalysis(context);
+        if (null == startNode) {
+            return new ContextAnalysisResult("", context.getPrefix(), "", ProposalType.INDETERMINATE, startNode);
+        }
         var       n            = startNode;
         var       type         = ProposalType.VARIABLE_OR_FUNCTION_NAME;
         var       functionName = "";
+        var       reachedEnd   = false;
         final var sb           = new StringBuilder();
         do {
-            if (null == n) {
-                type = ProposalType.INDETERMINATE;
-                break;
-            }
             final var grammarElement  = n.getGrammarElement();
             final var semanticElement = n.getSemanticElement();
             if (".".equals(n.getText())) {
                 /* NOOP */
-            } else if (grammarElement instanceof final TerminalRule terminalRule) {
-                if ("WS".equals(terminalRule.getName())) {
-                    break;
-                }
+            } else if (grammarElement instanceof final TerminalRule terminalRule
+                    && "WS".equals(terminalRule.getName())) {
+                reachedEnd = true;
             } else if (semanticElement instanceof final Arguments arguments) {
                 final var parent = arguments.eContainer();
                 if (parent instanceof final BasicFunction basicFunction) {
                     functionName = nameOf(basicFunction.getIdentifier());
                     type         = ProposalType.FUNCTION;
-                    break;
+                    reachedEnd   = true;
                 } else {
-                    type = ProposalType.INDETERMINATE;
-                    break;
+                    type       = ProposalType.INDETERMINATE;
+                    reachedEnd = true;
                 }
             } else if (semanticElement instanceof final AttributeFinderStep attribute) {
                 type         = ProposalType.ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-                break;
+                reachedEnd   = true;
             } else if (semanticElement instanceof final HeadAttributeFinderStep attribute) {
                 type         = ProposalType.ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-                break;
+                reachedEnd   = true;
             } else if (semanticElement instanceof final BasicEnvironmentAttribute attribute) {
                 type         = ProposalType.ENVIRONMENT_ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-                break;
+                reachedEnd   = true;
             } else if (semanticElement instanceof final BasicEnvironmentHeadAttribute attribute) {
                 type         = ProposalType.ENVIRONMENT_ATTRIBUTE;
                 functionName = nameOf(attribute.getIdentifier());
-                break;
+                reachedEnd   = true;
             }
-            sb.insert(0, n.getText());
-            n = leftOf(n);
-        } while (n != null);
+            if (!reachedEnd) {
+                sb.insert(0, n.getText());
+                n = leftOf(n);
+            }
+        } while (!reachedEnd && n != null);
         final var prefix = sb.toString();
         return new ContextAnalysisResult(prefix, context.getPrefix(), functionName, type, startNode);
     }
