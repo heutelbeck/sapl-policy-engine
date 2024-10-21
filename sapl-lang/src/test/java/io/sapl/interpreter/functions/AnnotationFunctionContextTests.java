@@ -431,7 +431,7 @@ class AnnotationFunctionContextTests {
     }
 
     @Test
-    void when_overloading_then_collision() throws InitializationException {
+    void when_overloading_then_collision() {
         @FunctionLibrary(name = "lib")
         class OverloadingLibrary {
             private OverloadingLibrary() {

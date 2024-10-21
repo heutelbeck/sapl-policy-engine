@@ -51,7 +51,7 @@ public class ContextAnalyzer {
     public static ContextAnalysisResult analyze(final ContentAssistContext context) {
         final var startNode = firstNodeForAnalysis(context);
         if (null == startNode) {
-            return new ContextAnalysisResult("", context.getPrefix(), "", ProposalType.INDETERMINATE, startNode);
+            return new ContextAnalysisResult("", context.getPrefix(), "", ProposalType.INDETERMINATE, null);
         }
         var       n            = startNode;
         var       type         = ProposalType.VARIABLE_OR_FUNCTION_NAME;

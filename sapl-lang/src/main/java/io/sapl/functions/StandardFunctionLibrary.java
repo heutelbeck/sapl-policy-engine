@@ -17,7 +17,7 @@
  */
 package io.sapl.functions;
 
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -99,8 +99,8 @@ public class StandardFunctionLibrary {
         final var elementsIterator = jsonArray.elements();
         while (elementsIterator.hasNext()) {
             final var nextElement = elementsIterator.next();
-            if (!contains(nextElement, array2.getArrayNode(), (a, b) -> a.equals(b))
-                    && !contains(nextElement, newArray, (a, b) -> a.equals(b))) {
+            if (!contains(nextElement, array2.getArrayNode(), Object::equals)
+                    && !contains(nextElement, newArray, Object::equals)) {
                 newArray.add(nextElement.deepCopy());
             }
         }
@@ -115,7 +115,7 @@ public class StandardFunctionLibrary {
             final var elementsIterator = jsonArray.elements();
             while (elementsIterator.hasNext()) {
                 final var nextElement = elementsIterator.next();
-                if (!contains(nextElement, newArray, (a, b) -> a.equals(b))) {
+                if (!contains(nextElement, newArray, Object::equals)) {
                     newArray.add(nextElement.deepCopy());
                 }
             }
@@ -130,7 +130,7 @@ public class StandardFunctionLibrary {
         final var elementsIterator = jsonArray.elements();
         while (elementsIterator.hasNext()) {
             final var nextElement = elementsIterator.next();
-            if (!contains(nextElement, newArray, (a, b) -> a.equals(b))) {
+            if (!contains(nextElement, newArray, Object::equals)) {
                 newArray.add(nextElement.deepCopy());
             }
         }
@@ -139,10 +139,10 @@ public class StandardFunctionLibrary {
 
     @Function(docs = INTERSECT_DOC)
     public static Val intersect(@Array Val... arrays) {
-        return intersect(arrays, (a, b) -> a.equals(b));
+        return intersect(arrays, Object::equals);
     }
 
-    private static Val intersect(Val[] arrays, BiFunction<JsonNode, JsonNode, Boolean> equalityValidator) {
+    private static Val intersect(Val[] arrays, BiPredicate<JsonNode, JsonNode> equalityValidator) {
         if (arrays.length == 0) {
             return Val.ofEmptyArray();
         }
@@ -154,7 +154,7 @@ public class StandardFunctionLibrary {
         return intersection;
     }
 
-    private static Val intersect(Val array1, Val array2, BiFunction<JsonNode, JsonNode, Boolean> equalityValidator) {
+    private static Val intersect(Val array1, Val array2, BiPredicate<JsonNode, JsonNode> equalityValidator) {
         final var newArray         = Val.JSON.arrayNode();
         final var jsonArray        = array1.getArrayNode();
         final var elementsIterator = jsonArray.elements();
@@ -168,11 +168,11 @@ public class StandardFunctionLibrary {
     }
 
     private static boolean contains(JsonNode element, ArrayNode array,
-            BiFunction<JsonNode, JsonNode, Boolean> equalityValidator) {
+            BiPredicate<JsonNode, JsonNode> equalityValidator) {
         final var elementsIterator = array.elements();
         while (elementsIterator.hasNext()) {
             final var nextElement = elementsIterator.next();
-            if (equalityValidator.apply(element, nextElement)) {
+            if (equalityValidator.test(element, nextElement)) {
                 return true;
             }
         }

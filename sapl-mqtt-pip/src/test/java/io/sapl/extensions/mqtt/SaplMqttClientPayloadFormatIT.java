@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Objects;
 
+import org.eclipse.xtext.util.Strings;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -149,7 +150,8 @@ class SaplMqttClientPayloadFormatIT {
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(1500))
                 .then(() -> mqttClient.publish(buildMqttPublishByteArrayMessageWithoutIndicator(message)))
-                .expectNextMatches(valueArray -> valueArray.get().textValue().equals(message)).thenCancel().verify();
+                .expectNextMatches(valueArray -> Strings.equal(valueArray.get().textValue(), message)).thenCancel()
+                .verify();
     }
 
     @Test

@@ -406,7 +406,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
 
     @Override
     public Collection<FunctionMetadata> getFunctionMetatata() {
-        return new ArrayList<FunctionMetadata>(functions.values());
+        return new ArrayList<>(functions.values());
     }
 
 }

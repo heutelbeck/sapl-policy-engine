@@ -15,13 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.old;
+package io.sapl.grammar.ide.contentassist;
 
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import io.sapl.grammar.ide.contentassist.CompletionTests;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

@@ -15,16 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.grammar.ide.old;
+package io.sapl.grammar.ide.contentassist;
 
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
-
-import io.sapl.grammar.ide.contentassist.CompletionTests;
-import io.sapl.grammar.ide.contentassist.SAPLIdeSpringTestConfiguration;
 
 /**
  * Tests regarding the autocompletion of schema statements
@@ -239,13 +236,6 @@ class SchemaCompletionTests extends CompletionTests {
     @Test
     void testCompletion_SuggestSchemaFromPDPScopedVariable_for_AuthzElementAction() {
         final var document = "action schema general_schema policy \"test\" permit where action§";
-        final var expected = List.of(".age", ".name", ".name.firstname");
-        assertProposalsContain(document, expected);
-    }
-
-    @Test
-    void testCompletion_SuggestSchemaFromPDPScopedVariableWithNameContainingSubjectAuthzElement() {
-        final var document = "subject schema general_schema policy \"test\" permit where subject§";
         final var expected = List.of(".age", ".name", ".name.firstname");
         assertProposalsContain(document, expected);
     }

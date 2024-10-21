@@ -21,7 +21,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-public class VariableIdentifierProposalsTests extends CompletionTests {
+class VariableIdentifierProposalsTests extends CompletionTests {
     @Test
     void testCompletion_PolicyBody_previous_variable() {
         final var document = """

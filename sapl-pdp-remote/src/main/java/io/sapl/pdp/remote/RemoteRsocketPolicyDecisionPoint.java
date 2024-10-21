@@ -109,8 +109,7 @@ public class RemoteRsocketPolicyDecisionPoint implements PolicyDecisionPoint {
     public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
         final var type = new ParameterizedTypeReference<AuthorizationDecision>() {};
         return rSocketRequester.route(DECIDE_ONCE).data(authzSubscription).retrieveMono(type).doOnError(error -> {
-            log.error("RSocket Connect Error : error {}", error.getMessage(), error);
-            error.printStackTrace();
+            log.error("RSocket connection error: {}", error.getMessage(), error);
         });
     }
 
