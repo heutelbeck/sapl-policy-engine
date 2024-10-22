@@ -379,7 +379,7 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: slsa-framework/slsa-verifier/actions/installer@eb7007070baa04976cb9e25a0d8034f8db030a86 # v2.5.1
+      - uses: slsa-framework/slsa-verifier/actions/installer@3714a2a4684014deb874a0e737dffa0ee02dd647 # v2.6.0
 
       - name: Download the artifact
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
