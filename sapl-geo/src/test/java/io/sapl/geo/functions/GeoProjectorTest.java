@@ -47,7 +47,6 @@ class GeoProjectorTest {
     @MethodSource("projectorProvider")
     void testProjectValidGeometry(GeoProjector geoProjector)
             throws MismatchedDimensionException, org.geotools.api.referencing.operation.TransformException {
-
         final var geometryFactory = new GeometryFactory();
         final var point           = geometryFactory.createPoint(new Coordinate(10.0, 20.0));
 
@@ -62,7 +61,6 @@ class GeoProjectorTest {
     @MethodSource("projectorProvider")
     void testReProjectValidGeometry(GeoProjector geoProjector)
             throws MismatchedDimensionException, org.geotools.api.referencing.operation.TransformException {
-
         final var geometryFactory = new GeometryFactory();
         final var point           = geometryFactory.createPoint(new Coordinate(1113194.9079327357, 2273030.926987689));
 
@@ -76,7 +74,6 @@ class GeoProjectorTest {
     @Execution(ExecutionMode.CONCURRENT)
     @MethodSource("projectorProvider")
     void testInvalidGeometry(GeoProjector geoProjector) {
-
         assertThrows(NullPointerException.class, () -> {
             geoProjector.project(null);
         });

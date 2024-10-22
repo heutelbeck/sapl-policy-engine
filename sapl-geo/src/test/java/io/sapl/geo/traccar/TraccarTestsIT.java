@@ -51,7 +51,6 @@ class TraccarTestsIT extends TraccarTestBase {
     @BeforeAll
     void setup() throws Exception {
         traccarContainer.start();
-
         email    = "test@fake.de";
         password = "1234";
         registerUser(email, password);
@@ -100,7 +99,6 @@ class TraccarTestsIT extends TraccarTestBase {
     @CsvSource({ "WKT,PositionWKT,true", "GEOJSON,PositionGeoJsonSwitchedCoordinates,false", "GML,PositionGML,true",
             "KML,PositionKML,true" })
     void testTraccarPositions(String responseFormat, String expectedJsonKey, boolean latitudeFirst) throws Exception {
-
         final var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var str              = """
                 {
@@ -115,7 +113,6 @@ class TraccarTestsIT extends TraccarTestBase {
         final var val    = Val.ofJson(responseTemplate);
         final var result = new TraccarPositions(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .getPositions(val.get()).map(Val::get).map(JsonNode::toPrettyString);
-
         StepVerifier.create(result).expectNext(expected).thenCancel().verify();
     }
 
@@ -125,7 +122,6 @@ class TraccarTestsIT extends TraccarTestBase {
             "GML,TraccarGeofencesDeviceGML,true", "KML,TraccarGeofencesDeviceKML,true" })
     void testTraccarGeofencesWithDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
             throws Exception {
-
         final var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var str              = """
                 {
@@ -140,7 +136,6 @@ class TraccarTestsIT extends TraccarTestBase {
         final var val    = Val.ofJson(responseTemplate);
         final var result = new TraccarGeofences(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .getGeofences(val.get()).map(Val::get).map(JsonNode::toPrettyString);
-
         StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
     }
 
@@ -150,7 +145,6 @@ class TraccarTestsIT extends TraccarTestBase {
             "GML,TraccarGeofencesGML,true", "KML,TraccarGeofencesKML,true" })
     void testTraccarGeofencesWithoutDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
             throws Exception {
-
         final var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var str              = """
                 {
@@ -165,13 +159,11 @@ class TraccarTestsIT extends TraccarTestBase {
         final var val    = Val.ofJson(responseTemplate);
         final var result = new TraccarGeofences(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .getGeofences(val.get()).map(Val::get).map(JsonNode::toPrettyString);
-
         StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
     }
 
     @Test
     void testTraccarGeofencesRepetitionsAndPollingInterval() throws Exception {
-
         final var expected         = source.getJsonSource().get("TraccarGeofencesWKT").toPrettyString();
         final var str              = """
                 {
@@ -185,7 +177,6 @@ class TraccarTestsIT extends TraccarTestBase {
         final var val              = Val.ofJson(responseTemplate);
         final var result           = new TraccarGeofences(Val.ofJson(authTemplate).get(), new ObjectMapper())
                 .getGeofences(val.get()).map(Val::get).map(JsonNode::toPrettyString);
-
         StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
                 .verify();
     }

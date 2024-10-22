@@ -39,7 +39,6 @@ class GeometryConverterTest extends TestBase {
 
     @Test
     void geometryToGMLTest() throws TransformerException {
-
         var       stringwriter = new StringWriter();
         final var point        = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         final var polygon      = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
@@ -57,7 +56,6 @@ class GeometryConverterTest extends TestBase {
 
     @Test
     void geometryToKMLTest() throws TransformerException {
-
         var       stringwriter = new StringWriter();
         final var point        = source.getXmlSource().getElementsByTagName("Point").item(0);
         final var polygon      = source.getXmlSource().getElementsByTagName("Polygon").item(0);
@@ -75,7 +73,6 @@ class GeometryConverterTest extends TestBase {
 
     @Test
     void geometryToGeoJsonNodeTest() throws JsonProcessingException {
-
         final var expPoint   = source.getJsonSource().get("Point").toPrettyString();
         final var expPolygon = source.getJsonSource().get("Polygon").toPrettyString();
         final var res        = GeometryConverter.geometryToGeoJsonNode(source.getPoint()).get().toPrettyString();
@@ -87,7 +84,6 @@ class GeometryConverterTest extends TestBase {
 
     @Test
     void geometryToWktTest() {
-
         final var expPoint   = source.getJsonSource().get("WktPoint").asText();
         final var expPolygon = source.getJsonSource().get("WktPolygon").asText();
         final var res        = GeometryConverter.geometryToWKT(source.getPoint());

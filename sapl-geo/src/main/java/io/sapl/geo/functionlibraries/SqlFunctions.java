@@ -54,18 +54,15 @@ public class SqlFunctions {
 
     @Function(docs = ASSERT_NO_CONTROL_CHARS)
     public Val assertNoSqlControlChars(@Text Val inputToSanitize) {
-
         return validate(inputToSanitize, patternControlChars);
     }
 
     @Function(docs = ASSERT_NO_SQL_KEYWORDS_DOC)
     public Val assertNoSqlKeywords(@Text Val inputToSanitize) {
-
         return validate(inputToSanitize, patternSelect);
     }
 
     private Val validate(Val input, Pattern pattern) {
-
         var matcher = pattern.matcher(input.getText());
         if (matcher.matches()) {
             return Val.error(VALIDATION_ERROR);

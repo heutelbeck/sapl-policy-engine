@@ -106,7 +106,6 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
     @Execution(ExecutionMode.CONCURRENT)
     @CsvSource({ "owntracksTest", "owntracksTestEnvironmentVariable" })
     void OwnTracksPipTest(String pdpPath) throws InitializationException {
-
         final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
                 tempDir.toAbsolutePath().toString(),
                 () -> List.of(new OwnTracksPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);

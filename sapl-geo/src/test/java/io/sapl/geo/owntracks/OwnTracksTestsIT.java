@@ -71,7 +71,6 @@ public class OwnTracksTestsIT {
 
     @BeforeAll
     void setup() {
-
         address      = owntracksRecorder.getHost() + ":" + owntracksRecorder.getMappedPort(8083);
         authTemplate = String.format(authTemplate, address);
     }
@@ -121,7 +120,6 @@ public class OwnTracksTestsIT {
 
     @Test
     void testgetPositionWithInregionsRepetitionsAndPollingInterval() throws Exception {
-
         final var expected         = source.getJsonSource().get("ResponseWKT").toPrettyString();
         final var requestTemplate  = (template.concat(",\"responseFormat\":\"WKT\""));
         final var responseTemplate = requestTemplate.concat("""

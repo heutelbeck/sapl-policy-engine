@@ -49,7 +49,6 @@ class KmlConverterTest extends TestBase {
         var       stringWriter = new StringWriter();
         final var pnt          = source.getXmlSource().getElementsByTagName("Point").item(0);
         final var plg          = source.getXmlSource().getElementsByTagName("Polygon").item(0);
-
         source.getTransform().transform(new DOMSource(pnt), new StreamResult(stringWriter));
         point        = Val.of(stringWriter.toString());
         stringWriter = new StringWriter();
@@ -59,7 +58,6 @@ class KmlConverterTest extends TestBase {
 
     @Test
     void kmlToGeoJsonTest() throws ParseException, JsonProcessingException {
-
         final var result     = geoConverter.kmlToGeoJson(point);
         final var result1    = geoConverter.kmlToGeoJson(polygon);
         final var expPoint   = source.getJsonSource().get("Point").toPrettyString();
@@ -71,7 +69,6 @@ class KmlConverterTest extends TestBase {
 
     @Test
     void kmlToGeometryTest() throws ParseException {
-
         final var result     = (Point) KmlConverter.kmlToGeometry(point);
         final var result1    = (Polygon) KmlConverter.kmlToGeometry(polygon);
         final var expPoint   = source.getPoint();
@@ -83,44 +80,37 @@ class KmlConverterTest extends TestBase {
 
     @Test
     void kmlToGeometryFactoryTest() throws ParseException {
-
         final var factory    = new GeometryFactory(new PrecisionModel(), 4326);
         final var result     = (Point) KmlConverter.kmlToGeometry(point, factory);
         final var result1    = (Polygon) KmlConverter.kmlToGeometry(polygon, factory);
         final var expPoint   = source.getPoint();
         final var expPolygon = source.getPolygon();
-
         assertEquals(expPoint, result);
         assertEquals(expPolygon, result1);
     }
 
     @Test
     void kmlToGMLTest() throws TransformerException, ParseException {
-
         final var res     = geoConverter.kmlToGml(point);
         final var res1    = geoConverter.kmlToGml(polygon);
         final var point   = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         final var polygon = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
-
         final var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(point), new StreamResult(stringWriter));
         final var expPoint = stringWriter.toString();
         stringWriter.getBuffer().setLength(0);// clean buffer
         source.getTransform().transform(new DOMSource(polygon), new StreamResult(stringWriter));
         final var expPolygon = stringWriter.toString();
-
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(res1.getText()));
     }
 
     @Test
     void kmlToWKTTest() throws ParseException {
-
         final var result     = geoConverter.kmlToWkt(point);
         final var result1    = geoConverter.kmlToWkt(polygon);
         final var expPoint   = source.getJsonSource().get("WktPoint").asText();
         final var expPolygon = source.getJsonSource().get("WktPolygon").asText();
-
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));
         assertEquals(StringUtils.trimAllWhitespace(expPolygon), StringUtils.trimAllWhitespace(result1.getText()));
     }

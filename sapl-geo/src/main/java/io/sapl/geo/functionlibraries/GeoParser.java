@@ -54,7 +54,6 @@ public class GeoParser {
 
     @Function(name = "parseKml", docs = PARSE_KML)
     public Val parseKML(Val kml) throws XMLStreamException, IOException, SAXException {
-
         return Val.of(parseKML(kml.getText()));
     }
 
@@ -73,7 +72,6 @@ public class GeoParser {
     }
 
     protected ArrayNode convertToObjects(ArrayList<SimpleFeature> placeMarks) {
-
         final var arrayNode = mapper.createArrayNode();
         for (SimpleFeature feature : placeMarks) {
             var       name         = "unnamed geometry";

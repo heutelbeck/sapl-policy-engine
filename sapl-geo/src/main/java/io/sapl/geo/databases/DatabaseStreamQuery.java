@@ -85,7 +85,6 @@ public final class DatabaseStreamQuery extends ConnectionBase {
      * @return a {@link Flux} of {@link Val}
      */
     public Flux<Val> sendQuery(JsonNode settings) {
-
         if (dataBaseType == DataBaseTypes.MYSQL) {
             createMySqlConnectionFactory(auth, getPort(auth));
         } else {
@@ -115,7 +114,6 @@ public final class DatabaseStreamQuery extends ConnectionBase {
 
     private Flux<JsonNode> getResults(String sql, GeoPipResponseFormat format, int defaultCrs, boolean srcLatitudeFirst,
             boolean latitudeFirst) {
-
         return Flux.usingWhen(connectionFactory.create(), conn -> Flux.from(conn.createStatement(sql).execute())
                 .flatMap(result -> result.map((row, rowMetadata) -> {
                     try {
@@ -130,7 +128,6 @@ public final class DatabaseStreamQuery extends ConnectionBase {
     private JsonNode mapResult(Row row, GeoPipResponseFormat format, int defaultCrs, boolean srcLatitudeFirst,
             boolean latitudeFirst) throws MismatchedDimensionException, JsonProcessingException, ParseException,
             FactoryException, TransformException {
-
         final var resultNode = mapper.createObjectNode();
         JsonNode  geoNode;
         final var resValue   = row.get("res", String.class);
@@ -150,14 +147,11 @@ public final class DatabaseStreamQuery extends ConnectionBase {
     private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean srcLatitudeFirst,
             boolean latitudeFirst) throws ParseException, FactoryException, MismatchedDimensionException,
             TransformException, JsonProcessingException {
-
         var       res = (JsonNode) mapper.createObjectNode();
         final var crs = EPSG + srid;
-
         var       geo          = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
         final var geoProjector = new GeoProjector(crs, !srcLatitudeFirst, crs, !latitudeFirst);
         geo = geoProjector.project(geo);
-
         res = switch (format) {
         case GEOJSON -> GeometryConverter.geometryToGeoJsonNode(geo).get();
         case WKT     -> GeometryConverter.geometryToWKT(geo).get();
@@ -169,7 +163,6 @@ public final class DatabaseStreamQuery extends ConnectionBase {
     }
 
     private Mono<JsonNode> collectMultipleResults(Flux<JsonNode> resultFlux) {
-
         return resultFlux.collect(ArrayList::new, List::add).map(results -> {
             final var arrayNode = mapper.createArrayNode();
             for (final var node : results) {
@@ -196,7 +189,6 @@ public final class DatabaseStreamQuery extends ConnectionBase {
     }
 
     private String buildSql(String geoColumn, String[] columns, String table, String where) {
-
         final var frmt    = "ST_AsGeoJSON";
         final var builder = new StringBuilder();
         for (final var c : columns) {
@@ -279,7 +271,6 @@ public final class DatabaseStreamQuery extends ConnectionBase {
     }
 
     private long longOrDefault(JsonNode requestSettings, String fieldName, long defaultValue) {
-
         if (requestSettings.has(fieldName)) {
             final var value = requestSettings.findValue(fieldName);
 

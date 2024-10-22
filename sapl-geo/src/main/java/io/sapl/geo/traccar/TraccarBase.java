@@ -51,7 +51,6 @@ abstract class TraccarBase extends TrackerConnectionBase {
         final var bodyProperties = new HashMap<String, String>() {
             private static final long serialVersionUID = 1L;
         };
-
         bodyProperties.put("email", user);
         bodyProperties.put("password", password);
         final var form   = bodyProperties.entrySet().stream()

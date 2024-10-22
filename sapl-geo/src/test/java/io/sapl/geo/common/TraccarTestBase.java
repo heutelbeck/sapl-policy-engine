@@ -50,7 +50,6 @@ public abstract class TraccarTestBase extends TestBase {
     protected void registerUser(String email, String password) {
         final var registerUserUrl = String.format("http://%s:%d/api/users", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
-
         final var userJson = String.format("""
                     {
                     "name": "testuser",
@@ -69,7 +68,6 @@ public abstract class TraccarTestBase extends TestBase {
         final var bodyProperties = new HashMap<String, String>() {
                                      private static final long serialVersionUID = 1L;
                                  };
-
         bodyProperties.put("email", email);
         bodyProperties.put("password", password);
         final var body     = bodyProperties.entrySet().stream()
@@ -91,7 +89,6 @@ public abstract class TraccarTestBase extends TestBase {
     protected String createDevice(String sessionCookie) throws Exception {
         final var createDeviceUrl = String.format("http://%s:%d/api/devices", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
-
         final var body = """
                 {
                     "name": "Test Device",
@@ -113,7 +110,6 @@ public abstract class TraccarTestBase extends TestBase {
     protected Mono<JsonNode> postTraccarGeofence(String sessionCookie, String body) {
         final var createGeofenceUrl = String.format("http://%s:%d/api/geofences", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
-
         return webClient.post().uri(createGeofenceUrl).headers(headers -> {
             headers.add("Cookie", sessionCookie);
             headers.setContentType(MediaType.APPLICATION_JSON);

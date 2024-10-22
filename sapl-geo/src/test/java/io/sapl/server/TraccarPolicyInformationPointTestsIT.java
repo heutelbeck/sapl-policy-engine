@@ -105,7 +105,6 @@ class TraccarPolicyInformationPointTestsIT extends TraccarTestBase {
     @CsvSource({ "traccarPositionTestEnvironmentVariable", "traccarPositionTest",
             "traccarGeofencesTestEnvironmentVariable", "traccarGeofencesTest" })
     void traccarPipTest(String pdpPath) throws InitializationException {
-
         final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
                 tempDir.toAbsolutePath().toString(),
                 () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);

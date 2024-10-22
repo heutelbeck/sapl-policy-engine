@@ -93,10 +93,8 @@ public final class TraccarGeofences extends TraccarBase {
             final var urlParams = String.format("\"deviceId\": \"%s\"", deviceId);
             urlParamArray = new String[] { urlParams };
         }
-
         final var requestTemplate = createRequestTemplate(baseUrl, "api/geofences", MediaType.APPLICATION_JSON_VALUE,
                 header, urlParamArray, pollingInterval, repetitions);
-
         return webClient.httpRequest(HttpMethod.GET, requestTemplate).flatMap(v -> {
             try {
                 final var response = mapGeofences(v.get(), format, latitudeFirst);

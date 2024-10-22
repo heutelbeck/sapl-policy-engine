@@ -71,7 +71,6 @@ public final class SourceProvider {
 
     public final void setUp() throws TransformerConfigurationException, TransformerFactoryConfigurationError,
             ParserConfigurationException, SAXException, IOException {
-
         final var factory = DocumentBuilderFactory.newInstance();
         transform = TransformerFactory.newInstance().newTransformer();
         transform.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");

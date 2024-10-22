@@ -45,7 +45,6 @@ class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
 
     @BeforeAll
     void setUp() throws Exception {
-
         commonSetUp();
         final var template = """
                     {
@@ -74,7 +73,6 @@ class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
     @Execution(ExecutionMode.CONCURRENT)
     @CsvSource({ "postgisTest", "postgisTestEnvironmentVariable" })
     void PostGisPipTest(String pdpPath) throws InitializationException {
-
         final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
                 tempDir.toAbsolutePath().toString(),
                 () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
@@ -82,7 +80,6 @@ class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
                 postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
         final var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
         final var pdpDecisionFlux   = pdp.decide(authzSubscription);
-
         StepVerifier.create(pdpDecisionFlux)
                 .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
                 .verify();

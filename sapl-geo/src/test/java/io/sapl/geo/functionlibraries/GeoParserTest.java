@@ -91,7 +91,6 @@ class GeoParserTest {
 
     @Test
     void kmlTestHttp() throws IOException {
-
         mockBackEnd = new MockWebServer();
         mockBackEnd.start();
         MockResponse mockResponse = new MockResponse().setBody(kml.getText()).addHeader("Content-Type",
@@ -146,7 +145,6 @@ class GeoParserTest {
 
     @Test
     void testConvertToObjectsWithNullGeometry() throws XMLStreamException, IOException, SAXException {
-
         String kmlInput = """
                 <kml xmlns="http://www.opengis.net/kml/2.2">
                     <Document>
@@ -167,7 +165,6 @@ class GeoParserTest {
 
     @Test
     void errorTest() {
-
         assertThrows(XMLStreamException.class, () -> parser.parseKML("invalid KML string"));
     }
 }

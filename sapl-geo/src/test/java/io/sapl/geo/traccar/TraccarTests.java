@@ -66,7 +66,6 @@ class TraccarTests {
     @Test
     void testEstablishSessionPolicyEvaluationExceptionServerResponse()
             throws JsonProcessingException, URISyntaxException {
-
         mockWebServer.enqueue(new MockResponse().setResponseCode(300));
         final var geofences = new TraccarGeofences(Val.ofJson(authenticationTemp).get(), mapper);
         final var session   = geofences.establishSession("user", "password", serverUrl, "http");
@@ -75,7 +74,6 @@ class TraccarTests {
 
     @Test
     void testEstablishSessionWithWebClientResponseException() throws JsonProcessingException, URISyntaxException {
-
         mockWebServer.enqueue(new MockResponse().setResponseCode(500));
         final var geofences = new TraccarGeofences(Val.ofJson(authenticationTemp).get(), mapper);
         final var session   = geofences.establishSession("user", "password", serverUrl, "http");
@@ -85,7 +83,6 @@ class TraccarTests {
     @Test
     void testEstablishSessionPolicyEvaluationExceptionInvalidJsonInResponseGeoFences()
             throws JsonProcessingException, URISyntaxException {
-
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("set-cookie", "some-cookie-value")
                 .setBody("invalid_json"));
         final var geofences        = new TraccarGeofences(Val.ofJson(authenticationTemp).get(), mapper);
@@ -96,7 +93,6 @@ class TraccarTests {
     @Test
     void testEstablishSessionPolicyEvaluationExceptionInvalidJsonInResponsePositions()
             throws JsonProcessingException, URISyntaxException {
-
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("set-cookie", "some-cookie-value")
                 .setBody("invalid_json"));
         final var positions       = new TraccarPositions(Val.ofJson(authenticationTemp).get(), mapper);
@@ -106,7 +102,6 @@ class TraccarTests {
 
     @Test
     void testEstablishSessionUriSyntaxException() throws JsonProcessingException {
-
         final var        authenticationTemplate = "{\"user\":\"test\",\"password\":\"test\",\"server\":\"abc<>()\"}";
         final var        responseTemplate       = "{\"responseFormat\":\"WKT\",\"repetitions\" : 3,\"pollingIntervalMs\" : 1000}";
         final var        val                    = Val.ofJson(responseTemplate);

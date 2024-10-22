@@ -60,7 +60,6 @@ class MySqlTestsIT extends MySqlTestBase {
     @Execution(ExecutionMode.CONCURRENT)
     @CsvSource({ "WKT,ExpectedAllWKT", "GEOJSON,ExpectedAllGeoJson", "GML,ExpectedAllGML", "KML,ExpectedAllKML" })
     void Test01MySqlConnection(String responseFormat, String expectedJsonKey) throws JsonProcessingException {
-
         final var queryString   = String.format(templateAll, responseFormat, "geometries", "geom");
         final var expected      = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
@@ -75,7 +74,6 @@ class MySqlTestsIT extends MySqlTestBase {
             "KML,ExpectedPointKML" })
     void Test02MySqlConnectionSingleResult(String responseFormat, String expectedJsonKey)
             throws JsonProcessingException {
-
         final var queryString   = String.format(templatePoint, responseFormat, "geometries", "geom");
         final var expected      = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
@@ -91,7 +89,6 @@ class MySqlTestsIT extends MySqlTestBase {
             "KML,ExpectedPointKML2" })
     void Test03MySqlConnectionSingleResultSrcLatitudeFirst(String responseFormat, String expectedJsonKey)
             throws JsonProcessingException {
-
         insertMySqlPointInGeometries(connectionFactory);
         final var templatePoint2 = """
                     ,
@@ -115,7 +112,6 @@ class MySqlTestsIT extends MySqlTestBase {
 
     @Test
     void Test04ErrorNonexistantTable() throws JsonProcessingException {
-
         final var errorTemplate = template.concat("""
                     ,
                     "table":"%s",
@@ -133,7 +129,6 @@ class MySqlTestsIT extends MySqlTestBase {
 
     @Test
     void Test05ErrorInvalidTemplate() throws JsonProcessingException {
-
         final var queryString = "{\"invalid\":\"Template\"}";
         final var mysql       = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
                 DataBaseTypes.MYSQL);
@@ -145,7 +140,6 @@ class MySqlTestsIT extends MySqlTestBase {
     }
 
     private void insertMySqlPointInGeometries(ConnectionFactory connectionFactory) {
-
         Mono.from(connectionFactory.create()).flatMap(connection -> {
             String insertQuery = "INSERT INTO geometries VALUES (3, ST_GeomFromText('POINT(1 0)', 4326), 'point2', 'text point2');";
             // insert is (lon lat)

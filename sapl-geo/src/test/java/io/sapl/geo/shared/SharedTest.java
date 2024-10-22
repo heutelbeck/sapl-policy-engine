@@ -50,7 +50,6 @@ class SharedTest {
 
     @Test
     void getUserTest() throws JsonProcessingException {
-
         final var requestSettings = """
                 {
                             "user":"test"
@@ -65,14 +64,12 @@ class SharedTest {
         final var request      = mapper.readTree(requestSettings);
         final var errorRequest = mapper.readTree(missing);
         final var response     = connectionBaseTestClass.getUser(request);
-
         assertEquals("test", response);
         assertThrows(PolicyEvaluationException.class, () -> connectionBaseTestClass.getUser(errorRequest));
     }
 
     @Test
     void getPasswordTest() throws JsonProcessingException {
-
         final var requestSettings = """
                 {
                             "password":"test"
@@ -87,14 +84,12 @@ class SharedTest {
         final var request      = mapper.readTree(requestSettings);
         final var errorRequest = mapper.readTree(missing);
         final var response     = connectionBaseTestClass.getPassword(request);
-
         assertEquals("test", response);
         assertThrows(PolicyEvaluationException.class, () -> connectionBaseTestClass.getPassword(errorRequest));
     }
 
     @Test
     void getServerTest() throws JsonProcessingException {
-
         final var requestSettings = """
                 {
                             "server":"test"
@@ -109,14 +104,12 @@ class SharedTest {
         final var request      = mapper.readTree(requestSettings);
         final var errorRequest = mapper.readTree(missing);
         final var response     = connectionBaseTestClass.getServer(request);
-
         assertEquals("test", response);
         assertThrows(PolicyEvaluationException.class, () -> connectionBaseTestClass.getServer(errorRequest));
     }
 
     @Test
     void getResponseFormatTest() throws JsonProcessingException {
-
         final var requestSettings = """
                 {
                             "responseFormat":"WKT"
@@ -138,7 +131,6 @@ class SharedTest {
 
     @Test
     void getLatitudeFirstTest() throws JsonProcessingException {
-
         final var requestSettings = """
                 {
                             "latitudeFirst":"false"
@@ -161,7 +153,6 @@ class SharedTest {
 
     @Test
     void getDeviceIdTest() throws JsonProcessingException {
-
         final var requestSettings = """
                 {
                             "deviceId":"test"

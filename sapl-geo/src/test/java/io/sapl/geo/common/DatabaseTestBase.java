@@ -77,7 +77,6 @@ public abstract class DatabaseTestBase extends TestBase {
     }
 
     protected void createGeographyTable(ConnectionFactory connectionFactory) {
-
         Mono.from(connectionFactory.create()).flatMap(connection -> {
             String createTableQuery = """
                             CREATE TABLE geographies (
@@ -92,7 +91,6 @@ public abstract class DatabaseTestBase extends TestBase {
     }
 
     protected void insertGeometries(ConnectionFactory connectionFactory) {
-
         Mono.from(connectionFactory.create()).flatMap(connection -> {
             String insertQuery = """
                           INSERT INTO geometries VALUES
@@ -104,7 +102,6 @@ public abstract class DatabaseTestBase extends TestBase {
     }
 
     protected void insertGeographies(ConnectionFactory connectionFactory) {
-
         Mono.from(connectionFactory.create()).flatMap(connection -> {
             String insertQuery = """
                     INSERT INTO geographies VALUES

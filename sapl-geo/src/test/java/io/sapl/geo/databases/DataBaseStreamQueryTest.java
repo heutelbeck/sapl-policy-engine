@@ -72,7 +72,6 @@ class DataBaseStreamQueryTest {
 
     @Test
     void getTableErrorTest() throws JsonProcessingException {
-
         final var templateWithoutTable = "{\"geoColumn\":\"test\"}";
         final var requestWithoutTable  = Val.ofJson(templateWithoutTable).get();
         final var auth                 = Val.ofJson(authenticationTemplate).get();
@@ -85,7 +84,6 @@ class DataBaseStreamQueryTest {
 
     @Test
     void getGeoColumnErrorTest() throws JsonProcessingException {
-
         final var templateWithoutTable = "{\"dataBase\":\"test\"}";
         final var requestWithoutTable  = Val.ofJson(templateWithoutTable).get();
         final var auth                 = Val.ofJson(authenticationTemplate).get();

@@ -31,7 +31,6 @@ class SqlFunctionsTests {
 
     @Test
     void CheckForControlCharactersPass() {
-
         final var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
         final var checkedSql = sqlFunctions.assertNoSqlControlChars(sql);
         Assert.equals(Val.TRUE, checkedSql);
@@ -39,7 +38,6 @@ class SqlFunctionsTests {
 
     @Test
     void CheckForControlCharacters2() {
-
         final var sql    = Val.of(
                 "SELECT id, value FROM table WHERE name IN (SELECT name, someField FROM table2 WHERE id = 'someNumber')");
         final var result = sqlFunctions.assertNoSqlControlChars(sql);
@@ -48,7 +46,6 @@ class SqlFunctionsTests {
 
     @Test
     void CheckForControlCharactersError() {
-
         final var sql = sqlFunctions
                 .assertNoSqlControlChars(Val.of("Select * from table where name = 'test;drop table'"));
         assertEquals(errorVal, sql);
@@ -56,14 +53,12 @@ class SqlFunctionsTests {
 
     @Test
     void CheckForControlCharactersError2() {
-
         final var sql = sqlFunctions.assertNoSqlControlChars(Val.of("Select * from table where name = @setvalue = 1"));
         assertEquals(errorVal, sql);
     }
 
     @Test
     void CheckForKeywordsPass() {
-
         final var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
         final var checkedSql = sqlFunctions.assertNoSqlKeywords(sql);
         Assert.equals(Val.TRUE, checkedSql);
@@ -71,7 +66,6 @@ class SqlFunctionsTests {
 
     @Test
     void CheckForKeywordsError() {
-
         final var sql = sqlFunctions
                 .assertNoSqlKeywords(Val.of("Select (drop table table1) from table where name = 'test'"));
         assertEquals(errorVal, sql);
@@ -79,7 +73,6 @@ class SqlFunctionsTests {
 
     @Test
     void CheckForKeywordsError2() {
-
         final var sql = sqlFunctions
                 .assertNoSqlKeywords(Val.of("Select * from table where name in (TRUNCATE table table1)"));
         assertEquals(errorVal, sql);

@@ -65,10 +65,8 @@ public abstract class TrackerConnectionBase extends ConnectionBase {
 
     protected Val createRequestTemplate(String baseUrl, String path, String mediaType, String header,
             String[] urlParameters, Long pollingInterval, Long repetitions) throws JsonProcessingException {
-
         final var template = new StringBuilder(String
                 .format("{\"baseUrl\" : \"%s\", \"path\" : \"%s\", \"accept\" : \"%s\"", baseUrl, path, mediaType));
-
         appendHeader(template, header);
         appendPollingInterval(template, pollingInterval);
         appendRepetitions(template, repetitions);
