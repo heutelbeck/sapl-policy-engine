@@ -71,7 +71,7 @@ public class InputStreamHelper {
     }
 
     @SuppressWarnings("deprecation") // New versions break MQTT ITs
-    private static ReaderInputStream getUtf8InputStream(Reader origin) throws IOException {
+    private static ReaderInputStream getUtf8InputStream(Reader origin) {
         return new ReaderInputStream(origin, StandardCharsets.UTF_8);
     }
 
