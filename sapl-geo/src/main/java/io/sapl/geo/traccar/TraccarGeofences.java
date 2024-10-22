@@ -124,20 +124,13 @@ public final class TraccarGeofences extends TraccarBase {
                 geo = geoProjector.project(geo);
             }
 
-            switch (format) {
-            case GEOJSON:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGeoJsonNode(geo).get()));
-                break;
-            case WKT:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToWKT(geo).get()));
-                break;
-            case GML:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToGML(geo).get()));
-                break;
-            case KML:
-                fenceRes.add(mapFence(geoFence, GeometryConverter.geometryToKML(geo).get()));
-                break;
-            }
+            var fence = switch (format) {
+            case GEOJSON -> GeometryConverter.geometryToGeoJsonNode(geo);
+            case WKT     -> GeometryConverter.geometryToWKT(geo);
+            case GML     -> GeometryConverter.geometryToGML(geo);
+            case KML     -> GeometryConverter.geometryToKML(geo);
+            };
+            fenceRes.add(mapFence(geoFence, fence.get()));
         }
 
         return fenceRes;
