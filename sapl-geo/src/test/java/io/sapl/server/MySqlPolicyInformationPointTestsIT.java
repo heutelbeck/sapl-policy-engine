@@ -43,16 +43,14 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 class MySqlPolicyInformationPointTestsIT extends MySqlTestBase {
 
-    private String path = "src/test/resources/policies/%s";
-
     @BeforeAll
     void setUp() throws Exception {
 
         commonSetUp();
         final var template = """
-                      {
-                "algorithm": "DENY_OVERRIDES",
-                "variables":
+                {
+                  "algorithm": "DENY_OVERRIDES",
+                  "variables":
                 	{
                 		"MYSQL_DEFAULT_CONFIG":
                 		{
@@ -65,20 +63,19 @@ class MySqlPolicyInformationPointTestsIT extends MySqlTestBase {
                 		}
                 	}
                 }
-                  """;
-        final var json     = String.format(template, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
+                """;
+        final var pdpJson  = String.format(template, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
-
-        writePdp(json, String.format(path, "/mysqlTestEnvironmentVariable/pdp.json"));
+        writePdpJson(pdpJson);
+        copyToTemp("/policies/mysqlTest/mysqlTest.sapl");
     }
 
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
     @CsvSource({ "mysqlTest", "mysqlTestEnvironmentVariable" })
     void MySqlPipTest(String pdpPath) throws InitializationException {
-
         final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, pdpPath), () -> List.of(new MySqlPolicyInformationPoint(new ObjectMapper())),
+                tempDir.toAbsolutePath().toString(), () -> List.of(new MySqlPolicyInformationPoint(new ObjectMapper())),
                 List::of, List::of, List::of);
         final var subject           = new Subject(mySqlContainer.getUsername(), mySqlContainer.getPassword(),
                 mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());

@@ -43,12 +43,10 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 class TraccarPolicyInformationPointTestsIT extends TraccarTestBase {
 
-    private String  path = "src/test/resources/policies/%s";
     private Subject subject;
 
     @BeforeAll
     void setUp() throws Exception {
-
         email    = "test@fake.de";
         password = "1234";
         registerUser(email, password);
@@ -90,27 +88,27 @@ class TraccarPolicyInformationPointTestsIT extends TraccarTestBase {
                           {
                               "user":"%s",
                                     "password":"%s",
-                              "server":"%s",
+                              "server":"%s:%s",
                               "protocol": "%s"
                           }
                       }
                   }
                 """;
-        server = String.format("%s:%s", traccarContainer.getHost(), traccarContainer.getMappedPort(8082));
-        final var pdp = String.format(template, email, password, server, "http");
-        writePdp(pdp, String.format(path, "/traccarGeofencesTestEnvironmentVariable/pdp.json"));
-        writePdp(pdp, String.format(path, "/traccarPositionTestEnvironmentVariable/pdp.json"));
+        final var pdpJson  = String.format(template, email, password, traccarContainer.getHost(),
+                traccarContainer.getMappedPort(8082), "http");
+        writePdpJson(pdpJson);
+        copyToTemp("/policies/traccarPositionTest/traccarTest.sapl");
     }
 
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
     @CsvSource({ "traccarPositionTestEnvironmentVariable", "traccarPositionTest",
             "traccarGeofencesTestEnvironmentVariable", "traccarGeofencesTest" })
-    void TraccarPipTest(String pdpPath) throws InitializationException {
+    void traccarPipTest(String pdpPath) throws InitializationException {
 
         final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, pdpPath), () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())),
-                List::of, List::of, List::of);
+                tempDir.toAbsolutePath().toString(),
+                () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
         final var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
         final var pdpDecisionFlux   = pdp.decide(authzSubscription);
 

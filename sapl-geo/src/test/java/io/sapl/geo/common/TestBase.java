@@ -17,14 +17,17 @@
  */
 package io.sapl.geo.common;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.io.TempDir;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functionlibraries.GeoConverter;
@@ -32,16 +35,25 @@ import io.sapl.geo.functionlibraries.GeoConverter;
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class TestBase {
 
+    @TempDir
+    protected static Path tempDir;
+
     protected Val            point;
     protected Val            polygon;
     protected GeoConverter   geoConverter = new GeoConverter();
     protected SourceProvider source       = new SourceProvider();
 
-    protected void writePdp(String json, String path) throws IOException {
-
-        Path filePath = Paths.get(path);
+    protected void writePdpJson(String json) throws IOException {
+        final var filePath = Path.of(tempDir.toAbsolutePath().toString(), "pdp.json");
         try (final var writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
             writer.write(json);
         }
     }
+
+    protected void copyToTemp(String resourcePath) throws IOException, URISyntaxException {
+        final var url  = TestBase.class.getResource(resourcePath);
+        final var file = new File(url.toURI());
+        FileUtils.copyFile(file, new File(tempDir.toAbsolutePath().toString(), file.toPath().getFileName().toString()));
+    }
+
 }

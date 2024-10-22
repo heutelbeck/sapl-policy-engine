@@ -38,7 +38,8 @@ public class SqlFunctions {
             Returns Val.Error() if string contains control chars except < > * = ' ( ) , - and whitespace.
             Returns the original Val otherwise.""";
 
-    // true if SQL contains something except numbers, letters, less and greater than,
+    // true if SQL contains something except numbers, letters, less and greater
+    // than,
     // star, equal, prime, whitespace, brackets, comma, minus
     private static final String REGEX_CONTROL_CHARS = "(?i)^(?![0-9a-z<>*='\\s(),-]*$).*$";
 

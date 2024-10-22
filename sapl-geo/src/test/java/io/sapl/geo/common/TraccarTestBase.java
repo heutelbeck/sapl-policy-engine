@@ -37,7 +37,7 @@ import reactor.core.publisher.Mono;
 public abstract class TraccarTestBase extends TestBase {
 
     private WebClient webClient = WebClient.builder().build();
-    protected String  server;
+    protected String  servser;
     protected String  email;
     protected String  password;
     protected String  deviceId;
@@ -48,7 +48,6 @@ public abstract class TraccarTestBase extends TestBase {
             DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082, 5055).withReuse(false);
 
     protected void registerUser(String email, String password) {
-
         final var registerUserUrl = String.format("http://%s:%d/api/users", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
 
@@ -65,7 +64,6 @@ public abstract class TraccarTestBase extends TestBase {
     }
 
     protected String establishSession(String email, String password) {
-
         final var sessionUrl     = String.format("http://%s:%d/api/session", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
         final var bodyProperties = new HashMap<String, String>() {
@@ -91,7 +89,6 @@ public abstract class TraccarTestBase extends TestBase {
     }
 
     protected String createDevice(String sessionCookie) throws Exception {
-
         final var createDeviceUrl = String.format("http://%s:%d/api/devices", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
 
@@ -114,7 +111,6 @@ public abstract class TraccarTestBase extends TestBase {
     }
 
     protected Mono<JsonNode> postTraccarGeofence(String sessionCookie, String body) {
-
         final var createGeofenceUrl = String.format("http://%s:%d/api/geofences", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
 
@@ -125,7 +121,6 @@ public abstract class TraccarTestBase extends TestBase {
     }
 
     protected void linkGeofenceToDevice(String deviceId, int geofenceId, String sessionCookie) {
-
         final var linkGeofenceUrl = String.format("http://%s:%d/api/permissions", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
         final var linkJson        = """
@@ -140,18 +135,14 @@ public abstract class TraccarTestBase extends TestBase {
     }
 
     protected Mono<String> addTraccarPosition(String deviceId, Double lat, Double lon) {
-
         final var timeStamp      = "2023-07-09 13:34:19";
-        final var url            = """
-                http://%s:%d/?id=%s&lat=%s&lon=%s&timestamp=%s&hdop=0&altitude=100&speed=0&accuracy=14.0
-                           """;
+        final var url            = "http://%s:%d/?id=%s&lat=%s&lon=%s&timestamp=%s&hdop=0&altitude=100&speed=0&accuracy=14.0";
         final var addPositionUrl = String.format(url, traccarContainer.getHost(), traccarContainer.getMappedPort(5055),
                 deviceId, lat.toString(), lon.toString(), timeStamp);
         return exchange(webClient.get().uri(addPositionUrl));
     }
 
     protected Mono<String> exchange(RequestHeadersSpec<?> client) {
-
         return client.exchangeToMono(response -> {
             if (response.statusCode().is2xxSuccessful()) {
                 return response.bodyToMono(String.class);

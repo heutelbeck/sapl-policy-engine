@@ -18,6 +18,7 @@
 package io.sapl.server;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.List;
 
@@ -48,7 +49,6 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
 
-    private String path = "src/test/resources/policies/%s";
     private String server;
     // @formatter:off
     @SuppressWarnings("resource") // Common test pattern
@@ -60,7 +60,7 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
     // @formatter:on
 
     @BeforeAll
-    void setUp() throws IOException {
+    void setUp() throws IOException, URISyntaxException {
         owntracksRecorder.start();
         final var webClient = WebClient.builder().build();
         server = String.format("%s:%s", owntracksRecorder.getHost(), owntracksRecorder.getMappedPort(8083));
@@ -97,8 +97,9 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
                     	}
                     }
                 """;
-        final var pdp      = String.format(template, server, "http");
-        writePdp(pdp, String.format(path, "/owntracksTestEnvironmentVariable/pdp.json"));
+        final var pdpJson  = String.format(template, server, "http");
+        writePdpJson(pdpJson);
+        copyToTemp("/policies/owntracksTest/owntracksTest.sapl");
     }
 
     @ParameterizedTest
@@ -107,8 +108,8 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
     void OwnTracksPipTest(String pdpPath) throws InitializationException {
 
         final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, pdpPath), () -> List.of(new OwnTracksPolicyInformationPoint(new ObjectMapper())),
-                List::of, List::of, List::of);
+                tempDir.toAbsolutePath().toString(),
+                () -> List.of(new OwnTracksPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
         final var subject           = new Subject("user", "device", server);
         final var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
         final var pdpDecisionFlux   = pdp.decide(authzSubscription);

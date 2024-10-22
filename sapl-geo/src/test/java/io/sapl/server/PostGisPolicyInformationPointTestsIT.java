@@ -43,8 +43,6 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
 
-    private String path = "src/test/resources/policies/%s";
-
     @BeforeAll
     void setUp() throws Exception {
 
@@ -66,10 +64,10 @@ class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
                       	}
                       }
                 """;
-        final var json     = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(),
+        final var pdpJson  = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(),
                 postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
-
-        writePdp(json, String.format(path, "/postgisTestEnvironmentVariable/pdp.json"));
+        writePdpJson(pdpJson);
+        copyToTemp("/policies/postgisTest/postgisTest.sapl");
     }
 
     @ParameterizedTest
@@ -78,8 +76,8 @@ class PostGisPolicyInformationPointTestsIT extends PostgisTestBase {
     void PostGisPipTest(String pdpPath) throws InitializationException {
 
         final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                String.format(path, pdpPath), () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())),
-                List::of, List::of, List::of);
+                tempDir.toAbsolutePath().toString(),
+                () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
         final var subject           = new Subject(postgisContainer.getUsername(), postgisContainer.getPassword(),
                 postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
         final var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
