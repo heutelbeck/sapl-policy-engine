@@ -544,7 +544,7 @@ public class GeoFunctions {
     public Val resToGeometryBag(@Array Val resourceArray) throws ParseException, JsonProcessingException {
         final var mapper = new ObjectMapper();
         final var nodes  = mapper.convertValue(resourceArray.get(), JsonNode[].class);
-        final var vals = new Val[nodes.length];
+        final var vals   = new Val[nodes.length];
         for (int i = 0; i < nodes.length; i++) {
             vals[i] = Val.of(nodes[i]);
         }

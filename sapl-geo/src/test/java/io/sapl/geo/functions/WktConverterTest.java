@@ -52,10 +52,10 @@ class WktConverterTest extends TestBase {
 
     @Test
     void wktToKmlTest() throws TransformerException, ParseException {
-        final var result  = geoConverter.wktToKml(point);
-        final var result1 = geoConverter.wktToKml(polygon);
-        final var pnt1    = source.getXmlSource().getElementsByTagName("Point").item(0);
-        final var plg1    = source.getXmlSource().getElementsByTagName("Polygon").item(0);
+        final var result       = geoConverter.wktToKml(point);
+        final var result1      = geoConverter.wktToKml(polygon);
+        final var pnt1         = source.getXmlSource().getElementsByTagName("Point").item(0);
+        final var plg1         = source.getXmlSource().getElementsByTagName("Polygon").item(0);
         final var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(stringWriter));
         final var expPoint = stringWriter.toString();
@@ -89,10 +89,10 @@ class WktConverterTest extends TestBase {
 
     @Test
     void wktToGMLTest() throws TransformerException, ParseException {
-        final var result  = geoConverter.wktToGml(point);
-        final var result1 = geoConverter.wktToGml(polygon);
-        final var pnt1    = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
-        final var plg1    = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
+        final var result       = geoConverter.wktToGml(point);
+        final var result1      = geoConverter.wktToGml(polygon);
+        final var pnt1         = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
+        final var plg1         = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
         final var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(pnt1), new StreamResult(stringWriter));
         final var expPoint = stringWriter.toString();

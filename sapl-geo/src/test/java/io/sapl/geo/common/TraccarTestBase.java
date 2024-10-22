@@ -50,7 +50,7 @@ public abstract class TraccarTestBase extends TestBase {
     protected void registerUser(String email, String password) {
         final var registerUserUrl = String.format("http://%s:%d/api/users", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
-        final var userJson = String.format("""
+        final var userJson        = String.format("""
                     {
                     "name": "testuser",
                     "email": "%s",
@@ -89,7 +89,7 @@ public abstract class TraccarTestBase extends TestBase {
     protected String createDevice(String sessionCookie) throws Exception {
         final var createDeviceUrl = String.format("http://%s:%d/api/devices", traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082));
-        final var body = """
+        final var body            = """
                 {
                     "name": "Test Device",
                     "uniqueId": "1234567890"

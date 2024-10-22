@@ -147,17 +147,17 @@ public final class DatabaseStreamQuery extends ConnectionBase {
     private JsonNode convertResponse(String in, GeoPipResponseFormat format, int srid, boolean srcLatitudeFirst,
             boolean latitudeFirst) throws ParseException, FactoryException, MismatchedDimensionException,
             TransformException, JsonProcessingException {
-        var       res = (JsonNode) mapper.createObjectNode();
-        final var crs = EPSG + srid;
+        var       res          = (JsonNode) mapper.createObjectNode();
+        final var crs          = EPSG + srid;
         var       geo          = JsonConverter.geoJsonToGeometry(in, new GeometryFactory(new PrecisionModel(), srid));
         final var geoProjector = new GeoProjector(crs, !srcLatitudeFirst, crs, !latitudeFirst);
         geo = geoProjector.project(geo);
         res = switch (format) {
-        case GEOJSON -> GeometryConverter.geometryToGeoJsonNode(geo).get();
-        case WKT     -> GeometryConverter.geometryToWKT(geo).get();
-        case GML     -> GeometryConverter.geometryToGML(geo).get();
-        case KML     -> GeometryConverter.geometryToKML(geo).get();
-        };
+            case GEOJSON -> GeometryConverter.geometryToGeoJsonNode(geo).get();
+            case WKT     -> GeometryConverter.geometryToWKT(geo).get();
+            case GML     -> GeometryConverter.geometryToGML(geo).get();
+            case KML     -> GeometryConverter.geometryToKML(geo).get();
+            };
 
         return res;
     }

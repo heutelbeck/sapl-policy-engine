@@ -51,10 +51,10 @@ class JsonConverterTest extends TestBase {
 
     @Test
     void geoJsonToKmlTest() throws TransformerException, ParseException {
-        final var result  = geoConverter.geoJsonToKml(point);
-        final var result1 = geoConverter.geoJsonToKml(polygon);
-        final var point   = source.getXmlSource().getElementsByTagName("Point").item(0);
-        final var polygon = source.getXmlSource().getElementsByTagName("Polygon").item(0);
+        final var result       = geoConverter.geoJsonToKml(point);
+        final var result1      = geoConverter.geoJsonToKml(polygon);
+        final var point        = source.getXmlSource().getElementsByTagName("Point").item(0);
+        final var polygon      = source.getXmlSource().getElementsByTagName("Polygon").item(0);
         final var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(point), new StreamResult(stringWriter));
         final var expPoint = stringWriter.toString();
@@ -88,10 +88,10 @@ class JsonConverterTest extends TestBase {
 
     @Test
     void geoJsonToGMLTest() throws TransformerException, ParseException {
-        final var result  = geoConverter.geoJsonToGml(point);
-        final var result1 = geoConverter.geoJsonToGml(polygon);
-        final var point   = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
-        final var polygon = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
+        final var result       = geoConverter.geoJsonToGml(point);
+        final var result1      = geoConverter.geoJsonToGml(polygon);
+        final var point        = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
+        final var polygon      = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
         final var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(point), new StreamResult(stringWriter));
         final var expPoint = stringWriter.toString();

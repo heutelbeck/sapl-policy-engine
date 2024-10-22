@@ -91,10 +91,10 @@ class KmlConverterTest extends TestBase {
 
     @Test
     void kmlToGMLTest() throws TransformerException, ParseException {
-        final var res     = geoConverter.kmlToGml(point);
-        final var res1    = geoConverter.kmlToGml(polygon);
-        final var point   = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
-        final var polygon = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
+        final var res          = geoConverter.kmlToGml(point);
+        final var res1         = geoConverter.kmlToGml(polygon);
+        final var point        = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
+        final var polygon      = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
         final var stringWriter = new StringWriter();
         source.getTransform().transform(new DOMSource(point), new StreamResult(stringWriter));
         final var expPoint = stringWriter.toString();
