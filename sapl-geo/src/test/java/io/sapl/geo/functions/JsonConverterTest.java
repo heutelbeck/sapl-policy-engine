@@ -38,6 +38,7 @@ import org.springframework.util.StringUtils;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.TestBase;
+import io.sapl.geo.functionlibraries.GeoConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class JsonConverterTest extends TestBase {
@@ -51,8 +52,8 @@ class JsonConverterTest extends TestBase {
 
     @Test
     void geoJsonToKmlTest() throws TransformerException, ParseException {
-        final var result       = geoConverter.geoJsonToKml(point);
-        final var result1      = geoConverter.geoJsonToKml(polygon);
+        final var result       = GeoConverter.geoJsonToKml(point);
+        final var result1      = GeoConverter.geoJsonToKml(polygon);
         final var point        = source.getXmlSource().getElementsByTagName("Point").item(0);
         final var polygon      = source.getXmlSource().getElementsByTagName("Polygon").item(0);
         final var stringWriter = new StringWriter();
@@ -88,8 +89,8 @@ class JsonConverterTest extends TestBase {
 
     @Test
     void geoJsonToGMLTest() throws TransformerException, ParseException {
-        final var result       = geoConverter.geoJsonToGml(point);
-        final var result1      = geoConverter.geoJsonToGml(polygon);
+        final var result       = GeoConverter.geoJsonToGml(point);
+        final var result1      = GeoConverter.geoJsonToGml(polygon);
         final var point        = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         final var polygon      = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
         final var stringWriter = new StringWriter();
@@ -104,8 +105,8 @@ class JsonConverterTest extends TestBase {
 
     @Test
     void geoJsonToWktTest() throws ParseException {
-        final var result     = geoConverter.geoJsonToWkt(point);
-        final var result1    = geoConverter.geoJsonToWkt(polygon);
+        final var result     = GeoConverter.geoJsonToWkt(point);
+        final var result1    = GeoConverter.geoJsonToWkt(polygon);
         final var expPoint   = source.getJsonSource().get("WktPoint").asText();
         final var expPolygon = source.getJsonSource().get("WktPolygon").asText();
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));

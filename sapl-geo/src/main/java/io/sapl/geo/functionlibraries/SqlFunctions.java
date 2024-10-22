@@ -23,7 +23,9 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Text;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 @FunctionLibrary(name = SqlFunctions.NAME, description = SqlFunctions.DESCRIPTION)
 public class SqlFunctions {
 

@@ -72,7 +72,6 @@ class GeoFunctionsTest extends TestBase {
     Geometry        p1;
     Geometry        p2;
     Geometry        p3;
-    GeoFunctions    func    = new GeoFunctions();
     GeometryFactory factory = new GeometryFactory();
 
     @BeforeAll
@@ -126,142 +125,142 @@ class GeoFunctionsTest extends TestBase {
 
     @Test
     void equalsTest() throws ParseException {
-        assertTrue(func.geometryEquals(point, point).getBoolean());
-        assertTrue(func.geometryEquals(polygon, polygon).getBoolean());
-        assertFalse(func.geometryEquals(point, point1).getBoolean());
-        assertFalse(func.geometryEquals(polygon, polygon1).getBoolean());
+        assertTrue(GeoFunctions.geometryEquals(point, point).getBoolean());
+        assertTrue(GeoFunctions.geometryEquals(polygon, polygon).getBoolean());
+        assertFalse(GeoFunctions.geometryEquals(point, point1).getBoolean());
+        assertFalse(GeoFunctions.geometryEquals(polygon, polygon1).getBoolean());
 
     }
 
     @Test
     void disjointTest() throws ParseException {
-        assertTrue(func.disjoint(point, point1).getBoolean());
-        assertTrue(func.disjoint(polygon, polygon1).getBoolean());
-        assertFalse(func.disjoint(point, point).getBoolean());
-        assertFalse(func.disjoint(polygon, polygon).getBoolean());
+        assertTrue(GeoFunctions.disjoint(point, point1).getBoolean());
+        assertTrue(GeoFunctions.disjoint(polygon, polygon1).getBoolean());
+        assertFalse(GeoFunctions.disjoint(point, point).getBoolean());
+        assertFalse(GeoFunctions.disjoint(polygon, polygon).getBoolean());
     }
 
     @Test
     void touchesTest() throws ParseException {
-        assertTrue(func.touches(point, polygon).getBoolean());
-        assertFalse(func.touches(point, polygon1).getBoolean());
+        assertTrue(GeoFunctions.touches(point, polygon).getBoolean());
+        assertFalse(GeoFunctions.touches(point, polygon1).getBoolean());
     }
 
     @Test
     void crossesTest() throws ParseException {
 
-        assertTrue(func.crosses(line, polygon1).getBoolean());
-        assertFalse(func.crosses(polygon, polygon1).getBoolean());
+        assertTrue(GeoFunctions.crosses(line, polygon1).getBoolean());
+        assertFalse(GeoFunctions.crosses(polygon, polygon1).getBoolean());
     }
 
     @Test
     void withinTest() throws ParseException {
-        assertTrue(func.within(line2, polygon1).getBoolean());
-        assertTrue(func.within(line2, coll).getBoolean());
-        assertFalse(func.within(point2, polygon1).getBoolean());
-        assertFalse(func.within(point2, coll).getBoolean());
+        assertTrue(GeoFunctions.within(line2, polygon1).getBoolean());
+        assertTrue(GeoFunctions.within(line2, coll).getBoolean());
+        assertFalse(GeoFunctions.within(point2, polygon1).getBoolean());
+        assertFalse(GeoFunctions.within(point2, coll).getBoolean());
     }
 
     @Test
     void containsTest() throws ParseException {
-        assertTrue(func.contains(polygon1, line2).getBoolean());
-        assertTrue(func.contains(coll, line2).getBoolean());
-        assertFalse(func.contains(polygon, point2).getBoolean());
-        assertFalse(func.contains(coll, point2).getBoolean());
+        assertTrue(GeoFunctions.contains(polygon1, line2).getBoolean());
+        assertTrue(GeoFunctions.contains(coll, line2).getBoolean());
+        assertFalse(GeoFunctions.contains(polygon, point2).getBoolean());
+        assertFalse(GeoFunctions.contains(coll, point2).getBoolean());
     }
 
     @Test
     void overlapsTest() throws ParseException {
-        assertTrue(func.overlaps(polygon2, polygon4).getBoolean());
-        assertFalse(func.overlaps(polygon, polygon1).getBoolean());
+        assertTrue(GeoFunctions.overlaps(polygon2, polygon4).getBoolean());
+        assertFalse(GeoFunctions.overlaps(polygon, polygon1).getBoolean());
     }
 
     @Test
     void intersectsTest() throws ParseException {
-        assertTrue(func.intersects(polygon1, polygon4).getBoolean());
-        assertFalse(func.intersects(polygon, polygon4).getBoolean());
+        assertTrue(GeoFunctions.intersects(polygon1, polygon4).getBoolean());
+        assertFalse(GeoFunctions.intersects(polygon, polygon4).getBoolean());
     }
 
     @Test
     void bufferTest() throws ParseException, JsonProcessingException {
         final var expBuffer = GeometryConverter.geometryToGeoJsonNode(po1.buffer(10.0));
-        assertEquals(expBuffer, func.buffer(point1, Val.of(10.0)));
+        assertEquals(expBuffer, GeoFunctions.buffer(point1, Val.of(10.0)));
     }
 
     @Test
     void boundaryTest() throws ParseException, JsonProcessingException {
         assertEquals(GeometryConverter.geometryToGeoJsonNode(p2).get().toPrettyString(),
-                func.boundary(polygon4).get().toPrettyString());
+                GeoFunctions.boundary(polygon4).get().toPrettyString());
     }
 
     @Test
     void centroidTest() throws ParseException, JsonProcessingException {
-        assertEquals(point3.get().toPrettyString(), func.centroid(polygon1).get().toPrettyString());
+        assertEquals(point3.get().toPrettyString(), GeoFunctions.centroid(polygon1).get().toPrettyString());
     }
 
     @Test
     void convexHullTest() throws ParseException, JsonProcessingException {
         assertEquals(GeometryConverter.geometryToGeoJsonNode(p3).get().toPrettyString(),
-                func.convexHull(line1).get().toPrettyString());
+                GeoFunctions.convexHull(line1).get().toPrettyString());
     }
 
     @Test
     void unionTest() throws ParseException, JsonProcessingException {
         assertEquals(multipoint.get().toPrettyString(),
-                func.union(new Val[] { point1, point3 }).get().toPrettyString());
+                GeoFunctions.union(new Val[] { point1, point3 }).get().toPrettyString());
     }
 
     @Test
     void unionSingleTest() throws ParseException, JsonProcessingException {
-        assertEquals(point1.get().toPrettyString(), func.union(new Val[] { point1 }).get().toPrettyString());
+        assertEquals(point1.get().toPrettyString(), GeoFunctions.union(new Val[] { point1 }).get().toPrettyString());
     }
 
     @Test
     void intersectionTest() throws ParseException, JsonProcessingException {
         assertEquals(GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(200, 200))).get()
-                .toPrettyString(), func.intersection(line1, line2).get().toPrettyString());
+                .toPrettyString(), GeoFunctions.intersection(line1, line2).get().toPrettyString());
     }
 
     @Test
     void differenceTest() throws ParseException, JsonProcessingException {
-        assertEquals(line.get().toPrettyString(), func.difference(line, line2).get().toPrettyString());
+        assertEquals(line.get().toPrettyString(), GeoFunctions.difference(line, line2).get().toPrettyString());
     }
 
     @Test
     void symDifferenceTest() throws ParseException, JsonProcessingException {
         assertEquals(multipoint3.get().toPrettyString(),
-                func.symDifference(multipoint, multipoint2).get().toPrettyString());
+                GeoFunctions.symDifference(multipoint, multipoint2).get().toPrettyString());
     }
 
     @Test
     void distanceTest() throws ParseException {
-        assertEquals("100.0", func.distance(line2, line3).get().toPrettyString());
+        assertEquals("100.0", GeoFunctions.distance(line2, line3).get().toPrettyString());
     }
 
     @Test
     void isWithinDistanceTest() throws ParseException {
-        assertTrue(func.isWithinDistance(line2, line3, Val.of(110)).get().asBoolean());
-        assertFalse(func.isWithinDistance(line2, line3, Val.of(10)).get().asBoolean());
+        assertTrue(GeoFunctions.isWithinDistance(line2, line3, Val.of(110)).get().asBoolean());
+        assertFalse(GeoFunctions.isWithinDistance(line2, line3, Val.of(10)).get().asBoolean());
     }
 
     @Test
     void lenghtTest() throws ParseException {
-        assertEquals(100, func.length(line3).get().asDouble());
+        assertEquals(100, GeoFunctions.length(line3).get().asDouble());
     }
 
     @Test
     void areaTest() throws ParseException {
-        assertEquals(10000, func.area(polygon1).get().asDouble());
+        assertEquals(10000, GeoFunctions.area(polygon1).get().asDouble());
     }
 
     @Test
     void isSimpleTest() throws ParseException {
-        assertTrue(func.isSimple(polygon1).getBoolean());
+        assertTrue(GeoFunctions.isSimple(polygon1).getBoolean());
     }
 
     @Test
     void isValidTest() throws ParseException {
-        assertTrue(func.isValid(polygon1).getBoolean());
+        assertTrue(GeoFunctions.isValid(polygon1).getBoolean());
     }
 
     @Test
@@ -286,48 +285,48 @@ class GeoFunctionsTest extends TestBase {
                 }
                 """;
         final var multiLineStringVal = Val.ofJson(multiLineString);
-        assertTrue(func.isClosed(point1).getBoolean());
-        assertTrue(func.isClosed(multipoint).getBoolean());
-        assertThrows(OperationNotSupportedException.class, () -> func.isClosed(polygon1));
-        assertFalse(func.isClosed(line).getBoolean());
-        assertTrue(func.isClosed(multiLineStringVal).getBoolean());
+        assertTrue(GeoFunctions.isClosed(point1).getBoolean());
+        assertTrue(GeoFunctions.isClosed(multipoint).getBoolean());
+        assertThrows(OperationNotSupportedException.class, () -> GeoFunctions.isClosed(polygon1));
+        assertFalse(GeoFunctions.isClosed(line).getBoolean());
+        assertTrue(GeoFunctions.isClosed(multiLineStringVal).getBoolean());
     }
 
     @Test
     void bagSizeTest() throws ParseException {
-        assertEquals(1, func.bagSize(line).get().asInt());
-        assertEquals(2, func.bagSize(coll).get().asInt());
+        assertEquals(1, GeoFunctions.bagSize(line).get().asInt());
+        assertEquals(2, GeoFunctions.bagSize(coll).get().asInt());
     }
 
     @Test
     void oneAndOnlyTest() throws ParseException, OperationNotSupportedException, JsonProcessingException {
-        assertEquals(GeometryConverter.geometryToGeoJsonNode(p1).getText(), func.oneAndOnly(coll1).getText());
-        assertThrows(OperationNotSupportedException.class, () -> func.oneAndOnly(coll));
-        assertThrows(ClassCastException.class, () -> func.oneAndOnly(polygon));
+        assertEquals(GeometryConverter.geometryToGeoJsonNode(p1).getText(), GeoFunctions.oneAndOnly(coll1).getText());
+        assertThrows(OperationNotSupportedException.class, () -> GeoFunctions.oneAndOnly(coll));
+        assertThrows(ClassCastException.class, () -> GeoFunctions.oneAndOnly(polygon));
     }
 
     @Test
     void geometryIsInTest() throws ParseException {
-        assertTrue(func.geometryIsIn(polygon1, coll).getBoolean());
-        assertFalse(func.geometryIsIn(polygon2, coll).getBoolean());
-        assertThrows(ClassCastException.class, () -> func.geometryIsIn(polygon, polygon1));
+        assertTrue(GeoFunctions.geometryIsIn(polygon1, coll).getBoolean());
+        assertFalse(GeoFunctions.geometryIsIn(polygon2, coll).getBoolean());
+        assertThrows(ClassCastException.class, () -> GeoFunctions.geometryIsIn(polygon, polygon1));
     }
 
     @Test
     void geometryBagTest() throws ParseException, JsonProcessingException {
-        assertEquals(coll.get(), func.geometryBag(polygon1, polygon3).get());
+        assertEquals(coll.get(), GeoFunctions.geometryBag(polygon1, polygon3).get());
     }
 
     @Test
     void atLeastOneMemberOfTest() {
-        assertTrue(func.atLeastOneMemberOf(coll, coll1).getBoolean());
-        assertFalse(func.atLeastOneMemberOf(coll, coll2).getBoolean());
+        assertTrue(GeoFunctions.atLeastOneMemberOf(coll, coll1).getBoolean());
+        assertFalse(GeoFunctions.atLeastOneMemberOf(coll, coll2).getBoolean());
     }
 
     @Test
     void subsetTest() {
-        assertTrue(func.subset(coll1, coll).getBoolean());
-        assertFalse(func.subset(coll, coll2).getBoolean());
+        assertTrue(GeoFunctions.subset(coll1, coll).getBoolean());
+        assertFalse(GeoFunctions.subset(coll, coll2).getBoolean());
     }
 
     @Test
@@ -335,27 +334,27 @@ class GeoFunctionsTest extends TestBase {
         final var crs = Val.of(CrsConst.WGS84_CRS.getValue());
         final var st  = GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(10.0, 10.0)));
         final var de  = GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(10.0, 10.000001)));
-        assertTrue(func.geoDistance(st, de, crs).get().asDouble() > (0.1));
+        assertTrue(GeoFunctions.geoDistance(st, de, crs).get().asDouble() > (0.1));
     }
 
     @Test
     void geoDistanceTest() throws ParseException, FactoryException, TransformException, JsonProcessingException {
         final var st = GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(10.0, 10.0)));
         final var de = GeometryConverter.geometryToGeoJsonNode(factory.createPoint(new Coordinate(10.0, 10.000001)));
-        assertTrue(func.geoDistance(st, de).get().asDouble() > (0.1));
+        assertTrue(GeoFunctions.geoDistance(st, de).get().asDouble() > (0.1));
     }
 
     @Test
     void isWithingeoDistanceTest() throws ParseException, TransformException, FactoryException {
-        assertTrue(func.isWithinGeoDistance(point2, point4, Val.of(1200)).get().asBoolean());
-        assertFalse(func.isWithinGeoDistance(point2, point4, Val.of(2)).get().asBoolean());
+        assertTrue(GeoFunctions.isWithinGeoDistance(point2, point4, Val.of(1200)).get().asBoolean());
+        assertFalse(GeoFunctions.isWithinGeoDistance(point2, point4, Val.of(2)).get().asBoolean());
     }
 
     @Test
     void testMilesToMeterJsonNode() {
         final var miles    = 1.0;
         final var milesVal = Val.of(miles);
-        final var result   = func.milesToMeter(milesVal);
+        final var result   = GeoFunctions.milesToMeter(milesVal);
         assertEquals(miles * DistanceUtils.MILES_TO_KM * 1000, result.get().asDouble(), 0.0001);
     }
 
@@ -363,7 +362,7 @@ class GeoFunctionsTest extends TestBase {
     void testYardToMeter() {
         final var yards          = 1.0;
         final var yardVal        = Val.of(yards);
-        final var result         = func.yardToMeter(yardVal);
+        final var result         = GeoFunctions.yardToMeter(yardVal);
         final var expectedMeters = (yards / 1760) * DistanceUtils.MILES_TO_KM * 1000;
         assertEquals(expectedMeters, result.get().asDouble(), 0.0001);
     }
@@ -371,7 +370,7 @@ class GeoFunctionsTest extends TestBase {
     @Test
     void testDegreeToMeter() {
         final var inputVal = Val.of(1.0);
-        final var result   = func.degreeToMeter(inputVal);
+        final var result   = GeoFunctions.degreeToMeter(inputVal);
         assertEquals(111195.07973436874, result.get().asDouble(), 0.0001);
     }
 }

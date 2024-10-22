@@ -20,6 +20,8 @@ package io.sapl.server.lt;
 import java.util.List;
 
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
@@ -30,15 +32,49 @@ import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
+import io.sapl.geo.functionlibraries.GeoConverter;
+import io.sapl.geo.functionlibraries.GeoFunctions;
+import io.sapl.geo.functionlibraries.GeoParser;
+import io.sapl.geo.functionlibraries.SqlFunctions;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.pip.http.ReactiveWebClient;
+import io.sapl.server.MySqlPolicyInformationPoint;
+import io.sapl.server.OwnTracksPolicyInformationPoint;
+import io.sapl.server.PostGisPolicyInformationPoint;
+import io.sapl.server.TraccarPolicyInformationPoint;
 
 @Configuration
+@EnableAutoConfiguration(exclude = { R2dbcAutoConfiguration.class })
 public class SaplExtensionsConfig {
 
     @Bean
     ReactiveWebClient reactiveWebClient(ObjectMapper mapper) {
         return new ReactiveWebClient(mapper);
+    }
+
+    @Bean
+    MySqlPolicyInformationPoint mySqlPolicyInformationPoint(ObjectMapper mapper) {
+        return new MySqlPolicyInformationPoint(mapper);
+    }
+
+    @Bean
+    OwnTracksPolicyInformationPoint ownTracksPolicyInformationPoint(ObjectMapper mapper) {
+        return new OwnTracksPolicyInformationPoint(mapper);
+    }
+
+    @Bean
+    PostGisPolicyInformationPoint postGisPolicyInformationPoint(ObjectMapper mapper) {
+        return new PostGisPolicyInformationPoint(mapper);
+    }
+
+    @Bean
+    TraccarPolicyInformationPoint traccarPolicyInformationPoint(ObjectMapper mapper) {
+        return new TraccarPolicyInformationPoint(mapper);
+    }
+
+    @Bean
+    GeoParser geoParser(ObjectMapper mapper) {
+        return new GeoParser(mapper);
     }
 
     @Bean
@@ -54,7 +90,7 @@ public class SaplExtensionsConfig {
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     StaticFunctionLibrarySupplier additionalStaticLibraries() {
-        return () -> List.of(MqttFunctionLibrary.class);
+        return () -> List.of(MqttFunctionLibrary.class, GeoConverter.class, GeoFunctions.class, SqlFunctions.class);
     }
 
 }

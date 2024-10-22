@@ -49,13 +49,13 @@ import io.sapl.api.validation.Number;
 import io.sapl.geo.functions.CrsConst;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.JsonConverter;
-import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 
 /*
  * Format always [Lat(y), Long(x)]
  */
 
-@NoArgsConstructor
+@UtilityClass
 @FunctionLibrary(name = GeoFunctions.NAME, description = GeoFunctions.DESCRIPTION)
 public class GeoFunctions {
 

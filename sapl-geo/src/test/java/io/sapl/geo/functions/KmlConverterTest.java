@@ -40,6 +40,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.TestBase;
+import io.sapl.geo.functionlibraries.GeoConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class KmlConverterTest extends TestBase {
@@ -58,8 +59,8 @@ class KmlConverterTest extends TestBase {
 
     @Test
     void kmlToGeoJsonTest() throws ParseException, JsonProcessingException {
-        final var result     = geoConverter.kmlToGeoJson(point);
-        final var result1    = geoConverter.kmlToGeoJson(polygon);
+        final var result     = GeoConverter.kmlToGeoJson(point);
+        final var result1    = GeoConverter.kmlToGeoJson(polygon);
         final var expPoint   = source.getJsonSource().get("Point").toPrettyString();
         final var expPolygon = source.getJsonSource().get("Polygon").toPrettyString();
 
@@ -91,8 +92,8 @@ class KmlConverterTest extends TestBase {
 
     @Test
     void kmlToGMLTest() throws TransformerException, ParseException {
-        final var res          = geoConverter.kmlToGml(point);
-        final var res1         = geoConverter.kmlToGml(polygon);
+        final var res          = GeoConverter.kmlToGml(point);
+        final var res1         = GeoConverter.kmlToGml(polygon);
         final var point        = source.getXmlSource().getElementsByTagName("gml:Point").item(0);
         final var polygon      = source.getXmlSource().getElementsByTagName("gml:Polygon").item(0);
         final var stringWriter = new StringWriter();
@@ -107,8 +108,8 @@ class KmlConverterTest extends TestBase {
 
     @Test
     void kmlToWKTTest() throws ParseException {
-        final var result     = geoConverter.kmlToWkt(point);
-        final var result1    = geoConverter.kmlToWkt(polygon);
+        final var result     = GeoConverter.kmlToWkt(point);
+        final var result1    = GeoConverter.kmlToWkt(polygon);
         final var expPoint   = source.getJsonSource().get("WktPoint").asText();
         final var expPolygon = source.getJsonSource().get("WktPolygon").asText();
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(result.getText()));

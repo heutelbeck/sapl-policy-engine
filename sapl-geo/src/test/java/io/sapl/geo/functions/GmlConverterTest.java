@@ -40,6 +40,7 @@ import org.xml.sax.SAXException;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.TestBase;
+import io.sapl.geo.functionlibraries.GeoConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GmlConverterTest extends TestBase {
@@ -58,8 +59,8 @@ class GmlConverterTest extends TestBase {
 
     @Test
     void gmlToGeoJsonTest() throws SAXException, IOException, ParserConfigurationException {
-        final var res        = geoConverter.gmlToGeoJson(point);
-        final var res1       = geoConverter.gmlToGeoJson(polygon);
+        final var res        = GeoConverter.gmlToGeoJson(point);
+        final var res1       = GeoConverter.gmlToGeoJson(polygon);
         final var expPoint   = source.getJsonSource().get("Point").toPrettyString();
         final var expPolygon = source.getJsonSource().get("Polygon").toPrettyString();
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));
@@ -89,8 +90,8 @@ class GmlConverterTest extends TestBase {
 
     @Test
     void gmlToKmlTest() throws TransformerException, SAXException, IOException, ParserConfigurationException {
-        final var res          = geoConverter.gmlToKml(point);
-        final var res1         = geoConverter.gmlToKml(polygon);
+        final var res          = GeoConverter.gmlToKml(point);
+        final var res1         = GeoConverter.gmlToKml(polygon);
         final var pnt1         = source.getXmlSource().getElementsByTagName("Point").item(0);
         final var plg1         = source.getXmlSource().getElementsByTagName("Polygon").item(0);
         final var stringWriter = new StringWriter();
@@ -105,8 +106,8 @@ class GmlConverterTest extends TestBase {
 
     @Test
     void gmlToWktTest() throws SAXException, IOException, ParserConfigurationException {
-        final var res        = geoConverter.gmlToWkt(point);
-        final var res1       = geoConverter.gmlToWkt(polygon);
+        final var res        = GeoConverter.gmlToWkt(point);
+        final var res1       = GeoConverter.gmlToWkt(polygon);
         final var expPoint   = source.getJsonSource().get("WktPoint").asText();
         final var expPolygon = source.getJsonSource().get("WktPolygon").asText();
         assertEquals(StringUtils.trimAllWhitespace(expPoint), StringUtils.trimAllWhitespace(res.getText()));

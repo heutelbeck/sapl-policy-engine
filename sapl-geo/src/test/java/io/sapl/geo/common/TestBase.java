@@ -30,7 +30,6 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.io.TempDir;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.functionlibraries.GeoConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class TestBase {
@@ -40,8 +39,7 @@ public abstract class TestBase {
 
     protected Val            point;
     protected Val            polygon;
-    protected GeoConverter   geoConverter = new GeoConverter();
-    protected SourceProvider source       = new SourceProvider();
+    protected SourceProvider source = new SourceProvider();
 
     protected void writePdpJson(String json) throws IOException {
         final var filePath = Path.of(tempDir.toAbsolutePath().toString(), "pdp.json");

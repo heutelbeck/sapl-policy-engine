@@ -34,9 +34,9 @@ import io.sapl.geo.functions.GmlConverter;
 import io.sapl.geo.functions.JsonConverter;
 import io.sapl.geo.functions.KmlConverter;
 import io.sapl.geo.functions.WktConverter;
-import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 
-@NoArgsConstructor
+@UtilityClass
 @FunctionLibrary(name = "geoConverter", description = "")
 public class GeoConverter {
 
