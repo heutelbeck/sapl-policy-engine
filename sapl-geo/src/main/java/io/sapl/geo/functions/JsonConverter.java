@@ -21,6 +21,7 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
+
 import io.sapl.api.interpreter.Val;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -33,7 +34,6 @@ public final class JsonConverter {
      * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(Val geoJson) throws ParseException {
-
         return geoJsonToGeometry(geoJson.getText());
     }
 
@@ -43,7 +43,6 @@ public final class JsonConverter {
      * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(Val geoJson, GeometryFactory factory) throws ParseException {
-
         return geoJsonToGeometry(geoJson.getText(), factory);
     }
 
@@ -53,7 +52,6 @@ public final class JsonConverter {
      * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(String geoJson, GeometryFactory factory) throws ParseException {
-
         return (new GeoJsonReader(factory)).read(geoJson);
     }
 
@@ -62,7 +60,6 @@ public final class JsonConverter {
      * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(String geoJson) throws ParseException {
-
         return (new GeoJsonReader()).read(geoJson);
     }
 }

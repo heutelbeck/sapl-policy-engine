@@ -22,140 +22,144 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.stream.Collectors;
+
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.DockerImageName;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import reactor.core.publisher.Mono;
 
 public abstract class TraccarTestBase extends TestBase {
 
-	private WebClient webClient = WebClient.builder().build();
-	protected String server;
-	protected String email;
-	protected String password;
-	protected String deviceId;
+    private WebClient webClient = WebClient.builder().build();
+    protected String  server;
+    protected String  email;
+    protected String  password;
+    protected String  deviceId;
 
-	@Container
-	public static final GenericContainer<?> traccarContainer = new GenericContainer<>(
-			DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082, 5055).withReuse(false);
+    @Container
+    @SuppressWarnings("resource") // Common test pattern
+    public static final GenericContainer<?> traccarContainer = new GenericContainer<>(
+            DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082, 5055).withReuse(false);
 
-	protected void registerUser(String email, String password) {
+    protected void registerUser(String email, String password) {
 
-		final var registerUserUrl = String.format("http://%s:%d/api/users", traccarContainer.getHost(),
-				traccarContainer.getMappedPort(8082));
+        final var registerUserUrl = String.format("http://%s:%d/api/users", traccarContainer.getHost(),
+                traccarContainer.getMappedPort(8082));
 
-		final var userJson = String.format("""
-				    {
-				    "name": "testuser",
-				    "email": "%s",
-				    "password": "%s"
-				}
-				""", email, password);
+        final var userJson = String.format("""
+                    {
+                    "name": "testuser",
+                    "email": "%s",
+                    "password": "%s"
+                }
+                """, email, password);
 
-		webClient.post().uri(registerUserUrl).header("Content-Type", "application/json").bodyValue(userJson).retrieve()
-				.bodyToMono(String.class).block();
-	}
+        webClient.post().uri(registerUserUrl).header("Content-Type", "application/json").bodyValue(userJson).retrieve()
+                .bodyToMono(String.class).block();
+    }
 
-	protected String establishSession(String email, String password) {
+    protected String establishSession(String email, String password) {
 
-		final var sessionUrl = String.format("http://%s:%d/api/session", traccarContainer.getHost(),
-				traccarContainer.getMappedPort(8082));
-		final var bodyProperties = new HashMap<String, String>() {
-			private static final long serialVersionUID = 1L;
-		};
+        final var sessionUrl     = String.format("http://%s:%d/api/session", traccarContainer.getHost(),
+                traccarContainer.getMappedPort(8082));
+        final var bodyProperties = new HashMap<String, String>() {
+                                     private static final long serialVersionUID = 1L;
+                                 };
 
-		bodyProperties.put("email", email);
-		bodyProperties.put("password", password);
-		final var body = bodyProperties.entrySet().stream()
-				.map(e -> String.format("%s=%s", e.getKey(), URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8)))
-				.collect(Collectors.joining("&"));
-		final var client = WebClient.builder().build();
-		final var response = client.post().uri(sessionUrl).header("Content-Type", "application/x-www-form-urlencoded")
-				.bodyValue(body).retrieve().toEntity(String.class).blockOptional();
-		if (response.isPresent()) {
-			final var setCookieHeader = response.get().getHeaders().getFirst("Set-Cookie");
-			if (setCookieHeader != null) {
-				return Arrays.stream(setCookieHeader.split(";")).filter(s -> s.startsWith("JSESSIONID")).findFirst()
-						.orElse(null);
-			}
-		}
-		return null;
-	}
+        bodyProperties.put("email", email);
+        bodyProperties.put("password", password);
+        final var body     = bodyProperties.entrySet().stream()
+                .map(e -> String.format("%s=%s", e.getKey(), URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8)))
+                .collect(Collectors.joining("&"));
+        final var client   = WebClient.builder().build();
+        final var response = client.post().uri(sessionUrl).header("Content-Type", "application/x-www-form-urlencoded")
+                .bodyValue(body).retrieve().toEntity(String.class).blockOptional();
+        if (response.isPresent()) {
+            final var setCookieHeader = response.get().getHeaders().getFirst("Set-Cookie");
+            if (setCookieHeader != null) {
+                return Arrays.stream(setCookieHeader.split(";")).filter(s -> s.startsWith("JSESSIONID")).findFirst()
+                        .orElse(null);
+            }
+        }
+        return null;
+    }
 
-	protected String createDevice(String sessionCookie) throws Exception {
+    protected String createDevice(String sessionCookie) throws Exception {
 
-		final var createDeviceUrl = String.format("http://%s:%d/api/devices", traccarContainer.getHost(),
-				traccarContainer.getMappedPort(8082));
+        final var createDeviceUrl = String.format("http://%s:%d/api/devices", traccarContainer.getHost(),
+                traccarContainer.getMappedPort(8082));
 
-		final var body = """
-				{
-				    "name": "Test Device",
-				    "uniqueId": "1234567890"
-				}
-				""";
+        final var body = """
+                {
+                    "name": "Test Device",
+                    "uniqueId": "1234567890"
+                }
+                """;
 
-		final var result = webClient.post().uri(createDeviceUrl).headers(headers -> {
-			headers.add("Cookie", sessionCookie);
-			headers.setContentType(MediaType.APPLICATION_JSON);
-		}).bodyValue(body).retrieve().bodyToMono(JsonNode.class).blockOptional();
-		if (result.isPresent()) {
-			return result.get().get("id").asText();
-		} else {
-			throw new RuntimeException("Response was null");
-		}
-	}
+        final var result = webClient.post().uri(createDeviceUrl).headers(headers -> {
+            headers.add("Cookie", sessionCookie);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+        }).bodyValue(body).retrieve().bodyToMono(JsonNode.class).blockOptional();
+        if (result.isPresent()) {
+            return result.get().get("id").asText();
+        } else {
+            throw new RuntimeException("Response was null");
+        }
+    }
 
-	protected Mono<JsonNode> postTraccarGeofence(String sessionCookie, String body) {
+    protected Mono<JsonNode> postTraccarGeofence(String sessionCookie, String body) {
 
-		final var createGeofenceUrl = String.format("http://%s:%d/api/geofences", traccarContainer.getHost(),
-				traccarContainer.getMappedPort(8082));
+        final var createGeofenceUrl = String.format("http://%s:%d/api/geofences", traccarContainer.getHost(),
+                traccarContainer.getMappedPort(8082));
 
-		return webClient.post().uri(createGeofenceUrl).headers(headers -> {
-			headers.add("Cookie", sessionCookie);
-			headers.setContentType(MediaType.APPLICATION_JSON);
-		}).bodyValue(body).retrieve().bodyToMono(JsonNode.class);
-	}
+        return webClient.post().uri(createGeofenceUrl).headers(headers -> {
+            headers.add("Cookie", sessionCookie);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+        }).bodyValue(body).retrieve().bodyToMono(JsonNode.class);
+    }
 
-	protected void linkGeofenceToDevice(String deviceId, int geofenceId, String sessionCookie) {
+    protected void linkGeofenceToDevice(String deviceId, int geofenceId, String sessionCookie) {
 
-		final var linkGeofenceUrl = String.format("http://%s:%d/api/permissions", traccarContainer.getHost(),
-				traccarContainer.getMappedPort(8082));
-		final var linkJson = """
-				{"deviceId":"%s","geofenceId": %d}
-				""";
-		final var body = String.format(linkJson, deviceId, geofenceId);
-		webClient.post().uri(linkGeofenceUrl).headers(headers -> {
-			headers.add("Cookie", sessionCookie);
-			headers.setContentType(MediaType.APPLICATION_JSON);
-		}).bodyValue(body).retrieve().bodyToMono(String.class).block();
+        final var linkGeofenceUrl = String.format("http://%s:%d/api/permissions", traccarContainer.getHost(),
+                traccarContainer.getMappedPort(8082));
+        final var linkJson        = """
+                {"deviceId":"%s","geofenceId": %d}
+                """;
+        final var body            = String.format(linkJson, deviceId, geofenceId);
+        webClient.post().uri(linkGeofenceUrl).headers(headers -> {
+            headers.add("Cookie", sessionCookie);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+        }).bodyValue(body).retrieve().bodyToMono(String.class).block();
 
-	}
+    }
 
-	protected Mono<String> addTraccarPosition(String deviceId, Double lat, Double lon) {
+    protected Mono<String> addTraccarPosition(String deviceId, Double lat, Double lon) {
 
-		final var timeStamp = "2023-07-09 13:34:19";
-		final var url = """
-				http://%s:%d/?id=%s&lat=%s&lon=%s&timestamp=%s&hdop=0&altitude=100&speed=0&accuracy=14.0
-				           """;
-		final var addPositionUrl = String.format(url, traccarContainer.getHost(), traccarContainer.getMappedPort(5055),
-				deviceId, lat.toString(), lon.toString(), timeStamp);
-		return exchange(webClient.get().uri(addPositionUrl));
-	}
+        final var timeStamp      = "2023-07-09 13:34:19";
+        final var url            = """
+                http://%s:%d/?id=%s&lat=%s&lon=%s&timestamp=%s&hdop=0&altitude=100&speed=0&accuracy=14.0
+                           """;
+        final var addPositionUrl = String.format(url, traccarContainer.getHost(), traccarContainer.getMappedPort(5055),
+                deviceId, lat.toString(), lon.toString(), timeStamp);
+        return exchange(webClient.get().uri(addPositionUrl));
+    }
 
-	protected Mono<String> exchange(RequestHeadersSpec<?> client) {
+    protected Mono<String> exchange(RequestHeadersSpec<?> client) {
 
-		return client.exchangeToMono(response -> {
-			if (response.statusCode().is2xxSuccessful()) {
-				return response.bodyToMono(String.class);
-			} else {
-				return response.bodyToMono(String.class).flatMap(body -> {
-					return Mono.error(new RuntimeException("Error adding position: " + response.statusCode()));
-				});
-			}
-		});
-	}
+        return client.exchangeToMono(response -> {
+            if (response.statusCode().is2xxSuccessful()) {
+                return response.bodyToMono(String.class);
+            } else {
+                return response.bodyToMono(String.class).flatMap(body -> {
+                    return Mono.error(new RuntimeException("Error adding position: " + response.statusCode()));
+                });
+            }
+        });
+    }
 }

@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -41,14 +42,12 @@ public class OwnTracksPolicyInformationPoint {
     @EnvironmentAttribute(name = "positionAndFences")
     public Flux<Val> positionAndFences(Map<String, Val> auth, @JsonObject Val variables)
             throws JsonProcessingException {
-
         return new OwnTracks(auth.get(OWNTRACKS_DEFAULT_CONFIG).get(), mapper)
                 .getPositionWithInregions(variables.get());
     }
 
     @EnvironmentAttribute(name = "positionAndFences")
     public Flux<Val> positionAndFences(@JsonObject Val auth, @JsonObject Val variables) throws JsonProcessingException {
-
         return new OwnTracks(auth.get(), mapper).getPositionWithInregions(variables.get());
     }
 }

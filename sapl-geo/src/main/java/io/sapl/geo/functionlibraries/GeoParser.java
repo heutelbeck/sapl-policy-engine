@@ -21,17 +21,21 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+
 import javax.xml.stream.XMLStreamException;
+
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.kml.v22.KML;
 import org.geotools.kml.v22.KMLConfiguration;
 import org.geotools.xsd.PullParser;
 import org.locationtech.jts.geom.Geometry;
 import org.xml.sax.SAXException;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.TextNode;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
@@ -42,50 +46,50 @@ import lombok.RequiredArgsConstructor;
 @FunctionLibrary(name = "geoParser", description = "")
 public class GeoParser {
 
-	private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
-	private static final String PARSE_KML = "parses kml to Geometries";
-	private static final String NAME = "name";
-	private static final String GEOMETRY = "Geometry";
-	private final ObjectMapper mapper;
+    private static final JsonNodeFactory JSON      = JsonNodeFactory.instance;
+    private static final String          PARSE_KML = "parses kml to Geometries";
+    private static final String          NAME      = "name";
+    private static final String          GEOMETRY  = "Geometry";
+    private final ObjectMapper           mapper;
 
-	@Function(name = "parseKml", docs = PARSE_KML)
-	public Val parseKML(Val kml) throws XMLStreamException, IOException, SAXException {
+    @Function(name = "parseKml", docs = PARSE_KML)
+    public Val parseKML(Val kml) throws XMLStreamException, IOException, SAXException {
 
-		return Val.of(parseKML(kml.getText()));
-	}
+        return Val.of(parseKML(kml.getText()));
+    }
 
-	public ArrayNode parseKML(String kmlString) throws XMLStreamException, IOException, SAXException {
+    public ArrayNode parseKML(String kmlString) throws XMLStreamException, IOException, SAXException {
 
-		final var features = new ArrayList<SimpleFeature>();
-		final var stream = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
-		final var config = new KMLConfiguration();
-		final var parser = new PullParser(config, stream, KML.Placemark);
-		SimpleFeature f = null;
-		while ((f = (SimpleFeature) parser.parse()) != null) {
+        final var     features = new ArrayList<SimpleFeature>();
+        final var     stream   = new ByteArrayInputStream(kmlString.getBytes(StandardCharsets.UTF_8));
+        final var     config   = new KMLConfiguration();
+        final var     parser   = new PullParser(config, stream, KML.Placemark);
+        SimpleFeature f        = null;
+        while ((f = (SimpleFeature) parser.parse()) != null) {
 
-			features.add(f);
-		}
-		return convertToObjects(features);
-	}
+            features.add(f);
+        }
+        return convertToObjects(features);
+    }
 
-	protected ArrayNode convertToObjects(ArrayList<SimpleFeature> placeMarks) {
+    protected ArrayNode convertToObjects(ArrayList<SimpleFeature> placeMarks) {
 
-		final var arrayNode = mapper.createArrayNode();
-		for (SimpleFeature feature : placeMarks) {
-			var name = "unnamed geometry";
-			final var nameProperty = feature.getAttribute(NAME);
-			if (nameProperty != null) {
-				name = nameProperty.toString();
-			}
-			final var geom = (Geometry) feature.getAttribute(GEOMETRY);
-			final var geo = JSON.objectNode();
-			if (geom != null) {
-				geo.set(NAME, new TextNode(name));
-				final var json = new TextNode(GeometryConverter.geometryToKML(geom).getText());
-				geo.set(GEOMETRY, json);
-				arrayNode.add(geo);
-			}
-		}
-		return arrayNode;
-	}
+        final var arrayNode = mapper.createArrayNode();
+        for (SimpleFeature feature : placeMarks) {
+            var       name         = "unnamed geometry";
+            final var nameProperty = feature.getAttribute(NAME);
+            if (nameProperty != null) {
+                name = nameProperty.toString();
+            }
+            final var geom = (Geometry) feature.getAttribute(GEOMETRY);
+            final var geo  = JSON.objectNode();
+            if (geom != null) {
+                geo.set(NAME, new TextNode(name));
+                final var json = new TextNode(GeometryConverter.geometryToKML(geom).getText());
+                geo.set(GEOMETRY, json);
+                arrayNode.add(geo);
+            }
+        }
+        return arrayNode;
+    }
 }

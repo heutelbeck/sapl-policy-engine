@@ -18,7 +18,5 @@
 package io.sapl.geo.pip;
 
 public enum GeoPipResponseFormat {
-
     GEOJSON, WKT, GML, KML;
-
 }

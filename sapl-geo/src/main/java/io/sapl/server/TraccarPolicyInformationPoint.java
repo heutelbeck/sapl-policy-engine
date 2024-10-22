@@ -19,7 +19,9 @@ package io.sapl.server;
 
 import java.net.URISyntaxException;
 import java.util.Map;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -40,25 +42,21 @@ public class TraccarPolicyInformationPoint {
 
     @EnvironmentAttribute(name = "position")
     public Flux<Val> position(Map<String, Val> auth, @JsonObject Val variables) throws URISyntaxException {
-
         return new TraccarPositions(auth.get(TRACCAR_DEFAULT_CONFIG).get(), mapper).getPositions(variables.get());
     }
 
     @EnvironmentAttribute(name = "position")
     public Flux<Val> position(@JsonObject Val auth, @JsonObject Val variables) throws URISyntaxException {
-
         return new TraccarPositions(auth.get(), mapper).getPositions(variables.get());
     }
 
     @EnvironmentAttribute(name = "geofences")
     public Flux<Val> geofences(Map<String, Val> auth, @JsonObject Val variables) throws URISyntaxException {
-
         return new TraccarGeofences(auth.get(TRACCAR_DEFAULT_CONFIG).get(), mapper).getGeofences(variables.get());
     }
 
     @EnvironmentAttribute(name = "geofences")
     public Flux<Val> geofences(@JsonObject Val auth, @JsonObject Val variables) throws URISyntaxException {
-
         return new TraccarGeofences(auth.get(), mapper).getGeofences(variables.get());
     }
 }

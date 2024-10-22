@@ -19,6 +19,7 @@ package io.sapl.geo.shared;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 
@@ -68,7 +69,7 @@ public abstract class ConnectionBase {
             return GeoPipResponseFormat.GEOJSON;
         }
     }
-    
+
     protected boolean getLatitudeFirst(JsonNode requestSettings) {
         if (requestSettings.has(LATITUDE_FIRST_CONST)) {
             return requestSettings.findValue(LATITUDE_FIRST_CONST).asBoolean();

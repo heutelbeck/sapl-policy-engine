@@ -21,6 +21,7 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.kml.KMLReader;
+
 import io.sapl.api.interpreter.Val;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -33,7 +34,6 @@ public final class KmlConverter {
      * @return a {@link Geometry}
      */
     public static Geometry kmlToGeometry(Val kml) throws ParseException {
-
         return kmlToGeometry(kml.getText());
     }
 
@@ -43,7 +43,6 @@ public final class KmlConverter {
      * @return a {@link Geometry}
      */
     public static Geometry kmlToGeometry(Val kml, GeometryFactory factory) throws ParseException {
-
         return kmlToGeometry(kml.getText(), factory);
     }
 
@@ -52,7 +51,6 @@ public final class KmlConverter {
      * @return a {@link Geometry}
      */
     public static Geometry kmlToGeometry(String kml) throws ParseException {
-
         return (new KMLReader()).read(kml);
     }
 
@@ -62,7 +60,6 @@ public final class KmlConverter {
      * @return a {@link Geometry}
      */
     public static Geometry kmlToGeometry(String kml, GeometryFactory factory) throws ParseException {
-
         return (new KMLReader(factory)).read(kml);
     }
 }

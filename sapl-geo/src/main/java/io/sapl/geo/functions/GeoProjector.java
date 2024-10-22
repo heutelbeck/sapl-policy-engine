@@ -17,14 +17,14 @@
  */
 package io.sapl.geo.functions;
 
+import org.geotools.api.geometry.MismatchedDimensionException;
+import org.geotools.api.referencing.FactoryException;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.operation.MathTransform;
+import org.geotools.api.referencing.operation.TransformException;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
 import org.locationtech.jts.geom.Geometry;
-import org.geotools.api.geometry.MismatchedDimensionException;
-import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
-import org.geotools.api.referencing.FactoryException;
-import org.geotools.api.referencing.operation.MathTransform;
-import org.geotools.api.referencing.operation.TransformException;
 
 public final class GeoProjector {
 
@@ -60,7 +60,6 @@ public final class GeoProjector {
      * reference system for the destination geometry. see {@link #project(Geometry)}
      */
     public GeoProjector(CoordinateReferenceSystem srcCrs, CoordinateReferenceSystem destCrs) throws FactoryException {
-
         mathTransform = CRS.findMathTransform(srcCrs, destCrs, false);
     }
 
@@ -71,7 +70,6 @@ public final class GeoProjector {
      * @throws MismatchedDimensionException
      */
     public Geometry project(Geometry geometry) throws MismatchedDimensionException, TransformException {
-
         return JTS.transform(geometry, mathTransform);
     }
 
@@ -82,7 +80,6 @@ public final class GeoProjector {
      * @throws MismatchedDimensionException
      */
     public Geometry reProject(Geometry geometry) throws MismatchedDimensionException, TransformException {
-
         return JTS.transform(geometry, mathTransform.inverse());
     }
 }

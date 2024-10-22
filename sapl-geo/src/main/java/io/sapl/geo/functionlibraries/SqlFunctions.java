@@ -18,6 +18,7 @@
 package io.sapl.geo.functionlibraries;
 
 import java.util.regex.Pattern;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
@@ -37,11 +38,11 @@ public class SqlFunctions {
             Returns Val.Error() if string contains control chars except < > * = ' ( ) , - and whitespace.
             Returns the original Val otherwise.""";
 
-    // true if sql contains sth. except numbers, letters, less and greater than,
+    // true if SQL contains something except numbers, letters, less and greater than,
     // star, equal, prime, whitespace, brackets, comma, minus
     private static final String REGEX_CONTROL_CHARS = "(?i)^(?![0-9a-z<>*='\\s(),-]*$).*$";
 
-    // true if sql contains update, delete...
+    // true if SQL contains update, delete...
     private static final String REGEX_KEYWORDS = """
             (?i).*\\b(UPDATE|DELETE|TRUNCATE|DROP|ALTER|CREATE|
             INSERT|MERGE|CALL|EXEC|RENAME|SET|BEGIN|COMMIT|ROLLBACK|GRANT)\\b.*""";

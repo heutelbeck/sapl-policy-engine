@@ -21,8 +21,10 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functions.GeometryConverter;
@@ -31,128 +33,114 @@ import io.sapl.geo.pip.GeoPipResponseFormat;
 
 public abstract class TrackerConnectionBase extends ConnectionBase {
 
-	protected String altitude;
-	protected String lastupdate;
-	protected String accuracy;
-	protected String latitude;
-	protected String longitude;
-	protected String baseUrl;
-	protected static final String DEVICEID_CONST = "deviceId";
-	private static final int WGS84 = 4326;
+    protected String              altitude;
+    protected String              lastupdate;
+    protected String              accuracy;
+    protected String              latitude;
+    protected String              longitude;
+    protected String              baseUrl;
+    protected static final String DEVICEID_CONST = "deviceId";
+    private static final int      WGS84          = 4326;
 
-	protected GeoPipResponse mapPosition(String deviceId, JsonNode in, GeoPipResponseFormat format,
-			boolean latitudeFirst) throws JsonProcessingException {
+    protected GeoPipResponse mapPosition(String deviceId, JsonNode in, GeoPipResponseFormat format,
+            boolean latitudeFirst) throws JsonProcessingException {
+        final var geometryFactory = new GeometryFactory(new PrecisionModel(), WGS84);
+        Point     position;
+        final var lat             = in.findValue(latitude).asDouble();
+        final var lon             = in.findValue(longitude).asDouble();
+        if (!latitudeFirst) {
+            position = geometryFactory.createPoint(new Coordinate(lon, lat));
+        } else {
+            position = geometryFactory.createPoint(new Coordinate(lat, lon));
+        }
+        var posRes = switch (format) {
+        case GEOJSON -> GeometryConverter.geometryToGeoJsonNode(position).get();
+        case WKT     -> GeometryConverter.geometryToWKT(position).get();
+        case GML     -> GeometryConverter.geometryToGML(position).get();
+        case KML     -> GeometryConverter.geometryToKML(position).get();
+        };
+        return GeoPipResponse.builder().deviceId(deviceId).position(posRes).altitude(in.findValue(altitude).asDouble())
+                .lastUpdate(in.findValue(lastupdate).asText()).accuracy(in.findValue(accuracy).asDouble()).build();
+    }
 
-		final var geometryFactory = new GeometryFactory(new PrecisionModel(), WGS84);
-		Point position;
-		final var lat = in.findValue(latitude).asDouble();
-		final var lon = in.findValue(longitude).asDouble();
-		if (!latitudeFirst) {
-			position = geometryFactory.createPoint(new Coordinate(lon, lat));
-		} else {
-			position = geometryFactory.createPoint(new Coordinate(lat, lon));
-		}
-		var posRes = (JsonNode) mapper.createObjectNode();
-		switch (format) {
-		case GEOJSON:
-			posRes = GeometryConverter.geometryToGeoJsonNode(position).get();
-			break;
+    protected Val createRequestTemplate(String baseUrl, String path, String mediaType, String header,
+            String[] urlParameters, Long pollingInterval, Long repetitions) throws JsonProcessingException {
 
-		case WKT:
-			posRes = GeometryConverter.geometryToWKT(position).get();
-			break;
+        final var template = new StringBuilder(String
+                .format("{\"baseUrl\" : \"%s\", \"path\" : \"%s\", \"accept\" : \"%s\"", baseUrl, path, mediaType));
 
-		case GML:
-			posRes = GeometryConverter.geometryToGML(position).get();
-			break;
+        appendHeader(template, header);
+        appendPollingInterval(template, pollingInterval);
+        appendRepetitions(template, repetitions);
+        appendUrlParameters(template, urlParameters);
 
-		case KML:
-			posRes = GeometryConverter.geometryToKML(position).get();
-			break;
+        template.append('}');
+        return Val.ofJson(template.toString());
+    }
 
-		}
-		return GeoPipResponse.builder().deviceId(deviceId).position(posRes).altitude(in.findValue(altitude).asDouble())
-				.lastUpdate(in.findValue(lastupdate).asText()).accuracy(in.findValue(accuracy).asDouble()).build();
-	}
+    private void appendHeader(StringBuilder template, String header) {
+        if (header != null) {
+            template.append(", \"headers\" : {");
+            template.append(header);
+            template.append('}');
+        }
+    }
 
-	protected Val createRequestTemplate(String baseUrl, String path, String mediaType, String header,
-			String[] urlParameters, Long pollingInterval, Long repetitions) throws JsonProcessingException {
+    private void appendPollingInterval(StringBuilder template, Long pollingInterval) {
+        if (pollingInterval != null) {
+            template.append(String.format(", \"pollingIntervalMs\" : %s", pollingInterval));
+        }
+    }
 
-		final var template = new StringBuilder(String
-				.format("{\"baseUrl\" : \"%s\", \"path\" : \"%s\", \"accept\" : \"%s\"", baseUrl, path, mediaType));
+    private void appendRepetitions(StringBuilder template, Long repetitions) {
+        if (repetitions != null) {
+            template.append(String.format(", \"repetitions\" : %s", repetitions));
+        }
+    }
 
-		appendHeader(template, header);
-		appendPollingInterval(template, pollingInterval);
-		appendRepetitions(template, repetitions);
-		appendUrlParameters(template, urlParameters);
+    private void appendUrlParameters(StringBuilder template, String[] urlParameters) {
+        if (urlParameters != null) {
+            template.append(", \"urlParameters\" : {");
+            for (int i = 0; i < urlParameters.length; i++) {
+                template.append(urlParameters[i]);
+                if (i < urlParameters.length - 1) {
+                    template.append(", ");
+                }
+            }
+            template.append('}');
+        }
+    }
 
-		template.append('}');
-		return Val.ofJson(template.toString());
-	}
+    protected String getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
+        if (requestSettings.has(DEVICEID_CONST)) {
+            return requestSettings.findValue(DEVICEID_CONST).asText();
+        } else {
+            throw new PolicyEvaluationException("No Device ID found");
+        }
+    }
 
-	private void appendHeader(StringBuilder template, String header) {
-		if (header != null) {
-			template.append(", \"headers\" : {");
-			template.append(header);
-			template.append('}');
-		}
-	}
+    protected String getProtocol(JsonNode requestSettings) {
+        if (requestSettings.has(PROTOCOL_CONST)) {
+            return requestSettings.findValue(PROTOCOL_CONST).asText();
+        } else {
+            return "https";
+        }
+    }
 
-	private void appendPollingInterval(StringBuilder template, Long pollingInterval) {
-		if (pollingInterval != null) {
-			template.append(String.format(", \"pollingIntervalMs\" : %s", pollingInterval));
-		}
-	}
+    protected Long getPollingInterval(JsonNode requestSettings) {
+        if (requestSettings.has(POLLING_INTERVAL_CONST)) {
+            return requestSettings.findValue(POLLING_INTERVAL_CONST).asLong();
+        } else {
+            return null;
+        }
+    }
 
-	private void appendRepetitions(StringBuilder template, Long repetitions) {
-		if (repetitions != null) {
-			template.append(String.format(", \"repetitions\" : %s", repetitions));
-		}
-	}
+    protected Long getRepetitions(JsonNode requestSettings) {
+        if (requestSettings.has(REPEAT_TIMES_CONST)) {
+            return requestSettings.findValue(REPEAT_TIMES_CONST).asLong();
+        } else {
 
-	private void appendUrlParameters(StringBuilder template, String[] urlParameters) {
-		if (urlParameters != null) {
-			template.append(", \"urlParameters\" : {");
-			for (int i = 0; i < urlParameters.length; i++) {
-				template.append(urlParameters[i]);
-				if (i < urlParameters.length - 1) {
-					template.append(", ");
-				}
-			}
-			template.append('}');
-		}
-	}
-
-	protected String getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
-		if (requestSettings.has(DEVICEID_CONST)) {
-			return requestSettings.findValue(DEVICEID_CONST).asText();
-		} else {
-			throw new PolicyEvaluationException("No Device ID found");
-		}
-	}
-
-	protected String getProtocol(JsonNode requestSettings) {
-		if (requestSettings.has(PROTOCOL_CONST)) {
-			return requestSettings.findValue(PROTOCOL_CONST).asText();
-		} else {
-			return "https";
-		}
-	}
-
-	protected Long getPollingInterval(JsonNode requestSettings) {
-		if (requestSettings.has(POLLING_INTERVAL_CONST)) {
-			return requestSettings.findValue(POLLING_INTERVAL_CONST).asLong();
-		} else {
-			return null;
-		}
-	}
-
-	protected Long getRepetitions(JsonNode requestSettings) {
-		if (requestSettings.has(REPEAT_TIMES_CONST)) {
-			return requestSettings.findValue(REPEAT_TIMES_CONST).asLong();
-		} else {
-
-			return null;
-		}
-	}
+            return null;
+        }
+    }
 }

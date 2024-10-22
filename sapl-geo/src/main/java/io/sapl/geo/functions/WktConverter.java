@@ -21,6 +21,7 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
+
 import io.sapl.api.interpreter.Val;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -33,7 +34,6 @@ public final class WktConverter {
      * @return a {@link Geometry}
      */
     public static Geometry wktToGeometry(Val wkt) throws ParseException {
-
         return wktToGeometry(wkt.getText());
     }
 
@@ -43,7 +43,6 @@ public final class WktConverter {
      * @return a {@link Geometry}
      */
     public static Geometry wktToGeometry(Val wkt, GeometryFactory factory) throws ParseException {
-
         return wktToGeometry(wkt.getText(), factory);
     }
 
@@ -52,7 +51,6 @@ public final class WktConverter {
      * @return a {@link Geometry}
      */
     public static Geometry wktToGeometry(String wkt) throws ParseException {
-
         return (new WKTReader()).read(wkt);
     }
 
@@ -62,7 +60,6 @@ public final class WktConverter {
      * @return a {@link Geometry}
      */
     public static Geometry wktToGeometry(String wkt, GeometryFactory factory) throws ParseException {
-
         return (new WKTReader(factory)).read(wkt);
     }
 }

@@ -18,6 +18,7 @@
 package io.sapl.geo.owntracks;
 
 import java.nio.file.Paths;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -31,9 +32,11 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.SourceProvider;
 import reactor.test.StepVerifier;
@@ -42,94 +45,95 @@ import reactor.test.StepVerifier;
 @TestInstance(Lifecycle.PER_CLASS)
 public class OwnTracksTestsIT {
 
-	String address;
-	SourceProvider source = new SourceProvider();
-	String authTemplate = """
-			    {
-				"server":"%s",
-				"protocol":"http"
-				}
-			""";
-	String template = """
-			    {
-			    "user":"user",
-				"deviceId":1
-			""";
+    String         address;
+    SourceProvider source       = new SourceProvider();
+    String         authTemplate = """
+                {
+            	"server":"%s",
+            	"protocol":"http"
+            	}
+            """;
+    String         template     = """
+                {
+                "user":"user",
+            	"deviceId":1
+            """;
 
-	static final String RESOURCE_DIRECTORY = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
+    static final String RESOURCE_DIRECTORY = Paths.get("src", "test", "resources").toFile().getAbsolutePath();
 
-	@Container
-	public static final GenericContainer<?> owntracksRecorder = new GenericContainer<>(
-			DockerImageName.parse("owntracks/recorder:latest")).withExposedPorts(8083)
-			.withFileSystemBind(RESOURCE_DIRECTORY + "/owntracks/store", "/store", BindMode.READ_WRITE)
-			.withEnv("OTR_PORT", "0") // disable mqtt
-			.withReuse(false);
+    @Container
+    @SuppressWarnings("resource") // Common test pattern
+    public static final GenericContainer<?> owntracksRecorder = new GenericContainer<>(
+            DockerImageName.parse("owntracks/recorder:latest")).withExposedPorts(8083)
+            .withFileSystemBind(RESOURCE_DIRECTORY + "/owntracks/store", "/store", BindMode.READ_WRITE)
+            .withEnv("OTR_PORT", "0") // disable mqtt
+            .withReuse(false);
 
-	@BeforeAll
-	void setup() {
+    @BeforeAll
+    void setup() {
 
-		address = owntracksRecorder.getHost() + ":" + owntracksRecorder.getMappedPort(8083);
-		authTemplate = String.format(authTemplate, address);
-	}
+        address      = owntracksRecorder.getHost() + ":" + owntracksRecorder.getMappedPort(8083);
+        authTemplate = String.format(authTemplate, address);
+    }
 
-	@ParameterizedTest
-	@Execution(ExecutionMode.CONCURRENT)
-	@CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
-			"KML,ResponseKML,true" })
-	void testGetPositionWithInregions(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
-			throws Exception {
-		final var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
-		var requestTemplate = (template.concat(",\"responseFormat\":\"%s\""));
-		requestTemplate = String.format(requestTemplate, responseFormat);
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @CsvSource({ "WKT,ResponseWKT,true", "GEOJSON,ResponseGeoJsonSwitchedCoordinates,false", "GML,ResponseGML,true",
+            "KML,ResponseKML,true" })
+    void testGetPositionWithInregions(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
+            throws Exception {
+        final var expected        = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        var       requestTemplate = (template.concat(",\"responseFormat\":\"%s\""));
+        requestTemplate = String.format(requestTemplate, responseFormat);
 
-		if (!latitudeFirst) {
-			requestTemplate = requestTemplate.concat(",\"latitudeFirst\":false");
+        if (!latitudeFirst) {
+            requestTemplate = requestTemplate.concat(",\"latitudeFirst\":false");
 
-		}
-		requestTemplate = requestTemplate.concat("}");
-		final var val = Val.ofJson(requestTemplate);
-		final var resultStream = new OwnTracks(Val.ofJson(authTemplate).get(), new ObjectMapper())
-				.getPositionWithInregions(val.get()).map(Val::get).map(JsonNode::toPrettyString);
-		StepVerifier.create(resultStream).expectNext(expected).thenCancel().verify();
-	}
+        }
+        requestTemplate = requestTemplate.concat("}");
+        final var val          = Val.ofJson(requestTemplate);
+        final var resultStream = new OwnTracks(Val.ofJson(authTemplate).get(), new ObjectMapper())
+                .getPositionWithInregions(val.get()).map(Val::get).map(JsonNode::toPrettyString);
+        StepVerifier.create(resultStream).expectNext(expected).thenCancel().verify();
+    }
 
-	@Test
-	void testHttpAuth() throws JsonProcessingException {
-		var authTemp = """
-				    {
-				    "server":"%s",
-				    "protocol":"http",
-				    "httpUser":"test",
-				    "password":"test"
-				    }
-				""";
-		authTemp = String.format(authTemp, address);
-		final var expected = source.getJsonSource().get("ResponseWKT").toPrettyString();
-		var requestTemplate = (template.concat(",\"responseFormat\":\"%s\""));
-		requestTemplate = String.format(requestTemplate, "WKT");
+    @Test
+    void testHttpAuth() throws JsonProcessingException {
+        var authTemp = """
+                    {
+                    "server":"%s",
+                    "protocol":"http",
+                    "httpUser":"test",
+                    "password":"test"
+                    }
+                """;
+        authTemp = String.format(authTemp, address);
+        final var expected        = source.getJsonSource().get("ResponseWKT").toPrettyString();
+        var       requestTemplate = (template.concat(",\"responseFormat\":\"%s\""));
+        requestTemplate = String.format(requestTemplate, "WKT");
 
-		requestTemplate = requestTemplate.concat("}");
-		final var val = Val.ofJson(requestTemplate);
-		final var resultStream = new OwnTracks(Val.ofJson(authTemp).get(), new ObjectMapper())
-				.getPositionWithInregions(val.get()).map(Val::get).map(JsonNode::toPrettyString);
-		StepVerifier.create(resultStream).expectNext(expected).thenCancel().verify();
-	}
+        requestTemplate = requestTemplate.concat("}");
+        final var val          = Val.ofJson(requestTemplate);
+        final var resultStream = new OwnTracks(Val.ofJson(authTemp).get(), new ObjectMapper())
+                .getPositionWithInregions(val.get()).map(Val::get).map(JsonNode::toPrettyString);
+        StepVerifier.create(resultStream).expectNext(expected).thenCancel().verify();
+    }
 
-	@Test
-	void testgetPositionWithInregionsRepetitionsAndPollingInterval() throws Exception {
+    @Test
+    void testgetPositionWithInregionsRepetitionsAndPollingInterval() throws Exception {
 
-		final var expected = source.getJsonSource().get("ResponseWKT").toPrettyString();
-		final var requestTemplate = (template.concat(",\"responseFormat\":\"WKT\""));
-		final var responseTemplate = requestTemplate.concat("""
-				   ,"repetitions" : 3
-				   ,"pollingIntervalMs" : 1000
-				}
-				""");
-		final var val = Val.ofJson(responseTemplate);
-		final var result = new OwnTracks(Val.ofJson(authTemplate).get(), new ObjectMapper())
-				.getPositionWithInregions(val.get()).map(Val::get).map(JsonNode::toPrettyString);
+        final var expected         = source.getJsonSource().get("ResponseWKT").toPrettyString();
+        final var requestTemplate  = (template.concat(",\"responseFormat\":\"WKT\""));
+        final var responseTemplate = requestTemplate.concat("""
+                   ,"repetitions" : 3
+                   ,"pollingIntervalMs" : 1000
+                }
+                """);
+        final var val              = Val.ofJson(responseTemplate);
+        final var result           = new OwnTracks(Val.ofJson(authTemplate).get(), new ObjectMapper())
+                .getPositionWithInregions(val.get()).map(Val::get).map(JsonNode::toPrettyString);
 
-		StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
-				.verify();
-	}
+        StepVerifier.create(result).expectNext(expected).expectNext(expected).expectNext(expected).expectComplete()
+                .verify();
+    }
 }

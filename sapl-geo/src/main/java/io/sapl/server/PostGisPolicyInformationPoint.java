@@ -18,7 +18,9 @@
 package io.sapl.server;
 
 import java.util.Map;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -39,14 +41,12 @@ public class PostGisPolicyInformationPoint {
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
-
         return new DatabaseStreamQuery(auth.get(POSTGIS_DEFAULT_CONFIG).get(), mapper, DataBaseTypes.POSTGIS)
                 .sendQuery(variables.get());
     }
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(@JsonObject Val auth, @JsonObject Val variables) {
-
         return new DatabaseStreamQuery(auth.get(), mapper, DataBaseTypes.POSTGIS).sendQuery(variables.get());
     }
 }

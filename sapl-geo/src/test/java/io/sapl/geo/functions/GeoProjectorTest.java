@@ -17,8 +17,11 @@
  */
 package io.sapl.geo.functions;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.util.stream.Stream;
+
 import org.geotools.api.geometry.MismatchedDimensionException;
 import org.geotools.api.referencing.FactoryException;
 import org.junit.jupiter.api.TestInstance;
@@ -33,49 +36,49 @@ import org.locationtech.jts.geom.GeometryFactory;
 @TestInstance(Lifecycle.PER_CLASS)
 class GeoProjectorTest {
 
-	static Stream<GeoProjector> projectorProvider() throws FactoryException {
-		return Stream.of(
-				new GeoProjector(CrsConst.WGS84_CRS.getValue(), true, CrsConst.WEB_MERCATOR_CRS.getValue(), false),
-				new GeoProjector());
-	}
+    static Stream<GeoProjector> projectorProvider() throws FactoryException {
+        return Stream.of(
+                new GeoProjector(CrsConst.WGS84_CRS.getValue(), true, CrsConst.WEB_MERCATOR_CRS.getValue(), false),
+                new GeoProjector());
+    }
 
-	@ParameterizedTest
-	@Execution(ExecutionMode.CONCURRENT)
-	@MethodSource("projectorProvider")
-	void testProjectValidGeometry(GeoProjector geoProjector)
-			throws MismatchedDimensionException, org.geotools.api.referencing.operation.TransformException {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @MethodSource("projectorProvider")
+    void testProjectValidGeometry(GeoProjector geoProjector)
+            throws MismatchedDimensionException, org.geotools.api.referencing.operation.TransformException {
 
-		final var geometryFactory = new GeometryFactory();
-		final var point = geometryFactory.createPoint(new Coordinate(10.0, 20.0));
+        final var geometryFactory = new GeometryFactory();
+        final var point           = geometryFactory.createPoint(new Coordinate(10.0, 20.0));
 
-		final var projectedGeometry = geoProjector.project(point);
+        final var projectedGeometry = geoProjector.project(point);
 
-		assertEquals(1113194.9079327357, projectedGeometry.getCoordinate().x, 0.5);
-		assertEquals(2273030.926987689, projectedGeometry.getCoordinate().y, 0.5);
-	}
+        assertEquals(1113194.9079327357, projectedGeometry.getCoordinate().x, 0.5);
+        assertEquals(2273030.926987689, projectedGeometry.getCoordinate().y, 0.5);
+    }
 
-	@ParameterizedTest
-	@Execution(ExecutionMode.CONCURRENT)
-	@MethodSource("projectorProvider")
-	void testReProjectValidGeometry(GeoProjector geoProjector)
-			throws MismatchedDimensionException, org.geotools.api.referencing.operation.TransformException {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @MethodSource("projectorProvider")
+    void testReProjectValidGeometry(GeoProjector geoProjector)
+            throws MismatchedDimensionException, org.geotools.api.referencing.operation.TransformException {
 
-		final var geometryFactory = new GeometryFactory();
-		final var point = geometryFactory.createPoint(new Coordinate(1113194.9079327357, 2273030.926987689));
+        final var geometryFactory = new GeometryFactory();
+        final var point           = geometryFactory.createPoint(new Coordinate(1113194.9079327357, 2273030.926987689));
 
-		final var reProjectedGeometry = geoProjector.reProject(point);
+        final var reProjectedGeometry = geoProjector.reProject(point);
 
-		assertEquals(10.0, reProjectedGeometry.getCoordinate().x, 0.5);
-		assertEquals(20.0, reProjectedGeometry.getCoordinate().y, 0.5);
-	}
+        assertEquals(10.0, reProjectedGeometry.getCoordinate().x, 0.5);
+        assertEquals(20.0, reProjectedGeometry.getCoordinate().y, 0.5);
+    }
 
-	@ParameterizedTest
-	@Execution(ExecutionMode.CONCURRENT)
-	@MethodSource("projectorProvider")
-	void testInvalidGeometry(GeoProjector geoProjector) {
+    @ParameterizedTest
+    @Execution(ExecutionMode.CONCURRENT)
+    @MethodSource("projectorProvider")
+    void testInvalidGeometry(GeoProjector geoProjector) {
 
-		assertThrows(NullPointerException.class, () -> {
-			geoProjector.project(null);
-		});
-	}
+        assertThrows(NullPointerException.class, () -> {
+            geoProjector.project(null);
+        });
+    }
 }
