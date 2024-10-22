@@ -200,13 +200,12 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
-
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
 			<!-- If you want to use the extensions in a Spring application and
-			do 
-				want to supply configuration of the extensions Beans using annotations like 
+			    do want to supply configuration of the extensions Beans using annotations like 
 				@Component, these annotations must be available via this dependency. For 
 				building a slide-loading JAR, declare the scope to be 'provided' so that 
 				these do not end up in the fat JAR. Also, side-loading into an existing SAPL 

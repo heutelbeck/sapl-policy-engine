@@ -17,8 +17,6 @@
  */
 package io.sapl.geo.common;
 
-import java.time.ZoneId;
-
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.DockerImageName;
@@ -46,7 +44,7 @@ public abstract class MySqlTestBase extends DatabaseTestBase {
         connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder()
                 .username(mySqlContainer.getUsername()).password(mySqlContainer.getPassword())
                 .host(mySqlContainer.getHost()).port(mySqlContainer.getMappedPort(3306))
-                .database(mySqlContainer.getDatabaseName()).serverZoneId(ZoneId.of("UTC")).build());
+                .database(mySqlContainer.getDatabaseName()).connectionTimeZone("UTC").build());
 
         createGeometryTable(connectionFactory);
         insertGeometries(connectionFactory);

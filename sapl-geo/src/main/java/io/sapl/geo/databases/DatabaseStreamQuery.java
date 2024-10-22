@@ -18,7 +18,6 @@
 package io.sapl.geo.databases;
 
 import java.time.Duration;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -185,7 +184,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
     private final void createMySqlConnectionFactory(JsonNode auth, int port) {
         connectionFactory = MySqlConnectionFactory.from(MySqlConnectionConfiguration.builder().username(getUser(auth))
                 .password(getPassword(auth)).host(getServer(auth)).port(port).database(getDataBaseName(auth))
-                .serverZoneId(ZoneId.of("UTC")).build());
+                .connectionTimeZone("UTC").build());
     }
 
     private String buildSql(String geoColumn, String[] columns, String table, String where) {
