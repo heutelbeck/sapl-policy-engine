@@ -51,23 +51,19 @@
 	<dependencyManagement>
 		<dependencies>
 			<!-- Streaming Attribute Authorization Engine Bill of Materials -->
-			<!-- This is a 'Bill of Materials' dependency. It does not directly introduce 
+			<!-- This is a 'Bill of Materials' dependency. It does not directly
+			introduce 
 				additional dependencies. This is a utility dependency, making it easier to 
-				use SAPL dependencies. Once this BOM has been imported in the <dependencyManagement> 
-				section of the POM all SAPL dependencies can be used without explicitly declaring 
+				use SAPL dependencies. Once this BOM has been imported in the
+			<dependencyManagement> 
+				section of the POM all SAPL dependencies can be used without explicitly
+			declaring 
 				a version. This ensures that when multiple SAPL dependencies are used, the 
 				versions of them are consistent. -->
 			<dependency>
 				<groupId>io.sapl</groupId>
 				<artifactId>sapl-bom</artifactId>
 				<version>3.0.0-SNAPSHOT</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-			<dependency>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-dependencies</artifactId>
-				<version>3.2.2</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -208,7 +204,8 @@
 		</dependency>
 
 		<dependency>
-			<!-- If you want to use the extensions in a Spring application and do 
+			<!-- If you want to use the extensions in a Spring application and
+			do 
 				want to supply configuration of the extensions Beans using annotations like 
 				@Component, these annotations must be available via this dependency. For 
 				building a slide-loading JAR, declare the scope to be 'provided' so that 
