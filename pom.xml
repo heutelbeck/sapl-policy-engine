@@ -87,9 +87,9 @@
 		<xtext.version>2.35.0</xtext.version>
 		<junit.version>5.11.0</junit.version>
 		<jacoco.version>0.8.12</jacoco.version>
+		<vaadin.version>24.5.0</vaadin.version>
 		<rsocket.version>1.1.4</rsocket.version>
 		<lombok.version>1.18.34</lombok.version>
-		<vaadin.version>24.4.14</vaadin.version>
 		<assertj.version>3.26.3</assertj.version>
 		<flexmark.version>0.64.8</flexmark.version>
 		<springboot.version>3.3.4</springboot.version>
@@ -100,15 +100,15 @@
 
 		<!-- Maven Plug-Ins -->
 		<tycho.version>4.0.8</tycho.version>
+		<sb-contrib.version>7.6.4</sb-contrib.version>
 		<spdx-maven-plugin.version>0.7.3</spdx-maven-plugin.version>
 		<license-maven-plugin.version>4.5</license-maven-plugin.version>
+		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
 		<maven-failsafe-plugin.version>3.5.0</maven-failsafe-plugin.version>
 		<maven-surefire-plugin.version>3.5.0</maven-surefire-plugin.version>
-		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
-		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
-		<spotbugs-maven-plugin.version>4.8.6.3</spotbugs-maven-plugin.version>
-		<sb-contrib.version>7.6.4</sb-contrib.version>
 		<maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+		<spotbugs-maven-plugin.version>4.8.6.3</spotbugs-maven-plugin.version>
+		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
 
 		<!-- Base argLine for JDK21+ profiles -->
 		<argLine />
