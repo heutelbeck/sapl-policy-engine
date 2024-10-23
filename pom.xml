@@ -777,6 +777,13 @@
 				<updatePolicy>always</updatePolicy>
 			</snapshots>
 		</repository>
+		<repository>
+			<id>geo</id>
+			<url> https://repo.osgeo.org/repository/release/</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
 	</repositories>
 
 	<pluginRepositories>

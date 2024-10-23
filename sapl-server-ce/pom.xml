@@ -92,6 +92,10 @@
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
+			<artifactId>sapl-geo</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
 			<artifactId>sapl-mqtt-pip</artifactId>
 		</dependency>
 		<dependency>

@@ -37,17 +37,6 @@
 		<sapl.version></sapl.version>
 	</properties>
 
-	<repositories>
-		<repository>
-			<id>geo</id>
-			<url> https://repo.osgeo.org/repository/release/</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-
-	</repositories>
-
 	<dependencyManagement>
 		<dependencies>
 			<!-- Streaming Attribute Authorization Engine Bill of Materials -->
@@ -116,6 +105,7 @@
 			<artifactId>spatial4j</artifactId>
 			<version>0.8</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.locationtech.jts.io</groupId>
 			<artifactId>jts-io-common</artifactId>
@@ -128,28 +118,30 @@
 			<scope>provided</scope>
 		</dependency>
 
-
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers</artifactId>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>mysql</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
+
 		<dependency>
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>
@@ -181,11 +173,13 @@
 			<artifactId>okhttp</artifactId>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>com.squareup.okhttp3</groupId>
 			<artifactId>mockwebserver</artifactId>
 			<scope>test</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-pdp-embedded</artifactId>
@@ -195,8 +189,8 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-
 		</dependency>
+		
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
