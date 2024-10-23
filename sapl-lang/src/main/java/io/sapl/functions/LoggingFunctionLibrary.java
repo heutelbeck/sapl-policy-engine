@@ -33,37 +33,10 @@ import lombok.extern.slf4j.Slf4j;
 @FunctionLibrary(name = LoggingFunctionLibrary.NAME, description = LoggingFunctionLibrary.DESCRIPTION)
 public class LoggingFunctionLibrary {
 
-    private static final String TEMPLATE = "[SAPL] {} {}";
-
-    /**
-     * Library name and prefix
-     */
-    public static final String NAME = "log";
-
-    /**
-     * Library description
-     */
-    public static final String DESCRIPTION = "Utility functions for dumping data from policy evaluation on the PDP console for debugging of policies.";
-
-    private static final String DEBUG_SPY_DOC = "log.debugSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level DEBUG. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.";
-
-    private static final String INFO_SPY_DOC = "log.infoSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level INFO. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.";
-
-    private static final String ERROR_SPY_DOC = "log.errorSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level ERROR. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.";
-
-    private static final String TRACE_SPY_DOC = "log.traceSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level TRACE. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.";
-
-    private static final String WARN_SPY_DOC = "log.warnSpy(MESSAGE, VALUE): logs the value prepended with the message on the console at log level WARN. Function acts as identity form the perspective of the PDP. This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.";
-
-    private static final String DEBUG_DOC = "log.debug(MESSAGE, VALUE): logs the value prepended with the message on the console at log level DEBUG. Always returns a true value. This function is useful to add an additional line in a where block of a policy. As the function return true, the rest of the policy evaluation is not affected.";
-
-    private static final String INFO_DOC = "log.info(MESSAGE, VALUE): logs the value prepended with the message on the console at log level INFO. Always returns a true value. This function is useful to add an additional line in a where block of a policy. As the function return true, the rest of the policy evaluation is not affected.";
-
-    private static final String ERROR_DOC = "log.error(MESSAGE, VALUE): logs the value prepended with the message on the console at log level ERROR. Always returns a true value. This function is useful to add an additional line in a where block of a policy. As the function return true, the rest of the policy evaluation is not affected.";
-
-    private static final String TRACE_DOC = "log.trace(MESSAGE, VALUE): logs the value prepended with the message on the console at log level TRACE. Always returns a true value. This function is useful to add an additional line in a where block of a policy. As the function return true, the rest of the policy evaluation is not affected.";
-
-    private static final String WARN_DOC = "log.warn(MESSAGE, VALUE): logs the value prepended with the message on the console at log level WARN. Always returns a true value. This function is useful to add an additional line in a where block of a policy. As the function return true, the rest of the policy evaluation is not affected.";
+    public static final String  NAME        = "log";
+    public static final String  DESCRIPTION = """
+            Utility functions for dumping data from policy evaluation on the PDP console for debugging of policies.""";
+    private static final String TEMPLATE    = "[SAPL] {} {}";
 
     /**
      * Returns the original message on log level INFO followed by the inspected
@@ -73,7 +46,21 @@ public class LoggingFunctionLibrary {
      * @param value a value
      * @return the value
      */
-    @Function(docs = INFO_SPY_DOC)
+    @Function(docs = """
+            ```infoSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
+            console at the INFO log level. \
+            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```. \
+            This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
+
+            Example:
+
+            ```
+            policy "logging"
+            permit
+            where
+              log.infoSpy(subject.name) == "testUser";
+            ```
+            """)
     public static Val infoSpy(@Text Val message, Val value) {
         log.info(TEMPLATE, message.getText(), value);
         return value;
@@ -87,7 +74,21 @@ public class LoggingFunctionLibrary {
      * @param value a value
      * @return the value
      */
-    @Function(docs = ERROR_SPY_DOC)
+    @Function(docs = """
+            ```errorSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
+            console at the ERROR log level. \
+            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```. \
+            This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
+
+            Example:
+
+            ```
+            policy "logging"
+            permit
+            where
+              log.errorSpy(subject.name) == "testUser";
+            ```
+            """)
     public static Val errorSpy(@Text Val message, Val value) {
         log.error(TEMPLATE, message.getText(), value);
         return value;
@@ -101,7 +102,21 @@ public class LoggingFunctionLibrary {
      * @param value a value
      * @return the value
      */
-    @Function(docs = TRACE_SPY_DOC)
+    @Function(docs = """
+            ```traceSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
+            console at the TRACE log level. \
+            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```. \
+            This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
+
+            Example:
+
+            ```
+            policy "logging"
+            permit
+            where
+              log.traceSpy(subject.name) == "testUser";
+            ```
+            """)
     public static Val traceSpy(@Text Val message, Val value) {
         log.trace(TEMPLATE, message.getText(), value);
         return value;
@@ -115,7 +130,21 @@ public class LoggingFunctionLibrary {
      * @param value a value
      * @return the value
      */
-    @Function(docs = WARN_SPY_DOC)
+    @Function(docs = """
+            ```warnSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
+            console at the WARN log level. \
+            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```. \
+            This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
+
+            Example:
+
+            ```
+            policy "logging"
+            permit
+            where
+              log.warnSpy(subject.name) == "testUser";
+            ```
+            """)
     public static Val warnSpy(@Text Val message, Val value) {
         log.warn(TEMPLATE, message.getText(), value);
         return value;
@@ -129,7 +158,21 @@ public class LoggingFunctionLibrary {
      * @param value a value
      * @return the value
      */
-    @Function(docs = DEBUG_SPY_DOC)
+    @Function(docs = """
+            ```debugSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
+            console at the DEBUG log level. \
+            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```. \
+            This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
+
+            Example:
+
+            ```
+            policy "logging"
+            permit
+            where
+              log.debugSpy(subject.name) == "testUser";
+            ```
+            """)
     public static Val debugSpy(@Text Val message, Val value) {
         log.debug(TEMPLATE, message.getText(), value);
         return value;
@@ -143,7 +186,25 @@ public class LoggingFunctionLibrary {
      * @param value a value
      * @return the value
      */
-    @Function(docs = INFO_DOC)
+    @Function(docs = """
+            ```info(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
+            console at the DEBUG log level. \
+            The function always return ```true```.
+            This function is useful to add an additional statement line in a where block of a policy. \
+            As the function returns ```true```, the rest of the policy evaluation is not affected. \
+            Note: If a statement above the logging statement evaluates to ```false```, the logger will \
+            not be triggered, as the evaluation of statements is lazy.
+
+            Example:
+
+            ```
+            policy "logging"
+            permit
+            where
+              log.info(action.amount);
+              subject.name == "testUser";
+            ```
+            """)
     public static Val info(@Text Val message, Val value) {
         log.info(TEMPLATE, message.getText(), value);
         return Val.TRUE;
@@ -157,7 +218,25 @@ public class LoggingFunctionLibrary {
      * @param value a value
      * @return the value
      */
-    @Function(docs = ERROR_DOC)
+    @Function(docs = """
+            ```error(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
+            console at the ERROR log level. \
+            The function always return ```true```.
+            This function is useful to add an additional statement line in a where block of a policy. \
+            As the function returns ```true```, the rest of the policy evaluation is not affected. \
+            Note: If a statement above the logging statement evaluates to ```false```, the logger will \
+            not be triggered, as the evaluation of statements is lazy.
+
+            Example:
+
+            ```
+            policy "logging"
+            permit
+            where
+              log.error(action.amount);
+              subject.name == "testUser";
+            ```
+            """)
     public static Val error(@Text Val message, Val value) {
         log.error(TEMPLATE, message.getText(), value);
         return Val.TRUE;
@@ -171,7 +250,25 @@ public class LoggingFunctionLibrary {
      * @param value a value
      * @return the value
      */
-    @Function(docs = TRACE_DOC)
+    @Function(docs = """
+            ```trace(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
+            console at the TRACE log level. \
+            The function always return ```true```.
+            This function is useful to add an additional statement line in a where block of a policy. \
+            As the function returns ```true```, the rest of the policy evaluation is not affected. \
+            Note: If a statement above the logging statement evaluates to ```false```, the logger will \
+            not be triggered, as the evaluation of statements is lazy.
+
+            Example:
+
+            ```
+            policy "logging"
+            permit
+            where
+              log.trace(action.amount);
+              subject.name == "testUser";
+            ```
+            """)
     public static Val trace(@Text Val message, Val value) {
         log.trace(TEMPLATE, message.getText(), value);
         return Val.TRUE;
@@ -185,7 +282,25 @@ public class LoggingFunctionLibrary {
      * @param value a value
      * @return the value
      */
-    @Function(docs = WARN_DOC)
+    @Function(docs = """
+            ```warn(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
+            console at the WARN log level. \
+            The function always return ```true```.
+            This function is useful to add an additional statement line in a where block of a policy. \
+            As the function returns ```true```, the rest of the policy evaluation is not affected. \
+            Note: If a statement above the logging statement evaluates to ```false```, the logger will \
+            not be triggered, as the evaluation of statements is lazy.
+
+            Example:
+
+            ```
+            policy "logging"
+            permit
+            where
+              log.warn(action.amount);
+              subject.name == "testUser";
+            ```
+            """)
     public static Val warn(@Text Val message, Val value) {
         log.warn(TEMPLATE, message.getText(), value);
         return Val.TRUE;
@@ -199,7 +314,25 @@ public class LoggingFunctionLibrary {
      * @param value a value
      * @return the value
      */
-    @Function(docs = DEBUG_DOC)
+    @Function(docs = """
+            ```debug(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
+            console at the DEBUG log level. \
+            The function always return ```true```.
+            This function is useful to add an additional statement line in a where block of a policy. \
+            As the function returns ```true```, the rest of the policy evaluation is not affected. \
+            Note: If a statement above the logging statement evaluates to ```false```, the logger will \
+            not be triggered, as the evaluation of statements is lazy.
+
+            Example:
+
+            ```
+            policy "logging"
+            permit
+            where
+              log.debug(action.amount);
+              subject.name == "testUser";
+            ```
+            """)
     public static Val debug(@Text Val message, Val value) {
         log.debug(TEMPLATE, message.getText(), value);
         return Val.TRUE;

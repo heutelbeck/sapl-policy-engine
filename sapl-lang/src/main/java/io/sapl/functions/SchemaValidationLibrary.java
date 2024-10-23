@@ -34,17 +34,8 @@ import lombok.experimental.UtilityClass;
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION)
 public class SchemaValidationLibrary {
 
-    public static final String NAME = "jsonschema";
-
-    public static final String DESCRIPTION = "This library contains the mandatory functions for testing the compliance of a JSON value with a JSON schema.";
-
-    private static final String IS_COMPLIANT_WITH_SCHEMA_VAL_DOC = "isCompliantWithSchema(validationSubject, schema):"
-            + "tests compliance of the validationSubject with the provided schema. The schema itself cannot be validated and improper schema definitions may lead to unexcpected results."
-            + "If validationSubject is compliant with schema, returns TRUE, else returns FALSE.";
-
-    private static final String IS_COMPLIANT_WITH_SCHEMA_VAL_EXTERNAL_DOC = "isCompliantWithSchema(validationSubject, schema, externalSchemas):"
-            + "tests compliance of the validationSubject with the provided schema. The schema itself cannot be validated and improper schema definitions may lead to unexcpected results."
-            + "If validationSubject is compliant with schema, returns TRUE, else returns FALSE. If the schema contains external references to other schemas, the validation function looks up the schemas in externalSchemas based on explicitly defined $id field in the schemas. If no $id$ field is provided, the schema will not be detectable.";
+    public static final String NAME        = "jsonschema";
+    public static final String DESCRIPTION = "This library contains the functions for testing the compliance of a value with a JSON schema.";
 
     private static final String RETURNS_BOOLEAN = """
             {
@@ -54,13 +45,90 @@ public class SchemaValidationLibrary {
 
     private static final String ID = "$id";
 
-    @Function(docs = IS_COMPLIANT_WITH_SCHEMA_VAL_DOC, schema = RETURNS_BOOLEAN)
+    @Function(docs = """
+            ```isCompliantWithSchema(validationSubject,OBJECT schema)```: \
+            This function tests the ```validationSubject``` for compliance with the with the provided JSON schema \
+            ```schema```. \
+            The schema itself cannot be validated and improper schema definitions may lead to unexcpected results. \
+            If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```, \
+            else it returns ```false```.
+
+            Note: The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
+
+            Example:
+
+            ```
+            policy "example"
+            permit
+            where
+              var jsonSchema = {
+                                 "type": "boolean"
+                               };
+              jsonschema.isCompliant(true, jsonSchema) == true;
+              jsonschema.isCompliant(123, jsonSchema) == false;
+            ```
+            """, schema = RETURNS_BOOLEAN)
     public static Val isCompliant(Val validationSubject, @JsonObject Val jsonSchema) {
         return isCompliantWithExternalSchemas(validationSubject, jsonSchema, Val.ofEmptyArray());
     }
 
-    @Function(docs = IS_COMPLIANT_WITH_SCHEMA_VAL_EXTERNAL_DOC, schema = RETURNS_BOOLEAN)
-    public static Val isCompliantWithExternalSchemas(Val validationSubject, @JsonObject Val jsonSchema, Val externals) {
+    @Function(docs = """
+            ```isCompliantWithSchema(validationSubject, OBJECT jsonSchema, ARRAY externalSchemas)```: \
+            This function tests the ```validationSubject``` for compliance with the with the provided JSON schema \
+            ```schema```. \
+            The schema itself cannot be validated and improper schema definitions may lead to unexcpected results. \
+            If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```, \
+            else it returns ```false```. \
+            If the ```jsonSchema``` contains external references to other ```schemas```, the validation function \
+            looks up the schemas in ```externalSchemas``` based on explicitly defined ```$id``` field in the schemas. \
+            If no $id field is provided, the schema will not be detectable.
+
+            Note: The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
+
+            Example:
+
+            ```
+            policy "example"
+            permit
+            where
+              var externals = {
+                    "$id": "https://example.com/coordinates",
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "Coordinates",
+                    "type": "object",
+                    "properties" : {
+                        "x": { "type": "integer" },
+                        "y": { "type": "integer" },
+                        "z": { "type": "integer" }
+                    }
+                };
+              var schema = {
+                    "$id": "https://example.com/triangle.schema.json",
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "title": "Triangle",
+                    "type": "object",
+                    "properties": {
+                        "A": { "$ref": "https://example.com/coordinates" },
+                        "B": { "$ref": "https://example.com/coordinates" },
+                        "C": { "$ref": "https://example.com/coordinates" }
+                  };
+              var valid = {
+                       "A" : { "x" : 1, "y" : 2, "z" : 3 },
+                       "B" : { "x" : 1, "y" : 2, "z" : 3 },
+                       "C" : { "x" : 1, "y" : 2, "z" : 3 }
+                    };
+              isCompliantWithExternalSchemas(valid, schema, externals) == true;
+              var invalid = {
+                       "A" : { "x" : "I AM NOT A NUMBER I AM A FREE MAN", "y" : 2, "z" : 3 },
+                       "B" : { "x" : 1, "y" : 2, "z" : 3 },
+                       "C" : { "x" : 1, "y" : 2, "z" : 3 }
+                    };
+              isCompliantWithExternalSchemas(invalid, schema, externals) == false;
+            ```
+
+            """, schema = RETURNS_BOOLEAN)
+    public static Val isCompliantWithExternalSchemas(Val validationSubject, @JsonObject Val jsonSchema,
+            Val externalSchemas) {
         if (validationSubject.isError()) {
             return validationSubject;
         }
@@ -70,8 +138,8 @@ public class SchemaValidationLibrary {
         }
 
         final var schemaMap = new HashMap<String, String>();
-        if (externals.isArray()) {
-            for (var externalSchema : externals.getArrayNode()) {
+        if (externalSchemas.isArray()) {
+            for (var externalSchema : externalSchemas.getArrayNode()) {
                 if (externalSchema.has(ID)) {
                     schemaMap.put(externalSchema.get(ID).asText(), externalSchema.toString());
                 }

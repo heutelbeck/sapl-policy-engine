@@ -94,8 +94,9 @@ class StandardFunctionLibraryTests {
     }
 
     @Test
-    void numberToStringBooleanLeftIntact() {
+    void numberToStringBooleanLeftIntact() throws JsonProcessingException {
         assertThat(StandardFunctionLibrary.asString(Val.TRUE), is(val("true")));
+        assertThat(StandardFunctionLibrary.asString(Val.ofJson("[1,2,3]")), is(val("[1,2,3]")));
     }
 
     @Test

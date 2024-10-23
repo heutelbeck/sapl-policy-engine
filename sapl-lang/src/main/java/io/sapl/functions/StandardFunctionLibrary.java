@@ -41,9 +41,26 @@ public class StandardFunctionLibrary {
 
     private static final XmlMapper XML_MAPPER = new XmlMapper();
 
+    private static final String RETURNS_ARRAY = """
+            {
+                "type": "array"
+            }
+            """;
+
     @Function(docs = """
             ```concatenate(ARRAY...arrays)```: Creates a new array concatenating the all array parameters in ```...arrays```. \
-            It keepts the order of array parameters and the inner order of the arrays as provided.""")
+            It keepts the order of array parameters and the inner order of the arrays as provided.
+
+            Example:
+
+            ```
+            import standard.*
+            policy "example"
+            permit
+            where
+              concatenate([1, 2, 3, 4], [3, 4, 5, 6]) == [1, 2, 3, 4, 3, 4, 5, 6];
+            ```
+            """, schema = RETURNS_ARRAY)
     public static Val concatenate(@Array Val... arrays) {
         final var newArray = Val.JSON.arrayNode();
         for (var array : arrays) {
@@ -60,7 +77,18 @@ public class StandardFunctionLibrary {
             ```difference(ARRAY array1, ARRAY array2)```: Returns the difference between the ```array1``` and ```array2```, \
             removing duplicates. \
             Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
-            interpreted as non-eqivalent.""")
+            interpreted as non-eqivalent.
+
+            Example:
+
+            ```
+            import standard.*
+            policy "example"
+            permit
+            where
+              difference([1, 2, 3, 4], [3, 4, 5, 6]) == [1, 2, 5, 6];
+            ```
+            """, schema = RETURNS_ARRAY)
     public static Val difference(@Array Val array1, @Array Val array2) {
         final var newArray         = Val.JSON.arrayNode();
         final var jsonArray        = array1.getArrayNode();
@@ -79,7 +107,18 @@ public class StandardFunctionLibrary {
             ```union(ARRAY...arrays)```: Creates a copy of the array parameters in ```...arrays``` containing all elements \
             of the provided arrays, but removing all duplicate elements. \
             Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
-            interpreted as non-eqivalent.""")
+            interpreted as non-eqivalent.
+
+            Example:
+
+            ```
+            import standard.*
+            policy "example"
+            permit
+            where
+              union([1, 2, 3, 4], [3, 4, 5, 6]) == [1, 2, 3, 4, 5, 6];
+            ```
+            """, schema = RETURNS_ARRAY)
     public static Val union(@Array Val... arrays) {
         final var newArray = Val.JSON.arrayNode();
         for (var array : arrays) {
@@ -99,7 +138,18 @@ public class StandardFunctionLibrary {
             ```toSet(ARRAY array)```: Creates a copy of the ```array``` preserving the original order, but removing all \
             duplicate elements. \
             Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
-            interpreted as non-eqivalent.""")
+            interpreted as non-eqivalent.
+
+            Example:
+
+            ```
+            import standard.*
+            policy "example"
+            permit
+            where
+              toSet([1, 2, 3, 4, 3, 2, 1]) == [1, 2, 3, 4];
+            ```
+            """, schema = RETURNS_ARRAY)
     public static Val toSet(@Array Val array) {
         final var newArray         = Val.JSON.arrayNode();
         final var jsonArray        = array.getArrayNode();
@@ -117,7 +167,18 @@ public class StandardFunctionLibrary {
             ```intersect(ARRAY...arrays)```: Creates a new array only containing elements present in all \
             parameter arrays from ```...arrays```, while removing all duplicate elements. \
             Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
-            interpreted as non-eqivalent.""")
+            interpreted as non-eqivalent.
+
+            Example:
+
+            ```
+            import standard.*
+            policy "example"
+            permit
+            where
+              intersect([1, 2, 3, 4], [3, 4, 5, 6]) == [3, 4];
+            ```
+            """, schema = RETURNS_ARRAY)
     public static Val intersect(@Array Val... arrays) {
         return intersect(arrays, Object::equals);
     }
@@ -163,7 +224,21 @@ public class StandardFunctionLibrary {
             ```length(ARRAY|TEXT|JSON value)```: For TEXT it returns the length of the text string. \
             For ARRAY, it returns the number of elements in the array. \
             For OBJECT, it returns the number of keys in the OBJECT. \
-            For NUMBER, BOOLEAN, or NULL, the function will return an error.""")
+            For NUMBER, BOOLEAN, or NULL, the function will return an error.
+
+            Example:
+
+            ```
+            import standard.*
+            policy "example"
+            permit
+            where
+              length([1, 2, 3, 4]) == 4;
+              length("example") == 7;
+              length({ "key1" : 1, "key2" : 2}) == 2;
+            ```
+            """, schema = """
+            { "type": "integer" }""")
     public static Val length(@Array @Text @JsonObject Val value) {
         if (value.isTextual()) {
             return Val.of(value.getText().length());
@@ -172,7 +247,18 @@ public class StandardFunctionLibrary {
     }
 
     @Function(name = "toString", docs = """
-            ```toString(value)```: Converts any ```value``` to a string representation.""")
+            ```toString(value)```: Converts any ```value``` to a string representation.
+
+            Example:
+            ```
+            import standard.*
+            policy "example"
+            permit
+            where
+              toString([1,2,3]) == "[1,2,3]";
+            ```
+            """, schema = """
+            { "type": "string" }""")
     public static Val asString(Val value) {
         if (value.isTextual()) {
             return Val.of(value.get().asText());
@@ -182,9 +268,18 @@ public class StandardFunctionLibrary {
 
     @Function(docs = """
             ```onErrorMap(guardedExpression, fallbackExpression)```: If ```guardedExpression``` is an error,
-            the ```fallback``` is returned instead. \
-            Example: ```onErrorMap(1/0,999)``` will nor result in a division by zero error, but return \
-            ```999``` instead.""")
+            the ```fallback``` is returned instead.
+
+            Example:
+
+            ```
+            import standard.*
+            policy "example"
+            permit
+            where
+              onErrorMap(1/0,999) == 999;
+            ```
+            """)
     public static Val onErrorMap(Val guardedExpression, Val fallback) {
         if (guardedExpression.isError()) {
             return fallback;
@@ -194,8 +289,19 @@ public class StandardFunctionLibrary {
 
     @SneakyThrows
     @Function(docs = """
-            ```xmlToVal(TEXT xml)```: Converts a well-formed XML document ```xml``` into a SAPL value representing \
-            the content of the XML document.""")
+            ```xmlToVal(TEXT xml)```: Converts a well-formed XML document ```xml``` into a SAPL \
+            value representing the content of the XML document.
+
+            Example:
+
+            ```
+            import standard.*
+            policy "example"
+            permit
+            where
+               var xml = "<Flower><name>Poppy</name><color>RED</color><petals>9</petals></Flower>";
+               xmlToVal(xml) == {"name":"Poppy","color":"RED","petals":"9"};
+            """)
     public Val xmlToVal(@Text Val xml) {
         return Val.of(XML_MAPPER.readTree(xml.getText()));
     }
