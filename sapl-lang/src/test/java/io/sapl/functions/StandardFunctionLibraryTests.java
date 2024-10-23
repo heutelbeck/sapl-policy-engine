@@ -53,11 +53,11 @@ class StandardFunctionLibraryTests {
 
     @Test
     void xmlToJsonTest() {
-        final var html = StandardFunctionLibrary.xmlToJson(Val.of(HTML_DOCUMENT));
+        final var html = StandardFunctionLibrary.xmlToVal(Val.of(HTML_DOCUMENT));
         assertThat(html.get().get("body").get("p").get(0).asText()).isEqualTo("First");
-        final var xml = StandardFunctionLibrary.xmlToJson(Val.of(XML_DOCUMENT));
+        final var xml = StandardFunctionLibrary.xmlToVal(Val.of(XML_DOCUMENT));
         assertThat(xml.get().get("name").asText()).isEqualTo("Poppy");
-        assertThatThrownBy(() -> StandardFunctionLibrary.xmlToJson(Val.of("}NOT/><XML")))
+        assertThatThrownBy(() -> StandardFunctionLibrary.xmlToVal(Val.of("}NOT/><XML")))
                 .isInstanceOf(JsonParseException.class);
     }
 

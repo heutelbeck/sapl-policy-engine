@@ -39,43 +39,49 @@ import lombok.experimental.UtilityClass;
 public class StandardFunctionLibrary {
 
     public static final String NAME        = "standard";
-    public static final String DESCRIPTION = "This library contains the mandatory functions for the SAPL implementation.";
+    public static final String DESCRIPTION = "This the standard function library for SAPL.";
 
-    private static final String ON_ERROR_MAP_DOC = "onErrorMap(guardedExpression, fallbackExpression): If the guarded expression evaluates to an error, return the evaluation result of the fallbackExpression.";
+    private static final String ON_ERROR_MAP_DOC = """
+            ```onErrorMap(guardedExpression, fallbackExpression)```: If ```guardedExpression``` evaluates \
+            to an error, the result of the ```fallbackExpression``` is returned instead. \
+            Example: ```onErrorMap(1/0,999)``` will nor result in a division by zero error, but return \
+            ```999``` instead.""";
 
-    private static final String LENGTH_DOC = "length(JSON_VALUE): For STRING it returns the length of the STRING. "
-            + "For ARRAY, it returns the number of elements in the array. "
-            + "For OBJECT, it returns the number of keys in the OBJECT. "
-            + "For NUMBER, BOOLEAN, or NULL, the function will return an error.";
+    private static final String LENGTH_DOC = """
+            ```length(value)```: For STRING it returns the length of the STRING. \
+            For ARRAY, it returns the number of elements in the array. \
+            For OBJECT, it returns the number of keys in the OBJECT. \
+            For NUMBER, BOOLEAN, or NULL, the function will return an error.""";
 
-    private static final String NUMBER_TO_STRING_DOC = "numberToString(JSON_VALUE): For STRING it returns the input. "
-            + "For NUMBER or BOOLEAN it returns a JSON node representing the value converted to a string. "
-            + "For NULL it returns a JSON node representing the empty string. "
-            + "For ARRAY or OBJECT the function will return an error.";
+    private static final String NUMBER_TO_STRING_DOC = """
+            ```numberToString(value)```: For STRING it returns the input. \
+            For NUMBER or BOOLEAN it returns a JSON node representing the value converted to a string. \
+            For NULL it returns a JSON node representing the empty string. \
+            For ARRAY or OBJECT the function will return an error.""";
 
-    private static final String CONCATENATE_DOC = "concatenate(ARRAY...arrays): Creates a new array concatenating the parameter arrays.";
+    private static final String CONCATENATE_DOC = "```concatenate(ARRAY...arrays)```: Creates a new array concatenating the parameter arrays.";
 
     private static final String INTERSECT_DOC = """
-            intersect(ARRAY...arrays): Creates a new array only containing elements present in all parameter arrays, but removing all duplicate elements. \
+            ```intersect(ARRAY...arrays)```: Creates a new array only containing elements present in all parameter arrays, but removing all duplicate elements. \
             Attention: numerically equivalent but differently written, i.e., 0 vs 0.000, numbers may be interpreted as non-eqivalent.
             """;
 
     private static final String UNION_DOC = """
-            toSet(ARRAY..arrays): Creates a copy of the arrays containing all elements of the provided arrays, but removing all duplicate elements. \
+            ```union(ARRAY..arrays)```: Creates a copy of the arrays containing all elements of the provided arrays, but removing all duplicate elements. \
             Attention: numerically equivalent but differently written, i.e., 0 vs 0.000, numbers may be interpreted as non-eqivalent.
             """;
 
     private static final String TO_SET_DOC = """
-            toSet(ARRAY): Creates a copy of the array preserving the original order, but removing all duplicate elements. \
+            ```toSet(ARRAY)```: Creates a copy of the array preserving the original order, but removing all duplicate elements. \
             Attention: numerically equivalent but differently written, i.e., 0 vs 0.000, numbers may be interpreted as non-eqivalent.
             """;
 
     private static final String DIFFERENCE_DOC = """
-            difference(ARRAY,ARRAY): Returns the difference between the first and the second array, removing duplicates. \
+            ```difference(ARRAY,ARRAY)```: Returns the difference between the first and the second array, removing duplicates. \
             Attention: numerically equivalent but differently written, i.e., 0 vs 0.000, numbers may be interpreted as non-eqivalent.
             """;
 
-    public static final String XML_TO_JSON_DOC = "xmlToJson(TEXT) Converts XML to JSON";
+    public static final String XML_TO_JSON_DOC = "```xmlToVal(TEXT)```: Converts a well-formed XML document into a Val representing the content of the XML document.";
 
     private static final XmlMapper XML_MAPPER = new XmlMapper();
 
@@ -212,7 +218,7 @@ public class StandardFunctionLibrary {
 
     @SneakyThrows
     @Function(docs = XML_TO_JSON_DOC)
-    public Val xmlToJson(@Text Val xml) {
+    public Val xmlToVal(@Text Val xml) {
         return Val.of(XML_MAPPER.readTree(xml.getText()));
     }
 }
