@@ -49,7 +49,6 @@ public class TemporalFunctionLibrary {
     public static final String NAME        = "time";
     public static final String DESCRIPTION = "This library contains temporal functions.";
 
-
     private static final String AFTER_DOC = "Assumes, that TIME_A and TIME_B are strings representing UTC time in ISO 8601. Returns true, if TIME_A is after TIME_B.";
 
     private static final String BETWEEN_DOC = "between(TIME, TIME_A, TIME_B): Assumes, that TIME, TIME_A and TIME_B are strings representing UTC time in ISO 8601. Returns true, if TIME is between TIME_A and TIME_B.";
@@ -103,8 +102,8 @@ public class TemporalFunctionLibrary {
     private static final String DURATION_OF_DAYS = "durationOfSeconds(DAYS): Assumes, that DAYS is a number. Returns the respective value in milliseconds";
 
     private static final DateTimeFormatter DIN_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
-    private static final DateTimeFormatter US_TIME_FORMATTER = new DateTimeFormatterBuilder().parseCaseInsensitive()
-            .appendPattern("hh:mm:ss a").toFormatter(Locale.US);
+    private static final DateTimeFormatter US_TIME_FORMATTER       = new DateTimeFormatterBuilder()
+            .parseCaseInsensitive().appendPattern("hh:mm:ss a").toFormatter(Locale.US);
 
     /* ######## DURATION ######## */
 
