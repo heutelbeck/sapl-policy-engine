@@ -304,17 +304,9 @@
 						<fileset>
 							<directory>.</directory>
 							<includes>
-								<include>node_modules/**</include>
-								<include>src/dev-bundle/**</include>
 								<include>src/main/bundles/**</include>
-								<include>frontend/generated/**</include>
-								<include>frontend/index.html</include>
-								<include>vite.config.ts</include>
-								<include>vite.generated.ts</include>
-								<include>types.d.ts</include>
-								<include>tsconfig.json</include>
-								<include>package.json</include>
-								<include>package-lock.json</include>
+								<include>src/main/frontend/generated/**</include>
+								<include>src/main/frontend/index.html</include>
 							</includes>
 						</fileset>
 					</filesets>
