@@ -75,8 +75,7 @@ public class OwnTracksPolicyInformationPointTestsIT extends TestBase {
                 	"batt": 99,
                 	"acc": 14,
                 	"alt": 100,
-                	"created_at":"2023-07-09T13:34:19.000+00:00",
-                	"inregions":[]}
+                	"created_at":"2023-07-09T13:34:19.000+00:00"}
                 """;
         final var payload   = String.format(json, Instant.now().getEpochSecond());
         webClient.post().uri(urlString).header("X-Limit-U", "user").header("X-Limit-D", "device").bodyValue(payload)

@@ -104,8 +104,10 @@ public final class OwnTracks extends TrackerConnectionBase {
     private GeoPipResponse mapResponse(JsonNode in, GeoPipResponseFormat format, ObjectMapper mapper,
             boolean latitudeFirst) throws JsonProcessingException {
         final var response = mapPosition(deviceId, in.get(0), format, latitudeFirst);
-        final var res      = in.findValue("inregions");
-        response.setGeoFences(mapOwnTracksInRegions(res, mapper));
+        final var regions      = in.findValue("inregions");
+        if(regions != null) {
+            response.setGeoFences(mapOwnTracksInRegions(regions, mapper));
+        }
         return response;
     }
 
