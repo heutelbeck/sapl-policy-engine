@@ -122,9 +122,15 @@ public class LibrariesDocumentationView extends VerticalLayout {
 
         functionLibsGrid.setSelectionMode(SelectionMode.SINGLE);
         functionLibsGrid.addColumn(LibraryDocumentation::getName).setHeader("Name").setAutoWidth(true).setFlexGrow(0);
-        functionLibsGrid.addColumn(LibraryDocumentation::getDescription).setHeader("Description");
+        functionLibsGrid
+                .addColumn(
+                        new ComponentRenderer<Html, LibraryDocumentation>(doc -> renderMarkdown(doc.getDescription())))
+                .setHeader("Description");
         functionsOfCurrentFunctionLibGrid.addColumn(Entry::getKey).setHeader("Function").setResizable(true);
-        functionsOfCurrentFunctionLibGrid.addColumn(Entry::getValue).setHeader("Documentation");
+        functionsOfCurrentFunctionLibGrid
+                .addColumn(
+                        new ComponentRenderer<Html, Entry<String, String>>(entry -> renderMarkdown(entry.getValue())))
+                .setHeader("Documentation");
         functionsOfCurrentFunctionLibGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
         functionsOfCurrentFunctionLibGrid.setSelectionMode(SelectionMode.NONE);
         functionLibsGrid.addSelectionListener(selection -> {
