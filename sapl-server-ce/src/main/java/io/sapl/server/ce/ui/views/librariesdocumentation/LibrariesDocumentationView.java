@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.springframework.context.annotation.Conditional;
 
+import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -34,8 +35,11 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.data.provider.CallbackDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vladsch.flexmark.html.HtmlRenderer;
+import com.vladsch.flexmark.parser.Parser;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.interpreter.functions.LibraryDocumentation;
@@ -67,6 +71,10 @@ public class LibrariesDocumentationView extends VerticalLayout {
     private final VerticalLayout                            showCurrentPipLayout               = new VerticalLayout();
     private final Div                                       descriptionOfCurrentPipDiv         = new Div();
     private final Grid<Entry<String, String>>               functionsOfCurrentPipGrid          = new Grid<>();
+    private final Parser                                    parser                             = Parser.builder()
+            .build();
+    private final HtmlRenderer                              renderer                           = HtmlRenderer.builder()
+            .build();
 
     public LibrariesDocumentationView(FunctionLibrariesDocumentation functionLibrariesDocumentation,
             PolicyInformationPointsDocumentation policyInformationPointsDocumentation) {
@@ -177,9 +185,13 @@ public class LibrariesDocumentationView extends VerticalLayout {
         pipsGrid.setSelectionMode(SelectionMode.SINGLE);
         pipsGrid.addColumn(PolicyInformationPointDocumentation::getName).setHeader("Name").setAutoWidth(true)
                 .setFlexGrow(0);
-        pipsGrid.addColumn(PolicyInformationPointDocumentation::getDescription).setHeader("Description");
+        pipsGrid.addColumn(new ComponentRenderer<Html, PolicyInformationPointDocumentation>(
+                doc -> renderMarkdown(doc.getDescription()))).setHeader("Description");
         functionsOfCurrentPipGrid.addColumn(Entry::getKey).setHeader("Function").setResizable(true);
-        functionsOfCurrentPipGrid.addColumn(Entry::getValue).setHeader("Documentation");
+        functionsOfCurrentPipGrid
+                .addColumn(
+                        new ComponentRenderer<Html, Entry<String, String>>(entry -> renderMarkdown(entry.getValue())))
+                .setHeader("Documentation");
         functionsOfCurrentPipGrid.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
         functionsOfCurrentPipGrid.setSelectionMode(SelectionMode.NONE);
         pipsGrid.addSelectionListener(selection -> {
@@ -215,6 +227,13 @@ public class LibrariesDocumentationView extends VerticalLayout {
         if (!availablePips.isEmpty()) {
             pipsGrid.select(availablePips.iterator().next());
         }
+    }
+
+    private Html renderMarkdown(String value) {
+        final var text      = parser.parse(null == value ? "" : value);
+        final var innerHtml = renderer.render(text);
+        final var html      = String.format("<div>%s</div>", innerHtml);
+        return new Html(html);
     }
 
 }
