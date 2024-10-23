@@ -95,22 +95,22 @@ class StandardFunctionLibraryTests {
 
     @Test
     void numberToStringBooleanLeftIntact() {
-        assertThat(StandardFunctionLibrary.numberToString(Val.TRUE), is(val("true")));
+        assertThat(StandardFunctionLibrary.asString(Val.TRUE), is(val("true")));
     }
 
     @Test
     void numberToStringSomeNumberLeftIntact() {
-        assertThat(StandardFunctionLibrary.numberToString(Val.of(1.23e-1D)), is(val("0.123")));
+        assertThat(StandardFunctionLibrary.asString(Val.of(1.23e-1D)), is(val("0.123")));
     }
 
     @Test
     void numberToStringNullEmptyString() {
-        assertThat(StandardFunctionLibrary.numberToString(Val.NULL), is(val("")));
+        assertThat(StandardFunctionLibrary.asString(Val.NULL), is(val("null")));
     }
 
     @Test
     void numberToStringTextIntact() {
-        assertThat(StandardFunctionLibrary.numberToString(Val.of("ABC")), is(val("ABC")));
+        assertThat(StandardFunctionLibrary.asString(Val.of("ABC")), is(val("ABC")));
     }
 
     @Test

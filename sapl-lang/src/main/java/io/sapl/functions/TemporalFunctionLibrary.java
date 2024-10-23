@@ -46,17 +46,9 @@ import lombok.experimental.UtilityClass;
 @FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION)
 public class TemporalFunctionLibrary {
 
-    /**
-     * Library name and prefix
-     */
-    public static final String NAME = "time";
-
-    /**
-     * Library description
-     */
+    public static final String NAME        = "time";
     public static final String DESCRIPTION = "This library contains temporal functions.";
 
-    private static final String BEFORE_DOC = "Assumes, that TIME_A and TIME_B are strings representing UTC time in ISO 8601. Returns true, if TIME_A is before TIME_B.";
 
     private static final String AFTER_DOC = "Assumes, that TIME_A and TIME_B are strings representing UTC time in ISO 8601. Returns true, if TIME_A is after TIME_B.";
 
@@ -111,7 +103,6 @@ public class TemporalFunctionLibrary {
     private static final String DURATION_OF_DAYS = "durationOfSeconds(DAYS): Assumes, that DAYS is a number. Returns the respective value in milliseconds";
 
     private static final DateTimeFormatter DIN_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
-
     private static final DateTimeFormatter US_TIME_FORMATTER = new DateTimeFormatterBuilder().parseCaseInsensitive()
             .appendPattern("hh:mm:ss a").toFormatter(Locale.US);
 
@@ -139,7 +130,9 @@ public class TemporalFunctionLibrary {
 
     /* ######## INSTANT/UTC COMPARISON ######## */
 
-    @Function(docs = BEFORE_DOC)
+    @Function(docs = """
+            ```before(TIME_A, TIME_B)```: Assumes, that ```TIME_A``` and ```TIME_B``` are strings representing UTC time in \
+            ISO 8601. The function returns ```true```, if ```TIME_A``` is before ```TIME_B```.""")
     public static Val before(@Text Val timeA, @Text Val timeB) {
         return Val.of(instantOf(timeA).isBefore(instantOf(timeB)));
     }

@@ -27,9 +27,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Text;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
@@ -41,51 +39,11 @@ public class StandardFunctionLibrary {
     public static final String NAME        = "standard";
     public static final String DESCRIPTION = "This the standard function library for SAPL.";
 
-    private static final String ON_ERROR_MAP_DOC = """
-            ```onErrorMap(guardedExpression, fallbackExpression)```: If ```guardedExpression``` evaluates \
-            to an error, the result of the ```fallbackExpression``` is returned instead. \
-            Example: ```onErrorMap(1/0,999)``` will nor result in a division by zero error, but return \
-            ```999``` instead.""";
-
-    private static final String LENGTH_DOC = """
-            ```length(value)```: For STRING it returns the length of the STRING. \
-            For ARRAY, it returns the number of elements in the array. \
-            For OBJECT, it returns the number of keys in the OBJECT. \
-            For NUMBER, BOOLEAN, or NULL, the function will return an error.""";
-
-    private static final String NUMBER_TO_STRING_DOC = """
-            ```numberToString(value)```: For STRING it returns the input. \
-            For NUMBER or BOOLEAN it returns a JSON node representing the value converted to a string. \
-            For NULL it returns a JSON node representing the empty string. \
-            For ARRAY or OBJECT the function will return an error.""";
-
-    private static final String CONCATENATE_DOC = "```concatenate(ARRAY...arrays)```: Creates a new array concatenating the parameter arrays.";
-
-    private static final String INTERSECT_DOC = """
-            ```intersect(ARRAY...arrays)```: Creates a new array only containing elements present in all parameter arrays, but removing all duplicate elements. \
-            Attention: numerically equivalent but differently written, i.e., 0 vs 0.000, numbers may be interpreted as non-eqivalent.
-            """;
-
-    private static final String UNION_DOC = """
-            ```union(ARRAY..arrays)```: Creates a copy of the arrays containing all elements of the provided arrays, but removing all duplicate elements. \
-            Attention: numerically equivalent but differently written, i.e., 0 vs 0.000, numbers may be interpreted as non-eqivalent.
-            """;
-
-    private static final String TO_SET_DOC = """
-            ```toSet(ARRAY)```: Creates a copy of the array preserving the original order, but removing all duplicate elements. \
-            Attention: numerically equivalent but differently written, i.e., 0 vs 0.000, numbers may be interpreted as non-eqivalent.
-            """;
-
-    private static final String DIFFERENCE_DOC = """
-            ```difference(ARRAY,ARRAY)```: Returns the difference between the first and the second array, removing duplicates. \
-            Attention: numerically equivalent but differently written, i.e., 0 vs 0.000, numbers may be interpreted as non-eqivalent.
-            """;
-
-    public static final String XML_TO_JSON_DOC = "```xmlToVal(TEXT)```: Converts a well-formed XML document into a Val representing the content of the XML document.";
-
     private static final XmlMapper XML_MAPPER = new XmlMapper();
 
-    @Function(docs = CONCATENATE_DOC)
+    @Function(docs = """
+            ```concatenate(ARRAY...arrays)```: Creates a new array concatenating the all array parameters in ```...arrays```. \
+            It keepts the order of array parameters and the inner order of the arrays as provided.""")
     public static Val concatenate(@Array Val... arrays) {
         final var newArray = Val.JSON.arrayNode();
         for (var array : arrays) {
@@ -98,7 +56,11 @@ public class StandardFunctionLibrary {
         return Val.of(newArray);
     }
 
-    @Function(docs = DIFFERENCE_DOC)
+    @Function(docs = """
+            ```difference(ARRAY array1, ARRAY array2)```: Returns the difference between the ```array1``` and ```array2```, \
+            removing duplicates. \
+            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
+            interpreted as non-eqivalent.""")
     public static Val difference(@Array Val array1, @Array Val array2) {
         final var newArray         = Val.JSON.arrayNode();
         final var jsonArray        = array1.getArrayNode();
@@ -113,7 +75,11 @@ public class StandardFunctionLibrary {
         return Val.of(newArray);
     }
 
-    @Function(docs = UNION_DOC)
+    @Function(docs = """
+            ```union(ARRAY...arrays)```: Creates a copy of the array parameters in ```...arrays``` containing all elements \
+            of the provided arrays, but removing all duplicate elements. \
+            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
+            interpreted as non-eqivalent.""")
     public static Val union(@Array Val... arrays) {
         final var newArray = Val.JSON.arrayNode();
         for (var array : arrays) {
@@ -129,7 +95,11 @@ public class StandardFunctionLibrary {
         return Val.of(newArray);
     }
 
-    @Function(docs = TO_SET_DOC)
+    @Function(docs = """
+            ```toSet(ARRAY array)```: Creates a copy of the ```array``` preserving the original order, but removing all \
+            duplicate elements. \
+            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
+            interpreted as non-eqivalent.""")
     public static Val toSet(@Array Val array) {
         final var newArray         = Val.JSON.arrayNode();
         final var jsonArray        = array.getArrayNode();
@@ -143,7 +113,11 @@ public class StandardFunctionLibrary {
         return Val.of(newArray);
     }
 
-    @Function(docs = INTERSECT_DOC)
+    @Function(docs = """
+            ```intersect(ARRAY...arrays)```: Creates a new array only containing elements present in all \
+            parameter arrays from ```...arrays```, while removing all duplicate elements. \
+            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
+            interpreted as non-eqivalent.""")
     public static Val intersect(@Array Val... arrays) {
         return intersect(arrays, Object::equals);
     }
@@ -185,39 +159,43 @@ public class StandardFunctionLibrary {
         return false;
     }
 
-    @Function(docs = LENGTH_DOC)
-    public static Val length(@Array @Text @JsonObject Val parameter) {
-        if (parameter.isTextual())
-            return Val.of(parameter.getText().length());
-
-        return Val.of(parameter.get().size());
+    @Function(docs = """
+            ```length(ARRAY|TEXT|JSON value)```: For TEXT it returns the length of the text string. \
+            For ARRAY, it returns the number of elements in the array. \
+            For OBJECT, it returns the number of keys in the OBJECT. \
+            For NUMBER, BOOLEAN, or NULL, the function will return an error.""")
+    public static Val length(@Array @Text @JsonObject Val value) {
+        if (value.isTextual()) {
+            return Val.of(value.getText().length());
+        }
+        return Val.of(value.get().size());
     }
 
-    @Function(docs = NUMBER_TO_STRING_DOC)
-    public static Val numberToString(@Text @Number @Bool Val parameter) {
-        JsonNode param = parameter.get();
-        if (param.isNumber())
-            return Val.of(param.numberValue().toString());
-
-        if (param.isBoolean())
-            return Val.of(String.valueOf(param.booleanValue()));
-
-        if (param.isNull())
-            return Val.of("");
-
-        return parameter;
+    @Function(name = "toString", docs = """
+            ```toString(value)```: Converts any ```value``` to a string representation.""")
+    public static Val asString(Val value) {
+        if (value.isTextual()) {
+            return Val.of(value.get().asText());
+        }
+        return Val.of(value.toString());
     }
 
-    @Function(docs = ON_ERROR_MAP_DOC)
-    public static Val onErrorMap(Val guardedExpression, Val fallbackValue) {
-        if (guardedExpression.isError())
-            return fallbackValue;
-
+    @Function(docs = """
+            ```onErrorMap(guardedExpression, fallbackExpression)```: If ```guardedExpression``` is an error,
+            the ```fallback``` is returned instead. \
+            Example: ```onErrorMap(1/0,999)``` will nor result in a division by zero error, but return \
+            ```999``` instead.""")
+    public static Val onErrorMap(Val guardedExpression, Val fallback) {
+        if (guardedExpression.isError()) {
+            return fallback;
+        }
         return guardedExpression;
     }
 
     @SneakyThrows
-    @Function(docs = XML_TO_JSON_DOC)
+    @Function(docs = """
+            ```xmlToVal(TEXT xml)```: Converts a well-formed XML document ```xml``` into a SAPL value representing \
+            the content of the XML document.""")
     public Val xmlToVal(@Text Val xml) {
         return Val.of(XML_MAPPER.readTree(xml.getText()));
     }
