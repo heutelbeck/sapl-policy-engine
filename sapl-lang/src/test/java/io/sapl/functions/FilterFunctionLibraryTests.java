@@ -167,7 +167,6 @@ class FilterFunctionLibraryTests {
 
         assertTrue(actual.getText().startsWith("a"));
         assertTrue(actual.getText().endsWith("e"));
-
     }
 
     @Test
@@ -230,7 +229,6 @@ class FilterFunctionLibraryTests {
         assertTrue(result.getText().startsWith("a"));
         assertTrue(result.getText().endsWith("e"));
         assertTrue(result.getText().contains("X"));
-
     }
 
     @Test
@@ -260,12 +258,24 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenInPolicy() throws JsonProcessingException {
-        final var authzSubscription     = MAPPER.readValue(
-                "{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
-                AuthorizationSubscription.class);
-        final var policyDefinition      = "policy \"test\"	permit transform resource |- { @.key1 : filter.blacken(1) }";
-        final var expectedResource      = MAPPER.readValue("{	\"array\": [ null, true ], \"key1\": \"aXXXX\" }",
-                JsonNode.class);
+        final var authzSubscription     = MAPPER.readValue("""
+                {
+                  "resource" : {
+                                 "array" : [ null, true ],
+                                 "key1"  : "abcde"
+                               }
+                }""", AuthorizationSubscription.class);
+        final var policyDefinition      = """
+                policy "test"
+                permit
+                transform resource |- {
+                                        @.key1 : filter.blacken(1)
+                                      }""";
+        final var expectedResource      = MAPPER.readValue("""
+                {
+                  "array" : [ null, true ],
+                  "key1"  : "aXXXX"
+                }""", JsonNode.class);
         final var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
                 Optional.empty(), Optional.empty());
 
@@ -283,12 +293,25 @@ class FilterFunctionLibraryTests {
 
     @Test
     void replaceInPolicy() throws JsonProcessingException {
-        final var authzSubscription     = MAPPER.readValue(
-                "{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
-                AuthorizationSubscription.class);
-        final var policyDefinition      = "policy \"test\" permit transform resource |- { @.array[1] : filter.replace(\"***\"), @.key1 : filter.replace(null) }";
-        final var expectedResource      = MAPPER.readValue("{	\"array\": [ null, \"***\" ], \"key1\": null }",
-                JsonNode.class);
+        final var authzSubscription     = MAPPER.readValue("""
+                {
+                  "resource" : {
+                                 "array" : [ null, true ],
+                                 "key1"  : "abcde"
+                               }
+                }""", AuthorizationSubscription.class);
+        final var policyDefinition      = """
+                policy "test"
+                permit
+                transform resource |- {
+                                        @.array[1] : filter.replace(\"***\"),
+                                        @.key1     : filter.replace(null)
+                                      }""";
+        final var expectedResource      = MAPPER.readValue("""
+                {
+                  "array" : [ null, "***" ],
+                  "key1"  : null
+                }""", JsonNode.class);
         final var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
                 Optional.empty(), Optional.empty());
 

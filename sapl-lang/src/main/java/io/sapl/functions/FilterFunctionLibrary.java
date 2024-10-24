@@ -31,56 +31,25 @@ import lombok.experimental.UtilityClass;
 @FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION)
 public class FilterFunctionLibrary {
 
-    /**
-     * Library name and prefix
-     */
-    public static final String NAME = "filter";
-
-    /**
-     * Library description
-     */
+    public static final String NAME        = "filter";
     public static final String DESCRIPTION = "Essential functions for content filtering.";
 
-    private static final String DEFAULT_REPLACEMENT = "X";
-
-    private static final int DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_LEFT = 0;
-
-    private static final int DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_RIGHT = 0;
-
-    private static final String BLACKEN_DOC = "blacken(STRING, DISCLOSE_LEFT, DISCLOSE_RIGHT, REPLACEMENT, LENGTH): Assumes that DISCLOSE_LEFT, DISCLOSE_RIGHT and LENGTH are positive integers and STRING and REPLACEMENT are strings."
-            + " Replaces each character in STRING by REPLACEMENT, leaving DISCLOSE_LEFT characters from the beginning and DISCLOSE_RIGHT characters from the end unchanged."
-            + " If LENGTH is provided, the number of characters replaced is set to LENGTH. If not provided it will just replace all characters that are not disclosed."
-            + " Except for STRING, all parameters are optional."
-            + " DISCLOSE_LEFT defaults to 0, DISCLOSE_RIGHT defaults to 0 and REPLACEMENT defaults to 'X'"
-            + " Returns the modified STRING.";
-
-    private static final String REPLACE_DOC = "replace(ORIGINAL, REPLACEMENT): Assumes that ORIGINAL and REPLACEMENT are JSON nodes. Returns REPLACEMENT.";
-
-    private static final String REMOVE_DOC = "remove: Maps any value to 'undefined' If used in a filter, this will be removed from arrays or objects";
-
-    private static final String ILLEGAL_PARAMETERS_COUNT = "Illegal number of parameters provided.";
-
-    private static final String ILLEGAL_PARAMETER_DISCLOSE_LEFT = "Illegal parameter for DISCLOSE_LEFT. Expecting a positive integer.";
-
+    private static final String ILLEGAL_PARAMETERS_COUNT         = "Illegal number of parameters provided.";
+    private static final String ILLEGAL_PARAMETER_DISCLOSE_LEFT  = "Illegal parameter for DISCLOSE_LEFT. Expecting a positive integer.";
     private static final String ILLEGAL_PARAMETER_DISCLOSE_RIGHT = "Illegal parameter for DISCLOSE_RIGHT. Expecting a positive integer.";
-
-    private static final String ILLEGAL_PARAMETER_REPLACEMENT = "Illegal parameter for REPLACEMENT. Expecting a string.";
-
+    private static final String ILLEGAL_PARAMETER_REPLACEMENT    = "Illegal parameter for REPLACEMENT. Expecting a string.";
     private static final String ILLEGAL_PARAMETER_BLACKEN_LENGTH = "Illegal parameter for BLACKEN_TYPE. Expecting a integer representing a type of blacken.";
+    private static final String ILLEGAL_PARAMETER_STRING         = "Illegal parameter for STRING. Expecting a string.";
 
-    private static final String ILLEGAL_PARAMETER_STRING = "Illegal parameter for STRING. Expecting a string.";
-
-    private static final int ORIGINAL_STRING_INDEX = 0;
-
-    private static final int DISCLOSE_LEFT_INDEX = 1;
-
-    private static final int DISCLOSE_RIGHT_INDEX = 2;
-
-    private static final int REPLACEMENT_INDEX = 3;
-
-    private static final int BLACKEN_TYPE_INDEX = 4;
-
-    private static final int MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN = 5;
+    private static final int    ORIGINAL_STRING_INDEX                      = 0;
+    private static final int    DISCLOSE_LEFT_INDEX                        = 1;
+    private static final int    DISCLOSE_RIGHT_INDEX                       = 2;
+    private static final int    REPLACEMENT_INDEX                          = 3;
+    private static final int    BLACKEN_TYPE_INDEX                         = 4;
+    private static final int    MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN   = 5;
+    private static final int    DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_LEFT  = 0;
+    private static final int    DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_RIGHT = 0;
+    private static final String DEFAULT_REPLACEMENT                        = "X";
 
     /**
      * Replaces a section of a text with a fixed character.
@@ -92,7 +61,51 @@ public class FilterFunctionLibrary {
      * @return the original Text value with the indicated characters replaced with
      * the replacement characters.
      */
-    @Function(docs = BLACKEN_DOC)
+    @Function(docs = """
+            ```blacken(TEXT original[, INTEGER>0 discloseLeft][, INTEGER>0 discloseRight][, TEXT replacement]\
+            [, INTEGER>0 length])```:
+            This function can be used to partially blacken text in data. \
+            The function requires that ```discloseLeft```, ```discloseRight```, and ```length``` are in integers > 0.\
+            Also, ```original``` and ```replacement``` must be text strings. \
+            The function replaces each character in ```original``` by ```replacement```, while leaving ```discloseLeft``` \
+            characters from the beginning and ```discloseRight``` characters from the end unchanged. \
+            If ```length``` is provided, the number of characters replaced is set to ```length```, e.g., for \
+            ensuring, that string length does not leak any information. \
+            If ```length``` is not provided it will just replace all characters that are not disclosed. \
+            Except for ```original```, all parameters are optional. \
+            Defaults: ```discloseLeft``` defaults to ```0```, ```discloseRight``` defaults to ```0``` \
+            and ```replacement``` defaults to ```"X"```.
+            The function returns the modified ```original```.
+
+            Example:
+
+            Given a subscription:
+            ```
+            {
+              "resource" : {
+                             "array" : [ null, true ],
+                             "key1"  : "abcde"
+                           }
+            }
+            ```
+
+            And the policy:
+            ```
+            policy "test"
+            permit
+            transform resource |- {
+                                    @.key1 : filter.blacken(1)
+                                  }
+            ```
+
+            The decision will contain a ```resource``` as follows:
+            ```
+            {
+              "array" : [ null, true ],
+              "key1"  : "aXXXX"
+            }
+            ```
+            """)
     public static Val blacken(Val... parameters) {
         validateNumberOfParametersIsNotLongerThanMaximalAllowedNumberOfParameters(parameters);
         final var originalString = extractOriginalTextFromParameters(parameters);
@@ -210,8 +223,46 @@ public class FilterFunctionLibrary {
      * @param replacement a replacement value.
      * @return the replacement value.
      */
-    @Function(docs = REPLACE_DOC)
+    @Function(docs = """
+            ```replace(originalValue, replacementValue)```: \
+            The function will map the ```originalValue``` to the replacement value. \
+            If the original value is an error, it will not be replaced and it bubbles up the evaluation chain. \
+            If the original value is ```undefined``` it will be replaced with the ```replacementValue```.
+
+            Example:
+
+            Given a subscription:
+            ```
+            {
+              "resource" : {
+                             "array" : [ null, true ],
+                             "key1"  : "abcde"
+                           }
+            }
+            ```
+
+            And the policy:
+            ```
+            policy "test"
+            permit
+            transform resource |- {
+                                    @.array[1] : filter.replace(\"***\"),
+                                    @.key1     : filter.replace(null)
+                                  }
+            ```
+
+            The decision will contain a ```resource``` as follows:
+            ```
+            {
+              "array" : [ null, "***" ],
+              "key1"  : null
+            }
+            ```
+            """)
     public static Val replace(Val original, Val replacement) {
+        if (original.isError()) {
+            return original;
+        }
         return replacement;
     }
 
@@ -221,7 +272,40 @@ public class FilterFunctionLibrary {
      * @param original some value
      * @return Val.UNDEFINED
      */
-    @Function(docs = REMOVE_DOC)
+    @Function(docs = """
+            ```remove(value)```: This function maps any ```value``` to ```undefined```.
+            In filters, ```undefined``` elements of arrays and objects will be silently removed.
+
+            Example:
+
+            The expression ```[ 0, 1, 2, 3, 4, 5 ] |- { @[-2:] : filter.remove }``` results in ```[0, 1, 2, 3]```.
+
+            Given a subscription:
+            ```
+            {
+              "resource" : {
+                             "array" : [ null, true ],
+                             "key1"  : "abcde"
+                           }
+            }
+            ```
+
+            And the policy:
+            ```
+            policy "test"
+            permit
+            transform resource |- {
+                                    @.key1     : filter.remove
+                                  }
+            ```
+
+            The decision will contain a ```resource``` as follows:
+            ```
+            {
+              "array" : [ null, true ]
+            }
+            ```
+            """)
     public static Val remove(Val original) {
         return Val.UNDEFINED;
     }
