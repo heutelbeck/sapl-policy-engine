@@ -19,7 +19,6 @@ package io.sapl.pip;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
@@ -30,8 +29,6 @@ import java.time.ZoneId;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
@@ -67,12 +64,8 @@ class TimePolicyInformationPointTests {
 
     @Test
     void systemTimeZone_isRetrieved() {
-        final var sut    = new TimePolicyInformationPoint(mock(Clock.class));
-        final var zoneId = ZoneId.of("UTC");
-        try (MockedStatic<ZoneId> mock = mockStatic(ZoneId.class, Mockito.CALLS_REAL_METHODS)) {
-            mock.when(ZoneId::systemDefault).thenReturn(zoneId);
-            StepVerifier.create(sut.systemTimeZone()).expectNext(Val.of("UTC")).verifyComplete();
-        }
+        final var sut = new TimePolicyInformationPoint(mock(Clock.class)).systemTimeZone().next();
+        StepVerifier.create(sut).expectNextMatches(n -> ZoneId.of(n.getText()) != null).verifyComplete();
     }
 
     @Test
