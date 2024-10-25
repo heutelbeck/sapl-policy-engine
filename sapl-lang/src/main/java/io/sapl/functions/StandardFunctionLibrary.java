@@ -48,11 +48,10 @@ public class StandardFunctionLibrary {
             """;
 
     @Function(docs = """
-            ```concatenate(ARRAY...arrays)```: Creates a new array concatenating the all array parameters in ```...arrays```. \
+            ```concatenate(ARRAY...arrays)```: Creates a new array concatenating the all array parameters in ```...arrays```.
             It keepts the order of array parameters and the inner order of the arrays as provided.
 
             Example:
-
             ```
             import standard.*
             policy "example"
@@ -74,13 +73,12 @@ public class StandardFunctionLibrary {
     }
 
     @Function(docs = """
-            ```difference(ARRAY array1, ARRAY array2)```: Returns the difference between the ```array1``` and ```array2```, \
-            removing duplicates. \
-            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
+            ```difference(ARRAY array1, ARRAY array2)```: Returns the difference between the ```array1``` and ```array2```,
+            removing duplicates.
+            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be
             interpreted as non-eqivalent.
 
             Example:
-
             ```
             import standard.*
             policy "example"
@@ -104,13 +102,12 @@ public class StandardFunctionLibrary {
     }
 
     @Function(docs = """
-            ```union(ARRAY...arrays)```: Creates a copy of the array parameters in ```...arrays``` containing all elements \
-            of the provided arrays, but removing all duplicate elements. \
-            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
+            ```union(ARRAY...arrays)```: Creates a copy of the array parameters in ```...arrays``` containing all elements
+            of the provided arrays, but removing all duplicate elements.
+            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be
             interpreted as non-eqivalent.
 
             Example:
-
             ```
             import standard.*
             policy "example"
@@ -135,13 +132,12 @@ public class StandardFunctionLibrary {
     }
 
     @Function(docs = """
-            ```toSet(ARRAY array)```: Creates a copy of the ```array``` preserving the original order, but removing all \
-            duplicate elements. \
-            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
+            ```toSet(ARRAY array)```: Creates a copy of the ```array``` preserving the original order, but removing all
+            duplicate elements.
+            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be
             interpreted as non-eqivalent.
 
             Example:
-
             ```
             import standard.*
             policy "example"
@@ -164,13 +160,12 @@ public class StandardFunctionLibrary {
     }
 
     @Function(docs = """
-            ```intersect(ARRAY...arrays)```: Creates a new array only containing elements present in all \
-            parameter arrays from ```...arrays```, while removing all duplicate elements. \
-            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be \
+            ```intersect(ARRAY...arrays)```: Creates a new array only containing elements present in all
+            parameter arrays from ```...arrays```, while removing all duplicate elements.
+            Attention: numerically equivalent but differently written, i.e., ```0``` vs ```0.000```, numbers may be
             interpreted as non-eqivalent.
 
             Example:
-
             ```
             import standard.*
             policy "example"
@@ -221,13 +216,12 @@ public class StandardFunctionLibrary {
     }
 
     @Function(docs = """
-            ```length(ARRAY|TEXT|JSON value)```: For TEXT it returns the length of the text string. \
-            For ARRAY, it returns the number of elements in the array. \
-            For OBJECT, it returns the number of keys in the OBJECT. \
+            ```length(ARRAY|TEXT|JSON value)```: For TEXT it returns the length of the text string.
+            For ARRAY, it returns the number of elements in the array.
+            For OBJECT, it returns the number of keys in the OBJECT.
             For NUMBER, BOOLEAN, or NULL, the function will return an error.
 
             Example:
-
             ```
             import standard.*
             policy "example"
@@ -271,7 +265,6 @@ public class StandardFunctionLibrary {
             the ```fallback``` is returned instead.
 
             Example:
-
             ```
             import standard.*
             policy "example"
@@ -289,11 +282,10 @@ public class StandardFunctionLibrary {
 
     @SneakyThrows
     @Function(docs = """
-            ```xmlToVal(TEXT xml)```: Converts a well-formed XML document ```xml``` into a SAPL \
+            ```xmlToVal(TEXT xml)```: Converts a well-formed XML document ```xml``` into a SAPL
             value representing the content of the XML document.
 
             Example:
-
             ```
             import standard.*
             policy "example"
@@ -301,6 +293,7 @@ public class StandardFunctionLibrary {
             where
                var xml = "<Flower><name>Poppy</name><color>RED</color><petals>9</petals></Flower>";
                xmlToVal(xml) == {"name":"Poppy","color":"RED","petals":"9"};
+            ```
             """)
     public Val xmlToVal(@Text Val xml) {
         return Val.of(XML_MAPPER.readTree(xml.getText()));

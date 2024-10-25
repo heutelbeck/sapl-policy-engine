@@ -35,7 +35,8 @@ import lombok.experimental.UtilityClass;
 public class SchemaValidationLibrary {
 
     public static final String NAME        = "jsonschema";
-    public static final String DESCRIPTION = "This library contains the functions for testing the compliance of a value with a JSON schema.";
+    public static final String DESCRIPTION = """
+            This library contains the functions for testing the compliance of a value with a JSON schema.""";
 
     private static final String RETURNS_BOOLEAN = """
             {
@@ -46,17 +47,16 @@ public class SchemaValidationLibrary {
     private static final String ID = "$id";
 
     @Function(docs = """
-            ```isCompliantWithSchema(validationSubject,OBJECT schema)```: \
-            This function tests the ```validationSubject``` for compliance with the with the provided JSON schema \
-            ```schema```. \
-            The schema itself cannot be validated and improper schema definitions may lead to unexcpected results. \
-            If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```, \
+            ```isCompliantWithSchema(validationSubject,OBJECT schema)```:
+            This function tests the ```validationSubject``` for compliance with the with the provided JSON schema
+            ```schema```.
+            The schema itself cannot be validated and improper schema definitions may lead to unexcpected results.
+            If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```,
             else it returns ```false```.
 
             Note: The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
 
             Example:
-
             ```
             policy "example"
             permit
@@ -73,20 +73,19 @@ public class SchemaValidationLibrary {
     }
 
     @Function(docs = """
-            ```isCompliantWithSchema(validationSubject, OBJECT jsonSchema, ARRAY externalSchemas)```: \
-            This function tests the ```validationSubject``` for compliance with the with the provided JSON schema \
-            ```schema```. \
-            The schema itself cannot be validated and improper schema definitions may lead to unexcpected results. \
-            If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```, \
-            else it returns ```false```. \
-            If the ```jsonSchema``` contains external references to other ```schemas```, the validation function \
-            looks up the schemas in ```externalSchemas``` based on explicitly defined ```$id``` field in the schemas. \
+            ```isCompliantWithSchema(validationSubject, OBJECT jsonSchema, ARRAY externalSchemas)```:
+            This function tests the ```validationSubject``` for compliance with the with the provided JSON schema
+            ```schema```.
+            The schema itself cannot be validated and improper schema definitions may lead to unexcpected results.
+            If ```validationSubject``` is compliant with the ```schema```, the function returns ```true```,
+            else it returns ```false```.
+            If the ```jsonSchema``` contains external references to other ```schemas```, the validation function
+            looks up the schemas in ```externalSchemas``` based on explicitly defined ```$id``` field in the schemas.
             If no $id field is provided, the schema will not be detectable.
 
             Note: The schema is expected to comply with: [JSON Schema 2020-12](https://json-schema.org/draft/2020-12)
 
             Example:
-
             ```
             policy "example"
             permit

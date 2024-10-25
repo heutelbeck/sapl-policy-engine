@@ -47,13 +47,12 @@ public class LoggingFunctionLibrary {
      * @return the value
      */
     @Function(docs = """
-            ```infoSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
-            console at the INFO log level. \
-            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```. \
+            ```infoSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the
+            console at the INFO log level.
+            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```.
             This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
 
             Example:
-
             ```
             policy "logging"
             permit
@@ -75,13 +74,12 @@ public class LoggingFunctionLibrary {
      * @return the value
      */
     @Function(docs = """
-            ```errorSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
-            console at the ERROR log level. \
-            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```. \
+            ```errorSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the
+            console at the ERROR log level.
+            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```.
             This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
 
             Example:
-
             ```
             policy "logging"
             permit
@@ -103,13 +101,12 @@ public class LoggingFunctionLibrary {
      * @return the value
      */
     @Function(docs = """
-            ```traceSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
-            console at the TRACE log level. \
-            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```. \
+            ```traceSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the
+            console at the TRACE log level.
+            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```.
             This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
 
             Example:
-
             ```
             policy "logging"
             permit
@@ -131,13 +128,12 @@ public class LoggingFunctionLibrary {
      * @return the value
      */
     @Function(docs = """
-            ```warnSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
-            console at the WARN log level. \
-            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```. \
+            ```warnSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the
+            console at the WARN log level.
+            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```.
             This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
 
             Example:
-
             ```
             policy "logging"
             permit
@@ -159,13 +155,12 @@ public class LoggingFunctionLibrary {
      * @return the value
      */
     @Function(docs = """
-            ```debugSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
-            console at the DEBUG log level. \
-            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```. \
+            ```debugSpy(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the
+            console at the DEBUG log level.
+            The function acts as the identify funtion for the ```value```, i.e., it returns ```value```.
             This can be used to wrap any value in a SAPL expression without changing the overall structure of the policy.
 
             Example:
-
             ```
             policy "logging"
             permit
@@ -187,16 +182,15 @@ public class LoggingFunctionLibrary {
      * @return the value
      */
     @Function(docs = """
-            ```info(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
-            console at the DEBUG log level. \
+            ```info(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the
+            console at the DEBUG log level.
             The function always return ```true```.
-            This function is useful to add an additional statement line in a where block of a policy. \
-            As the function returns ```true```, the rest of the policy evaluation is not affected. \
-            Note: If a statement above the logging statement evaluates to ```false```, the logger will \
+            This function is useful to add an additional statement line in a where block of a policy.
+            As the function returns ```true```, the rest of the policy evaluation is not affected.
+            Note: If a statement above the logging statement evaluates to ```false```, the logger will
             not be triggered, as the evaluation of statements is lazy.
 
             Example:
-
             ```
             policy "logging"
             permit
@@ -219,16 +213,15 @@ public class LoggingFunctionLibrary {
      * @return the value
      */
     @Function(docs = """
-            ```error(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
-            console at the ERROR log level. \
+            ```error(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the
+            console at the ERROR log level.
             The function always return ```true```.
-            This function is useful to add an additional statement line in a where block of a policy. \
-            As the function returns ```true```, the rest of the policy evaluation is not affected. \
-            Note: If a statement above the logging statement evaluates to ```false```, the logger will \
+            This function is useful to add an additional statement line in a where block of a policy.
+            As the function returns ```true```, the rest of the policy evaluation is not affected.
+            Note: If a statement above the logging statement evaluates to ```false```, the logger will
             not be triggered, as the evaluation of statements is lazy.
 
             Example:
-
             ```
             policy "logging"
             permit
@@ -251,16 +244,15 @@ public class LoggingFunctionLibrary {
      * @return the value
      */
     @Function(docs = """
-            ```trace(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
-            console at the TRACE log level. \
+            ```trace(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the
+            console at the TRACE log level.
             The function always return ```true```.
-            This function is useful to add an additional statement line in a where block of a policy. \
-            As the function returns ```true```, the rest of the policy evaluation is not affected. \
-            Note: If a statement above the logging statement evaluates to ```false```, the logger will \
+            This function is useful to add an additional statement line in a where block of a policy.
+            As the function returns ```true```, the rest of the policy evaluation is not affected.
+            Note: If a statement above the logging statement evaluates to ```false```, the logger will
             not be triggered, as the evaluation of statements is lazy.
 
             Example:
-
             ```
             policy "logging"
             permit
@@ -283,16 +275,15 @@ public class LoggingFunctionLibrary {
      * @return the value
      */
     @Function(docs = """
-            ```warn(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
-            console at the WARN log level. \
+            ```warn(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the
+            console at the WARN log level.
             The function always return ```true```.
-            This function is useful to add an additional statement line in a where block of a policy. \
-            As the function returns ```true```, the rest of the policy evaluation is not affected. \
-            Note: If a statement above the logging statement evaluates to ```false```, the logger will \
+            This function is useful to add an additional statement line in a where block of a policy.
+            As the function returns ```true```, the rest of the policy evaluation is not affected.
+            Note: If a statement above the logging statement evaluates to ```false```, the logger will
             not be triggered, as the evaluation of statements is lazy.
 
             Example:
-
             ```
             policy "logging"
             permit
@@ -315,16 +306,15 @@ public class LoggingFunctionLibrary {
      * @return the value
      */
     @Function(docs = """
-            ```debug(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the \
-            console at the DEBUG log level. \
+            ```debug(TEXT message, value)```: Logs the ```value``` prepended with the ```message``` to the
+            console at the DEBUG log level.
             The function always return ```true```.
-            This function is useful to add an additional statement line in a where block of a policy. \
-            As the function returns ```true```, the rest of the policy evaluation is not affected. \
-            Note: If a statement above the logging statement evaluates to ```false```, the logger will \
+            This function is useful to add an additional statement line in a where block of a policy.
+            As the function returns ```true```, the rest of the policy evaluation is not affected.
+            Note: If a statement above the logging statement evaluates to ```false```, the logger will
             not be triggered, as the evaluation of statements is lazy.
 
             Example:
-
             ```
             policy "logging"
             permit

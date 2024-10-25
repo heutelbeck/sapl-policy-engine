@@ -222,7 +222,6 @@ class TemporalFunctionLibraryTests {
     void dinToIsoTest() {
         LocalDateTime ldt = LocalDateTime.of(2021, 11, 8, 13, 0, 0);
         ZonedDateTime zdt = ZonedDateTime.of(ldt, ZoneId.systemDefault());
-
         assertThat(TemporalFunctionLibrary.localDin(Val.of("08.11.2021 13:00:00")),
                 is(val(zdt.toInstant().toString())));
     }
