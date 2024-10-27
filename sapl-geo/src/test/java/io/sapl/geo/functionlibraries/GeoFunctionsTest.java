@@ -21,9 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import javax.naming.OperationNotSupportedException;
-
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.operation.TransformException;
 import org.junit.jupiter.api.BeforeAll;
@@ -36,9 +34,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.spatial4j.distance.DistanceUtils;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.TestBase;
 import io.sapl.geo.functions.CrsConst;
@@ -59,6 +55,7 @@ class GeoFunctionsTest extends TestBase {
     Val             polygon2;
     Val             polygon3;
     Val             polygon4;
+    Val             selfIntersectingPolygon;
     Val             line;
     Val             line1;
     Val             line2;
@@ -88,9 +85,7 @@ class GeoFunctionsTest extends TestBase {
         multipoint  = GeometryConverter.geometryToGeoJsonNode(factory.createMultiPoint(new Point[] { po1, po3 }));
         multipoint2 = GeometryConverter.geometryToGeoJsonNode(factory.createMultiPoint(new Point[] { po2, po3 }));
         multipoint3 = GeometryConverter.geometryToGeoJsonNode(factory.createMultiPoint(new Point[] { po1, po2 }));
-
         polygon = Val.of(source.getJsonSource().get("Polygon")); // ((10 12, 10 14, 12 10, 13 14, 10 12))
-
         p1 = factory.createPolygon(new Coordinate[] { new Coordinate(100, 100), new Coordinate(100, 200),
                 new Coordinate(200, 200), new Coordinate(200, 100), new Coordinate(100, 100), });
 
@@ -99,7 +94,6 @@ class GeoFunctionsTest extends TestBase {
         p3       = factory.createPolygon(new Coordinate[] { new Coordinate(200, 100), new Coordinate(200, 200),
                 new Coordinate(300, 200), new Coordinate(300, 100), new Coordinate(200, 100), });
         polygon1 = GeometryConverter.geometryToGeoJsonNode(p1);
-
         polygon2 = GeometryConverter.geometryToGeoJsonNode(
                 factory.createPolygon(new Coordinate[] { new Coordinate(100, 100), new Coordinate(250, 100),
                         new Coordinate(100, 200), new Coordinate(250, 200), new Coordinate(100, 100), }));
@@ -107,7 +101,14 @@ class GeoFunctionsTest extends TestBase {
         polygon4 = GeometryConverter.geometryToGeoJsonNode(
                 factory.createPolygon(new Coordinate[] { new Coordinate(105, 105), new Coordinate(250, 100),
                         new Coordinate(100, 200), new Coordinate(250, 200), new Coordinate(105, 105), }));
-
+        var shell = factory.createLinearRing(new Coordinate[]{
+                new Coordinate(0, 0),
+                new Coordinate(4, 4),
+                new Coordinate(4, 0),
+                new Coordinate(0, 4),
+                new Coordinate(0, 0) 
+        });
+        selfIntersectingPolygon = GeometryConverter.geometryToGeoJsonNode(factory.createPolygon(shell, null));          
         line  = GeometryConverter.geometryToGeoJsonNode(
                 factory.createLineString(new Coordinate[] { new Coordinate(80, 100), new Coordinate(200, 250) }));
         line1 = GeometryConverter
@@ -119,17 +120,15 @@ class GeoFunctionsTest extends TestBase {
                 factory.createLineString(new Coordinate[] { new Coordinate(0, 50), new Coordinate(0, 150) }));
         coll  = GeometryConverter.geometryToGeoJsonNode(factory.createGeometryCollection(new Geometry[] { p1, p3 }));
         coll1 = GeometryConverter.geometryToGeoJsonNode(factory.createGeometryCollection(new Geometry[] { p1 }));
-
         coll2 = GeometryConverter.geometryToGeoJsonNode(factory.createGeometryCollection(new Geometry[] { po1, po2 }));
     }
-
+ 
     @Test
     void equalsTest() throws ParseException {
         assertTrue(GeoFunctions.geometryEquals(point, point).getBoolean());
         assertTrue(GeoFunctions.geometryEquals(polygon, polygon).getBoolean());
         assertFalse(GeoFunctions.geometryEquals(point, point1).getBoolean());
         assertFalse(GeoFunctions.geometryEquals(polygon, polygon1).getBoolean());
-
     }
 
     @Test
@@ -148,7 +147,6 @@ class GeoFunctionsTest extends TestBase {
 
     @Test
     void crossesTest() throws ParseException {
-
         assertTrue(GeoFunctions.crosses(line, polygon1).getBoolean());
         assertFalse(GeoFunctions.crosses(polygon, polygon1).getBoolean());
     }
@@ -254,12 +252,14 @@ class GeoFunctionsTest extends TestBase {
     }
 
     @Test
-    void isSimpleTest() throws ParseException {
+    void isSimpleTest() throws ParseException {                             
+        assertFalse(GeoFunctions.isSimple(selfIntersectingPolygon).getBoolean());
         assertTrue(GeoFunctions.isSimple(polygon1).getBoolean());
     }
 
     @Test
-    void isValidTest() throws ParseException {
+    void isValidTest() throws ParseException {   
+        assertFalse(GeoFunctions.isValid(selfIntersectingPolygon).getBoolean());        
         assertTrue(GeoFunctions.isValid(polygon1).getBoolean());
     }
 
@@ -316,7 +316,7 @@ class GeoFunctionsTest extends TestBase {
     void geometryBagTest() throws ParseException, JsonProcessingException {
         assertEquals(coll.get(), GeoFunctions.geometryBag(polygon1, polygon3).get());
     }
-
+    
     @Test
     void atLeastOneMemberOfTest() {
         assertTrue(GeoFunctions.atLeastOneMemberOf(coll, coll1).getBoolean());
