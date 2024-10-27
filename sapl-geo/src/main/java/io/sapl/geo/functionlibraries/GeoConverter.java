@@ -29,11 +29,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.Text;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.GmlConverter;
 import io.sapl.geo.functions.JsonConverter;
 import io.sapl.geo.functions.KmlConverter;
 import io.sapl.geo.functions.WktConverter;
+import io.sapl.geo.json.GeoJsonScheme;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -54,62 +56,62 @@ public class GeoConverter {
     private static final String WKT_TO_KML     = "converts WKT to KML";
 
     @Function(name = "gmlToKml", docs = GML_TO_KML)
-    public Val gmlToKml(Val gml) throws SAXException, IOException, ParserConfigurationException {
+    public Val gmlToKml(@Text Val gml) throws SAXException, IOException, ParserConfigurationException {
         return GeometryConverter.geometryToKML(GmlConverter.gmlToGeometry(gml));
     }
 
-    @Function(name = "gmlToGeoJson", docs = GML_TO_GEOJSON)
-    public Val gmlToGeoJson(Val gml) throws SAXException, IOException, ParserConfigurationException {
+    @Function(name = "gmlToGeoJson", docs = GML_TO_GEOJSON, schema = GeoJsonScheme.JSON_SCHEME_COMPLETE)
+    public Val gmlToGeoJson(@Text Val gml) throws SAXException, IOException, ParserConfigurationException {
         return GeometryConverter.geometryToGeoJsonNode(GmlConverter.gmlToGeometry(gml));
     }
 
     @Function(name = "gmlToWkt", docs = GML_TO_WKT)
-    public Val gmlToWkt(Val gml) throws SAXException, IOException, ParserConfigurationException {
+    public Val gmlToWkt(@Text Val gml) throws SAXException, IOException, ParserConfigurationException {
         return GeometryConverter.geometryToWKT(GmlConverter.gmlToGeometry(gml));
     }
 
     @Function(name = "geoJsonToKml", docs = GEOJSON_TO_KML)
-    public Val geoJsonToKml(Val geoJson) throws ParseException {
+    public Val geoJsonToKml(@Text Val geoJson) throws ParseException {
         return GeometryConverter.geometryToKML(JsonConverter.geoJsonToGeometry(geoJson));
     }
 
     @Function(name = "geoJsonToGml", docs = GEOJSON_TO_GML)
-    public Val geoJsonToGml(Val geoJson) throws ParseException {
+    public Val geoJsonToGml(@Text Val geoJson) throws ParseException {
         return GeometryConverter.geometryToGML(JsonConverter.geoJsonToGeometry(geoJson));
     }
 
     @Function(name = "geoJsonToWkt", docs = GEOJSON_TO_WKT)
-    public Val geoJsonToWkt(Val geoJson) throws ParseException {
+    public Val geoJsonToWkt(@Text Val geoJson) throws ParseException {
         return GeometryConverter.geometryToWKT(JsonConverter.geoJsonToGeometry(geoJson));
     }
 
     @Function(name = "kmlToGml", docs = KML_TO_GML)
-    public Val kmlToGml(Val kml) throws ParseException {
+    public Val kmlToGml(@Text Val kml) throws ParseException {
         return GeometryConverter.geometryToGML(KmlConverter.kmlToGeometry(kml));
     }
 
-    @Function(name = "kmlToGeoJson", docs = KML_TO_GEOJSON)
-    public Val kmlToGeoJson(Val kml) throws ParseException, JsonProcessingException {
+    @Function(name = "kmlToGeoJson", docs = KML_TO_GEOJSON, schema = GeoJsonScheme.JSON_SCHEME_COMPLETE)
+    public Val kmlToGeoJson(@Text Val kml) throws ParseException, JsonProcessingException {
         return GeometryConverter.geometryToGeoJsonNode(KmlConverter.kmlToGeometry(kml));
     }
 
     @Function(name = "kmlToWkt", docs = KML_TO_WKT)
-    public Val kmlToWkt(Val kml) throws ParseException {
+    public Val kmlToWkt(@Text Val kml) throws ParseException {
         return GeometryConverter.geometryToWKT(KmlConverter.kmlToGeometry(kml));
     }
 
     @Function(name = "wktToGml", docs = WKT_TO_GML)
-    public Val wktToGml(Val wkt) throws ParseException {
+    public Val wktToGml(@Text Val wkt) throws ParseException {
         return GeometryConverter.geometryToGML(WktConverter.wktToGeometry(wkt));
     }
 
     @Function(name = "wktToKml", docs = WKT_TO_KML)
-    public Val wktToKml(Val wkt) throws ParseException {
+    public Val wktToKml(@Text Val wkt) throws ParseException {
         return GeometryConverter.geometryToKML(WktConverter.wktToGeometry(wkt));
     }
 
-    @Function(name = "wktToGeoJson", docs = WKT_TO_GEOJSON)
-    public Val wktToGeoJson(Val wkt) throws ParseException, JsonProcessingException {
+    @Function(name = "wktToGeoJson", docs = WKT_TO_GEOJSON, schema = GeoJsonScheme.JSON_SCHEME_COMPLETE)
+    public Val wktToGeoJson(@Text Val wkt) throws ParseException, JsonProcessingException {
         return GeometryConverter.geometryToGeoJsonNode(WktConverter.wktToGeometry(wkt));
     }
 }

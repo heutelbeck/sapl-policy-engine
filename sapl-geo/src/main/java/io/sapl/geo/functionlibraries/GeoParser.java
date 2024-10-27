@@ -39,6 +39,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.Text;
 import io.sapl.geo.functions.GeometryConverter;
 import lombok.RequiredArgsConstructor;
 
@@ -53,7 +54,7 @@ public class GeoParser {
     private final ObjectMapper           mapper;
 
     @Function(name = "parseKml", docs = PARSE_KML)
-    public Val parseKML(Val kml) throws XMLStreamException, IOException, SAXException {
+    public Val parseKML(@Text Val kml) throws XMLStreamException, IOException, SAXException {
         return Val.of(parseKML(kml.getText()));
     }
 

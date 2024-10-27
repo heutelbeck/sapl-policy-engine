@@ -22,19 +22,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class GeoJsonScheme {
 
-    
-    public final String PERSON_SCHEMA = """
-            {
-              "$schema": "http://json-schema.org/draft-07/schema#",
-              "$id": "https://example.com/schemas/regions",
-              "type": "object",
-              "properties": {
-                "name": { "type": "string" }
-              }
-            }
-            """;
-
-    public final String POINT = """
+    public static final String POINT = """
             {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "$id": "https://geojson.org/schema/GeoJSON.json",
@@ -69,7 +57,7 @@ public class GeoJsonScheme {
             }
         """;
     
-    public final String POLYGON = """
+    public static final String POLYGON = """
                 {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "$id": "https://geojson.org/schema/GeoJSON.json",
@@ -111,7 +99,7 @@ public class GeoJsonScheme {
                 }
             """;
     
-    public final String GEOMETRY_COLLECTION= """
+    public static final String GEOMETRY_COLLECTION= """
                 {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "$id": "https://geojson.org/schema/GeoJSON.json",
@@ -357,7 +345,7 @@ public class GeoJsonScheme {
                 }
             """;
     
-    public final String CONVEX_HULL = """
+    public static final String CONVEX_HULL = """
            {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "$id": "https://geojson.org/schema/GeoJSON.json",
@@ -709,7 +697,7 @@ public class GeoJsonScheme {
             }
             """;
 
-    public final String GEOMETRIES = """
+    public static final String GEOMETRIES = """
             {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "$id": "https://geojson.org/schema/GeoJSON.json",
@@ -930,7 +918,7 @@ public class GeoJsonScheme {
               }
             """;
     
-    public final String JSON_SCHEME_COMPLETE = """
+    public static final String JSON_SCHEME_COMPLETE = """
             {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "$id": "https://geojson.org/schema/GeoJSON.json",
