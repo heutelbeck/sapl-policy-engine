@@ -298,4 +298,24 @@ public class StandardFunctionLibrary {
     public Val xmlToVal(@Text Val xml) {
         return Val.of(XML_MAPPER.readTree(xml.getText()));
     }
+
+    @SneakyThrows
+    @Function(docs = """
+            ```jsonToVal(TEXT json)```: Converts a well-formed JSON document ```json``` into a SAPL
+            value representing the content of the JSON document.
+
+            Example:
+            ```
+            import standard.*
+            policy "example"
+            permit
+            where
+               var json = "{ \"hello\": \"world\" }";
+               jsonToVal(json) == { "hello":"world" };
+            ```
+            """)
+    public Val jsonToVal(@Text Val json) {
+        return Val.ofJson(json.getText());
+    }
+
 }

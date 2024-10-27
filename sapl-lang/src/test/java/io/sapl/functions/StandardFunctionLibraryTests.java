@@ -62,6 +62,13 @@ class StandardFunctionLibraryTests {
     }
 
     @Test
+    void jsonToValTest() {
+        final var json = "{ \"hello\": \"world\" }";
+        final var val  = StandardFunctionLibrary.jsonToVal(Val.of(json));
+        assertThat(val.get().get("hello").asText()).isEqualTo("world");
+    }
+
+    @Test
     void lengthOfEmptyIsZero() {
         assertThat(StandardFunctionLibrary.length(Val.ofEmptyArray()), is(val(0)));
         assertThat(StandardFunctionLibrary.length(Val.ofEmptyObject()), is(val(0)));

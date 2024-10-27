@@ -41,7 +41,8 @@ import reactor.test.StepVerifier;
 class ReactiveWebClientTests {
 
     private static final ObjectMapper MAPPER           = new ObjectMapper();
-    private static final String       DEFAULT_BODY     = "{\"message\":\"success\"}";
+    private static final String       DEFAULT_BODY     = """
+            {"message":"success"}""";
     private static final MockResponse DEFAULT_RESPONSE = new MockResponse().setBody(DEFAULT_BODY)
             .addHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE);
 
