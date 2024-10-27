@@ -45,4 +45,8 @@ public @interface PolicyInformationPoint {
      */
     String description() default "";
 
+    /**
+     * @return a string documenting the PIP
+     */
+    String pipDocumentation() default "";
 }

@@ -343,7 +343,7 @@ public class TemporalFunctionLibrary {
             ```localIso(TEXT localDateTime)```: This function parses a date-time ISO 8601 string without an offset,
             such as ```"2011-12-03T10:15:30"``` while using the PDP's system default time zone.
 
-            Example: In case the systems default time zone is ´´´Europe/Berlin``` the expression
+            Example: In case the systems default time zone is ```Europe/Berlin``` the expression
             ```time.localIso("2021-11-08T13:00:00")``` returns ```"2021-11-08T12:00:00Z"```.""")
     public static Val localIso(@Text Val localDateTime) {
         return Val.of(localDateTimeToInstant(
@@ -353,9 +353,9 @@ public class TemporalFunctionLibrary {
 
     @Function(docs = """
             ```localDin(TEXT dinDateTime)```: This function parses a DIN date-time string without an offset,
-            such as ```"08.11.2021 13:00:00"``` while using the PDP's system default time zone. It return an ISO 8601 string.
+            such as ```"08.11.2021 13:00:00"``` while using the PDP's system default time zone. It returns an ISO 8601 string.
 
-            Example: In case the systems default time zone is ´´´Europe/Berlin``` the expression
+            Example: In case the systems default time zone is ```Europe/Berlin``` the expression
             ```time.localDin("08.11.2021 13:00:00")``` returns ```"2021-11-08T12:00:00Z"```.""")
     public static Val localDin(@Text Val dinDateTime) {
         return Val.of(localDateTimeToInstant(parseLocalDateTime(dinDateTime.getText(), DIN_DATE_TIME_FORMATTER),
@@ -364,9 +364,9 @@ public class TemporalFunctionLibrary {
 
     @Function(docs = """
             ```localDin(TEXT dinDateTime)```: This function parses a DIN date-time string without an offset,
-            such as ```"08.11.2021 13:00:00"``` while using the PDP's system default time zone. It return an ISO 8601 string.
+            such as ```"08.11.2021 13:00:00"``` while using the PDP's system default time zone. It returns an ISO 8601 string.
 
-            Example: In case the systems default time zone is ´´´Europe/Berlin``` the expression
+            Example: In case the systems default time zone is ```Europe/Berlin``` the expression
             ```time.localDin("08.11.2021 13:00:00")``` returns ```"2021-11-08T12:00:00Z"```.""")
     public static Val dateTimeAtOffset(@Text Val localDateTime, @Text Val offsetId) {
         final var ldt = DateTimeFormatter.ISO_LOCAL_DATE_TIME.parse(localDateTime.getText(), LocalDateTime::from);

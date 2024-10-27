@@ -62,8 +62,8 @@ public class FilterFunctionLibrary {
      * the replacement characters.
      */
     @Function(docs = """
-            ```blacken(TEXT original[, INTEGER>0 discloseLeft][, INTEGER>0 discloseRight][, TEXT replacement]
-            [, INTEGER>0 length])```:
+            ```blacken(TEXT original\\[, INTEGER>0 discloseLeft\\]\\[, INTEGER>0 discloseRight\\]\\[, TEXT replacement\\]
+            \\[, INTEGER>0 length\\])```:
             This function can be used to partially blacken text in data.
             The function requires that ```discloseLeft```, ```discloseRight```, and ```length``` are in integers > 0.
             Also, ```original``` and ```replacement``` must be text strings.

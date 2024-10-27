@@ -212,7 +212,8 @@ public final class AnnotationFunctionContext implements FunctionContext {
         }
         libraries.put(libName, new HashSet<>());
 
-        LibraryDocumentation libDocs = new LibraryDocumentation(libName, libAnnotation.description());
+        LibraryDocumentation libDocs = new LibraryDocumentation(libName, libAnnotation.description(),
+                libAnnotation.libraryDocumentation());
 
         for (Method method : libraryType.getDeclaredMethods()) {
             if (method.isAnnotationPresent(Function.class)) {

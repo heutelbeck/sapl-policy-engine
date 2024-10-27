@@ -140,7 +140,7 @@ class MockingFunctionContextTests {
     @Test
     void test_documentation() {
         this.ctx.addNewLibraryDocumentation("foo.bar");
-        final var unmockedDoc = new LibraryDocumentation("test", "Test");
+        final var unmockedDoc = new LibraryDocumentation("test", "Test", "Test doc");
         unmockedDoc.getDocumentation().put("upper", "blabla");
         when(this.unmockedCtx.getDocumentation()).thenReturn(List.of(unmockedDoc));
 

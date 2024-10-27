@@ -230,8 +230,8 @@ public class MockingFunctionContext implements FunctionContext {
         if (existingDoc != null) {
             existingDoc.getDocumentation().put(functionName, "Mocked Function");
         } else {
-            LibraryDocumentation functionDocs = new LibraryDocumentation(libName,
-                    "Mocked Function Library: " + libName);
+            LibraryDocumentation functionDocs = new LibraryDocumentation(libName, "Mocked Function Library: " + libName,
+                    "Mocked library");
             functionDocs.getDocumentation().put(functionName, "Mocked Function");
             this.functionDocumentations.put(libName, functionDocs);
         }

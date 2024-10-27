@@ -255,7 +255,7 @@ class MockingAttributeContextTests {
     @Test
     void test_documentation() {
         this.attrCtx.markAttributeMock("foo.bar");
-        final var unmockedDoc = new PolicyInformationPointDocumentation("test", "Test");
+        final var unmockedDoc = new PolicyInformationPointDocumentation("test", "Test", "Test doc");
         unmockedDoc.getDocumentation().put("upper", "blabla");
         when(this.unmockedCtx.getDocumentation()).thenReturn(List.of(unmockedDoc));
 

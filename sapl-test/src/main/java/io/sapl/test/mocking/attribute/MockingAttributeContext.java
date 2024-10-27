@@ -245,7 +245,7 @@ public class MockingAttributeContext implements AttributeContext {
             existingDoc.getDocumentation().put(attributeName, "Mocked Attribute");
         } else {
             PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(pipName,
-                    "Mocked PIP " + pipName);
+                    "Mocked PIP " + pipName, "Mocked PIP");
             pipDocs.getDocumentation().put(attributeName, "Mocked Attribute");
             this.pipDocumentations.put(pipName, pipDocs);
         }

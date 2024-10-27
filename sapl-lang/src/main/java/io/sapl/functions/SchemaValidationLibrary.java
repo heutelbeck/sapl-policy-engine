@@ -47,7 +47,7 @@ public class SchemaValidationLibrary {
     private static final String ID = "$id";
 
     @Function(docs = """
-            ```isCompliantWithSchema(validationSubject,OBJECT schema)```:
+            ```isCompliantWithSchema(validationSubject, OBJECT schema)```:
             This function tests the ```validationSubject``` for compliance with the with the provided JSON schema
             ```schema```.
             The schema itself cannot be validated and improper schema definitions may lead to unexcpected results.

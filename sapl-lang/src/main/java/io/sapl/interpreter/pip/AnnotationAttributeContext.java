@@ -376,7 +376,8 @@ public final class AnnotationAttributeContext implements AttributeContext {
         }
 
         attributeNamesByPipName.put(pipName, new HashSet<>());
-        final var pipDocumentation = new PolicyInformationPointDocumentation(pipName, pipAnnotation.description());
+        final var pipDocumentation = new PolicyInformationPointDocumentation(pipName, pipAnnotation.description(),
+                pipAnnotation.pipDocumentation());
         pipDocumentation.setName(pipName);
         pipDocumentations.add(pipDocumentation);
 
