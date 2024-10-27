@@ -33,7 +33,7 @@ import reactor.core.publisher.Flux;
 @PolicyInformationPoint(name = "http", description = HttpPolicyInformationPoint.DESCRIPTION)
 public class HttpPolicyInformationPoint {
 
-    public final static String DESCRIPTION = """
+    public static final String DESCRIPTION = """
             This Policy Information Point provided basic means to source attribute data by consuming
             HTTP-based APIs and Websockets.
 

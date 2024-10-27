@@ -232,7 +232,9 @@ public class StandardFunctionLibrary {
               length({ "key1" : 1, "key2" : 2}) == 2;
             ```
             """, schema = """
-            { "type": "integer" }""")
+            {
+              "type": "integer"
+            }""")
     public static Val length(@Array @Text @JsonObject Val value) {
         if (value.isTextual()) {
             return Val.of(value.getText().length());
@@ -252,7 +254,9 @@ public class StandardFunctionLibrary {
               toString([1,2,3]) == "[1,2,3]";
             ```
             """, schema = """
-            { "type": "string" }""")
+            { 
+              "type": "string"
+            }""")
     public static Val asString(Val value) {
         if (value.isTextual()) {
             return Val.of(value.get().asText());
@@ -310,7 +314,7 @@ public class StandardFunctionLibrary {
             policy "example"
             permit
             where
-               var json = "{ \"hello\": \"world\" }";
+               var json = "{ \\"hello\\": \\"world\\" }";
                jsonToVal(json) == { "hello":"world" };
             ```
             """)

@@ -35,8 +35,7 @@ import lombok.experimental.UtilityClass;
 public class SchemaValidationLibrary {
 
     public static final String NAME        = "jsonschema";
-    public static final String DESCRIPTION = """
-            This library contains the functions for testing the compliance of a value with a JSON schema.""";
+    public static final String DESCRIPTION = "This library contains the functions for testing the compliance of a value with a JSON schema.";
 
     private static final String RETURNS_BOOLEAN = """
             {

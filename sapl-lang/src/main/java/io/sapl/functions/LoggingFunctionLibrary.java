@@ -34,8 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class LoggingFunctionLibrary {
 
     public static final String  NAME        = "log";
-    public static final String  DESCRIPTION = """
-            Utility functions for dumping data from policy evaluation on the PDP console for debugging of policies.""";
+    public static final String  DESCRIPTION = "Utility functions for dumping data from policy evaluation on the PDP console for debugging of policies.";
     private static final String TEMPLATE    = "[SAPL] {} {}";
 
     /**

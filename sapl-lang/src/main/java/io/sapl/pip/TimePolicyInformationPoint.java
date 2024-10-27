@@ -106,7 +106,7 @@ public class TimePolicyInformationPoint {
     }
 
     private Flux<Instant> instantNow(Duration pollIntervall) {
-        return poll(pollIntervall, () -> clock.instant());
+        return poll(pollIntervall, clock::instant);
     }
 
     private <T> Flux<T> poll(Duration pollIntervall, Supplier<T> supplier) {

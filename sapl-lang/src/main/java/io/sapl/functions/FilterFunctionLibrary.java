@@ -242,7 +242,7 @@ public class FilterFunctionLibrary {
             policy "test"
             permit
             transform resource |- {
-                                    @.array[1] : filter.replace(\"***\"),
+                                    @.array[1] : filter.replace("***"),
                                     @.key1     : filter.replace(null)
                                   }
             ```
