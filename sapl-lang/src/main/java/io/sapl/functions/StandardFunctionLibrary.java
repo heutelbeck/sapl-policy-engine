@@ -254,7 +254,7 @@ public class StandardFunctionLibrary {
               toString([1,2,3]) == "[1,2,3]";
             ```
             """, schema = """
-            { 
+            {
               "type": "string"
             }""")
     public static Val asString(Val value) {
