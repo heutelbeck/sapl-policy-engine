@@ -245,7 +245,7 @@ public class HttpPolicyInformationPoint {
             policy "http example"
             permit
             where
-              "https://example.com/resources/123".<http.post({ body = "\"test\"" })>.status == "OK";
+              "https://example.com/resources/123".<http.post({ body = "\\"test\\"" })>.status == "OK";
             ```
             """)
     public Flux<Val> post(@Text Val resourceUrl, @JsonObject Val requestSettings) {
@@ -263,7 +263,7 @@ public class HttpPolicyInformationPoint {
             policy "http example"
             permit
             where
-              "https://example.com/resources/123".<http.put({ body = "\"test\"" })>.status == "OK";
+              "https://example.com/resources/123".<http.put({ body = "\\"test\\"" })>.status == "OK";
             ```
             """)
     public Flux<Val> put(@Text Val resourceUrl, @JsonObject Val requestSettings) {
@@ -281,7 +281,7 @@ public class HttpPolicyInformationPoint {
             policy "http example"
             permit
             where
-              "https://example.com/resources/123".<http.patch({ body = "\"test\"" })>.status == "OK";
+              "https://example.com/resources/123".<http.patch({ body = "\\"test\\"" })>.status == "OK";
             ```
             """)
     public Flux<Val> patch(@Text Val resourceUrl, @JsonObject Val requestSettings) {
