@@ -87,12 +87,12 @@
 		<xtext.version>2.35.0</xtext.version>
 		<junit.version>5.11.0</junit.version>
 		<jacoco.version>0.8.12</jacoco.version>
-		<vaadin.version>24.5.0</vaadin.version>
+		<vaadin.version>24.5.2</vaadin.version>
 		<rsocket.version>1.1.4</rsocket.version>
 		<lombok.version>1.18.34</lombok.version>
 		<assertj.version>3.26.3</assertj.version>
 		<flexmark.version>0.64.8</flexmark.version>
-		<springboot.version>3.3.4</springboot.version>
+		<springboot.version>3.3.5</springboot.version>
 		<reactor-netty.version>1.1.22</reactor-netty.version>
 		<spotify.hamcrest.version>1.3.2</spotify.hamcrest.version>
 		<json-unit-assertj.version>3.4.1</json-unit-assertj.version>
