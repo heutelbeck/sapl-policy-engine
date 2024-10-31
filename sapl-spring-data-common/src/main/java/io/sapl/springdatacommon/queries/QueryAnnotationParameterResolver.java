@@ -36,15 +36,15 @@ public class QueryAnnotationParameterResolver {
      * database.
      *
      * @param method The method to resolve parameters for.
-     * @param args   The arguments passed to the method.
+     * @param args The arguments passed to the method.
      * @return The resolved query with substituted parameters.
      */
     public static String resolveForRelationalDatabase(Method method, Object[] args) {
 
-        var queryAnnotation = method.getAnnotation(org.springframework.data.r2dbc.repository.Query.class);
-        var query           = queryAnnotation.value();
-        var parameterNames  = getParameterNames(method);
-        var finalArgs       = convertArgumentsToString(args);
+        final var queryAnnotation = method.getAnnotation(org.springframework.data.r2dbc.repository.Query.class);
+        final var query           = queryAnnotation.value();
+        final var parameterNames  = getParameterNames(method);
+        final var finalArgs       = convertArgumentsToString(args);
 
         return replaceParametersRelational(query, parameterNames, finalArgs);
     }
@@ -53,16 +53,16 @@ public class QueryAnnotationParameterResolver {
      * Resolves bounded method parameters and annotation parameters for MongoDB.
      *
      * @param method The method to resolve parameters for.
-     * @param args   The arguments passed to the method.
+     * @param args The arguments passed to the method.
      * @return The resolved query with substituted parameters.
      */
     public static String resolveForMongoDB(Method method, Object[] args) {
 
-        var queryAnnotation = method.getAnnotation(org.springframework.data.mongodb.repository.Query.class);
-        var query           = String.format("%sXXXXX%sXXXXX%s", queryAnnotation.value(), queryAnnotation.fields(),
+        final var queryAnnotation = method.getAnnotation(org.springframework.data.mongodb.repository.Query.class);
+        final var query           = String.format("%sXXXXX%sXXXXX%s", queryAnnotation.value(), queryAnnotation.fields(),
                 queryAnnotation.sort());
-        var parameterNames  = getParameterNames(method);
-        var finalArgs       = convertArgumentsToString(args);
+        final var parameterNames  = getParameterNames(method);
+        final var finalArgs       = convertArgumentsToString(args);
 
         return replaceParameters(query, parameterNames, finalArgs);
     }

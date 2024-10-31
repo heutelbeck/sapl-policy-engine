@@ -83,7 +83,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
                 .withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
                 .withBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class))
                 .withBean(ObjectMapper.class, () -> {
-                    var  mapper = new ObjectMapper();
+                    final var mapper = new ObjectMapper();
                     SimpleModule module = new SimpleModule();
                     module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
                     module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
@@ -91,10 +91,10 @@ class ReactiveSaplMethodSecurityConfigurationTests {
                     mapper.registerModule(module);
                     return mapper;
                 }).run(context -> {
-                    var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null,
-                            null);
-                    var attribute = attribute(null, null, null, null, Object.class);
-                    var actual = context.getBean(WebfluxAuthorizationSubscriptionBuilderService.class)
+                    final var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid",
+                            null, null);
+                    final var attribute = attribute(null, null, null, null, Object.class);
+                    final var actual = context.getBean(WebfluxAuthorizationSubscriptionBuilderService.class)
                             .reactiveConstructAuthorizationSubscription(invocation, attribute);
                     assertNotNull(actual);
                 });
@@ -106,7 +106,7 @@ class ReactiveSaplMethodSecurityConfigurationTests {
     }
 
     private Expression parameterToExpression(String parameter) {
-        var parser = new SpelExpressionParser();
+        final var parser = new SpelExpressionParser();
         return parameter == null || parameter.isEmpty() ? null : parser.parseExpression(parameter);
     }
 

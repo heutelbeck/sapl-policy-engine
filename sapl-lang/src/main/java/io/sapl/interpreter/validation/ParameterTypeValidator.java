@@ -120,7 +120,7 @@ public class ParameterTypeValidator {
     }
 
     private static boolean nodeCompliantWithSchema(JsonNode node, Schema schemaAnnotation) {
-        var schema = schemaAnnotation.value();
+        final var schema = schemaAnnotation.value();
         if ("".equals(schema))
             return true;
         try {
@@ -147,7 +147,7 @@ public class ParameterTypeValidator {
     }
 
     private static String listAllowedTypes(Annotation[] annotations) {
-        var builder = new StringBuilder();
+        final var builder = new StringBuilder();
         for (var annotation : annotations) {
             if (isTypeValidationAnnotation(annotation))
                 builder.append(annotation).append(' ');
@@ -160,8 +160,8 @@ public class ParameterTypeValidator {
             return;
         int index = Math.max(0, indexOfSchemaAnnotation(annotations));
         if (index < annotations.length) {
-            var annotationList    = new ArrayList<>(Arrays.asList(annotations));
-            var indexedAnnotation = annotationList.remove(index);
+            final var annotationList    = new ArrayList<>(Arrays.asList(annotations));
+            final var indexedAnnotation = annotationList.remove(index);
             annotationList.add(indexedAnnotation);
             annotationList.toArray(annotations);
         }

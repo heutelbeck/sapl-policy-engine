@@ -37,7 +37,7 @@ class AuthorizationDecisionInterpreter {
 
     AuthorizationDecision constructAuthorizationDecision(final AuthorizationDecisionType decisionType,
             final Value resource, final List<Value> obligations, final List<Value> advice) {
-        if (decisionType == null) {
+        if (null == decisionType) {
             throw new SaplTestException("AuthorizationDecisionType is null");
         }
 
@@ -64,7 +64,7 @@ class AuthorizationDecisionInterpreter {
     }
 
     private ArrayNode getMappedValArrayFromValues(final List<Value> values) {
-        if (values == null || values.isEmpty()) {
+        if (null == values || values.isEmpty()) {
             return null;
         }
 
@@ -78,9 +78,9 @@ class AuthorizationDecisionInterpreter {
 
     private AuthorizationDecision getAuthorizationDecisionFromDSL(final AuthorizationDecisionType decision) {
         return switch (decision) {
-        case PERMIT -> AuthorizationDecision.PERMIT;
-        case DENY -> AuthorizationDecision.DENY;
-        case INDETERMINATE -> AuthorizationDecision.INDETERMINATE;
+        case PERMIT         -> AuthorizationDecision.PERMIT;
+        case DENY           -> AuthorizationDecision.DENY;
+        case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
         case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
         };
     }

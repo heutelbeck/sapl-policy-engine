@@ -33,12 +33,12 @@ class CoverageCustomConfigTests {
 
     @Test
     void testSystemPropertyConfig_Reader(@TempDir Path tempDir) throws IOException {
-        var               coveragePath = tempDir.resolve("sapl-coverage");
+        final var         coveragePath = tempDir.resolve("sapl-coverage");
         CoverageHitReader reader       = new CoverageHitAPIFile(coveragePath);
         Path              path         = coveragePath.resolve("hits").resolve("_policySetHits.txt");
         if (!Files.exists(path)) {
-            var parent = path.getParent();
-            if (parent != null) {
+            final var parent = path.getParent();
+            if (null != parent) {
                 Files.createDirectories(parent);
             }
             Files.createFile(path);
@@ -55,7 +55,7 @@ class CoverageCustomConfigTests {
 
     @Test
     void testSystemPropertyConfig_Recorder(@TempDir Path tempDir) {
-        var                 coveragePath = tempDir.resolve("sapl-coverage");
+        final var           coveragePath = tempDir.resolve("sapl-coverage");
         CoverageHitRecorder recorder     = new CoverageHitAPIFile(coveragePath);
         // act
         recorder.createCoverageHitFiles();

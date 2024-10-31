@@ -188,7 +188,7 @@ public class AuthorizationSubscription implements Serializable {
     public static AuthorizationSubscription of(Object subject, Object action, Object resource, Object environment,
             ObjectMapper mapper) {
         return new AuthorizationSubscription(mapper.valueToTree(subject), mapper.valueToTree(action),
-                mapper.valueToTree(resource), environment == null ? null : mapper.valueToTree(environment));
+                mapper.valueToTree(resource), null == environment ? null : mapper.valueToTree(environment));
     }
 
 }

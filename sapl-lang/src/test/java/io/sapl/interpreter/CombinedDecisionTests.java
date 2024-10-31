@@ -33,7 +33,7 @@ class CombinedDecisionTests {
 
     @Test
     void error() {
-        var decision = CombinedDecision.error(CombiningAlgorithm.DENY_OVERRIDES, "error message");
+        final var decision = CombinedDecision.error(CombiningAlgorithm.DENY_OVERRIDES, "error message");
         assertThat(decision.getAuthorizationDecision().getDecision()).isEqualTo(Decision.INDETERMINATE);
         assertThat(decision.getTrace().get(Trace.COMBINING_ALGORITHM).textValue())
                 .isEqualTo(CombiningAlgorithm.DENY_OVERRIDES.toString());
@@ -42,7 +42,7 @@ class CombinedDecisionTests {
 
     @Test
     void ofOneDecision() {
-        var decision = CombinedDecision.of(AuthorizationDecision.PERMIT, CombiningAlgorithm.DENY_OVERRIDES);
+        final var decision = CombinedDecision.of(AuthorizationDecision.PERMIT, CombiningAlgorithm.DENY_OVERRIDES);
         assertThat(decision.getAuthorizationDecision().getDecision()).isEqualTo(Decision.PERMIT);
         assertThat(decision.getTrace().get(Trace.COMBINING_ALGORITHM).textValue())
                 .isEqualTo(CombiningAlgorithm.DENY_OVERRIDES.toString());
@@ -50,7 +50,7 @@ class CombinedDecisionTests {
 
     @Test
     void actualCombination() {
-        var decision = CombinedDecision.of(AuthorizationDecision.DENY, CombiningAlgorithm.DENY_OVERRIDES,
+        final var decision = CombinedDecision.of(AuthorizationDecision.DENY, CombiningAlgorithm.DENY_OVERRIDES,
                 List.of(mock(DocumentEvaluationResult.class)));
         assertThat(decision.getAuthorizationDecision().getDecision()).isEqualTo(Decision.DENY);
         assertThat(decision.getTrace().get(Trace.COMBINING_ALGORITHM).textValue())

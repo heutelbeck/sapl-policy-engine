@@ -182,16 +182,16 @@ public class EndpointConfig {
     public boolean testKeystore() throws CertificateException, KeyStoreException, NoSuchAlgorithmException, IOException,
             UnrecoverableEntryException {
         this.validKeystoreConfig = false;
-        var      pwdArray = keyStorePassword.toCharArray();
-        KeyStore ks       = KeyStore.getInstance(keyStoreType.name());
+        final var pwdArray = keyStorePassword.toCharArray();
+        KeyStore  ks       = KeyStore.getInstance(keyStoreType.name());
         try (InputStream is = Files.newInputStream(getKeyStorePath())) {
             ks.load(is, pwdArray);
             if (!ks.containsAlias(keyAlias)) {
                 this.validKeystoreConfig = false;
                 return false;
             }
-            var            keyPwdArray           = this.keyPassword.toCharArray();
-            var            keyPasswordProtection = new KeyStore.PasswordProtection(keyPwdArray);
+            final var      keyPwdArray           = this.keyPassword.toCharArray();
+            final var      keyPasswordProtection = new KeyStore.PasswordProtection(keyPwdArray);
             KeyStore.Entry entry                 = ks.getEntry(this.keyAlias, keyPasswordProtection);
             this.validKeystoreConfig = (entry != null);
         }

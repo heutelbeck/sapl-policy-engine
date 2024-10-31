@@ -84,7 +84,7 @@ public class WebAuthorizationSubscriptionBuilderService {
 
     public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
             MethodInvocation methodInvocation, SaplAttribute attribute, Object returnObject) {
-        var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
+        final var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
         expressionHandler().setReturnObject(returnObject, evaluationCtx);
         evaluationCtx.setVariable("authentication", authentication);
         evaluationCtx.setVariable("methodInvocation", methodInvocation);
@@ -93,7 +93,7 @@ public class WebAuthorizationSubscriptionBuilderService {
 
     public AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
             MethodInvocation methodInvocation, SaplAttribute attribute) {
-        var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
+        final var evaluationCtx = expressionHandler().createEvaluationContext(authentication, methodInvocation);
         evaluationCtx.setVariable("authentication", authentication);
         evaluationCtx.setVariable("methodInvocation", methodInvocation);
         return constructAuthorizationSubscription(authentication, methodInvocation, attribute, evaluationCtx);
@@ -101,10 +101,10 @@ public class WebAuthorizationSubscriptionBuilderService {
 
     private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
             MethodInvocation methodInvocation, SaplAttribute attribute, EvaluationContext evaluationCtx) {
-        var subject     = retrieveSubject(authentication, attribute, evaluationCtx);
-        var action      = retrieveAction(methodInvocation, attribute, evaluationCtx, retrieveRequestObject());
-        var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx);
-        var environment = retrieveEnvironment(attribute, evaluationCtx);
+        final var subject     = retrieveSubject(authentication, attribute, evaluationCtx);
+        final var action      = retrieveAction(methodInvocation, attribute, evaluationCtx, retrieveRequestObject());
+        final var resource    = retrieveResource(methodInvocation, attribute, evaluationCtx);
+        final var environment = retrieveEnvironment(attribute, evaluationCtx);
         return new AuthorizationSubscription(mapper().valueToTree(subject), mapper().valueToTree(action),
                 mapper().valueToTree(resource), mapper().valueToTree(environment));
     }
@@ -120,7 +120,7 @@ public class WebAuthorizationSubscriptionBuilderService {
         // sent over the wire to the PDP
 
         subject.remove("credentials");
-        var principal = subject.get("principal");
+        final var principal = subject.get("principal");
         if (principal instanceof ObjectNode objectPrincipal)
             objectPrincipal.remove("password");
 
@@ -136,8 +136,9 @@ public class WebAuthorizationSubscriptionBuilderService {
     }
 
     private static Optional<HttpServletRequest> retrieveRequestObject() {
-        var requestAttributes = RequestContextHolder.getRequestAttributes();
-        var httpRequest       = requestAttributes != null ? ((ServletRequestAttributes) requestAttributes).getRequest()
+        final var requestAttributes = RequestContextHolder.getRequestAttributes();
+        final var httpRequest       = requestAttributes != null
+                ? ((ServletRequestAttributes) requestAttributes).getRequest()
                 : null;
         return Optional.ofNullable(httpRequest);
     }
@@ -150,12 +151,12 @@ public class WebAuthorizationSubscriptionBuilderService {
     }
 
     private Object retrieveAction(MethodInvocation mi, Optional<?> requestObject) {
-        var actionNode = mapper().createObjectNode();
+        final var actionNode = mapper().createObjectNode();
         requestObject.ifPresent(request -> actionNode.set("http", mapper().valueToTree(request)));
-        var java      = (ObjectNode) mapper().valueToTree(mi);
-        var arguments = mi.getArguments();
+        final var java      = (ObjectNode) mapper().valueToTree(mi);
+        final var arguments = mi.getArguments();
         if (arguments.length > 0) {
-            var array = JSON.arrayNode();
+            final var array = JSON.arrayNode();
             for (Object o : arguments) {
                 try {
                     array.add(mapper().valueToTree(o));
@@ -177,11 +178,11 @@ public class WebAuthorizationSubscriptionBuilderService {
     }
 
     private Object retrieveResource(MethodInvocation mi) {
-        var resourceNode       = mapper().createObjectNode();
-        var httpServletRequest = retrieveRequestObject();
+        final var resourceNode       = mapper().createObjectNode();
+        final var httpServletRequest = retrieveRequestObject();
         // The action is in the context of an HTTP request. Adding it to the resource.
         httpServletRequest.ifPresent(servletRequest -> resourceNode.set("http", mapper().valueToTree(servletRequest)));
-        var java = (ObjectNode) mapper().valueToTree(mi);
+        final var java = (ObjectNode) mapper().valueToTree(mi);
         resourceNode.set("java", java);
         return resourceNode;
     }

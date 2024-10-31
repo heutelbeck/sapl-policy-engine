@@ -51,20 +51,20 @@ public class MockUtil {
     private static final SaplFactory FACTORY = SaplFactoryImpl.eINSTANCE;
 
     public static void mockPolicyTargetExpressionContainerExpression(Expression expression) {
-        var policy                  = FACTORY.createPolicy();
-        var targetExpressionFeature = policy.eClass().getEStructuralFeature("targetExpression");
+        final var policy                  = FACTORY.createPolicy();
+        final var targetExpressionFeature = policy.eClass().getEStructuralFeature("targetExpression");
         policy.eSet(targetExpressionFeature, expression);
     }
 
     public static void mockPolicySetTargetExpressionContainerExpression(Expression expression) {
-        var policySet               = FACTORY.createPolicySet();
-        var targetExpressionFeature = policySet.eClass().getEStructuralFeature("targetExpression");
+        final var policySet               = FACTORY.createPolicySet();
+        final var targetExpressionFeature = policySet.eClass().getEStructuralFeature("targetExpression");
         policySet.eSet(targetExpressionFeature, expression);
     }
 
     public static Context setUpAuthorizationContext(Context ctx) {
-        var attributeCtx = new AnnotationAttributeContext();
-        var functionCtx  = new AnnotationFunctionContext();
+        final var attributeCtx = new AnnotationAttributeContext();
+        final var functionCtx  = new AnnotationFunctionContext();
         try {
             attributeCtx.loadPolicyInformationPoint(new TestPolicyInformationPoint());
             functionCtx.loadLibrary(SimpleFunctionLibrary.class);
@@ -114,7 +114,7 @@ public class MockUtil {
 
         @Function
         public Val parameters(Val... parameters) {
-            var array = Val.JSON.arrayNode();
+            final var array = Val.JSON.arrayNode();
             for (var param : parameters)
                 array.add(param.get());
             return Val.of(array);
@@ -151,20 +151,20 @@ public class MockUtil {
     @SuppressWarnings("unchecked")
     public static void mockPolicyTargetExpressionContainerExpressionForAttributeFinderStep(
             AttributeFinderStep expression) {
-        var basicIdentifier = FACTORY.createBasicIdentifier();
+        final var basicIdentifier = FACTORY.createBasicIdentifier();
         mockPolicyTargetExpressionContainerExpression(basicIdentifier);
-        var stepsFeature  = basicIdentifier.eClass().getEStructuralFeature("steps");
-        var stepsInstance = (EList<Object>) basicIdentifier.eGet(stepsFeature, true);
+        final var stepsFeature  = basicIdentifier.eClass().getEStructuralFeature("steps");
+        final var stepsInstance = (EList<Object>) basicIdentifier.eGet(stepsFeature, true);
         stepsInstance.add(expression);
     }
 
     @SuppressWarnings("unchecked")
     public static void mockPolicySetTargetExpressionContainerExpressionForAttributeFinderStep(
             AttributeFinderStep expression) {
-        var basicIdentifier = FACTORY.createBasicIdentifier();
+        final var basicIdentifier = FACTORY.createBasicIdentifier();
         mockPolicySetTargetExpressionContainerExpression(basicIdentifier);
-        var stepsFeature  = basicIdentifier.eClass().getEStructuralFeature("steps");
-        var stepsInstance = (EList<Object>) basicIdentifier.eGet(stepsFeature, true);
+        final var stepsFeature  = basicIdentifier.eClass().getEStructuralFeature("steps");
+        final var stepsInstance = (EList<Object>) basicIdentifier.eGet(stepsFeature, true);
         stepsInstance.add(expression);
     }
 

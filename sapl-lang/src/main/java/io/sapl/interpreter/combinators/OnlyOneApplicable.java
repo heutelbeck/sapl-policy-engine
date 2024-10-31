@@ -66,14 +66,14 @@ public class OnlyOneApplicable {
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] evaluationResults) {
-        var aPolicyWasIndeterminate = false;
-        var applicableCount         = 0;
-        var authzDecision           = AuthorizationDecision.NOT_APPLICABLE;
-        var decisions               = new LinkedList<DocumentEvaluationResult>();
+        var       aPolicyWasIndeterminate = false;
+        var       applicableCount         = 0;
+        var       authzDecision           = AuthorizationDecision.NOT_APPLICABLE;
+        final var decisions               = new LinkedList<DocumentEvaluationResult>();
         for (var evaluationResult : evaluationResults) {
             decisions.add(evaluationResult);
-            var decisionUnderInspection = evaluationResult.getAuthorizationDecision();
-            var decision                = decisionUnderInspection.getDecision();
+            final var decisionUnderInspection = evaluationResult.getAuthorizationDecision();
+            final var decision                = decisionUnderInspection.getDecision();
             if (decision != Decision.NOT_APPLICABLE) {
                 applicableCount++;
                 authzDecision            = decisionUnderInspection;

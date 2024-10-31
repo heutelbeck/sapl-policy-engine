@@ -67,21 +67,21 @@ class AnnotationFunctionContextTests {
     @Test
     void givenLibraryWithNoExplicitNameInAnnotationWhenDocumentationIsReadThenReturnsClassName()
             throws InitializationException {
-        var context = new AnnotationFunctionContext(() -> List.of(new FunctionLibraryWithoutName()), List::of);
+        final var context = new AnnotationFunctionContext(() -> List.of(new FunctionLibraryWithoutName()), List::of);
         assertThat(context.getDocumentation(), contains(pojo(LibraryDocumentation.class).withProperty("name",
                 is(FunctionLibraryWithoutName.class.getSimpleName()))));
     }
 
     @Test
     void givenStaticLibraryThenContainsFunctions() throws InitializationException {
-        var context = new AnnotationFunctionContext(List::of, () -> List.of(LoggingFunctionLibrary.class));
+        final var context = new AnnotationFunctionContext(List::of, () -> List.of(LoggingFunctionLibrary.class));
         assertThat(context.getDocumentation(),
                 contains(pojo(LibraryDocumentation.class).withProperty("name", is("log"))));
     }
 
     @Test
     void givenMockLibraryWhenListingFunctionsTheMockFunctionIsAvailable() throws InitializationException {
-        var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
+        final var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
         assertThat(context.providedFunctionsOfLibrary(MockLibrary.LIBRARY_NAME), hasItems(MockLibrary.FUNCTION_NAME));
     }
 
@@ -92,21 +92,21 @@ class AnnotationFunctionContextTests {
 
     @Test
     void simpleFunctionCallNoParameters() throws InitializationException {
-        var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
+        final var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
         assertThat(context.evaluate(null, MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME),
                 is(MockLibrary.RETURN_VALUE));
     }
 
     @Test
     void simpleFunctionCallWithParameters() throws InitializationException {
-        var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
+        final var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
         assertThat(context.evaluate(null, MockLibrary.LIBRARY_NAME + ".helloTwoArgs", Val.TRUE, Val.FALSE),
                 is(MockLibrary.RETURN_VALUE));
     }
 
     @Test
     void simpleFunctionCallWithVarArgsParameters() throws InitializationException {
-        var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
+        final var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
         assertThat(
                 context.evaluate(null, MockLibrary.LIBRARY_NAME + ".helloVarArgs", Val.TRUE, Val.FALSE, Val.UNDEFINED),
                 is(MockLibrary.RETURN_VALUE));
@@ -114,33 +114,33 @@ class AnnotationFunctionContextTests {
 
     @Test
     void validationForFixedParametersFailsOnWrongInput() throws InitializationException {
-        var context = new AnnotationFunctionContext(() -> List.of(new ValidationLibrary()), List::of);
+        final var context = new AnnotationFunctionContext(() -> List.of(new ValidationLibrary()), List::of);
         assertThat(context.evaluate(null, "validate.fixed", Val.of(0)), valError());
     }
 
     @Test
     void validationForVarArgsParametersFailsOnWrongInput() throws InitializationException {
-        var context = new AnnotationFunctionContext(() -> List.of(new ValidationLibrary()), List::of);
+        final var context = new AnnotationFunctionContext(() -> List.of(new ValidationLibrary()), List::of);
         assertThat(context.evaluate(null, "validate.varArgs", Val.of(""), Val.of(1)), valError());
     }
 
     @Test
     void callingFunctionReturningExceptionReturnsError() throws InitializationException {
-        var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
+        final var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
         assertThat(context.evaluate(null, MockLibrary.LIBRARY_NAME + ".helloFailure", Val.TRUE, Val.TRUE, Val.TRUE),
                 valError());
     }
 
     @Test
     void simpleFunctionCallNoParametersBadParameterNumberReturnsError() throws InitializationException {
-        var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
+        final var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
         assertThat(context.evaluate(null, MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME, Val.TRUE),
                 valError());
     }
 
     @Test
     void loadedFunctionShouldBeProvided() throws InitializationException {
-        var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
+        final var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
         assertAll(
                 () -> assertThat(context.isProvidedFunction(MockLibrary.LIBRARY_NAME + "." + MockLibrary.FUNCTION_NAME),
                         is(Boolean.TRUE)),
@@ -152,7 +152,7 @@ class AnnotationFunctionContextTests {
 
     @Test
     void libsTest() {
-        var context = new AnnotationFunctionContext();
+        final var context = new AnnotationFunctionContext();
         assertThat(context.evaluate(null, "i.am.not.a.function"), valError());
     }
 
@@ -183,13 +183,13 @@ class AnnotationFunctionContextTests {
 
     @Test
     void loadedLibrariesShouldBeReturned() throws InitializationException {
-        var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
+        final var context = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
         assertThat(context.getAvailableLibraries().contains(MockLibrary.LIBRARY_NAME), is(Boolean.TRUE));
     }
 
     @Test
     void loadedLibrariesReturnEmptyListWhenNotLoaded() {
-        var context = new AnnotationFunctionContext();
+        final var context = new AnnotationFunctionContext();
         assertThat(context.getAvailableLibraries().size(), is(0));
     }
 
@@ -219,23 +219,23 @@ class AnnotationFunctionContextTests {
             }
 
         }
-        var context              = new AnnotationFunctionContext(() -> List.of(new TestLib()), List::of);
-        var actualFullyQualified = context.getAllFullyQualifiedFunctions();
+        final var context              = new AnnotationFunctionContext(() -> List.of(new TestLib()), List::of);
+        final var actualFullyQualified = context.getAllFullyQualifiedFunctions();
         assertThat(actualFullyQualified,
                 containsInAnyOrder("test.helloThreeArgs", "test.helloVarArgs", "test.helloTwoArgs", "test.hello"));
 
-        var simpleTemplates = context.getCodeTemplates();
+        final var simpleTemplates = context.getCodeTemplates();
         assertThat(simpleTemplates, containsInAnyOrder("test.hello()", "test.helloThreeArgs(arg1, arg2, arg3)",
                 "test.helloTwoArgs(arg1, arg2)", "test.helloVarArgs(aVarArgs...)"));
-        var actualTemplates = context.getDocumentedCodeTemplates();
+        final var actualTemplates = context.getDocumentedCodeTemplates();
         assertThat(actualTemplates.values(),
                 containsInAnyOrder("library docs", "doc1", "doc1", "doc2", "doc2", "doc3", "doc3", "doc4", "doc4"));
     }
 
     @Test
     void documentationIsAddedToTheLibrary() throws InitializationException {
-        var context   = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
-        var templates = context.getDocumentedCodeTemplates();
+        final var context   = new AnnotationFunctionContext(() -> List.of(new MockLibrary()), List::of);
+        final var templates = context.getDocumentedCodeTemplates();
         assertThat(templates, hasEntry(MockLibrary.LIBRARY_NAME, MockLibrary.LIBRARY_DOC));
     }
 
@@ -265,57 +265,57 @@ class AnnotationFunctionContextTests {
                   }
                 }""", JsonNode.class);
 
-        var context         = new AnnotationFunctionContext(
+        final var context         = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
-        var functionSchemas = context.getFunctionSchemas();
+        final var functionSchemas = context.getFunctionSchemas();
         assertThat(functionSchemas, hasEntry("annotation.schemaFromJson", personSchema));
     }
 
     @Test
     void badParameterSchemaDetected() throws InitializationException {
-        var context = new AnnotationFunctionContext(
+        final var context = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
         assertThat(context.evaluate(null, "annotation.schemaFromBadJson", Val.of("123")), valError());
     }
 
     @Test
     void schemaIsNotReturned() throws InitializationException {
-        var context         = new AnnotationFunctionContext(
+        final var context         = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
-        var functionSchemas = context.getFunctionSchemas();
+        final var functionSchemas = context.getFunctionSchemas();
         assertThat(functionSchemas, not(hasEntry("annotation.schemaFromJson", "{}")));
     }
 
     @Test
     void typeAnnotationsWithoutSchema() throws InitializationException {
-        var context   = new AnnotationFunctionContext(
+        final var context   = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
-        var parameter = true;
+        final var parameter = true;
         assertThat(context.evaluate(null, "annotation.noSchemaWithMultipleParameterAnnotations", Val.of(parameter)),
                 is(Val.of(true)));
     }
 
     @Test
     void typeAnnotationSchemaDoesNotMatchParameter() throws InitializationException, JsonProcessingException {
-        var context   = new AnnotationFunctionContext(
+        final var context   = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
-        var mapper    = new ObjectMapper();
-        var parameter = mapper.readTree("{\"name\": 23}");
+        final var mapper    = new ObjectMapper();
+        final var parameter = mapper.readTree("{\"name\": 23}");
         assertThat(context.evaluate(null, "annotation.schemaInParameterAnnotation", Val.of(parameter)), valError());
     }
 
     @Test
     void typeAnnotationBoolAsJsonSchemaDoesNotMatchParameter() throws InitializationException, JsonProcessingException {
-        var context   = new AnnotationFunctionContext(
+        final var context   = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
-        var mapper    = new ObjectMapper();
-        var parameter = mapper.readTree("{\"name\": 23}");
+        final var mapper    = new ObjectMapper();
+        final var parameter = mapper.readTree("{\"name\": 23}");
         assertThat(context.evaluate(null, "annotation.boolAnnotatedParameter", Val.of(parameter)), valError());
     }
 
     @Test
     void typeAnnotationJsonValueSchemaMatchesParameter() throws InitializationException {
-        var context = new AnnotationFunctionContext(
+        final var context = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
         assertThat(context.evaluate(null, "annotation.jsonValueSchemaInParameterAnnotation", Val.of("test")),
                 is(Val.of(true)));
@@ -333,10 +333,10 @@ class AnnotationFunctionContextTests {
     @ParameterizedTest
     @MethodSource("parameterProviderForTypeAnnotationSchemaTests")
     void typeAnnotationSchemaTests(String function) throws InitializationException, JsonProcessingException {
-        var context   = new AnnotationFunctionContext(
+        final var context   = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
-        var mapper    = new ObjectMapper();
-        var parameter = mapper.readTree("{\"name\": \"Joe\"}");
+        final var mapper    = new ObjectMapper();
+        final var parameter = mapper.readTree("{\"name\": \"Joe\"}");
         assertThat(context.evaluate(null, function, Val.of(parameter)), is(Val.of(true)));
     }
 
@@ -351,17 +351,17 @@ class AnnotationFunctionContextTests {
     @ParameterizedTest
     @MethodSource("parameterProviderForParamLocationTests")
     void paramLocationSchemaTests(String function) throws InitializationException {
-        var context = new AnnotationFunctionContext(
+        final var context = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
         assertThat(context.evaluate(null, function, Val.of(true)), is(Val.of(true)));
     }
 
     @Test
     void customErrorForSchemaInParameterAnnotation() throws InitializationException, JsonProcessingException {
-        var context   = new AnnotationFunctionContext(
+        final var context   = new AnnotationFunctionContext(
                 () -> List.of(new AnnotationFunctionContextTests.AnnotationLibrary()), List::of);
-        var mapper    = new ObjectMapper();
-        var parameter = mapper.readTree("{\"name\": 23}");
+        final var mapper    = new ObjectMapper();
+        final var parameter = mapper.readTree("{\"name\": 23}");
         assertThat(context.evaluate(null, "annotation.customErrorForSchemaInParameterAnnotation", Val.of(parameter)),
                 valError("Parameter jsonObject needs to comply with the given schema."));
     }
@@ -428,6 +428,29 @@ class AnnotationFunctionContextTests {
         }
         assertThatThrownBy(() -> new AnnotationFunctionContext(List::of, () -> List.of(Lib.class)))
                 .isInstanceOf(InitializationException.class);
+    }
+
+    @Test
+    void when_overloading_then_collision() {
+        @FunctionLibrary(name = "lib")
+        class OverloadingLibrary {
+            private OverloadingLibrary() {
+            }
+
+            @Function
+            public static Val fun(Val param) {
+                return param;
+            }
+
+            @Function
+            public static Val fun(Val param1, Val param2) {
+                return param1;
+            }
+
+        }
+        final var sut = new AnnotationFunctionContext();
+        assertThatThrownBy(() -> sut.loadLibrary(OverloadingLibrary.class)).isInstanceOf(InitializationException.class)
+                .hasMessage(String.format(AnnotationFunctionContext.FUNCTION_NAME_COLLISION_ERROR, "lib.fun"));
     }
 
     @FunctionLibrary(name = MockLibrary.LIBRARY_NAME, description = MockLibrary.LIBRARY_DOC)

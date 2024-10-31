@@ -30,9 +30,9 @@ class TestSaplInterpreterTests {
 
     @Test
     void testTestModeImplAreCreatedIfSystemPropertyIsNotSet() {
-        var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
-        var policyDocument = "policy \"" + POLICY_ID + "\" permit";
-        var document       = interpreter.parse(policyDocument);
+        final var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
+        final var policyDocument = "policy \"" + POLICY_ID + "\" permit";
+        final var document       = interpreter.parse(policyDocument);
 
         assertThat(document.getPolicyElement()).isInstanceOf(PolicyImplCustomCoverage.class);
     }
@@ -40,9 +40,9 @@ class TestSaplInterpreterTests {
     @Test
     void testTestModeImplAreCreatedIfSystemPropertyIsTrue() {
         System.setProperty("io.sapl.test.coverage.collect", "true");
-        var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
-        var policyDocument = "policy \"" + POLICY_ID + "\" permit";
-        var document       = interpreter.parse(policyDocument);
+        final var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
+        final var policyDocument = "policy \"" + POLICY_ID + "\" permit";
+        final var document       = interpreter.parse(policyDocument);
 
         assertThat(document.getPolicyElement()).isInstanceOf(PolicyImplCustomCoverage.class);
         System.clearProperty("io.sapl.test.coverage.collect");
@@ -51,9 +51,9 @@ class TestSaplInterpreterTests {
     @Test
     void testTestModeImplAreCreatedIfSystemPropertyIsFalse() {
         System.setProperty("io.sapl.test.coverage.collect", "false");
-        var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
-        var policyDocument = "policy \"" + POLICY_ID + "\" permit";
-        var document       = interpreter.parse(policyDocument);
+        final var interpreter    = new TestSaplInterpreter(Mockito.mock(CoverageHitRecorder.class));
+        final var policyDocument = "policy \"" + POLICY_ID + "\" permit";
+        final var document       = interpreter.parse(policyDocument);
 
         assertThat(document.getPolicyElement()).isNotInstanceOf(PolicyImplCustomCoverage.class);
         System.clearProperty("io.sapl.test.coverage.collect");

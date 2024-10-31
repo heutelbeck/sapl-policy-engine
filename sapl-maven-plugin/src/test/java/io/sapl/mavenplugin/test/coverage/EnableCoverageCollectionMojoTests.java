@@ -48,8 +48,8 @@ class EnableCoverageCollectionMojoTests extends AbstractMojoTestCase {
     @Test
     void test_disableCoverage() throws Exception {
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject_coverageDisabled.xml");
-        var  mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject_coverageDisabled.xml");
+        final var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
         mojo.setLog(this.log);
 
         assertDoesNotThrow(mojo::execute);
@@ -57,8 +57,8 @@ class EnableCoverageCollectionMojoTests extends AbstractMojoTestCase {
 
     @Test
     void test() throws Exception {
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
-        var  mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
+        final var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
         mojo.setLog(this.log);
 
         try (MockedStatic<PathHelper> pathHelper = Mockito.mockStatic(PathHelper.class)) {
@@ -69,8 +69,8 @@ class EnableCoverageCollectionMojoTests extends AbstractMojoTestCase {
 
     @Test
     void when_deleteFails_MojoException() throws Exception {
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
-        var  mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom_withoutProject.xml");
+        final var mojo = (EnableCoverageCollectionMojo) lookupMojo("enable-coverage-collection", pom.toFile());
         mojo.setLog(this.log);
 
         try (MockedStatic<PathHelper> pathHelper = Mockito.mockStatic(PathHelper.class)) {

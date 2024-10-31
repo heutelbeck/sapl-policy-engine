@@ -30,10 +30,10 @@ public class MultiImplCustom extends MultiImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this, this::multiply);
+        return arithmeticOperator(this, this, MultiImplCustom::multiply);
     }
 
-    private Val multiply(Val left, Val right) {
+    public static Val multiply(Val left, Val right) {
         return Val.of(left.decimalValue().multiply(right.decimalValue())).withTrace(Multi.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }

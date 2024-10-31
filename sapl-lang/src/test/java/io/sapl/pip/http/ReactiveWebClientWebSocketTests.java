@@ -54,28 +54,28 @@ class ReactiveWebClientWebSocketTests {
 
     @Test
     void when_sendBodyToEcho_then_receiveEcho() throws JsonProcessingException {
-        var template        = """
+        final var template        = """
                 {
                     "baseUrl" : "%s",
                     "body" : "\\\"hello\\\""
                 }
                 """;
-        var httpTestRequest = Val.ofJson(String.format(template, "ws://localhost:" + port + "/echo"));
-        var streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).next();
+        final var httpTestRequest = Val.ofJson(String.format(template, "ws://localhost:" + port + "/echo"));
+        final var streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).next();
         StepVerifier.create(streamUnderTest).expectNext(Val.of("hello")).expectComplete()
                 .verify(Duration.ofSeconds(5L));
     }
 
     @Test
     void when_sendBodyNonJSONToEcho_then_receiveEchoButError() throws JsonProcessingException {
-        var template        = """
+        final var template        = """
                 {
                     "baseUrl" : "%s",
                     "body" : "hello"
                 }
                 """;
-        var httpTestRequest = Val.ofJson(String.format(template, "ws://localhost:" + port + "/echo"));
-        var streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).next();
+        final var httpTestRequest = Val.ofJson(String.format(template, "ws://localhost:" + port + "/echo"));
+        final var streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).next();
         StepVerifier.create(streamUnderTest)
                 .expectNextMatches(val -> val.isError() && val.getMessage().contains("Unrecognized token"))
                 .expectComplete().verify(Duration.ofSeconds(5L));
@@ -83,13 +83,13 @@ class ReactiveWebClientWebSocketTests {
 
     @Test
     void when_sendNoBodyToCounter_then_receiveStreamOfNumbers() throws JsonProcessingException {
-        var template        = """
+        final var template        = """
                 {
                     "baseUrl" : "%s"
                 }
                 """;
-        var httpTestRequest = Val.ofJson(String.format(template, "ws://localhost:" + port + "/counter"));
-        var streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).take(3);
+        final var httpTestRequest = Val.ofJson(String.format(template, "ws://localhost:" + port + "/counter"));
+        final var streamUnderTest = new ReactiveWebClient(new ObjectMapper()).consumeWebSocket(httpTestRequest).take(3);
         StepVerifier.create(streamUnderTest).expectNext(Val.of(0)).expectNext(Val.of(1)).expectNext(Val.of(2))
                 .expectComplete().verify(Duration.ofSeconds(5L));
     }

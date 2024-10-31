@@ -36,7 +36,7 @@ public class MethodSecurityExpressionEvaluator {
     private final ExpressionParser                                parser = new SpelExpressionParser();
 
     public boolean evaluate(String expression, MethodInvocation invocation) {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        final var authentication = SecurityContextHolder.getContext().getAuthentication();
         try {
             return parser.parseExpression(expression)
                     .getValue(handler.getObject().createEvaluationContext(authentication, invocation), Boolean.class);

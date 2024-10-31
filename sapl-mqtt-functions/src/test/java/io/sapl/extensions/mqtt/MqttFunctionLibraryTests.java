@@ -206,13 +206,13 @@ class MqttFunctionLibraryTests {
     void when_allTopicsShouldMatchWithMultiLevelWildcardAndSingleTopicMatchesWildcard_then_returnTrue()
             throws InitializationException {
         // GIVEN
-        var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
+        final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
                 "src/test/resources/functionsPolicies", List::of, List::of, List::of,
                 () -> List.of(MqttFunctionLibrary.class), List.of(), List.of());
-        var authzSubscription = AuthorizationSubscription.of("firstSubject", ACTION, "first/second/#");
+        final var authzSubscription = AuthorizationSubscription.of("firstSubject", ACTION, "first/second/#");
 
         // WHEN
-        var pdpDecisionFlux = pdp.decide(authzSubscription);
+        final var pdpDecisionFlux = pdp.decide(authzSubscription);
 
         // THEN
         StepVerifier.create(pdpDecisionFlux)
@@ -224,13 +224,13 @@ class MqttFunctionLibraryTests {
     void when_atLeastOneTopicShouldMatchWithSingleLevelWildcardAndSingleTopicDoesNotMatchWildcard_then_returnTrue()
             throws InitializationException {
         // GIVEN
-        var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/functionsPolicies",
+        final var pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/functionsPolicies",
                 List::of, List::of, List::of, () -> List.of(MqttFunctionLibrary.class), List.of(), List.of());
 
-        var authzSubscription = AuthorizationSubscription.of("secondSubject", ACTION, "first/+/third");
+        final var authzSubscription = AuthorizationSubscription.of("secondSubject", ACTION, "first/+/third");
 
         // WHEN
-        var pdpDecisionFlux = pdp.decide(authzSubscription);
+        final var pdpDecisionFlux = pdp.decide(authzSubscription);
 
         // THEN
         StepVerifier.create(pdpDecisionFlux)

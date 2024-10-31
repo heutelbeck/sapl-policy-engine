@@ -50,7 +50,7 @@ class StepsDefaultImplTestsImpl extends StepsDefaultImpl {
     @Override
     protected void createStepVerifier(AuthorizationSubscription authzSub) {
 
-        var matchResult = this.document.matches().contextWrite(ctx -> {
+        final var matchResult = this.document.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
             ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
             ctx = AuthorizationContext.setVariables(ctx, this.variables);

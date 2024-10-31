@@ -51,8 +51,8 @@ class PolicyImplCustomCoverageTests {
 
     @Test
     void test_Match() {
-        var policy   = interpreter.parse("policy \"p\" permit action == \"read\"");
-        var authzSub = AuthorizationSubscription.of("willi", "read", "something");
+        final var policy   = interpreter.parse("policy \"p\" permit action == \"read\"");
+        final var authzSub = AuthorizationSubscription.of("willi", "read", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
@@ -65,8 +65,8 @@ class PolicyImplCustomCoverageTests {
 
     @Test
     void test_NotMatching() {
-        var policy   = interpreter.parse("policy \"p\" permit action == \"read\"");
-        var authzSub = AuthorizationSubscription.of("willi", "write", "something");
+        final var policy   = interpreter.parse("policy \"p\" permit action == \"read\"");
+        final var authzSub = AuthorizationSubscription.of("willi", "write", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
@@ -79,8 +79,8 @@ class PolicyImplCustomCoverageTests {
 
     @Test
     void test_matchesThrowsError() {
-        var policy   = interpreter.parse("policy \"p\" permit 1/0 == \"test\"");
-        var authzSub = AuthorizationSubscription.of("willi", "write", "something");
+        final var policy   = interpreter.parse("policy \"p\" permit 1/0 == \"test\"");
+        final var authzSub = AuthorizationSubscription.of("willi", "write", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());

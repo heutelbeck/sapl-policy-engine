@@ -39,17 +39,17 @@ public class TargetExpressionUtil {
     public boolean isInTargetExpression(EObject object) {
         EObject current = object;
         while (current.eContainer() != null) {
-            var container     = current.eContainer();
-            var containerName = container.eClass().getName();
+            final var container     = current.eContainer();
+            final var containerName = container.eClass().getName();
             if (POLICY.equals(containerName)) {
-                var policy           = (Policy) container;
-                var targetExpression = policy.getTargetExpression();
+                final var policy           = (Policy) container;
+                final var targetExpression = policy.getTargetExpression();
                 if (current == targetExpression) {
                     return true;
                 }
             } else if (POLICY_SET.equals(containerName)) {
-                var policy           = (PolicySet) container;
-                var targetExpression = policy.getTargetExpression();
+                final var policy           = (PolicySet) container;
+                final var targetExpression = policy.getTargetExpression();
                 if (current == targetExpression) {
                     return true;
                 }

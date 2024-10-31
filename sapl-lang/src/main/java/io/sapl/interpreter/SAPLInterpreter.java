@@ -37,7 +37,7 @@ public interface SAPLInterpreter {
      *
      * @param saplDefinition a String containing a SAPL document
      * @return A parse tree of the document in case an error occurs during parsing.
-     *         This may be either a syntax error or an IO error.
+     * This may be either a syntax error or an IO error.
      */
     SAPL parse(String saplDefinition);
 
@@ -47,7 +47,7 @@ public interface SAPLInterpreter {
      *
      * @param saplInputStream an InputStream containing a SAPL document
      * @return A parse tree of the document in case an error occurs during parsing.
-     *         This may be either a syntax error or an IO error.
+     * This may be either a syntax error or an IO error.
      */
     SAPL parse(InputStream saplInputStream);
 
@@ -73,7 +73,7 @@ public interface SAPLInterpreter {
      * Method which applies the SAPL parser to a String containing a SAPL document
      * and generates the matching Document.
      *
-     * @param id             the document Id
+     * @param id the document Id
      * @param saplDefinition a String containing a SAPL document
      * @return Document with the given Id
      */
@@ -83,7 +83,7 @@ public interface SAPLInterpreter {
      * Method which applies the SAPL parser to an InputStream containing a SAPL
      * document and generates the matching parse-tree.
      *
-     * @param id              the document Id
+     * @param id the document Id
      * @param saplInputStream an InputStream containing a SAPL document
      * @return Document with the given Id
      */
@@ -95,10 +95,10 @@ public interface SAPLInterpreter {
      * subscription object within a given attribute context and function context and
      * returns a {@link Flux} of {@link AuthorizationDecision} objects.
      *
-     * @param authzSubscription    the authorization subscription object
-     * @param saplDocumentSource   the String representing the SAPL document
-     * @param attributeContext     the PDP's AttributeContext
-     * @param functionContext      the PDP's FunctionContext
+     * @param authzSubscription the authorization subscription object
+     * @param saplDocumentSource the String representing the SAPL document
+     * @param attributeContext the PDP's AttributeContext
+     * @param functionContext the PDP's FunctionContext
      * @param environmentVariables map containing the PDP's environment variables
      * @return A {@link Flux} of {@link AuthorizationDecision} objects.
      */

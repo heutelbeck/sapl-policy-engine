@@ -36,10 +36,10 @@ class ImportsTests {
 
     @Test
     void test_times_specificNumber() {
-        var mockRunInformation = new MockRunInformation("test.test");
+        final var mockRunInformation = new MockRunInformation("test.test");
         mockRunInformation.saveCall(new MockCall(Val.of(1)));
         mockRunInformation.saveCall(new MockCall(Val.of(1)));
-        var verification = times(2);
+        final var verification = times(2);
 
         var isAssertionErrorThrown = false;
         try {
@@ -53,9 +53,9 @@ class ImportsTests {
 
     @Test
     void test_times_specificNumber_failure() {
-        var mockRunInformation = new MockRunInformation("test.test");
+        final var mockRunInformation = new MockRunInformation("test.test");
         mockRunInformation.saveCall(new MockCall(Val.of(1)));
-        var verification = times(2);
+        final var verification = times(2);
 
         var isAssertionErrorThrown = false;
         try {
@@ -69,8 +69,8 @@ class ImportsTests {
 
     @Test
     void test_times_never() {
-        var mockRunInformation = new MockRunInformation("test.test");
-        var verification       = never();
+        final var mockRunInformation = new MockRunInformation("test.test");
+        final var verification       = never();
 
         var isAssertionErrorThrown = false;
         try {
@@ -84,9 +84,9 @@ class ImportsTests {
 
     @Test
     void test_times_never_failure() {
-        var mockRunInformation = new MockRunInformation("test.test");
+        final var mockRunInformation = new MockRunInformation("test.test");
         mockRunInformation.saveCall(new MockCall(Val.of(1)));
-        var verification = never();
+        final var verification = never();
 
         var isAssertionErrorThrown = false;
         try {
@@ -100,8 +100,8 @@ class ImportsTests {
 
     @Test
     void test_times_anyTimes_0() {
-        var mockRunInformation = new MockRunInformation("test.test");
-        var verification       = anyTimes();
+        final var mockRunInformation = new MockRunInformation("test.test");
+        final var verification       = anyTimes();
 
         var isAssertionErrorThrown = false;
         try {
@@ -115,9 +115,9 @@ class ImportsTests {
 
     @Test
     void test_times_anyTimes_1() {
-        var mockRunInformation = new MockRunInformation("test.test");
+        final var mockRunInformation = new MockRunInformation("test.test");
         mockRunInformation.saveCall(new MockCall(Val.of(1)));
-        var verification = anyTimes();
+        final var verification = anyTimes();
 
         var isAssertionErrorThrown = false;
         try {
@@ -131,12 +131,12 @@ class ImportsTests {
 
     @Test
     void test_times_anyTimes_N() {
-        var mockRunInformation = new MockRunInformation("test.test");
+        final var mockRunInformation = new MockRunInformation("test.test");
         mockRunInformation.saveCall(new MockCall(Val.of(1)));
         mockRunInformation.saveCall(new MockCall(Val.of(1)));
         mockRunInformation.saveCall(new MockCall(Val.of(1)));
         mockRunInformation.saveCall(new MockCall(Val.of(1)));
-        var verification = anyTimes();
+        final var verification = anyTimes();
 
         var isAssertionErrorThrown = false;
         try {

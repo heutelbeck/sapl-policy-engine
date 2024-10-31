@@ -70,7 +70,7 @@ public class FirstApplicable {
             return Flux::just;
 
         return combinedDecision -> evaluatePolicy(policies.get(policyId)).switchMap(documentEvaluationResult -> {
-            var authzDecision = documentEvaluationResult.getAuthorizationDecision();
+            final var authzDecision = documentEvaluationResult.getAuthorizationDecision();
             if (authzDecision.getDecision() != Decision.NOT_APPLICABLE) // Found first applicable
                 return Flux.just(
                         combinedDecision.withDecisionAndEvaluationResult(authzDecision, documentEvaluationResult));

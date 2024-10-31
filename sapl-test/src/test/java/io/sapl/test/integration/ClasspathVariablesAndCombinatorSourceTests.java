@@ -38,7 +38,8 @@ class ClasspathVariablesAndCombinatorSourceTests {
 
     @Test
     void doTest() {
-        var configProvider = new ClasspathVariablesAndCombinatorSource("policiesIT", new ObjectMapper(), null, null);
+        final var configProvider = new ClasspathVariablesAndCombinatorSource("policiesIT", new ObjectMapper(), null,
+                null);
         assertThat(configProvider.getCombiningAlgorithm().blockFirst())
                 .contains(PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT);
         assertThat(configProvider.getVariables().log(null, Level.INFO, SignalType.ON_NEXT).blockFirst().get().keySet())
@@ -60,7 +61,7 @@ class ClasspathVariablesAndCombinatorSourceTests {
 
     @Test
     void test_IOException() throws IOException {
-        var mapper = Mockito.mock(ObjectMapper.class);
+        final var mapper = Mockito.mock(ObjectMapper.class);
         Mockito.when(mapper.readValue((File) Mockito.any(), Mockito.<Class<PolicyDecisionPointConfiguration>>any()))
                 .thenThrow(new IOException());
         assertThatExceptionOfType(IOException.class)

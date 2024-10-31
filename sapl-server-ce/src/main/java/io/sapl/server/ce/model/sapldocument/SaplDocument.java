@@ -151,9 +151,9 @@ public class SaplDocument implements Serializable {
      */
     public String getTypeAsString() {
         return switch (type) {
-        case POLICY -> "Policy";
+        case POLICY     -> "Policy";
         case POLICY_SET -> "Policy Set";
-        case INVALID -> "Invalid Document";
+        case INVALID    -> "Invalid Document";
         };
     }
 }

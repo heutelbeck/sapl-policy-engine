@@ -73,7 +73,7 @@ public class EditVariableView extends VerticalLayout implements HasUrlParameter<
     public EditVariableView(VariablesService variableService) {
         this.variableService = variableService;
 
-        var jsonEditorConfig = new JsonEditorConfiguration();
+        final var jsonEditorConfig = new JsonEditorConfiguration();
         jsonEditorConfig.setHasLineNumbers(true);
         jsonEditorConfig.setTextUpdateDelay(500);
         jsonEditorConfig.setDarkTheme(true);

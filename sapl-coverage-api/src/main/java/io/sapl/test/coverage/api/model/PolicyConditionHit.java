@@ -67,7 +67,7 @@ public class PolicyConditionHit {
      * @return the expressed PolicyConditionHit
      */
     public static PolicyConditionHit fromString(String policyConditionToStringResult) {
-        var split = policyConditionToStringResult.split(CoverageHitConstants.DELIMITER_MATCH_REGEX);
+        final var split = policyConditionToStringResult.split(CoverageHitConstants.DELIMITER_MATCH_REGEX);
         return new PolicyConditionHit(split[0], split[1], Integer.parseInt(split[2]), Boolean.parseBoolean(split[3]));
     }
 

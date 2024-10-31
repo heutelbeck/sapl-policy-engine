@@ -95,7 +95,7 @@ class KeyTestUtility {
     /**
      * @param keyPair
      * @return a predicate that evaluates to true iff it's input is of type
-     *         RSAPublicKey and matches the public key of the supplied keyPair
+     * RSAPublicKey and matches the public key of the supplied keyPair
      */
     static Predicate<Object> keyValidator(KeyPair keyPair) {
         return publicKey -> {

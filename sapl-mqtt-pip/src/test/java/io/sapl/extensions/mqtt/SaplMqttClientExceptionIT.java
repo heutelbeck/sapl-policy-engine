@@ -70,10 +70,10 @@ class SaplMqttClientExceptionIT {
     @Test
     void when_exceptionOccursWhileBuildingMessageFlux_then_returnFluxWithValOfError() {
         // GIVEN
-        var topics = "topic";
+        final var topics = "topic";
 
         // WHEN
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), null);
+        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), null);
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
@@ -84,10 +84,10 @@ class SaplMqttClientExceptionIT {
     @Disabled("This test causes side effects and makes SaplMqttClientSubscriptionsIT.when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics fail by timeout")
     void when_exceptionOccursInTheMessageFlux_then_returnFluxWithValOfError() {
         // GIVEN
-        var topics = "topic";
+        final var topics = "topic";
 
         // WHEN
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), Map.of());
+        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), Map.of());
 
         try (MockedStatic<DefaultResponseUtility> defaultResponseUtilityMockedStatic = Mockito
                 .mockStatic(DefaultResponseUtility.class)) {

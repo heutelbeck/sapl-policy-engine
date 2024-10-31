@@ -31,25 +31,25 @@ class IsValUndefinedTests {
 
     @Test
     void testTypeFalseError() {
-        var sut = valUndefined();
+        final var sut = valUndefined();
         assertThat(Val.error((String) null), not(is(sut)));
     }
 
     @Test
     void testTypeFalseValue() {
-        var sut = valUndefined();
+        final var sut = valUndefined();
         assertThat(Val.TRUE, not(is(sut)));
     }
 
     @Test
     void testType() {
-        var sut = valUndefined();
+        final var sut = valUndefined();
         assertThat(Val.UNDEFINED, is(sut));
     }
 
     @Test
     void testDescriptionForEmptyConstructor() {
-        var                     sut         = valUndefined();
+        final var               sut         = valUndefined();
         final StringDescription description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(), is("undefined"));

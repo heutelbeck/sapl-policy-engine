@@ -51,14 +51,13 @@ public class HasAdviceMatching extends TypeSafeDiagnosingMatcher<AuthorizationDe
 
     @Override
     protected boolean matchesSafely(AuthorizationDecision decision, Description mismatchDescription) {
-        var advice = decision.getAdvice();
+        final var advice = decision.getAdvice();
         if (advice.isEmpty()) {
             mismatchDescription.appendText("decision didn't contain any advice");
             return false;
         }
 
         var containsAdvice = false;
-
         for (JsonNode node : advice.get()) {
             if (this.predicate.test(node))
                 containsAdvice = true;

@@ -80,7 +80,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
         checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
 
         return Flux.combineLatest(args, latestPublishedEventsPerArgument -> {
-            var trace = new HashMap<String, Val>(latestPublishedEventsPerArgument.length + 1);
+            final var trace = new HashMap<String, Val>(latestPublishedEventsPerArgument.length + 1);
             trace.put("attributeName", Val.of(attributeName));
             for (int i = 0; i < latestPublishedEventsPerArgument.length; i++) {
                 trace.put("argument[" + i + "]", (Val) latestPublishedEventsPerArgument[i]);
@@ -93,7 +93,8 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 
             for (ParameterSpecificMockReturnValue parameterSpecificMockReturnValue : matchingParameterSpecificMockReturnValues) {
 
-                var argumentMatchers = parameterSpecificMockReturnValue.getExpectedParameters().getArgumentMatchers();
+                final var argumentMatchers = parameterSpecificMockReturnValue.getExpectedParameters()
+                        .getArgumentMatchers();
 
                 checkAttributeArgumentsCountEqualsNumberOfArgumentMatcher(argumentMatchers.getMatchers(),
                         latestPublishedEventsPerArgument);

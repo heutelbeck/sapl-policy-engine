@@ -50,16 +50,18 @@ class DefaultSAPLInterpreterTransformationTests {
             .enable(SerializationFeature.INDENT_OUTPUT);
     private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
     private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
-    private static final AnnotationFunctionContext  FUNCTION_CTX     = new AnnotationFunctionContext();
     private static final Map<String, Val>           SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+
+    private AnnotationFunctionContext functionCtx;
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        FUNCTION_CTX.loadLibrary(SimpleFunctionLibrary.class);
-        FUNCTION_CTX.loadLibrary(FilterFunctionLibrary.class);
-        var systemUTC                   = Clock.systemUTC();
-        var simpleFilterFunctionLibrary = new SimpleFilterFunctionLibrary(systemUTC);
-        FUNCTION_CTX.loadLibrary(simpleFilterFunctionLibrary);
+        functionCtx = new AnnotationFunctionContext();
+        functionCtx.loadLibrary(SimpleFunctionLibrary.class);
+        functionCtx.loadLibrary(FilterFunctionLibrary.class);
+        final var systemUTC                   = Clock.systemUTC();
+        final var simpleFilterFunctionLibrary = new SimpleFilterFunctionLibrary(systemUTC);
+        functionCtx.loadLibrary(simpleFilterFunctionLibrary);
     }
 
     @SneakyThrows
@@ -68,9 +70,9 @@ class DefaultSAPLInterpreterTransformationTests {
     void validSaplDocumentsParseWithoutError(String testCase, String authorizationSubscription, String saplDocument,
             String expectedResource) {
         assertThat(testCase).isNotNull();
-        var expectedDecision = new AuthorizationDecision(Decision.PERMIT,
+        final var expectedDecision = new AuthorizationDecision(Decision.PERMIT,
                 Optional.of(MAPPER.readValue(expectedResource, JsonNode.class)), Optional.empty(), Optional.empty());
-        var subscription     = MAPPER.readValue(authorizationSubscription, AuthorizationSubscription.class);
+        final var subscription     = MAPPER.readValue(authorizationSubscription, AuthorizationSubscription.class);
         assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(subscription, saplDocument,
                 expectedDecision);
     }
@@ -479,10 +481,8 @@ class DefaultSAPLInterpreterTransformationTests {
     private void assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(
             AuthorizationSubscription authorizationSubscription, String policy,
             AuthorizationDecision expectedDecision) {
-        assertThat(
-                INTERPRETER.evaluate(authorizationSubscription, policy, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
-                        .blockFirst())
-                .isEqualTo(expectedDecision);
+        assertThat(INTERPRETER.evaluate(authorizationSubscription, policy, ATTRIBUTE_CTX, functionCtx, SYSTEM_VARIABLES)
+                .blockFirst()).isEqualTo(expectedDecision);
     }
 
 }

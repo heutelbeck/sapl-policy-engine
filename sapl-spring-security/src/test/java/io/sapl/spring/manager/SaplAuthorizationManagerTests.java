@@ -69,9 +69,9 @@ class SaplAuthorizationManagerTests {
 
     @Test
     void whenPermit_thenGranted() {
-        var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
+        final var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
-        var ctx = mock(RequestAuthorizationContext.class);
+        final var ctx = mock(RequestAuthorizationContext.class);
         assertThat(sut.check(() -> authentication, ctx))
                 .matches(org.springframework.security.authorization.AuthorizationDecision::isGranted);
         verify(bundle, times(1)).handleOnDecisionConstraints();
@@ -79,37 +79,37 @@ class SaplAuthorizationManagerTests {
 
     @Test
     void whenIndeterminate_thenDenied() {
-        var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
+        final var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.INDETERMINATE));
-        var ctx = mock(RequestAuthorizationContext.class);
+        final var ctx = mock(RequestAuthorizationContext.class);
         assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
         verify(bundle, times(1)).handleOnDecisionConstraints();
     }
 
     @Test
     void whenNullDecision_thenDenied() {
-        var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
+        final var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.empty());
-        var ctx = mock(RequestAuthorizationContext.class);
+        final var ctx = mock(RequestAuthorizationContext.class);
         assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
     }
 
     @Test
     void whenHasResource_thenDenied() {
-        var sut      = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
-        var decision = AuthorizationDecision.PERMIT.withResource(mapper.createObjectNode());
+        final var sut      = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
+        final var decision = AuthorizationDecision.PERMIT.withResource(mapper.createObjectNode());
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(decision));
-        var ctx = mock(RequestAuthorizationContext.class);
+        final var ctx = mock(RequestAuthorizationContext.class);
         assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
     }
 
     @Test
     void whenObligationsFail_thenAccessDenied() {
-        var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
+        final var sut = new SaplAuthorizationManager(pdp, constraintHandlers, mapper);
         when(pdp.decide((AuthorizationSubscription) any())).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
         doThrow(new AccessDeniedException("")).when(bundle).handleOnDecisionConstraints();
 
-        var ctx = mock(RequestAuthorizationContext.class);
+        final var ctx = mock(RequestAuthorizationContext.class);
         assertThat(sut.check(() -> authentication, ctx)).matches(dec -> !dec.isGranted());
         verify(bundle, times(1)).handleOnDecisionConstraints();
     }

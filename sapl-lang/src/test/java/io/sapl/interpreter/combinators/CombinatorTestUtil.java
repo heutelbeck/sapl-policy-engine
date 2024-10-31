@@ -43,25 +43,25 @@ public class CombinatorTestUtil {
     private static final Map<String, Val>           VARIABLES     = new HashMap<>();
 
     public static void validateDecision(AuthorizationSubscription subscription, String policySet, Decision expected) {
-        var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getDecision);
+        final var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getDecision);
         StepVerifier.create(decisions).expectNext(expected).verifyComplete();
     }
 
     public static void validateResource(AuthorizationSubscription subscription, String policySet,
             Optional<JsonNode> expected) {
-        var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getResource);
+        final var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getResource);
         StepVerifier.create(decisions).expectNext(expected).verifyComplete();
     }
 
     public static void validateObligations(AuthorizationSubscription subscription, String policySet,
             Optional<ArrayNode> expected) {
-        var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getObligations);
+        final var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getObligations);
         StepVerifier.create(decisions).expectNext(expected).verifyComplete();
     }
 
     public static void validateAdvice(AuthorizationSubscription subscription, String policySet,
             Optional<ArrayNode> expected) {
-        var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getAdvice);
+        final var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getAdvice);
         StepVerifier.create(decisions).expectNext(expected).verifyComplete();
     }
 

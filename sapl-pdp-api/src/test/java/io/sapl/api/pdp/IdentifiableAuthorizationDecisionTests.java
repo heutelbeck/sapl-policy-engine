@@ -29,7 +29,7 @@ class IdentifiableAuthorizationDecisionTests {
 
     @Test
     void subjectActionResourceDefaultMapper() {
-        var subscription = IdentifiableAuthorizationDecision.INDETERMINATE;
+        final var subscription = IdentifiableAuthorizationDecision.INDETERMINATE;
 
         assertAll(() -> assertThat(subscription.getAuthorizationSubscriptionId(), is(nullValue())),
                 () -> assertEquals(Decision.INDETERMINATE, subscription.getAuthorizationDecision().getDecision()));

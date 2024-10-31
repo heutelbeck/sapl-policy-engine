@@ -34,11 +34,11 @@ class AuthorizationSubscriptionTests {
 
     @Test
     void subjectActionResourceConstructorr() {
-        var subject      = JSON.textNode(SUBJECT);
-        var action       = JSON.textNode(ACTION);
-        var resource     = JSON.textNode(RESOURCE);
-        var environment  = JSON.textNode(ENVIRONMENT);
-        var subscription = new AuthorizationSubscription(subject, action, resource, environment);
+        final var subject      = JSON.textNode(SUBJECT);
+        final var action       = JSON.textNode(ACTION);
+        final var resource     = JSON.textNode(RESOURCE);
+        final var environment  = JSON.textNode(ENVIRONMENT);
+        final var subscription = new AuthorizationSubscription(subject, action, resource, environment);
         assertThatJson(subscription.getSubject()).isString().isEqualTo(SUBJECT);
         assertThatJson(subscription.getAction()).isString().isEqualTo(ACTION);
         assertThatJson(subscription.getResource()).isString().isEqualTo(RESOURCE);
@@ -47,7 +47,7 @@ class AuthorizationSubscriptionTests {
 
     @Test
     void subjectActionResourceDefaultMapper() {
-        var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+        final var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
         assertThatJson(subscription.getSubject()).isString().isEqualTo(SUBJECT);
         assertThatJson(subscription.getAction()).isString().isEqualTo(ACTION);
         assertThatJson(subscription.getResource()).isString().isEqualTo(RESOURCE);
@@ -56,7 +56,7 @@ class AuthorizationSubscriptionTests {
 
     @Test
     void subjectActionResourceEnvironmentDefaultMapper() {
-        var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE, ENVIRONMENT);
+        final var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE, ENVIRONMENT);
         assertThatJson(subscription.getSubject()).isString().isEqualTo(SUBJECT);
         assertThatJson(subscription.getAction()).isString().isEqualTo(ACTION);
         assertThatJson(subscription.getResource()).isString().isEqualTo(RESOURCE);

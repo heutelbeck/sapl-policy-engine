@@ -36,6 +36,9 @@ public class PolicyInformationPointDocumentation {
     @NonNull
     String description;
 
+    @NonNull
+    String pipDocumentation;
+
     Map<String, String> documentation = new HashMap<>();
 
 }

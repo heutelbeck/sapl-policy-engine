@@ -69,12 +69,12 @@ class ConstraintQueryEnforcementServiceTests {
         when(decision.getObligations()).thenReturn(obligationsMongoQuery);
         when(ConstraintResponsibility.isResponsible(obligationMongoQuery, "mongoQueryManipulation")).thenReturn(true);
 
-        var queryManipulationRecords = List
+        final var queryManipulationRecords = List
                 .of(new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, obligationMongoQuery));
-        var result                   = new QueryManipulationConstraintHandlerService(queryManipulationRecords);
+        final var result                   = new QueryManipulationConstraintHandlerService(queryManipulationRecords);
 
         // WHEN
-        var handler = CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision);
+        final var handler = CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision);
 
         // THEN
         assertEquals(handler.getQueryManipulationRecords(), result.getQueryManipulationRecords());
@@ -86,12 +86,12 @@ class ConstraintQueryEnforcementServiceTests {
         when(decision.getObligations()).thenReturn(obligationsR2dbcQuery);
         when(ConstraintResponsibility.isResponsible(obligationR2dbcQuery, "r2dbcQueryManipulation")).thenReturn(true);
 
-        var queryManipulationRecords = List
+        final var queryManipulationRecords = List
                 .of(new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, obligationR2dbcQuery));
-        var result                   = new QueryManipulationConstraintHandlerService(queryManipulationRecords);
+        final var result                   = new QueryManipulationConstraintHandlerService(queryManipulationRecords);
 
         // WHEN
-        var handler = CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision);
+        final var handler = CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision);
 
         // THEN
         assertEquals(handler.getQueryManipulationRecords(), result.getQueryManipulationRecords());
@@ -103,7 +103,7 @@ class ConstraintQueryEnforcementServiceTests {
         when(decision.getObligations()).thenReturn(obligationsMongoQuery);
         when(ConstraintResponsibility.isResponsible(obligationMongoQuery, "mongoQueryManipulation")).thenReturn(false);
 
-        var errorMessage = """
+        final var errorMessage = """
                 			Unhandable Obligation: {
                 			  "type" : "mongoQueryManipulation",
                 			  "conditions" : [ "{'role': {'$eq': 'USER'}}" ],
@@ -117,7 +117,7 @@ class ConstraintQueryEnforcementServiceTests {
         // WHEN
 
         // THEN
-        var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
+        final var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
             CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision);
         });
         assertEquals(TestUtils.removeWhitespace(errorMessage),
@@ -131,7 +131,7 @@ class ConstraintQueryEnforcementServiceTests {
         when(ConstraintResponsibility.isResponsible(obligationsAnotherOne.get(), "r2dbcQueryManipulation"))
                 .thenReturn(true);
 
-        var errorMessage = """
+        final var errorMessage = """
                 		UnhandableObligation:{
                 			"type":"testObligation",
                 			"test":["{'role':{'$eq':'USER'}}"]}
@@ -140,7 +140,7 @@ class ConstraintQueryEnforcementServiceTests {
         // WHEN
 
         // THEN
-        var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
+        final var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
             CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision);
         });
         assertEquals(TestUtils.removeWhitespace(errorMessage),
@@ -154,7 +154,7 @@ class ConstraintQueryEnforcementServiceTests {
         when(ConstraintResponsibility.isResponsible(any(JsonNode.class), eq("r2dbcQueryManipulation")))
                 .thenReturn(true);
 
-        var errorMessage = """
+        final var errorMessage = """
                 	UnhandableObligation:{
                 		"type":"r2dbcQueryManipulation",
                 		"conditionss":["active=true"],
@@ -166,7 +166,7 @@ class ConstraintQueryEnforcementServiceTests {
         // WHEN
 
         // THEN
-        var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
+        final var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
             CONSTRAINT_SERVICE.queryManipulationForR2dbc(decision);
         });
         assertEquals(TestUtils.removeWhitespace(errorMessage),
@@ -179,7 +179,7 @@ class ConstraintQueryEnforcementServiceTests {
         when(decision.getObligations()).thenReturn(firstObligationInWrongFormat);
         when(ConstraintResponsibility.isResponsible(obligationMongoQuery, "mongoQueryManipulation")).thenReturn(true);
 
-        var errorMessage = """
+        final var errorMessage = """
                 			Unhandable Obligation: {
                 			  "type" : "r2dbcQueryManipulation",
                 			  "conditionss" : [ "active=true" ],
@@ -193,7 +193,7 @@ class ConstraintQueryEnforcementServiceTests {
         // WHEN
 
         // THEN
-        var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
+        final var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
             CONSTRAINT_SERVICE.queryManipulationForMongoReactive(decision);
         });
         assertEquals(TestUtils.removeWhitespace(errorMessage),

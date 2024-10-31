@@ -25,7 +25,7 @@ public class FilterSimpleImplCustom extends FilterSimpleImpl {
 
     @Override
     public Flux<Val> apply(Val unfilteredValue) {
-        return FilterAlgorithmUtil.applyFilterFunction(unfilteredValue, arguments, fsteps, each, this);
+        return FilterAlgorithmUtil.applyFilterFunction(unfilteredValue, arguments, identifier, each, this);
     }
 
 }

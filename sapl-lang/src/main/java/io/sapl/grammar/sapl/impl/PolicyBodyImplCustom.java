@@ -59,7 +59,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
                     Map.of(Trace.PREVIOUS_CONDITION_RESULT, previousResult)));
         }
 
-        var statement = statements.get(statementId);
+        final var statement = statements.get(statementId);
 
         if (statement instanceof ValueDefinition valueDefinition)
             return evaluateValueStatement(previousResult, statementId, valueDefinition);
@@ -69,7 +69,7 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
     }
 
     private Flux<Val> evaluateValueStatement(Val previousResult, int statementId, ValueDefinition valueDefinition) {
-        var valueStream = valueDefinition.getEval().evaluate().map(val -> val.withTrace(PolicyBody.class, true,
+        final var valueStream = valueDefinition.getEval().evaluate().map(val -> val.withTrace(PolicyBody.class, true,
                 Map.of(Trace.VARIABLE_NAME, Val.of(valueDefinition.getName()))));
         return valueStream.switchMap(value -> evaluateStatements(previousResult, statementId + 1)
                 .contextWrite(setVariable(valueDefinition.getName(), value)));

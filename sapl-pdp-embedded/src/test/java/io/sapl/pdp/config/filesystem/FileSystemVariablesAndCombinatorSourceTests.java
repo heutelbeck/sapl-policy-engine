@@ -36,9 +36,9 @@ class FileSystemVariablesAndCombinatorSourceTest {
 
     @Test
     void loadExistingConfigTest() {
-        var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
-        var algo           = configProvider.getCombiningAlgorithm().blockFirst();
-        var variables      = configProvider.getVariables().blockFirst();
+        final var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
+        final var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+        final var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
         assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY, is(Boolean.TRUE));
@@ -47,9 +47,9 @@ class FileSystemVariablesAndCombinatorSourceTest {
 
     @Test
     void return_default_config_for_missing_configuration_file() {
-        var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources");
-        var algo           = configProvider.getCombiningAlgorithm().blockFirst();
-        var variables      = configProvider.getVariables().blockFirst();
+        final var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources");
+        final var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+        final var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
 
         assertThat(algo.get() == PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, is(Boolean.TRUE));
@@ -58,9 +58,9 @@ class FileSystemVariablesAndCombinatorSourceTest {
 
     @Test
     void return_empty_optional_for_exception_during_config_load() {
-        var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/broken_config");
-        var algo           = configProvider.getCombiningAlgorithm().blockFirst();
-        var variables      = configProvider.getVariables().blockFirst();
+        final var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/broken_config");
+        final var algo           = configProvider.getCombiningAlgorithm().blockFirst();
+        final var variables      = configProvider.getVariables().blockFirst();
         configProvider.destroy();
         assertThat(algo.isEmpty(), is(true));
         assertThat(variables.isEmpty(), is(true));
@@ -74,8 +74,8 @@ class FileSystemVariablesAndCombinatorSourceTest {
 
             mock.when(() -> FileMonitorUtil.resolveHomeFolderIfPresent(any())).thenCallRealMethod();
 
-            var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
-            var algo           = configProvider.getCombiningAlgorithm().blockLast();
+            final var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
+            final var algo           = configProvider.getCombiningAlgorithm().blockLast();
             configProvider.getVariables().blockFirst();
             configProvider.destroy();
 

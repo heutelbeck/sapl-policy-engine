@@ -31,12 +31,12 @@ class ConvertToSQLTests {
     @Test
     void when_getSorting_then_returnSortASCAsString() {
         // GIVEN
-        var query      = "SELECT * FROM PERSON WHERE age > 22";
-        var parameters = new Object[] { 12, Sort.by(Sort.Direction.ASC, "age") };
-        var expected   = " ORDER BY age ASC";
+        final var query      = "SELECT * FROM PERSON WHERE age > 22";
+        final var parameters = new Object[] { 12, Sort.by(Sort.Direction.ASC, "age") };
+        final var expected   = " ORDER BY age ASC";
 
         // WHEN
-        var result = ConvertToSQL.getSorting(query, parameters);
+        final var result = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
         assertEquals(result.toString(), expected);
@@ -45,12 +45,12 @@ class ConvertToSQLTests {
     @Test
     void when_getSorting_then_returnSortDESCAsString() {
         // GIVEN
-        var query      = "SELECT * FROM PERSON WHERE age > 22";
-        var parameters = new Object[] { 12, Sort.by(Sort.Direction.DESC, "age") };
-        var expected   = " ORDER BY age DESC";
+        final var query      = "SELECT * FROM PERSON WHERE age > 22";
+        final var parameters = new Object[] { 12, Sort.by(Sort.Direction.DESC, "age") };
+        final var expected   = " ORDER BY age DESC";
 
         // WHEN
-        var result = ConvertToSQL.getSorting(query, parameters);
+        final var result = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
         assertEquals(result.toString(), expected);
@@ -59,12 +59,12 @@ class ConvertToSQLTests {
     @Test
     void when_getSorting_then_returnEmptyString() {
         // GIVEN
-        var query      = "SELECT * FROM PERSON WHERE age > 22";
-        var parameters = new Object[] { 12, Sort.unsorted() };
-        var expected   = "";
+        final var query      = "SELECT * FROM PERSON WHERE age > 22";
+        final var parameters = new Object[] { 12, Sort.unsorted() };
+        final var expected   = "";
 
         // WHEN
-        var result = ConvertToSQL.getSorting(query, parameters);
+        final var result = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
         assertEquals(expected, result);
@@ -73,12 +73,12 @@ class ConvertToSQLTests {
     @Test
     void when_getSorting_then_returnEmptyString1() {
         // GIVEN
-        var query      = "SELECT * FROM PERSON WHERE age > 22";
-        var parameters = new Object[] {};
-        var expected   = "";
+        final var query      = "SELECT * FROM PERSON WHERE age > 22";
+        final var parameters = new Object[] {};
+        final var expected   = "";
 
         // WHEN
-        var result = ConvertToSQL.getSorting(query, parameters);
+        final var result = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
         assertEquals(expected, result);
@@ -87,12 +87,12 @@ class ConvertToSQLTests {
     @Test
     void when_getSorting_then_returnEmptyString2() {
         // GIVEN
-        var query      = "SELECT * FROM PERSON WHERE age > 22 ORDER BY age DESC";
-        var parameters = new Object[] { 12, Sort.by(Sort.Direction.DESC, "age") };
-        var expected   = "";
+        final var query      = "SELECT * FROM PERSON WHERE age > 22 ORDER BY age DESC";
+        final var parameters = new Object[] { 12, Sort.by(Sort.Direction.DESC, "age") };
+        final var expected   = "";
 
         // WHEN
-        var result = ConvertToSQL.getSorting(query, parameters);
+        final var result = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
         assertEquals(expected, result);
@@ -101,13 +101,13 @@ class ConvertToSQLTests {
     @Test
     void when_conditions_then_returnConditionsAsString() {
         // GIVEN
-        var saplConditionList = List.of(new SqlCondition(PropositionalConnectives.AND, "age > 22"),
+        final var saplConditionList = List.of(new SqlCondition(PropositionalConnectives.AND, "age > 22"),
                 new SqlCondition(PropositionalConnectives.OR, "firstname = 'Juni'"),
                 new SqlCondition(PropositionalConnectives.AND, "admin == true"));
-        var expected          = "age > 22 OR firstname = 'Juni' AND admin == true";
+        final var expected          = "age > 22 OR firstname = 'Juni' AND admin == true";
 
         // WHEN
-        var result = ConvertToSQL.conditions(saplConditionList);
+        final var result = ConvertToSQL.conditions(saplConditionList);
 
         // THEN
         assertEquals(expected, result);
@@ -116,11 +116,11 @@ class ConvertToSQLTests {
     @Test
     void when_conditions_then_returnEmptyString() {
         // GIVEN
-        var saplConditionList = new ArrayList<SqlCondition>();
-        var expected          = "";
+        final var saplConditionList = new ArrayList<SqlCondition>();
+        final var expected          = "";
 
         // WHEN
-        var result = ConvertToSQL.conditions(saplConditionList);
+        final var result = ConvertToSQL.conditions(saplConditionList);
 
         // THEN
         assertEquals(expected, result);
@@ -129,12 +129,12 @@ class ConvertToSQLTests {
     @Test
     void when_prepareAndMergeSortObjects_then_returnSorting1() {
         // GIVEN
-        var sortPartTree = Sort.by(Sort.Direction.DESC, "age");
-        var arguments    = new Object[] { 12, PageRequest.of(2, 2, Sort.unsorted()) };
-        var expected     = " ORDER BY age DESC LIMIT 2 OFFSET 2";
+        final var sortPartTree = Sort.by(Sort.Direction.DESC, "age");
+        final var arguments    = new Object[] { 12, PageRequest.of(2, 2, Sort.unsorted()) };
+        final var expected     = " ORDER BY age DESC LIMIT 2 OFFSET 2";
 
         // WHEN
-        var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
+        final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
         assertEquals(expected, result);
@@ -143,12 +143,12 @@ class ConvertToSQLTests {
     @Test
     void when_prepareAndMergeSortObjects_then_returnSorting2() {
         // GIVEN
-        Sort sortPartTree = null;
-        var  arguments    = new Object[] { 12, PageRequest.of(2, 2, Sort.by(Sort.Direction.DESC, "age")) };
-        var  expected     = " ORDER BY age DESC LIMIT 2 OFFSET 2";
+        Sort      sortPartTree = null;
+        final var arguments    = new Object[] { 12, PageRequest.of(2, 2, Sort.by(Sort.Direction.DESC, "age")) };
+        final var expected     = " ORDER BY age DESC LIMIT 2 OFFSET 2";
 
         // WHEN
-        var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
+        final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
         assertEquals(expected, result);
@@ -157,12 +157,12 @@ class ConvertToSQLTests {
     @Test
     void when_prepareAndMergeSortObjects_then_returnSorting3() {
         // GIVEN
-        Sort sortPartTree = null;
-        var  arguments    = new Object[] { 12 };
-        var  expected     = "";
+        Sort      sortPartTree = null;
+        final var arguments    = new Object[] { 12 };
+        final var expected     = "";
 
         // WHEN
-        var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
+        final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
         assertEquals(expected, result);
@@ -171,12 +171,12 @@ class ConvertToSQLTests {
     @Test
     void when_prepareAndMergeSortObjects_then_returnSorting4() {
         // GIVEN
-        var sortPartTree = Sort.unsorted();
-        var arguments    = new Object[] { 12, PageRequest.of(2, 2, Sort.by(Sort.Direction.DESC, "age")) };
-        var expected     = " ORDER BY age DESC LIMIT 2 OFFSET 2";
+        final var sortPartTree = Sort.unsorted();
+        final var arguments    = new Object[] { 12, PageRequest.of(2, 2, Sort.by(Sort.Direction.DESC, "age")) };
+        final var expected     = " ORDER BY age DESC LIMIT 2 OFFSET 2";
 
         // WHEN
-        var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
+        final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
         assertEquals(expected, result);
@@ -185,12 +185,12 @@ class ConvertToSQLTests {
     @Test
     void when_prepareAndMergeSortObjects_then_returnSorting5() {
         // GIVEN
-        var sortPartTree = Sort.by(Sort.Direction.ASC, "firstname");
-        var arguments    = new Object[] { 12, PageRequest.of(2, 2, Sort.by(Sort.Direction.ASC, "age")) };
-        var expected     = " ORDER BY firstname ASC LIMIT 2 OFFSET 2";
+        final var sortPartTree = Sort.by(Sort.Direction.ASC, "firstname");
+        final var arguments    = new Object[] { 12, PageRequest.of(2, 2, Sort.by(Sort.Direction.ASC, "age")) };
+        final var expected     = " ORDER BY firstname ASC LIMIT 2 OFFSET 2";
 
         // WHEN
-        var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
+        final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
         assertEquals(expected, result);
@@ -199,12 +199,12 @@ class ConvertToSQLTests {
     @Test
     void when_prepareAndMergeSortObjects_then_returnSorting6() {
         // GIVEN
-        var sortPartTree = Sort.by(Sort.Direction.ASC, "firstname");
-        var arguments    = new Object[] { 12, Sort.by(Sort.Direction.ASC, "age") };
-        var expected     = " ORDER BY firstname ASC, age ASC";
+        final var sortPartTree = Sort.by(Sort.Direction.ASC, "firstname");
+        final var arguments    = new Object[] { 12, Sort.by(Sort.Direction.ASC, "age") };
+        final var expected     = " ORDER BY firstname ASC, age ASC";
 
         // WHEN
-        var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
+        final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
         assertEquals(expected, result);
@@ -213,12 +213,12 @@ class ConvertToSQLTests {
     @Test
     void when_prepareAndMergeSortObjects_then_returnSorting7() {
         // GIVEN
-        Sort sortPartTree = null;
-        var  arguments    = new Object[] { 12, Sort.by(Sort.Direction.ASC, "age") };
-        var  expected     = " ORDER BY age ASC";
+        Sort      sortPartTree = null;
+        final var arguments    = new Object[] { 12, Sort.by(Sort.Direction.ASC, "age") };
+        final var expected     = " ORDER BY age ASC";
 
         // WHEN
-        var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
+        final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
         assertEquals(expected, result);
@@ -227,12 +227,12 @@ class ConvertToSQLTests {
     @Test
     void when_prepareAndMergeSortObjects_then_returnSorting8() {
         // GIVEN
-        Sort sortPartTree = null;
-        var  arguments    = new Object[] { 12, Sort.unsorted() };
-        var  expected     = "";
+        Sort      sortPartTree = null;
+        final var arguments    = new Object[] { 12, Sort.unsorted() };
+        final var expected     = "";
 
         // WHEN
-        var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
+        final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
         assertEquals(expected, result);
@@ -241,12 +241,12 @@ class ConvertToSQLTests {
     @Test
     void when_prepareAndMergeSortObjects_then_returnSorting9() {
         // GIVEN
-        Sort sortPartTree = Sort.unsorted();
-        var  arguments    = new Object[] { 12, Sort.unsorted() };
-        var  expected     = "";
+        Sort      sortPartTree = Sort.unsorted();
+        final var arguments    = new Object[] { 12, Sort.unsorted() };
+        final var expected     = "";
 
         // WHEN
-        var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
+        final var result = ConvertToSQL.prepareAndMergeSortObjects(sortPartTree, arguments);
 
         // THEN
         assertEquals(expected, result);

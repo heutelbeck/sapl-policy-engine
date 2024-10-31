@@ -54,10 +54,9 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
      * Fixture for constructing an integration test case
      *
      * @param folderPath path relative to your class path (relative from
-     *                   src/main/resources, ...) to the folder containing the SAPL
-     *                   documents. If your policies are located at
-     *                   src/main/resources/yourSpecialDirectory you only have to
-     *                   specify "yourSpecialDirectory".
+     * src/main/resources, ...) to the folder containing the SAPL documents. If your
+     * policies are located at src/main/resources/yourSpecialDirectory you only have
+     * to specify "yourSpecialDirectory".
      */
     public SaplIntegrationTestFixture(final String folderPath) {
         prpSupplier                          = () -> this.constructPRP(true, folderPath, null);

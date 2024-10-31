@@ -95,18 +95,18 @@ public class DefaultSaplTestInterpreter implements SaplTestInterpreter {
         try {
             resource.load(testInputStream, resourceSet.getLoadOptions());
         } catch (IOException | WrappedException e) {
-            var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
+            final var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
             log.debug(errorMessage, e);
             return new TestDocument(null, null, errorMessage);
         }
 
         if (!resource.getErrors().isEmpty()) {
-            var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
+            final var errorMessage = String.format(PARSING_ERRORS, resource.getErrors());
             return new TestDocument(null, null, errorMessage);
         }
 
-        var saplTest   = (SAPLTest) resource.getContents().get(0);
-        var diagnostic = Diagnostician.INSTANCE.validate(saplTest);
+        final var saplTest   = (SAPLTest) resource.getContents().get(0);
+        final var diagnostic = Diagnostician.INSTANCE.validate(saplTest);
 
         return new TestDocument(saplTest, diagnostic, composeErrorMessage(diagnostic));
     }
@@ -115,7 +115,7 @@ public class DefaultSaplTestInterpreter implements SaplTestInterpreter {
         if (diagnostic.getSeverity() == Diagnostic.OK) {
             return "OK";
         }
-        var sb = new StringBuilder().append("SAPLTest Validation Error: [");
+        final var sb = new StringBuilder().append("SAPLTest Validation Error: [");
         for (Diagnostic d : diagnostic.getChildren()) {
             sb.append('[').append(NodeModelUtils.findActualNodeFor((EObject) d.getData().get(0)).getText()).append(": ")
                     .append(d.getMessage()).append(']');

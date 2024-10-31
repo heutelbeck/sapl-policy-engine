@@ -34,16 +34,16 @@ public class PlusImplCustom extends PlusImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, this, this::plus);
+        return operator(this, this, PlusImplCustom::plus);
     }
 
-    private Val plus(Val left, Val right) {
+    public static Val plus(Val left, Val right) {
         if (left.isNumber() && right.isNumber())
             return Val.of(left.get().decimalValue().add(right.get().decimalValue())).withTrace(Plus.class, false,
                     Map.of(Trace.LEFT, left, Trace.RIGHT, right));
 
-        var lStr = left.orElse(UNDEFINED).asText();
-        var rStr = right.orElse(UNDEFINED).asText();
+        final var lStr = left.orElse(UNDEFINED).asText();
+        final var rStr = right.orElse(UNDEFINED).asText();
         return Val.of(lStr.concat(rStr)).withTrace(Plus.class, false, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 

@@ -36,10 +36,10 @@ public class MoreEqualsImplCustom extends MoreEqualsImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this, this::moreOrEqual);
+        return arithmeticOperator(this, this, MoreEqualsImplCustom::moreOrEqual);
     }
 
-    private Val moreOrEqual(Val left, Val right) {
+    public static Val moreOrEqual(Val left, Val right) {
         return Val.of(left.decimalValue().compareTo(right.decimalValue()) >= 0).withTrace(MoreEquals.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }

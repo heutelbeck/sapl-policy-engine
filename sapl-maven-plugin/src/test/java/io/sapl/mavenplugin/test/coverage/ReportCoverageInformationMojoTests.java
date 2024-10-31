@@ -100,8 +100,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
     @Test
     void test_disableCoverage() throws Exception {
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom_coverageDisabled.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom_coverageDisabled.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         assertThrows(MojoFailureException.class, mojo::execute);
@@ -118,8 +118,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
         mojo.setSkipTests(true);
         mojo.setFailOnDisabledTests(true);
@@ -140,8 +140,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
         mojo.setSkipTests(true);
         mojo.setFailOnDisabledTests(false);
@@ -162,8 +162,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
         mojo.setMavenTestSkip(true);
         mojo.setFailOnDisabledTests(true);
@@ -184,8 +184,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
         mojo.setMavenTestSkip(true);
         mojo.setFailOnDisabledTests(false);
@@ -206,8 +206,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
         assertThrows(MojoFailureException.class, mojo::execute);
 
@@ -225,8 +225,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         mojo.execute();
@@ -247,8 +247,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         assertThrows(MojoFailureException.class, mojo::execute);
@@ -269,8 +269,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         assertThrows(MojoFailureException.class, mojo::execute);
@@ -291,8 +291,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         assertThrows(MojoFailureException.class, mojo::execute);
@@ -314,8 +314,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         assertThrows(MojoFailureException.class, mojo::execute);
@@ -337,8 +337,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         assertThrows(MojoFailureException.class, mojo::execute);
@@ -360,8 +360,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         assertThrows(MojoFailureException.class, mojo::execute);
@@ -383,8 +383,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
                 .thenReturn(Paths.get("test", "index.html"));
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(50f, 50f, 50f);
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         assertThrows(MojoFailureException.class, mojo::execute);
@@ -407,8 +407,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         mojo.execute();
@@ -439,8 +439,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.htmlReporter.generateHtmlReport(any(), any(), anyFloat(), anyFloat(), anyFloat()))
                 .thenReturn(Paths.get("test", "index.html"));
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom_sonarReportDisabled.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom_sonarReportDisabled.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         mojo.execute();
@@ -461,8 +461,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom_htmlReportDisabled.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom_htmlReportDisabled.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         mojo.execute();
@@ -483,8 +483,8 @@ class ReportCoverageInformationMojoTests extends AbstractMojoTestCase {
         when(this.coverageAPIHelper.readHits(any())).thenReturn(coverageTargetsTwoSetsTwoPoliciesTwoConditions);
         when(this.ratioCalculator.calculateRatio(any(), any())).thenReturn(100f, 100f, 100f);
 
-        Path pom  = Paths.get("src", "test", "resources", "pom", "pom_allReportsDisabled.xml");
-        var  mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
+        Path      pom  = Paths.get("src", "test", "resources", "pom", "pom_allReportsDisabled.xml");
+        final var mojo = (ReportCoverageInformationMojo) lookupMojo("report-coverage-information", pom.toFile());
         mojo.setLog(this.log);
 
         mojo.execute();

@@ -40,8 +40,8 @@ public class RegexImplCustom extends RegexImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        var leftFlux  = getLeft().evaluate();
-        var rightFlux = getRight().evaluate().map(v -> OperatorUtil.requireText(this, v));
+        final var leftFlux  = getLeft().evaluate();
+        final var rightFlux = getRight().evaluate().map(v -> OperatorUtil.requireText(this, v));
         return Flux.combineLatest(leftFlux, rightFlux, this::matchRegexp);
     }
 

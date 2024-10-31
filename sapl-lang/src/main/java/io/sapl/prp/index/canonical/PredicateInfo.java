@@ -110,25 +110,24 @@ public class PredicateInfo implements Comparable<PredicateInfo> {
 
     @Override
     public int compareTo(PredicateInfo o) {
-        double lhs = getScore();
-        double rhs = o.getScore();
+        final var lhs = getScore();
+        final var rhs = o.getScore();
 
         if (DoubleMath.fuzzyEquals(lhs, rhs, EPSILON)) {
             return 0;
         }
-        if (lhs < rhs) {
-            return -1;
-        }
-        return 1;
+        return Double.compare(lhs, rhs);
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o)
+        if (this == o) {
             return true;
-        if (o == null || getClass() != o.getClass())
+        }
+        if (null == o || getClass() != o.getClass()) {
             return false;
-        PredicateInfo that = (PredicateInfo) o;
+        }
+        final var that = (PredicateInfo) o;
         return compareTo(that) == 0;
     }
 

@@ -104,7 +104,7 @@ public class ApiAuthenticationSetupView extends VerticalLayout {
         apiKeyCacheMaxSize.setHelperText("Larger than 0");
         apiKeyCacheMaxSize.setValue(applicationConfigService.getApiAuthenticationConfig().getApiKeyCachingMaxSize());
 
-        var apiKeyLayout = new VerticalLayout();
+        final var apiKeyLayout = new VerticalLayout();
         apiKeyLayout.setAlignItems(FlexComponent.Alignment.STRETCH);
         apiKeyLayout.setPadding(false);
         apiKeyLayout.add(allowApiKeyAuth, allowApiKeyCaching, apiKeyCacheExpires, apiKeyCacheMaxSize);
@@ -119,7 +119,7 @@ public class ApiAuthenticationSetupView extends VerticalLayout {
         oAuth2RessourceServerInputValidText.addClassNames(LumoUtility.TextColor.ERROR);
         oAuth2RessourceServer.setHelperComponent(oAuth2RessourceServerInputValidText);
 
-        var oAuth2Layout = new VerticalLayout();
+        final var oAuth2Layout = new VerticalLayout();
         oAuth2Layout.setAlignItems(FlexComponent.Alignment.STRETCH);
         oAuth2Layout.setPadding(false);
         oAuth2Layout.add(allowOAuth2Auth, oAuth2RessourceServer);
@@ -132,7 +132,7 @@ public class ApiAuthenticationSetupView extends VerticalLayout {
         allowOAuth2Auth.addValueChangeListener(e -> updateApiAuthenticationConfig());
         oAuth2RessourceServer.addValueChangeListener(e -> updateApiAuthenticationConfig());
 
-        var apiAuthenticationLayout = new FormLayout(allowBasicAuth, apiKeyLayout, oAuth2Layout, saveConfig);
+        final var apiAuthenticationLayout = new FormLayout(allowBasicAuth, apiKeyLayout, oAuth2Layout, saveConfig);
 
         apiAuthenticationLayout.setResponsiveSteps(
                 new FormLayout.ResponsiveStep("0", 1, FormLayout.ResponsiveStep.LabelsPosition.TOP),

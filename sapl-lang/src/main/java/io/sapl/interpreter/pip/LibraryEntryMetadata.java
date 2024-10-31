@@ -37,6 +37,12 @@ public interface LibraryEntryMetadata {
 
     String getDocumentationCodeTemplate();
 
+    String getCodeTemplate(String alias);
+
+    String getDocumentationCodeTemplate(String alias);
+
+    String getDocumentation();
+
     Method getFunction();
 
     boolean isVarArgsParameters();
@@ -52,8 +58,8 @@ public interface LibraryEntryMetadata {
     }
 
     default List<Annotation> getValidationAnnotationsOfParameter(int index) {
-        var annotations           = getFunction().getParameters()[index].getAnnotations();
-        var validationAnnotations = new ArrayList<Annotation>(annotations.length);
+        final var annotations           = getFunction().getParameters()[index].getAnnotations();
+        final var validationAnnotations = new ArrayList<Annotation>(annotations.length);
         for (var annotation : annotations)
             if (isValidationAnnotation(annotation))
                 validationAnnotations.add(annotation);
@@ -75,7 +81,7 @@ public interface LibraryEntryMetadata {
         if (types.isEmpty())
             return name;
         StringBuilder sb            = new StringBuilder();
-        var           numberOfTypes = types.size();
+        final var     numberOfTypes = types.size();
         for (var i = 0; i < numberOfTypes; i++) {
             sb.append(types.get(i).annotationType().getSimpleName());
             if (i < numberOfTypes - 1)

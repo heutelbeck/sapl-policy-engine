@@ -212,7 +212,7 @@ class SaplParsingTests {
         policy "test policy"
         permit
         where
-          var something = { "key" : "value"}.key.<external.attribute> ;
+                var something = { "key" : "value"}.key.<external.attribute> ;
         """,
 
         "rulesAssignment2",
@@ -220,7 +220,7 @@ class SaplParsingTests {
         policy "test policy"
         permit
         where
-          var something = { "key" : "value"}.key.<external.attribute>[7].other_key ;
+                var something = { "key" : "value"}.key.<external.attribute>[7].other_key ;
         """,
 
         "rulesAssignment3",
@@ -228,11 +228,11 @@ class SaplParsingTests {
         policy "test policy"
         permit
         where
-          var something1 = { "key" : "value"}.key.<external.attribute>[7].other_key ;
-          var something2 = action.http.method;
-          var something3 = subject.id;
-          var something3 = resource.path.elements[4].<extern.other>;
-          var something3 = !( environment.time.current == "2010-01-01T12:00:00+01:00" );
+                var something1 = { "key" : "value"}.key.<external.attribute>[7].other_key ;
+                var something2 = action.http.method;
+                var something3 = subject.id;
+                var something3 = resource.path.elements[4].<extern.other>;
+                var something3 = !( environment.time.current == "2010-01-01T12:00:00+01:00" );
         """,
 
         "rulesAssignmentAndExpression",
@@ -360,7 +360,7 @@ class SaplParsingTests {
     // @formatter:on
 
     private static Stream<Arguments> validSaplDocuments() {
-        var arguments = new Arguments[VALID_POLICY_TEST_CASES.length / 2];
+        final var arguments = new Arguments[VALID_POLICY_TEST_CASES.length / 2];
         for (var i = 0; i < VALID_POLICY_TEST_CASES.length; i = i + 2) {
             arguments[i / 2] = Arguments.of(VALID_POLICY_TEST_CASES[i], VALID_POLICY_TEST_CASES[i + 1]);
         }
@@ -377,7 +377,7 @@ class SaplParsingTests {
 
     @Test
     void rulesEmpty() throws Exception {
-        var saplDocument = """
+        final var saplDocument = """
                 policy "test policy" permit
                 deny subject.id =~ "http://*"
                 where
@@ -388,7 +388,7 @@ class SaplParsingTests {
 
     @Test
     void emptyPolicy() throws Exception {
-        var saplDocument = " ";
+        final var saplDocument = " ";
         validator.assertError(this.parseHelper.parse(saplDocument), SaplPackage.eINSTANCE.getSAPL(),
                 Diagnostic.SYNTAX_DIAGNOSTIC, SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
     }

@@ -19,6 +19,7 @@ package io.sapl.grammar.ide.contentassist;
 
 import org.eclipse.emf.ecore.EObject;
 
+import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
 /**
@@ -31,20 +32,14 @@ public final class TreeNavigationUtil {
      * Moves up the model tree and returns the closest parent that matches the given
      * class type.
      *
-     * @param <T>       Class type of the searched-for parent.
-     * @param object    The current model from which the search starts.
+     * @param <T> Class type of the searched-for parent.
+     * @param object The current model from which the search starts.
      * @param classType Class type of the searched-for parent.
      * @return Returns the first parent for the given class type, or null if no
-     *         match was found.
+     * match was found.
      */
-    public static <T> T goToFirstParent(EObject object, Class<T> classType) {
-        if (object == null)
-            throw new IllegalArgumentException("object is null.");
-
-        if (classType == null)
-            throw new IllegalArgumentException("classType is null.");
-
-        while (object != null) {
+    public static <T> T goToFirstParent(@NonNull EObject object, @NonNull Class<T> classType) {
+        while (null != object) {
             if (classType.isInstance(object))
                 return classType.cast(object);
 
@@ -57,29 +52,23 @@ public final class TreeNavigationUtil {
      * Moves up the model tree and returns the highest parent that matches the given
      * class type.
      *
-     * @param <T>       Class type of the searched-for parent.
-     * @param object    The current model from which the search starts.
+     * @param <T> Class type of the searched-for parent.
+     * @param object The current model from which the search starts.
      * @param classType Class type of the searched-for parent.
      * @return Returns the first parent for the given class type, or null if no
-     *         match was found.
+     * match was found.
      */
-    public static <T> T goToLastParent(EObject object, Class<T> classType) {
-        if (object == null)
-            throw new IllegalArgumentException("object is null.");
-
-        if (classType == null)
-            throw new IllegalArgumentException("classType is null.");
-
+    public static <T> T goToLastParent(@NonNull EObject object, @NonNull Class<T> classType) {
         EObject parent = null;
 
-        while (object != null) {
+        while (null != object) {
             if (classType.isInstance(object))
                 parent = object;
 
             object = object.eContainer();
         }
 
-        if (parent != null)
+        if (null != parent)
             return classType.cast(parent);
         return null;
     }

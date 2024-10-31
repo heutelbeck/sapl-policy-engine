@@ -30,7 +30,7 @@ class PolicyDecisionTests {
 
     @Test
     void fromWhereResult() {
-        var decision = PolicyDecision.fromWhereResult("doc", Decision.INDETERMINATE,
+        final var decision = PolicyDecision.fromWhereResult("doc", Decision.INDETERMINATE,
                 ErrorFactory.error("error message"));
         assertThat(decision.getEntitlement()).isEqualTo(Decision.INDETERMINATE);
         assertThat(decision.getTrace().get(Trace.ENTITLEMENT).textValue()).isEqualTo("INDETERMINATE");
@@ -40,8 +40,8 @@ class PolicyDecisionTests {
 
     @Test
     void withAdditionalData() {
-        var decision = PolicyDecision.fromWhereResult("doc", Decision.PERMIT, Val.TRUE).withAdvice(Val.of("advice"))
-                .withObligation(Val.of("obligation")).withResource(Val.of("resource"));
+        final var decision = PolicyDecision.fromWhereResult("doc", Decision.PERMIT, Val.TRUE)
+                .withAdvice(Val.of("advice")).withObligation(Val.of("obligation")).withResource(Val.of("resource"));
         assertThat(decision.getEntitlement()).isEqualTo(Decision.PERMIT);
         assertThat(decision.getTrace().get(Trace.ENTITLEMENT).textValue()).isEqualTo("PERMIT");
         assertThat(decision.getTrace().get(Trace.WHERE).get(Trace.VALUE).asBoolean()).isTrue();
@@ -53,20 +53,20 @@ class PolicyDecisionTests {
 
     @Test
     void withNullEntitlement() {
-        var decision = PolicyDecision.fromWhereResult("doc", null, Val.TRUE);
+        final var decision = PolicyDecision.fromWhereResult("doc", null, Val.TRUE);
         assertThat(decision.getTrace().has(Trace.ENTITLEMENT)).isFalse();
     }
 
     @Test
     void withErrorMessage() {
-        var decision = PolicyDecision.ofImportError("policy", Decision.INDETERMINATE, "error message");
+        final var decision = PolicyDecision.ofImportError("policy", Decision.INDETERMINATE, "error message");
         assertThat(decision.getEntitlement()).isEqualTo(Decision.INDETERMINATE);
         assertThat(decision.getTrace().get(Trace.ERROR_MESSAGE).textValue()).isEqualTo("error message");
     }
 
     @Test
     void withTargetResult() {
-        var decision = PolicyDecision.ofTargetExpressionEvaluation("policy", Val.TRUE, Decision.NOT_APPLICABLE);
+        final var decision = PolicyDecision.ofTargetExpressionEvaluation("policy", Val.TRUE, Decision.NOT_APPLICABLE);
         assertThat(decision.getEntitlement()).isEqualTo(Decision.NOT_APPLICABLE);
         assertThat(decision.getTrace().get(Trace.TARGET).get(Trace.VALUE).asBoolean()).isTrue();
     }

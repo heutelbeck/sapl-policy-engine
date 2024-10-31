@@ -28,7 +28,7 @@ class AuthorizationContextTests {
 
     @Test
     void when_setReservedVariableName_then_throw() {
-        var ctx = Context.empty();
+        final var ctx = Context.empty();
         assertThatThrownBy(() -> AuthorizationContext.setVariable(ctx, "subject", Val.NULL))
                 .hasMessage(String.format(AuthorizationContext.CANNOT_OVERWRITE_REQUEST_VARIABLE_S_ERROR, "subject"));
         assertThatThrownBy(() -> AuthorizationContext.setVariable(ctx, "action", Val.NULL))

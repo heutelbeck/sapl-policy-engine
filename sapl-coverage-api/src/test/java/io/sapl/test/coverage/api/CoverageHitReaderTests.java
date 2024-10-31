@@ -38,12 +38,12 @@ class CoverageHitReaderTests {
 
     @Test
     void testCoverageReading_PolicySets(@TempDir Path tempDir) throws Exception {
-        var reader = new CoverageHitAPIFile(tempDir);
+        final var reader = new CoverageHitAPIFile(tempDir);
         // arrange
-        var path = tempDir.resolve("hits").resolve("_policySetHits.txt");
+        final var path = tempDir.resolve("hits").resolve("_policySetHits.txt");
         if (!Files.exists(path)) {
-            var parent = path.getParent();
-            if (parent != null) {
+            final var parent = path.getParent();
+            if (null != parent) {
                 Files.createDirectories(parent);
             }
             Files.createFile(path);
@@ -64,12 +64,12 @@ class CoverageHitReaderTests {
 
     @Test
     void testCoverageReading_Polices(@TempDir Path tempDir) throws Exception {
-        var reader = new CoverageHitAPIFile(tempDir);
+        final var reader = new CoverageHitAPIFile(tempDir);
         // arrange
-        var path = tempDir.resolve("hits").resolve("_policyHits.txt");
+        final var path = tempDir.resolve("hits").resolve("_policyHits.txt");
         if (!Files.exists(path)) {
-            var parent = path.getParent();
-            if (parent != null) {
+            final var parent = path.getParent();
+            if (null != parent) {
                 Files.createDirectories(parent);
             }
             Files.createFile(path);
@@ -92,12 +92,12 @@ class CoverageHitReaderTests {
 
     @Test
     void testCoverageReading_PolicyConditions(@TempDir Path tempDir) throws Exception {
-        var reader = new CoverageHitAPIFile(tempDir);
+        final var reader = new CoverageHitAPIFile(tempDir);
         // arrange
-        var hitPath = tempDir.resolve("hits").resolve("_policyConditionHits.txt");
+        final var hitPath = tempDir.resolve("hits").resolve("_policyConditionHits.txt");
         if (!Files.exists(hitPath)) {
-            var parent = hitPath.getParent();
-            if (parent != null) {
+            final var parent = hitPath.getParent();
+            if (null != parent) {
                 Files.createDirectories(parent);
             }
             Files.createFile(hitPath);
@@ -124,7 +124,7 @@ class CoverageHitReaderTests {
 
     @Test
     void testCoverageReading_PolicySets_FileNotExist(@TempDir Path tempDir) {
-        var reader = new CoverageHitAPIFile(tempDir);
+        final var reader = new CoverageHitAPIFile(tempDir);
         assertThatThrownBy(() -> reader.readPolicySetHits()).isInstanceOf(NoSuchFileException.class);
     }
 

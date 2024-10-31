@@ -77,7 +77,7 @@ public class SetupLayout extends AppLayout {
     }
 
     private void addHeaderContent() {
-        var toggle = new DrawerToggle();
+        final var toggle = new DrawerToggle();
         toggle.getElement().setAttribute("aria-label", "Menu toggle");
 
         viewTitle = new H2();
@@ -88,24 +88,24 @@ public class SetupLayout extends AppLayout {
 
     private void addDrawerContent() {
 
-        var logoLayout = new HorizontalLayout();
+        final var logoLayout = new HorizontalLayout();
         logoLayout.setId("logo");
         logoLayout.setAlignItems(FlexComponent.Alignment.CENTER);
         logoLayout.setPadding(true);
-        var logo = new Image("images/SAPL-Logo.png", "SAPL Logo");
+        final var logo = new Image("images/SAPL-Logo.png", "SAPL Logo");
         logo.setHeight("50px");
-        var appName = new H1("SAPL Server CE Setup");
+        final var appName = new H1("SAPL Server CE Setup");
         appName.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.Margin.NONE);
         logoLayout.add(logo, appName);
 
-        var header   = new Header(logoLayout);
-        var scroller = new Scroller(createNavigation());
+        final var header   = new Header(logoLayout);
+        final var scroller = new Scroller(createNavigation());
 
         addToDrawer(header, scroller, createFooter());
     }
 
     private SideNav createNavigation() {
-        var nav = new SideNav();
+        final var nav = new SideNav();
         addItem(nav, "Welcome", SetupView.class, LineAwesomeIcon.FILE_SOLID);
         addItem(nav, "DBMS Setup", DbmsSetupView.class, LineAwesomeIcon.DATABASE_SOLID);
         addItem(nav, "Admin User Setup", AdminUserSetupView.class, LineAwesomeIcon.USER_SOLID);
@@ -124,7 +124,7 @@ public class SetupLayout extends AppLayout {
     }
 
     private Footer createFooter() {
-        var layout = new Footer();
+        final var layout = new Footer();
 
         Anchor help = new Anchor("https://github.com/heutelbeck/sapl-server");
         help.getElement().setProperty("innerHTML", "You need help? <br />Have a look at the documentation");
@@ -140,7 +140,7 @@ public class SetupLayout extends AppLayout {
     }
 
     private String getCurrentPageTitle() {
-        var title = getContent().getClass().getAnnotation(PageTitle.class);
+        final var title = getContent().getClass().getAnnotation(PageTitle.class);
         return title == null ? "" : title.value();
     }
 

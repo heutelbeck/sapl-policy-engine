@@ -32,6 +32,7 @@ import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.ConditionStep;
 import io.sapl.grammar.sapl.FilterComponent;
 import io.sapl.grammar.sapl.FilterStatement;
+import io.sapl.grammar.sapl.FunctionIdentifier;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -68,20 +69,20 @@ public class FilterAlgorithmUtil {
             return Flux.just(
                     unfilteredValue.withTrace(ConditionStep.class, true, Map.of(UNFILTERED_VALUE, unfilteredValue)));
         }
-        var array = unfilteredValue.getArrayNode();
+        final var array = unfilteredValue.getArrayNode();
         if (array.isEmpty()) {
             return Flux.just(unfilteredValue.withTrace(operationType, true, Map.of(UNFILTERED_VALUE, unfilteredValue)));
         }
-        var elementFluxes = new ArrayList<Flux<Val>>(array.size());
-        var iter          = array.elements();
-        var elementCount  = 0;
+        final var elementFluxes = new ArrayList<Flux<Val>>(array.size());
+        final var iter          = array.elements();
+        var       elementCount  = 0;
         while (iter.hasNext()) {
-            var element       = iter.next();
-            var elementValue  = Val.of(element).withTrace(operationType, true, Map.of("from", unfilteredValue));
-            var index         = elementCount++;
-            var conditions    = selector.get()
+            final var element       = iter.next();
+            final var elementValue  = Val.of(element).withTrace(operationType, true, Map.of("from", unfilteredValue));
+            final var index         = elementCount++;
+            final var conditions    = selector.get()
                     .contextWrite(ctx -> AuthorizationContext.setRelativeNodeWithIndex(ctx, elementValue, index));
-            var moddedElement = conditions.concatMap(
+            final var moddedElement = conditions.concatMap(
                     applyFilterIfConditionMet(elementValue, unfilteredValue, stepId, statement, "[" + index + "]"));
             elementFluxes.add(moddedElement);
         }
@@ -94,23 +95,23 @@ public class FilterAlgorithmUtil {
             return Flux.just(
                     unfilteredValue.withTrace(ConditionStep.class, true, Map.of(UNFILTERED_VALUE, unfilteredValue)));
         }
-        var object = unfilteredValue.getObjectNode();
+        final var object = unfilteredValue.getObjectNode();
         if (object.isEmpty()) {
             return Flux.just(
                     unfilteredValue.withTrace(ConditionStep.class, true, Map.of(UNFILTERED_VALUE, unfilteredValue)));
         }
-        var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
-        var iter        = object.fields();
+        final var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
+        final var iter        = object.fields();
         while (iter.hasNext()) {
-            var field          = iter.next();
-            var key            = field.getKey();
-            var originalValue  = Val.of(field.getValue()).withTrace(operationType, true,
+            final var field          = iter.next();
+            final var key            = field.getKey();
+            final var originalValue  = Val.of(field.getValue()).withTrace(operationType, true,
                     Map.of("from", unfilteredValue));
-            var conditions     = selector.get()
+            final var conditions     = selector.get()
                     .contextWrite(ctx -> AuthorizationContext.setRelativeNodeWithKey(ctx, originalValue, key));
-            var filteredFields = conditions
+            final var filteredFields = conditions
                     .concatMap(applyFilterIfConditionMet(originalValue, unfilteredValue, stepId, statement, key));
-            var keyValuePairs  = filteredFields.map(filteredField -> Tuples.of(key, filteredField));
+            final var keyValuePairs  = filteredFields.map(filteredField -> Tuples.of(key, filteredField));
             fieldFluxes.add(keyValuePairs);
         }
         return Flux.combineLatest(fieldFluxes, RepackageUtil::recombineObject);
@@ -119,7 +120,7 @@ public class FilterAlgorithmUtil {
     private static Function<Val, Flux<Val>> applyFilterIfConditionMet(Val elementValue, Val unfilteredValue, int stepId,
             FilterStatement statement, String elementIdentifier) {
         return conditionResult -> {
-            var trace = Map.<String, Val>of(UNFILTERED_VALUE, unfilteredValue, "conditionResult", conditionResult,
+            final var trace = Map.<String, Val>of(UNFILTERED_VALUE, unfilteredValue, "conditionResult", conditionResult,
                     elementIdentifier, elementValue);
             if (conditionResult.isError()) {
                 return Flux.just(conditionResult.withTrace(ConditionStep.class, true, trace));
@@ -129,10 +130,10 @@ public class FilterAlgorithmUtil {
                         .withTrace(ConditionStep.class, true, trace));
             }
             if (conditionResult.getBoolean()) {
-                var elementValueTraced = elementValue.withTrace(ConditionStep.class, true, trace);
+                final var elementValueTraced = elementValue.withTrace(ConditionStep.class, true, trace);
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter
-                    return applyFilterFunction(elementValueTraced, statement.getArguments(), statement.getFsteps(),
+                    return applyFilterFunction(elementValueTraced, statement.getArguments(), statement.getIdentifier(),
                             statement.isEach(), statement)
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx,
                                     unfilteredValue.withTrace(ConditionStep.class, true, trace)));
@@ -147,7 +148,7 @@ public class FilterAlgorithmUtil {
         };
     }
 
-    public static Flux<Val> applyFilterFunction(Val unfilteredValue, Arguments arguments, Iterable<String> fsteps,
+    public static Flux<Val> applyFilterFunction(Val unfilteredValue, Arguments arguments, FunctionIdentifier identifier,
             boolean each, EObject location) {
         if (unfilteredValue.isError()) {
             return Flux.just(unfilteredValue.withTrace(FilterComponent.class, true, unfilteredValue));
@@ -159,7 +160,7 @@ public class FilterAlgorithmUtil {
 
         if (!each) {
             return FunctionUtil.combineArgumentFluxes(arguments)
-                    .concatMap(parameters -> FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(location, fsteps,
+                    .concatMap(parameters -> FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(location, identifier,
                             unfilteredValue, parameters))
                     .map(val -> val.withTrace(FilterComponent.class, true,
                             Map.of(UNFILTERED_VALUE, unfilteredValue, "filterResult", val)));
@@ -172,15 +173,15 @@ public class FilterAlgorithmUtil {
                             .withTrace(FilterComponent.class, true, unfilteredValue));
         }
 
-        var rootArray      = (ArrayNode) unfilteredValue.get();
-        var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments);
+        final var rootArray      = (ArrayNode) unfilteredValue.get();
+        final var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments);
         return argumentFluxes.concatMap(parameters -> {
-            var elementsEvaluations = new ArrayList<Mono<Val>>(rootArray.size());
-            var index               = 0;
+            final var elementsEvaluations = new ArrayList<Mono<Val>>(rootArray.size());
+            var       index               = 0;
             for (var element : rootArray) {
-                var elementVal = Val.of(element).withTrace(FilterComponent.class, true,
+                final var elementVal = Val.of(element).withTrace(FilterComponent.class, true,
                         Map.of(UNFILTERED_VALUE, unfilteredValue, "index", Val.of(index++)));
-                elementsEvaluations.add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(location, fsteps,
+                elementsEvaluations.add(FunctionUtil.evaluateFunctionWithLeftHandArgumentMono(location, identifier,
                         elementVal, parameters));
             }
             return Flux.combineLatest(elementsEvaluations, e -> Arrays.copyOf(e, e.length, Val[].class))

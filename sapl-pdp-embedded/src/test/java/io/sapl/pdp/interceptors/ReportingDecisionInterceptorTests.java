@@ -59,10 +59,10 @@ class ReportingDecisionInterceptorTests {
 
         @Override
         public Mono<PolicyRetrievalResult> retrievePolicies() {
-            var permitAll = INTERPERTER.parseDocument(PERMIT_ALL_DOCUMENT);
-            var error     = INTERPERTER.parseDocument(ERROR_DOCUMENT);
-            var attribute = INTERPERTER.parseDocument(ATTRIBUTE_DOCUMENT);
-            var one       = INTERPERTER.parseDocument(SET_ONE);
+            final var permitAll = INTERPERTER.parseDocument(PERMIT_ALL_DOCUMENT);
+            final var error     = INTERPERTER.parseDocument(ERROR_DOCUMENT);
+            final var attribute = INTERPERTER.parseDocument(ATTRIBUTE_DOCUMENT);
+            final var one       = INTERPERTER.parseDocument(SET_ONE);
             return Mono.just(new PolicyRetrievalResult().withMatch(new DocumentMatch(permitAll, Val.TRUE))
                     .withMatch(new DocumentMatch(error, Val.TRUE)).withMatch(new DocumentMatch(attribute, Val.TRUE))
                     .withMatch(new DocumentMatch(one, Val.TRUE)));
@@ -95,7 +95,7 @@ class ReportingDecisionInterceptorTests {
         @Override
         @SneakyThrows
         public Flux<PDPConfiguration> pdpConfiguration() {
-            var dInterceptor = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true, true);
+            final var dInterceptor = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true, true);
             return Flux.just(new PDPConfiguration("testConfiguration",
                     new AnnotationAttributeContext(List::of, () -> List.of(ReportingTestPIP.class)),
                     new AnnotationFunctionContext(), Map.of(), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES,
@@ -105,8 +105,8 @@ class ReportingDecisionInterceptorTests {
 
     @Test
     void runReportingTest() {
-        var pdp = new EmbeddedPolicyDecisionPoint(new TestingPDPConfigurationProvider());
-        var sub = AuthorizationSubscription.of("subject", "action", "resource");
+        final var pdp = new EmbeddedPolicyDecisionPoint(new TestingPDPConfigurationProvider());
+        final var sub = AuthorizationSubscription.of("subject", "action", "resource");
         StepVerifier.create(pdp.decide(sub)).expectNextMatches(d -> d.getDecision() == Decision.INDETERMINATE)
                 .verifyComplete();
     }

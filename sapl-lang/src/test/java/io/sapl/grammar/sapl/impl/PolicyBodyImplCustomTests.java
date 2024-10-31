@@ -73,7 +73,7 @@ class PolicyBodyImplCustomTests {
     @ParameterizedTest
     @MethodSource("provideTestCases")
     void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
-        var policy = INTERPRETER.parse(policySource);
+        final var policy = INTERPRETER.parse(policySource);
         StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
                 .expectNextMatches(hasDecision(expected)).verifyComplete();
     }

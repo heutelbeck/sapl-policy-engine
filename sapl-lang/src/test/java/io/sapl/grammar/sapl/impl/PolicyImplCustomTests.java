@@ -114,21 +114,21 @@ class PolicyImplCustomTests {
     @ParameterizedTest
     @MethodSource("provideTestCases")
     void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
-        var policy = INTERPRETER.parse(policySource);
+        final var policy = INTERPRETER.parse(policySource);
         StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
                 .expectNextMatches(hasDecision(expected)).verifyComplete();
     }
 
     @Test
     void targetExpression() {
-        var policy = INTERPRETER.parse("policy \"p\" deny false where true;");
+        final var policy = INTERPRETER.parse("policy \"p\" deny false where true;");
         assertThat(policy.getPolicyElement().targetResult(Val.FALSE).getAuthorizationDecision().getDecision())
                 .isEqualTo(Decision.NOT_APPLICABLE);
     }
 
     @Test
     void targetimportError() {
-        var policy = INTERPRETER.parse("policy \"p\" deny false where true;");
+        final var policy = INTERPRETER.parse("policy \"p\" deny false where true;");
         assertThat(policy.getPolicyElement().importError("someError").getAuthorizationDecision().getDecision())
                 .isEqualTo(Decision.INDETERMINATE);
     }

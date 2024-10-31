@@ -175,7 +175,7 @@ class UtilitiesTests {
         // GIVEN
 
         // WHEN
-        var result = (Flux<Person>) Utilities.convertReturnTypeIfNecessary(data, Flux.class);
+        final var result = (Flux<Person>) Utilities.convertReturnTypeIfNecessary(data, Flux.class);
 
         // THEN
 
@@ -188,7 +188,7 @@ class UtilitiesTests {
         // GIVEN
 
         // WHEN
-        var result = (Mono<Person>) Utilities.convertReturnTypeIfNecessary(data, Mono.class);
+        final var result = (Mono<Person>) Utilities.convertReturnTypeIfNecessary(data, Mono.class);
 
         // THEN
 
@@ -199,10 +199,10 @@ class UtilitiesTests {
     @SuppressWarnings("unchecked") // cast object to Flux<Person>
     void when_returnTypeIsList_then_convertReturnTypeIfNecessary() {
         // GIVEN
-        var dataAsList = List.of(malinda, emerson, yul);
+        final var dataAsList = List.of(malinda, emerson, yul);
 
         // WHEN
-        var result = (List<Person>) Utilities.convertReturnTypeIfNecessary(data, List.class);
+        final var result = (List<Person>) Utilities.convertReturnTypeIfNecessary(data, List.class);
 
         // THEN
         assertEquals(result, dataAsList);
@@ -231,7 +231,7 @@ class UtilitiesTests {
     @Test
     void when_classIsStaticUtilityClass_then_instantiateThisTestForCoverageReasonsOfConstructor() {
         assertThrows(InvocationTargetException.class, () -> {
-            var constructor = Utilities.class.getDeclaredConstructor();
+            final var constructor = Utilities.class.getDeclaredConstructor();
             assertTrue(Modifier.isPrivate(constructor.getModifiers()));
             ReflectionUtils.makeAccessible(constructor);
             constructor.newInstance();

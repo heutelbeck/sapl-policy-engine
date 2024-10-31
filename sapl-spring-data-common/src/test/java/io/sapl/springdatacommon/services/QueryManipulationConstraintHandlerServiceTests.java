@@ -150,14 +150,14 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getSelections_then_returnSelectionsOfObligations() {
         // GIVEN
-        var constraintData = List.of(
+        final var constraintData = List.of(
                 new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligation),
                 new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
-        var result = handlerBundle.getSelections();
+        final var result = handlerBundle.getSelections();
 
         // THEN
         assertEquals(result, selections);
@@ -166,7 +166,7 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getSelections_then_throwAccessDeniedException() {
         // GIVEN
-        var errorMessage = """
+        final var errorMessage = """
                 		UnhandableObligation:
                 		{
                 				"types":"r2dbcQueryManipulation",
@@ -178,15 +178,15 @@ class QueryManipulationConstraintHandlerServiceTests {
                 		}
                 """;
 
-        var constraintData = List.of(
+        final var constraintData = List.of(
                 new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcUnhandableObligation),
                 new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
 
-        var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
+        final var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
             handlerBundle.getSelections();
         });
 
@@ -198,12 +198,12 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getConditions_then_returnEmptyArrayNode() {
         // GIVEN
-        var constraintData = new ArrayList<RecordConstraintData>();
+        final var constraintData = new ArrayList<RecordConstraintData>();
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
-        var result = handlerBundle.getConditions();
+        final var result = handlerBundle.getConditions();
 
         // THEN
         assertEquals(result, MAPPER.createArrayNode());
@@ -212,12 +212,12 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getSelections_then_returnEmptyArrayNode1() {
         // GIVEN
-        var constraintData = new ArrayList<RecordConstraintData>();
+        final var constraintData = new ArrayList<RecordConstraintData>();
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
-        var result = handlerBundle.getSelections();
+        final var result = handlerBundle.getSelections();
 
         // THEN
         assertEquals(result, MAPPER.createArrayNode());
@@ -226,13 +226,13 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getSelections_then_returnEmptyArrayNode2() {
         // GIVEN
-        var constraintData = List.of(
+        final var constraintData = List.of(
                 new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, obligationWithoutSelection));
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
-        var result = handlerBundle.getSelections();
+        final var result = handlerBundle.getSelections();
 
         // THEN
         assertEquals(result, MAPPER.createArrayNode());
@@ -241,15 +241,15 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getConditions_then_returnConditionsOfObligations() {
         // GIVEN
-        var constraintData = List.of(
+        final var constraintData = List.of(
                 new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligation),
                 new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
 
-        var result = handlerBundle.getConditions();
+        final var result = handlerBundle.getConditions();
 
         // THEN
         assertEquals(result, conditions);
@@ -258,16 +258,16 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getQueryManipulationObligations_then_returnObligations() {
         // GIVEN
-        var constraintData = List.of(
+        final var constraintData = List.of(
                 new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligation),
                 new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
-        var obligations    = new JsonNode[] { r2dbcObligation, mongoObligation };
+        final var obligations    = new JsonNode[] { r2dbcObligation, mongoObligation };
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
 
-        var result = handlerBundle.getQueryManipulationObligations();
+        final var result = handlerBundle.getQueryManipulationObligations();
 
         // THEN
         for (int i = 0; i < result.length; i++) {
@@ -278,13 +278,13 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getQueryManipulationObligations_then_returnEmptyArray() {
         // GIVEN
-        var constraintData = List.of(new RecordConstraintData(null, r2dbcObligation));
+        final var constraintData = List.of(new RecordConstraintData(null, r2dbcObligation));
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
 
-        var result = handlerBundle.getQueryManipulationObligations();
+        final var result = handlerBundle.getQueryManipulationObligations();
 
         // THEN
         assertEquals(0, result.length);
@@ -295,11 +295,11 @@ class QueryManipulationConstraintHandlerServiceTests {
         // GIVEN
         List<RecordConstraintData> constraintData = List.of();
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
 
-        var result = handlerBundle.getQueryManipulationObligations();
+        final var result = handlerBundle.getQueryManipulationObligations();
 
         // THEN
         assertEquals(0, result.length);
@@ -308,15 +308,15 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getTransformations_then_returnTransformations() {
         // GIVEN
-        var constraintData = List.of(
+        final var constraintData = List.of(
                 new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligation),
                 new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
 
-        var result = handlerBundle.getTransformations();
+        final var result = handlerBundle.getTransformations();
 
         // THEN
         assertEquals(result, transformations);
@@ -325,14 +325,14 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getTransformations_then_returnEmptyArrayNode2() {
         // GIVEN
-        var constraintData = List.of(new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION,
+        final var constraintData = List.of(new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION,
                 r2dbcObligationWrongTransformations));
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
 
-        var result = handlerBundle.getTransformations();
+        final var result = handlerBundle.getTransformations();
 
         // THEN
         assertEquals(result, MAPPER.createArrayNode());
@@ -343,11 +343,11 @@ class QueryManipulationConstraintHandlerServiceTests {
         // GIVEN
         List<RecordConstraintData> constraintData = List.of();
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
 
-        var result = handlerBundle.getTransformations();
+        final var result = handlerBundle.getTransformations();
 
         // THEN
         assertEquals(result, MAPPER.createArrayNode());
@@ -356,14 +356,14 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getTransformations_then_returnAlias() {
         // GIVEN
-        var constraintData = List
+        final var constraintData = List
                 .of(new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligation));
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
 
-        var result = handlerBundle.getAlias();
+        final var result = handlerBundle.getAlias();
 
         // THEN
         assertEquals("p", result);
@@ -372,14 +372,14 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getTransformations_then_returnEmptyString() {
         // GIVEN
-        var constraintData = List
+        final var constraintData = List
                 .of(new RecordConstraintData(ConstraintHandlerType.MONGO_QUERY_MANIPULATION, mongoObligation));
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
 
-        var result = handlerBundle.getAlias();
+        final var result = handlerBundle.getAlias();
 
         // THEN
         assertEquals("", result);
@@ -388,14 +388,14 @@ class QueryManipulationConstraintHandlerServiceTests {
     @Test
     void when_getTransformations_then_returnEmptyArrayNode() {
         // GIVEN
-        var constraintData = List.of(
+        final var constraintData = List.of(
                 new RecordConstraintData(ConstraintHandlerType.R2DBC_QUERY_MANIPULATION, r2dbcObligationWrongAlias));
 
-        var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
+        final var handlerBundle = new QueryManipulationConstraintHandlerService(constraintData);
 
         // WHEN
 
-        var result = handlerBundle.getAlias();
+        final var result = handlerBundle.getAlias();
 
         // THEN
         assertEquals("", result);

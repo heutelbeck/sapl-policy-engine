@@ -41,14 +41,14 @@ class ASimplePDPTests {
 
     @Test
     void test_simpleIT_testSinglePolicyA() {
-        var unitFixture = new SaplUnitTestFixture("policiesIT/policy_A");
+        final var unitFixture = new SaplUnitTestFixture("policiesIT/policy_A");
         unitFixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectDeny()
                 .verify();
     }
 
     @Test
     void test_simpleIT_testSinglePolicyB() {
-        var unitFixture = new SaplUnitTestFixture("policiesIT/policy_B");
+        final var unitFixture = new SaplUnitTestFixture("policiesIT/policy_B");
         unitFixture.constructTestCase().when(AuthorizationSubscription.of("WILLI", "read", "foo")).expectPermit()
                 .verify();
     }

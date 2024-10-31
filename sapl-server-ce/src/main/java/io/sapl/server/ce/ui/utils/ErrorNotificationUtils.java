@@ -41,17 +41,17 @@ public final class ErrorNotificationUtils {
      * @param errorMessage the error message to show
      */
     public static void show(@NonNull String errorMessage) {
-        var notification = new Notification();
+        final var notification = new Notification();
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
 
-        var text = new Div(new Text(errorMessage));
+        final var text = new Div(new Text(errorMessage));
 
-        var closeButton = new Button(new Icon("lumo", "cross"));
+        final var closeButton = new Button(new Icon("lumo", "cross"));
         closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
         closeButton.getElement().setAttribute("aria-label", "Close");
         closeButton.addClickListener(event -> notification.close());
 
-        var layout = new HorizontalLayout(text, closeButton);
+        final var layout = new HorizontalLayout(text, closeButton);
         layout.setAlignItems(Alignment.CENTER);
 
         notification.add(layout);

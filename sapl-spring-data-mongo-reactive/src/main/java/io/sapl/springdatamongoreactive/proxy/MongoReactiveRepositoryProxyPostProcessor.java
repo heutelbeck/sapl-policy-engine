@@ -49,7 +49,7 @@ public class MongoReactiveRepositoryProxyPostProcessor<T> implements RepositoryP
         log.debug("# MongoReactiveRepositoryProxyPostProcessor postProcess {} {}", factory.getClass().getSimpleName(),
                 repositoryInformation.getClass().getSimpleName());
 
-        var repository = repositoryInformation.getRepositoryInterface();
+        final var repository = repositoryInformation.getRepositoryInterface();
 
         if (hasRequiredInterface(repository)) {
             repositoryInformationCollectorService.add(repositoryInformation);
@@ -58,7 +58,7 @@ public class MongoReactiveRepositoryProxyPostProcessor<T> implements RepositoryP
     }
 
     private boolean hasRequiredInterface(Class<?> repository) {
-        var interfaces = repository.getInterfaces();
+        final var interfaces = repository.getInterfaces();
 
         for (Type interfaceType : interfaces) {
             if (interfaceType.equals(ReactiveCrudRepository.class)

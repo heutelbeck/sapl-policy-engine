@@ -59,24 +59,24 @@ public final class SaplAttributeRegistry {
      * Returns an {@link Optional} {@link SaplAttribute} for the
      * {@link MethodInvocation}.
      *
-     * @param <T>            the annotation type
+     * @param <T> the annotation type
      *
-     * @param mi             the {@link MethodInvocation} to use
+     * @param mi the {@link MethodInvocation} to use
      * @param annotationType the annotation type.
      * @return the {@link Optional} {@link SaplAttribute} to use
      */
     public <T extends Annotation> Optional<SaplAttribute> getSaplAttributeForAnnotationType(MethodInvocation mi,
             Class<T> annotationType) {
-        var method      = mi.getMethod();
-        var target      = mi.getThis();
-        var targetClass = (target != null) ? target.getClass() : null;
+        final var method      = mi.getMethod();
+        final var target      = mi.getThis();
+        final var targetClass = (target != null) ? target.getClass() : null;
         return getAttribute(method, targetClass, annotationType);
     }
 
     public boolean hasSpringAnnotations(MethodInvocation mi) {
-        var method      = mi.getMethod();
-        var target      = mi.getThis();
-        var targetClass = (target != null) ? target.getClass() : null;
+        final var method      = mi.getMethod();
+        final var target      = mi.getThis();
+        final var targetClass = (target != null) ? target.getClass() : null;
         return hasAnnotation(method, targetClass, PreAuthorize.class)
                 || hasAnnotation(method, targetClass, PostAuthorize.class)
                 || hasAnnotation(method, targetClass, PreFilter.class)
@@ -84,8 +84,8 @@ public final class SaplAttributeRegistry {
     }
 
     private <T extends Annotation> boolean hasAnnotation(Method method, Class<?> targetClass, Class<T> annotationType) {
-        var specificMethod = AopUtils.getMostSpecificMethod(method, targetClass);
-        var annotation     = AuthorizationAnnotationUtils
+        final var specificMethod = AopUtils.getMostSpecificMethod(method, targetClass);
+        final var annotation     = AuthorizationAnnotationUtils
                 .findAuthorizeAnnotationOnMethodOrDeclaringClass(specificMethod, annotationType);
         return annotation != null;
     }
@@ -109,7 +109,7 @@ public final class SaplAttributeRegistry {
      * @return a Map of all SaplAttributes by type.
      */
     public Map<Class<? extends Annotation>, SaplAttribute> getAllSaplAttributes(MethodInvocation mi) {
-        var attributes = new HashMap<Class<? extends Annotation>, SaplAttribute>();
+        final var attributes = new HashMap<Class<? extends Annotation>, SaplAttribute>();
         for (var annotationType : SAPL_ANNOTATIONS) {
             getSaplAttributeForAnnotationType(mi, annotationType).ifPresent(a -> attributes.put(annotationType, a));
         }
@@ -120,18 +120,19 @@ public final class SaplAttributeRegistry {
      * Returns an {@link Optional} {@link SaplAttribute} for the method and the
      * target class.
      *
-     * @param <T>            the annotation type
+     * @param <T> the annotation type
      *
-     * @param method         the method
-     * @param targetClass    the target class
+     * @param method the method
+     * @param targetClass the target class
      * @param annotationType the annotation type
      * @return the {@link Optional} {@link SaplAttribute} to use
      */
     public <T extends Annotation> Optional<SaplAttribute> getAttribute(Method method, Class<?> targetClass,
             Class<T> annotationType) {
-        var attributesOfType = this.cachedAttributes.computeIfAbsent(annotationType, x -> new ConcurrentHashMap<>());
-        var cacheKey         = new MethodClassKey(method, targetClass);
-        var attribute        = attributesOfType.computeIfAbsent(cacheKey,
+        final var attributesOfType = this.cachedAttributes.computeIfAbsent(annotationType,
+                x -> new ConcurrentHashMap<>());
+        final var cacheKey         = new MethodClassKey(method, targetClass);
+        final var attribute        = attributesOfType.computeIfAbsent(cacheKey,
                 x -> resolveAttribute(method, targetClass, annotationType));
         if (attribute == SaplAttribute.NULL_ATTRIBUTE) {
             return Optional.empty();
@@ -141,7 +142,7 @@ public final class SaplAttributeRegistry {
 
     public <T extends Annotation> SaplAttribute resolveAttribute(Method method, Class<?> targetClass,
             Class<T> annotationType) {
-        var annotation = findAnnotation(method, targetClass, annotationType);
+        final var annotation = findAnnotation(method, targetClass, annotationType);
         if (annotation == null) {
             return SaplAttribute.NULL_ATTRIBUTE;
         }

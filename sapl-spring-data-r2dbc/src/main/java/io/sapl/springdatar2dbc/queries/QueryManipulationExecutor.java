@@ -36,7 +36,7 @@ public class QueryManipulationExecutor {
     public <T> Flux<T> execute(String query, Class<T> domainType) {
 
         if (query.contains(XXXXX)) {
-            var tableName = getTableName(domainType);
+            final var tableName = getTableName(domainType);
 
             query = query.replace(XXXXX, tableName);
 

@@ -57,7 +57,7 @@ public class DigitalPoliciesView extends VerticalLayout {
     public DigitalPoliciesView(SaplDocumentService saplDocumentService) {
         this.saplDocumentService = saplDocumentService;
 
-        var createButton = new Button("Create");
+        final var createButton = new Button("Create");
         add(createButton, saplDocumentGrid);
 
         initSaplDocumentGrid();

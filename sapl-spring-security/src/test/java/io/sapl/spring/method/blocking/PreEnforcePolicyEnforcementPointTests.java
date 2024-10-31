@@ -136,7 +136,7 @@ class PreEnforcePolicyEnforcementPointTests {
     @Test
     @WithMockUser()
     void when_BeforeAndDecidePermit_and_obligationsFail_then_ReturnFalse() {
-        var mockBundle = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(() -> {
+        final var mockBundle = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(() -> {
             throw new AccessDeniedException("INTENDED FAILURE IN TEST");
         }, FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
                 FunctionUtil.all(), FunctionUtil.sink(), UnaryOperator.identity());
@@ -177,9 +177,9 @@ class PreEnforcePolicyEnforcementPointTests {
     @Test
     @WithMockUser()
     void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject() {
-        var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
-                FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
-                FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
+        final var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
+                FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
+                UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
         when(pdp.decide(any(AuthorizationSubscription.class)))

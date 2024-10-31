@@ -72,10 +72,10 @@ class HtmlLineCoverageReportGeneratorTests {
             try (MockedConstruction<SaplDocumentLineCoverageInformation> mocked = Mockito.mockConstruction(
                     SaplDocumentLineCoverageInformation.class,
                     (mock, context) -> when(mock.getCoveredValue()).thenReturn(badApple))) {
-                var document = new SaplDocumentCoverageInformation(
+                final var document = new SaplDocumentCoverageInformation(
                         Paths.get("src/test/resources/policies/policy_1.sapl"), 12);
                 document.markLine(1, LineCoveredValue.IRRELEVANT, 0, 0);
-                var documents = List.of(document);
+                final var documents = List.of(document);
                 assertThrows(SaplTestException.class, () -> GENERATOR.generateHtmlReport(documents, tempDir,
                         POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO, POLICY_CONDITION_HIT_RATIO));
             }
@@ -96,7 +96,7 @@ class HtmlLineCoverageReportGeneratorTests {
     void test_fileWithInvalidPath(@TempDir Path tempDir) {
         try (MockedStatic<WebDependencyFactory> mockedDependencyFactory = Mockito
                 .mockStatic(WebDependencyFactory.class)) {
-            var nonExistingFiles = List
+            final var nonExistingFiles = List
                     .of(new WebDependency("I do not exist", "I do not exist", "I do not exist", "I do not exist"));
             mockedDependencyFactory.when(WebDependencyFactory::getWebDependencies).thenReturn(nonExistingFiles);
             assertThrows(MojoExecutionException.class,

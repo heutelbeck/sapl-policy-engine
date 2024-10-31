@@ -37,12 +37,12 @@ class QueryAnnotationParameterResolverTests {
     @Test
     void when_valuesOfQueryAndMethodParameterAreFitting_resolveBoundedMethodParametersAndAnnotationParameters() {
         // GIVEN
-        var r2dbcMethodInvocationTest = new R2dbcMethodInvocation("findAllUsersTest",
+        final var r2dbcMethodInvocationTest = new R2dbcMethodInvocation("findAllUsersTest",
                 new ArrayList<>(List.of(int.class, String.class)), new ArrayList<>(List.of(30, "2")), null);
-        var expected                  = "SELECT * FROM testUser WHERE age = 30 AND id = '2'";
+        final var expected                  = "SELECT * FROM testUser WHERE age = 30 AND id = '2'";
 
         // WHEN
-        var actual = QueryAnnotationParameterResolver.resolveForRelationalDatabase(
+        final var actual = QueryAnnotationParameterResolver.resolveForRelationalDatabase(
                 r2dbcMethodInvocationTest.getMethod(), r2dbcMethodInvocationTest.getArguments());
 
         // THEN
@@ -52,14 +52,14 @@ class QueryAnnotationParameterResolverTests {
     @Test
     void when_resolveBoundedMethodParametersAndAnnotationParametersAreStrings_then_resolveQuery() {
         // GIVEN
-        var expectedResult   = "{'firstname':  {'$in': [ 'Aaron' ]}}XXXXXXXXXX";
-        var methodInvocation = new MongoReactiveMethodInvocation("findAllUsersTest",
+        final var expectedResult   = "{'firstname':  {'$in': [ 'Aaron' ]}}XXXXXXXXXX";
+        final var methodInvocation = new MongoReactiveMethodInvocation("findAllUsersTest",
                 new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Aaron")), null);
-        var method           = methodInvocation.getMethod();
-        var args             = methodInvocation.getArguments();
+        final var method           = methodInvocation.getMethod();
+        final var args             = methodInvocation.getArguments();
 
         // WHEN
-        var result = QueryAnnotationParameterResolver.resolveForMongoDB(method, args);
+        final var result = QueryAnnotationParameterResolver.resolveForMongoDB(method, args);
 
         // THEN
         assertEquals(expectedResult, result);
@@ -68,14 +68,14 @@ class QueryAnnotationParameterResolverTests {
     @Test
     void when_resolveBoundedMethodParametersAndAnnotationParametersAreNoStrings_then_resolveQuery() {
         // GIVEN
-        var expectedResult   = "{'age':  {'$in': [ 22 ]}}XXXXXXXXXX";
-        var methodInvocation = new MongoReactiveMethodInvocation("findAllByAge", new ArrayList<>(List.of(int.class)),
-                new ArrayList<>(List.of(22)), null);
-        var method           = methodInvocation.getMethod();
-        var args             = methodInvocation.getArguments();
+        final var expectedResult   = "{'age':  {'$in': [ 22 ]}}XXXXXXXXXX";
+        final var methodInvocation = new MongoReactiveMethodInvocation("findAllByAge",
+                new ArrayList<>(List.of(int.class)), new ArrayList<>(List.of(22)), null);
+        final var method           = methodInvocation.getMethod();
+        final var args             = methodInvocation.getArguments();
 
         // WHEN
-        var result = QueryAnnotationParameterResolver.resolveForMongoDB(method, args);
+        final var result = QueryAnnotationParameterResolver.resolveForMongoDB(method, args);
 
         // THEN
         assertEquals(expectedResult, result);
@@ -84,12 +84,12 @@ class QueryAnnotationParameterResolverTests {
     @Test
     void when_queryAnnotationContainsConcatCommand_then_resolveBoundedMethodParametersAndAnnotationParameters() {
         // GIVEN
-        var r2dbcMethodInvocationTest = new R2dbcMethodInvocation("concatValuesInQueryAnnotation",
+        final var r2dbcMethodInvocationTest = new R2dbcMethodInvocation("concatValuesInQueryAnnotation",
                 new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("TT")), null);
-        var expected                  = "SELECT * FROM person WHERE lastname LIKE CONCAT('%', 'TT', '%')";
+        final var expected                  = "SELECT * FROM person WHERE lastname LIKE CONCAT('%', 'TT', '%')";
 
         // WHEN
-        var actual = QueryAnnotationParameterResolver.resolveForRelationalDatabase(
+        final var actual = QueryAnnotationParameterResolver.resolveForRelationalDatabase(
                 r2dbcMethodInvocationTest.getMethod(), r2dbcMethodInvocationTest.getArguments());
 
         // THEN
@@ -99,7 +99,7 @@ class QueryAnnotationParameterResolverTests {
     @Test
     void when_classIsStaticUtilityClass_then_instantiateThisTestForCoverageReasonsOfConstructor() {
         assertThrows(InvocationTargetException.class, () -> {
-            var constructor = QueryAnnotationParameterResolver.class.getDeclaredConstructor();
+            final var constructor = QueryAnnotationParameterResolver.class.getDeclaredConstructor();
             assertTrue(Modifier.isPrivate(constructor.getModifiers()));
             ReflectionUtils.makeAccessible(constructor);
             constructor.newInstance();

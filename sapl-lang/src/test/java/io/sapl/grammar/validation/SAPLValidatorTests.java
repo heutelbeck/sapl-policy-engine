@@ -257,7 +257,7 @@ class SAPLValidatorTests {
         String testPolicy = """
                 policy "p" permit
                 where
-                   var x = 123 schema {
+                   final var x = 123 schema {
                         "a" : <test.test>
                     }
                 """;
@@ -271,7 +271,7 @@ class SAPLValidatorTests {
         String testPolicy = """
                 policy "p" permit
                 where
-                   var x = 123 schema {
+                   final var x = 123 schema {
                         "a" : |<test.test>
                     }
                 """;
@@ -285,7 +285,7 @@ class SAPLValidatorTests {
         String testPolicy = """
                 policy "p" permit
                 where
-                   var x = 123 schema {
+                   final var x = 123 schema {
                         "a" : aaa.<test.test>
                     }
                 """;
@@ -299,7 +299,7 @@ class SAPLValidatorTests {
         String testPolicy = """
                 policy "p" permit
                 where
-                   var x = 123 schema {
+                   final var x = 123 schema {
                         "a" : aaa.|<test.test>
                     }
                 """;

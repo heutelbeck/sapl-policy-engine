@@ -59,7 +59,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
     private Function<? super PDPConfiguration, Publisher<? extends TracedDecision>> decideSubscription(
             AuthorizationSubscription authorizationSubscription) {
         return pdpConfiguration -> {
-            var subscription = pdpConfiguration.subscriptionInterceptorChain().apply(authorizationSubscription);
+            final var subscription = pdpConfiguration.subscriptionInterceptorChain().apply(authorizationSubscription);
             return retrieveAndCombineDocuments(pdpConfiguration, subscription)
                     .map(pdpConfiguration.decisionInterceptorChain())
                     .contextWrite(buildSubscriptionScopedContext(pdpConfiguration, authorizationSubscription));
@@ -94,12 +94,12 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
             AuthorizationSubscription authorizationSubscription) {
         return policyRetrievalResult -> {
             if (policyRetrievalResult.isPrpInconsistent() || policyRetrievalResult.isRetrievalWithErrors()) {
-                var combinedDecision = CombinedDecision.of(AuthorizationDecision.INDETERMINATE,
+                final var combinedDecision = CombinedDecision.of(AuthorizationDecision.INDETERMINATE,
                         pdpConfiguration.documentsCombinator());
                 return Flux.just(PDPDecision.of(authorizationSubscription, combinedDecision, policyRetrievalResult));
             }
-            var matchingDocuments  = policyRetrievalResult.getMatchingDocuments();
-            var combiningAlgorithm = CombiningAlgorithmFactory
+            final var matchingDocuments  = policyRetrievalResult.getMatchingDocuments();
+            final var combiningAlgorithm = CombiningAlgorithmFactory
                     .documentsCombiningAlgorithm(pdpConfiguration.documentsCombinator());
             return combiningAlgorithm.combinePreMatchedDocuments(matchingDocuments).map(combinedDecision -> PDPDecision
                     .of(authorizationSubscription, combinedDecision, policyRetrievalResult));

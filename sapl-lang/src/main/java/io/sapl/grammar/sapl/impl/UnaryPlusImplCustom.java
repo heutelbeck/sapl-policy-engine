@@ -27,7 +27,11 @@ public class UnaryPlusImplCustom extends UnaryPlusImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this, val -> val.withTrace(UnaryPlus.class, true, val));
+        return arithmeticOperator(this, this, UnaryPlusImplCustom::plus);
+    }
+
+    public static Val plus(Val val) {
+        return val.withTrace(UnaryPlus.class, true, val);
     }
 
 }

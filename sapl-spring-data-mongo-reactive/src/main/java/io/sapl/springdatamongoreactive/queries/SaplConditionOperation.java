@@ -49,23 +49,23 @@ public class SaplConditionOperation {
      * parts of the method can be better edited. To get to the field types of the
      * DomainType, {@link java.lang.reflect} is used.
      *
-     * @param args       are the parameters of the original method.
-     * @param method     is the original method.
+     * @param args are the parameters of the original method.
+     * @param method is the original method.
      * @param domainType is the domain type.
      * @return list of {@link SaplCondition} which were created from the parameters
-     *         of the method.
+     * of the method.
      */
     public List<SaplCondition> methodToSaplConditions(Object[] args, Method method, Class<?> domainType) {
-        var saplConditions = new ArrayList<SaplCondition>();
-        var partTree       = new PartTree(method.getName(), domainType);
+        final var saplConditions = new ArrayList<SaplCondition>();
+        final var partTree       = new PartTree(method.getName(), domainType);
 
         if (partTree.getParts().toList().isEmpty()) {
             return saplConditions;
         }
 
-        var domainTypes       = getDomainFieldOfEveryMethodParameter(partTree);
-        var operators         = getOperatorOfEveryMethodParameter(partTree);
-        var reflectParameters = method.getParameters();
+        final var domainTypes       = getDomainFieldOfEveryMethodParameter(partTree);
+        final var operators         = getOperatorOfEveryMethodParameter(partTree);
+        final var reflectParameters = method.getParameters();
 
         if (reflectParameters.length == args.length) {
 
@@ -89,9 +89,9 @@ public class SaplConditionOperation {
      * @return list of {@link SaplCondition}
      */
     public List<SaplCondition> jsonNodeToSaplConditions(Iterable<JsonNode> conditions) {
-        var saplConditions = new ArrayList<SaplCondition>();
+        final var saplConditions = new ArrayList<SaplCondition>();
 
-        var iterator = conditions.iterator();
+        final var iterator = conditions.iterator();
 
         if (!iterator.hasNext()) {
             return saplConditions;
@@ -99,9 +99,9 @@ public class SaplConditionOperation {
 
         while (iterator.hasNext()) {
 
-            var value = iterator.next();
+            final var value = iterator.next();
 
-            var baseQuery = new BasicQuery(value.asText());
+            final var baseQuery = new BasicQuery(value.asText());
 
             convertBasicQueryToSaplConditions(baseQuery, saplConditions);
         }
@@ -139,9 +139,9 @@ public class SaplConditionOperation {
      * Expands the method name using the {@link SaplCondition}s created from the
      * conditions of the {@link io.sapl.api.pdp.Decision}.
      *
-     * @param methodName     is the repository method name.
+     * @param methodName is the repository method name.
      * @param saplConditions are created from the conditions of the
-     *                       {@link io.sapl.api.pdp.Decision}.
+     * {@link io.sapl.api.pdp.Decision}.
      * @return modified method name.
      */
     public String toModifiedMethodName(String methodName, List<SaplCondition> saplConditions) {
@@ -173,11 +173,11 @@ public class SaplConditionOperation {
      * to the original method name.
      *
      * @param saplConditions are created from the conditions of the
-     *                       {@link io.sapl.api.pdp.Decision}.
+     * {@link io.sapl.api.pdp.Decision}.
      * @return the modifying method name part.
      */
     private String creatModifyingMethodNamePart(List<SaplCondition> saplConditions, boolean findAllMethodType) {
-        var creatModifyingPart = new StringBuilder();
+        final var creatModifyingPart = new StringBuilder();
 
         for (int i = 0; i < saplConditions.size(); i++) {
 
@@ -209,7 +209,7 @@ public class SaplConditionOperation {
      * @return the created list of Operations from the individual parts.
      */
     private List<OperatorMongoDB> getOperatorOfEveryMethodParameter(PartTree partTree) {
-        var operators = new ArrayList<OperatorMongoDB>();
+        final var operators = new ArrayList<OperatorMongoDB>();
         for (Part part : partTree.getParts()) {
             for (int i = 0; i < part.getNumberOfArguments(); i++) {
                 if ("SIMPLE_PROPERTY".equals(part.getType().name())) {
@@ -229,7 +229,7 @@ public class SaplConditionOperation {
      * @return the created list of fields for every parameter of the method.
      */
     private List<String> getDomainFieldOfEveryMethodParameter(PartTree partTree) {
-        var domainTypes = new ArrayList<String>();
+        final var domainTypes = new ArrayList<String>();
         for (Part part : partTree.getParts()) {
             for (int i = 0; i < part.getNumberOfArguments(); i++) {
                 domainTypes.add(part.getProperty().getSegment());
@@ -240,8 +240,8 @@ public class SaplConditionOperation {
 
     private void addNewSaplCondition(Collection<SaplCondition> saplConditions, String field, Map<String, Object> doc,
             String conjunction) {
-        var operator = OperatorMongoDB.getOperatorByKeyword(doc.keySet().toArray()[0].toString());
-        var value    = doc.values().toArray()[0];
+        final var operator = OperatorMongoDB.getOperatorByKeyword(doc.keySet().toArray()[0].toString());
+        final var value    = doc.values().toArray()[0];
 
         saplConditions.add(new SaplCondition(field, value, operator, conjunction));
     }

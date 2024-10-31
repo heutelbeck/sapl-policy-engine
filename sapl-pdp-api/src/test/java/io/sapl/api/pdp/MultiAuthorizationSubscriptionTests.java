@@ -51,7 +51,7 @@ class MultiAuthorizationSubscriptionTests {
 
     @Test
     void defaultConstructorTest() {
-        var subscription = new MultiAuthorizationSubscription();
+        final var subscription = new MultiAuthorizationSubscription();
         assertAll(() -> assertThat(subscription.getSubjects(), is(empty())),
                 () -> assertThat(subscription.getActions(), is(empty())),
                 () -> assertThat(subscription.getResources(), is(empty())),
@@ -61,48 +61,48 @@ class MultiAuthorizationSubscriptionTests {
 
     @Test
     void falseHasAuthorizationSubscriptionTest() {
-        var subscription = new MultiAuthorizationSubscription();
+        final var subscription = new MultiAuthorizationSubscription();
         assertFalse(subscription.hasAuthorizationSubscriptions());
     }
 
     @Test
     void trueHasAuthorizationSubscriptionTest() {
-        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
+        final var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
                 RESOURCE);
         assertTrue(subscription.hasAuthorizationSubscriptions());
     }
 
     @Test
     void addNullIdFailsTest() {
-        var sub1 = new MultiAuthorizationSubscription();
+        final var sub1 = new MultiAuthorizationSubscription();
         assertThrows(NullPointerException.class,
                 () -> sub1.addAuthorizationSubscription(null, SUBJECT, ACTION, RESOURCE));
-        var sub2 = new MultiAuthorizationSubscription();
+        final var sub2 = new MultiAuthorizationSubscription();
         assertThrows(NullPointerException.class, () -> sub2.addAuthorizationSubscription(ID, null, ACTION, RESOURCE));
-        var sub3 = new MultiAuthorizationSubscription();
+        final var sub3 = new MultiAuthorizationSubscription();
         assertThrows(NullPointerException.class, () -> sub3.addAuthorizationSubscription(ID, SUBJECT, null, RESOURCE));
-        var sub4 = new MultiAuthorizationSubscription();
+        final var sub4 = new MultiAuthorizationSubscription();
         assertThrows(NullPointerException.class, () -> sub4.addAuthorizationSubscription(ID, SUBJECT, ACTION, null));
     }
 
     @Test
     void emptySubscriptionToStringTest() {
-        var string = new MultiAuthorizationSubscription().toString();
+        final var string = new MultiAuthorizationSubscription().toString();
         assertAll(() -> assertThat(string, startsWith(MULTI_AUTHORIZATION_SUBSCRIPTION)),
                 () -> assertThat(string, not(containsString(SUBSCRIPTION_ID))));
     }
 
     @Test
     void filledSubscriptionToStringTest() {
-        var string = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE)
-                .toString();
+        final var string = new MultiAuthorizationSubscription()
+                .addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE).toString();
         assertAll(() -> assertThat(string, startsWith(MULTI_AUTHORIZATION_SUBSCRIPTION)),
                 () -> assertThat(string, containsString(SUBSCRIPTION_ID + ": " + ID)));
     }
 
     @Test
     void addTwoSubscriptionsTest() {
-        var subscription = new MultiAuthorizationSubscription()
+        final var subscription = new MultiAuthorizationSubscription()
                 .addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE)
                 .addAuthorizationSubscription(ID2, SUBJECT, ACTION, RESOURCE2);
         assertAll(() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID), notNullValue()),
@@ -113,7 +113,7 @@ class MultiAuthorizationSubscriptionTests {
 
     @Test
     void addTwoSubscriptionsViaBasicSubscriptionTest() {
-        var subscription = new MultiAuthorizationSubscription()
+        final var subscription = new MultiAuthorizationSubscription()
                 .addAuthorizationSubscription(ID, AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE))
                 .addAuthorizationSubscription(ID2, AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE2));
         assertAll(() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID), notNullValue()),
@@ -124,7 +124,7 @@ class MultiAuthorizationSubscriptionTests {
 
     @Test
     void addTwoSubscriptionsViaBasicSubscriptionWithNonNullEnvironmentTest() {
-        var subscription = new MultiAuthorizationSubscription()
+        final var subscription = new MultiAuthorizationSubscription()
                 .addAuthorizationSubscription(ID, AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE, ENVIRONMENT))
                 .addAuthorizationSubscription(ID2,
                         AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE2, ENVIRONMENT));
@@ -139,15 +139,15 @@ class MultiAuthorizationSubscriptionTests {
 
     @Test
     void addSameIdTwiceFailsTest() {
-        var initialSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
-                RESOURCE);
+        final var initialSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT,
+                ACTION, RESOURCE);
         assertThrows(IllegalArgumentException.class,
                 () -> initialSubscription.addAuthorizationSubscription(ID, SUBJECT, ACTION, RESOURCE2));
     }
 
     @Test
     void getExistingSubscriptionByIdTest() {
-        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
+        final var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, SUBJECT, ACTION,
                 RESOURCE);
         assertAll(() -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID), notNullValue()),
                 () -> assertThat(subscription.getAuthorizationSubscriptionWithId(ID).getAction(), is(ACTION)));
@@ -155,7 +155,7 @@ class MultiAuthorizationSubscriptionTests {
 
     @Test
     void getNonExistingSubscriptionByIdTest() {
-        var subscription = new MultiAuthorizationSubscription();
+        final var subscription = new MultiAuthorizationSubscription();
         assertThat(subscription.getAuthorizationSubscriptionWithId(ID), nullValue());
     }
 

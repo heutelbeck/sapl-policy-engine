@@ -52,7 +52,7 @@ class PolicySetImplCustomCoverageTests {
 
     @Test
     void test_match() {
-        var policy   = interpreter.parse("""
+        final var policy   = interpreter.parse("""
                 set "set"
 
                 deny-overrides
@@ -62,7 +62,7 @@ class PolicySetImplCustomCoverageTests {
                 policy "set.p1"
                 permit
                 """);
-        var authzSub = AuthorizationSubscription.of("willi", "read", "something");
+        final var authzSub = AuthorizationSubscription.of("willi", "read", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
@@ -75,7 +75,7 @@ class PolicySetImplCustomCoverageTests {
 
     @Test
     void test_NotMatching() {
-        var policy   = interpreter.parse("""
+        final var policy   = interpreter.parse("""
                 set "set"
 
                 deny-overrides
@@ -85,7 +85,7 @@ class PolicySetImplCustomCoverageTests {
                 policy "set.p1"
                 permit
                 """);
-        var authzSub = AuthorizationSubscription.of("willi", "write", "something");
+        final var authzSub = AuthorizationSubscription.of("willi", "write", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
@@ -98,7 +98,7 @@ class PolicySetImplCustomCoverageTests {
 
     @Test
     void test_matchesThrowsError() {
-        var policy   = interpreter.parse("""
+        final var policy   = interpreter.parse("""
                 set "set"
 
                 deny-overrides
@@ -108,7 +108,7 @@ class PolicySetImplCustomCoverageTests {
                 policy "set.p1"
                 permit
                 """);
-        var authzSub = AuthorizationSubscription.of("willi", "write", "something");
+        final var authzSub = AuthorizationSubscription.of("willi", "write", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
             ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());

@@ -63,8 +63,8 @@ class OnlyOneApplicableTests {
 
     @Test
     void combineDocumentsOneDeny() {
-        var given    = mockPolicyRetrievalResult(false, denyPolicy(""));
-        var expected = AuthorizationDecision.DENY;
+        final var given    = mockPolicyRetrievalResult(false, denyPolicy(""));
+        final var expected = AuthorizationDecision.DENY;
         verifyDocumentsCombinator(given, expected);
     }
 
@@ -78,51 +78,52 @@ class OnlyOneApplicableTests {
 
     @Test
     void combineDocumentsOnePermit() {
-        var given    = mockPolicyRetrievalResult(false, permitPolicy(""));
-        var expected = AuthorizationDecision.PERMIT;
+        final var given    = mockPolicyRetrievalResult(false, permitPolicy(""));
+        final var expected = AuthorizationDecision.PERMIT;
         verifyDocumentsCombinator(given, expected);
     }
 
     @Test
     void combineDocumentsOneIndeterminate() {
-        var given    = mockPolicyRetrievalResult(false, indeterminatePolicy(""));
-        var expected = AuthorizationDecision.INDETERMINATE;
+        final var given    = mockPolicyRetrievalResult(false, indeterminatePolicy(""));
+        final var expected = AuthorizationDecision.INDETERMINATE;
         verifyDocumentsCombinator(given, expected);
     }
 
     @Test
     void combineDocumentsOneNotApplicable() {
-        var given    = mockPolicyRetrievalResult(false, notApplicablePolicy(""));
-        var expected = AuthorizationDecision.NOT_APPLICABLE;
+        final var given    = mockPolicyRetrievalResult(false, notApplicablePolicy(""));
+        final var expected = AuthorizationDecision.NOT_APPLICABLE;
         verifyDocumentsCombinator(given, expected);
     }
 
     @Test
     void combineDocumentsNoDocs() {
-        var given    = mockPolicyRetrievalResult(false);
-        var expected = AuthorizationDecision.NOT_APPLICABLE;
+        final var given    = mockPolicyRetrievalResult(false);
+        final var expected = AuthorizationDecision.NOT_APPLICABLE;
         verifyDocumentsCombinator(given, expected);
     }
 
     @Test
     void combineDocumentsMoreDocsAllWithError() {
-        var given    = mockPolicyRetrievalResult(true, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
-        var expected = AuthorizationDecision.NOT_APPLICABLE;
+        final var given    = mockPolicyRetrievalResult(true, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
+        final var expected = AuthorizationDecision.NOT_APPLICABLE;
         verifyDocumentsCombinator(given, expected);
     }
 
     @Test
     void combineDocumentsMoreDocsWithError() {
-        var given    = mockPolicyRetrievalResultErrorOnlyOne(true, denyPolicy(""), notApplicablePolicy(""),
+        final var given    = mockPolicyRetrievalResultErrorOnlyOne(true, denyPolicy(""), notApplicablePolicy(""),
                 permitPolicy(""));
-        var expected = AuthorizationDecision.PERMIT;
+        final var expected = AuthorizationDecision.PERMIT;
         verifyDocumentsCombinator(given, expected);
     }
 
     @Test
     void combineDocumentsMoreDocs() {
-        var given    = mockPolicyRetrievalResult(false, denyPolicy(""), notApplicablePolicy(""), permitPolicy(""));
-        var expected = AuthorizationDecision.INDETERMINATE;
+        final var given    = mockPolicyRetrievalResult(false, denyPolicy(""), notApplicablePolicy(""),
+                permitPolicy(""));
+        final var expected = AuthorizationDecision.INDETERMINATE;
         verifyDocumentsCombinator(given, expected);
     }
 
@@ -144,11 +145,11 @@ class OnlyOneApplicableTests {
 
     private PolicyRetrievalResult mockPolicyRetrievalResult(boolean errorsInTarget, String... policies) {
         var result       = new PolicyRetrievalResult();
-        Val targetResult = Val.TRUE;
+        var targetResult = Val.TRUE;
         if (errorsInTarget)
             targetResult = ErrorFactory.error("ERROR FROM MOCK");
         for (var policy : policies) {
-            var document = INTERPRETER.parseDocument(policy);
+            final var document = INTERPRETER.parseDocument(policy);
             result = result.withMatch(new DocumentMatch(document, targetResult));
         }
         return result;
@@ -158,7 +159,7 @@ class OnlyOneApplicableTests {
         var     result    = new PolicyRetrievalResult();
         boolean errorUsed = false;
         for (var policy : policies) {
-            var document = INTERPRETER.parseDocument(policy);
+            final var document = INTERPRETER.parseDocument(policy);
             if (errorsInTarget && !errorUsed) {
                 errorUsed = true;
                 result    = result.withMatch(new DocumentMatch(document, ErrorFactory.error("ERROR FROM MOCK")));
@@ -286,59 +287,59 @@ class OnlyOneApplicableTests {
 
     @Test
     void singlePermitTransformationResource() {
-        var policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" permit transform true";
-        var expected  = Optional.<JsonNode>of(JSON.booleanNode(true));
+        final var policySet = "set \"tests\" only-one-applicable" + " policy \"testp\" permit transform true";
+        final var expected  = Optional.<JsonNode>of(JSON.booleanNode(true));
         validateResource(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
     }
 
     @Test
     void collectObligationDeny() {
-        var policySet = "set \"tests\" only-one-applicable"
+        final var policySet = "set \"tests\" only-one-applicable"
                 + " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" deny false obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" permit false obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode("obligation1"));
         validateObligations(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(obligations));
     }
 
     @Test
     void collectAdviceDeny() {
-        var policySet = "set \"tests\" only-one-applicable"
+        final var policySet = "set \"tests\" only-one-applicable"
                 + " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" deny false obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" permit false obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
-        var advice = JSON.arrayNode();
+        final var advice = JSON.arrayNode();
         advice.add(JSON.textNode("advice1"));
         validateAdvice(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(advice));
     }
 
     @Test
     void collectObligationPermit() {
-        var policySet = "set \"tests\" only-one-applicable"
+        final var policySet = "set \"tests\" only-one-applicable"
                 + " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" permit false obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" deny false obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny false where false; obligation \"obligation4\" advice \"advice4\"";
 
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode("obligation1"));
         validateObligations(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(obligations));
     }
 
     @Test
     void collectAdvicePermit() {
-        var policySet = "set \"tests\" only-one-applicable"
+        final var policySet = "set \"tests\" only-one-applicable"
                 + " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" permit false obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" deny false obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny false where false; obligation \"obligation4\" advice \"advice4\"";
 
-        var advice = JSON.arrayNode();
+        final var advice = JSON.arrayNode();
         advice.add(JSON.textNode("advice1"));
         validateAdvice(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(advice));
     }

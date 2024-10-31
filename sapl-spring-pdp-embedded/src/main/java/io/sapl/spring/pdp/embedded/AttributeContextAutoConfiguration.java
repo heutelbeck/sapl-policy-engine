@@ -50,7 +50,7 @@ public class AttributeContextAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     AttributeContext attributeContext() throws InitializationException {
-        var ctx = new AnnotationAttributeContext();
+        final var ctx = new AnnotationAttributeContext();
         for (var supplier : pipSuppliers) {
             for (var pip : supplier.get()) {
                 log.trace("loading Policy Information Point: {}", pip.getClass().getSimpleName());

@@ -47,14 +47,14 @@ class MongoReactiveBeanPostProcessorTests {
     @Test
     void when_postProcessBeforeInitialization_then_addRepositoryFactoryCustomizer() {
         // GIVEN
-        var mongoPostProcessor = new MongoReactiveBeanPostProcessor(
+        final var mongoPostProcessor = new MongoReactiveBeanPostProcessor(
                 mongoReactiveRepositoryFactoryCustomizerProviderMock);
 
         // WHEN
         when(mongoReactiveRepositoryFactoryCustomizerProviderMock.getObject())
                 .thenReturn(mongoReactiveRepositoryFactoryCustomizerMock);
 
-        var result = mongoPostProcessor.postProcessBeforeInitialization(reactiveMongoRepositoryFactoryBeanMock,
+        final var result = mongoPostProcessor.postProcessBeforeInitialization(reactiveMongoRepositoryFactoryBeanMock,
                 "reactiveMongoRepositoryFactoryBean");
 
         // THEN
@@ -66,12 +66,12 @@ class MongoReactiveBeanPostProcessorTests {
     @Test
     void when_postProcessBeforeInitialization_then_findNoFittingBean() {
         // GIVEN
-        var mongoPostProcessor        = new MongoReactiveBeanPostProcessor(
+        final var mongoPostProcessor        = new MongoReactiveBeanPostProcessor(
                 mongoReactiveRepositoryFactoryCustomizerProviderMock);
-        var mongoDbRepositoryTestMock = mock(UserReactiveMongoRepository.class);
+        final var mongoDbRepositoryTestMock = mock(UserReactiveMongoRepository.class);
 
         // WHEN
-        var result = mongoPostProcessor.postProcessBeforeInitialization(mongoDbRepositoryTestMock,
+        final var result = mongoPostProcessor.postProcessBeforeInitialization(mongoDbRepositoryTestMock,
                 "reactiveMongoRepositoryFactoryBean");
 
         // THEN

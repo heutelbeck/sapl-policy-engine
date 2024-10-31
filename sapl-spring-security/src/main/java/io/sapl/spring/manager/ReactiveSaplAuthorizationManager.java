@@ -76,7 +76,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
      * this moment in time.
      *
      * @param authentication the Authentication to check
-     * @param context        the context to check
+     * @param context the context to check
      * @return a decision
      */
     @Override
@@ -106,7 +106,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
 
     private Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
             Mono<Authentication> authentication, AuthorizationContext context) {
-        var request = context.getExchange().getRequest();
+        final var request = context.getExchange().getRequest();
         return authentication.defaultIfEmpty(ANONYMOUS)
                 .map(authn -> AuthorizationSubscription.of(authn, request, request, mapper));
     }

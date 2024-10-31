@@ -253,7 +253,7 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
     }
 
     private Map<String, Object> convertAttributeToMapIfPossible(Object suspectedMap) {
-        var newMap = new HashMap<String, Object>();
+        final var newMap = new HashMap<String, Object>();
         if (suspectedMap instanceof Map<?, ?> claimsMap) {
             for (var entry : claimsMap.entrySet()) {
                 if (entry.getKey() instanceof String key) {

@@ -61,13 +61,13 @@ public class PermitUnlessDeny {
     }
 
     private CombinedDecision combinator(DocumentEvaluationResult[] policyDecisions) {
-        var entitlement = PERMIT;
-        var collector   = new ObligationAdviceCollector();
-        var resource    = Optional.<JsonNode>empty();
-        var decisions   = new LinkedList<DocumentEvaluationResult>();
+        final var collector   = new ObligationAdviceCollector();
+        final var decisions   = new LinkedList<DocumentEvaluationResult>();
+        var       resource    = Optional.<JsonNode>empty();
+        var       entitlement = PERMIT;
         for (var policyDecision : policyDecisions) {
             decisions.add(policyDecision);
-            var authzDecision = policyDecision.getAuthorizationDecision();
+            final var authzDecision = policyDecision.getAuthorizationDecision();
             if (authzDecision.getDecision() == DENY) {
                 entitlement = DENY;
             }
@@ -85,8 +85,8 @@ public class PermitUnlessDeny {
             }
         }
 
-        var finalDecision = new AuthorizationDecision(entitlement, resource, collector.getObligations(entitlement),
-                collector.getAdvice(entitlement));
+        final var finalDecision = new AuthorizationDecision(entitlement, resource,
+                collector.getObligations(entitlement), collector.getAdvice(entitlement));
         return CombinedDecision.of(finalDecision, CombiningAlgorithm.PERMIT_UNLESS_DENY, decisions);
     }
 

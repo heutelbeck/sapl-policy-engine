@@ -21,4 +21,4 @@ drivers/
 error-screenshots/
 webpack.generated.js
 src/main/dev-bundle
-frontend/index.html
+src/main/frontend/index.html

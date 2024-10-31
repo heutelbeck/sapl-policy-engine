@@ -28,14 +28,14 @@ class HasPriorityTests {
 
     @Test
     void minimalPriorityIsZero() {
-        var sut = spy(HasPriority.class);
+        final var sut = spy(HasPriority.class);
         assertEquals(0, sut.getPriority());
     }
 
     @Test
     void compares_priorityAscending() {
-        var sutA = spy(HasPriority.class);
-        var sutB = spy(HasPriority.class);
+        final var sutA = spy(HasPriority.class);
+        final var sutB = spy(HasPriority.class);
         when(sutA.getPriority()).thenReturn(-100);
         assertThat(sutB).isLessThan(sutA);
         assertThat(sutA).isGreaterThan(sutB).isEqualByComparingTo(sutA);

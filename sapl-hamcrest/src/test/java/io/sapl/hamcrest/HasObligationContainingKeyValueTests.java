@@ -51,7 +51,7 @@ class HasObligationContainingKeyValueTests {
         AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
                 Optional.of(obligations), Optional.empty());
 
-        var sut = Matchers.hasObligationContainingKeyValue("key", jsonText("value"));
+        final var sut = Matchers.hasObligationContainingKeyValue("key", jsonText("value"));
 
         assertThat(dec, is(sut));
     }
@@ -68,21 +68,21 @@ class HasObligationContainingKeyValueTests {
         AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
                 Optional.of(obligations), Optional.empty());
 
-        var sut = Matchers.hasObligationContainingKeyValue("xxx", jsonText("yyy"));
+        final var sut = Matchers.hasObligationContainingKeyValue("xxx", jsonText("yyy"));
 
         assertThat(dec, not(is(sut)));
     }
 
     @Test
     void test_nullDecision() {
-        var sut = Matchers.hasObligationContainingKeyValue("key", jsonText("value"));
+        final var sut = Matchers.hasObligationContainingKeyValue("key", jsonText("value"));
 
         assertThat(null, not(is(sut)));
     }
 
     @Test
     void test_nullKey() {
-        var text = jsonText("value");
+        final var text = jsonText("value");
         assertThrows(NullPointerException.class, () -> Matchers.hasObligationContainingKeyValue(null, text));
     }
 
@@ -97,7 +97,7 @@ class HasObligationContainingKeyValueTests {
         AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
                 Optional.empty());
 
-        var sut = Matchers.hasObligationContainingKeyValue("key", jsonText("value"));
+        final var sut = Matchers.hasObligationContainingKeyValue("key", jsonText("value"));
 
         assertThat(dec, not(is(sut)));
     }
@@ -113,7 +113,7 @@ class HasObligationContainingKeyValueTests {
         AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
                 Optional.of(actualObligations), Optional.empty());
 
-        var sut = Matchers.hasObligationContainingKeyValue("key");
+        final var sut = Matchers.hasObligationContainingKeyValue("key");
 
         assertThat(dec, is(sut));
     }
@@ -129,7 +129,7 @@ class HasObligationContainingKeyValueTests {
         AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
                 Optional.of(actualObligations), Optional.empty());
 
-        var sut = Matchers.hasObligationContainingKeyValue("key", "value");
+        final var sut = Matchers.hasObligationContainingKeyValue("key", "value");
 
         assertThat(dec, is(sut));
     }
@@ -145,14 +145,14 @@ class HasObligationContainingKeyValueTests {
         AuthorizationDecision dec = new AuthorizationDecision(Decision.PERMIT, Optional.empty(),
                 Optional.of(actualObligations), Optional.empty());
 
-        var sut = Matchers.hasObligationContainingKeyValue("key", "xxx");
+        final var sut = Matchers.hasObligationContainingKeyValue("key", "xxx");
 
         assertThat(dec, not(is(sut)));
     }
 
     @Test
     void testDescriptionForMatcherEmptyMatcher() {
-        var                     sut         = Matchers.hasObligationContainingKeyValue("key");
+        final var               sut         = Matchers.hasObligationContainingKeyValue("key");
         final StringDescription description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(), is("the decision has an obligation containing key key with any value"));
@@ -160,7 +160,7 @@ class HasObligationContainingKeyValueTests {
 
     @Test
     void testDescriptionForMatcher() {
-        var                     sut         = Matchers.hasObligationContainingKeyValue("key", jsonText("value"));
+        final var               sut         = Matchers.hasObligationContainingKeyValue("key", jsonText("value"));
         final StringDescription description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(),

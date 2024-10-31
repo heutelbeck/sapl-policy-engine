@@ -146,9 +146,9 @@ public class DbmsSetupView extends VerticalLayout {
             dbmsSaveConfig.setEnabled(false);
             if (applicationConfigService.getDbmsConfig().getDbms() == SupportedDatasourceTypes.H2
                     && e.getErrorCode() == 90146) {
-                var dialog = new ConfirmDialog();
+                final var dialog = new ConfirmDialog();
                 dialog.setHeader("Database does not exist");
-                var text = new Span();
+                final var text = new Span();
                 text.getStyle().setWhiteSpace(Style.WhiteSpace.PRE_LINE);
                 text.setText(e.getLocalizedMessage() + "\n\nTry now to create it?");
                 dialog.setText(text);

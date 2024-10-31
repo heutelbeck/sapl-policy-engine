@@ -74,7 +74,8 @@ class ArithmeticExpressionsTests {
     }
 
     private void assertEvaluatesTo(String given, double expected) throws IOException {
-        var expression = ParserUtil.expression(given).evaluate().contextWrite(MockUtil::setUpAuthorizationContext);
+        final var expression = ParserUtil.expression(given).evaluate()
+                .contextWrite(MockUtil::setUpAuthorizationContext);
         StepVerifier.create(expression)
                 .expectNextMatches(x -> BigDecimal.valueOf(expected).compareTo(x.decimalValue()) == 0).verifyComplete();
     }

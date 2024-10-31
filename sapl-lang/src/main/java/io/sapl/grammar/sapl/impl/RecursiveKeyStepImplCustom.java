@@ -70,9 +70,9 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
             if (node.has(id)) {
                 results.add(node.get(id));
             }
-            var iter = node.fields();
+            final var iter = node.fields();
             while (iter.hasNext()) {
-                var item = iter.next().getValue();
+                final var item = iter.next().getValue();
                 collect(item, results);
             }
         }
@@ -102,23 +102,23 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
     private static Flux<Val> applyFilterStatementToObject(String id, Val unfilteredValue, int stepId,
             FilterStatement statement) {
-        var object      = unfilteredValue.getObjectNode();
-        var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
-        var fields      = object.fields();
+        final var object      = unfilteredValue.getObjectNode();
+        final var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
+        final var fields      = object.fields();
 
         while (fields.hasNext()) {
-            var field = fields.next();
-            var key   = field.getKey();
-            var trace = new HashMap<String, Val>();
+            final var field = fields.next();
+            final var key   = field.getKey();
+            final var trace = new HashMap<String, Val>();
             trace.put(Trace.UNFILTERED_VALUE, unfilteredValue);
             trace.put(Trace.KEY, Val.of(id));
             trace.put("[\"+key+\"]", Val.of(key));
-            var value = Val.of(field.getValue()).withTrace(RecursiveKeyStep.class, true, trace);
+            final var value = Val.of(field.getValue()).withTrace(RecursiveKeyStep.class, true, trace);
             if (field.getKey().equals(id)) {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter
                     fieldFluxes.add(FilterAlgorithmUtil
-                            .applyFilterFunction(value, statement.getArguments(), statement.getFsteps(),
+                            .applyFilterFunction(value, statement.getArguments(), statement.getIdentifier(),
                                     statement.isEach(), statement)
                             .map(val -> Tuples.of(field.getKey(), val))
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, unfilteredValue)));
@@ -139,21 +139,21 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
 
     private static Flux<Val> applyFilterStatementToArray(String id, Val unfilteredValue, int stepId,
             FilterStatement statement) {
-        var array = unfilteredValue.getArrayNode();
+        final var array = unfilteredValue.getArrayNode();
 
         if (array.isEmpty()) {
             return Flux.just(unfilteredValue.withTrace(RecursiveKeyStep.class, true,
                     Map.of(Trace.UNFILTERED_VALUE, unfilteredValue, Trace.KEY, Val.of(id))));
         }
-        var elementFluxes = new ArrayList<Flux<Val>>(array.size());
-        var elements      = array.elements();
-        var index         = 0;
+        final var elementFluxes = new ArrayList<Flux<Val>>(array.size());
+        final var elements      = array.elements();
+        var       index         = 0;
         while (elements.hasNext()) {
-            var trace = new HashMap<String, Val>();
+            final var trace = new HashMap<String, Val>();
             trace.put(Trace.UNFILTERED_VALUE, unfilteredValue);
             trace.put(Trace.KEY, Val.of(id));
             trace.put(Trace.INDEX, Val.of(index++));
-            var element = Val.of(elements.next()).withTrace(RecursiveKeyStep.class, true, trace);
+            final var element = Val.of(elements.next()).withTrace(RecursiveKeyStep.class, true, trace);
             if (element.isObject()) {
                 // array element is an object. apply this step to the object.
                 elementFluxes.add(applyFilterStatementToObject(id, element, stepId, statement));

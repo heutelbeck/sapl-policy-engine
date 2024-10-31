@@ -87,8 +87,8 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
             ConstraintEnforcementService constraintsService, Class<V> clazz) {
-        var pep = new EnforceDropWhileDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint, constraintsService,
-                clazz);
+        final var pep = new EnforceDropWhileDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
+                constraintsService, clazz);
         return pep.doOnTerminate(pep::handleOnTerminateConstraints)
                 .doAfterTerminate(pep::handleAfterTerminateConstraints).doOnCancel(pep::handleCancel).onErrorStop();
     }
@@ -160,7 +160,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         if (stopped.get())
             return;
 
-        var decision = latestDecision.get();
+        final var decision = latestDecision.get();
 
         if (decision.getDecision() != Decision.PERMIT)
             return;
@@ -170,7 +170,7 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
             return;
 
         try {
-            var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
+            final var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
             sink.next(transformedValue);
         } catch (Throwable t) {
             // NOOP drop only the element with the failed obligation

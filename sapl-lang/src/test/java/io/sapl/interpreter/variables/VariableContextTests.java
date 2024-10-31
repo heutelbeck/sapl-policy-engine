@@ -63,13 +63,13 @@ class VariableContextTests {
 
     @Test
     void emptyInitializationTest() {
-        var ctx = new VariableContext(EMPTY_MAP);
+        final var ctx = new VariableContext(EMPTY_MAP);
         assertThat(ctx, notNullValue());
     }
 
     @Test
     void authzSubscriptionInitializationTest() {
-        var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+        final var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
         assertAll(() -> assertThat(ctx, notNullValue()), () -> assertThat(ctx.get("subject"), is(SUBJECT_NODE)),
                 () -> assertThat(ctx.get("action"), is(ACTION_NODE)),
                 () -> assertThat(ctx.get("resource"), is(RESOURCE_NODE)),
@@ -78,7 +78,7 @@ class VariableContextTests {
 
     @Test
     void emptyAuthzSubscriptionInitializationTest() {
-        var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(EMPTY_AUTH_SUBSCRIPTION);
+        final var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(EMPTY_AUTH_SUBSCRIPTION);
         assertAll(() -> assertThat(ctx, notNullValue()), () -> assertThat(ctx.get("subject"), is(valUndefined())),
                 () -> assertThat(ctx.get("action"), is(valUndefined())),
                 () -> assertThat(ctx.get("resource"), is(valUndefined())),
@@ -87,7 +87,7 @@ class VariableContextTests {
 
     @Test
     void notExistsTest() {
-        var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+        final var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
         assertThat(ctx.exists(VAR_ID), is(false));
     }
 
@@ -110,19 +110,19 @@ class VariableContextTests {
 
     @Test
     void failGetUndefined() {
-        var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+        final var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
         assertThat(ctx.get(VAR_ID), is(Val.UNDEFINED));
     }
 
     @Test
     void when_getVariables_then_returnsMap() {
-        var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
+        final var ctx = new VariableContext(EMPTY_MAP).forAuthorizationSubscription(AUTH_SUBSCRIPTION);
         assertThat(ctx.getVariables().get("action"), is(val(is(ACTION_NODE.get()))));
     }
 
     @Test
     void when_attemptingToSetReservedVariable_then_raiseException() {
-        var ctx = new VariableContext(EMPTY_MAP);
+        final var ctx = new VariableContext(EMPTY_MAP);
         assertAll(
                 () -> assertThrows(PolicyEvaluationException.class,
                         () -> ctx.withEnvironmentVariable("subject", mock(JsonNode.class))),

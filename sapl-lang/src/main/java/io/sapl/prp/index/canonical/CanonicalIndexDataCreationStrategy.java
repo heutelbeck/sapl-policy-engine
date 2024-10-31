@@ -198,7 +198,7 @@ public class CanonicalIndexDataCreationStrategy {
 
             for (ConjunctiveClause clause : predicateInfo.getUnsatisfiableConjunctionsIfTrue()) {
                 Integer index = result.get(clause);
-                if (index == null) {
+                if (null == index) {
                     index = i;
                     result.put(clause, index);
                     i += 1;
@@ -209,7 +209,7 @@ public class CanonicalIndexDataCreationStrategy {
 
             for (ConjunctiveClause clause : predicateInfo.getUnsatisfiableConjunctionsIfFalse()) {
                 Integer index = result.get(clause);
-                if (index == null) {
+                if (null == index) {
                     index = i;
                     result.put(clause, index);
                     i += 1;

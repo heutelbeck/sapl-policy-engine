@@ -44,7 +44,7 @@ final class SaplMethodSecuritySelector implements ImportSelector {
             return new String[0];
         }
         log.debug("Blocking SAPL method security activated.");
-        var imports = new ArrayList<>(Arrays.asList(this.autoProxy.selectImports(importMetadata)));
+        final var imports = new ArrayList<>(Arrays.asList(this.autoProxy.selectImports(importMetadata)));
         imports.add(SaplMethodSecurityConfiguration.class.getName());
         return imports.toArray(new String[0]);
     }

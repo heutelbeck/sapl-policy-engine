@@ -53,9 +53,9 @@ class MethodInvocationSerializerTests {
 
     @Test
     void whenMethod_thenClassIsDescribedInJson() throws IOException {
-        var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null,
-                null);
-        var result     = serialize(invocation);
+        final var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid",
+                null, null);
+        final var result     = serialize(invocation);
         assertThat(
                 result, is(
                         jsonObject()
@@ -83,9 +83,9 @@ class MethodInvocationSerializerTests {
 
     @Test
     void whenPublicVoid_thenMethodAndModifiersAreDescribedInJson() throws IOException {
-        var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null,
-                null);
-        var result     = serialize(invocation);
+        final var invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid",
+                null, null);
+        final var result     = serialize(invocation);
         assertThat(result,
                 is(jsonObject().where(MethodInvocationSerializer.NAME, is(jsonText("publicVoid")))
                         .where(MethodInvocationSerializer.DECLARING_TYPE_NAME, is(jsonText(TestClass.class.getName())))
@@ -95,8 +95,8 @@ class MethodInvocationSerializerTests {
 
     @Test
     void whenStaticVoid_thenMethodAndModifiersAreDescribedInJson() throws IOException {
-        var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "staticVoid");
-        var result     = serialize(invocation);
+        final var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "staticVoid");
+        final var result     = serialize(invocation);
         assertThat(result,
                 is(jsonObject().where(MethodInvocationSerializer.NAME, is(jsonText("staticVoid")))
                         .where(MethodInvocationSerializer.DECLARING_TYPE_NAME, is(jsonText(TestClass.class.getName())))
@@ -106,8 +106,8 @@ class MethodInvocationSerializerTests {
 
     @Test
     void whenProtectedVoid_thenMethodAndModifiersAreDescribedInJson() throws IOException {
-        var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "protectedVoid");
-        var result     = serialize(invocation);
+        final var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "protectedVoid");
+        final var result     = serialize(invocation);
         assertThat(result,
                 is(jsonObject().where(MethodInvocationSerializer.NAME, is(jsonText("protectedVoid")))
                         .where(MethodInvocationSerializer.DECLARING_TYPE_NAME, is(jsonText(TestClass.class.getName())))
@@ -117,8 +117,8 @@ class MethodInvocationSerializerTests {
 
     @Test
     void whenProtectedStaticVoid_thenMethodAndModifiersAreDescribedInJson() throws IOException {
-        var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "protectedStaticVoid");
-        var result     = serialize(invocation);
+        final var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "protectedStaticVoid");
+        final var result     = serialize(invocation);
         assertThat(result,
                 is(jsonObject().where(MethodInvocationSerializer.NAME, is(jsonText("protectedStaticVoid")))
                         .where(MethodInvocationSerializer.DECLARING_TYPE_NAME, is(jsonText(TestClass.class.getName())))
@@ -129,9 +129,9 @@ class MethodInvocationSerializerTests {
 
     @Test
     void whenPrivateVoid_thenMethodAndModifiersAreDescribedInJson() throws IOException {
-        var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "privateVoid");
+        final var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "privateVoid");
 
-        var result = serialize(invocation);
+        final var result = serialize(invocation);
         assertThat(result,
                 is(jsonObject().where(MethodInvocationSerializer.NAME, is(jsonText("privateVoid")))
                         .where(MethodInvocationSerializer.DECLARING_TYPE_NAME, is(jsonText(TestClass.class.getName())))
@@ -141,8 +141,8 @@ class MethodInvocationSerializerTests {
 
     @Test
     void whenSynchronizedVoid_thenMethodAndModifiersAreDescribedInJson() throws IOException {
-        var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "synchronizedVoid");
-        var result     = serialize(invocation);
+        final var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "synchronizedVoid");
+        final var result     = serialize(invocation);
         assertThat(result,
                 is(jsonObject().where(MethodInvocationSerializer.NAME, is(jsonText("synchronizedVoid")))
                         .where(MethodInvocationSerializer.DECLARING_TYPE_NAME, is(jsonText(TestClass.class.getName())))
@@ -152,8 +152,8 @@ class MethodInvocationSerializerTests {
 
     @Test
     void whenFinalVoid_thenMethodAndModifiersAreDescribedInJson() throws IOException {
-        var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "finalVoid");
-        var result     = serialize(invocation);
+        final var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "finalVoid");
+        final var result     = serialize(invocation);
         assertThat(result,
                 is(jsonObject().where(MethodInvocationSerializer.NAME, is(jsonText("finalVoid")))
                         .where(MethodInvocationSerializer.DECLARING_TYPE_NAME, is(jsonText(TestClass.class.getName())))
@@ -163,8 +163,8 @@ class MethodInvocationSerializerTests {
 
     @Test
     void whenNoModifiersVoid_thenMethodAndModifiersAreDescribedInJson() throws IOException {
-        var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "noModVoid");
-        var result     = serialize(invocation);
+        final var invocation = MethodInvocationUtils.createFromClass(TestClass.class, "noModVoid");
+        final var result     = serialize(invocation);
         assertThat(result,
                 is(jsonObject().where(MethodInvocationSerializer.NAME, is(jsonText("noModVoid")))
                         .where(MethodInvocationSerializer.DECLARING_TYPE_NAME, is(jsonText(TestClass.class.getName())))

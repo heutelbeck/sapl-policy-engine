@@ -34,12 +34,12 @@ public class PolicyImplCustom extends PolicyImpl {
 
     @Override
     public Flux<DocumentEvaluationResult> evaluate() {
-        var whereResult     = body == null ? Flux.just(Val.TRUE.withTrace(Policy.class)) : body.evaluate();
-        var afterWhere      = whereResult
+        final var whereResult     = body == null ? Flux.just(Val.TRUE.withTrace(Policy.class)) : body.evaluate();
+        final var afterWhere      = whereResult
                 .map(where -> PolicyDecision.fromWhereResult(getSaplName(), entitlement.getDecision(), where));
-        var withObligations = afterWhere
+        final var withObligations = afterWhere
                 .switchMap(decision -> addConstraints(decision, obligations, 0, PolicyDecision::withObligation));
-        var withAdvice      = withObligations
+        final var withAdvice      = withObligations
                 .switchMap(decision -> addConstraints(decision, advice, 0, PolicyDecision::withAdvice));
 
         Flux<DocumentEvaluationResult> withResource = withAdvice.switchMap(this::addResource);
@@ -75,14 +75,14 @@ public class PolicyImplCustom extends PolicyImpl {
                 || decisionMustNotCarryConstraints(policyDecision)) {
             return Flux.just(policyDecision);
         }
-        var constraint             = constraints.get(constraintIndex).evaluate();
-        var decisionWithConstraint = constraint.map(val -> merge.apply(policyDecision, val));
+        final var constraint             = constraints.get(constraintIndex).evaluate();
+        final var decisionWithConstraint = constraint.map(val -> merge.apply(policyDecision, val));
         return decisionWithConstraint
                 .switchMap(decision -> addConstraints(decision, constraints, constraintIndex + 1, merge));
     }
 
     private boolean decisionMustNotCarryConstraints(DocumentEvaluationResult policyDecision) {
-        var decision = policyDecision.getAuthorizationDecision().getDecision();
+        final var decision = policyDecision.getAuthorizationDecision().getDecision();
         return decision == Decision.INDETERMINATE || decision == Decision.NOT_APPLICABLE;
     }
 

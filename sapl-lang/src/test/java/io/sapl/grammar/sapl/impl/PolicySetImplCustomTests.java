@@ -189,14 +189,14 @@ class PolicySetImplCustomTests {
     @ParameterizedTest
     @MethodSource("provideTestCases")
     void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
-        var policy = INTERPRETER.parse(policySource);
+        final var policy = INTERPRETER.parse(policySource);
         StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
                 .expectNextMatches(hasDecision(expected)).verifyComplete();
     }
 
     @Test
     void testTargetResult() {
-        var policy = INTERPRETER
+        final var policy = INTERPRETER
                 .parse("set \"set\" deny-overrides " + "policy \"set.p1\" permit where var a=5; var b=2; "
                         + "policy \"set.p2\" permit where a==undefined && b == undefined;");
         assertThat(policy.getPolicyElement().targetResult(ErrorFactory.error("Error")).getAuthorizationDecision()

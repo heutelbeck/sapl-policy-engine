@@ -19,22 +19,15 @@ package io.sapl.grammar.ide.contentassist;
 
 import java.util.List;
 
-import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 
 class PolicyProposalCompletionTests extends CompletionTests {
 
     @Test
     void testCompletion_PolicyNameIsEmptyString() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy ";
-            it.setModel(policy);
-            it.setColumn(policy.length());
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("\"\"");
-                assertProposalsSimple(expected, completionList);
-            });
-        });
+        final var document = "policy §";
+        final var expected = List.of("\"\"");
+        assertProposalsContain(document, expected);
     }
 
 }

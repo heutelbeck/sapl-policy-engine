@@ -47,4 +47,6 @@ public interface AttributeContext extends LibraryFunctionProvider {
 
     Map<String, JsonNode> getAttributeSchemas();
 
+    Collection<AttributeFinderMetadata> getAttributeMetatata();
+
 }

@@ -40,51 +40,51 @@ class HasResourceTests {
 
     @Test
     void test() {
-        var resource = MAPPER.createObjectNode();
+        final var resource = MAPPER.createObjectNode();
         resource.put("foo", "bar");
-        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), Optional.empty(),
+        final var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), Optional.empty(),
                 Optional.empty());
-        var matcherUnderTest = hasResource(resource);
+        final var matcherUnderTest = hasResource(resource);
         assertThat(decision, is(matcherUnderTest));
     }
 
     @Test
     void testEmptyMatcher() {
-        var resource = MAPPER.createObjectNode();
+        final var resource = MAPPER.createObjectNode();
         resource.put("foo", "bar");
-        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), Optional.empty(),
+        final var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(resource), Optional.empty(),
                 Optional.empty());
-        var matcherUnderTest = hasResource();
+        final var matcherUnderTest = hasResource();
         assertThat(decision, is(matcherUnderTest));
     }
 
     @Test
     void test_neg() {
-        var expectedResource = MAPPER.createObjectNode();
+        final var expectedResource = MAPPER.createObjectNode();
         expectedResource.put("foo", "bar");
-        var actualResource = MAPPER.createObjectNode();
+        final var actualResource = MAPPER.createObjectNode();
         actualResource.put("xxx", "yyy");
-        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(actualResource), Optional.empty(),
-                Optional.empty());
-        var matcherUnderTest = hasResource(expectedResource);
+        final var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.of(actualResource),
+                Optional.empty(), Optional.empty());
+        final var matcherUnderTest = hasResource(expectedResource);
         assertThat(decision, not(is(matcherUnderTest)));
     }
 
     @Test
     void test_nullDecision() {
-        var resource = MAPPER.createObjectNode();
+        final var resource = MAPPER.createObjectNode();
         resource.put("foo", "bar");
-        var matcherUnderTest = hasResource(resource);
+        final var matcherUnderTest = hasResource(resource);
         assertThat(null, not(is(matcherUnderTest)));
     }
 
     @Test
     void test_emptyResource() {
-        var resource = MAPPER.createObjectNode();
+        final var resource = MAPPER.createObjectNode();
         resource.put("foo", "bar");
-        var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
+        final var decision         = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
                 Optional.empty());
-        var matcherUnderTest = hasResource(resource);
+        final var matcherUnderTest = hasResource(resource);
         assertThat(decision, not(is(matcherUnderTest)));
     }
 
@@ -95,16 +95,16 @@ class HasResourceTests {
 
     @Test
     void testDescriptionEmptyMatcher() {
-        var matcherUnderTest = hasResource();
-        var description      = new StringDescription();
+        final var matcherUnderTest = hasResource();
+        final var description      = new StringDescription();
         matcherUnderTest.describeTo(description);
         assertThat(description.toString(), is("a resource with any JsonNode"));
     }
 
     @Test
     void testDescriptionMatcher() {
-        var matcherUnderTest = hasResource(jsonText("value"));
-        var description      = new StringDescription();
+        final var matcherUnderTest = hasResource(jsonText("value"));
+        final var description      = new StringDescription();
         matcherUnderTest.describeTo(description);
         assertThat(description.toString(), is("a resource with a text node with value that is \"value\""));
     }

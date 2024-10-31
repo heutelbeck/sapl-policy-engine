@@ -34,10 +34,10 @@ class AuthorizationDecisionTests {
 
     @Test
     void mapperIgnoresNullAndDoesNotUseGetter() throws JsonProcessingException {
-        var mapper   = new ObjectMapper();
-        var decision = AuthorizationDecision.INDETERMINATE;
-        var mapped   = mapper.writeValueAsString(decision);
-        var sa       = new SoftAssertions();
+        final var mapper   = new ObjectMapper();
+        final var decision = AuthorizationDecision.INDETERMINATE;
+        final var mapped   = mapper.writeValueAsString(decision);
+        final var sa       = new SoftAssertions();
         sa.assertThat(mapped).doesNotContain("obligations");
         sa.assertThat(mapped).doesNotContain("advice");
         sa.assertThat(mapped).doesNotContain("resource");
@@ -46,8 +46,8 @@ class AuthorizationDecisionTests {
 
     @Test
     void defaultConstructorResultsInNoEntriesAndIndeterminate() {
-        var sa       = new SoftAssertions();
-        var decision = new AuthorizationDecision();
+        final var sa       = new SoftAssertions();
+        final var decision = new AuthorizationDecision();
         sa.assertThat(decision.getDecision()).isEqualTo(Decision.INDETERMINATE);
         sa.assertThat(decision.getAdvice()).isEmpty();
         sa.assertThat(decision.getObligations()).isEmpty();
@@ -57,8 +57,8 @@ class AuthorizationDecisionTests {
 
     @Test
     void decisionConstructorResultsInNoEntries() {
-        var sa       = new SoftAssertions();
-        var decision = new AuthorizationDecision(Decision.DENY);
+        final var sa       = new SoftAssertions();
+        final var decision = new AuthorizationDecision(Decision.DENY);
         sa.assertThat(decision.getDecision()).isEqualTo(Decision.DENY);
         sa.assertThat(decision.getAdvice()).isEmpty();
         sa.assertThat(decision.getObligations()).isEmpty();
@@ -73,67 +73,67 @@ class AuthorizationDecisionTests {
 
     @Test
     void withAdviceNull() {
-        var decision = new AuthorizationDecision();
+        final var decision = new AuthorizationDecision();
         assertThatThrownBy(() -> decision.withAdvice(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void withDecisionNull() {
-        var decision = new AuthorizationDecision();
+        final var decision = new AuthorizationDecision();
         assertThatThrownBy(() -> decision.withDecision(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void withAdviceEmpty() {
-        var advice   = JSON.arrayNode();
-        var decision = new AuthorizationDecision().withAdvice(advice);
+        final var advice   = JSON.arrayNode();
+        final var decision = new AuthorizationDecision().withAdvice(advice);
         assertThat(decision.getAdvice()).isEmpty();
     }
 
     @Test
     void withAdvicePresent() {
-        var advice = JSON.arrayNode();
+        final var advice = JSON.arrayNode();
         advice.add(JSON.numberNode(0));
-        var decision = new AuthorizationDecision().withAdvice(advice);
+        final var decision = new AuthorizationDecision().withAdvice(advice);
         assertThatJson(decision.getAdvice().get()).isArray().containsAnyOf(0);
     }
 
     @Test
     void withObligationsEmpty() {
-        var obligations = JSON.arrayNode();
-        var decision    = new AuthorizationDecision().withObligations(obligations);
+        final var obligations = JSON.arrayNode();
+        final var decision    = new AuthorizationDecision().withObligations(obligations);
         assertThat(decision.getObligations()).isEmpty();
     }
 
     @Test
     void withObligationsNull() {
-        var decision = new AuthorizationDecision();
+        final var decision = new AuthorizationDecision();
         assertThatThrownBy(() -> decision.withObligations(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void withObligationsPresent() {
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.numberNode(0));
-        var decision = new AuthorizationDecision().withObligations(obligations);
+        final var decision = new AuthorizationDecision().withObligations(obligations);
         assertThatJson(decision.getObligations().get()).isArray().containsAnyOf(0);
     }
 
     @Test
     void withResourceNull() {
-        var decision = new AuthorizationDecision();
+        final var decision = new AuthorizationDecision();
         assertThatThrownBy(() -> decision.withResource(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void withResource() {
-        var decision = new AuthorizationDecision().withResource(JSON.numberNode(0));
+        final var decision = new AuthorizationDecision().withResource(JSON.numberNode(0));
         assertThatJson(decision.getResource().get()).isPresent().isEqualTo(0);
     }
 
     @Test
     void withDecision() {
-        var decision = AuthorizationDecision.DENY.withDecision(Decision.PERMIT);
+        final var decision = AuthorizationDecision.DENY.withDecision(Decision.PERMIT);
         assertThat(decision.getDecision()).isEqualTo(Decision.PERMIT);
     }
 

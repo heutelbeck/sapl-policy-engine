@@ -43,12 +43,12 @@ public final class InputStringVariablesAndCombinatorSource implements VariablesA
             Map<String, Val> testInternalConfiguredVariables) {
         log.info("Loading the PDP configuration from input string");
         try {
-            var jsonNode = mapper.readValue(input, JsonNode.class);
+            final var jsonNode = mapper.readValue(input, JsonNode.class);
             this.config = new PolicyDecisionPointConfiguration();
             if (jsonNode.has("algorithm")) {
                 this.config.setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
             }
-            var variables = new HashMap<String, Val>();
+            final var variables = new HashMap<String, Val>();
             if (jsonNode.has("variables")) {
                 jsonNode.get("variables").fields().forEachRemaining(field -> variables.put(field.getKey(),
                         Val.of(field.getValue()).withTrace(VariablesAndCombinatorSource.class)));

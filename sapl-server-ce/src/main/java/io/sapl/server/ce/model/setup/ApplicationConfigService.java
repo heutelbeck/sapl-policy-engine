@@ -180,7 +180,7 @@ public final class ApplicationConfigService {
     private void initHttpEndpointConfig() {
         this.httpEndpoint.setAddress(this.getAt(httpEndpoint.addressPath, "localhost").toString());
 
-        var port = this.getAt(httpEndpoint.portPath, "").toString();
+        final var port = this.getAt(httpEndpoint.portPath, "").toString();
         if (getPortNumber(port) > 0) {
             this.httpEndpoint.setPort(getPortNumber(port));
         }
@@ -223,7 +223,7 @@ public final class ApplicationConfigService {
         this.setAt(httpEndpoint.portPath, PORT_PREFIX + this.httpEndpoint.getPort() + "}");
         this.setAt(httpEndpoint.addressPath, httpEndpoint.getAddress());
 
-        var tlsEnabled = this.httpEndpoint.getSslEnabled();
+        final var tlsEnabled = this.httpEndpoint.getSslEnabled();
         this.setAt(httpEndpoint.sslEnabledPath, tlsEnabled);
 
         if (tlsEnabled) {
@@ -246,7 +246,7 @@ public final class ApplicationConfigService {
     private void initRsocketEndpointConfig() {
         this.rsocketEndpoint.setAddress(this.getAt(rsocketEndpoint.addressPath, "localhost").toString());
 
-        var port = this.getAt(rsocketEndpoint.portPath, "").toString();
+        final var port = this.getAt(rsocketEndpoint.portPath, "").toString();
         if (getPortNumber(port) > 0) {
             this.rsocketEndpoint.setPort(getPortNumber(port));
         }
@@ -291,7 +291,7 @@ public final class ApplicationConfigService {
         this.setAt(rsocketEndpoint.addressPath, rsocketEndpoint.getAddress());
         this.setAt(rsocketEndpoint.transportPath, "tcp");
 
-        var tlsEnabled = this.rsocketEndpoint.getSslEnabled();
+        final var tlsEnabled = this.rsocketEndpoint.getSslEnabled();
         this.setAt(rsocketEndpoint.sslEnabledPath, tlsEnabled);
 
         if (tlsEnabled) {

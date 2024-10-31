@@ -53,14 +53,14 @@ final class AuthorizationAnnotationUtils {
     /**
      * First lookup the annotation on the method, then on the class.
      *
-     * @param <A>            The annotation type.
-     * @param method         the method to examine
+     * @param <A> The annotation type.
+     * @param method the method to examine
      * @param annotationType The annotation type to lookup, e.g., @PreEnforce
      * @return the annotation if found or, {@code null} otherwise
      */
     public static <A extends Annotation> A findAuthorizeAnnotationOnMethodOrDeclaringClass(Method method,
             Class<A> annotationType) {
-        var preAuthorize = findUniqueAnnotation(method, annotationType);
+        final var preAuthorize = findUniqueAnnotation(method, annotationType);
         return (preAuthorize != null) ? preAuthorize : findUniqueAnnotation(method.getDeclaringClass(), annotationType);
     }
 
@@ -71,12 +71,12 @@ final class AuthorizationAnnotationUtils {
      * <p>
      * If more than one is found, then throw an error.
      *
-     * @param method         the method declaration to search from
+     * @param method the method declaration to search from
      * @param annotationType the annotation type to search for
      * @return the unique instance of the annotation attributed to the method,
-     *         {@code null} otherwise
+     * {@code null} otherwise
      * @throws AnnotationConfigurationException if more than one instance of the
-     *                                          annotation is found
+     * annotation is found
      */
     static <A extends Annotation> A findUniqueAnnotation(Method method, Class<A> annotationType) {
         MergedAnnotations mergedAnnotations = MergedAnnotations.from(method,
@@ -96,12 +96,12 @@ final class AuthorizationAnnotationUtils {
      * <p>
      * If more than one is found, then throw an error.
      *
-     * @param type           the type to search from
+     * @param type the type to search from
      * @param annotationType the annotation type to search for
      * @return the unique instance of the annotation attributed to the method,
-     *         {@code null} otherwise
+     * {@code null} otherwise
      * @throws AnnotationConfigurationException if more than one instance of the
-     *                                          annotation is found
+     * annotation is found
      */
     static <A extends Annotation> A findUniqueAnnotation(Class<?> type, Class<A> annotationType) {
         MergedAnnotations mergedAnnotations = MergedAnnotations.from(type,

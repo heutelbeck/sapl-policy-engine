@@ -69,8 +69,8 @@ class MethodSecurityExpressionEvaluatorTests {
                 SpelExpressionParser.class)) {
 
             // GIVEN
-            var expressionEvaluator      = new MethodSecurityExpressionEvaluator(expressionHandlerProviderMock);
-            var mockSpelExpressionParser = mockedConstructionSpelExpressionParser.constructed().get(0);
+            final var expressionEvaluator      = new MethodSecurityExpressionEvaluator(expressionHandlerProviderMock);
+            final var mockSpelExpressionParser = mockedConstructionSpelExpressionParser.constructed().get(0);
 
             // WHEN
             when(securityContextMock.getAuthentication()).thenReturn(authenticationMock);
@@ -95,8 +95,8 @@ class MethodSecurityExpressionEvaluatorTests {
                 SpelExpressionParser.class)) {
 
             // GIVEN
-            var expressionEvaluator      = new MethodSecurityExpressionEvaluator(expressionHandlerProviderMock);
-            var mockSpelExpressionParser = mockedConstructionSpelExpressionParser.constructed().get(0);
+            final var expressionEvaluator      = new MethodSecurityExpressionEvaluator(expressionHandlerProviderMock);
+            final var mockSpelExpressionParser = mockedConstructionSpelExpressionParser.constructed().get(0);
 
             // WHEN
             when(securityContextMock.getAuthentication()).thenReturn(authenticationMock);
@@ -110,12 +110,12 @@ class MethodSecurityExpressionEvaluatorTests {
             when(expressionMock.getValue(any(EvaluationContext.class), eq(Boolean.class)))
                     .thenThrow(NullPointerException.class);
 
-            var errorMessage = """
+            final var errorMessage = """
                     		Expressiondetectedbutcouldnotbeparsed:Test
                     """;
 
             // THEN
-            var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
+            final var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
                 expressionEvaluator.evaluate("Test", methodInvocationMock);
             });
             assertEquals(TestUtils.removeWhitespace(errorMessage),

@@ -41,7 +41,7 @@ class HasResourceMatchingTests {
     @Test
     void test() {
         Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-        var                 sut  = hasResourceMatching(pred);
+        final var           sut  = hasResourceMatching(pred);
 
         ObjectMapper mapper   = new ObjectMapper();
         ObjectNode   resource = mapper.createObjectNode();
@@ -55,7 +55,7 @@ class HasResourceMatchingTests {
     @Test
     void test_neg() {
         Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("xxx");
-        var                 sut  = hasResourceMatching(pred);
+        final var           sut  = hasResourceMatching(pred);
 
         ObjectMapper mapper   = new ObjectMapper();
         ObjectNode   resource = mapper.createObjectNode();
@@ -69,14 +69,14 @@ class HasResourceMatchingTests {
     @Test
     void test_nullDecision() {
         Predicate<JsonNode> pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-        var                 sut  = hasResourceMatching(pred);
+        final var           sut  = hasResourceMatching(pred);
         assertThat(null, not(is(sut)));
     }
 
     @Test
     void test_resourceEmpty() {
         Predicate<JsonNode>   pred = (JsonNode jsonNode) -> jsonNode.has("foo");
-        var                   sut  = hasResourceMatching(pred);
+        final var             sut  = hasResourceMatching(pred);
         AuthorizationDecision dec  = new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(),
                 Optional.empty());
         assertThat(dec, not(is(sut)));
@@ -90,7 +90,7 @@ class HasResourceMatchingTests {
     @Test
     void testDescriptionForMatcher() {
         Predicate<JsonNode>     pred        = (JsonNode jsonNode) -> jsonNode.has("foo");
-        var                     sut         = hasResourceMatching(pred);
+        final var               sut         = hasResourceMatching(pred);
         final StringDescription description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(), is("the decision has a resource matching the predicate"));

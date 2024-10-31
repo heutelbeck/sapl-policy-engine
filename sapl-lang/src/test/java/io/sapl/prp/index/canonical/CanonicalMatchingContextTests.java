@@ -28,10 +28,10 @@ class CanonicalMatchingContextTests {
 
     @Test
     void test_is_referenced() {
-        var candidates = new Bitmask();
-        var predicate  = new Predicate(new Bool(true));
+        final var candidates = new Bitmask();
+        final var predicate  = new Predicate(new Bool(true));
 
-        var matchingCtx = new CanonicalIndexMatchingContext(0);
+        final var matchingCtx = new CanonicalIndexMatchingContext(0);
 
         assertFalse(matchingCtx.isPredicateReferencedInCandidates(predicate));
 
@@ -45,7 +45,7 @@ class CanonicalMatchingContextTests {
 
     @Test
     void testAreAllFunctionsEliminated() {
-        var matchingCtx = new CanonicalIndexMatchingContext(2);
+        final var matchingCtx = new CanonicalIndexMatchingContext(2);
 
         matchingCtx.increaseNumberOfEliminatedFormulasForConjunction(0, 42);
         assertThat(matchingCtx.areAllFunctionsEliminated(0, 42), is(true));

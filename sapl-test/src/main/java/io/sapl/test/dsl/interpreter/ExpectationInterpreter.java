@@ -215,10 +215,10 @@ class ExpectationInterpreter {
         }
 
         return switch (nextExpect.getExpectedDecision()) {
-        case PERMIT -> expectStep.expectNextPermit(amount);
-        case DENY -> expectStep.expectNextDeny(amount);
+        case PERMIT        -> expectStep.expectNextPermit(amount);
+        case DENY          -> expectStep.expectNextDeny(amount);
         case INDETERMINATE -> expectStep.expectNextIndeterminate(amount);
-        default -> expectStep.expectNextNotApplicable(amount);
+        default            -> expectStep.expectNextNotApplicable(amount);
         };
     }
 

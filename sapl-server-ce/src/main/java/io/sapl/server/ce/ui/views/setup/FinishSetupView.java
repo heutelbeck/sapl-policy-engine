@@ -84,8 +84,8 @@ public class FinishSetupView extends VerticalLayout {
                 && applicationConfigService.getApiAuthenticationConfig().isSaved()
                 && applicationConfigService.getLoggingConfig().isSaved());
 
-        var  adminStateView = new Div();
-        Icon adminStateIcon;
+        final var adminStateView = new Div();
+        Icon      adminStateIcon;
         if (applicationConfigService.getAdminUserConfig().isSaved()) {
             adminStateIcon = VaadinIcon.CHECK_CIRCLE.create();
             adminStateIcon.getElement().getThemeList().add(THEME_BADGESUCCESSPILL);
@@ -97,8 +97,8 @@ public class FinishSetupView extends VerticalLayout {
         }
         adminStateView.add(new Text("Admin user setup finished "), adminStateIcon);
 
-        var  dbmsStateView = new Div();
-        Icon dbmsStateIcon;
+        final var dbmsStateView = new Div();
+        Icon      dbmsStateIcon;
         if (applicationConfigService.getDbmsConfig().isSaved()) {
             dbmsStateIcon = VaadinIcon.CHECK_CIRCLE.create();
             dbmsStateIcon.getElement().getThemeList().add(THEME_BADGESUCCESSPILL);
@@ -110,8 +110,8 @@ public class FinishSetupView extends VerticalLayout {
         }
         dbmsStateView.add(new Text("Database setup finished "), dbmsStateIcon);
 
-        var  httpStateView = new Div();
-        Icon httpStateIcon;
+        final var httpStateView = new Div();
+        Icon      httpStateIcon;
         if (applicationConfigService.getHttpEndpoint().isSaved()) {
             httpStateIcon = VaadinIcon.CHECK_CIRCLE.create();
             httpStateIcon.getElement().getThemeList().add(THEME_BADGESUCCESSPILL);
@@ -123,8 +123,8 @@ public class FinishSetupView extends VerticalLayout {
         }
         httpStateView.add(new Text("HTTP endpoint setup finished "), httpStateIcon);
 
-        var  rsocketStateView = new Div();
-        Icon rsocketStateIcon;
+        final var rsocketStateView = new Div();
+        Icon      rsocketStateIcon;
         if (applicationConfigService.getRsocketEndpoint().isSaved()) {
             rsocketStateIcon = VaadinIcon.CHECK_CIRCLE.create();
             rsocketStateIcon.getElement().getThemeList().add(THEME_BADGESUCCESSPILL);
@@ -136,8 +136,8 @@ public class FinishSetupView extends VerticalLayout {
         }
         rsocketStateView.add(new Text("RSocket endpoint setup finished "), rsocketStateIcon);
 
-        var  apiAuthenticationView = new Div();
-        Icon apiAuthenticationIconState;
+        final var apiAuthenticationView = new Div();
+        Icon      apiAuthenticationIconState;
         if (applicationConfigService.getApiAuthenticationConfig().isSaved()) {
             apiAuthenticationIconState = VaadinIcon.CHECK_CIRCLE.create();
             apiAuthenticationIconState.getElement().getThemeList().add(THEME_BADGESUCCESSPILL);
@@ -149,8 +149,8 @@ public class FinishSetupView extends VerticalLayout {
         }
         apiAuthenticationView.add(new Text("API Authentication setup finished "), apiAuthenticationIconState);
 
-        var  loggingView = new Div();
-        Icon loggingIconState;
+        final var loggingView = new Div();
+        Icon      loggingIconState;
         if (applicationConfigService.getLoggingConfig().isSaved()) {
             loggingIconState = VaadinIcon.CHECK_CIRCLE.create();
             loggingIconState.getElement().getThemeList().add(THEME_BADGESUCCESSPILL);
@@ -176,7 +176,7 @@ public class FinishSetupView extends VerticalLayout {
         stateLayout.add(apiAuthenticationView);
         stateLayout.add(loggingView);
 
-        var hInfo = new H2(
+        final var hInfo = new H2(
                 "The following settings must be adjusted and saved before the application can be restarted and used.");
 
         FormLayout adminUserLayout = new FormLayout(hInfo, stateLayout, restart);
@@ -191,12 +191,12 @@ public class FinishSetupView extends VerticalLayout {
     }
 
     private Div getTlsDisabledWarning(String protocol, boolean visible) {
-        var warning = "Warning: You have not selected any TLS-protocol for  " + protocol
+        final var warning = "Warning: You have not selected any TLS-protocol for  " + protocol
                 + ". Please do not use this configuration in production.\n"
                 + "This option may open the server to malicious probing and exfiltration attempts through "
                 + "the authorization endpoints, potentially resulting in unauthorized access to your "
                 + "organization's data, depending on your policies.";
-        var div     = ErrorComponentUtils.getErrorDiv(warning);
+        final var div     = ErrorComponentUtils.getErrorDiv(warning);
         div.setVisible(visible);
         return div;
     }

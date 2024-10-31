@@ -28,9 +28,9 @@ class FilterAlgorithmUtilTests {
 
     @Test
     void errorsAreNotFiltered() {
-        var unfiltered     = ErrorFactory.error("unfiltered");
-        var expected       = ErrorFactory.error("unfiltered");
-        var actualFiltered = FilterAlgorithmUtil.applyFilter(unfiltered, 0, null, mock(FilterStatement.class),
+        final var unfiltered     = ErrorFactory.error("unfiltered");
+        final var expected       = ErrorFactory.error("unfiltered");
+        final var actualFiltered = FilterAlgorithmUtil.applyFilter(unfiltered, 0, null, mock(FilterStatement.class),
                 getClass());
         StepVerifier.create(actualFiltered)
                 .expectNextMatches(actual -> actual.equals(expected)

@@ -83,7 +83,7 @@ class SaplMqttDefaultResponseIT {
     @Test
     void when_subscribingWithDefaultConfigAndBrokerDoesNotSendMessage_then_getDefaultUndefined() {
         // GIVEN
-        var topics = JSON.arrayNode().add("topic1").add("topic2");
+        final var topics = JSON.arrayNode().add("topic1").add("topic2");
 
         // WHEN
         Flux<Val> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildVariables());
@@ -96,7 +96,7 @@ class SaplMqttDefaultResponseIT {
     @Test
     void when_subscribingWithConfigDefaultResponseErrorAndBrokerDoesNotSendMessage_then_getDefaultError() {
         // GIVEN
-        var topics = JSON.arrayNode().add("topic1").add("topic2");
+        final var topics = JSON.arrayNode().add("topic1").add("topic2");
 
         // WHEN
         Flux<Val> saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildCustomConfig());
@@ -109,7 +109,7 @@ class SaplMqttDefaultResponseIT {
     @Test
     void when_subscribingWithDefaultResponseTypeSpecifiedInAttributeFinderParams_then_useThisDefaultResponseType() {
         // GIVEN
-        var        topics       = JSON.arrayNode().add("topic1").add("topic2");
+        final var  topics       = JSON.arrayNode().add("topic1").add("topic2");
         ObjectNode configParams = JSON.objectNode();
         configParams.put(ENVIRONMENT_BROKER_ADDRESS, "localhost");
         configParams.put(ENVIRONMENT_BROKER_PORT, 1883);
@@ -128,7 +128,7 @@ class SaplMqttDefaultResponseIT {
     @Test
     void when_subscribingWithDefaultResponseTimeoutSpecifiedInAttributeFinderParams_then_useThisDefaultResponseTimeout() {
         // GIVEN
-        var        topics       = JSON.arrayNode().add("topic1").add("topic2");
+        final var  topics       = JSON.arrayNode().add("topic1").add("topic2");
         ObjectNode configParams = JSON.objectNode();
         configParams.put(ENVIRONMENT_BROKER_ADDRESS, "localhost");
         configParams.put(ENVIRONMENT_BROKER_PORT, 1883);

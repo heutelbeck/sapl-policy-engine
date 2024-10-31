@@ -64,8 +64,8 @@ public class AttributeUnionStepImplCustom extends AttributeUnionStepImpl {
 
     public static Supplier<Flux<Val>> toObjectFieldSelector(BiPredicate<String, Val> selector) {
         return () -> Flux.deferContextual(ctx -> {
-            var relativeNode = AuthorizationContext.getRelativeNode(ctx);
-            var key          = AuthorizationContext.getKey(ctx);
+            final var relativeNode = AuthorizationContext.getRelativeNode(ctx);
+            final var key          = AuthorizationContext.getKey(ctx);
             return Flux.just(Val.of(selector.test(key, relativeNode)));
         });
     }

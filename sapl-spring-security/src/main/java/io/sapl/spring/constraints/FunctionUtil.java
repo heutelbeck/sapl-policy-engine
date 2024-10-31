@@ -33,8 +33,7 @@ public class FunctionUtil {
      * @return A {@link Consumer} doing nothing.
      */
     public static <T> Consumer<T> sink() {
-        return t -> {
-        };
+        return t -> {};
     }
 
     /**
@@ -43,8 +42,7 @@ public class FunctionUtil {
      * @return A {@link LongConsumer} doing nothing.
      */
     public static LongConsumer longSink() {
-        return t -> {
-        };
+        return t -> {};
     }
 
     /**
@@ -63,7 +61,6 @@ public class FunctionUtil {
      * @return A {@link Runnable} doing nothing.
      */
     public static Runnable noop() {
-        return () -> {
-        };
+        return () -> {};
     }
 }

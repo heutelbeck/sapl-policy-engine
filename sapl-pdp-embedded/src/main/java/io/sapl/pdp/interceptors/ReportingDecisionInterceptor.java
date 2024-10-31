@@ -44,12 +44,12 @@ public class ReportingDecisionInterceptor implements TracedDecisionInterceptor {
 
     @Override
     public TracedDecision apply(TracedDecision tracedDecision) {
-        var trace = tracedDecision.getTrace();
+        final var trace = tracedDecision.getTrace();
         if (printTrace) {
             prettyLog("New Decision (trace) : ", trace);
         }
         if (printJsonReport || printTextReport) {
-            var jsonReport = ReportBuilderUtil.reduceTraceToReport(trace);
+            final var jsonReport = ReportBuilderUtil.reduceTraceToReport(trace);
             if (printJsonReport) {
                 prettyLog("New Decision (report): ", ReportBuilderUtil.reduceTraceToReport(trace));
             }

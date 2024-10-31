@@ -44,29 +44,29 @@ class NaiveImmutableParsedDocumentIndexTests {
 
     @Test
     void testConstruction() {
-        var index = new NaiveImmutableParsedDocumentIndex();
+        final var index = new NaiveImmutableParsedDocumentIndex();
         assertThat(index, notNullValue());
     }
 
     @Test
     void should_return_empty_result_when_no_documents_are_published() {
-        var index  = new NaiveImmutableParsedDocumentIndex();
-        var result = index.retrievePolicies().block();
+        final var index  = new NaiveImmutableParsedDocumentIndex();
+        var       result = index.retrievePolicies().block();
 
         assertThat(result, notNullValue());
         assertThat(result.isRetrievalWithErrors(), is(false));
         assertThat(result.isPrpInconsistent(), is(false));
         assertThat(result.getMatchingDocuments().isEmpty(), is(true));
 
-        var document = INTERPERETER.parseDocument("policy \"p_0\" permit !resource.x1");
+        final var document = INTERPERETER.parseDocument("policy \"p_0\" permit !resource.x1");
 
         List<Update> updates = new ArrayList<>();
         updates.add(new Update(Type.CONSISTENT, null));
         updates.add(new Update(Type.PUBLISH, document));
         updates.add(new Update(Type.WITHDRAW, document));
-        var event = new PrpUpdateEvent(updates);
+        final var event = new PrpUpdateEvent(updates);
 
-        var index2 = index.apply(event);
+        final var index2 = index.apply(event);
         result = index2.retrievePolicies().block();
 
         assertThat(result.getMatchingDocuments().isEmpty(), is(true));
@@ -75,41 +75,41 @@ class NaiveImmutableParsedDocumentIndexTests {
 
     @Test
     void should_return_invalid_result_when_inconsistent_event_was_published() {
-        var          index   = new NaiveImmutableParsedDocumentIndex();
+        final var    index   = new NaiveImmutableParsedDocumentIndex();
         List<Update> updates = new ArrayList<>();
         updates.add(new Update(Type.INCONSISTENT, null));
-        var event  = new PrpUpdateEvent(updates);
-        var index2 = index.apply(event);
+        final var event  = new PrpUpdateEvent(updates);
+        final var index2 = index.apply(event);
 
-        var result = index2.retrievePolicies().block();
+        final var result = index2.retrievePolicies().block();
 
         assertThat(result.isPrpInconsistent(), is(true));
     }
 
     @Test
     void testApply() {
-        var index = new NaiveImmutableParsedDocumentIndex();
+        final var index = new NaiveImmutableParsedDocumentIndex();
 
-        var saplMock1 = mock(SAPL.class, RETURNS_DEEP_STUBS);
+        final var saplMock1 = mock(SAPL.class, RETURNS_DEEP_STUBS);
         when(saplMock1.getPolicyElement().getSaplName()).thenReturn("SAPL1");
         when(saplMock1.matches()).thenReturn(Mono.just(Val.TRUE));
 
-        var saplMock2 = mock(SAPL.class, RETURNS_DEEP_STUBS);
-        var valMock2  = mock(Val.class);
+        final var saplMock2 = mock(SAPL.class, RETURNS_DEEP_STUBS);
+        final var valMock2  = mock(Val.class);
         when(valMock2.isBoolean()).thenReturn(Boolean.FALSE);
         when(valMock2.isError()).thenReturn(Boolean.TRUE);
         when(valMock2.getMessage()).thenReturn("Error Val");
         when(saplMock2.getPolicyElement().getSaplName()).thenReturn("SAPL2");
         when(saplMock2.matches()).thenReturn(Mono.just(valMock2));
 
-        var saplMock3 = mock(SAPL.class, RETURNS_DEEP_STUBS);
-        var valMock3  = mock(Val.class);
+        final var saplMock3 = mock(SAPL.class, RETURNS_DEEP_STUBS);
+        final var valMock3  = mock(Val.class);
         when(valMock3.isBoolean()).thenReturn(Boolean.FALSE);
         when(valMock3.getMessage()).thenReturn("i'm not a boolean");
         when(saplMock3.getPolicyElement().getSaplName()).thenReturn("SAPL3");
         when(saplMock3.matches()).thenReturn(Mono.just(valMock3));
 
-        var saplMock4 = mock(SAPL.class, RETURNS_DEEP_STUBS);
+        final var saplMock4 = mock(SAPL.class, RETURNS_DEEP_STUBS);
         when(saplMock4.getPolicyElement().getSaplName()).thenReturn("SAPL4");
         when(saplMock4.matches()).thenReturn(Mono.just(Val.FALSE));
 
@@ -119,12 +119,12 @@ class NaiveImmutableParsedDocumentIndexTests {
         updates.add(new Update(Type.PUBLISH, new Document("id2", "SAPL2", saplMock2, null, null)));
         updates.add(new Update(Type.PUBLISH, new Document("id3", "SAPL3", saplMock3, null, null)));
         updates.add(new Update(Type.PUBLISH, new Document("id4", "SAPL4", saplMock4, null, null)));
-        var event = new PrpUpdateEvent(updates);
+        final var event = new PrpUpdateEvent(updates);
 
-        var index2 = index.apply(event);
+        final var index2 = index.apply(event);
         assertThat(index.equals(index2), is(false));
 
-        var result = index2.retrievePolicies().block();
+        final var result = index2.retrievePolicies().block();
         assertThat(result.getMatchingDocuments().isEmpty(), is(false));
     }
 

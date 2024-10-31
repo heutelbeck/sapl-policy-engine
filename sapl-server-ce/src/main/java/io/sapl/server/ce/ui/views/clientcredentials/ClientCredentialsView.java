@@ -66,9 +66,9 @@ public class ClientCredentialsView extends VerticalLayout {
 
     public ClientCredentialsView(ClientDetailsService clientCredentialsService) {
         this.clientCredentialsService = clientCredentialsService;
-        var createButtons         = new HorizontalLayout();
-        var newBasicClientButton  = new Button("New Basic Client");
-        var newApiKeyClientButton = new Button("New ApiKey Client");
+        final var createButtons         = new HorizontalLayout();
+        final var newBasicClientButton  = new Button("New Basic Client");
+        final var newApiKeyClientButton = new Button("New ApiKey Client");
         createButtons.add(newBasicClientButton, newApiKeyClientButton);
         add(createButtons, clientCredentialsGrid);
         clientCredentialsGrid.getStyle().set("font-family", "\"Courier\", monospace");
@@ -137,8 +137,7 @@ public class ClientCredentialsView extends VerticalLayout {
         ConfirmUtils.letConfirm("Delete Client",
                 String.format("Should the client credentials with key \"%s\" really be deleted?",
                         currentClientCredential.getKey()),
-                () -> executeDeletionOfClient(currentClientCredential), () -> {
-                });
+                () -> executeDeletionOfClient(currentClientCredential), () -> {});
     }
 
     private void executeDeletionOfClient(ClientCredentials currentClientCredential) {
@@ -152,16 +151,16 @@ public class ClientCredentialsView extends VerticalLayout {
     }
 
     private void showDialogForCreatedBasicClient(@NonNull String key, @NonNull String secret) {
-        var layout = new VerticalLayout();
-        var text   = new Span(
+        final var layout = new VerticalLayout();
+        final var text   = new Span(
                 "A new Basic client has been created. The following secret will only be shown once and is not recoverable. Make sure to write it down.");
 
-        var keyField = new TextField("Client Key");
+        final var keyField = new TextField("Client Key");
         keyField.setValue(key);
         keyField.setReadOnly(true);
         keyField.setWidthFull();
 
-        var secretField = new TextField("Client Secret");
+        final var secretField = new TextField("Client Secret");
         secretField.setValue(secret);
         secretField.setReadOnly(true);
         secretField.setWidthFull();
@@ -170,7 +169,7 @@ public class ClientCredentialsView extends VerticalLayout {
 
         Dialog dialog = new Dialog(layout);
         dialog.setHeaderTitle("Client Created");
-        var closeButton = new Button(new Icon("lumo", "cross"), e -> dialog.close());
+        final var closeButton = new Button(new Icon("lumo", "cross"), e -> dialog.close());
         closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         dialog.getHeader().add(closeButton);
         dialog.setWidth("600px");
@@ -181,11 +180,11 @@ public class ClientCredentialsView extends VerticalLayout {
     }
 
     private void showDialogForCreatedApiKeyClient(@NonNull String apiKey) {
-        var layout = new VerticalLayout();
-        var text   = new Span(
+        final var layout = new VerticalLayout();
+        final var text   = new Span(
                 "A new ApiKey client has been created. The following secret will only be shown once and is not recoverable. Make sure to write it down.");
 
-        var apikeyField = new TextArea("API Key");
+        final var apikeyField = new TextArea("API Key");
         apikeyField.setValue(apiKey);
         apikeyField.setReadOnly(true);
         apikeyField.setWidthFull();
@@ -194,7 +193,7 @@ public class ClientCredentialsView extends VerticalLayout {
 
         Dialog dialog = new Dialog(layout);
         dialog.setHeaderTitle("Client Created");
-        var closeButton = new Button(new Icon("lumo", "cross"), e -> dialog.close());
+        final var closeButton = new Button(new Icon("lumo", "cross"), e -> dialog.close());
         closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         dialog.getHeader().add(closeButton);
         dialog.setWidth("600px");

@@ -48,8 +48,8 @@ public class ApiKeyHeaderAuthFilterService extends GenericFilterBean {
             throws IOException, ServletException {
         // checking apiKey Header only if the request is not yet authorized
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
-            var request     = (HttpServletRequest) servletRequest;
-            var apikeyToken = ApiKeyService.getApiKeyToken(request);
+            final var request     = (HttpServletRequest) servletRequest;
+            final var apikeyToken = ApiKeyService.getApiKeyToken(request);
             // if header token is not valid, send un-authorized error
             if (apikeyToken != null) {
                 SecurityContextHolder.getContext().setAuthentication(apiKeyService.checkApiKey(apikeyToken));

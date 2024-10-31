@@ -53,10 +53,10 @@ public class ApiKeyService {
      * @param apiKey api key
      */
     private Mono<Authentication> checkApiKey(final String apiKey) {
-        var cache = cacheManager.getCache("ApiKeyCache");
+        final var cache = cacheManager.getCache("ApiKeyCache");
         // get authentication from cache of possible
         if (cache != null) {
-            var cacheEntry = cache.get(apiKey);
+            final var cacheEntry = cache.get(apiKey);
             if (cacheEntry != null) {
                 return Mono.just(new ApiKeyAuthenticationToken((String) cacheEntry.get()));
             }
@@ -77,7 +77,7 @@ public class ApiKeyService {
     }
 
     public static Optional<String> getApiKeyToken(ServerWebExchange exchange) {
-        var authorization = exchange.getRequest().getHeaders().getFirst(HEADER);
+        final var authorization = exchange.getRequest().getHeaders().getFirst(HEADER);
         if (authorization != null && authorization.startsWith(HEADER_PREFIX + SAPL_TOKEN_PREFIX)) {
             return Optional.of(authorization.substring(HEADER_PREFIX.length()));
         }
@@ -86,7 +86,7 @@ public class ApiKeyService {
 
     public ServerAuthenticationConverter getHttpApiKeyAuthenticationConverter() {
         return exchange -> {
-            var apiKeyToken = getApiKeyToken(exchange);
+            final var apiKeyToken = getApiKeyToken(exchange);
             if (apiKeyToken.isPresent()) {
                 return checkApiKey(apiKeyToken.get());
             } else {

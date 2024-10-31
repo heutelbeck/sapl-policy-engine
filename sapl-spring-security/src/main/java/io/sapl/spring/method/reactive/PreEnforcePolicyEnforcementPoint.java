@@ -42,11 +42,11 @@ public class PreEnforcePolicyEnforcementPoint {
     @SuppressWarnings("unchecked")
     private <T> Function<AuthorizationDecision, Flux<T>> enforceDecision(MethodInvocation invocation, Class<T> clazz) {
         return decision -> {
-            var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, clazz);
+            final var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, clazz);
 
             Flux<T> resourceAccessPoint;
 
-            var decisionIsPermit = Decision.PERMIT != decision.getDecision();
+            final var decisionIsPermit = Decision.PERMIT != decision.getDecision();
             if (decisionIsPermit) {
                 resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
             } else {

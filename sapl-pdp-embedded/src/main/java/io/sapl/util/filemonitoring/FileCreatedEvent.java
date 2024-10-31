@@ -19,5 +19,4 @@ package io.sapl.util.filemonitoring;
 
 import java.nio.file.Path;
 
-public record FileCreatedEvent(Path file) implements FileEvent {
-}
+public record FileCreatedEvent(Path file) implements FileEvent {}

@@ -44,7 +44,7 @@ public class SchemaLoadingUtil {
     public static JsonNode loadSchemaFromResource(Method method, String attributePathToSchema)
             throws InitializationException {
         try (var is = method.getDeclaringClass().getClassLoader().getResourceAsStream(attributePathToSchema)) {
-            if (is == null) {
+            if (null == is) {
                 throw new IOException("Schema file not found " + attributePathToSchema);
             }
             return MAPPER.readValue(is, JsonNode.class);

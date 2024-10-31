@@ -48,27 +48,26 @@ public class SaplPartTreeCriteriaCreator {
      * concatenation.
      *
      * @param manipulatedPartTree is the created PartTree of the manipulated method.
-     * @param parameters          from the original method plus the parameters that
-     *                            could be obtained from the condition from the
-     *                            {@link io.sapl.api.pdp.Decision}.
+     * @param parameters from the original method plus the parameters that could be
+     * obtained from the condition from the {@link io.sapl.api.pdp.Decision}.
      * @return a new {@link CriteriaDefinition}.
      */
     private CriteriaDefinition buildCriteria(PartTree manipulatedPartTree, List<Object> parameters) {
 
-        Criteria base     = null;
-        var      iterator = parameters.iterator();
-        var      andPart  = new ArrayList<Criteria>();
+        Criteria  base     = null;
+        final var iterator = parameters.iterator();
+        final var andPart  = new ArrayList<Criteria>();
 
         for (PartTree.OrPart node : manipulatedPartTree) {
 
-            var parts = node.iterator();
+            final var parts = node.iterator();
             andPart.add(buildCriteria(parts.next(), iterator.next()));
 
             while (parts.hasNext()) {
                 andPart.add(buildCriteria(parts.next(), iterator.next()));
             }
 
-            var criteria = new Criteria().andOperator(andPart.toArray(new Criteria[0]));
+            final var criteria = new Criteria().andOperator(andPart.toArray(new Criteria[0]));
 
             base = base == null ? criteria : base.orOperator(andPart.toArray(new Criteria[0]));
             andPart.clear();
@@ -78,7 +77,7 @@ public class SaplPartTreeCriteriaCreator {
     }
 
     private Criteria buildCriteria(Part part, Object value) {
-        var propertyName = part.getProperty().getSegment();
+        final var propertyName = part.getProperty().getSegment();
 
         switch (part.getType()) {
         case SIMPLE_PROPERTY:

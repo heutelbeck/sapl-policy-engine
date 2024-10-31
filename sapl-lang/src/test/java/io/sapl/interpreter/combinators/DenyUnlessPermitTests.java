@@ -116,8 +116,8 @@ class DenyUnlessPermitTests {
 
     @Test
     void singlePermitTransformationResource() {
-        var policySet = "set \"tests\" deny-unless-permit" + " policy \"testp\" permit transform true";
-        var expected  = Optional.<JsonNode>of(JSON.booleanNode(true));
+        final var policySet = "set \"tests\" deny-unless-permit" + " policy \"testp\" permit transform true";
+        final var expected  = Optional.<JsonNode>of(JSON.booleanNode(true));
         validateResource(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
     }
 
@@ -131,13 +131,13 @@ class DenyUnlessPermitTests {
 
     @Test
     void collectObligationDeny() {
-        var policySet = "set \"tests\" deny-unless-permit"
+        final var policySet = "set \"tests\" deny-unless-permit"
                 + " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" permit false obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode("obligation1"));
         obligations.add(JSON.textNode("obligation2"));
 
@@ -146,13 +146,13 @@ class DenyUnlessPermitTests {
 
     @Test
     void collectAdviceDeny() {
-        var policySet = "set \"tests\" deny-unless-permit"
+        final var policySet = "set \"tests\" deny-unless-permit"
                 + " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" permit false obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
-        var advice = JSON.arrayNode();
+        final var advice = JSON.arrayNode();
         advice.add(JSON.textNode("advice1"));
         advice.add(JSON.textNode("advice2"));
 
@@ -161,13 +161,13 @@ class DenyUnlessPermitTests {
 
     @Test
     void collectObligationPermit() {
-        var policySet = "set \"tests\" deny-unless-permit"
+        final var policySet = "set \"tests\" deny-unless-permit"
                 + " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" deny obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"";
 
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode("obligation1"));
         obligations.add(JSON.textNode("obligation2"));
 
@@ -176,13 +176,13 @@ class DenyUnlessPermitTests {
 
     @Test
     void collectAdvicePermit() {
-        var policySet = "set \"tests\" deny-unless-permit"
+        final var policySet = "set \"tests\" deny-unless-permit"
                 + " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" deny obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"";
 
-        var advice = JSON.arrayNode();
+        final var advice = JSON.arrayNode();
         advice.add(JSON.textNode("advice1"));
         advice.add(JSON.textNode("advice2"));
 

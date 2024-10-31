@@ -39,8 +39,8 @@ public class OperatorUtil {
             java.util.function.BiFunction<EObject, Val, Val> leftTypeRequirement,
             java.util.function.BiFunction<EObject, Val, Val> rightTypeRequirement,
             java.util.function.BinaryOperator<Val> transformation) {
-        var left  = operator.getLeft().evaluate().map(v -> leftTypeRequirement.apply(demandingComponent, v));
-        var right = operator.getRight().evaluate().map(v -> rightTypeRequirement.apply(demandingComponent, v));
+        final var left  = operator.getLeft().evaluate().map(v -> leftTypeRequirement.apply(demandingComponent, v));
+        final var right = operator.getRight().evaluate().map(v -> rightTypeRequirement.apply(demandingComponent, v));
         return Flux.combineLatest(left, right, errorOrDo(transformation));
     }
 

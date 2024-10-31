@@ -35,8 +35,8 @@ class ConjunctiveClauseReductionSupportTests {
         ConjunctiveClauseReductionSupport.reduceConstants(literals);
         assertThat(literals.isEmpty(), is(true));
 
-        var trueLiteral  = new Literal(new Bool(true));
-        var falseLiteral = new Literal(new Bool(false));
+        final var trueLiteral  = new Literal(new Bool(true));
+        final var falseLiteral = new Literal(new Bool(false));
 
         literals.add(trueLiteral);
         ConjunctiveClauseReductionSupport.reduceConstants(literals);
@@ -60,10 +60,10 @@ class ConjunctiveClauseReductionSupportTests {
         ConjunctiveClauseReductionSupport.reduceFormula(literals);
         assertThat(literals.isEmpty(), is(Boolean.TRUE));
 
-        var trueLiteral         = new Literal(new Bool(true));
-        var falseLiteral        = new Literal(new Bool(false));
-        var trueNegatedLiteral  = new Literal(new Bool(true), true);
-        var falseNegatedLiteral = new Literal(new Bool(false), true);
+        final var trueLiteral         = new Literal(new Bool(true));
+        final var falseLiteral        = new Literal(new Bool(false));
+        final var trueNegatedLiteral  = new Literal(new Bool(true), true);
+        final var falseNegatedLiteral = new Literal(new Bool(false), true);
 
         literals.add(trueLiteral);
         ConjunctiveClauseReductionSupport.reduceFormula(literals);

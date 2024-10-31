@@ -57,20 +57,20 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
     @Override
     @SuppressWarnings("unchecked")
     public Object invoke(MethodInvocation methodInvocation) throws Throwable {
-        var returnedObject = methodInvocation.proceed();
-        var attribute      = attributeRegistryProvider.getObject().getSaplAttributeForAnnotationType(methodInvocation,
-                PostEnforce.class);
+        final var returnedObject = methodInvocation.proceed();
+        final var attribute      = attributeRegistryProvider.getObject()
+                .getSaplAttributeForAnnotationType(methodInvocation, PostEnforce.class);
         if (attribute.isEmpty()) {
             return returnedObject;
         }
 
-        var postEnforceAttribute               = attribute.get();
-        var isOptional                         = returnedObject instanceof Optional;
-        var returnedObjectForAuthzSubscription = returnedObject;
-        var returnType                         = methodInvocation.getMethod().getReturnType();
+        final var postEnforceAttribute               = attribute.get();
+        final var isOptional                         = returnedObject instanceof Optional;
+        var       returnedObjectForAuthzSubscription = returnedObject;
+        var       returnType                         = methodInvocation.getMethod().getReturnType();
 
         if (isOptional) {
-            var optObject = (Optional<Object>) returnedObject;
+            final var optObject = (Optional<Object>) returnedObject;
             if (optObject.isPresent()) {
                 returnedObjectForAuthzSubscription = optObject.get();
                 returnType                         = returnedObjectForAuthzSubscription.getClass();
@@ -80,17 +80,17 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
             }
         }
 
-        var authzSubscription = subscriptionBuilderProvider.getObject()
+        final var authzSubscription = subscriptionBuilderProvider.getObject()
                 .constructAuthorizationSubscriptionWithReturnObject(authentication.get(), methodInvocation,
                         postEnforceAttribute, returnedObjectForAuthzSubscription);
 
-        var authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
+        final var authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
         if (authzDecisions == null) {
             throw new AccessDeniedException(
                     String.format("Access Denied by @PostEnforce PEP. PDP returned null. %s", attribute));
         }
 
-        var authzDecision = authzDecisions.blockFirst();
+        final var authzDecision = authzDecisions.blockFirst();
 
         if (authzDecision == null) {
             throw new AccessDeniedException(
@@ -120,11 +120,11 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
         try {
             blockingPostEnforceBundle.handleOnDecisionConstraints();
 
-            var isNotPermit = authzDecision.getDecision() != Decision.PERMIT;
+            final var isNotPermit = authzDecision.getDecision() != Decision.PERMIT;
             if (isNotPermit)
                 throw new AccessDeniedException("Access Denied. Action not permitted.");
 
-            var result = blockingPostEnforceBundle.handleAllOnNextConstraints(returnedObjectForAuthzSubscription);
+            final var result = blockingPostEnforceBundle.handleAllOnNextConstraints(returnedObjectForAuthzSubscription);
 
             if (isOptional)
                 return Optional.ofNullable(result);
@@ -138,7 +138,7 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
     private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
         return () -> {
-            var authentication = strategy.getContext().getAuthentication();
+            final var authentication = strategy.getContext().getAuthentication();
             if (authentication == null) {
                 throw new AuthenticationCredentialsNotFoundException(
                         "An Authentication object was not found in the SecurityContext");

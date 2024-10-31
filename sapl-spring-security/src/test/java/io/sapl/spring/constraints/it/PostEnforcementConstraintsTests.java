@@ -249,9 +249,9 @@ class PostEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsUnenforceableObligation_then_pdpMethodThrowsAccessDeniedButWasInvoked() {
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(UNKNOWN_CONSTRAINT));
-        var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
+        final var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertThrows(AccessDeniedException.class, () -> service.execute("test"));
         verify(pdp).decide(any(AuthorizationSubscription.class));
@@ -261,10 +261,10 @@ class PostEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsFailingObligation_then_pdpMethodThrowsAccessDeniedButWasInvoked() {
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(FAILING_CONSTRAINT));
         obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
-        var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
+        final var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertThrows(AccessDeniedException.class, () -> service.execute("test"));
         verify(pdp).decide(any(AuthorizationSubscription.class));
@@ -274,9 +274,9 @@ class PostEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsUnenforceableAdvice_then_accessGranted() {
-        var advice = JSON.arrayNode();
+        final var advice = JSON.arrayNode();
         advice.add(JSON.textNode(UNKNOWN_CONSTRAINT));
-        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("Argument: test", service.execute("test"));
         verify(pdp).decide(any(AuthorizationSubscription.class));
@@ -286,9 +286,9 @@ class PostEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsFailingAdvice_then_normalAccessGranted() {
-        var advice = JSON.arrayNode();
+        final var advice = JSON.arrayNode();
         advice.add(JSON.textNode(FAILING_CONSTRAINT));
-        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("Argument: test", service.execute("test"));
         verify(pdp).decide(any(AuthorizationSubscription.class));
@@ -298,9 +298,9 @@ class PostEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableObligation_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
-        var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
+        final var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("Argument: test", service.execute("test"));
         verify(pdp).decide(any(AuthorizationSubscription.class));
@@ -311,9 +311,9 @@ class PostEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionDenyContainsEnforceableObligation_then_accessDeniedButConstraintsHandled() {
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
-        var decision = AuthorizationDecision.DENY.withObligations(obligations);
+        final var decision = AuthorizationDecision.DENY.withObligations(obligations);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertThrows(AccessDeniedException.class, () -> service.execute("test"));
         verify(pdp).decide(any(AuthorizationSubscription.class));
@@ -325,9 +325,9 @@ class PostEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
-        var advice = JSON.arrayNode();
+        final var advice = JSON.arrayNode();
         advice.add(JSON.textNode(KNOWN_CONSTRAINT));
-        var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
+        final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("Argument: test", service.execute("test"));
         verify(pdp).decide(any(AuthorizationSubscription.class));
@@ -339,11 +339,11 @@ class PostEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledAndDecisionContainsEnforceableObligationsAndAdvice_then_pdpMethodReturnsNormallyAndHandlersAreInvoked() {
-        var advice = JSON.arrayNode();
+        final var advice = JSON.arrayNode();
         advice.add(JSON.textNode(KNOWN_CONSTRAINT));
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode(KNOWN_CONSTRAINT));
-        var decision = AuthorizationDecision.PERMIT.withObligations(obligations).withAdvice(advice);
+        final var decision = AuthorizationDecision.PERMIT.withObligations(obligations).withAdvice(advice);
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals("Argument: test", service.execute("test"));
         verify(pdp).decide(any(AuthorizationSubscription.class));
@@ -355,7 +355,7 @@ class PostEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledOptionalReturnValueAndPermit_then_returnsNormally() {
-        var decision = AuthorizationDecision.PERMIT;
+        final var decision = AuthorizationDecision.PERMIT;
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals(Optional.of("Argument: test"), service.executeOptional("test"));
         verify(pdp).decide(any(AuthorizationSubscription.class));
@@ -365,7 +365,7 @@ class PostEnforcementConstraintsTests {
     @Test
     @WithMockUser()
     void when_testServiceCalledOptionalEmptyReturnValueAndPermit_then_returnsNormally() {
-        var decision = AuthorizationDecision.PERMIT;
+        final var decision = AuthorizationDecision.PERMIT;
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(decision));
         assertEquals(Optional.empty(), service.executeOptionalEmpty());
         verify(pdp).decide(any(AuthorizationSubscription.class));

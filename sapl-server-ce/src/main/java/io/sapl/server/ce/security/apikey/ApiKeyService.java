@@ -53,9 +53,9 @@ public class ApiKeyService {
     @Cacheable(cacheManager = "apiKeyCacheManager", value = "ApiKeyCache", unless = "#result == null")
     public ApiKeyAuthenticationToken checkApiKey(String apiKey) throws AuthenticationException {
         if (apiKey.startsWith(SAPL_TOKEN_PREFIX)) {
-            var key = apiKey.split("_")[1];
+            final var key = apiKey.split("_")[1];
             // get record matching key part of the apikey token
-            var c = clientCredentialsRepository.findByKey(key)
+            final var c = clientCredentialsRepository.findByKey(key)
                     .orElseThrow(() -> new UsernameNotFoundException("Provided apiKey client credentials not found"));
             // check type and encoded passwortd of the token entry
             if (c.getAuthType().equals(AuthType.APIKEY) && passwordEncoder.matches(apiKey, c.getEncodedSecret())) {
@@ -69,7 +69,7 @@ public class ApiKeyService {
     }
 
     public static String getApiKeyToken(HttpServletRequest request) {
-        var authorization = request.getHeader(HEADER);
+        final var authorization = request.getHeader(HEADER);
         if (StringUtils.isNotEmpty(authorization) && authorization.startsWith(HEADER_PREFIX + SAPL_TOKEN_PREFIX)) {
             return authorization.substring(HEADER_PREFIX.length());
         }
@@ -79,9 +79,9 @@ public class ApiKeyService {
     public void removeFromCache(String cacheKey) {
         CaffeineCache apiKeyCache = (CaffeineCache) apiKeyCacheManager.getCache("ApiKeyCache");
         if (apiKeyCache != null) {
-            var nativeCache = apiKeyCache.getNativeCache();
+            final var nativeCache = apiKeyCache.getNativeCache();
             for (Map.Entry<Object, Object> entry : nativeCache.asMap().entrySet()) {
-                var cacheEntry = entry.getKey();
+                final var cacheEntry = entry.getKey();
                 log.info("checking entry: " + cacheEntry);
                 if (cacheEntry.toString().startsWith(cacheKey + ".")) {
                     log.info("removing entry: " + cacheEntry);

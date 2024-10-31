@@ -42,7 +42,7 @@ public class ImportsUtil {
     private static final String LIBRARY_IMPORT_EXISTS_ERROR  = "Library import of '%s' not possible as an import for name '%s' already exists.";
 
     public static Context loadImportsIntoContext(EObject startNode, Context ctx) {
-        var imports = fetchImportsFromParents(startNode, AuthorizationContext.getAttributeContext(ctx),
+        final var imports = fetchImportsFromParents(startNode, AuthorizationContext.getAttributeContext(ctx),
                 AuthorizationContext.functionContext(ctx));
         return AuthorizationContext.setImports(ctx, imports);
     }
@@ -60,7 +60,7 @@ public class ImportsUtil {
 
     public static Map<String, String> fetchImports(SAPL sapl, AttributeContext attributeContext,
             FunctionContext functionContext) {
-        var imports = new HashMap<String, String>();
+        final var imports = new HashMap<String, String>();
         for (var anImport : sapl.getImports()) {
             addImport(anImport, imports, attributeContext, functionContext);
         }
@@ -69,13 +69,13 @@ public class ImportsUtil {
 
     private static void addImport(Import anImport, Map<String, String> imports, AttributeContext attributeContext,
             FunctionContext functionContext) {
-        var library = String.join(".", anImport.getLibSteps());
+        final var library = String.join(".", anImport.getLibSteps());
 
         if (anImport instanceof WildcardImport) {
             addWildcardImports(imports, library, attributeContext);
             addWildcardImports(imports, library, functionContext);
         } else if (anImport instanceof LibraryImport libraryImport) {
-            var alias = libraryImport.getLibAlias();
+            final var alias = libraryImport.getLibAlias();
             addLibraryImports(imports, library, alias, attributeContext);
             addLibraryImports(imports, library, alias, functionContext);
         } else {
@@ -85,8 +85,8 @@ public class ImportsUtil {
 
     private static void addBasicImport(Import anImport, String library, Map<String, String> imports,
             AttributeContext attributeContext, FunctionContext functionContext) {
-        var functionName               = anImport.getFunctionName();
-        var fullyQualifiedFunctionName = String.join(".", library, functionName);
+        final var functionName               = anImport.getFunctionName();
+        final var fullyQualifiedFunctionName = String.join(".", library, functionName);
 
         if (imports.containsKey(functionName))
             throw new PolicyEvaluationException(IMPORT_EXISTS_ERROR, fullyQualifiedFunctionName);
@@ -114,7 +114,7 @@ public class ImportsUtil {
     private static void addLibraryImports(Map<String, String> imports, String library, String alias,
             LibraryFunctionProvider functionProvider) {
         for (var name : functionProvider.providedFunctionsOfLibrary(library)) {
-            var key = String.join(".", alias, name);
+            final var key = String.join(".", alias, name);
             if (imports.put(key, String.join(".", library, name)) != null)
                 throw new PolicyEvaluationException(LIBRARY_IMPORT_EXISTS_ERROR, library, name);
         }

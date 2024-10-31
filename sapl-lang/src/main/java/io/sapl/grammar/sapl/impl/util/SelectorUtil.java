@@ -32,8 +32,8 @@ import reactor.core.publisher.Flux;
 public class SelectorUtil {
     public static Supplier<Flux<Val>> toArrayElementSelector(BiPredicate<Integer, Val> selector, EObject location) {
         return () -> Flux.deferContextual(ctx -> {
-            var relativeNode = AuthorizationContext.getRelativeNode(ctx);
-            var index        = AuthorizationContext.getIndex(ctx);
+            final var relativeNode = AuthorizationContext.getRelativeNode(ctx);
+            final var index        = AuthorizationContext.getIndex(ctx);
             try {
                 return Flux.just(Val.of(selector.test(index, relativeNode)));
             } catch (PolicyEvaluationException e) {

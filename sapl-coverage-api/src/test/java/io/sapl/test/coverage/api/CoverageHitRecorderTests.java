@@ -33,7 +33,7 @@ class CoverageHitRecorderTests {
 
     @Test
     void testCoverageRecording(@TempDir Path tempDir) throws Exception {
-        var recorder = new CoverageHitAPIFile(tempDir);
+        final var recorder = new CoverageHitAPIFile(tempDir);
         // arrange
         Path filePathPolicySetHits       = tempDir.resolve("hits").resolve("_policySetHits.txt");
         Path filePathPolicyHits          = tempDir.resolve("hits").resolve("_policyHits.txt");
@@ -111,7 +111,7 @@ class CoverageHitRecorderTests {
 
     @Test
     void testCoverageWriting_FileNotExist(@TempDir Path tempDir) {
-        var recorder = new CoverageHitAPIFile(tempDir);
+        final var recorder = new CoverageHitAPIFile(tempDir);
         // arrange
         // simulate something deletes expected files during runtime
         recorder.cleanCoverageHitFiles();

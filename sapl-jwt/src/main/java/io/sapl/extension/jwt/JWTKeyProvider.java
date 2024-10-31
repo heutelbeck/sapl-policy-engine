@@ -80,28 +80,28 @@ public class JWTKeyProvider {
     /**
      * Fetches the public key of a server.
      *
-     * @param kid              the key id
+     * @param kid the key id
      * @param jPublicKeyServer the key server
      * @return the public key
      * @throws CachingException on error
      */
     public Mono<RSAPublicKey> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
 
-        var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
-        if (jUri == null)
+        final var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
+        if (null == jUri)
             return Mono.empty();
 
-        var sMethod = "GET";
-        var jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
-        if (jMethod != null && jMethod.isTextual())
+        final var jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
+        var       sMethod = "GET";
+        if (null != jMethod && jMethod.isTextual())
             sMethod = jMethod.textValue();
 
-        var sUri = jUri.textValue();
-        var lTTL = DEFAULT_CACHING_TTL;
-        var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
+        final var sUri = jUri.textValue();
+        final var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
+        var       lTTL = DEFAULT_CACHING_TTL;
         // nested if-statement in order to cover all possible branches during testing
         // (e.g. null && canConvertToLong not possible)
-        if (jTTL != null) {
+        if (null != jTTL) {
             if (jTTL.canConvertToLong()) {
                 lTTL = jTTL.longValue();
             } else {
@@ -116,7 +116,7 @@ public class JWTKeyProvider {
     /**
      * Put public key into cache.
      *
-     * @param kid    key id
+     * @param kid key id
      * @param pubKey public key
      */
     public void cache(String kid, RSAPublicKey pubKey) {
@@ -151,8 +151,8 @@ public class JWTKeyProvider {
     /**
      * Fetches public key from remote authentication server
      *
-     * @param kid                    ID of public key to fetch
-     * @param publicKeyURI           URI to request the public key
+     * @param kid ID of public key to fetch
+     * @param publicKeyURI URI to request the public key
      * @param publicKeyRequestMethod HTTP request method: GET or POST
      * @return public key or empty
      */
@@ -186,9 +186,9 @@ public class JWTKeyProvider {
      * remove all keys from cache, that are older than ttlMillis before now
      */
     private void pruneCache() {
-        var pruneTime   = Instant.now().minusMillis(lastTTL);
-        var oldestEntry = cachingTimes.peek();
-        while (oldestEntry != null && oldestEntry.wasCachedBefore(pruneTime)) {
+        final var pruneTime   = Instant.now().minusMillis(lastTTL);
+        var       oldestEntry = cachingTimes.peek();
+        while (null != oldestEntry && oldestEntry.wasCachedBefore(pruneTime)) {
             keyCache.remove(oldestEntry.getKeyId());
             cachingTimes.poll();
             oldestEntry = cachingTimes.peek();

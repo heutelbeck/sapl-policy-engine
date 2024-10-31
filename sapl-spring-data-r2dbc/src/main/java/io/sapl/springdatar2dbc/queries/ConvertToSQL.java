@@ -50,7 +50,8 @@ public class ConvertToSQL {
 
         var sqlSortClause = ORDERBY;
 
-        var sortOrders = sort.stream().map(order -> order.getProperty() + " " + getOrderDirection(order.getDirection()))
+        final var sortOrders = sort.stream()
+                .map(order -> order.getProperty() + " " + getOrderDirection(order.getDirection()))
                 .collect(Collectors.joining(", "));
 
         sqlSortClause += sortOrders;
@@ -67,7 +68,7 @@ public class ConvertToSQL {
             return "";
         }
 
-        var stringBuilder = new StringBuilder(conditions.get(0).getCondition());
+        final var stringBuilder = new StringBuilder(conditions.get(0).getCondition());
 
         for (int i = 1; i < conditions.size(); i++) {
             stringBuilder.append(' ').append(conditions.get(i).getPropositionalConnectives()).append(' ')
@@ -78,9 +79,9 @@ public class ConvertToSQL {
     }
 
     public static String prepareAndMergeSortObjects(Sort sortPartTree, Object[] arguments) {
-        var      sqlQuery  = new StringBuilder();
-        var      finalSort = sortPartTree;
-        Pageable pageable  = null;
+        final var sqlQuery  = new StringBuilder();
+        var       finalSort = sortPartTree;
+        Pageable  pageable  = null;
 
         for (Object argument : arguments) {
             if (argument instanceof Sort sor) {
@@ -104,8 +105,8 @@ public class ConvertToSQL {
         }
 
         if (pageable != null) {
-            var pageNumber = pageable.getPageNumber();
-            var pageSize   = pageable.getPageSize();
+            final var pageNumber = pageable.getPageNumber();
+            final var pageSize   = pageable.getPageSize();
             sqlQuery.append(" LIMIT ").append(pageSize).append(" OFFSET ").append(pageNumber);
         }
 

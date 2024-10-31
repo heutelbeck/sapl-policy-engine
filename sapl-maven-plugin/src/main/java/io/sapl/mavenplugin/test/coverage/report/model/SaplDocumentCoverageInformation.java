@@ -42,7 +42,7 @@ public class SaplDocumentCoverageInformation {
      * initialize a {@link SaplDocumentCoverageInformation} with
      *
      * @param pathToDocument path to the document on the filesystem
-     * @param lineCount      line count
+     * @param lineCount line count
      */
     public SaplDocumentCoverageInformation(Path pathToDocument, int lineCount) {
         this.pathToDocument = pathToDocument;
@@ -55,8 +55,8 @@ public class SaplDocumentCoverageInformation {
     /**
      * mark the line as one of {@link LineCoveredValue}
      *
-     * @param lineNumber      (starting with 1)
-     * @param value           {@link LineCoveredValue}
+     * @param lineNumber (starting with 1)
+     * @param value {@link LineCoveredValue}
      * @param coveredBranches covered branches of this line
      * @param branchesToCover branches to cover of this line
      */

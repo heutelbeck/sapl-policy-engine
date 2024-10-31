@@ -46,10 +46,10 @@ class FilesystemPRPTests {
 
     @Test
     void call_index_apply_method_for_each_prp_update_event() {
-        var mockSource = mock(FileSystemPrpUpdateEventSource.class);
-        var mockIndex  = mock(CanonicalImmutableParsedDocumentIndex.class);
+        final var mockSource = mock(FileSystemPrpUpdateEventSource.class);
+        final var mockIndex  = mock(CanonicalImmutableParsedDocumentIndex.class);
 
-        var updateEventFlux = Flux.just(event(Type.PUBLISH), event(Type.WITHDRAW), event(Type.PUBLISH),
+        final var updateEventFlux = Flux.just(event(Type.PUBLISH), event(Type.WITHDRAW), event(Type.PUBLISH),
                 event(Type.WITHDRAW), event(Type.PUBLISH)
 
         );
@@ -75,13 +75,13 @@ class FilesystemPRPTests {
 
     @Test
     void doTest() {
-        var interpreter = new DefaultSAPLInterpreter();
-        var source      = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
-        var prp         = new GenericInMemoryIndexedPolicyRetrievalPointSource(new NaiveImmutableParsedDocumentIndex(),
-                source);
-        var authzSub    = AuthorizationSubscription.of("Willi", "eat", "icecream");
+        final var interpreter = new DefaultSAPLInterpreter();
+        final var source      = new FileSystemPrpUpdateEventSource("src/test/resources/policies", interpreter);
+        final var prp         = new GenericInMemoryIndexedPolicyRetrievalPointSource(
+                new NaiveImmutableParsedDocumentIndex(), source);
+        final var authzSub    = AuthorizationSubscription.of("Willi", "eat", "icecream");
 
-        var sut = prp.policyRetrievalPoint().blockFirst().retrievePolicies()
+        final var sut = prp.policyRetrievalPoint().blockFirst().retrievePolicies()
                 .contextWrite(ctx -> setUpAuthorizationContext(ctx, authzSub));
         StepVerifier.create(sut).expectNextMatches(PolicyRetrievalResult.class::isInstance).verifyComplete();
         prp.dispose();

@@ -39,15 +39,15 @@ public class SAPLServerLTApplication {
             if ("-basicCredentials".equals(args[0])) {
                 log.info("Generating new Argon2 encoded secret...");
                 log.info("Key             : {}", SecretGenerator.newKey());
-                var secret = SecretGenerator.newSecret();
+                final var secret = SecretGenerator.newSecret();
                 log.info("Secret Plaintext: {}", secret);
-                var encodedSecret = SecretGenerator.encodeWithArgon2(secret);
+                final var encodedSecret = SecretGenerator.encodeWithArgon2(secret);
                 log.info("Secret Encoded  : {}", encodedSecret);
             } else if ("-apiKey".equals(args[0])) {
                 log.info("Generating new API Key...");
-                var key    = SecretGenerator.newKey();
-                var secret = SecretGenerator.newApiKey();
-                var apiKey = "sapl_" + key + "_" + secret;
+                final var key    = SecretGenerator.newKey();
+                final var secret = SecretGenerator.newApiKey();
+                final var apiKey = "sapl_" + key + "_" + secret;
                 log.info("ApiKey Plaintext: {}", apiKey);
                 log.info("ApiKey Encoded  : {}", SecretGenerator.encodeWithArgon2(apiKey));
             }

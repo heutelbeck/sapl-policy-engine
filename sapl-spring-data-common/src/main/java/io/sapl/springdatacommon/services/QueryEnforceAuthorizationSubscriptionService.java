@@ -17,13 +17,11 @@
  */
 package io.sapl.springdatacommon.services;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.spring.method.metadata.QueryEnforce;
-import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.Arrays;
+import java.util.regex.Pattern;
+
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.BeanFactory;
@@ -34,10 +32,14 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.util.Arrays;
-import java.util.regex.Pattern;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.spring.method.metadata.QueryEnforce;
+import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
 
 /**
  * This service is responsible for processing the {@link QueryEnforce}
@@ -63,7 +65,7 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * information obtained.
      *
      * @param methodInvocation from the interface
-     *                         {@link org.aopalliance.intercept.MethodInterceptor}
+     * {@link org.aopalliance.intercept.MethodInterceptor}
      * @return the found AuthorizationSubscription.
      */
     public AuthorizationSubscription getAuthorizationSubscription(MethodInvocation methodInvocation,
@@ -79,14 +81,14 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * The EvaluationContext must be populated with the parameters of the method in
      * order to be resolved.
      *
-     * @param context          is the {@link EvaluationContext}
+     * @param context is the {@link EvaluationContext}
      * @param methodInvocation from the interface
-     *                         {@link org.aopalliance.intercept.MethodInterceptor}
+     * {@link org.aopalliance.intercept.MethodInterceptor}
      */
     private void setMethodParameterInEvaluationContext(EvaluationContext context, MethodInvocation methodInvocation) {
-        var methodParameters = Arrays.stream(methodInvocation.getMethod().getParameters()).map(Parameter::getName)
+        final var methodParameters = Arrays.stream(methodInvocation.getMethod().getParameters()).map(Parameter::getName)
                 .toList();
-        var methodArguments  = methodInvocation.getArguments();
+        final var methodArguments  = methodInvocation.getArguments();
 
         for (int i = 0; i < methodParameters.size(); i++) {
             context.setVariable(methodParameters.get(i), methodArguments[i]);
@@ -98,18 +100,18 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * an AuthorizationSubscription.
      *
      * @param enforceAnnotation corresponds to the information from the QueryEnforce
-     *                          annotation.
+     * annotation.
      * @return new {@link AuthorizationSubscription}.
      */
     private AuthorizationSubscription enforceAnnotationValueToAuthorizationSubscription(QueryEnforce enforceAnnotation,
             MethodInvocation methodInvocation) {
-        var subject     = enforceAnnotationValueResolver(enforceAnnotation.subject(), enforceAnnotation.staticClasses(),
-                methodInvocation);
-        var action      = enforceAnnotationValueResolver(enforceAnnotation.action(), enforceAnnotation.staticClasses(),
-                methodInvocation);
-        var resource    = enforceAnnotationValueResolver(enforceAnnotation.resource(),
+        final var subject     = enforceAnnotationValueResolver(enforceAnnotation.subject(),
                 enforceAnnotation.staticClasses(), methodInvocation);
-        var environment = enforceAnnotationValueResolver(enforceAnnotation.environment(),
+        final var action      = enforceAnnotationValueResolver(enforceAnnotation.action(),
+                enforceAnnotation.staticClasses(), methodInvocation);
+        final var resource    = enforceAnnotationValueResolver(enforceAnnotation.resource(),
+                enforceAnnotation.staticClasses(), methodInvocation);
+        final var environment = enforceAnnotationValueResolver(enforceAnnotation.environment(),
                 enforceAnnotation.staticClasses(), methodInvocation);
 
         return AuthorizationSubscription.of(subject, action, resource, environment);
@@ -127,11 +129,11 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * json string
      *
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
-     * @param staticClasses   corresponds to all specified static variables
-     *                        {@link QueryEnforce#staticClasses()}.
+     * QueryEnforce annotation.
+     * @param staticClasses corresponds to all specified static variables
+     * {@link QueryEnforce#staticClasses()}.
      * @return the resolved final value of the corresponding attribute of an
-     *         {@link AuthorizationSubscription}.
+     * {@link AuthorizationSubscription}.
      * @throws ClassNotFoundException
      */
     @SneakyThrows // ClassNotFoundException
@@ -144,7 +146,7 @@ public class QueryEnforceAuthorizationSubscriptionService {
 
         if (referenceMethod(annotationValue)) {
             if (staticClasses.length == 0) {
-                var methodName = StringUtils.substringBetween(annotationValue, "#", "(");
+                final var methodName = StringUtils.substringBetween(annotationValue, "#", "(");
 
                 throw new ClassNotFoundException("No matching method with the name '" + methodName + "' found.");
             }
@@ -179,12 +181,12 @@ public class QueryEnforceAuthorizationSubscriptionService {
         if (jsonString == null) {
             return false;
         }
-        var matcher = jsonStringPattern.matcher(jsonString);
+        final var matcher = jsonStringPattern.matcher(jsonString);
         return matcher.matches();
     }
 
     private boolean referenceMethod(String methodAsString) {
-        var matcher = referenceMethodPattern.matcher(methodAsString);
+        final var matcher = referenceMethodPattern.matcher(methodAsString);
         return matcher.matches();
     }
 
@@ -196,7 +198,7 @@ public class QueryEnforceAuthorizationSubscriptionService {
      */
     @SneakyThrows // throws JsonMappingException, JsonProcessingException
     private JsonNode buildJsonNodeByString(Object jsonString) {
-        var objectMapper = new ObjectMapper().enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
+        final var objectMapper = new ObjectMapper().enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
         return objectMapper.readTree(jsonString.toString());
     }
 
@@ -204,7 +206,7 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * Parameters of the method are extracted from the {@link EvaluationContext}.
      *
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
+     * QueryEnforce annotation.
      * @return the value of the method parameter.
      */
     private String parseMethodParameterInEvaluationContext(String annotationValue, MethodInvocation methodInvocation) {
@@ -215,35 +217,35 @@ public class QueryEnforceAuthorizationSubscriptionService {
 
     /**
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
-     * @param staticClasses   contains all specified static classes.
+     * QueryEnforce annotation.
+     * @param staticClasses contains all specified static classes.
      * @return the value returned by the static class method or just the method
-     *         parameter as value.
+     * parameter as value.
      * @see EvaluationContext corresponds to a method of a static class. The second
-     *      parameter 'staticClasses' contains the corresponding static class. The
-     *      value from the {@link EvaluationContext} is extracted.
+     * parameter 'staticClasses' contains the corresponding static class. The value
+     * from the {@link EvaluationContext} is extracted.
      */
     private Object getObjectByStaticClassWhenValueStartsWithHash(String annotationValue, Class<?>[] staticClasses,
             MethodInvocation methodInvocation) {
-        var methodName = StringUtils.substringBetween(annotationValue, "#", "(");
+        final var methodName = StringUtils.substringBetween(annotationValue, "#", "(");
 
         return findMethodAndParseExpression(methodName, staticClasses, annotationValue, methodInvocation);
     }
 
     /**
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
-     * @param staticClasses   contains all specified static classes.
+     * QueryEnforce annotation.
+     * @param staticClasses contains all specified static classes.
      * @return the value returned by the static class method.
      * @see EvaluationContext corresponds to a method of a static class. The second
-     *      parameter 'staticClasses' contains the corresponding static class. The
-     *      value from the {@link EvaluationContext} is extracted.
+     * parameter 'staticClasses' contains the corresponding static class. The value
+     * from the {@link EvaluationContext} is extracted.
      */
     @SneakyThrows // NoSuchMethodException
     private Object findMethodAndParseExpression(String methodName, Class<?>[] staticClasses, String annotationValue,
             MethodInvocation methodInvocation) {
         for (Class<?> clazz : staticClasses) {
-            var methods = clazz.getDeclaredMethods();
+            final var methods = clazz.getDeclaredMethods();
 
             for (Method method : methods) {
 
@@ -269,7 +271,7 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * desired method.
      *
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
+     * QueryEnforce annotation.
      * @return the value returned by the static class method.
      */
     private Object getObjectByStaticClassWhenValueStartsWithLetterT(String annotationValue,
@@ -285,22 +287,22 @@ public class QueryEnforceAuthorizationSubscriptionService {
      * the EvaluationContext to call the desired bean.
      *
      * @param annotationValue corresponds the value of a variable of the
-     *                        QueryEnforce annotation.
+     * QueryEnforce annotation.
      * @return the value returned by the bean.
      */
     private Object getObjectByBeanWhenValueStartsWithAt(String annotationValue, MethodInvocation methodInvocation) {
         setMethodParameterInEvaluationContext(context, methodInvocation);
         context.setBeanResolver(new BeanFactoryResolver(this.beanFactory));
-        var expression = parser.parseExpression(annotationValue);
+        final var expression = parser.parseExpression(annotationValue);
 
         return expression.getValue(context, Object.class);
     }
 
     private String checkAndReplaceVariableReference(String input, MethodInvocation methodInvocation) {
-        var startIndex     = input.indexOf('#');
-        var partToProcess  = input.substring(startIndex + 1);
-        var reachedEndSign = false;
-        var endIndex       = startIndex;
+        final var startIndex     = input.indexOf('#');
+        final var partToProcess  = input.substring(startIndex + 1);
+        var       reachedEndSign = false;
+        var       endIndex       = startIndex;
 
         for (char c : partToProcess.toCharArray()) {
             if (!reachedEndSign && (Character.isLetterOrDigit(c) || '.' == c)) {
@@ -310,17 +312,17 @@ public class QueryEnforceAuthorizationSubscriptionService {
             }
         }
 
-        var variable      = input.substring(startIndex, endIndex + 1);
-        var valueResolved = parseMethodParameterInEvaluationContext(variable, methodInvocation);
+        final var variable      = input.substring(startIndex, endIndex + 1);
+        final var valueResolved = parseMethodParameterInEvaluationContext(variable, methodInvocation);
 
         return replaceSubstring(input, startIndex, endIndex + 1, valueResolved);
     }
 
     private String checkAndReplaceBean(String input, MethodInvocation methodInvocation) {
-        var startIndex     = input.indexOf('@');
-        var partToProcess  = input.substring(startIndex + 1);
-        var reachedEndSign = false;
-        var endIndex       = startIndex;
+        final var startIndex     = input.indexOf('@');
+        final var partToProcess  = input.substring(startIndex + 1);
+        var       reachedEndSign = false;
+        var       endIndex       = startIndex;
 
         for (char c : partToProcess.toCharArray()) {
             if (!reachedEndSign && ')' != c) {
@@ -330,8 +332,8 @@ public class QueryEnforceAuthorizationSubscriptionService {
             }
         }
 
-        var beanName     = input.substring(startIndex, endIndex + 2);
-        var beanResolved = getObjectByBeanWhenValueStartsWithAt(beanName, methodInvocation);
+        final var beanName     = input.substring(startIndex, endIndex + 2);
+        final var beanResolved = getObjectByBeanWhenValueStartsWithAt(beanName, methodInvocation);
 
         if (beanResolved != null) {
             return replaceSubstring(input, startIndex, endIndex + 2, beanResolved.toString());
@@ -342,8 +344,8 @@ public class QueryEnforceAuthorizationSubscriptionService {
     }
 
     private String replaceSubstring(String input, int startIndex, int endIndex, String replacement) {
-        var before = input.substring(0, startIndex);
-        var after  = input.substring(endIndex);
+        final var before = input.substring(0, startIndex);
+        final var after  = input.substring(endIndex);
 
         return before + replacement + after;
     }

@@ -36,15 +36,16 @@ class SubscriptionUtilityTests {
     @Test
     void when_addingSubscriptionsToSubscriptionListAndSubAckReasonCodeIsError_then_doNotAddSubscription() {
         // GIVEN
-        var mqtt5SubscribeMock   = mock(Mqtt5Subscribe.class);
-        var mqttSubscriptionMock = mock(MqttSubscription.class);
-        var mqttSubscriptionList = List.of(mqttSubscriptionMock);
+        final var mqtt5SubscribeMock   = mock(Mqtt5Subscribe.class);
+        final var mqttSubscriptionMock = mock(MqttSubscription.class);
+        final var mqttSubscriptionList = List.of(mqttSubscriptionMock);
         doReturn(mqttSubscriptionList).when(mqtt5SubscribeMock).getSubscriptions();
 
-        var mqttClientValues = new MqttClientValues("clientId", null, JsonNodeFactory.instance.objectNode(), null);
+        final var mqttClientValues = new MqttClientValues("clientId", null, JsonNodeFactory.instance.objectNode(),
+                null);
 
-        var mqtt5SubAckMock           = mock(Mqtt5SubAck.class);
-        var mqtt5SubAckReasonCodeList = List.of(Mqtt5SubAckReasonCode.NOT_AUTHORIZED);
+        final var mqtt5SubAckMock           = mock(Mqtt5SubAck.class);
+        final var mqtt5SubAckReasonCodeList = List.of(Mqtt5SubAckReasonCode.NOT_AUTHORIZED);
         doReturn(mqtt5SubAckReasonCodeList).when(mqtt5SubAckMock).getReasonCodes();
 
         // WHEN

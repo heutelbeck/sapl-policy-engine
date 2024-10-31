@@ -89,8 +89,8 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
 
     public static <V> Flux<V> of(Flux<AuthorizationDecision> decisions, Flux<V> resourceAccessPoint,
             ConstraintEnforcementService constraintsService, Class<V> clazz) {
-        var pep = new EnforceTillDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint, constraintsService,
-                clazz);
+        final var pep = new EnforceTillDeniedPolicyEnforcementPoint<>(decisions, resourceAccessPoint,
+                constraintsService, clazz);
         return pep.doOnTerminate(pep::handleOnTerminateConstraints)
                 .doAfterTerminate(pep::handleAfterTerminateConstraints)
                 .onErrorMap(AccessDeniedException.class, pep::handleAccessDenied).doOnCancel(pep::handleCancel)
@@ -101,7 +101,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     public void subscribe(CoreSubscriber<? super T> subscriber) {
         if (sink != null)
             throw new IllegalStateException("Operator may only be subscribed once.");
-        var context = subscriber.currentContext();
+        final var context = subscriber.currentContext();
         sink                = new EnforcementSink<>();
         resourceAccessPoint = resourceAccessPoint.contextWrite(context);
         Flux.create(sink).subscribe(subscriber);
@@ -109,7 +109,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     }
 
     private void handleNextDecision(AuthorizationDecision decision) {
-        var                                previousDecision = latestDecision.getAndSet(decision);
+        final var                          previousDecision = latestDecision.getAndSet(decision);
         ReactiveConstraintHandlerBundle<T> newBundle;
         try {
             newBundle = constraintsService.reactiveTypeBundleFor(decision, clazz);
@@ -128,7 +128,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
             return;
         }
 
-        var resource = decision.getResource();
+        final var resource = decision.getResource();
         if (resource.isPresent()) {
             try {
                 sink.next(constraintsService.unmarshallResource(resource.get(), clazz));
@@ -174,7 +174,7 @@ public class EnforceTillDeniedPolicyEnforcementPoint<T> extends Flux<T> {
         if (stopped.get())
             return;
         try {
-            var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
+            final var transformedValue = constraintHandler.get().handleAllOnNextConstraints(value);
             if (transformedValue != null)
                 sink.next(transformedValue);
         } catch (Throwable t) {

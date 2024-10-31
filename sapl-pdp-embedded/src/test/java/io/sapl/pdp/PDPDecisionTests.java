@@ -40,17 +40,17 @@ class PDPDecisionTests {
 
     @Test
     void constructor() {
-        var subscription = mock(AuthorizationSubscription.class);
-        var combined     = mock(CombinedDecision.class);
+        final var subscription = mock(AuthorizationSubscription.class);
+        final var combined     = mock(CombinedDecision.class);
 
-        var sut = PDPDecision.of(subscription, combined);
+        final var sut = PDPDecision.of(subscription, combined);
         assertThat(sut.getAuthorizationSubscription()).isSameAs(subscription);
         assertThat(sut.getCombinedDecision()).isSameAs(combined);
 
-        var document  = INTERPERTER.parseDocument("policy \"x\" permit");
-        var match     = new DocumentMatch(document, Val.TRUE);
-        var prpResult = new PolicyRetrievalResult().withMatch(match);
-        var sut2      = PDPDecision.of(subscription, combined, prpResult);
+        final var document  = INTERPERTER.parseDocument("policy \"x\" permit");
+        final var match     = new DocumentMatch(document, Val.TRUE);
+        final var prpResult = new PolicyRetrievalResult().withMatch(match);
+        final var sut2      = PDPDecision.of(subscription, combined, prpResult);
         assertThat(sut2.getAuthorizationSubscription()).isSameAs(subscription);
         assertThat(sut2.getCombinedDecision()).isSameAs(combined);
         assertThat(sut2.getPrpResult().getMatchingDocuments()).hasSize(1);
@@ -58,30 +58,30 @@ class PDPDecisionTests {
 
     @Test
     void getAuthorizationDecision() {
-        var subscription = mock(AuthorizationSubscription.class);
-        var combined     = mock(CombinedDecision.class);
+        final var subscription = mock(AuthorizationSubscription.class);
+        final var combined     = mock(CombinedDecision.class);
         when(combined.getAuthorizationDecision()).thenReturn(AuthorizationDecision.PERMIT);
-        var sut = PDPDecision.of(subscription, combined);
+        final var sut = PDPDecision.of(subscription, combined);
         assertThat(sut.getAuthorizationDecision()).isEqualTo(AuthorizationDecision.PERMIT);
 
-        var sut2 = sut.modified(AuthorizationDecision.DENY, "for testing reasons");
+        final var sut2 = sut.modified(AuthorizationDecision.DENY, "for testing reasons");
         assertThat(sut2.getAuthorizationDecision()).isEqualTo(AuthorizationDecision.DENY);
     }
 
     @Test
     void getTrace() {
-        var subscription = mock(AuthorizationSubscription.class);
-        var combined     = mock(CombinedDecision.class);
-        var document     = INTERPERTER.parseDocument("policy \"x\" permit");
-        var match        = new DocumentMatch(document, Val.TRUE);
+        final var subscription = mock(AuthorizationSubscription.class);
+        final var combined     = mock(CombinedDecision.class);
+        final var document     = INTERPERTER.parseDocument("policy \"x\" permit");
+        final var match        = new DocumentMatch(document, Val.TRUE);
         when(combined.getAuthorizationDecision()).thenReturn(AuthorizationDecision.PERMIT);
-        var            prpResult       = new PolicyRetrievalResult().withMatch(match);
+        final var      prpResult       = new PolicyRetrievalResult().withMatch(match);
         TracedDecision sut             = PDPDecision.of(subscription, combined, prpResult);
-        var            unmodifiedTrace = sut.getTrace();
+        final var      unmodifiedTrace = sut.getTrace();
         assertThatJson(unmodifiedTrace).inPath("$." + Trace.OPERATOR).isEqualTo("Policy Decision Point");
         assertThatJson(unmodifiedTrace).inPath("$." + Trace.MODIFICATIONS).isAbsent();
         sut = sut.modified(AuthorizationDecision.DENY, "for testing reasons");
-        var modifiedTrace = sut.getTrace();
+        final var modifiedTrace = sut.getTrace();
         assertThatJson(modifiedTrace).inPath("$." + Trace.MODIFICATIONS).isArray().isNotEmpty();
     }
 

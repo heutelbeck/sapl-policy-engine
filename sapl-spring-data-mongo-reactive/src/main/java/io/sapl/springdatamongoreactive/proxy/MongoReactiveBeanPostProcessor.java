@@ -42,10 +42,10 @@ public class MongoReactiveBeanPostProcessor implements BeanPostProcessor {
      * which is intercepted here and serves as a starting point to inject the
      * EnforcementPoint.
      *
-     * @param bean     the new bean instance.
+     * @param bean the new bean instance.
      * @param beanName the name of the bean.
      * @return the original bean or the manipulated bean, should it be of type
-     *         {@link ReactiveMongoRepositoryFactoryBean}.
+     * {@link ReactiveMongoRepositoryFactoryBean}.
      */
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {

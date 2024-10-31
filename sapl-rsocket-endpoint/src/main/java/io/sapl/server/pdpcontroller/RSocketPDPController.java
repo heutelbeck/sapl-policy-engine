@@ -39,7 +39,7 @@ public class RSocketPDPController {
      * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
      *
      * @param authzSubscription the authorization subscription to be processed by
-     *                          the PDP.
+     * the PDP.
      * @return a flux emitting the current authorization decisions.
      * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
      */
@@ -52,7 +52,7 @@ public class RSocketPDPController {
      * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
      *
      * @param authzSubscription the authorization subscription to be processed by
-     *                          the PDP.
+     * the PDP.
      * @return a Mono for the initial decision.
      * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
      */
@@ -67,10 +67,10 @@ public class RSocketPDPController {
      * {@link PolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
      *
      * @param multiAuthzSubscription the authorization multi-subscription to be
-     *                               processed by the PDP.
+     * processed by the PDP.
      * @return a flux emitting authorization decisions related to the individual
-     *         subscriptions contained in the given {@code multiAuthzSubscription}
-     *         as soon as they are available.
+     * subscriptions contained in the given {@code multiAuthzSubscription} as soon
+     * as they are available.
      * @see PolicyDecisionPoint#decide(MultiAuthorizationSubscription)
      */
     @MessageMapping("multi-decide")
@@ -84,10 +84,10 @@ public class RSocketPDPController {
      * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
      *
      * @param multiAuthzSubscription the authorization multi-subscription to be
-     *                               processed by the PDP.
+     * processed by the PDP.
      * @return a flux emitting multi-decisions containing authorization decisions
-     *         for all the individual authorization subscriptions contained in the
-     *         given {@code multiAuthzSubscription}.
+     * for all the individual authorization subscriptions contained in the given
+     * {@code multiAuthzSubscription}.
      * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
      */
     @MessageMapping("multi-decide-all")
@@ -101,10 +101,10 @@ public class RSocketPDPController {
      * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
      *
      * @param multiAuthzSubscription the authorization multi-subscription to be
-     *                               processed by the PDP.
+     * processed by the PDP.
      * @return a Mono emitting the initial multi-decision containing authorization
-     *         decisions for all the individual authorization subscriptions
-     *         contained in the given {@code multiAuthzSubscription}.
+     * decisions for all the individual authorization subscriptions contained in the
+     * given {@code multiAuthzSubscription}.
      * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
      */
     @MessageMapping("multi-decide-all-once")

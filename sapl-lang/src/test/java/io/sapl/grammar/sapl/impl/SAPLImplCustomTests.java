@@ -75,7 +75,7 @@ class SAPLImplCustomTests {
     @ParameterizedTest
     @MethodSource("provideImportTestCases")
     void importsWorkAsExpected(String policySource, Map<String, String> expectedImports) {
-        var policy = INTERPRETER.parse(policySource);
+        final var policy = INTERPRETER.parse(policySource);
         StepVerifier.create(policy.evaluate()
                 .flatMap(val -> Mono.deferContextual(
                         ctx -> Mono.just(AuthorizationContext.getImports(ctx).equals(expectedImports))))
@@ -89,7 +89,7 @@ class SAPLImplCustomTests {
             // detectErrorInImportsDuringMatches
             "import filter.blacken import filter.blacken policy \"policy\" permit true" })
     void policyElementEvaluatesToError(String policySource) {
-        var policy = INTERPRETER.parse(policySource);
+        final var policy = INTERPRETER.parse(policySource);
         StepVerifier.create(policy.matches().contextWrite(MockUtil::setUpAuthorizationContext))
                 .expectNextMatches(Val::isError).verifyComplete();
     }
@@ -118,7 +118,7 @@ class SAPLImplCustomTests {
     @ParameterizedTest
     @MethodSource("provideTestCases")
     void documentEvaluatesToExpectedValue(String policySource, AuthorizationDecision expected) {
-        var policy = INTERPRETER.parse(policySource);
+        final var policy = INTERPRETER.parse(policySource);
         StepVerifier.create(policy.evaluate().contextWrite(MockUtil::setUpAuthorizationContext))
                 .expectNextMatches(hasDecision(expected)).verifyComplete();
     }

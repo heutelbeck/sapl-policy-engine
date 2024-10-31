@@ -144,7 +144,7 @@ public class SaplDocumentService implements PrpUpdateEventSource {
     public void publishPolicyVersion(long saplDocumentId, int versionToPublish)
             throws PublishedDocumentNameCollisionException {
         SaplDocument saplDocument = getExistingById(saplDocumentId);
-        var          updateEvents = new ArrayList<Update>(2);
+        final var    updateEvents = new ArrayList<Update>(2);
 
         // unpublish other version if published
         if (saplDocument.getPublishedVersion() != null) {
@@ -186,7 +186,7 @@ public class SaplDocumentService implements PrpUpdateEventSource {
         updateEvents.add(
                 convertSaplDocumentToUpdateOfPrpUpdateEvent(createdPublishedSaplDocument, PrpUpdateEvent.Type.PUBLISH));
 
-        var prpUpdateEvent = new PrpUpdateEvent(updateEvents);
+        final var prpUpdateEvent = new PrpUpdateEvent(updateEvents);
         prpUpdateEventSink.emitNext(prpUpdateEvent, EmitFailureHandler.FAIL_FAST);
     }
 

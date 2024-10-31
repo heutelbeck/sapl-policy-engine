@@ -54,8 +54,8 @@ class PolicyBodyImplCustomCoverageTests {
 
     @Test
     void trueReturnsEntitlement() {
-        var policy   = interpreter.parse("policy \"p\" permit true where true; true; true;");
-        var expected = AuthorizationDecision.PERMIT;
+        final var policy   = interpreter.parse("policy \"p\" permit true where true; true; true;");
+        final var expected = AuthorizationDecision.PERMIT;
         StepVerifier
                 .create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
                     ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
@@ -73,8 +73,9 @@ class PolicyBodyImplCustomCoverageTests {
 
     @Test
     void trueReturnsEntitlementInSet() {
-        var policy   = interpreter.parse("set \"set\" deny-overrides policy \"p\" permit true where true; true; true;");
-        var expected = AuthorizationDecision.PERMIT;
+        final var policy   = interpreter
+                .parse("set \"set\" deny-overrides policy \"p\" permit true where true; true; true;");
+        final var expected = AuthorizationDecision.PERMIT;
         StepVerifier
                 .create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
                     ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
@@ -92,9 +93,9 @@ class PolicyBodyImplCustomCoverageTests {
 
     @Test
     void test_evaluateConditionThrowsError() {
-        var policy   = interpreter.parse(
+        final var policy   = interpreter.parse(
                 "set \"set\" deny-overrides policy \"p\" permit true where true == subject.<pip.attr>; true; true;");
-        var expected = AuthorizationDecision.INDETERMINATE;
+        final var expected = AuthorizationDecision.INDETERMINATE;
         StepVerifier
                 .create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
                     ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());

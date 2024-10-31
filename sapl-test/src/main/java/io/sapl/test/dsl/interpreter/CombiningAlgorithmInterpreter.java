@@ -29,11 +29,11 @@ class CombiningAlgorithmInterpreter {
         }
 
         return switch (combiningAlgorithm) {
-        case DENY_OVERRIDES -> PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES;
-        case PERMIT_OVERRIDES -> PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES;
+        case DENY_OVERRIDES      -> PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES;
+        case PERMIT_OVERRIDES    -> PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES;
         case ONLY_ONE_APPLICABLE -> PolicyDocumentCombiningAlgorithm.ONLY_ONE_APPLICABLE;
-        case DENY_UNLESS_PERMIT -> PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT;
-        case PERMIT_UNLESS_DENY -> PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY;
+        case DENY_UNLESS_PERMIT  -> PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT;
+        case PERMIT_UNLESS_DENY  -> PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY;
         };
     }
 }

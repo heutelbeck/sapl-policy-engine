@@ -66,9 +66,9 @@ public class ArrayImplCustom extends ArrayImpl {
      * want to return valid JSON values 'undefined' may not occur anywhere.
      */
     private Val collectValuesToArrayNode(Object[] values) {
-        var resultArr    = Val.JSON.arrayNode();
-        var tracedValues = new LinkedList<Val>();
-        Val error        = null;
+        final var resultArr    = Val.JSON.arrayNode();
+        final var tracedValues = new LinkedList<Val>();
+        Val       error        = null;
         for (var oVal : values) {
             Val val = (Val) oVal;
             tracedValues.add(val);

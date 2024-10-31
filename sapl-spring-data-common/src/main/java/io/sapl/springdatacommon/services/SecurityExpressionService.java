@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.aopalliance.intercept.MethodInvocation;
+
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
@@ -59,14 +60,14 @@ public class SecurityExpressionService {
             return input;
         }
 
-        var expressionMap                = new HashMap<String, Object>();
-        var inputWithReplacedSpelMethods = extractSpelMethodsAndReplaceWithKeys(input, expressionMap);
+        final var expressionMap                = new HashMap<String, Object>();
+        final var inputWithReplacedSpelMethods = extractSpelMethodsAndReplaceWithKeys(input, expressionMap);
 
         if (inputWithReplacedSpelMethods.equals(input)) {
             return input;
         }
 
-        var evaluatedSpelMethods = evaluateSpelMethods(expressionMap, methodInvocation);
+        final var evaluatedSpelMethods = evaluateSpelMethods(expressionMap, methodInvocation);
 
         return replaceKeysWithEvaluatedValues(inputWithReplacedSpelMethods, evaluatedSpelMethods);
     }
@@ -81,11 +82,11 @@ public class SecurityExpressionService {
             var startIndex = input.indexOf(method);
 
             while (startIndex != -1) {
-                var endIndex = input.indexOf(')', startIndex);
+                final var endIndex = input.indexOf(')', startIndex);
 
                 if (endIndex != -1) {
-                    var extractedText = input.substring(startIndex, endIndex + 1);
-                    var uniqueID      = ID + counter;
+                    final var extractedText = input.substring(startIndex, endIndex + 1);
+                    final var uniqueID      = ID + counter;
 
                     input = input.replaceFirst("\\Q" + extractedText + "\\E", uniqueID);
                     expressionMap.put(uniqueID, extractedText);
@@ -103,11 +104,11 @@ public class SecurityExpressionService {
 
     private Map<String, Object> evaluateSpelMethods(Map<String, Object> extractedStrings, MethodInvocation invocation) {
 
-        var evaluatedSpelMethods = new HashMap<String, Object>();
+        final var evaluatedSpelMethods = new HashMap<String, Object>();
 
         for (Map.Entry<String, Object> entry : extractedStrings.entrySet()) {
 
-            var evaluatedValue = securityExpressionEvaluator.evaluate(entry.getValue().toString(), invocation);
+            final var evaluatedValue = securityExpressionEvaluator.evaluate(entry.getValue().toString(), invocation);
             evaluatedSpelMethods.put(entry.getKey(), evaluatedValue);
         }
 
@@ -116,14 +117,14 @@ public class SecurityExpressionService {
 
     public String evaluateSpelVariables(String input) {
 
-        var expressionMap                = new HashMap<String, Object>();
-        var inputWithReplacedSpelMethods = extractSpelVariablesAndReplaceWithKeys(input, expressionMap);
+        final var expressionMap                = new HashMap<String, Object>();
+        final var inputWithReplacedSpelMethods = extractSpelVariablesAndReplaceWithKeys(input, expressionMap);
 
         if (inputWithReplacedSpelMethods.isEmpty()) {
             return input;
         }
 
-        var evaluatedSpelVariables = evaluateSpelVariables(expressionMap);
+        final var evaluatedSpelVariables = evaluateSpelVariables(expressionMap);
 
         return replaceKeysWithEvaluatedValues(inputWithReplacedSpelMethods, evaluatedSpelVariables);
     }
@@ -135,15 +136,15 @@ public class SecurityExpressionService {
         for (String speLVariable : speLVariables) {
 
             if (input.contains(speLVariable)) {
-                var startIndex = input.indexOf(speLVariable);
-                var endIndex   = findNextSpecialSignIndex(input, SPECIAL_SIGNS, startIndex);
+                final var startIndex = input.indexOf(speLVariable);
+                var       endIndex   = findNextSpecialSignIndex(input, SPECIAL_SIGNS, startIndex);
 
                 if (endIndex == -1) {
                     endIndex = input.length();
                 }
 
-                var expression  = input.substring(startIndex, endIndex);
-                var replacement = ID + idCounter;
+                final var expression  = input.substring(startIndex, endIndex);
+                final var replacement = ID + idCounter;
 
                 idCounter++;
 
@@ -157,11 +158,11 @@ public class SecurityExpressionService {
 
     private Map<String, Object> evaluateSpelVariables(Map<String, Object> extractedStrings) {
 
-        var evaluatedSpelVariables = new HashMap<String, Object>();
+        final var evaluatedSpelVariables = new HashMap<String, Object>();
 
         for (Map.Entry<String, Object> entry : extractedStrings.entrySet()) {
 
-            var evaluatedValue = expressionHandler.evaluateExpression(String.valueOf(entry.getValue()));
+            final var evaluatedValue = expressionHandler.evaluateExpression(String.valueOf(entry.getValue()));
             evaluatedSpelVariables.put(entry.getKey(), evaluatedValue);
         }
 
@@ -171,8 +172,8 @@ public class SecurityExpressionService {
     private String replaceKeysWithEvaluatedValues(String input, Map<String, Object> evaluatedSpelMethods) {
 
         for (Map.Entry<String, Object> entry : evaluatedSpelMethods.entrySet()) {
-            var key   = entry.getKey();
-            var value = String.valueOf(entry.getValue());
+            final var key   = entry.getKey();
+            final var value = String.valueOf(entry.getValue());
 
             input = input.replace(key, value);
         }

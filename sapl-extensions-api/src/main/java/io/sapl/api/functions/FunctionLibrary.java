@@ -44,4 +44,9 @@ public @interface FunctionLibrary {
      */
     String description() default "";
 
+    /**
+     * @return a string documenting the library
+     */
+    String libraryDocumentation() default "";
+
 }

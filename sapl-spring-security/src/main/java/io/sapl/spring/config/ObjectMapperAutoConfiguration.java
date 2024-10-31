@@ -67,7 +67,7 @@ public class ObjectMapperAutoConfiguration {
         @Autowired
         void configureObjectMapper(final ObjectMapper mapper) {
             log.debug("Add basic SAPL serializer modules to ObjectMapper");
-            var module = new SimpleModule();
+            final var module = new SimpleModule();
             module.addSerializer(MethodInvocation.class, new MethodInvocationSerializer());
             mapper.registerModule(module);
             mapper.registerModule(new Jdk8Module());
@@ -87,7 +87,7 @@ public class ObjectMapperAutoConfiguration {
         @Autowired
         void configureObjectMapper(final ObjectMapper mapper) {
             log.debug("Servlet-based environment detected. Add HttpServletRequestSerializer to ObjectMapper.");
-            var module = new SimpleModule();
+            final var module = new SimpleModule();
             module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
             mapper.registerModule(module);
         }
@@ -104,7 +104,7 @@ public class ObjectMapperAutoConfiguration {
         @Autowired
         void configureObjectMapper(final ObjectMapper mapper) {
             log.debug("Webflux environment detected. Add Deploy ServerHttpRequestSerializer to ObjectMapper.");
-            var module = new SimpleModule();
+            final var module = new SimpleModule();
             module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
             mapper.registerModule(module);
         }

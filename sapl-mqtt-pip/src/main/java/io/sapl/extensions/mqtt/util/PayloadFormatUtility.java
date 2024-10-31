@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.hivemq.client.mqtt.datatypes.MqttUtf8String;
-import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
 import io.sapl.api.interpreter.Val;
@@ -50,9 +49,8 @@ public class PayloadFormatUtility {
      * @return returns the payload format indicator as an ordinal number
      */
     public static int getPayloadFormatIndicator(Mqtt5Publish publishMessage) {
-        var                                   payloadFormatIndicator         = 0;
-        Optional<Mqtt5PayloadFormatIndicator> payloadFormatIndicatorOptional = publishMessage
-                .getPayloadFormatIndicator();
+        final var payloadFormatIndicatorOptional = publishMessage.getPayloadFormatIndicator();
+        var       payloadFormatIndicator         = 0;
         if (payloadFormatIndicatorOptional.isPresent()) {
             // specified whether the payload is utf-8 encoded
             payloadFormatIndicator = payloadFormatIndicatorOptional.get().getCode();
@@ -65,7 +63,7 @@ public class PayloadFormatUtility {
      *
      * @param publishMessage the published mqtt message
      * @return returns the content type or null in case no content type was
-     *         specified
+     * specified
      */
     public static String getContentType(Mqtt5Publish publishMessage) {
         Optional<MqttUtf8String> contentTypeOptional = publishMessage.getContentType(); // specifies kind of utf-8
@@ -78,7 +76,7 @@ public class PayloadFormatUtility {
      *
      * @param bytes the byte array to be checked for conversion
      * @return returns true if a conversions into a UTF-8 string is possible,
-     *         otherwise false
+     * otherwise false
      */
     public static boolean isValidUtf8String(byte[] bytes) {
         CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
@@ -95,8 +93,7 @@ public class PayloadFormatUtility {
      *
      * @param publishMessage the published mqtt message
      * @return returns the build {@link Val} of the json object or a {@link Val} of
-     *         error in case the mqtt message could not be converted into a json
-     *         object.
+     * error in case the mqtt message could not be converted into a json object.
      */
     public static Val getValOfJson(Mqtt5Publish publishMessage) {
         try {

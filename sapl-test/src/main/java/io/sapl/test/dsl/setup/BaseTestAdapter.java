@@ -38,9 +38,9 @@ import java.util.function.Consumer;
  * module io.sapl.test.junit for an example usage.
  *
  * @param <T> The target type of your adapter, which is used in
- *            {@link BaseTestAdapter#convertTestContainerToTargetRepresentation(TestContainer, boolean)}
- *            to convert from the high level abstraction {@link TestContainer}
- *            to your target representation.
+ * {@link BaseTestAdapter#convertTestContainerToTargetRepresentation(TestContainer, boolean)}
+ * to convert from the high level abstraction {@link TestContainer} to your
+ * target representation.
  */
 public abstract class BaseTestAdapter<T> {
 
@@ -121,9 +121,11 @@ public abstract class BaseTestAdapter<T> {
                 checkForNullKeyOrValue(registrations);
 
                 final Consumer<Object> executeCheck = switch (type) {
-                case PIP -> (Object registration) -> checkForAnnotation(registration, PolicyInformationPoint.class);
-                case STATIC_PIP -> (Object registration) -> checkForClass(registration, PolicyInformationPoint.class);
-                case FUNCTION_LIBRARY ->
+                case PIP                     ->
+                    (Object registration) -> checkForAnnotation(registration, PolicyInformationPoint.class);
+                case STATIC_PIP              ->
+                    (Object registration) -> checkForClass(registration, PolicyInformationPoint.class);
+                case FUNCTION_LIBRARY        ->
                     (Object registration) -> checkForAnnotation(registration, FunctionLibrary.class);
                 case STATIC_FUNCTION_LIBRARY ->
                     (Object registration) -> checkForClass(registration, FunctionLibrary.class);

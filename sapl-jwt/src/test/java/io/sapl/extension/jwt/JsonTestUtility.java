@@ -53,8 +53,8 @@ class JsonTestUtility {
     }
 
     /**
-     * @param kid1     the ID of the first KeyPair
-     * @param kid2     the ID of the second KeyPair
+     * @param kid1 the ID of the first KeyPair
+     * @param kid2 the ID of the second KeyPair
      * @param keyPair1 KeyPair of the first public key. Non-textual, if null
      * @param keyPair2 KeyPair of the second public key. Bogus, if null
      * @return whitelist variables containing two public keys
@@ -64,14 +64,14 @@ class JsonTestUtility {
         ObjectNode keyNode   = MAPPER.createObjectNode();
         ObjectNode valueNode = MAPPER.createObjectNode();
 
-        if (keyPair1 != null) {
+        if (null != keyPair1) {
             String encodedFirstKey = Base64.getUrlEncoder().encodeToString(keyPair1.getPublic().getEncoded());
             valueNode.put(kid1, encodedFirstKey);
         } else
             valueNode.putNull(kid1);
 
         String encodedSecondKey = "This is Bogus";
-        if (keyPair2 != null)
+        if (null != keyPair2)
             encodedSecondKey = Base64.getUrlEncoder().encodeToString(keyPair2.getPublic().getEncoded());
         valueNode.put(kid2, encodedSecondKey);
 
@@ -81,28 +81,28 @@ class JsonTestUtility {
 
     /**
      * @param server mock web server for automatically generated url, or use null to
-     *               omit
+     * omit
      * @param method request method ("GET" or "POST"), use null or empty String to
-     *               omit, use "NONETEXT" to generate a none-text value
+     * omit, use "NONETEXT" to generate a none-text value
      * @return environment variables containing public key server URI and request
-     *         method
+     * method
      */
     static Map<String, Val> publicKeyUriVariables(MockWebServer server, String method) {
 
-        ObjectNode keyNode   = MAPPER.createObjectNode();
-        ObjectNode valueNode = serverNode(server, method, null);
+        final var keyNode   = MAPPER.createObjectNode();
+        final var valueNode = serverNode(server, method, null);
 
         keyNode.set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY, valueNode);
         return Map.of("jwt", Val.of(keyNode));
     }
 
     static ObjectNode serverNode(MockWebServer server, String method, Object ttl) {
-        ObjectNode valueNode = MAPPER.createObjectNode();
+        final var valueNode = MAPPER.createObjectNode();
 
-        if (server != null) {
+        if (null != server) {
             valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/") + "public-keys/{id}");
         }
-        if (method != null && !method.isEmpty()) {
+        if (null != method && !method.isEmpty()) {
             if ("NONETEXT".equals(method)) {
                 valueNode.set(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, jsonNode(Boolean.FALSE));
             } else {
@@ -114,7 +114,7 @@ class JsonTestUtility {
     }
 
     private static void putTTL(ObjectNode valueNode, Object ttl) {
-        if (ttl == null)
+        if (null == ttl)
             return;
         if (ttl instanceof Long)
             valueNode.put(JWTKeyProvider.KEY_CACHING_TTL_MILLIS, ((Long) ttl).longValue());

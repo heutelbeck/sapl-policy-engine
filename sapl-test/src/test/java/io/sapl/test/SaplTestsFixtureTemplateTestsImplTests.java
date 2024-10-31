@@ -62,7 +62,7 @@ class SaplTestsFixtureTemplateTestsImplTests {
     @Test
     void test_registerVariable_twoTimes() {
         this.sut.registerVariable("test", Val.ofEmptyObject());
-        var empty = Val.ofEmptyObject();
+        final var empty = Val.ofEmptyObject();
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> this.sut.registerVariable("test", empty))
                 .withMessage("The VariableContext already contains a key \"test\"");
     }

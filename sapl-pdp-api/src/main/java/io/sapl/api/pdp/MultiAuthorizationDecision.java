@@ -106,7 +106,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
      * ID. Returns null if not present.
      */
     public Decision getDecisionForSubscriptionWithId(@NonNull String subscriptionId) {
-        var decision = authorizationDecisions.get(subscriptionId);
+        final var decision = authorizationDecisions.get(subscriptionId);
         return decision == null ? null : authorizationDecisions.get(subscriptionId).getDecision();
     }
 
@@ -123,7 +123,7 @@ public class MultiAuthorizationDecision implements Iterable<IdentifiableAuthoriz
      * otherwise.
      */
     public boolean isAccessPermittedForSubscriptionWithId(@NonNull String subscriptionId) {
-        var decision = authorizationDecisions.get(subscriptionId);
+        final var decision = authorizationDecisions.get(subscriptionId);
         return decision != null && decision.getDecision() == Decision.PERMIT;
     }
 

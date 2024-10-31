@@ -31,7 +31,7 @@ public class ConstraintResponsibility {
         if (constraint == null || !constraint.isObject())
             return false;
 
-        var type = constraint.get(TYPE);
+        final var type = constraint.get(TYPE);
 
         if (Objects.isNull(type) || !type.isTextual())
             return false;

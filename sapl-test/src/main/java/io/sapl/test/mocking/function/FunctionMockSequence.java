@@ -66,7 +66,7 @@ public class FunctionMockSequence implements FunctionMock {
     }
 
     public void loadMockReturnValue(Val[] mockReturnValueSequence) {
-        var tracedMockValues = new ArrayList<Val>(mockReturnValueSequence.length);
+        final var tracedMockValues = new ArrayList<Val>(mockReturnValueSequence.length);
         for (var val : mockReturnValueSequence) {
             tracedMockValues.add(val.withTrace(FunctionMockSequence.class));
         }

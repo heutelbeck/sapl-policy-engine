@@ -32,16 +32,16 @@ class QuerySelectionUtilsTests {
     @Test
     void when_addSelectionPartToQuery_then_returnQueryWithSelection() throws JsonProcessingException {
         // GIVEN
-        var selection  = MAPPER.readTree("""
+        final var selection  = MAPPER.readTree("""
                 {
                 		"type": "whitelist",
                 		"columns": ["firstname"]
                 }
                 """);
-        var basicQuery = new BasicQuery("{'firstname': 'Susi'}, {'firstname': 0}");
+        final var basicQuery = new BasicQuery("{'firstname': 'Susi'}, {'firstname': 0}");
 
         // WHEN
-        var result = QuerySelectionUtils.addSelectionPartToQuery(selection, basicQuery);
+        final var result = QuerySelectionUtils.addSelectionPartToQuery(selection, basicQuery);
 
         // THEN
         assertEquals("Query: { \"firstname\" : \"Susi\"}, Fields: { \"firstname\" : 1}, Sort: {}", result.toString());

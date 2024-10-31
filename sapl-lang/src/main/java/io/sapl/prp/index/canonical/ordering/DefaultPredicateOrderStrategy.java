@@ -36,11 +36,11 @@ public class DefaultPredicateOrderStrategy implements PredicateOrderStrategy {
     }
 
     private double createScore(final PredicateInfo predicateInfo) {
-        var square           = 2.0D;
-        var groupedPositives = predicateInfo.getGroupedNumberOfPositives();
-        var groupedNegatives = predicateInfo.getGroupedNumberOfNegatives();
-        var relevance        = predicateInfo.getRelevance();
-        var costs            = 1.0D;
+        final var square           = 2.0D;
+        final var groupedPositives = predicateInfo.getGroupedNumberOfPositives();
+        final var groupedNegatives = predicateInfo.getGroupedNumberOfNegatives();
+        final var relevance        = predicateInfo.getRelevance();
+        final var costs            = 1.0D;
 
         return Math.pow(relevance, square - relevance) * (groupedPositives + groupedNegatives) / costs
                 * (square - Math.pow(((double) groupedPositives - (double) groupedNegatives)

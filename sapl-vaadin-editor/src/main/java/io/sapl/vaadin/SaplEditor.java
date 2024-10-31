@@ -49,7 +49,7 @@ public class SaplEditor extends BaseEditor {
      * @param config the editor settings-
      */
     public SaplEditor(SaplEditorConfiguration config) {
-        var element = getElement();
+        final var element = getElement();
         applyBaseConfiguration(element, config);
     }
 
@@ -58,13 +58,13 @@ public class SaplEditor extends BaseEditor {
 
         ArrayList<Object> issues = new ArrayList<>();
         for (int i = 0; jsonIssues != null && i < jsonIssues.length(); i++) {
-            var jsonIssue = jsonIssues.getObject(i);
-            var issue     = new Issue(jsonIssue);
+            final var jsonIssue = jsonIssues.getObject(i);
+            final var issue     = new Issue(jsonIssue);
             issues.add(issue);
         }
 
         for (ValidationFinishedListener listener : validationFinishedListeners) {
-            var issueArray = issues.toArray(new Issue[0]);
+            final var issueArray = issues.toArray(new Issue[0]);
             listener.onValidationFinished(new ValidationFinishedEvent(issueArray));
         }
     }

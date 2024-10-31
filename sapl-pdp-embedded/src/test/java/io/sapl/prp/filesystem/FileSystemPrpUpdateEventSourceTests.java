@@ -42,10 +42,11 @@ class FileSystemPrpUpdateEventSourceTests {
 
     @Test
     void testProcessFileEvent() {
-        var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty", new DefaultSAPLInterpreter());
+        final var source = new FileSystemPrpUpdateEventSource("src/test/resources/it/empty",
+                new DefaultSAPLInterpreter());
 
-        var file1 = Paths.get("/file1.sapl");
-        var file2 = Paths.get("/file2.sapl");
+        final var file1 = Paths.get("/file1.sapl");
+        final var file2 = Paths.get("/file2.sapl");
 
         try (MockedConstruction<ImmutableFileIndex> mocked = Mockito.mockConstruction(ImmutableFileIndex.class,
                 (mock, context) -> {
@@ -54,10 +55,10 @@ class FileSystemPrpUpdateEventSourceTests {
                 })) {
 
             try (MockedStatic<FileMonitorUtil> mock = mockStatic(FileMonitorUtil.class)) {
-                var eventFlux = Flux.just(new FileCreatedEvent(file1), new FileDeletedEvent(file2));
+                final var eventFlux = Flux.just(new FileCreatedEvent(file1), new FileDeletedEvent(file2));
                 mock.when(() -> FileMonitorUtil.monitorDirectory(any(), any())).thenReturn(eventFlux);
 
-                var updates = source.getUpdates();
+                final var updates = source.getUpdates();
                 StepVerifier.create(updates).expectNextCount(2L).thenCancel().verify();
 
                 mock.verify(() -> FileMonitorUtil.monitorDirectory(any(), any()), times(1));

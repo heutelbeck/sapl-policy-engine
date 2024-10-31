@@ -86,16 +86,16 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
         module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
         module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
         mapper.registerModule(module);
-        var user = new User("the username", "the password", true, true, true, true,
+        final var user = new User("the username", "the password", true, true, true, true,
                 AuthorityUtils.createAuthorityList("ROLE_USER"));
         authentication = new UsernamePasswordAuthenticationToken(user, "the credentials");
-        var mockExpressionHandlerProvider = mock(ObjectProvider.class);
+        final var mockExpressionHandlerProvider = mock(ObjectProvider.class);
         when(mockExpressionHandlerProvider.getIfAvailable(any()))
                 .thenReturn(new DefaultMethodSecurityExpressionHandler());
-        var mockMapperProvider = mock(ObjectProvider.class);
+        final var mockMapperProvider = mock(ObjectProvider.class);
         when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
-        var mockDefaultsProvider = mock(ObjectProvider.class);
-        var mockContext          = mock(ApplicationContext.class);
+        final var mockDefaultsProvider = mock(ObjectProvider.class);
+        final var mockContext          = mock(ApplicationContext.class);
         defaultWebBuilderUnderTest = new WebAuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider,
                 mockMapperProvider, mockDefaultsProvider, mockContext);
         invocation                 = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
@@ -138,25 +138,26 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
     @Test
     @SuppressWarnings("unchecked")
     void when_expressionHandlerProvided_then_FactoryThrows() {
-        var mockContext        = mock(ApplicationContext.class);
-        var mockMapperProvider = mock(ObjectProvider.class);
+        final var mockContext        = mock(ApplicationContext.class);
+        final var mockMapperProvider = mock(ObjectProvider.class);
         when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
-        var emptyExpressionHandlerProvider = new Provider<MethodSecurityExpressionHandler>();
-        var defaults                       = mock(GrantedAuthorityDefaults.class);
-        var defaultsProvider               = new Provider<>(defaults);
-        var webBuilderUnderTest            = new WebAuthorizationSubscriptionBuilderService(
+        final var emptyExpressionHandlerProvider = new Provider<MethodSecurityExpressionHandler>();
+        final var defaults                       = mock(GrantedAuthorityDefaults.class);
+        final var defaultsProvider               = new Provider<>(defaults);
+        final var webBuilderUnderTest            = new WebAuthorizationSubscriptionBuilderService(
                 emptyExpressionHandlerProvider, mockMapperProvider, defaultsProvider, mockContext);
-        var attribute                      = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'",
-                Object.class);
+        final var attribute                      = attribute("'a subject'", "'an action'", "'a resource'",
+                "'an environment'", Object.class);
         webBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation, attribute);
         verify(defaults, times(1)).getRolePrefix();
     }
 
     @Test
     void when_expressionsAreProvided_then_SubscriptionContainsResult() {
-        var attribute    = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
-        var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
-                attribute);
+        final var attribute    = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'",
+                Object.class);
+        final var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+                invocation, attribute);
         assertAll(() -> assertThat(subscription.getSubject(), is(jsonText("a subject"))),
                 () -> assertThat(subscription.getAction(), is(jsonText("an action"))),
                 () -> assertThat(subscription.getResource(), is(jsonText("a resource"))),
@@ -166,18 +167,19 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
     @Test
     @SuppressWarnings("unchecked")
     void when_expressionResultCannotBeMarshalledToJson_then_FactoryThrows() {
-        var attribute  = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
-        var mockMapper = mock(ObjectMapper.class);
+        final var attribute  = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'",
+                Object.class);
+        final var mockMapper = mock(ObjectMapper.class);
         when(mockMapper.valueToTree(any())).thenThrow(new EvaluationException("ERROR"));
 
-        var mockExpressionHandlerProvider = mock(ObjectProvider.class);
+        final var mockExpressionHandlerProvider = mock(ObjectProvider.class);
         when(mockExpressionHandlerProvider.getIfAvailable(any()))
                 .thenReturn(new DefaultMethodSecurityExpressionHandler());
-        var mockMapperProvider = mock(ObjectProvider.class);
+        final var mockMapperProvider = mock(ObjectProvider.class);
         when(mockMapperProvider.getIfAvailable(any())).thenReturn(mockMapper);
-        var mockDefaultsProvider = mock(ObjectProvider.class);
-        var mockContext          = mock(ApplicationContext.class);
-        var sut                  = new WebAuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider,
+        final var mockDefaultsProvider = mock(ObjectProvider.class);
+        final var mockContext          = mock(ApplicationContext.class);
+        final var sut                  = new WebAuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider,
                 mockMapperProvider, mockDefaultsProvider, mockContext);
         assertThrows(IllegalArgumentException.class,
                 () -> sut.constructAuthorizationSubscription(authentication, invocation, attribute));
@@ -185,9 +187,9 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 
     @Test
     void when_nullParameters_then_FactoryConstructsFromContext() {
-        var attribute    = attribute(null, null, null, null, Object.class);
-        var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
-                attribute);
+        final var attribute    = attribute(null, null, null, null, Object.class);
+        final var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+                invocation, attribute);
         // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 				is(jsonObject()
@@ -212,9 +214,9 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 
     @Test
     void when_returnObjectResourceAndNulls_then_FactoryConstructsFromContextWithReturnObjectInResource() {
-        var attribute    = attribute(null, null, "returnObject", null, Object.class);
-        var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscriptionWithReturnObject(authentication,
-                invocation, attribute, "the returnObject");
+        final var attribute    = attribute(null, null, "returnObject", null, Object.class);
+        final var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscriptionWithReturnObject(
+                authentication, invocation, attribute, "the returnObject");
         // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
 				is(jsonObject()
@@ -234,10 +236,10 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 
     @Test
     void when_nullParametersAndAnonymousAuthentication_then_FactoryConstructsFromContextAndNoAuthn() {
-        var attribute    = attribute(null, null, null, null, Object.class);
-        var anonymous    = new AnonymousAuthenticationToken("key", "anonymous",
+        final var attribute    = attribute(null, null, null, null, Object.class);
+        final var anonymous    = new AnonymousAuthenticationToken("key", "anonymous",
                 AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
-        var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(anonymous, invocation,
+        final var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(anonymous, invocation,
                 attribute);
 
         // @formatter:off
@@ -267,13 +269,13 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
     void when_nullParametersAndHttpRequestInContext_then_FactoryConstructsFromContextIncludingRequest() {
 
         try (MockedStatic<RequestContextHolder> theMock = mockStatic(RequestContextHolder.class)) {
-            var request           = new MockHttpServletRequest();
-            var requestAttributes = mock(ServletRequestAttributes.class);
+            final var request           = new MockHttpServletRequest();
+            final var requestAttributes = mock(ServletRequestAttributes.class);
             when(requestAttributes.getRequest()).thenReturn(request);
             theMock.when(RequestContextHolder::getRequestAttributes).thenReturn(requestAttributes);
-            var attribute    = attribute(null, null, null, null, Object.class);
-            var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
-                    attribute);
+            final var attribute    = attribute(null, null, null, null, Object.class);
+            final var subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+                    invocation, attribute);
             // @formatter:off
 			assertAll(() -> assertThat(subscription.getSubject(),
 					is(jsonObject()
@@ -300,9 +302,9 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 
     @Test
     void when_nullParametersInvocationHasArguments_then_FactoryConstructsFromContextIncludingArguments() {
-        var attribute          = attribute(null, null, null, null, Object.class);
-        var invocationWithArgs = MethodInvocationUtils.create(new TestClass(), "publicVoidArgs", 1);
-        var subscription       = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+        final var attribute          = attribute(null, null, null, null, Object.class);
+        final var invocationWithArgs = MethodInvocationUtils.create(new TestClass(), "publicVoidArgs", 1);
+        final var subscription       = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
                 invocationWithArgs, attribute);
         // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -330,10 +332,10 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
 
     @Test
     void when_nullParametersInvocationHasArgumentsThatCannotBeMappedToJson_then_FactoryConstructsFromContextExcludingProblematicArguments() {
-        var attribute             = attribute(null, null, null, null, Object.class);
-        var invocationWithBadArgs = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+        final var attribute             = attribute(null, null, null, null, Object.class);
+        final var invocationWithBadArgs = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
                 "publicVoidProblemArg", new Class<?>[] { BadForJackson.class }, new Object[] { new BadForJackson() });
-        var subscription          = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+        final var subscription          = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
                 invocationWithBadArgs, attribute);
         // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -364,7 +366,7 @@ class WebAuthorizationSubscriptionBuilderServiceTests {
     }
 
     private Expression parameterToExpression(String parameter) {
-        var parser = new SpelExpressionParser();
+        final var parser = new SpelExpressionParser();
         return parameter == null || parameter.isEmpty() ? null : parser.parseExpression(parameter);
     }
 

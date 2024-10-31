@@ -192,7 +192,7 @@
                             <goal>java</goal>
                         </goals>
                         <configuration>
-                            <mainClass>io.sapl.converter.TransformFilesToESM</mainClass>
+                            <mainClass>io.sapl.converter.TransformFiles</mainClass>
                         </configuration>
                     </execution>
                 </executions>

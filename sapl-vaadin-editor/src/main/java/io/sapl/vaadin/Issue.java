@@ -58,10 +58,10 @@ public class Issue {
         if (jsonObject.hasKey(SEVERITY_KEY)) {
             String severityString = jsonObject.getString(SEVERITY_KEY);
             switch (severityString) {
-            case "error" -> severity = Severity.ERROR;
+            case "error"   -> severity = Severity.ERROR;
             case "warning" -> severity = Severity.WARNING;
-            case "ignore" -> severity = Severity.IGNORE;
-            default -> severity = Severity.INFO;
+            case "ignore"  -> severity = Severity.IGNORE;
+            default        -> severity = Severity.INFO;
             }
         }
 

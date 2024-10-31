@@ -29,26 +29,26 @@ class PolicyEvaluationExceptionTests {
 
     @Test
     void defaultConstructor() {
-        var exception = new PolicyEvaluationException();
+        final var exception = new PolicyEvaluationException();
         assertThat(exception).isNotNull();
     }
 
     @Test
     void exceptionHoldsMessage() {
-        var exception = new PolicyEvaluationException(MESSAGE_STRING_D);
+        final var exception = new PolicyEvaluationException(MESSAGE_STRING_D);
         assertThat(exception.getMessage()).isEqualTo(MESSAGE_STRING_D);
     }
 
     @Test
     void exceptionHoldsFormattedMessage() {
-        var exception = new PolicyEvaluationException(MESSAGE_STRING_D, 1);
+        final var exception = new PolicyEvaluationException(MESSAGE_STRING_D, 1);
         assertThat(exception.getMessage()).isEqualTo(MESSAGE_STRING_1);
     }
 
     @Test
     void exceptionHoldsFormattedMessageAndCause() {
-        var exception = new PolicyEvaluationException(new RuntimeException(), MESSAGE_STRING_D, 1);
-        var sa        = new SoftAssertions();
+        final var exception = new PolicyEvaluationException(new RuntimeException(), MESSAGE_STRING_D, 1);
+        final var sa        = new SoftAssertions();
         sa.assertThat(exception.getMessage()).isEqualTo(MESSAGE_STRING_1);
         sa.assertThat(exception.getCause()).isInstanceOf(RuntimeException.class);
         sa.assertAll();
@@ -56,8 +56,8 @@ class PolicyEvaluationExceptionTests {
 
     @Test
     void exceptionHoldsMessageAndCause() {
-        var exception = new PolicyEvaluationException(MESSAGE_STRING_D, new RuntimeException());
-        var sa        = new SoftAssertions();
+        final var exception = new PolicyEvaluationException(MESSAGE_STRING_D, new RuntimeException());
+        final var sa        = new SoftAssertions();
         sa.assertThat(exception.getMessage()).isEqualTo(MESSAGE_STRING_D);
         sa.assertThat(exception.getCause()).isInstanceOf(RuntimeException.class);
         sa.assertAll();
@@ -65,7 +65,7 @@ class PolicyEvaluationExceptionTests {
 
     @Test
     void exceptionHoldsCause() {
-        var exception = new PolicyEvaluationException(new RuntimeException());
+        final var exception = new PolicyEvaluationException(new RuntimeException());
         assertThat(exception.getCause()).isInstanceOf(RuntimeException.class);
     }
 

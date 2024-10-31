@@ -86,8 +86,8 @@ public class ErrorUtility {
      * If enabled emit a value when retrying.
      *
      * @param pipMqttClientConfig the provided pdp configuration
-     * @param emitterUndefined    the emitter necessary to emit downstream
-     * @param retrySignal         containing specifics about the retry
+     * @param emitterUndefined the emitter necessary to emit downstream
+     * @param retrySignal containing specifics about the retry
      */
     public static void emitValueOnRetry(JsonNode pipMqttClientConfig, Sinks.Many<Val> emitterUndefined,
             Retry.RetrySignal retrySignal) {
@@ -106,7 +106,7 @@ public class ErrorUtility {
      *
      * @param throwable the {@link Throwable} to evaluate
      * @return returns true if the broker config hash has to be removed from the
-     *         client cache
+     * client cache
      */
     public static boolean isErrorRelevantToRemoveClientCache(Throwable throwable) {
         return throwable instanceof ConnectionClosedException || throwable instanceof ConnectionFailedException

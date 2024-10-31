@@ -25,5 +25,4 @@ import io.sapl.test.grammar.sapltest.PdpVariables;
 import java.util.List;
 
 record GivenBlock(Document document, PdpVariables pdpVariables, PdpCombiningAlgorithm pdpConfiguration,
-        Environment environment, List<GivenStep> givenSteps) {
-}
+        Environment environment, List<GivenStep> givenSteps) {}

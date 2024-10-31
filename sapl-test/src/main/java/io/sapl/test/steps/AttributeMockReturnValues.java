@@ -34,7 +34,7 @@ public class AttributeMockReturnValues {
     private final List<Val> mockReturnValues;
 
     public static AttributeMockReturnValues of(String fullName, List<Val> mockReturnValues) {
-        var tracedMockValues = new ArrayList<Val>(mockReturnValues.size());
+        final var tracedMockValues = new ArrayList<Val>(mockReturnValues.size());
         mockReturnValues.forEach(mockVal -> tracedMockValues.add(mockVal.withTrace(AttributeMockReturnValues.class)));
         return new AttributeMockReturnValues(fullName, tracedMockValues);
     }

@@ -34,31 +34,30 @@ public class XtextCodemirrorConverter {
      * @return code in ESM
      */
     public String convertToESM(String originalCode) {
-        var importPattern = "define\\((['\"])([^'\"]+)\\1,\\s*\\[([^\\]]*)\\]\\s*,\\s*function\\s*\\(([^)]*)\\)\\s*\\{";
-        var exportPattern = "return\\s(?:[A-Z][a-z]+)+;\\s}\\);|return\\s(?:exports|\\{\\});\\s}\\);\n";
-
-        var imports            = extractImports(importPattern, originalCode);
-        var codeWithoutImports = originalCode.replaceAll(importPattern, "");
+        final var importPattern      = "define\\((['\"])([^'\"]+)\\1,\\s*\\[([^\\]]*)\\]\\s*,\\s*function\\s*\\(([^)]*)\\)\\s*\\{";
+        final var exportPattern      = "return\\s(?:[A-Z][a-z]+)+;\\s}\\);|return\\s(?:exports|\\{\\});\\s}\\);\n";
+        final var imports            = extractImports(importPattern, originalCode);
+        var       codeWithoutImports = originalCode.replaceAll(importPattern, "");
 
         codeWithoutImports = codeWithoutImports.replace("CodeMirrorEditorContext", "EditorContext");
 
-        var exports   = extractExports(codeWithoutImports);
-        var functions = codeWithoutImports.replaceAll(exportPattern, "");
+        final var exports   = extractExports(codeWithoutImports);
+        final var functions = codeWithoutImports.replaceAll(exportPattern, "");
 
         return imports + functions + exports;
     }
 
     private String extractImports(String regex, String code) {
-        var pattern = Pattern.compile(regex);
-        var matcher = pattern.matcher(code);
+        final var pattern = Pattern.compile(regex);
+        final var matcher = pattern.matcher(code);
 
-        var uniqueImports = new HashSet<String>();
+        final var uniqueImports = new HashSet<String>();
 
         while (matcher.find()) {
-            var dependencies = matcher.group(3).replaceAll("\\s+", "");
-            var args         = matcher.group(4).replaceAll("\\s+\\{", "");
-            var modulePaths  = dependencies.split(",");
-            var modules      = args.split(",");
+            final var dependencies = matcher.group(3).replaceAll("\\s+", "");
+            final var args         = matcher.group(4).replaceAll("\\s+\\{", "");
+            final var modulePaths  = dependencies.split(",");
+            final var modules      = args.split(",");
 
             for (int i = 0; i < modulePaths.length; i++) {
                 modulePaths[i] = modulePaths[i].replaceAll("\\s", "");
@@ -72,7 +71,7 @@ public class XtextCodemirrorConverter {
             }
         }
 
-        var uniqueImportsBuilder = new StringBuilder();
+        final var uniqueImportsBuilder = new StringBuilder();
         for (var importEntry : uniqueImports) {
             if (!importEntry.contains("xtext") && !importEntry.contains("  ")) {
                 uniqueImportsBuilder.append(importEntry).append('\n');
@@ -83,9 +82,9 @@ public class XtextCodemirrorConverter {
     }
 
     private String extractExports(String code) {
-        var exports = new ArrayList<String>();
-        var pattern = Pattern.compile("return\\s+([a-zA-Z]+);\\s+}\\);");
-        var matcher = pattern.matcher(code);
+        final var exports = new ArrayList<String>();
+        final var pattern = Pattern.compile("return\\s+([a-zA-Z]+);\\s+}\\);");
+        final var matcher = pattern.matcher(code);
 
         while (matcher.find()) {
             exports.add(matcher.group(1));

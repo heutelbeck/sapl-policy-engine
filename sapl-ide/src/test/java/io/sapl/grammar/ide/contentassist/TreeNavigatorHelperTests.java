@@ -29,18 +29,17 @@ import io.sapl.grammar.sapl.impl.SAPLImpl;
 class TreeNavigatorHelperTests {
 
     public static class TestEObject extends MinimalEObjectImpl.Container {
-
     }
 
     @Test
-    void test_goToFirstParent_objectIsNull_throwsIllegalArgumentException() {
-        assertThrows(IllegalArgumentException.class, () -> TreeNavigationUtil.goToFirstParent(null, Object.class));
+    void test_goToFirstParent_objectIsNull_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> TreeNavigationUtil.goToFirstParent(null, Object.class));
     }
 
     @Test
-    void test_goToFirstParent_classTypeIsNull_throwsIllegalArgumentException() {
-        var testObject = new TestEObject();
-        assertThrows(IllegalArgumentException.class, () -> TreeNavigationUtil.goToFirstParent(testObject, null));
+    void test_goToFirstParent_classTypeIsNull_throwsNullPointerException() {
+        final var testObject = new TestEObject();
+        assertThrows(NullPointerException.class, () -> TreeNavigationUtil.goToFirstParent(testObject, null));
     }
 
     @Test
@@ -51,20 +50,20 @@ class TreeNavigatorHelperTests {
 
     @Test
     void test_goToFirstParent_objectHasRequestedClass_returnsObject() {
-        var    expectedObject = new TestEObject();
-        Object result         = TreeNavigationUtil.goToFirstParent(expectedObject, TestEObject.class);
+        final var expectedObject = new TestEObject();
+        Object    result         = TreeNavigationUtil.goToFirstParent(expectedObject, TestEObject.class);
         assertSame(expectedObject, result);
     }
 
     @Test
-    void test_goToLastParent_objectIsNull_throwsIllegalArgumentException() {
-        assertThrows(IllegalArgumentException.class, () -> TreeNavigationUtil.goToLastParent(null, Object.class));
+    void test_goToLastParent_objectIsNull_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> TreeNavigationUtil.goToLastParent(null, Object.class));
     }
 
     @Test
-    void test_goToLastParent_classTypeIsNull_throwsIllegalArgumentException() {
-        var testObject = new TestEObject();
-        assertThrows(IllegalArgumentException.class, () -> TreeNavigationUtil.goToLastParent(testObject, null));
+    void test_goToLastParent_classTypeIsNull_throwsNullPointerException() {
+        final var testObject = new TestEObject();
+        assertThrows(NullPointerException.class, () -> TreeNavigationUtil.goToLastParent(testObject, null));
     }
 
     @Test
@@ -75,8 +74,8 @@ class TreeNavigatorHelperTests {
 
     @Test
     void test_goToLastParent_objectHasRequestedClass_returnsObject() {
-        var    expectedObject = new TestEObject();
-        Object result         = TreeNavigationUtil.goToLastParent(expectedObject, TestEObject.class);
+        final var expectedObject = new TestEObject();
+        Object    result         = TreeNavigationUtil.goToLastParent(expectedObject, TestEObject.class);
         assertSame(expectedObject, result);
     }
 

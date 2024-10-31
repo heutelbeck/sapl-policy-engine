@@ -27,15 +27,15 @@ import reactor.util.function.Tuple2;
 public class RepackageUtil {
 
     public Val recombineObject(Object[] oElements) {
-        var object         = Val.JSON.objectNode();
-        var tracedElements = new ExpressionArgument[oElements.length];
-        var elementCount   = 0;
-        Val error          = null;
+        final var object         = Val.JSON.objectNode();
+        final var tracedElements = new ExpressionArgument[oElements.length];
+        var       elementCount   = 0;
+        Val       error          = null;
         for (var elem : oElements) {
             @SuppressWarnings("unchecked")
-            var element = (Tuple2<String, Val>) elem;
-            var key     = element.getT1();
-            var value   = element.getT2();
+            final var element = (Tuple2<String, Val>) elem;
+            final var key     = element.getT1();
+            final var value   = element.getT2();
             tracedElements[elementCount++] = new ExpressionArgument(key, value);
             if (value.isError() && error == null) {
                 error = value;
@@ -49,12 +49,12 @@ public class RepackageUtil {
     }
 
     public Val recombineArray(Object[] oElements) {
-        var array          = Val.JSON.arrayNode();
-        var tracedElements = new ExpressionArgument[oElements.length];
-        var elementCount   = 0;
-        Val error          = null;
+        final var array          = Val.JSON.arrayNode();
+        final var tracedElements = new ExpressionArgument[oElements.length];
+        var       elementCount   = 0;
+        Val       error          = null;
         for (var elem : oElements) {
-            var element = (Val) elem;
+            final var element = (Val) elem;
             tracedElements[elementCount] = new ExpressionArgument("array[" + elementCount + "]", element);
             elementCount++;
             if (element.isError() && error == null) {

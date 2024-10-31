@@ -29,7 +29,7 @@ class ObjectMapperAutoConfigurationTests {
 
     @Test
     void whenRan_thenMapperIsAvailableAndModulesAreRegistered() {
-        var contextRunner = new ApplicationContextRunner()
+        final var contextRunner = new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(ObjectMapperAutoConfiguration.class));
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed();

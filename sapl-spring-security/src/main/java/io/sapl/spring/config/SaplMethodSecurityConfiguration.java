@@ -62,7 +62,7 @@ class SaplMethodSecurityConfiguration {
             ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider) {
 
         log.debug("Deploy @PreEnforce Policy Enforcement Point");
-        var policyEnforcementPoint = new PreEnforcePolicyEnforcementPoint(policyDecisionPointProvider,
+        final var policyEnforcementPoint = new PreEnforcePolicyEnforcementPoint(policyDecisionPointProvider,
                 attributeRegistryProvider, constraintEnforcementServiceProvider, subscriptionBuilderProvider);
         return PolicyEnforcementPointAroundMethodInterceptor.preEnforce(policyEnforcementPoint);
     }
@@ -75,7 +75,7 @@ class SaplMethodSecurityConfiguration {
             ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider) {
 
         log.debug("Deploy @PostEnforce Policy Enforcement Point");
-        var policyEnforcementPoint = new PostEnforcePolicyEnforcementPoint(policyDecisionPointProvider,
+        final var policyEnforcementPoint = new PostEnforcePolicyEnforcementPoint(policyDecisionPointProvider,
                 attributeRegistryProvider, constraintEnforcementServiceProvider, subscriptionBuilderProvider);
         return PolicyEnforcementPointAroundMethodInterceptor.postEnforce(policyEnforcementPoint);
     }
@@ -84,7 +84,7 @@ class SaplMethodSecurityConfiguration {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     SaplAttributeRegistry saplAttributeRegistry(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
             ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider, ApplicationContext context) {
-        var expressionProvider = expressionHandlerProvider
+        final var expressionProvider = expressionHandlerProvider
                 .getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
         return new SaplAttributeRegistry(expressionProvider);
     }

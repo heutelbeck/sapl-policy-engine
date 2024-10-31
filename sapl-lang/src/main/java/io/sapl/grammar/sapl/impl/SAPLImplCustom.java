@@ -61,9 +61,9 @@ public class SAPLImplCustom extends SAPLImpl {
     }
 
     private Val and(Tuple2<Val, Val> matches) {
-        var elementMatch = matches.getT1();
-        var schemaMatch  = matches.getT2();
-        Val result;
+        final var elementMatch = matches.getT1();
+        final var schemaMatch  = matches.getT2();
+        Val       result;
         if (schemaMatch.isError()) {
             result = schemaMatch;
         } else if (elementMatch.isError()) {
@@ -87,6 +87,9 @@ public class SAPLImplCustom extends SAPLImpl {
 
     @Override
     public String toString() {
+        if (null == getPolicyElement()) {
+            return getClass().getSimpleName();
+        }
         return getPolicyElement().getSaplName();
     }
 
@@ -99,8 +102,8 @@ public class SAPLImplCustom extends SAPLImpl {
      */
     @Override
     public Expression getImplicitTargetExpression() {
-        var explicitTargetExpression     = this.getPolicyElement().getTargetExpression();
-        var getSchemaPredicateExpression = getSchemaPredicateExpression();
+        final var explicitTargetExpression     = this.getPolicyElement().getTargetExpression();
+        final var getSchemaPredicateExpression = getSchemaPredicateExpression();
 
         if (explicitTargetExpression == null && getSchemaPredicateExpression == null) {
             return null;
@@ -113,7 +116,7 @@ public class SAPLImplCustom extends SAPLImpl {
         if (getSchemaPredicateExpression == null) {
             return explicitTargetExpression;
         }
-        var implicitTargetExpression = SaplFactory.eINSTANCE.createEagerAnd();
+        final var implicitTargetExpression = SaplFactory.eINSTANCE.createEagerAnd();
         implicitTargetExpression.setLeft(getSchemaPredicateExpression);
         implicitTargetExpression.setRight(explicitTargetExpression);
         return implicitTargetExpression;
@@ -123,14 +126,14 @@ public class SAPLImplCustom extends SAPLImpl {
         if (schemas == null) {
             return null;
         }
-        var expressionsByKeyword = collectEnforcedSchemaExpressionsByKeyword(schemas);
-        var keywordPredicates    = new ArrayList<Expression>(4);
+        final var expressionsByKeyword = collectEnforcedSchemaExpressionsByKeyword(schemas);
+        final var keywordPredicates    = new ArrayList<Expression>(4);
         for (var expressionByKeyword : expressionsByKeyword.entrySet()) {
             keywordPredicates.add(inBraces(concatenateExpressionsWithOperator(expressionByKeyword.getValue(),
                     SaplFactory.eINSTANCE::createEagerOr)));
         }
         if (keywordPredicates.isEmpty()) {
-            var value = SaplFactory.eINSTANCE.createBasicValue();
+            final var value = SaplFactory.eINSTANCE.createBasicValue();
             value.setValue(SaplFactory.eINSTANCE.createTrueLiteral());
             return value;
         }
@@ -141,7 +144,7 @@ public class SAPLImplCustom extends SAPLImpl {
         Map<String, List<Expression>> schemasByKeyword = new HashMap<>();
         for (var schema : schemas) {
             if (schema.isEnforced()) {
-                var expression = schemaPredicateExpression(schema);
+                final var expression = schemaPredicateExpression(schema);
                 schemasByKeyword.computeIfAbsent(schema.getSubscriptionElement(), k -> new ArrayList<>(1))
                         .add(expression);
             }
@@ -150,38 +153,40 @@ public class SAPLImplCustom extends SAPLImpl {
     }
 
     private static Expression inBraces(Expression expression) {
-        var group = SaplFactory.eINSTANCE.createBasicGroup();
+        final var group = SaplFactory.eINSTANCE.createBasicGroup();
         group.setExpression(expression);
         return group;
     }
 
     private static Expression concatenateExpressionsWithOperator(List<Expression> expressions,
             Supplier<BinaryOperator> operatorSupplier) {
-        var head = expressions.get(0);
+        final var head = expressions.get(0);
         if (expressions.size() == 1)
             return head;
 
-        var operator = operatorSupplier.get();
+        final var operator = operatorSupplier.get();
         operator.setLeft(head);
-        var tail = expressions.subList(1, expressions.size());
+        final var tail = expressions.subList(1, expressions.size());
         operator.setRight(concatenateExpressionsWithOperator(tail, operatorSupplier));
         return operator;
     }
 
     private static Expression schemaPredicateExpression(Schema schema) {
-        var function = SaplFactory.eINSTANCE.createBasicFunction();
-        var fSteps   = function.getFsteps();
+        final var function = SaplFactory.eINSTANCE.createBasicFunction();
+        function.eSet(function.eClass().getEStructuralFeature("identifier"),
+                SaplFactory.eINSTANCE.createFunctionIdentifier());
+        final var fSteps = function.getIdentifier().getNameFragments();
         fSteps.add(SchemaValidationLibrary.NAME);
         fSteps.add("isCompliantWithExternalSchemas");
 
-        var identifier = SaplFactory.eINSTANCE.createBasicIdentifier();
+        final var identifier = SaplFactory.eINSTANCE.createBasicIdentifier();
         identifier.setIdentifier(schema.getSubscriptionElement());
 
-        var referenceToSchemasVariable = SaplFactory.eINSTANCE.createBasicIdentifier();
+        final var referenceToSchemasVariable = SaplFactory.eINSTANCE.createBasicIdentifier();
         referenceToSchemasVariable.setIdentifier("SCHEMAS");
 
-        var arguments = SaplFactory.eINSTANCE.createArguments();
-        var args      = arguments.getArgs();
+        final var arguments = SaplFactory.eINSTANCE.createArguments();
+        final var args      = arguments.getArgs();
         args.add(identifier);
         args.add(EcoreUtil.copy(schema.getSchemaExpression()));
         args.add(referenceToSchemasVariable);

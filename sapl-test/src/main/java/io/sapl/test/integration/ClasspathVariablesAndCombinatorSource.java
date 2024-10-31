@@ -47,14 +47,14 @@ public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombin
             Map<String, Val> testInternalConfiguredVariables) {
         log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
 
-        var configDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), configPath);
+        final var configDirectoryPath = ClasspathHelper.findPathOnClasspath(getClass().getClassLoader(), configPath);
 
         log.debug("reading config from directory {}", configDirectoryPath);
         PolicyDecisionPointConfiguration pdpConfig = null;
         try (var stream = Files.newDirectoryStream(configDirectoryPath, CONFIG_FILE_GLOB_PATTERN)) {
-            var filesIterator = stream.iterator();
+            final var filesIterator = stream.iterator();
             if (filesIterator.hasNext()) {
-                var filePath = filesIterator.next();
+                final var filePath = filesIterator.next();
                 log.info("loading PDP configuration: {}", filePath.toAbsolutePath());
                 pdpConfig = mapper.readValue(filePath.toFile(), PolicyDecisionPointConfiguration.class);
             }

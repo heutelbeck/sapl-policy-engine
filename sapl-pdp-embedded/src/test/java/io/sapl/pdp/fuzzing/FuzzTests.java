@@ -52,8 +52,8 @@ public class FuzzTests {
 
     @FuzzTest(maxExecutions = 10000L)
     public void decideWithFuzzedSubscriptionTests(FuzzedDataProvider data) {
-        var asciiString        = data.consumeAsciiString(100);
-        var fuzzedSubscription = generateFuzzedSubscriptionFor(asciiString);
+        final var asciiString        = data.consumeAsciiString(100);
+        final var fuzzedSubscription = generateFuzzedSubscriptionFor(asciiString);
         decideWithFuzzedSubscriptionDenyOverrides(fuzzedSubscription);
         decideWithFuzzedSubscriptionDenyUnlessPermit(fuzzedSubscription);
         decideWithFuzzedSubscriptionPermitUnlessDeny(fuzzedSubscription);

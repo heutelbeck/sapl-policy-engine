@@ -127,8 +127,8 @@ class MongoReactiveAnnotationQueryManipulationEnforcementPointTests {
     @Test
     void when_enforce_then_returnFluxDomainObject() {
         // GIVEN
-        var authorizationSubscriptionMock = AuthorizationSubscription.of("", "permitTest", "", "");
-        var enforcementPoint              = new MongoReactiveAnnotationQueryManipulationEnforcementPoint<TestUser>(
+        final var authorizationSubscriptionMock = AuthorizationSubscription.of("", "permitTest", "", "");
+        final var enforcementPoint              = new MongoReactiveAnnotationQueryManipulationEnforcementPoint<TestUser>(
                 objectProviderPolicyDecisionPointMock, objectProviderBeanFactoryMock,
                 objectProviderConstraintQueryEnforcementServiceMock, constraintEnforcementServiceMock);
 
@@ -142,7 +142,8 @@ class MongoReactiveAnnotationQueryManipulationEnforcementPointTests {
         when(constraintEnforcementServiceMock.replaceIfResourcePresent(any(), any(), eq(TestUser.class)))
                 .thenReturn(Flux.just(cathrin));
 
-        var result = enforcementPoint.enforce(authorizationSubscriptionMock, TestUser.class, methodInvocationMock);
+        final var result = enforcementPoint.enforce(authorizationSubscriptionMock, TestUser.class,
+                methodInvocationMock);
 
         // THEN
         StepVerifier.create(result).expectNext(cathrin).expectComplete().verify();
@@ -161,13 +162,14 @@ class MongoReactiveAnnotationQueryManipulationEnforcementPointTests {
     @Test
     void when_enforce_then_throwAccessDeniedException() {
         // GIVEN
-        var authorizationSubscriptionMock = AuthorizationSubscription.of("", "denyTest", "", "");
-        var enforcementPoint              = new MongoReactiveAnnotationQueryManipulationEnforcementPoint<TestUser>(
+        final var authorizationSubscriptionMock = AuthorizationSubscription.of("", "denyTest", "", "");
+        final var enforcementPoint              = new MongoReactiveAnnotationQueryManipulationEnforcementPoint<TestUser>(
                 objectProviderPolicyDecisionPointMock, objectProviderBeanFactoryMock,
                 objectProviderConstraintQueryEnforcementServiceMock, constraintEnforcementServiceMock);
 
         // WHEN
-        var result = enforcementPoint.enforce(authorizationSubscriptionMock, TestUser.class, methodInvocationMock);
+        final var result = enforcementPoint.enforce(authorizationSubscriptionMock, TestUser.class,
+                methodInvocationMock);
         StepVerifier.create(result).expectErrorMatches(
                 error -> error instanceof AccessDeniedException && ACCESS_DENIED_BY_PDP.equals(error.getMessage()))
                 .verify();

@@ -28,8 +28,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class SampleCoverageInformation {
 
-    private record LineMarking(int lineNumber, LineCoveredValue value, int coveredBranches, int branchesToCover) {
-    }
+    private record LineMarking(int lineNumber, LineCoveredValue value, int coveredBranches, int branchesToCover) {}
 
     // @formatter:off
     private static final List<LineMarking> LINE_MARKINGS = List.of(
@@ -49,7 +48,8 @@ public class SampleCoverageInformation {
     // @formatter:on
 
     public Collection<SaplDocumentCoverageInformation> documents() {
-        var document = new SaplDocumentCoverageInformation(Paths.get("src/test/resources/policies/policy_1.sapl"), 12);
+        final var document = new SaplDocumentCoverageInformation(Paths.get("src/test/resources/policies/policy_1.sapl"),
+                12);
         for (var marking : LINE_MARKINGS) {
             document.markLine(marking.lineNumber(), marking.value(), marking.coveredBranches(),
                     marking.branchesToCover());

@@ -43,7 +43,7 @@ public class R2dbcRepositoryProxyPostProcessor<T> implements RepositoryProxyPost
         log.debug("# R2dbcRepositoryProxyPostProcessor postProcess {} {}", factory.getClass().getSimpleName(),
                 repositoryInformation.getClass().getSimpleName());
 
-        var repository = repositoryInformation.getRepositoryInterface();
+        final var repository = repositoryInformation.getRepositoryInterface();
 
         if (hasRequiredInterface(repository)) {
             repositoryInformationCollectorService.add(repositoryInformation);
@@ -53,7 +53,7 @@ public class R2dbcRepositoryProxyPostProcessor<T> implements RepositoryProxyPost
     }
 
     private boolean hasRequiredInterface(Class<?> repository) {
-        var interfaces = repository.getInterfaces();
+        final var interfaces = repository.getInterfaces();
 
         for (Type interfaceType : interfaces) {
             if (interfaceType.equals(ReactiveCrudRepository.class) || interfaceType.equals(R2dbcRepository.class)

@@ -108,20 +108,20 @@ public class HtmlLineCoverageReportGenerator {
         List<HtmlPolicyLineModel> models = new LinkedList<>();
 
         for (int i = 0; i < lines.size(); i++) {
-            var model = new HtmlPolicyLineModel();
+            final var model = new HtmlPolicyLineModel();
             model.setLineContent(lines.get(i));
-            var line         = document.getLine(i + 1);
-            var coveredValue = line.getCoveredValue();
+            final var line         = document.getLine(i + 1);
+            final var coveredValue = line.getCoveredValue();
             assertValidCoveredValue(coveredValue);
             switch (coveredValue) {
-            case FULLY -> model.setCssClass("coverage-green");
-            case NEVER -> model.setCssClass("coverage-red");
+            case FULLY  -> model.setCssClass("coverage-green");
+            case NEVER  -> model.setCssClass("coverage-red");
             case PARTLY -> {
                 model.setCssClass("coverage-yellow");
                 model.setPopoverContent(String.format("%d of %d branches covered", line.getCoveredBranches(),
                         line.getBranchesToCover()));
             }
-            default -> model.setCssClass("");
+            default     -> model.setCssClass("");
             }
             models.add(model);
         }

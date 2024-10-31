@@ -58,7 +58,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
     public FileSystemVariablesAndCombinatorSource(String configurationPath) {
         watchDir = resolveHomeFolderIfPresent(configurationPath);
         log.info("Monitoring folder for PDP configuration: {}", watchDir);
-        var monitoringFlux = monitorDirectory(watchDir, file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
+        final var monitoringFlux = monitorDirectory(watchDir, file -> CONFIG_FILE_GLOB_PATTERN.equals(file.getName()));
         configFlux          = monitoringFlux.scan(loadConfig(), (x, fileEvent) -> processWatcherEvent(fileEvent))
                 .distinctUntilChanged().share().cache(1);
         monitorSubscription = Flux.from(configFlux).subscribe();
@@ -69,14 +69,14 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
         log.info("Loading PDP configuration from: {}", configurationFile.toAbsolutePath());
         if (Files.notExists(configurationFile, LinkOption.NOFOLLOW_LINKS)) {
             // If file does not exist, return default configuration
-            var defaultConfiguration = new PolicyDecisionPointConfiguration();
+            final var defaultConfiguration = new PolicyDecisionPointConfiguration();
             log.info("No PDP configuration file present. Use default configuration: {}", defaultConfiguration);
             return Optional.of(defaultConfiguration);
         }
         try {
-            var jsonNode = MAPPER.readValue(configurationFile.toFile(), JsonNode.class);
+            final var jsonNode = MAPPER.readValue(configurationFile.toFile(), JsonNode.class);
 
-            var config = new PolicyDecisionPointConfiguration();
+            final var config = new PolicyDecisionPointConfiguration();
 
             if (jsonNode == null)
                 return Optional.empty();
@@ -84,7 +84,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
             if (jsonNode.has("algorithm")) {
                 config.setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
             }
-            var variables = new HashMap<String, Val>();
+            final var variables = new HashMap<String, Val>();
             if (jsonNode.has("variables")) {
                 jsonNode.get("variables").fields().forEachRemaining(field -> variables.put(field.getKey(),
                         Val.of(field.getValue()).withTrace(VariablesAndCombinatorSource.class)));

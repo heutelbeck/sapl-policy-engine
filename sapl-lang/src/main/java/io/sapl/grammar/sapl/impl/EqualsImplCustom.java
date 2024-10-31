@@ -36,14 +36,15 @@ public class EqualsImplCustom extends EqualsImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return operator(this, this, this::tracedEquals);
+        return operator(this, this, EqualsImplCustom::equals);
     }
 
-    private Val tracedEquals(Val left, Val right) {
-        return equals(left, right).withTrace(Equals.class, false, Map.of(Trace.LEFT, left, Trace.RIGHT, right));
+    public static Val equals(Val left, Val right) {
+        return primitiveEquals(left, right).withTrace(Equals.class, false,
+                Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }
 
-    private Val equals(Val left, Val right) {
+    private static Val primitiveEquals(Val left, Val right) {
         if (left.isUndefined() && right.isUndefined())
             return Val.TRUE;
 
@@ -56,11 +57,11 @@ public class EqualsImplCustom extends EqualsImpl {
         return Val.of(left.get().equals(right.get()));
     }
 
-    private boolean bothNumbersAreEqual(Val left, Val right) {
+    private static boolean bothNumbersAreEqual(Val left, Val right) {
         return left.decimalValue().compareTo(right.decimalValue()) == 0;
     }
 
-    private boolean bothValuesAreNumbers(Val left, Val right) {
+    private static boolean bothValuesAreNumbers(Val left, Val right) {
         return left.isNumber() && right.isNumber();
     }
 

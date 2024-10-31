@@ -46,22 +46,22 @@ class HasObligationMatchingTests {
 
     @Test
     void test() throws JsonProcessingException {
-        var obligations = MAPPER.readValue("[ {\"foo\" : \"bar\" }]", ArrayNode.class);
-        var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
+        final var obligations = MAPPER.readValue("[ {\"foo\" : \"bar\" }]", ArrayNode.class);
+        final var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
         assertThat(decision, hasObligationMatching(FOO_IS_BAR_PREDICATE));
     }
 
     @Test
     void testConvenienceMatcherObligationString() throws JsonProcessingException {
-        var obligations = MAPPER.readValue("[ {\"foo\" : \"bar\" }, \"food\"]", ArrayNode.class);
-        var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
+        final var obligations = MAPPER.readValue("[ {\"foo\" : \"bar\" }, \"food\"]", ArrayNode.class);
+        final var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
         assertThat(decision, hasObligation("food"));
     }
 
     @Test
     void test_neg() throws JsonProcessingException {
-        var obligations = MAPPER.readValue("[ {\"xxx\" : \"bar\" }]", ArrayNode.class);
-        var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
+        final var obligations = MAPPER.readValue("[ {\"xxx\" : \"bar\" }]", ArrayNode.class);
+        final var decision    = AuthorizationDecision.PERMIT.withObligations(obligations);
         assertThat(decision, not(hasObligationMatching(FOO_IS_BAR_PREDICATE)));
     }
 
@@ -82,8 +82,8 @@ class HasObligationMatchingTests {
 
     @Test
     void testDescriptionForMatcher() {
-        var sut         = hasObligationMatching(FOO_IS_BAR_PREDICATE);
-        var description = new StringDescription();
+        final var sut         = hasObligationMatching(FOO_IS_BAR_PREDICATE);
+        final var description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(), is("the decision has an obligation matching the predicate"));
     }

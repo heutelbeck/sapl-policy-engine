@@ -90,7 +90,7 @@ class SaplDocumentReaderTests {
 
     @Test
     void test_DependencyResolutionRequiredException() throws DependencyResolutionRequiredException {
-        var aProject = mock(MavenProject.class);
+        final var aProject = mock(MavenProject.class);
         when(aProject.getRuntimeClasspathElements()).thenThrow(DependencyResolutionRequiredException.class);
         assertThrows(MojoExecutionException.class,
                 () -> reader.retrievePolicyDocuments(new SilentLog(), aProject, "." + File.separator + "policies"));

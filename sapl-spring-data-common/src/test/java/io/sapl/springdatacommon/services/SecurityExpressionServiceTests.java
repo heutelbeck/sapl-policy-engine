@@ -38,19 +38,19 @@ class SecurityExpressionServiceTests {
         try (MockedConstruction<CustomMethodSecurityExpressionHandler> mockedConstructionStandardEvaluationContext = mockConstruction(
                 CustomMethodSecurityExpressionHandler.class)) {
             // GIVEN
-            var expression                            = "test string permitAll() method";
-            var expressionPart                        = "permitAll()";
-            var resultExpression                      = "test string true method";
-            var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
-            var methodInvocationMock                  = mock(MethodInvocation.class);
+            final var expression                            = "test string permitAll() method";
+            final var expressionPart                        = "permitAll()";
+            final var resultExpression                      = "test string true method";
+            final var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
+            final var methodInvocationMock                  = mock(MethodInvocation.class);
 
             // WHEN
-            var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
+            final var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
 
             when(methodSecurityExpressionEvaluatorMock.evaluate(eq(expressionPart), any(MethodInvocation.class)))
                     .thenReturn(true);
 
-            var result = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
+            final var result = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
 
             // THEN
             assertEquals(result, resultExpression);
@@ -64,23 +64,23 @@ class SecurityExpressionServiceTests {
         try (MockedConstruction<CustomMethodSecurityExpressionHandler> mockedConstructionStandardEvaluationContext = mockConstruction(
                 CustomMethodSecurityExpressionHandler.class)) {
             // GIVEN
-            var expression      = "test string hasAuthority() method, and has hasRole()";
-            var expressionPart1 = "hasAuthority()";
-            var expressionPart2 = "hasRole()";
+            final var expression      = "test string hasAuthority() method, and has hasRole()";
+            final var expressionPart1 = "hasAuthority()";
+            final var expressionPart2 = "hasRole()";
 
-            var resultExpression                      = "test string true method, and has false";
-            var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
-            var methodInvocationMock                  = mock(MethodInvocation.class);
+            final var resultExpression                      = "test string true method, and has false";
+            final var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
+            final var methodInvocationMock                  = mock(MethodInvocation.class);
 
             // WHEN
-            var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
+            final var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
 
             when(methodSecurityExpressionEvaluatorMock.evaluate(eq(expressionPart1), any(MethodInvocation.class)))
                     .thenReturn(true);
             when(methodSecurityExpressionEvaluatorMock.evaluate(eq(expressionPart2), any(MethodInvocation.class)))
                     .thenReturn(false);
 
-            var result = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
+            final var result = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
 
             // THEN
             assertEquals(result, resultExpression);
@@ -93,14 +93,14 @@ class SecurityExpressionServiceTests {
         try (MockedConstruction<CustomMethodSecurityExpressionHandler> mockedConstructionStandardEvaluationContext = mockConstruction(
                 CustomMethodSecurityExpressionHandler.class)) {
             // GIVEN
-            var expression                            = "test string method";
-            var resultExpression                      = "test string method";
-            var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
-            var methodInvocationMock                  = mock(MethodInvocation.class);
+            final var expression                            = "test string method";
+            final var resultExpression                      = "test string method";
+            final var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
+            final var methodInvocationMock                  = mock(MethodInvocation.class);
 
             // WHEN
-            var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
-            var result            = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
+            final var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
+            final var result            = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
 
             // THEN
             assertEquals(result, resultExpression);
@@ -113,14 +113,14 @@ class SecurityExpressionServiceTests {
         try (MockedConstruction<CustomMethodSecurityExpressionHandler> mockedConstructionStandardEvaluationContext = mockConstruction(
                 CustomMethodSecurityExpressionHandler.class)) {
             // GIVEN
-            var expression                            = "test string isAuthenticated( method";
-            var resultExpression                      = "test string isAuthenticated( method";
-            var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
-            var methodInvocationMock                  = mock(MethodInvocation.class);
+            final var expression                            = "test string isAuthenticated( method";
+            final var resultExpression                      = "test string isAuthenticated( method";
+            final var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
+            final var methodInvocationMock                  = mock(MethodInvocation.class);
 
             // WHEN
-            var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
-            var result            = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
+            final var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
+            final var result            = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
 
             // THEN
             assertEquals(result, resultExpression);
@@ -133,14 +133,14 @@ class SecurityExpressionServiceTests {
         try (MockedConstruction<CustomMethodSecurityExpressionHandler> mockedConstructionStandardEvaluationContext = mockConstruction(
                 CustomMethodSecurityExpressionHandler.class)) {
             // GIVEN
-            var expression                            = "";
-            var resultExpression                      = "";
-            var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
-            var methodInvocationMock                  = mock(MethodInvocation.class);
+            final var expression                            = "";
+            final var resultExpression                      = "";
+            final var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
+            final var methodInvocationMock                  = mock(MethodInvocation.class);
 
             // WHEN
-            var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
-            var result            = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
+            final var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
+            final var result            = expressionService.evaluateSpelMethods(expression, methodInvocationMock);
 
             // THEN
             assertEquals(result, resultExpression);
@@ -153,23 +153,23 @@ class SecurityExpressionServiceTests {
         try (MockedConstruction<CustomMethodSecurityExpressionHandler> mockedConstructionStandardEvaluationContext = mockConstruction(
                 CustomMethodSecurityExpressionHandler.class)) {
             // GIVEN
-            var expression                  = "test string authentication.getName() method";
-            var expressionPart              = "authentication.getName()";
-            var returnValueOfExpressionPart = "USER";
-            var resultExpression            = "test string USER method";
+            final var expression                  = "test string authentication.getName() method";
+            final var expressionPart              = "authentication.getName()";
+            final var returnValueOfExpressionPart = "USER";
+            final var resultExpression            = "test string USER method";
 
-            var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
+            final var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
 
             // WHEN
-            var expressionService                         = new SecurityExpressionService(
+            final var expressionService                         = new SecurityExpressionService(
                     methodSecurityExpressionEvaluatorMock);
-            var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext.constructed()
-                    .get(0);
+            final var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext
+                    .constructed().get(0);
 
             when(customMethodSecurityExpressionHandlerMock.evaluateExpression(expressionPart))
                     .thenReturn(returnValueOfExpressionPart);
 
-            var result = expressionService.evaluateSpelVariables(expression);
+            final var result = expressionService.evaluateSpelVariables(expression);
 
             // THEN
             assertEquals(result, resultExpression);
@@ -182,27 +182,27 @@ class SecurityExpressionServiceTests {
         try (MockedConstruction<CustomMethodSecurityExpressionHandler> mockedConstructionStandardEvaluationContext = mockConstruction(
                 CustomMethodSecurityExpressionHandler.class)) {
             // GIVEN
-            var expression                   = "test string authentication.getName() method and target";
-            var expressionPart1              = "authentication.getName()";
-            var expressionPart2              = "target";
-            var returnValueOfExpressionPart1 = "USER";
-            var returnValueOfExpressionPart2 = "TargetValue";
-            var resultExpression             = "test string USER method and TargetValue";
+            final var expression                   = "test string authentication.getName() method and target";
+            final var expressionPart1              = "authentication.getName()";
+            final var expressionPart2              = "target";
+            final var returnValueOfExpressionPart1 = "USER";
+            final var returnValueOfExpressionPart2 = "TargetValue";
+            final var resultExpression             = "test string USER method and TargetValue";
 
-            var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
+            final var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
 
             // WHEN
-            var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
+            final var expressionService = new SecurityExpressionService(methodSecurityExpressionEvaluatorMock);
 
-            var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext.constructed()
-                    .get(0);
+            final var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext
+                    .constructed().get(0);
 
             when(customMethodSecurityExpressionHandlerMock.evaluateExpression(expressionPart1))
                     .thenReturn(returnValueOfExpressionPart1);
             when(customMethodSecurityExpressionHandlerMock.evaluateExpression(expressionPart2))
                     .thenReturn(returnValueOfExpressionPart2);
 
-            var result = expressionService.evaluateSpelVariables(expression);
+            final var result = expressionService.evaluateSpelVariables(expression);
 
             // THEN
             assertEquals(result, resultExpression);
@@ -215,16 +215,16 @@ class SecurityExpressionServiceTests {
         try (MockedConstruction<CustomMethodSecurityExpressionHandler> mockedConstructionStandardEvaluationContext = mockConstruction(
                 CustomMethodSecurityExpressionHandler.class)) {
             // GIVEN
-            var expression                            = "test string method";
-            var resultExpression                      = "test string method";
-            var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
-            var expressionService                     = new SecurityExpressionService(
+            final var expression                            = "test string method";
+            final var resultExpression                      = "test string method";
+            final var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
+            final var expressionService                     = new SecurityExpressionService(
                     methodSecurityExpressionEvaluatorMock);
 
             // WHEN
-            var result                                    = expressionService.evaluateSpelVariables(expression);
-            var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext.constructed()
-                    .get(0);
+            final var result                                    = expressionService.evaluateSpelVariables(expression);
+            final var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext
+                    .constructed().get(0);
 
             // THEN
             assertEquals(result, resultExpression);
@@ -237,16 +237,16 @@ class SecurityExpressionServiceTests {
         try (MockedConstruction<CustomMethodSecurityExpressionHandler> mockedConstructionStandardEvaluationContext = mockConstruction(
                 CustomMethodSecurityExpressionHandler.class)) {
             // GIVEN
-            var expression                            = "test string isAuthenticated( method";
-            var resultExpression                      = "test string isAuthenticated( method";
-            var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
-            var expressionService                     = new SecurityExpressionService(
+            final var expression                            = "test string isAuthenticated( method";
+            final var resultExpression                      = "test string isAuthenticated( method";
+            final var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
+            final var expressionService                     = new SecurityExpressionService(
                     methodSecurityExpressionEvaluatorMock);
 
             // WHEN
-            var result                                    = expressionService.evaluateSpelVariables(expression);
-            var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext.constructed()
-                    .get(0);
+            final var result                                    = expressionService.evaluateSpelVariables(expression);
+            final var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext
+                    .constructed().get(0);
 
             // THEN
             assertEquals(result, resultExpression);
@@ -259,16 +259,16 @@ class SecurityExpressionServiceTests {
         try (MockedConstruction<CustomMethodSecurityExpressionHandler> mockedConstructionStandardEvaluationContext = mockConstruction(
                 CustomMethodSecurityExpressionHandler.class)) {
             // GIVEN
-            var expression                            = "";
-            var resultExpression                      = "";
-            var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
-            var expressionService                     = new SecurityExpressionService(
+            final var expression                            = "";
+            final var resultExpression                      = "";
+            final var methodSecurityExpressionEvaluatorMock = mock(MethodSecurityExpressionEvaluator.class);
+            final var expressionService                     = new SecurityExpressionService(
                     methodSecurityExpressionEvaluatorMock);
 
             // WHEN
-            var result                                    = expressionService.evaluateSpelVariables(expression);
-            var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext.constructed()
-                    .get(0);
+            final var result                                    = expressionService.evaluateSpelVariables(expression);
+            final var customMethodSecurityExpressionHandlerMock = mockedConstructionStandardEvaluationContext
+                    .constructed().get(0);
 
             // THEN
             assertEquals(result, resultExpression);

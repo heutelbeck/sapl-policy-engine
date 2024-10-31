@@ -62,7 +62,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
     private ArrayNode collect(int index, JsonNode node, ArrayNode results) {
         if (node.isArray()) {
-            var idx = normalizeIndex(index, node.size());
+            final var idx = normalizeIndex(index, node.size());
             if (node.has(idx)) {
                 results.add(node.get(idx));
             }
@@ -70,9 +70,9 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
                 collect(index, item, results);
             }
         } else if (node.isObject()) {
-            var iter = node.fields();
+            final var iter = node.fields();
             while (iter.hasNext()) {
-                var item = iter.next().getValue();
+                final var item = iter.next().getValue();
                 collect(index, item, results);
             }
         }
@@ -98,21 +98,21 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
             return Flux.just(parentValue.withTrace(RecursiveIndexStep.class, true,
                     Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(index))));
         }
-        var array         = parentValue.getArrayNode();
-        var idx           = normalizeIndex(index, array.size());
-        var elementFluxes = new ArrayList<Flux<Val>>(array.size());
+        final var array         = parentValue.getArrayNode();
+        final var idx           = normalizeIndex(index, array.size());
+        final var elementFluxes = new ArrayList<Flux<Val>>(array.size());
         for (var i = 0; i < array.size(); i++) {
-            var element = Val.of(array.get(i)).withTrace(RecursiveIndexStep.class, true,
+            final var element = Val.of(array.get(i)).withTrace(RecursiveIndexStep.class, true,
                     Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(index)));
             if (i == idx) {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter
                     elementFluxes.add(FilterAlgorithmUtil
-                            .applyFilterFunction(element, statement.getArguments(), statement.getFsteps(),
+                            .applyFilterFunction(element, statement.getArguments(), statement.getIdentifier(),
                                     statement.isEach(), statement)
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, parentValue))
                             .map(filteredValue -> {
-                                var trace = new HashMap<String, Val>();
+                                final var trace = new HashMap<String, Val>();
                                 trace.put(Trace.UNFILTERED_VALUE, element);
                                 trace.put(Trace.FILTERED, filteredValue);
                                 return filteredValue.withTrace(RecursiveIndexStep.class, true, trace);
@@ -131,14 +131,14 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
 
     private static Flux<Val> applyFilterStatementToObject(int idx, Val parentValue, int stepId,
             FilterStatement statement) {
-        var object      = parentValue.getObjectNode();
-        var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
-        var fields      = object.fields();
+        final var object      = parentValue.getObjectNode();
+        final var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
+        final var fields      = object.fields();
         while (fields.hasNext()) {
-            var field      = fields.next();
-            var key        = field.getKey();
-            var value      = field.getValue();
-            var fieldValue = Val.of(value).withTrace(RecursiveIndexStep.class, true,
+            final var field      = fields.next();
+            final var key        = field.getKey();
+            final var value      = field.getValue();
+            final var fieldValue = Val.of(value).withTrace(RecursiveIndexStep.class, true,
                     Map.of(Trace.PARENT_VALUE, parentValue, Trace.INDEX, Val.of(idx), Trace.KEY, Val.of(key)));
             fieldFluxes.add(doApplyFilterStatement(idx, fieldValue, stepId, statement).map(val -> Tuples.of(key, val)));
         }

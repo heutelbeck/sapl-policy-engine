@@ -30,14 +30,14 @@ public class ConfirmUtils {
     /**
      * Lets the user confirm a specific message.
      *
-     * @param header           the dialog title
-     * @param message          the message to confirm
+     * @param header the dialog title
+     * @param message the message to confirm
      * @param confirmedHandler the handler for confirmation
      * @param cancelledHandler the handler for cancellation
      */
     public static void letConfirm(@NonNull String header, @NonNull String message, Runnable confirmedHandler,
             Runnable cancelledHandler) {
-        var dialog = new ConfirmDialog();
+        final var dialog = new ConfirmDialog();
         dialog.setHeader(header);
         dialog.setText(message);
 
@@ -52,7 +52,7 @@ public class ConfirmUtils {
     }
 
     public static void inform(@NonNull String header, @NonNull String message, Runnable confirmedHandler) {
-        var dialog = new ConfirmDialog();
+        final var dialog = new ConfirmDialog();
         dialog.setHeader(header);
         dialog.setText(message);
         dialog.setCancelable(false);
@@ -62,7 +62,7 @@ public class ConfirmUtils {
     }
 
     public static void inform(@NonNull String header, @NonNull String message) {
-        var dialog = new ConfirmDialog();
+        final var dialog = new ConfirmDialog();
         dialog.setHeader(header);
         dialog.setText(message);
         dialog.setCancelable(false);

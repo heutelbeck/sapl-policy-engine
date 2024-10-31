@@ -134,10 +134,10 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
         if (authorizationSubscriptions.containsKey(subscriptionId))
             throw new IllegalArgumentException("Cannot add two subscriptions with the same ID: " + subscriptionId);
 
-        var subjectId     = ensureIsElementOfListAndReturnIndex(subject, subjects);
-        var actionId      = ensureIsElementOfListAndReturnIndex(action, actions);
-        var resourceId    = ensureIsElementOfListAndReturnIndex(resource, resources);
-        var environmentId = ensureIsElementOfListAndReturnIndex(environment, environments);
+        final var subjectId     = ensureIsElementOfListAndReturnIndex(subject, subjects);
+        final var actionId      = ensureIsElementOfListAndReturnIndex(action, actions);
+        final var resourceId    = ensureIsElementOfListAndReturnIndex(resource, resources);
+        final var environmentId = ensureIsElementOfListAndReturnIndex(environment, environments);
 
         authorizationSubscriptions.put(subscriptionId,
                 new AuthorizationSubscriptionElements(subjectId, actionId, resourceId, environmentId));
@@ -174,7 +174,7 @@ public class MultiAuthorizationSubscription implements Iterable<IdentifiableAuth
      * {@code null}.
      */
     public AuthorizationSubscription getAuthorizationSubscriptionWithId(String subscriptionId) {
-        var authorizationSubscription = authorizationSubscriptions.get(subscriptionId);
+        final var authorizationSubscription = authorizationSubscriptions.get(subscriptionId);
         if (authorizationSubscription == null) {
             return null;
         }

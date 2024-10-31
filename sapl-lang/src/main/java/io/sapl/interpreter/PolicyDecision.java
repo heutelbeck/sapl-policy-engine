@@ -93,14 +93,14 @@ public class PolicyDecision implements DocumentEvaluationResult {
     }
 
     public PolicyDecision withObligation(Val obligation) {
-        var policyDecision = new PolicyDecision(documentName, entitlement, targetResult, whereResult, obligations,
+        final var policyDecision = new PolicyDecision(documentName, entitlement, targetResult, whereResult, obligations,
                 advice, resource, errorMessage);
         policyDecision.obligations.add(obligation);
         return policyDecision;
     }
 
     public PolicyDecision withAdvice(Val advice) {
-        var policyDecision = new PolicyDecision(documentName, entitlement, targetResult, whereResult, obligations,
+        final var policyDecision = new PolicyDecision(documentName, entitlement, targetResult, whereResult, obligations,
                 this.advice, resource, errorMessage);
         policyDecision.advice.add(advice);
         return policyDecision;
@@ -147,7 +147,7 @@ public class PolicyDecision implements DocumentEvaluationResult {
     }
 
     private ArrayNode collectConstraints(List<Val> constraints) {
-        var array = Val.JSON.arrayNode();
+        final var array = Val.JSON.arrayNode();
         for (var constraint : constraints) {
             array.add(constraint.get());
         }
@@ -160,7 +160,7 @@ public class PolicyDecision implements DocumentEvaluationResult {
 
     @Override
     public JsonNode getTrace() {
-        var trace = Val.JSON.objectNode();
+        final var trace = Val.JSON.objectNode();
         trace.set(Trace.DOCUMENT_TYPE, Val.JSON.textNode("policy"));
         trace.set(Trace.POLICY_NAME, Val.JSON.textNode(documentName));
         trace.set(Trace.AUTHORIZATION_DECISION, MAPPER.valueToTree(getAuthorizationDecision()));
@@ -178,14 +178,14 @@ public class PolicyDecision implements DocumentEvaluationResult {
     }
 
     private JsonNode listOfValToTraceArray(List<Val> values) {
-        var arrayNode = Val.JSON.arrayNode();
+        final var arrayNode = Val.JSON.arrayNode();
         values.forEach(val -> arrayNode.add(val.getTrace()));
         return arrayNode;
     }
 
     @Override
     public Collection<Val> getErrorsFromTrace() {
-        var errors = new ArrayList<Val>();
+        final var errors = new ArrayList<Val>();
         targetResult.ifPresent(target -> errors.addAll(target.getErrorsFromTrace()));
         whereResult.ifPresent(where -> errors.addAll(where.getErrorsFromTrace()));
         resource.ifPresent(r -> errors.addAll(r.getErrorsFromTrace()));

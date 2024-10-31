@@ -29,14 +29,14 @@ class ReactiveSaplMethodSecuritySelectorTests {
 
     @Test
     void when_AdviceModeNotProxy_throwIllegalState() {
-        var sut = new ReactiveSaplMethodSecuritySelector();
+        final var sut = new ReactiveSaplMethodSecuritySelector();
         assertThrows(IllegalStateException.class, () -> sut.selectImports(AdviceMode.ASPECTJ));
     }
 
     @Test
     void when_AdviceModeProxy_thenRegistrarAndSaplConfigIncludedInSelectImports() {
-        var sut    = new ReactiveSaplMethodSecuritySelector();
-        var actual = sut.selectImports(AdviceMode.PROXY);
+        final var sut    = new ReactiveSaplMethodSecuritySelector();
+        final var actual = sut.selectImports(AdviceMode.PROXY);
         assertThat(actual, is(arrayContainingInAnyOrder(ReactiveSaplMethodSecurityConfiguration.class.getName())));
     }
 

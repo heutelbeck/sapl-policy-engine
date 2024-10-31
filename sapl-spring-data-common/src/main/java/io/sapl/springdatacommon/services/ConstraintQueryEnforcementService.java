@@ -40,9 +40,9 @@ public class ConstraintQueryEnforcementService {
 
     public QueryManipulationConstraintHandlerService queryManipulationForMongoReactive(AuthorizationDecision decision) {
 
-        var                                       obligations        = Sets
+        final var                                 obligations        = Sets
                 .newHashSet(decision.getObligations().orElseGet(MAPPER::createArrayNode));
-        var                                       handledObligations = new HashSet<JsonNode>();
+        final var                                 handledObligations = new HashSet<JsonNode>();
         QueryManipulationConstraintHandlerService bundle             = null;
 
         bundle = new QueryManipulationConstraintHandlerService(
@@ -59,9 +59,9 @@ public class ConstraintQueryEnforcementService {
 
     public QueryManipulationConstraintHandlerService queryManipulationForR2dbc(AuthorizationDecision decision) {
 
-        var                                       obligations        = Sets
+        final var                                 obligations        = Sets
                 .newHashSet(decision.getObligations().orElseGet(MAPPER::createArrayNode));
-        var                                       handledObligations = new HashSet<JsonNode>();
+        final var                                 handledObligations = new HashSet<JsonNode>();
         QueryManipulationConstraintHandlerService bundle             = null;
 
         bundle = new QueryManipulationConstraintHandlerService(
@@ -78,14 +78,14 @@ public class ConstraintQueryEnforcementService {
 
     private List<RecordConstraintData> filterHandlerType(HashSet<JsonNode> obligations,
             HashSet<JsonNode> handledObligations, ConstraintHandlerType type) {
-        var constraintDataRecords = new ArrayList<RecordConstraintData>();
+        final var constraintDataRecords = new ArrayList<RecordConstraintData>();
 
         for (JsonNode obligation : obligations) {
 
             if (ConstraintResponsibility.isResponsible(obligation, type.getType())) {
 
-                var schema = SCHEMA_FACTORY.getSchema(type.getTemplate());
-                var errors = schema.validate(obligation);
+                final var schema = SCHEMA_FACTORY.getSchema(type.getTemplate());
+                final var errors = schema.validate(obligation);
 
                 if (errors.isEmpty()) {
                     constraintDataRecords.add(new RecordConstraintData(type, obligation));
@@ -99,7 +99,7 @@ public class ConstraintQueryEnforcementService {
 
     private AccessDeniedException getAccessDeniedException(Iterable<JsonNode> unhandledObligations) {
 
-        var messageBuilder = new StringBuilder();
+        final var messageBuilder = new StringBuilder();
 
         for (JsonNode unhandableObligation : unhandledObligations) {
             messageBuilder.append("Unhandable Obligation: ").append(unhandableObligation.toPrettyString()).append('\n');

@@ -89,15 +89,15 @@ class ImmutableFileIndex {
         this.numberOfInvalidDocuments = oldIndex.numberOfInvalidDocuments;
         this.numberOfNameCollisions   = oldIndex.numberOfNameCollisions;
         for (var entry : oldIndex.documentsByPath.entrySet()) {
-            var documentCopy = new FileSystemDocument(entry.getValue());
+            final var documentCopy = new FileSystemDocument(entry.getValue());
             this.documentsByPath.put(entry.getKey(), documentCopy);
             addDocumentToNameIndex(documentCopy);
         }
     }
 
     private void addDocumentToNameIndex(FileSystemDocument document) {
-        var documentName      = document.getDocumentName();
-        var documentsWithName = namesToDocuments.computeIfAbsent(documentName, k -> new LinkedList<>());
+        final var documentName      = document.getDocumentName();
+        final var documentsWithName = namesToDocuments.computeIfAbsent(documentName, k -> new LinkedList<>());
         documentsWithName.add(document);
     }
 
@@ -119,9 +119,9 @@ class ImmutableFileIndex {
     }
 
     public ImmutableFileIndex afterFileEvent(FileEvent event) {
-        var fileName = event.file().getFileName();
-        var path     = event.file().toAbsolutePath();
-        var newIndex = new ImmutableFileIndex(this);
+        final var fileName = event.file().getFileName();
+        final var path     = event.file().toAbsolutePath();
+        final var newIndex = new ImmutableFileIndex(this);
         if (event instanceof FileDeletedEvent) {
             log.info("Unloading deleted SAPL document: {}", fileName);
             newIndex.unload(path);
@@ -164,7 +164,7 @@ class ImmutableFileIndex {
     }
 
     final void load(Path filePath) {
-        var newDocument = new FileSystemDocument(filePath, interpreter);
+        final var newDocument = new FileSystemDocument(filePath, interpreter);
         documentsByPath.put(newDocument.getAbsolutePath(), newDocument);
         if (newDocument.isInvalid()) {
             numberOfInvalidDocuments++;
@@ -200,12 +200,12 @@ class ImmutableFileIndex {
     }
 
     void unload(Path filePath) {
-        var path = getAbsolutePathAsString(filePath);
+        final var path = getAbsolutePathAsString(filePath);
 
         if (!containsDocumentWithPath(path))
             return;
 
-        var oldDocument = removeDocumentFromMap(path);
+        final var oldDocument = removeDocumentFromMap(path);
         if (oldDocument.isPublished())
             addWithdrawUpdate(oldDocument);
 
@@ -214,14 +214,14 @@ class ImmutableFileIndex {
             return;
         }
 
-        var documentsWithOriginalName = getDocumentByName(oldDocument.getDocumentName());
+        final var documentsWithOriginalName = getDocumentByName(oldDocument.getDocumentName());
         if (documentsWithOriginalName.size() > 1)
             numberOfNameCollisions--;
 
         documentsWithOriginalName.remove(oldDocument);
 
         if (documentsWithOriginalName.size() == 1) {
-            var onlyRemainingDocumentWithName = documentsWithOriginalName.get(0);
+            final var onlyRemainingDocumentWithName = documentsWithOriginalName.get(0);
             if (!onlyRemainingDocumentWithName.isPublished()) {
                 log.info(
                         "The removal of the document resolved a name collision. As a result, the document in file '{}' named '{}' will be published.",

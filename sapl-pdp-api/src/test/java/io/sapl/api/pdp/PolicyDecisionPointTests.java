@@ -48,7 +48,7 @@ class PolicyDecisionPointTests {
 
         }
 
-        var pdp = new SomePDP();
+        final var pdp = new SomePDP();
         StepVerifier.create(pdp.decideOnce(mock(AuthorizationSubscription.class)))
                 .expectNext(AuthorizationDecision.DENY).verifyComplete();
     }

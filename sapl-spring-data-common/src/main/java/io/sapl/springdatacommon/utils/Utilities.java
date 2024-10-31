@@ -50,12 +50,12 @@ public class Utilities {
     private static final Pattern DEFAULT_METHODS = Pattern.compile("^(find|read|get|query|search|stream)All$");
 
     public boolean isMethodNameValid(String methodName) {
-        var matcher = PREFIX_TEMPLATE.matcher(methodName);
+        final var matcher = PREFIX_TEMPLATE.matcher(methodName);
         return matcher.find();
     }
 
     public boolean isSpringDataDefaultMethod(String methodName) {
-        var matcher = DEFAULT_METHODS.matcher(methodName);
+        final var matcher = DEFAULT_METHODS.matcher(methodName);
         return matcher.find();
     }
 
@@ -91,10 +91,10 @@ public class Utilities {
      * accordingly. In addition, the case that a non-reactive type, such as a list
      * or collection, is expected is also covered.
      *
-     * @param databaseObjects     are the already manipulated objects, which are
-     *                            queried with the manipulated query.
+     * @param databaseObjects are the already manipulated objects, which are queried
+     * with the manipulated query.
      * @param returnClassOfMethod is the type which the database method expects as
-     *                            return type.
+     * return type.
      * @return the manipulated objects transformed to the correct type accordingly.
      */
     @SneakyThrows // ClassNotFoundException, InterruptedException, ExecutionException

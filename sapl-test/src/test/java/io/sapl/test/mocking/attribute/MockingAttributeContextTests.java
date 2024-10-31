@@ -83,7 +83,7 @@ class MockingAttributeContextTests {
     @Test
     void test_dynamicMock_mockEmitCalledForInvalidFullName() {
         attrCtx.loadAttributeMock("test.test", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-        var valOne = Val.of(1);
+        final var valOne = Val.of(1);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> attrCtx.mockEmit("test.test", valOne));
     }
 
@@ -105,9 +105,9 @@ class MockingAttributeContextTests {
     @Test
     void test_timingMock_duplicateRegistration() {
         attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-        var tenSeconds = Duration.ofSeconds(10L);
-        var valOne     = Val.of(1);
-        var valTwo     = Val.of(2);
+        final var tenSeconds = Duration.ofSeconds(10L);
+        final var valOne     = Val.of(1);
+        final var valTwo     = Val.of(2);
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> attrCtx.loadAttributeMock("foo.bar", tenSeconds, valOne, valTwo));
     }
@@ -140,8 +140,8 @@ class MockingAttributeContextTests {
     @Test
     void test_loadAttributeMockForParentValue_registeredButWrongType() {
         attrCtx.markAttributeMock("foo.bar");
-        var parent = parentValue(val(1));
-        var valTwo = Val.of(2);
+        final var parent = parentValue(val(1));
+        final var valTwo = Val.of(2);
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> attrCtx.loadAttributeMockForParentValue("foo.bar", parent, valTwo));
     }
@@ -158,9 +158,9 @@ class MockingAttributeContextTests {
         attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
                 whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(2));
 
-        var expression = Mockito.mock(Expression.class);
+        final var expression = Mockito.mock(Expression.class);
         Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
-        var arguments = Mockito.mock(Arguments.class);
+        final var arguments = Mockito.mock(Arguments.class);
         Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
 
         StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), arguments, variables))
@@ -174,9 +174,9 @@ class MockingAttributeContextTests {
         attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
                 whenAttributeParams(parentValue(val(1)), arguments(val(false))), Val.of(1));
 
-        var expression = Mockito.mock(Expression.class);
+        final var expression = Mockito.mock(Expression.class);
         Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
-        var arguments = Mockito.mock(Arguments.class);
+        final var arguments = Mockito.mock(Arguments.class);
         Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
 
         StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), arguments, variables))
@@ -186,10 +186,10 @@ class MockingAttributeContextTests {
     @Test
     void test_loadAttributeMockForParentValueAndArguments_registeredButWrongType() {
         attrCtx.markAttributeMock("foo.bar");
-        var parent     = parentValue(val(1));
-        var valTwo     = Val.of(2);
-        var arguments  = arguments(val(true));
-        var whenParams = whenAttributeParams(parent, arguments);
+        final var parent     = parentValue(val(1));
+        final var valTwo     = Val.of(2);
+        final var arguments  = arguments(val(true));
+        final var whenParams = whenAttributeParams(parent, arguments);
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar", whenParams, valTwo));
     }
@@ -199,9 +199,9 @@ class MockingAttributeContextTests {
         attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
                 whenAttributeParams(parentValue(is(Val.UNDEFINED)), arguments(val(true))), Val.of(2));
 
-        var expression = Mockito.mock(Expression.class);
+        final var expression = Mockito.mock(Expression.class);
         Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
-        var arguments = Mockito.mock(Arguments.class);
+        final var arguments = Mockito.mock(Arguments.class);
         Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
 
         StepVerifier.create(attrCtx.evaluateEnvironmentAttribute(null, "foo.bar", arguments, variables))
@@ -255,18 +255,18 @@ class MockingAttributeContextTests {
     @Test
     void test_documentation() {
         this.attrCtx.markAttributeMock("foo.bar");
-        var unmockedDoc = new PolicyInformationPointDocumentation("test", "Test");
+        final var unmockedDoc = new PolicyInformationPointDocumentation("test", "Test", "Test doc");
         unmockedDoc.getDocumentation().put("upper", "blabla");
         when(this.unmockedCtx.getDocumentation()).thenReturn(List.of(unmockedDoc));
 
         Collection<PolicyInformationPointDocumentation> result = this.attrCtx.getDocumentation();
 
         assertThat(result).hasSize(2);
-        var iterator = result.iterator();
-        var doc1     = iterator.next();
+        final var iterator = result.iterator();
+        final var doc1     = iterator.next();
         assertThat(doc1.getName()).isEqualTo("foo");
         assertThat(doc1.getDocumentation()).containsKey("bar");
-        var doc2 = iterator.next();
+        final var doc2 = iterator.next();
         assertThat(doc2.getName()).isEqualTo("test");
         assertThat(doc2.getDocumentation()).containsKey("upper");
     }
@@ -283,9 +283,9 @@ class MockingAttributeContextTests {
 
     @Test
     void test_mockEmit_UnmockedAttribute() {
-        var anUnmockedCtx = new AnnotationAttributeContext();
-        var ctx           = new MockingAttributeContext(anUnmockedCtx);
-        var valOne        = Val.of(1);
+        final var anUnmockedCtx = new AnnotationAttributeContext();
+        final var ctx           = new MockingAttributeContext(anUnmockedCtx);
+        final var valOne        = Val.of(1);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.mockEmit("foo.bar", valOne));
     }
 

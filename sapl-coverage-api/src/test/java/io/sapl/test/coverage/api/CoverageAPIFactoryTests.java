@@ -44,7 +44,7 @@ class CoverageAPIFactoryTests {
     }
 
     private int countFilesInDir(Path path) throws IOException {
-        var count = new AtomicInteger(0);
+        final var count = new AtomicInteger(0);
         if (!path.toFile().exists()) {
             return count.getPlain();
         }
@@ -56,7 +56,7 @@ class CoverageAPIFactoryTests {
 
     @Test
     void test_reader() {
-        var object = CoverageAPIFactory.constructCoverageHitReader(Paths.get(""));
+        final var object = CoverageAPIFactory.constructCoverageHitReader(Paths.get(""));
         assertThat(object).isNotNull();
     }
 

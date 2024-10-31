@@ -35,13 +35,13 @@ public class SpringContext implements ApplicationContextAware {
     /**
      * Resolves a spring bean dependency in the current application context.
      *
-     * @param <T>   The type of the searched bean.
+     * @param <T> The type of the searched bean.
      * @param clazz The class definition of the searched bean.
      * @return Returns a bean that matches the provided class type.
      */
     public static <T> T getBean(Class<T> clazz) {
         ApplicationContext localContext = applicationContext;
-        if (localContext == null) {
+        if (null == localContext) {
             throw new IllegalStateException("Spring ApplicationContext was not set");
         }
         return localContext.getBean(clazz);

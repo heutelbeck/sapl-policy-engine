@@ -17,14 +17,13 @@
  */
 package io.sapl.test.junit;
 
-import io.sapl.test.grammar.sapltest.ImportType;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
 import java.util.Map;
 import java.util.stream.Stream;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.DynamicContainer;
 import org.junit.jupiter.api.DynamicNode;
@@ -36,6 +35,7 @@ import io.sapl.test.dsl.interfaces.TestNode;
 import io.sapl.test.dsl.setup.BaseTestAdapter;
 import io.sapl.test.dsl.setup.TestCase;
 import io.sapl.test.dsl.setup.TestContainer;
+import io.sapl.test.grammar.sapltest.ImportType;
 
 public class JUnitTestAdapter extends BaseTestAdapter<DynamicContainer> {
 
@@ -43,14 +43,14 @@ public class JUnitTestAdapter extends BaseTestAdapter<DynamicContainer> {
     @DisplayName("SAPLTest")
     public List<DynamicContainer> getTests() {
         final var paths = TestDiscoveryHelper.discoverTests();
-        if (paths == null) {
+        if (null == paths) {
             return Collections.emptyList();
         }
         return paths.stream().map(this::createTest).toList();
     }
 
     private Stream<DynamicNode> getDynamicContainersFromTestNode(final Collection<? extends TestNode> testNodes) {
-        if (testNodes == null) {
+        if (null == testNodes) {
             return Stream.empty();
         }
 

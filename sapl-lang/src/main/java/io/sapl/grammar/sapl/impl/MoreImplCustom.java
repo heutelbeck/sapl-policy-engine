@@ -36,11 +36,11 @@ public class MoreImplCustom extends MoreImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this, this::moreThan);
+        return arithmeticOperator(this, this, MoreImplCustom::moreThan);
 
     }
 
-    private Val moreThan(Val left, Val right) {
+    public static Val moreThan(Val left, Val right) {
         return Val.of(left.decimalValue().compareTo(right.decimalValue()) > 0).withTrace(More.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }

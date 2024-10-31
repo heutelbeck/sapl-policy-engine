@@ -90,7 +90,7 @@ public class PolicySetDecision implements DocumentEvaluationResult {
 
     @Override
     public JsonNode getTrace() {
-        var trace = Val.JSON.objectNode();
+        final var trace = Val.JSON.objectNode();
         trace.set(Trace.DOCUMENT_TYPE, Val.JSON.textNode("policy set"));
         trace.set(Trace.POLICY_SET_NAME, Val.JSON.textNode(documentName));
         if (combinedDecision != null)
@@ -102,7 +102,7 @@ public class PolicySetDecision implements DocumentEvaluationResult {
 
     @Override
     public Collection<Val> getErrorsFromTrace() {
-        var errors = new ArrayList<Val>();
+        final var errors = new ArrayList<Val>();
         targetResult.ifPresent(target -> errors.addAll(target.getErrorsFromTrace()));
         errors.addAll(combinedDecision.getErrorsFromTrace());
         return errors;

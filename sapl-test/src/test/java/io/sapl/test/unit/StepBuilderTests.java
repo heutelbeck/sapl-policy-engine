@@ -39,7 +39,7 @@ class StepBuilderTests {
 
     @Test
     void test_NotApplicableDecisionWhenNotMatchingPolicyInUnitTest() {
-        var document = PARSER.parseDocument("policy \"test\" permit action == \"read\"");
+        final var document = PARSER.parseDocument("policy \"test\" permit action == \"read\"");
         StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
                 new HashMap<>()).when(AUTHZ_SUB).expectNotApplicable().verify();
 
@@ -47,16 +47,16 @@ class StepBuilderTests {
 
     @Test
     void test_matchResultNotBoolean() {
-        var document = PARSER.parseDocument("policy \"test\" permit 1/0");
+        final var document = PARSER.parseDocument("policy \"test\" permit 1/0");
         StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
                 new HashMap<>()).when(AUTHZ_SUB).expectNotApplicable().verify();
     }
 
     @Test
     void test_matchEmpty() {
-        var sapl = Mockito.mock(SAPL.class);
+        final var sapl = Mockito.mock(SAPL.class);
         Mockito.when(sapl.matches()).thenReturn(Mono.empty());
-        var document = Mockito.mock(Document.class);
+        final var document = Mockito.mock(Document.class);
         Mockito.when(document.sapl()).thenReturn(sapl);
         StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
                 new HashMap<>()).when(AUTHZ_SUB).expectNotApplicable().verify();
@@ -64,14 +64,14 @@ class StepBuilderTests {
 
     @Test
     void test_matchVirtualTime() {
-        var document = PARSER.parseDocument("policy \"test\" permit");
+        final var document = PARSER.parseDocument("policy \"test\" permit");
         StepBuilder.newBuilderAtGivenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
                 new HashMap<>()).withVirtualTime().when(AUTHZ_SUB).expectPermit().verify();
     }
 
     @Test
     void test_match_with_attribute() {
-        var document = PARSER.parseDocument("policy \"test\" permit where |<foo.bar> == \"fizz\";");
+        final var document = PARSER.parseDocument("policy \"test\" permit where |<foo.bar> == \"fizz\";");
         StepBuilder
                 .newBuilderAtGivenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
                         new HashMap<>())
@@ -80,7 +80,7 @@ class StepBuilderTests {
 
     @Test
     void test_match() {
-        var document = PARSER.parseDocument("policy \"test\" permit");
+        final var document = PARSER.parseDocument("policy \"test\" permit");
         StepBuilder.newBuilderAtWhenStep(document, new AnnotationAttributeContext(), new AnnotationFunctionContext(),
                 new HashMap<>()).when(AUTHZ_SUB).expectPermit().verify();
     }

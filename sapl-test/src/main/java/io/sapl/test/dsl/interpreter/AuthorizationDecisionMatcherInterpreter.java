@@ -68,7 +68,7 @@ class AuthorizationDecisionMatcherInterpreter {
             if (extendedObjectMatcher == null) {
                 return switch (authorizationDecisionMatcherType) {
                 case OBLIGATION -> hasObligation();
-                case ADVICE -> hasAdvice();
+                case ADVICE     -> hasAdvice();
                 };
             }
 
@@ -91,9 +91,9 @@ class AuthorizationDecisionMatcherInterpreter {
         }
 
         return switch (decision) {
-        case PERMIT -> isPermit();
-        case DENY -> isDeny();
-        case INDETERMINATE -> isIndeterminate();
+        case PERMIT         -> isPermit();
+        case DENY           -> isDeny();
+        case INDETERMINATE  -> isIndeterminate();
         case NOT_APPLICABLE -> isNotApplicable();
         };
     }
@@ -134,7 +134,7 @@ class AuthorizationDecisionMatcherInterpreter {
 
         return switch (authorizationDecisionMatcherType) {
         case OBLIGATION -> hasObligation(matcher);
-        case ADVICE -> hasAdvice(matcher);
+        case ADVICE     -> hasAdvice(matcher);
         };
     }
 
@@ -154,7 +154,7 @@ class AuthorizationDecisionMatcherInterpreter {
             if (matcher == null) {
                 return switch (authorizationDecisionMatcherType) {
                 case OBLIGATION -> hasObligationContainingKeyValue(key);
-                case ADVICE -> hasAdviceContainingKeyValue(key);
+                case ADVICE     -> hasAdviceContainingKeyValue(key);
                 };
             }
 
@@ -167,7 +167,7 @@ class AuthorizationDecisionMatcherInterpreter {
 
             return switch (authorizationDecisionMatcherType) {
             case OBLIGATION -> hasObligationContainingKeyValue(key, valueMatcher);
-            case ADVICE -> hasAdviceContainingKeyValue(key, valueMatcher);
+            case ADVICE     -> hasAdviceContainingKeyValue(key, valueMatcher);
             };
         }
 

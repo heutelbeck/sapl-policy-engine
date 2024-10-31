@@ -50,7 +50,7 @@ class BitmaskTests {
     @Test
     @SuppressWarnings("unchecked")
     void forEachSetBitTest() {
-        var listMock = (List<Integer>) mock(List.class);
+        final var listMock = (List<Integer>) mock(List.class);
 
         bitmask.forEachSetBit(listMock::add);
 

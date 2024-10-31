@@ -66,7 +66,7 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
      */
     public Flux<T> enforce(AuthorizationSubscription authorizationSubscription, Class<T> domainType,
             MethodInvocation invocation) {
-        var baseQuery = QueryCreation.createBaselineQuery(invocation);
+        final var baseQuery = QueryCreation.createBaselineQuery(invocation);
 
         return Mono.defer(() -> pdpProvider.getObject().decide(authorizationSubscription).next())
                 .flatMapMany(enforceDecision(baseQuery, domainType, invocation));
@@ -86,20 +86,20 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
 
             Flux<T> resourceAccessPoint;
 
-            var decisionIsPermit = Decision.PERMIT == decision.getDecision();
+            final var decisionIsPermit = Decision.PERMIT == decision.getDecision();
 
             if (!decisionIsPermit) {
                 resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
             } else {
-                var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
+                final var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
                         .queryManipulationForMongoReactive(decision);
 
-                var obligations = queryManipulationHandler.getQueryManipulationObligations();
-                var conditions  = queryManipulationHandler.getConditions();
-                var selections  = queryManipulationHandler.getSelections();
+                final var obligations = queryManipulationHandler.getQueryManipulationObligations();
+                final var conditions  = queryManipulationHandler.getConditions();
+                final var selections  = queryManipulationHandler.getSelections();
 
-                var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, domainType,
-                        obligations);
+                final var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision,
+                        domainType, obligations);
 
                 constraintHandlerBundle.handleMethodInvocationHandlers(invocation);
                 resourceAccessPoint = retrieveDataFromDatabase(conditions, selections, basicQuery, domainType,
@@ -120,17 +120,16 @@ public class MongoReactiveAnnotationQueryManipulationEnforcementPoint<T> {
      * Otherwise, receives the data from the database by original method and
      * forwards it.
      *
-     * @param obligations     are the obligations from the {@link Decision}.
+     * @param obligations are the obligations from the {@link Decision}.
      * @param annotationQuery is the original value from the
-     *                        {@link org.springframework.data.mongodb.repository.Query}
-     *                        annotation.
+     * {@link org.springframework.data.mongodb.repository.Query} annotation.
      * @return objects from the database that were queried with the manipulated
-     *         query.
+     * query.
      */
     private Flux<T> retrieveDataFromDatabase(ArrayNode conditions, ArrayNode selections, BasicQuery annotationQuery,
             Class<T> domainType, MethodInvocation invocation) {
 
-        var manipulatedQuery = QueryCreation.manipulateQuery(conditions, selections, annotationQuery, invocation);
+        final var manipulatedQuery = QueryCreation.manipulateQuery(conditions, selections, annotationQuery, invocation);
 
         log.debug(QUERY_LOG, manipulatedQuery);
 

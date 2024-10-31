@@ -30,7 +30,7 @@ public interface IntegrationTestPolicyResolver {
      * plain text.
      *
      * @param identifier The identifier used in an integration test definition via
-     *                   {@link io.sapl.test.grammar.sapltest.DocumentSet}.
+     * {@link io.sapl.test.grammar.sapltest.DocumentSet}.
      * @return The resolved Policy in plain text used for the test.
      */
     String resolvePolicyByIdentifier(String identifier);
@@ -40,7 +40,7 @@ public interface IntegrationTestPolicyResolver {
      * {@link io.sapl.pdp.config.PDPConfiguration} in plain text.
      *
      * @param identifier The identifier used in an integration test definition via
-     *                   {@link io.sapl.test.grammar.sapltest.DocumentSet}.
+     * {@link io.sapl.test.grammar.sapltest.DocumentSet}.
      * @return The resolved PDPConfiguration in plain text used for the test.
      */
     String resolvePDPConfigurationByIdentifier(String identifier);
@@ -50,10 +50,9 @@ public interface IntegrationTestPolicyResolver {
      * configuration.
      *
      * @param identifier The identifier used in an integration test definition via
-     *                   {@link io.sapl.test.grammar.sapltest.DocumentSetWithSingleIdentifier}.
+     * {@link io.sapl.test.grammar.sapltest.DocumentSetWithSingleIdentifier}.
      * @return The resolved Policies and PDP configuration in plain text to be used
-     *         for the test contained in a {@link IntegrationTestConfiguration}
-     *         instance.
+     * for the test contained in a {@link IntegrationTestConfiguration} instance.
      */
     IntegrationTestConfiguration resolveConfigurationByIdentifier(String identifier);
 }

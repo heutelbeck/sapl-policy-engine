@@ -31,7 +31,7 @@ import io.sapl.test.coverage.api.CoverageAPIFactory;
 public class CoverageAPIHelper {
 
     public CoverageTargets readHits(Path baseDir) throws IOException {
-        var reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
+        final var reader = CoverageAPIFactory.constructCoverageHitReader(baseDir);
         return new CoverageTargets(reader.readPolicySetHits(), reader.readPolicyHits(),
                 reader.readPolicyConditionHits());
     }

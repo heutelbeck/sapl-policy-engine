@@ -39,7 +39,7 @@ public class InitializationException extends Exception {
      * Create a new PolicyEvaluationException
      *
      * @param format format string
-     * @param args   arguments for format string
+     * @param args arguments for format string
      */
     public InitializationException(String format, Object... args) {
         super(String.format(format, args));
@@ -49,7 +49,7 @@ public class InitializationException extends Exception {
      * Create a new PolicyEvaluationException
      *
      * @param format format string
-     * @param args   arguments for format string
+     * @param args arguments for format string
      */
     public InitializationException(Throwable cause, String format, Object... args) {
         super(String.format(format, args), cause);
