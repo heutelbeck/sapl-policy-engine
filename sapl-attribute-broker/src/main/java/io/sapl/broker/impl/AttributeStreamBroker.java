@@ -53,7 +53,7 @@ public class AttributeStreamBroker {
          * potentially lead to a deadlock with the publishing and removal of PIPs to the
          * broker.
          */
-        pipRegistry.compute(invocation.fullyQualifiedAttributeName(), (name, pipsWithNameOfInvocation) -> {
+        pipRegistry.compute(invocation.fullyQualifiedAttributeName(), (fullyQualifiedAttributeName, pipsWithNameOfInvocation) -> {
             attributeStreamIndex.compute(invocation, (attributeName, streams) -> {
                 if (null == streams) {
                     streams = new ArrayList<>();
