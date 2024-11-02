@@ -21,7 +21,7 @@ import lombok.experimental.UtilityClass;
 
 /**
  * Class defining the common serialization ID for all Serializable classes.
- * Objects are not intended to be sezializable between versions of the engine.
+ * Objects are not intended to be serializable between versions of the engine.
  */
 @UtilityClass
 public class SaplVersion {
