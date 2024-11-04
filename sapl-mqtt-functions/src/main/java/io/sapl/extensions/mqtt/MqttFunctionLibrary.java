@@ -39,7 +39,7 @@ import lombok.experimental.UtilityClass;
 public class MqttFunctionLibrary {
 
     static final String NAME        = "mqtt";
-    static final String DESCRIPTION = "Functions for matching topics to wildcard topics.";
+    static final String DESCRIPTION = "Functions for matching topics to mqtt topics which contain wildcards.";
 
     private static final String TOPIC_CONTAINS_WILDCARD_ERROR_MESSAGE = "The wildcard topic must not be matched against topics containing wildcards.";
 
@@ -51,7 +51,19 @@ public class MqttFunctionLibrary {
      * @param topics A single textual mqtt topic or an array of mqtt topics.
      * @return Return true when all given topics are matching the wildcard topic.
      */
-    @Function(name = "isMatchingAllTopics", docs = "Checks whether all the topics match the wildcard.")
+    @Function(name = "isMatchingAllTopics", docs = """
+            ```isMatchingAllTopics(Text wildcardTopic, Text|Array topics)```:
+                        Checks whether all ```topics``` match the wildcard ```wildcardTopic```.
+
+            **Example:**
+            ```
+            policy "allTopicsMatchMultilevelWildcardTopic"
+            permit
+              subject == "firstSubject"
+            where
+              mqtt.isMatchingAllTopics(resource, ["first/second/third", "first/second/fourth"]);
+            ```
+            """)
     public Val isMatchingAllTopics(@Text Val wildcardTopic, @Text @Array Val topics) {
         final var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
 
@@ -71,7 +83,19 @@ public class MqttFunctionLibrary {
      * @param topics A single textual mqtt topic or an array of mqtt topics.
      * @return Return true when all given topics are matching the wildcard topic.
      */
-    @Function(name = "isMatchingAtLeastOneTopic", docs = "Checks whether at least one topic matches the wildcard.")
+    @Function(name = "isMatchingAtLeastOneTopic", docs = """
+            ```mqtt.isMatchingAtLeastOneTopic(Text wildcardTopic, Text|Array topics)```
+            Checks whether at least one topic in ```topics``` matches the wildcard ```wildcardTopic```.
+
+            **Example:**
+            ```
+            policy "atLeastOneTopicMatchesMultilevelWildcardTopic"
+            permit
+              subject == "secondSubject"
+            where
+              mqtt.isMatchingAtLeastOneTopic(resource, ["first/second/third", "first/third"]);
+            ```
+            """)
     public Val isMatchingAtLeastOneTopic(@Text Val wildcardTopic, @Text @Array Val topics) {
         final var mqttTopicFilter = buildMqttTopicFilter(wildcardTopic);
 
