@@ -48,7 +48,6 @@ public class TemporalFunctionLibrary {
 
     public static final String NAME        = "time";
     public static final String DESCRIPTION = """
-
             This library contains temporal functions. It relies on [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html)
             and DIN 1355 standards for time representation. The latter has been officially withdrawn but continues to be used in practice.
 
