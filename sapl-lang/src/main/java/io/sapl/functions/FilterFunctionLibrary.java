@@ -61,53 +61,54 @@ public class FilterFunctionLibrary {
      * @return the original Text value with the indicated characters replaced with
      * the replacement characters.
      */
-    @Function(docs = "```blacken(TEXT original[, INTEGER>0 discloseLeft][, INTEGER>0 discloseRight][, TEXT replacement][, INTEGER>0 length])```:"
-            + """
-                    This function can be used to partially blacken text in data.
-                    The function requires that ```discloseLeft```, ```discloseRight```, and ```length``` are in integers > 0.
-                    Also, ```original``` and ```replacement``` must be text strings.
-                    The function replaces each character in ```original``` by ```replacement```, while leaving ```discloseLeft```
-                    characters from the beginning and ```discloseRight``` characters from the end unchanged.
-                    If ```length``` is provided, the number of characters replaced is set to ```length```, e.g., for
-                    ensuring, that string length does not leak any information.
-                    If ```length``` is not provided it will just replace all characters that are not disclosed.
-                    Except for ```original```, all parameters are optional.
+    @Function(docs = """
+            ```blacken(TEXT original[, INTEGER>0 discloseLeft][, INTEGER>0 discloseRight][, TEXT replacement]\
+            [, INTEGER>0 length])```:
+            This function can be used to partially blacken text in data.
+            The function requires that ```discloseLeft```, ```discloseRight```, and ```length``` are in integers > 0.
+            Also, ```original``` and ```replacement``` must be text strings.
+            The function replaces each character in ```original``` by ```replacement```, while leaving ```discloseLeft```
+            characters from the beginning and ```discloseRight``` characters from the end unchanged.
+            If ```length``` is provided, the number of characters replaced is set to ```length```, e.g., for
+            ensuring, that string length does not leak any information.
+            If ```length``` is not provided it will just replace all characters that are not disclosed.
+            Except for ```original```, all parameters are optional.
 
-                    **Defaults**:
+            **Defaults**:
 
-                    ```discloseLeft``` defaults to ```0```, ```discloseRight``` defaults to ```0```
-                    and ```replacement``` defaults to ```"X"```.
-                    The function returns the modified ```original```.
+            ```discloseLeft``` defaults to ```0```, ```discloseRight``` defaults to ```0```
+            and ```replacement``` defaults to ```"X"```.
+            The function returns the modified ```original```.
 
-                    **Example:**
+            **Example:**
 
-                    Given a subscription:
-                    ```
-                    {
-                      "resource" : {
-                                     "array" : [ null, true ],
-                                     "key1"  : "abcde"
-                                   }
-                    }
-                    ```
+            Given a subscription:
+            ```
+            {
+              "resource" : {
+                             "array" : [ null, true ],
+                             "key1"  : "abcde"
+                           }
+            }
+            ```
 
-                    And the policy:
-                    ```
-                    policy "test"
-                    permit
-                    transform resource |- {
-                                            @.key1 : filter.blacken(1)
-                                          }
-                    ```
+            And the policy:
+            ```
+            policy "test"
+            permit
+            transform resource |- {
+                                    @.key1 : filter.blacken(1)
+                                  }
+            ```
 
-                    The decision will contain a ```resource``` as follows:
-                    ```
-                    {
-                      "array" : [ null, true ],
-                      "key1"  : "aXXXX"
-                    }
-                    ```
-                    """)
+            The decision will contain a ```resource``` as follows:
+            ```
+            {
+              "array" : [ null, true ],
+              "key1"  : "aXXXX"
+            }
+            ```
+            """)
     public static Val blacken(Val... parameters) {
         validateNumberOfParametersIsNotLongerThanMaximalAllowedNumberOfParameters(parameters);
         final var originalString = extractOriginalTextFromParameters(parameters);
