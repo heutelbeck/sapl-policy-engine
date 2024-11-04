@@ -32,7 +32,7 @@ import reactor.core.publisher.Sinks.Many;
  * Holds utility functions for handling attribute time out events.
  */
 @UtilityClass
-public class TimeOutWrapper {
+class TimeOutWrapper {
     /**
      * This function wraps a raw Flux of Val and ensures the following invariants:
      *

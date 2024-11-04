@@ -18,14 +18,15 @@
 package io.sapl.broker.impl;
 
 import static io.sapl.broker.impl.NameValidator.requireValidName;
+
 import java.lang.annotation.Annotation;
 import java.util.List;
 
 import lombok.NonNull;
 
-public record PolicyInformationPointSpecification(@NonNull String fullyQualifiedAttributeName,
-        boolean isEnvironmentAttribute, int numberOfArguments, boolean takesVariables,
-        @NonNull List<Annotation> entityValidators, @NonNull List<List<Annotation>> parameterValidators) {
+record PolicyInformationPointSpecification(@NonNull String fullyQualifiedAttributeName, boolean isEnvironmentAttribute,
+        int numberOfArguments, boolean takesVariables, @NonNull List<Annotation> entityValidators,
+        @NonNull List<List<Annotation>> parameterValidators) {
 
     public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;
 

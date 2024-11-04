@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.broker;
+package io.sapl.broker.impl;
 
 import java.time.Duration;
 import java.util.List;
@@ -26,10 +26,6 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.broker.impl.AttributeStreamBroker;
-import io.sapl.broker.impl.PolicyInformationPoint;
-import io.sapl.broker.impl.PolicyInformationPointInvocation;
-import io.sapl.broker.impl.PolicyInformationPointSpecification;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -75,25 +71,34 @@ class ScratchpadTests {
 
     @Test
     void foo() throws InterruptedException {
-        var broker = new AttributeStreamBroker();
+        var broker = new DefaultAttributeStreamBroker();
 
-        var dummyPipSpec = new PolicyInformationPointSpecification("dummy.pip", true, 0, false, List.of(), List.of());
+        var dummyPipSpec1 = new PolicyInformationPointSpecification("dummy.pip", true, 0, false, List.of(), List.of());
 //        var dummyPip     = (PolicyInformationPoint) invocation -> Flux.range(0, 100)
 //                .delayElements(Duration.ofSeconds(1L)).map(Val::of).log();
-        var dummyPip = (PolicyInformationPoint) invocation -> Flux.range(0, 3).delayElements(Duration.ofSeconds(1L))
+        var dummyPip1 = (PolicyInformationPoint) invocation -> Flux.range(0, 3).delayElements(Duration.ofSeconds(1L))
                 .map(Val::of).log();
 
-        broker.registerPolicyInformationPoint(dummyPipSpec, dummyPip);
+        broker.registerPolicyInformationPoint(dummyPipSpec1, dummyPip1);
 
-        var invocation = new PolicyInformationPointInvocation("dummy.pip", null, List.of(), Map.of(),
-                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofMillis(50L), 20L);
-
-        var attributeStream = broker.attributeStream(invocation);
+        var attributeStream = broker.environmentAttributeStream("xdummy.pip", List.of(), Map.of(),
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofMillis(50L), 20L, false);
 
         var streamSubscription = attributeStream.log().subscribe();
 
-        Thread.sleep(18000L);
+        Thread.sleep(1000L);
 
+        var dummyPipSpec2 = new PolicyInformationPointSpecification("xdummy.pip", true, 0, false, List.of(), List.of());
+        var dummyPip2     = (PolicyInformationPoint) invocation -> Flux.range(6, 9)
+                .delayElements(Duration.ofMillis(50)).map(Val::of).log();
+
+        log.error("->register");
+        broker.registerPolicyInformationPoint(dummyPipSpec2, dummyPip2);
+
+        Thread.sleep(18000L);
+        log.error("->remove");
+        broker.removePolicyInformationPoint(dummyPipSpec2);
+        Thread.sleep(18000L);
         streamSubscription.dispose();
         Thread.sleep(8000L);
 
