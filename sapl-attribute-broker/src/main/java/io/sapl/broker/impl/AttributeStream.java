@@ -52,7 +52,7 @@ import reactor.util.retry.Retry;
  * attribute streams.
  */
 @Slf4j
-public class AttributeStream {
+class AttributeStream {
     @Getter
     private final PolicyInformationPointInvocation invocation;
 

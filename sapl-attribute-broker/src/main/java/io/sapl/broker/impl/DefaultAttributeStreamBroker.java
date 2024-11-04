@@ -24,27 +24,39 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.api.broker.AttributeStreamBroker;
 import io.sapl.api.interpreter.Val;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 @Slf4j
-public class AttributeStreamBroker {
+public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
     static final Duration DEFAULT_GRACE_PERIOD = Duration.ofMillis(3000L);
 
     private final Map<PolicyInformationPointInvocation, List<AttributeStream>> attributeStreamIndex = new ConcurrentHashMap<>();
     private final Map<String, List<SpecAndPip>>                                pipRegistry          = new ConcurrentHashMap<>();
 
-    public Flux<Val> attributeStream(PolicyInformationPointInvocation invocation) {
-        return attributeStream(invocation, false);
+    @Override
+    public Flux<Val> attributeStream(@NonNull String attributeName, @NonNull Val entity, @NonNull List<Val> arguments,
+            @NonNull Map<String, Val> variables, @NonNull Duration initialTimeOut, @NonNull Duration pollIntervall,
+            @NonNull Duration backoff, long retries, boolean fresh) {
+        final var attributeInvocation = new PolicyInformationPointInvocation(attributeName, entity, arguments,
+                variables, initialTimeOut, pollIntervall, backoff, retries);
+        return attributeStream(attributeInvocation, fresh);
     }
 
-    public Flux<Val> freshAttributeStream(PolicyInformationPointInvocation invocation) {
-        return attributeStream(invocation, true);
+    @Override
+    public Flux<Val> environmentAttributeStream(@NonNull String environemntAttributeName, @NonNull List<Val> arguments,
+            @NonNull Map<String, Val> variables, @NonNull Duration initialTimeOut, @NonNull Duration pollIntervall,
+            @NonNull Duration backoff, long retries, boolean fresh) {
+        final var attributeInvocation = new PolicyInformationPointInvocation(environemntAttributeName, null, arguments,
+                variables, initialTimeOut, pollIntervall, backoff, retries);
+        return attributeStream(attributeInvocation, fresh);
     }
 
     private Flux<Val> attributeStream(PolicyInformationPointInvocation invocation, boolean fresh) {
-        final var attributeStreamReference = new AtomicReference<AttributeStream>();
+        final var attributeStreamReference = new AtomicReference<Flux<Val>>();
 
         /*
          * Design intent: To avoid deadlocks, the pipRegistry is always the first
@@ -53,30 +65,26 @@ public class AttributeStreamBroker {
          * potentially lead to a deadlock with the publishing and removal of PIPs to the
          * broker.
          */
-        pipRegistry.compute(invocation.fullyQualifiedAttributeName(), (fullyQualifiedAttributeName, pipsWithNameOfInvocation) -> {
-            attributeStreamIndex.compute(invocation, (attributeName, streams) -> {
-                if (null == streams) {
-                    streams = new ArrayList<>();
-                }
-                AttributeStream stream;
-                if (streams.isEmpty() || fresh) {
-                    stream = newAttributeStream(invocation, pipsWithNameOfInvocation);
-                    streams.add(stream);
-                } else {
-                    stream = streams.get(0);
-                }
-                attributeStreamReference.set(stream);
-                return streams;
-            });
-            return pipsWithNameOfInvocation;
-        });
+        pipRegistry.compute(invocation.fullyQualifiedAttributeName(),
+                (fullyQualifiedAttributeName, pipsWithNameOfInvocation) -> {
+                    attributeStreamIndex.compute(invocation, (attributeName, streams) -> {
+                        if (null == streams) {
+                            streams = new ArrayList<>();
+                        }
+                        AttributeStream stream;
+                        if (streams.isEmpty() || fresh) {
+                            stream = newAttributeStream(invocation, pipsWithNameOfInvocation);
+                            streams.add(stream);
+                        } else {
+                            stream = streams.get(0);
+                        }
+                        attributeStreamReference.set(stream.getStream());
+                        return streams;
+                    });
+                    return pipsWithNameOfInvocation;
+                });
 
-        final var attributeStream = attributeStreamReference.get();
-        if (null == attributeStream) {
-            return Flux.error(() -> new AttributeBrokerException(
-                    String.format("Cannot create attribute stream for %s.", invocation)));
-        }
-        return attributeStream.getStream();
+        return attributeStreamReference.get();
     }
 
     /**
@@ -206,4 +214,5 @@ public class AttributeStreamBroker {
 
     private record SpecAndPip(PolicyInformationPointSpecification specification,
             PolicyInformationPoint policyInformationPoint) {}
+
 }

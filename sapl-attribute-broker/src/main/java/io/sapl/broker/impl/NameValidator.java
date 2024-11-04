@@ -27,13 +27,11 @@ import lombok.experimental.UtilityClass;
  * information points or functions.
  */
 @UtilityClass
-public class NameValidator {
+class NameValidator {
     private static final String            REGEX   = "[a-zA-Z][a-zA-Z0-9]*\\.[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*){0,8}";
     private static final Predicate<String> PATTERN = Pattern.compile(REGEX).asMatchPredicate();
 
     /**
-     *
-     *
      * @param stringUnderTest a String for validation.
      * @throws IllegalArgumentException if the stringUnderTest does not match the
      * pattern for fully qualified names.

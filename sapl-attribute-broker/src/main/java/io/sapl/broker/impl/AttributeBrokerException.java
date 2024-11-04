@@ -22,7 +22,5 @@ import lombok.experimental.StandardException;
 
 @StandardException
 public class AttributeBrokerException extends RuntimeException {
-
     private static final long serialVersionUID = SaplVersion.VERISION_UID;
-
 }
