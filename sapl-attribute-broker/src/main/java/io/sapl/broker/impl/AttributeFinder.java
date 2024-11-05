@@ -21,6 +21,6 @@ import io.sapl.api.interpreter.Val;
 import reactor.core.publisher.Flux;
 
 @FunctionalInterface
-interface PolicyInformationPoint {
+interface AttributeFinder {
     Flux<Val> invoce(PolicyInformationPointInvocation invocation);
 }

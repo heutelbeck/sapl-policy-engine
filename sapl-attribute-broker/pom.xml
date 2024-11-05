@@ -46,6 +46,12 @@
 			<groupId>io.projectreactor.addons</groupId>
 			<artifactId>reactor-extra</artifactId>
 		</dependency>
+		<!-- JSON schema validation -->
+		<dependency>
+			<groupId>com.networknt</groupId>
+			<artifactId>json-schema-validator</artifactId>
+		</dependency>
+
 		<!-- Logging -->
 		<dependency>
 			<groupId>org.slf4j</groupId>

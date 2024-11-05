@@ -38,20 +38,22 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
     private final Map<String, List<SpecAndPip>>                                pipRegistry          = new ConcurrentHashMap<>();
 
     @Override
-    public Flux<Val> attributeStream(@NonNull String attributeName, @NonNull Val entity, @NonNull List<Val> arguments,
-            @NonNull Map<String, Val> variables, @NonNull Duration initialTimeOut, @NonNull Duration pollIntervall,
-            @NonNull Duration backoff, long retries, boolean fresh) {
-        final var attributeInvocation = new PolicyInformationPointInvocation(attributeName, entity, arguments,
-                variables, initialTimeOut, pollIntervall, backoff, retries);
+    public Flux<Val> attributeStream(@NonNull String pdpConfigurationId, @NonNull String attributeName,
+            @NonNull Val entity, @NonNull List<Val> arguments, @NonNull Map<String, Val> variables,
+            @NonNull Duration initialTimeOut, @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries,
+            boolean fresh) {
+        final var attributeInvocation = new PolicyInformationPointInvocation(pdpConfigurationId, attributeName, entity,
+                arguments, variables, initialTimeOut, pollIntervall, backoff, retries);
         return attributeStream(attributeInvocation, fresh);
     }
 
     @Override
-    public Flux<Val> environmentAttributeStream(@NonNull String environemntAttributeName, @NonNull List<Val> arguments,
-            @NonNull Map<String, Val> variables, @NonNull Duration initialTimeOut, @NonNull Duration pollIntervall,
-            @NonNull Duration backoff, long retries, boolean fresh) {
-        final var attributeInvocation = new PolicyInformationPointInvocation(environemntAttributeName, null, arguments,
-                variables, initialTimeOut, pollIntervall, backoff, retries);
+    public Flux<Val> environmentAttributeStream(@NonNull String pdpConfigurationId,
+            @NonNull String environemntAttributeName, @NonNull List<Val> arguments, @NonNull Map<String, Val> variables,
+            @NonNull Duration initialTimeOut, @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries,
+            boolean fresh) {
+        final var attributeInvocation = new PolicyInformationPointInvocation(pdpConfigurationId,
+                environemntAttributeName, null, arguments, variables, initialTimeOut, pollIntervall, backoff, retries);
         return attributeStream(attributeInvocation, fresh);
     }
 
@@ -116,7 +118,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
      * @param pipsWithNameOfInvocation a List of PIPs with specification.
      * @return a PIP whose specification is matching the invocation, or null.
      */
-    private PolicyInformationPoint searchForMatchingPip(PolicyInformationPointInvocation invocation,
+    private AttributeFinder searchForMatchingPip(PolicyInformationPointInvocation invocation,
             List<SpecAndPip> pipsWithNameOfInvocation) {
         if (null == pipsWithNameOfInvocation) {
             return null;
@@ -151,8 +153,8 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
      * @param policyInformationPoint The PIP itself.
      * @throws AttributeBrokerException if there is a specification collision.
      */
-    public void registerPolicyInformationPoint(PolicyInformationPointSpecification pipSpecification,
-            PolicyInformationPoint policyInformationPoint) {
+    public void registerPolicyInformationPoint(AttributeFinderSpecification pipSpecification,
+            AttributeFinder policyInformationPoint) {
         log.info("Publishing PIP: {}", pipSpecification);
         pipRegistry.compute(pipSpecification.fullyQualifiedAttributeName(), (key, pipsForName) -> {
             final var newPipsForName = new ArrayList<SpecAndPip>();
@@ -172,8 +174,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
         });
     }
 
-    private void requireNoSpecCollision(List<SpecAndPip> specsAndPips,
-            PolicyInformationPointSpecification pipSpecification) {
+    private void requireNoSpecCollision(List<SpecAndPip> specsAndPips, AttributeFinderSpecification pipSpecification) {
         for (var existingSpecAndPip : specsAndPips) {
             if (existingSpecAndPip.specification().collidesWith(pipSpecification)) {
                 throw new AttributeBrokerException(String.format(
@@ -187,9 +188,9 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
      * Removes a PIP with a given specification from the broker and disconnects all
      * connected attribute streams.
      *
-     * @param pipSpecification the specification of the PIP to unpublish
+     * @param pipSpecification the specification of the PIP to remove
      */
-    public void removePolicyInformationPoint(PolicyInformationPointSpecification pipSpecification) {
+    public void removePolicyInformationPoint(AttributeFinderSpecification pipSpecification) {
         log.info("Unpublishing PIP: {}", pipSpecification);
         pipRegistry.compute(pipSpecification.fullyQualifiedAttributeName(), (key, pipsForName) -> {
             if (null == pipsForName) {
@@ -212,7 +213,6 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
         });
     }
 
-    private record SpecAndPip(PolicyInformationPointSpecification specification,
-            PolicyInformationPoint policyInformationPoint) {}
+    private record SpecAndPip(AttributeFinderSpecification specification, AttributeFinder policyInformationPoint) {}
 
 }

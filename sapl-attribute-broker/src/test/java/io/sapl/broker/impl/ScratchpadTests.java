@@ -73,11 +73,11 @@ class ScratchpadTests {
     void foo() throws InterruptedException {
         var broker = new DefaultAttributeStreamBroker();
 
-        var dummyPipSpec1 = new PolicyInformationPointSpecification("dummy.pip", true, 0, false, List.of(), List.of());
+        var dummyPipSpec1 = new AttributeFinderSpecification("dummy.pip", true, 0, false);
 //        var dummyPip     = (PolicyInformationPoint) invocation -> Flux.range(0, 100)
 //                .delayElements(Duration.ofSeconds(1L)).map(Val::of).log();
-        var dummyPip1 = (PolicyInformationPoint) invocation -> Flux.range(0, 3).delayElements(Duration.ofSeconds(1L))
-                .map(Val::of).log();
+        var dummyPip1 = (AttributeFinder) invocation -> Flux.range(0, 3).delayElements(Duration.ofSeconds(1L))
+                .map(i -> "->" + i + "<-").map(Val::of);
 
         broker.registerPolicyInformationPoint(dummyPipSpec1, dummyPip1);
 
@@ -88,9 +88,9 @@ class ScratchpadTests {
 
         Thread.sleep(1000L);
 
-        var dummyPipSpec2 = new PolicyInformationPointSpecification("xdummy.pip", true, 0, false, List.of(), List.of());
-        var dummyPip2     = (PolicyInformationPoint) invocation -> Flux.range(6, 9)
-                .delayElements(Duration.ofMillis(50)).map(Val::of).log();
+        var dummyPipSpec2 = new AttributeFinderSpecification("xdummy.pip", true, 0, false);
+        var dummyPip2     = (AttributeFinder) invocation -> Flux.range(6, 3).delayElements(Duration.ofMillis(50))
+                .map(i -> "+>" + i + "<+").map(Val::of);
 
         log.error("->register");
         broker.registerPolicyInformationPoint(dummyPipSpec2, dummyPip2);
