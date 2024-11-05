@@ -120,7 +120,7 @@ class AttributeStream {
         publish(Val.error("No policy information point found for " + invocation + " PIP disconnected."));
     }
 
-    public void connectToPolicyInformationPoint(PolicyInformationPoint policyInformationPoint) {
+    public void connectToPolicyInformationPoint(AttributeFinder policyInformationPoint) {
         log.info("Connecting {} to {}.", policyInformationPoint, this);
         // @formatter:off
         final var pipStream = addInitialTimeOut(

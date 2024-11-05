@@ -19,18 +19,14 @@ package io.sapl.broker.impl;
 
 import static io.sapl.broker.impl.NameValidator.requireValidName;
 
-import java.lang.annotation.Annotation;
-import java.util.List;
-
 import lombok.NonNull;
 
-record PolicyInformationPointSpecification(@NonNull String fullyQualifiedAttributeName, boolean isEnvironmentAttribute,
-        int numberOfArguments, boolean takesVariables, @NonNull List<Annotation> entityValidators,
-        @NonNull List<List<Annotation>> parameterValidators) {
+record AttributeFinderSpecification(@NonNull String fullyQualifiedAttributeName, boolean isEnvironmentAttribute,
+        int numberOfArguments, boolean takesVariables) {
 
     public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;
 
-    public PolicyInformationPointSpecification {
+    public AttributeFinderSpecification {
         requireValidName(fullyQualifiedAttributeName);
     }
 
@@ -51,7 +47,7 @@ record PolicyInformationPointSpecification(@NonNull String fullyQualifiedAttribu
      * @return true, if the presence of the two specifications leads to
      * disambiguates in resolving PIP lookups.
      */
-    public boolean collidesWith(PolicyInformationPointSpecification other) {
+    public boolean collidesWith(AttributeFinderSpecification other) {
         if (!fullyQualifiedAttributeName.equals(other.fullyQualifiedAttributeName)
                 || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
             return false;
