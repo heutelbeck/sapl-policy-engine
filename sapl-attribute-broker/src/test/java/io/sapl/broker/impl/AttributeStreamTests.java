@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux;
 
 class AttributeStreamTests {
 
-    private static final PolicyInformationPointInvocation INVOCATION = new PolicyInformationPointInvocation(
+    private static final PolicyInformationPointInvocation INVOCATION = new PolicyInformationPointInvocation("configId",
             "some.attribute", null, List.of(), Map.of(), Duration.ofSeconds(1L), Duration.ofSeconds(1L),
             Duration.ofMillis(50L), 20L);
 

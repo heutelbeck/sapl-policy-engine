@@ -37,22 +37,24 @@ class PolicyInformationPointInvocationTests {
     void whenConstructionOfPolicyInformationPointInvocationHasBadParametersThenThrowElseDoNotThrow() {
         final List<Val>        emptyList = List.of();
         final Map<String, Val> emptyMap  = Map.of();
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation(null, Val.TRUE, emptyList, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("abc.def", Val.TRUE, null, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("abc.def", Val.TRUE, emptyList, null, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("abc.def", Val.TRUE, emptyList, emptyMap, null,
-                ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("abc.def", Val.TRUE, emptyList, emptyMap,
+        assertThatThrownBy(() -> new PolicyInformationPointInvocation(null, "abc.def", Val.TRUE, emptyList, emptyMap,
+                ONE_SECOND, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", null, Val.TRUE, emptyList, emptyMap,
+                ONE_SECOND, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "abc.def", Val.TRUE, null, emptyMap,
+                ONE_SECOND, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "abc.def", Val.TRUE, emptyList, null,
+                ONE_SECOND, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
+                null, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
                 ONE_SECOND, null, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("abc.def", Val.TRUE, emptyList, emptyMap,
+        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
                 ONE_SECOND, ONE_SECOND, null, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("123 ", Val.TRUE, emptyList, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L)).isInstanceOf(IllegalArgumentException.class);
-        assertDoesNotThrow(() -> new PolicyInformationPointInvocation("abc.def", null, emptyList, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L));
+        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "123 ", Val.TRUE, emptyList, emptyMap,
+                ONE_SECOND, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(IllegalArgumentException.class);
+        assertDoesNotThrow(() -> new PolicyInformationPointInvocation("id", "abc.def", null, emptyList, emptyMap,
+                ONE_SECOND, ONE_SECOND, BACKOFF, 20L));
     }
 
 }
