@@ -20,22 +20,24 @@ package io.sapl.broker.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
-class AttributeFinderSpecificationTests {
+class AttributeSpecificationTests {
 
     @Test
     void whenConstructionOfPolicyInformationPointSpecificationHasBadParametersThenThrowElseDoNotThrow() {
-        assertThatThrownBy(() -> new AttributeFinderSpecification(null, true, 0, true))
+        assertThatThrownBy(() -> new AttributeSpecification(null, true, 0, true, List.of(), List.of()))
                 .isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void whenVarArgsCheckedThenVarArgsCorrectlyDetected() {
-        var withVarArgs = new AttributeFinderSpecification("abc.def", true,
-                AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, true);
+        var withVarArgs = new AttributeSpecification("abc.def", true,
+                AttributeSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, true, List.of(), List.of());
         assertThat(withVarArgs.hasVariableNumberOfArguments()).isTrue();
-        var notWithVarArgs = new AttributeFinderSpecification("abc.def", true, 0, true);
+        var notWithVarArgs = new AttributeSpecification("abc.def", true, 0, true, List.of(), List.of());
         assertThat(notWithVarArgs.hasVariableNumberOfArguments()).isFalse();
     }
 

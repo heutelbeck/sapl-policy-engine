@@ -22,5 +22,5 @@ import reactor.core.publisher.Flux;
 
 @FunctionalInterface
 interface AttributeFinder {
-    Flux<Val> invoce(PolicyInformationPointInvocation invocation);
+    Flux<Val> invoke(PolicyInformationPointInvocation invocation);
 }
