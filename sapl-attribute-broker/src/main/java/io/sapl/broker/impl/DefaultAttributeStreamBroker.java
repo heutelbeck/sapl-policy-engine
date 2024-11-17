@@ -153,7 +153,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
      * @param policyInformationPoint The PIP itself.
      * @throws AttributeBrokerException if there is a specification collision.
      */
-    public void registerPolicyInformationPoint(AttributeFinderSpecification pipSpecification,
+    public void registerPolicyInformationPoint(AttributeSpecification pipSpecification,
             AttributeFinder policyInformationPoint) {
         log.info("Publishing PIP: {}", pipSpecification);
         pipRegistry.compute(pipSpecification.fullyQualifiedAttributeName(), (key, pipsForName) -> {
@@ -174,7 +174,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
         });
     }
 
-    private void requireNoSpecCollision(List<SpecAndPip> specsAndPips, AttributeFinderSpecification pipSpecification) {
+    private void requireNoSpecCollision(List<SpecAndPip> specsAndPips, AttributeSpecification pipSpecification) {
         for (var existingSpecAndPip : specsAndPips) {
             if (existingSpecAndPip.specification().collidesWith(pipSpecification)) {
                 throw new AttributeBrokerException(String.format(
@@ -190,7 +190,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
      *
      * @param pipSpecification the specification of the PIP to remove
      */
-    public void removePolicyInformationPoint(AttributeFinderSpecification pipSpecification) {
+    public void removePolicyInformationPoint(AttributeSpecification pipSpecification) {
         log.info("Unpublishing PIP: {}", pipSpecification);
         pipRegistry.compute(pipSpecification.fullyQualifiedAttributeName(), (key, pipsForName) -> {
             if (null == pipsForName) {
@@ -213,6 +213,6 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
         });
     }
 
-    private record SpecAndPip(AttributeFinderSpecification specification, AttributeFinder policyInformationPoint) {}
+    private record SpecAndPip(AttributeSpecification specification, AttributeFinder policyInformationPoint) {}
 
 }

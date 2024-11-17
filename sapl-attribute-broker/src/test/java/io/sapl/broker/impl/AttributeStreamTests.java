@@ -29,10 +29,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import io.sapl.api.interpreter.Val;
 import reactor.core.publisher.Flux;
 
+@Timeout(20)
 class AttributeStreamTests {
 
     private static final PolicyInformationPointInvocation INVOCATION = new PolicyInformationPointInvocation("configId",

@@ -125,7 +125,7 @@ class AttributeStream {
         // @formatter:off
         final var pipStream = addInitialTimeOut(
                               retryOnError(
-                              pollOnComplete(policyInformationPoint.invoce(invocation)
+                              pollOnComplete(policyInformationPoint.invoke(invocation)
                                                                    .defaultIfEmpty(Val.UNDEFINED)
                                                                    .doOnNext(this::publish)
                                                                    .doOnError(this::publish)
