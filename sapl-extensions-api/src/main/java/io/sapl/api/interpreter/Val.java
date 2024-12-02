@@ -50,7 +50,7 @@ import reactor.core.publisher.Flux;
  * This class is the central value during policy evaluation. It can be a JSON
  * value, an error,or undefined. A Val can be marked as secret.
  */
-public class Val implements Traced, Serializable {
+public final class Val implements Traced, Serializable {
 
     private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
