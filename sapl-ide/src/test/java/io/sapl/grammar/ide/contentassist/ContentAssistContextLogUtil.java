@@ -30,11 +30,11 @@ import lombok.extern.slf4j.Slf4j;
 public class ContentAssistContextLogUtil {
     public static void dump(final ContentAssistContext context) {
         var n = ContextAnalyzer.firstNodeForAnalysis(context);
-        var t = "";
-        var c = "";
-        var g = "";
-        var r = "";
-        var s = "";
+        var t = new StringBuilder();
+        var c = new StringBuilder();
+        var g = new StringBuilder();
+        var r = new StringBuilder();
+        var s = new StringBuilder();
         while (null != n) {
             final var text  = StringEscapeUtils.escapeJava(n.getText());
             final var clazz = StringEscapeUtils.escapeJava(n.getClass().getSimpleName());
@@ -51,11 +51,11 @@ public class ContentAssistContextLogUtil {
             final var length = Math.max(
                     Math.max(Math.max(text.length(), clazz.length()), Math.max(ge.length(), se.length())), ru.length());
             final var format = "%" + length + "s|";
-            t = String.format(format, text) + t;
-            c = String.format(format, clazz) + c;
-            g = String.format(format, ge) + g;
-            r = String.format(format, ru) + r;
-            s = String.format(format, se) + s;
+            t.insert(0, String.format(format, text));
+            c.insert(0, String.format(format, clazz));
+            g.insert(0, String.format(format, ge));
+            r.insert(0, String.format(format, ru));
+            s.insert(0, String.format(format, se));
             n = ContextAnalyzer.leftOf(n);
         }
         log.trace("Text    : {}", t);

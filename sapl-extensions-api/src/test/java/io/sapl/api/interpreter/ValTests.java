@@ -589,11 +589,10 @@ class ValTests {
     void fieldJsonNodeOrElseThrow() throws Exception {
         final var val = Val.ofJson("{ \"field\":123 }");
         final var sa  = new SoftAssertions();
-        sa.assertThat(val.fieldJsonNodeOrElseThrow("field", () -> new RuntimeException()))
-                .isEqualTo(JSON.numberNode(123));
-        sa.assertThatThrownBy(() -> val.fieldJsonNodeOrElseThrow("no field", () -> new RuntimeException()))
+        sa.assertThat(val.fieldJsonNodeOrElseThrow("field", RuntimeException::new)).isEqualTo(JSON.numberNode(123));
+        sa.assertThatThrownBy(() -> val.fieldJsonNodeOrElseThrow("no field", RuntimeException::new))
                 .isInstanceOf(RuntimeException.class);
-        sa.assertThatThrownBy(() -> Val.UNDEFINED.fieldJsonNodeOrElseThrow("no field", () -> new RuntimeException()))
+        sa.assertThatThrownBy(() -> Val.UNDEFINED.fieldJsonNodeOrElseThrow("no field", RuntimeException::new))
                 .isInstanceOf(RuntimeException.class);
         sa.assertAll();
     }

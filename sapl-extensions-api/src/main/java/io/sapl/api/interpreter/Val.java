@@ -113,7 +113,13 @@ public class Val implements Traced, Serializable {
     }
 
     private Val(JsonNode value, boolean isSecret, Trace trace, SaplError error) {
-        this.value  = (BaseJsonNode) value;
+        if (value == null) {
+            this.value = null;
+        } else if (value instanceof BaseJsonNode baseJson) {
+            this.value = baseJson;
+        } else {
+            throw new IllegalArgumentException("Value must be a BaseJsonNode or null");
+        }
         this.secret = isSecret;
         this.trace  = trace;
         this.error  = error;

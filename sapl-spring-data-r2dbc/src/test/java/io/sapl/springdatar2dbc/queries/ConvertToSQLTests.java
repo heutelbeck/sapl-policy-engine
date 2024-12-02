@@ -36,10 +36,10 @@ class ConvertToSQLTests {
         final var expected   = " ORDER BY age ASC";
 
         // WHEN
-        final var result = ConvertToSQL.getSorting(query, parameters);
+        final var actual = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
-        assertEquals(result.toString(), expected);
+        assertEquals(expected, actual);
     }
 
     @Test
@@ -50,10 +50,10 @@ class ConvertToSQLTests {
         final var expected   = " ORDER BY age DESC";
 
         // WHEN
-        final var result = ConvertToSQL.getSorting(query, parameters);
+        final var actual = ConvertToSQL.getSorting(query, parameters);
 
         // THEN
-        assertEquals(result.toString(), expected);
+        assertEquals(expected, actual);
     }
 
     @Test

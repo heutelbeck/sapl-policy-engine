@@ -136,11 +136,11 @@ class QueryCreationTests {
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        final var result = QueryCreation.manipulateQuery(baseQuery, conditionsOne, selections, transdormations, "",
+        final var actual = QueryCreation.manipulateQuery(baseQuery, conditionsOne, selections, transdormations, "",
                 Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -156,11 +156,11 @@ class QueryCreationTests {
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        final var result = QueryCreation.manipulateQuery(baseQuery, conditionsOne, selections, transdormations, "",
+        final var actual = QueryCreation.manipulateQuery(baseQuery, conditionsOne, selections, transdormations, "",
                 Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -176,11 +176,11 @@ class QueryCreationTests {
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        final var result = QueryCreation.manipulateQuery(baseQuery, conditionsWithAnd, selections, transdormations, "",
+        final var actual = QueryCreation.manipulateQuery(baseQuery, conditionsWithAnd, selections, transdormations, "",
                 Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -196,11 +196,11 @@ class QueryCreationTests {
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        final var result = QueryCreation.manipulateQuery(baseQuery, conditionsWithOr, selections, transdormations, "",
+        final var actual = QueryCreation.manipulateQuery(baseQuery, conditionsWithOr, selections, transdormations, "",
                 Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -220,10 +220,10 @@ class QueryCreationTests {
         convertToSQLMock.when(() -> ConvertToSQL.prepareAndMergeSortObjects(any(Sort.class), any(Object[].class)))
                 .thenReturn(sortingPart);
 
-        final var result = QueryCreation.createBaselineQuery(methodInvocationMock);
+        final var actual = QueryCreation.createBaselineQuery(methodInvocationMock);
 
         // THEN
-        assertEquals(result, baseQuery + sortingPart);
+        assertEquals(baseQuery + sortingPart, actual);
 
         queryAnnotationParameterResolverMock.verify(() -> QueryAnnotationParameterResolver
                 .resolveForRelationalDatabase(any(Method.class), any(Object[].class)), times(1));
@@ -243,11 +243,11 @@ class QueryCreationTests {
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        final var result = QueryCreation.createSqlQuery(conditionsOne, selections, transdormations, Person.class,
+        final var actual = QueryCreation.createSqlQuery(conditionsOne, selections, transdormations, Person.class,
                 baseQuery);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),
@@ -266,11 +266,11 @@ class QueryCreationTests {
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        final var result = QueryCreation.createSqlQuery(conditionsOne, selections, transdormations, Person.class,
+        final var actual = QueryCreation.createSqlQuery(conditionsOne, selections, transdormations, Person.class,
                 baseQuery);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),
@@ -289,11 +289,11 @@ class QueryCreationTests {
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        final var result = QueryCreation.createSqlQuery(EMPTY_ARRAYNODE, selections, transdormations, Person.class,
+        final var actual = QueryCreation.createSqlQuery(EMPTY_ARRAYNODE, selections, transdormations, Person.class,
                 baseQuery);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),
@@ -312,11 +312,11 @@ class QueryCreationTests {
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        final var result = QueryCreation.createSqlQuery(conditionsTwo, selections, transdormations, Person.class,
+        final var actual = QueryCreation.createSqlQuery(conditionsTwo, selections, transdormations, Person.class,
                 baseQuery);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),

@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -33,13 +34,13 @@ class ValAssertTests {
     @Test
     void isErrorPositive() {
         final var sut = assertThatVal(Val.error(SaplError.UNKNOWN_ERROR));
-        assertDoesNotThrow(() -> sut.isError());
+        assertDoesNotThrow((Executable) sut::isError);
     }
 
     @Test
     void isErrorNegative() {
         final var sut = assertThatVal(Val.TRUE);
-        assertThatThrownBy(() -> sut.isError()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::isError).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to be an <ERROR[]> with any message but was");
     }
 
@@ -66,59 +67,59 @@ class ValAssertTests {
     @Test
     void noErrorPositive() {
         final var sut = assertThatVal(Val.TRUE);
-        assertDoesNotThrow(() -> sut.noError());
+        assertDoesNotThrow(sut::noError);
     }
 
     @Test
     void noErrorNegative() {
         final var sut = assertThatVal(Val.error((String) null));
-        assertThatThrownBy(() -> sut.noError()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::noError).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to not be an error but was");
     }
 
     @Test
     void isUndefinedPositive() {
         final var sut = assertThatVal(Val.UNDEFINED);
-        assertDoesNotThrow(() -> sut.isUndefined());
+        assertDoesNotThrow(sut::isUndefined);
     }
 
     @Test
     void isUndefinedNegative() {
         final var sut = assertThatVal(Val.TRUE);
-        assertThatThrownBy(() -> sut.isUndefined()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::isUndefined).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to be <undefined> but was");
     }
 
     @Test
     void isSecretPositive() {
         final var sut = assertThatVal(Val.TRUE.asSecret());
-        assertDoesNotThrow(() -> sut.isSecret());
+        assertDoesNotThrow(sut::isSecret);
     }
 
     @Test
     void isSecretNegative() {
         final var sut = assertThatVal(Val.TRUE);
-        assertThatThrownBy(() -> sut.isSecret()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::isSecret).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to be <SECRET> but was");
     }
 
     @Test
     void hasValuePositive() {
         final var sut = assertThatVal(Val.TRUE);
-        assertDoesNotThrow(() -> sut.hasValue());
+        assertDoesNotThrow(sut::hasValue);
     }
 
     @Test
     void hasValueNegativeUndefined() {
         final var sut = assertThatVal(Val.UNDEFINED);
-        assertThatThrownBy(() -> sut.hasValue()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::hasValue).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Excpected Val to be defined");
     }
 
     @Test
     void hasValueNegativeError() {
         final var sut = assertThatVal(Val.error(SaplError.UNKNOWN_ERROR));
-        assertThatThrownBy(() -> sut.hasValue()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::hasValue).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Excpected Val to be defined");
     }
 
@@ -131,40 +132,40 @@ class ValAssertTests {
     @Test
     void isTruePositive() {
         final var sut = assertThatVal(Val.TRUE);
-        assertDoesNotThrow(() -> sut.isTrue());
+        assertDoesNotThrow(sut::isTrue);
     }
 
     @Test
     void isTrueNegativeIsFalse() {
         final var sut = assertThatVal(Val.FALSE);
-        assertThatThrownBy(() -> sut.isTrue()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::isTrue).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to be <true>");
     }
 
     @Test
     void isTrueNegativeIsWrongType() {
         final var sut = assertThatVal(Val.of("not Boolean"));
-        assertThatThrownBy(() -> sut.isTrue()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::isTrue).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to be <true>");
     }
 
     @Test
     void isFalsePositive() {
         final var sut = assertThatVal(Val.FALSE);
-        assertDoesNotThrow(() -> sut.isFalse());
+        assertDoesNotThrow(sut::isFalse);
     }
 
     @Test
     void isFalseNegativeIsTrue() {
         final var sut = assertThatVal(Val.TRUE);
-        assertThatThrownBy(() -> sut.isFalse()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::isFalse).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to be <false>");
     }
 
     @Test
     void isFalseNegativeIsWrongType() {
         final var sut = assertThatVal(Val.of("not Boolean"));
-        assertThatThrownBy(() -> sut.isFalse()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::isFalse).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected Val to be <false>");
     }
 
