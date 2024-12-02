@@ -187,9 +187,7 @@ class QueryManipulationConstraintHandlerServiceTests {
 
         // WHEN
 
-        final var accessDeniedException = assertThrows(AccessDeniedException.class, () -> {
-            handlerBundle.getSelections();
-        });
+        final var accessDeniedException = assertThrows(AccessDeniedException.class, handlerBundle::getSelections);
 
         // THEN
         assertEquals(TestUtils.removeWhitespace(errorMessage),

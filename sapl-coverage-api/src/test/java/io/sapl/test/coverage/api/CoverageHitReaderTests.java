@@ -125,7 +125,7 @@ class CoverageHitReaderTests {
     @Test
     void testCoverageReading_PolicySets_FileNotExist(@TempDir Path tempDir) {
         final var reader = new CoverageHitAPIFile(tempDir);
-        assertThatThrownBy(() -> reader.readPolicySetHits()).isInstanceOf(NoSuchFileException.class);
+        assertThatThrownBy(reader::readPolicySetHits).isInstanceOf(NoSuchFileException.class);
     }
 
 }

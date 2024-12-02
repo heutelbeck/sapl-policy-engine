@@ -23,7 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -71,7 +71,7 @@ class DefaultStepConstructorTests {
 
         final var saplTestFixtureMock = mock(SaplTestFixture.class);
 
-        final var registrations = new HashMap<ImportType, Map<String, Object>>();
+        final var registrations = new EnumMap<ImportType, Map<String, Object>>(ImportType.class);
 
         when(defaultTestFixtureConstructorMock.constructTestFixture(documentMock, pdpVariablesMock,
                 pdpCombiningAlgorithmMock, givenSteps, registrations)).thenReturn(saplTestFixtureMock);

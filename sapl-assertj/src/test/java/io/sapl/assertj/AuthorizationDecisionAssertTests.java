@@ -35,52 +35,52 @@ class AuthorizationDecisionAssertTests {
     @Test
     void isPermitPositive() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.PERMIT);
-        assertDoesNotThrow(() -> sut.isPermit());
+        assertDoesNotThrow(sut::isPermit);
     }
 
     @Test
     void isPermitNegative() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.DENY);
-        assertThatThrownBy(() -> sut.isPermit()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::isPermit).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected AuthorizationDecision to have decision <PERMIT> but was <DENY>");
     }
 
     @Test
     void isDenyPositive() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.DENY);
-        assertDoesNotThrow(() -> sut.isDeny());
+        assertDoesNotThrow(sut::isDeny);
     }
 
     @Test
     void isDenyNegative() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.PERMIT);
-        assertThatThrownBy(() -> sut.isDeny()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::isDeny).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected AuthorizationDecision to have decision <DENY> but was <PERMIT>");
     }
 
     @Test
     void isNotApplicablePositive() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.NOT_APPLICABLE);
-        assertDoesNotThrow(() -> sut.isNotApplicable());
+        assertDoesNotThrow(sut::isNotApplicable);
     }
 
     @Test
     void isNotApplicableNegative() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.DENY);
-        assertThatThrownBy(() -> sut.isNotApplicable()).isInstanceOf(AssertionError.class).hasMessageContaining(
+        assertThatThrownBy(sut::isNotApplicable).isInstanceOf(AssertionError.class).hasMessageContaining(
                 "Expected AuthorizationDecision to have decision <NOT_APPLICABLE> but was <DENY>");
     }
 
     @Test
     void isIndeterminatePositive() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.INDETERMINATE);
-        assertDoesNotThrow(() -> sut.isIndeterminate());
+        assertDoesNotThrow(sut::isIndeterminate);
     }
 
     @Test
     void isIndeterminateNegative() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.DENY);
-        assertThatThrownBy(() -> sut.isIndeterminate()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::isIndeterminate).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected AuthorizationDecision to have decision <INDETERMINATE> but was <DENY>");
     }
 
@@ -90,20 +90,20 @@ class AuthorizationDecisionAssertTests {
         obligations.addObject().put("foo", "bar");
         final var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
         final var sut      = assertThatAuthorizationDecision(decision);
-        assertDoesNotThrow(() -> sut.hasObligations());
+        assertDoesNotThrow(sut::hasObligations);
     }
 
     @Test
     void hasObligationsNegative() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.PERMIT);
-        assertThatThrownBy(() -> sut.hasObligations()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::hasObligations).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected AuthorizationDecision to have obligations but it had none.");
     }
 
     @Test
     void hasNoObligationsPositive() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.PERMIT);
-        assertDoesNotThrow(() -> sut.hasNoObligations());
+        assertDoesNotThrow(sut::hasNoObligations);
     }
 
     @Test
@@ -112,7 +112,7 @@ class AuthorizationDecisionAssertTests {
         obligations.addObject().put("foo", "bar");
         final var decision = AuthorizationDecision.PERMIT.withObligations(obligations);
         final var sut      = assertThatAuthorizationDecision(decision);
-        assertThatThrownBy(() -> sut.hasNoObligations()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::hasNoObligations).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected AuthorizationDecision to have no obligations but they were");
     }
 
@@ -122,20 +122,20 @@ class AuthorizationDecisionAssertTests {
         advice.addObject().put("foo", "bar");
         final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
         final var sut      = assertThatAuthorizationDecision(decision);
-        assertDoesNotThrow(() -> sut.hasAdvice());
+        assertDoesNotThrow(sut::hasAdvice);
     }
 
     @Test
     void hasAdviceNegative() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.PERMIT);
-        assertThatThrownBy(() -> sut.hasAdvice()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::hasAdvice).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected AuthorizationDecision to have advice but it had none.");
     }
 
     @Test
     void hasNoAdvicePositive() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.PERMIT);
-        assertDoesNotThrow(() -> sut.hasNoAdvice());
+        assertDoesNotThrow(sut::hasNoAdvice);
     }
 
     @Test
@@ -144,7 +144,7 @@ class AuthorizationDecisionAssertTests {
         advice.addObject().put("foo", "bar");
         final var decision = AuthorizationDecision.PERMIT.withAdvice(advice);
         final var sut      = assertThatAuthorizationDecision(decision);
-        assertThatThrownBy(() -> sut.hasNoAdvice()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::hasNoAdvice).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected AuthorizationDecision to have no advice but they were");
     }
 
@@ -154,20 +154,20 @@ class AuthorizationDecisionAssertTests {
         resource.addObject().put("foo", "bar");
         final var decision = AuthorizationDecision.PERMIT.withResource(resource);
         final var sut      = assertThatAuthorizationDecision(decision);
-        assertDoesNotThrow(() -> sut.hasResource());
+        assertDoesNotThrow(sut::hasResource);
     }
 
     @Test
     void hasResourceNegative() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.PERMIT);
-        assertThatThrownBy(() -> sut.hasResource()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::hasResource).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected AuthorizationDecision to have a resource but it had none.");
     }
 
     @Test
     void hasNoResourcePositive() {
         final var sut = assertThatAuthorizationDecision(AuthorizationDecision.PERMIT);
-        assertDoesNotThrow(() -> sut.hasNoResource());
+        assertDoesNotThrow(sut::hasNoResource);
     }
 
     @Test
@@ -176,7 +176,7 @@ class AuthorizationDecisionAssertTests {
         resource.addObject().put("foo", "bar");
         final var decision = AuthorizationDecision.PERMIT.withResource(resource);
         final var sut      = assertThatAuthorizationDecision(decision);
-        assertThatThrownBy(() -> sut.hasNoResource()).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(sut::hasNoResource).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Expected AuthorizationDecision to have no resource but was");
     }
 

@@ -66,8 +66,7 @@ public class MarkdownGenerator {
 
     public String markdownToHtml(@NonNull String markdown) {
         final var document = PARSER.parse(markdown);
-        final var html     = RENDERER.render(document);
-        return html;
+        return RENDERER.render(document);
     }
 
     public String wrapInDiv(String innerHtml) {

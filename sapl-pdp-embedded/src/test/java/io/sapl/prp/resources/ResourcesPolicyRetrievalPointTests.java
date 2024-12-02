@@ -20,6 +20,7 @@ package io.sapl.prp.resources;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import io.sapl.pdp.PolicyDecisionPointFactory;
 
@@ -27,7 +28,7 @@ class ResourcesPolicyRetrievalPointTests {
 
     @Test
     void loadPolicies() {
-        assertDoesNotThrow(() -> PolicyDecisionPointFactory.resourcesPolicyDecisionPoint());
+        assertDoesNotThrow((Executable) PolicyDecisionPointFactory::resourcesPolicyDecisionPoint);
     }
 
 }

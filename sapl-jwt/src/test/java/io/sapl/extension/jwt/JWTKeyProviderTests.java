@@ -18,6 +18,7 @@
 package io.sapl.extension.jwt;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -135,8 +136,8 @@ class JWTKeyProviderTests {
         provider.cache(otherKid, secondRetrievedKey);
         assertTrue(provider.isCached(kid));
         assertTrue(provider.isCached(otherKid));
-        assert null != firstRetrievedKey;
-        assert null != secondRetrievedKey;
+        assertNotNull(firstRetrievedKey);
+        assertNotNull(secondRetrievedKey);
         assertFalse(KeyTestUtility.areKeysEqual(firstRetrievedKey, secondRetrievedKey));
     }
 

@@ -46,7 +46,7 @@ class JwtExtensionAutoConfigurationTests {
                     assertThat(context).hasSingleBean(JWTPolicyInformationPoint.class);
                     assertThat(context).hasBean("jwtFunctionLibrarySupplier");
                     assertThat(context.getBean("jwtFunctionLibrarySupplier", FunctionLibrarySupplier.class).get())
-                            .anyMatch(x -> x instanceof JWTFunctionLibrary);
+                            .anyMatch(JWTFunctionLibrary.class::isInstance);
                 });
     }
 

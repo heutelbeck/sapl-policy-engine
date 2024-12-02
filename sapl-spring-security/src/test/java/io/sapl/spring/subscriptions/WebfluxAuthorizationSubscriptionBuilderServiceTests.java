@@ -195,7 +195,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
                 .reactiveConstructAuthorizationSubscription(invocation, attribute)
                 .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                 .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext)));
-        StepVerifier.create(subscription).expectErrorMatches(t -> t instanceof IllegalArgumentException).verify();
+        StepVerifier.create(subscription).expectErrorMatches(IllegalArgumentException.class::isInstance).verify();
     }
 
     @Test

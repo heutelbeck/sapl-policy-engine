@@ -176,7 +176,7 @@ class SaplServerLTAuthenticationTests {
 
         final var apiKeyService = new ApiKeyService(pdpProperties, passwordEncoder, cacheManager);
         final var action        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange);
-        assertThatThrownBy(() -> action.block()).isInstanceOf(ApiKeyAuthenticationException.class);
+        assertThatThrownBy(action::block).isInstanceOf(ApiKeyAuthenticationException.class);
     }
 
     @Test
@@ -203,6 +203,6 @@ class SaplServerLTAuthenticationTests {
         // execute unit test
         final var apiKeyService = new ApiKeyService(pdpProperties, argon2PasswordEncoder, cacheManager);
         final var action        = apiKeyService.getRsocketApiKeyAuthenticationConverter().convert(payloadExchange);
-        assertThatThrownBy(() -> action.block()).isInstanceOf(ApiKeyAuthenticationException.class);
+        assertThatThrownBy(action::block).isInstanceOf(ApiKeyAuthenticationException.class);
     }
 }
