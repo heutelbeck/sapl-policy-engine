@@ -18,6 +18,10 @@
 
 package io.sapl.test.dsl.setup;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
+
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.TestNode;
@@ -31,9 +35,6 @@ import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
 import io.sapl.test.grammar.sapltest.PdpVariables;
 import io.sapl.test.grammar.sapltest.Requirement;
 import io.sapl.test.grammar.sapltest.Scenario;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

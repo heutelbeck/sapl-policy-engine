@@ -67,7 +67,7 @@ public class JWTFunctionLibrary {
             of the token. The token is not validated by this function. Use the JWT PIPs/Attributes for this purpose,
             as the validity is time dependent.
 
-            Example:
+            **Example:**
 
             ```
             policy "jwt example"

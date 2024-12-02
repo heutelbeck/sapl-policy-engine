@@ -19,10 +19,11 @@ package io.sapl.springdatamongoreactive.queries;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.springframework.data.repository.query.parser.Part;
+
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.CriteriaDefinition;
+import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import lombok.experimental.UtilityClass;

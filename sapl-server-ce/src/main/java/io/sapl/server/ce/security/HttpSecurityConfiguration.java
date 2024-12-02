@@ -17,14 +17,15 @@
  */
 package io.sapl.server.ce.security;
 
-import com.vaadin.flow.spring.security.VaadinWebSecurity;
-import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
-import io.sapl.server.ce.security.apikey.ApiKeyHeaderAuthFilterService;
-import io.sapl.server.ce.security.apikey.ApiKeyService;
-import io.sapl.server.ce.ui.views.login.LoginView;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static org.springframework.security.config.Customizer.withDefaults;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
@@ -32,7 +33,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.ObjectPostProcessor;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -53,9 +54,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.header.HeaderWriterFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import java.util.*;
+import com.vaadin.flow.spring.security.VaadinWebSecurity;
 
-import static org.springframework.security.config.Customizer.withDefaults;
+import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
+import io.sapl.server.ce.security.apikey.ApiKeyHeaderAuthFilterService;
+import io.sapl.server.ce.security.apikey.ApiKeyService;
+import io.sapl.server.ce.ui.views.login.LoginView;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration

@@ -17,12 +17,13 @@
  */
 package io.sapl.test.dsl.setup;
 
+import java.util.List;
+
 import io.sapl.test.grammar.sapltest.Document;
 import io.sapl.test.grammar.sapltest.Environment;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
 import io.sapl.test.grammar.sapltest.PdpVariables;
-import java.util.List;
 
 record GivenBlock(Document document, PdpVariables pdpVariables, PdpCombiningAlgorithm pdpConfiguration,
         Environment environment, List<GivenStep> givenSteps) {}

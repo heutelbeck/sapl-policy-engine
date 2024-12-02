@@ -20,8 +20,9 @@ package io.sapl.springdatamongoreactive.queries;
 import java.util.Collections;
 import java.util.List;
 
-import lombok.Getter;
 import org.apache.commons.lang3.NotImplementedException;
+
+import lombok.Getter;
 
 /**
  * This enum class is used to use a uniform language when it comes to creating

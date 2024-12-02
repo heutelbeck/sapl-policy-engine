@@ -18,14 +18,16 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
 import io.sapl.test.grammar.sapltest.PdpVariables;
 import io.sapl.test.integration.SaplIntegrationTestFixture;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor

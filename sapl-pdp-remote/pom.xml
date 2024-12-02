@@ -35,7 +35,7 @@
 	<description>Client for remote Policy Decision Points</description>
 
 	<properties>
-		<version.testcontainers>1.18.0</version.testcontainers>
+		<version.testcontainers>1.20.4</version.testcontainers>
 	</properties>
 
 	<dependencyManagement>

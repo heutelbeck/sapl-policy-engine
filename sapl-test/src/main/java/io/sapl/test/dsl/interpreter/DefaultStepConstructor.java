@@ -18,7 +18,15 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.test.SaplTestFixture;
+import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
+import io.sapl.test.dsl.interfaces.StepConstructor;
+import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.grammar.sapltest.Document;
 import io.sapl.test.grammar.sapltest.Environment;
 import io.sapl.test.grammar.sapltest.Expectation;
@@ -27,18 +35,10 @@ import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
 import io.sapl.test.grammar.sapltest.PdpVariables;
 import io.sapl.test.grammar.sapltest.Scenario;
-import java.util.List;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
-import io.sapl.test.dsl.interfaces.StepConstructor;
-import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
 import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
 import io.sapl.test.steps.WhenStep;
-import java.util.Map;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 

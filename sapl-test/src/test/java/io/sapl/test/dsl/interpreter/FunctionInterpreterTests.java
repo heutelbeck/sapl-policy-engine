@@ -27,7 +27,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.grammar.sapltest.FunctionParameterMatchers;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -52,6 +51,7 @@ import io.sapl.test.dsl.ParserUtil;
 import io.sapl.test.grammar.sapltest.AnyVal;
 import io.sapl.test.grammar.sapltest.Function;
 import io.sapl.test.grammar.sapltest.FunctionInvokedOnce;
+import io.sapl.test.grammar.sapltest.FunctionParameterMatchers;
 import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.Multiple;
 import io.sapl.test.grammar.sapltest.NumberLiteral;

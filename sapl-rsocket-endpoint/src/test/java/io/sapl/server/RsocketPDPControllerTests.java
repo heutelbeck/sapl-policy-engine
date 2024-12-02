@@ -27,7 +27,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
@@ -35,6 +34,7 @@ import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.TestSocketUtils;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -67,7 +67,7 @@ class RsocketPDPControllerTests {
     private final int  serverPort = TestSocketUtils.findAvailableTcpPort();
     private Disposable server;
 
-    @MockBean
+    @MockitoBean
     private PolicyDecisionPoint pdp;
 
     final RSocketStrategies  rSocketStrategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())

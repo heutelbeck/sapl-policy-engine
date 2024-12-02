@@ -17,10 +17,10 @@
  */
 package io.sapl.springdatacommon.services;
 
+import static io.sapl.springdatacommon.utils.Utilities.ALIAS;
 import static io.sapl.springdatacommon.utils.Utilities.CONDITIONS;
 import static io.sapl.springdatacommon.utils.Utilities.SELECTION;
 import static io.sapl.springdatacommon.utils.Utilities.TRANSFORMATIONS;
-import static io.sapl.springdatacommon.utils.Utilities.ALIAS;
 
 import java.util.ArrayList;
 import java.util.List;
