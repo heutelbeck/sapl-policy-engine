@@ -55,7 +55,8 @@ public class SecretGenerator {
         final var lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
         final var upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
         final var digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
-        return passwordGenerator.generatePassword(length, new Rule[] { lowerCaseRule, upperCaseRule, digitRule });
+        final var rules             = new Rule[] { lowerCaseRule, upperCaseRule, digitRule };
+        return passwordGenerator.generatePassword(length, rules);
     }
 
     private String generatePassword(int length) {
@@ -74,7 +75,7 @@ public class SecretGenerator {
                                             return "$-_.+!*'(),";
                                         }
                                     }, 2);
-        return passwordGenerator.generatePassword(length,
-                new Rule[] { splCharRule, lowerCaseRule, upperCaseRule, digitRule });
+        final var rules             = new Rule[] { splCharRule, lowerCaseRule, upperCaseRule, digitRule };
+        return passwordGenerator.generatePassword(length, rules);
     }
 }
