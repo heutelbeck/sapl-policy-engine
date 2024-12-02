@@ -87,7 +87,7 @@
 		<junit.version>1.11.3</junit.version>
 		<xtext.version>2.35.0</xtext.version>
 		<jacoco.version>0.8.12</jacoco.version>
-		<vaadin.version>24.5.6</vaadin.version>
+		<vaadin.version>24.5.7</vaadin.version>
 		<okhttp.version>4.12.0</okhttp.version>
 		<rsocket.version>1.1.4</rsocket.version>
 		<lombok.version>1.18.36</lombok.version>
