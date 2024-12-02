@@ -20,15 +20,20 @@ package io.sapl.server.lt;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Role;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authorization.ReactiveAuthorizationManager;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.rsocket.EnableRSocketSecurity;
 import org.springframework.security.config.annotation.rsocket.PayloadInterceptorOrder;
 import org.springframework.security.config.annotation.rsocket.RSocketSecurity;
@@ -51,6 +56,7 @@ import org.springframework.security.rsocket.authentication.AuthenticationPayload
 import org.springframework.security.rsocket.authentication.AuthenticationPayloadInterceptor;
 import org.springframework.security.rsocket.core.PayloadSocketAcceptorInterceptor;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.WebFilterChainProxy;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.web.server.ServerWebExchange;
 
@@ -213,16 +219,16 @@ public class SecurityConfiguration {
 
         final var finalSimpleManager = simpleManager;
         final var finalJwtManager    = jwtManager;
-        final var auth               = new AuthenticationPayloadInterceptor(a -> {
+        final var auth               = new AuthenticationPayloadInterceptor(authentication -> {
                                          if (finalSimpleManager != null
-                                                 && a instanceof UsernamePasswordAuthenticationToken) {
-                                             return finalSimpleManager.authenticate(a);
+                                                 && authentication instanceof UsernamePasswordAuthenticationToken) {
+                                             return finalSimpleManager.authenticate(authentication);
                                          } else if (finalJwtManager != null
-                                                 && a instanceof BearerTokenAuthenticationToken) {
-                                             return finalJwtManager.authenticate(a);
+                                                 && authentication instanceof BearerTokenAuthenticationToken) {
+                                             return finalJwtManager.authenticate(authentication);
                                          } else {
-                                             throw new IllegalArgumentException(
-                                                     "Unsupported Authentication Type " + a.getClass().getSimpleName());
+                                             throw new IllegalArgumentException("Unsupported Authentication Type "
+                                                     + authentication.getClass().getSimpleName());
                                          }
                                      });
         auth.setAuthenticationConverter(new AuthenticationPayloadExchangeConverter());
@@ -231,13 +237,36 @@ public class SecurityConfiguration {
 
         // Configure ApiKey authentication
         if (pdpProperties.isAllowApiKeyAuth()) {
-            ReactiveAuthenticationManager    manager           = new ApiKeyReactiveAuthenticationManager();
-            AuthenticationPayloadInterceptor apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
+            final var manager           = new ApiKeyReactiveAuthenticationManager();
+            final var apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
             apikeyInterceptor.setAuthenticationConverter(apiKeyService.getRsocketApiKeyAuthenticationConverter());
             apikeyInterceptor.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
             security.addPayloadInterceptor(apikeyInterceptor);
         }
         return security.build();
 
+    }
+
+    // Fixes issue present in spring boot 3.4.0:
+    // https://github.com/spring-projects/spring-security/issues/16161#issuecomment-2498390492
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @Primary
+    static ObjectPostProcessor<ReactiveAuthorizationManager<ServerWebExchange>> primaryAuthorizationManagerPostProcessor() {
+        return ObjectPostProcessor.identity();
+    }
+
+    @Bean
+    @Role(2)
+    @Primary
+    static ObjectPostProcessor<ReactiveAuthenticationManager> primaryAuthenticationManagerPostProcessor() {
+        return ObjectPostProcessor.identity();
+    }
+
+    @Bean
+    @Role(2)
+    @Primary
+    static ObjectPostProcessor<WebFilterChainProxy.WebFilterChainDecorator> primaryFilterChainDecoratorPostProcessor() {
+        return ObjectPostProcessor.identity();
     }
 }

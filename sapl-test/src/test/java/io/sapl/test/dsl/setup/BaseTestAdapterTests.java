@@ -28,9 +28,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.pip.http.HttpPolicyInformationPoint;
-import io.sapl.test.grammar.sapltest.ImportType;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
@@ -50,11 +47,14 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.sapl.functions.FilterFunctionLibrary;
+import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.dsl.interfaces.UnitTestPolicyResolver;
+import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.grammar.sapltest.SAPLTest;
 import io.sapl.test.utils.DocumentHelper;
 

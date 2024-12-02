@@ -18,6 +18,10 @@
 
 package io.sapl.test.dsl.interpreter;
 
+import java.util.Collection;
+import java.util.Objects;
+import java.util.stream.Stream;
+
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.AdjustBlock;
 import io.sapl.test.grammar.sapltest.Attribute;
@@ -32,9 +36,6 @@ import io.sapl.test.grammar.sapltest.RepeatedExpect;
 import io.sapl.test.grammar.sapltest.VirtualTime;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.WhenStep;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor

@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
@@ -47,6 +48,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.springdatacommon.database.R2dbcMethodInvocation;

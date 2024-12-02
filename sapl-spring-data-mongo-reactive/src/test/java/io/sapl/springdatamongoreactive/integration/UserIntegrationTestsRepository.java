@@ -17,14 +17,14 @@
  */
 package io.sapl.springdatamongoreactive.integration;
 
-import io.sapl.spring.method.metadata.QueryEnforce;
-import io.sapl.springdatamongoreactive.sapl.database.TestUser;
-
 import org.bson.types.ObjectId;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
+
+import io.sapl.spring.method.metadata.QueryEnforce;
+import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import reactor.core.publisher.Flux;
 
 @Repository

@@ -24,8 +24,8 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
 import io.sapl.springdatacommon.services.MethodSecurityExpressionEvaluator;
@@ -36,10 +36,10 @@ import io.sapl.springdatacommon.services.SecurityExpressionService;
 @SpringBootTest(classes = SaplSpringDataCommonAutoConfiguration.class)
 class SaplSpringDataCommonAutoConfigurationTests {
 
-    @MockBean
+    @MockitoBean
     BeanFactory beanFactoryMock;
 
-    @MockBean
+    @MockitoBean
     ObjectProvider<MethodSecurityExpressionHandler> securityExpressionHandlerMock;
 
     @Autowired

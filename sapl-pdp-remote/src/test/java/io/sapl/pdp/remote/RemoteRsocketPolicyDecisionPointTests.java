@@ -39,7 +39,6 @@ import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
-import io.sapl.pdp.remote.metadata.SimpleAuthenticationEncoder;
 import org.springframework.stereotype.Controller;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -55,6 +54,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.pdp.remote.metadata.SimpleAuthenticationEncoder;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 

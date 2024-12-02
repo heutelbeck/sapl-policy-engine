@@ -32,13 +32,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -67,16 +67,16 @@ class PostEnforcementConstraintsTests {
 
     public static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    @MockBean
+    @MockitoBean
     PolicyDecisionPoint pdp;
 
-    @SpyBean
+    @MockitoSpyBean
     ConstraintHandlerOne constraintHandlerOne;
 
-    @SpyBean
+    @MockitoSpyBean
     ConstraintHandlerTwo constraintHandlerTwo;
 
-    @SpyBean
+    @MockitoSpyBean
     TestService service;
 
     @SpringBootApplication

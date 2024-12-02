@@ -19,10 +19,10 @@ package io.sapl.springdatar2dbc.enforcement;
 
 import java.util.function.Function;
 
-import lombok.AllArgsConstructor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
+
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -33,6 +33,7 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
 import io.sapl.springdatar2dbc.queries.QueryCreation;
 import io.sapl.springdatar2dbc.queries.QueryManipulationExecutor;
+import lombok.AllArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

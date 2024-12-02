@@ -84,30 +84,32 @@
 
 		<!-- Dependencies -->
 		<guice.version>5.1.0</guice.version>
+		<junit.version>1.11.3</junit.version>
 		<xtext.version>2.35.0</xtext.version>
-		<junit.version>5.11.0</junit.version>
 		<jacoco.version>0.8.12</jacoco.version>
-		<vaadin.version>24.5.2</vaadin.version>
+		<vaadin.version>24.5.6</vaadin.version>
+		<okhttp.version>4.12.0</okhttp.version>
 		<rsocket.version>1.1.4</rsocket.version>
-		<lombok.version>1.18.34</lombok.version>
+		<lombok.version>1.18.36</lombok.version>
+		<jupiter.version>5.11.3</jupiter.version>
 		<assertj.version>3.26.3</assertj.version>
 		<flexmark.version>0.64.8</flexmark.version>
-		<springboot.version>3.3.5</springboot.version>
-		<reactor-netty.version>1.1.22</reactor-netty.version>
+		<springboot.version>3.4.0</springboot.version>
+		<reactor-netty.version>1.2.0</reactor-netty.version>
 		<spotify.hamcrest.version>1.3.2</spotify.hamcrest.version>
-		<json-unit-assertj.version>3.4.1</json-unit-assertj.version>
-		<json-schema-validator.version>1.5.1</json-schema-validator.version>
+		<json-unit-assertj.version>4.1.0</json-unit-assertj.version>
+		<json-schema-validator.version>1.5.4</json-schema-validator.version>
 
 		<!-- Maven Plug-Ins -->
-		<tycho.version>4.0.8</tycho.version>
-		<sb-contrib.version>7.6.4</sb-contrib.version>
-		<spdx-maven-plugin.version>0.7.3</spdx-maven-plugin.version>
-		<license-maven-plugin.version>4.5</license-maven-plugin.version>
-		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
-		<maven-failsafe-plugin.version>3.5.0</maven-failsafe-plugin.version>
-		<maven-surefire-plugin.version>3.5.0</maven-surefire-plugin.version>
+		<tycho.version>4.0.10</tycho.version>
+		<sb-contrib.version>7.6.8</sb-contrib.version>
+		<spdx-maven-plugin.version>0.7.4</spdx-maven-plugin.version>
+		<license-maven-plugin.version>4.6</license-maven-plugin.version>
+		<sonar-maven-plugin.version>5.0.0.4389</sonar-maven-plugin.version>
+		<maven-failsafe-plugin.version>3.5.2</maven-failsafe-plugin.version>
+		<maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
 		<maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-		<spotbugs-maven-plugin.version>4.8.6.3</spotbugs-maven-plugin.version>
+		<spotbugs-maven-plugin.version>4.8.6.6</spotbugs-maven-plugin.version>
 		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
 
 		<!-- Base argLine for JDK21+ profiles -->
@@ -200,7 +202,41 @@
 				<artifactId>json-unit-assertj</artifactId>
 				<version>${json-unit-assertj.version}</version>
 			</dependency>
-
+			<dependency>
+				<groupId>com.squareup.okhttp3</groupId>
+				<artifactId>okhttp</artifactId>
+				<version>${okhttp.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.squareup.okhttp3</groupId>
+				<artifactId>mockwebserver</artifactId>
+				<version>${okhttp.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.junit.jupiter</groupId>
+				<artifactId>junit-jupiter</artifactId>
+				<version>${jupiter.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.junit.jupiter</groupId>
+				<artifactId>junit-jupiter-api</artifactId>
+				<version>${jupiter.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.junit.jupiter</groupId>
+				<artifactId>junit-jupiter-engine</artifactId>
+				<version>${jupiter.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.junit.platform</groupId>
+				<artifactId>junit-platform-commons</artifactId>
+				<version>${junit.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.junit.platform</groupId>
+				<artifactId>junit-platform-engine</artifactId>
+				<version>${junit.version}</version>
+			</dependency>
 			<!-- Spring-Boot -->
 			<dependency>
 				<groupId>org.springframework.boot</groupId>

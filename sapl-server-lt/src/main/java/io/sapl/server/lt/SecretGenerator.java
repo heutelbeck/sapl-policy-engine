@@ -21,6 +21,7 @@ import org.passay.CharacterData;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.PasswordGenerator;
+import org.passay.Rule;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 import lombok.experimental.UtilityClass;
@@ -54,7 +55,7 @@ public class SecretGenerator {
         final var lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
         final var upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
         final var digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
-        return passwordGenerator.generatePassword(length, lowerCaseRule, upperCaseRule, digitRule);
+        return passwordGenerator.generatePassword(length, new Rule[] { lowerCaseRule, upperCaseRule, digitRule });
     }
 
     private String generatePassword(int length) {
@@ -73,6 +74,7 @@ public class SecretGenerator {
                                             return "$-_.+!*'(),";
                                         }
                                     }, 2);
-        return passwordGenerator.generatePassword(length, splCharRule, lowerCaseRule, upperCaseRule, digitRule);
+        return passwordGenerator.generatePassword(length,
+                new Rule[] { splCharRule, lowerCaseRule, upperCaseRule, digitRule });
     }
 }

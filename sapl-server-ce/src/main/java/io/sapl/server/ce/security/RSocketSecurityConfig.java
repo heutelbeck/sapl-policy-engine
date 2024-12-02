@@ -21,7 +21,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
@@ -96,25 +95,21 @@ public class RSocketSecurityConfig {
             jwtManager = new JwtReactiveAuthenticationManager(ReactiveJwtDecoders.fromIssuerLocation(jwtIssuerURI));
         }
 
-        UserDetailsRepositoryReactiveAuthenticationManager finalSimpleManager = simpleManager;
-        JwtReactiveAuthenticationManager                   finalJwtManager    = jwtManager;
-        AuthenticationPayloadInterceptor                   auth               = new AuthenticationPayloadInterceptor(
-                a -> {
-                                                                                          if (finalSimpleManager != null
-                                                                                                  && a instanceof UsernamePasswordAuthenticationToken) {
-                                                                                              return finalSimpleManager
-                                                                                                      .authenticate(a);
-                                                                                          } else if (finalJwtManager != null
-                                                                                                  && a instanceof BearerTokenAuthenticationToken) {
-                                                                                              return finalJwtManager
-                                                                                                      .authenticate(a);
-                                                                                          } else {
-                                                                                              throw new IllegalArgumentException(
-                                                                                                      "Unsupported Authentication Type "
-                                                                                                              + a.getClass()
-                                                                                                                      .getSimpleName());
-                                                                                          }
-                                                                                      });
+        final var finalSimpleManager = simpleManager;
+        final var finalJwtManager    = jwtManager;
+        final var auth               = new AuthenticationPayloadInterceptor(authentication -> {
+                                         if (finalSimpleManager != null
+                                                 && authentication instanceof UsernamePasswordAuthenticationToken) {
+                                             return finalSimpleManager.authenticate(authentication);
+                                         } else if (finalJwtManager != null
+                                                 && authentication instanceof BearerTokenAuthenticationToken) {
+                                             return finalJwtManager.authenticate(authentication);
+                                         } else {
+                                             throw new IllegalArgumentException("Unsupported Authentication Type "
+                                                     + authentication.getClass().getSimpleName());
+                                         }
+                                     });
+
         auth.setAuthenticationConverter(new AuthenticationPayloadExchangeConverter());
         auth.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
         security.addPayloadInterceptor(auth);
@@ -122,8 +117,8 @@ public class RSocketSecurityConfig {
         // Configure ApiKey authentication
         if (allowApiKeyAuth) {
             log.info("configuring ApiKey for RSocket authentication");
-            ReactiveAuthenticationManager    manager           = new ApiKeyReactiveAuthenticationManager();
-            AuthenticationPayloadInterceptor apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
+            final var manager           = new ApiKeyReactiveAuthenticationManager();
+            final var apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
             apikeyInterceptor.setAuthenticationConverter(apiKeyPayloadExchangeAuthenticationConverterService);
             apikeyInterceptor.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
             security.addPayloadInterceptor(apikeyInterceptor);

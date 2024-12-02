@@ -20,18 +20,18 @@ package io.sapl.test.dsl.interpreter;
 
 import static org.hamcrest.Matchers.allOf;
 
-import io.sapl.test.grammar.sapltest.AdjustBlock;
-import io.sapl.test.grammar.sapltest.ExpectBlock;
-import io.sapl.test.grammar.sapltest.ExpectOrAdjustBlock;
 import java.util.Collection;
 
 import org.hamcrest.Matcher;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.grammar.sapltest.AdjustBlock;
 import io.sapl.test.grammar.sapltest.AttributeAdjustment;
 import io.sapl.test.grammar.sapltest.AuthorizationDecisionMatcher;
 import io.sapl.test.grammar.sapltest.Await;
+import io.sapl.test.grammar.sapltest.ExpectBlock;
+import io.sapl.test.grammar.sapltest.ExpectOrAdjustBlock;
 import io.sapl.test.grammar.sapltest.Multiple;
 import io.sapl.test.grammar.sapltest.Next;
 import io.sapl.test.grammar.sapltest.NextWithDecision;

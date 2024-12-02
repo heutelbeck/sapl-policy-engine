@@ -24,7 +24,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import io.sapl.test.grammar.sapltest.Scenario;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.Expectation;
 import io.sapl.test.grammar.sapltest.RepeatedExpect;
+import io.sapl.test.grammar.sapltest.Scenario;
 import io.sapl.test.grammar.sapltest.SingleExpect;
 import io.sapl.test.grammar.sapltest.SingleExpectWithMatcher;
 import io.sapl.test.steps.ExpectStep;

@@ -31,6 +31,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.pdp.Decision;
 import io.sapl.springdatacommon.queries.QueryAnnotationParameterResolver;
 import lombok.experimental.UtilityClass;

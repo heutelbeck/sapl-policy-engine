@@ -25,6 +25,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.repository.query.parser.PartTree;
+
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 
 class SaplPartTreeCriteriaCreatorTests {

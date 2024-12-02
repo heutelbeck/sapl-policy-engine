@@ -17,24 +17,26 @@
  */
 package io.sapl.springdatar2dbc.enforcement;
 
-import static io.sapl.springdatacommon.utils.Utilities.convertReturnTypeIfNecessary;
-import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryR2dbc;
 import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryEnforce;
+import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryR2dbc;
+import static io.sapl.springdatacommon.utils.Utilities.convertReturnTypeIfNecessary;
 
 import java.util.Objects;
-import lombok.extern.slf4j.Slf4j;
+
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.r2dbc.repository.Query;
+
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.springdatacommon.services.QueryEnforceAuthorizationSubscriptionService;
 import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
 import io.sapl.springdatacommon.utils.Utilities;
-import io.sapl.spring.method.metadata.QueryEnforce;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This service is the gathering point of all SaplEnforcementPoints for the

@@ -32,10 +32,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.stereotype.Service;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -60,10 +60,10 @@ class PostEnforcePolicyEnforcementPointTests {
     private static final String          ORIGINAL_RETURN_OBJECT = "original return object";
     private static final String          CHANGED_RETURN_OBJECT  = "changed return object";
 
-    @MockBean
+    @MockitoBean
     private PolicyDecisionPoint pdp;
 
-    @MockBean
+    @MockitoBean
     private ConstraintEnforcementService constraintEnforcementService;
 
     @Autowired
