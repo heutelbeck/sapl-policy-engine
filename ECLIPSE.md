@@ -35,9 +35,9 @@ To get support for editing the Xtext grammar files, install the "Eclipse Xtext" 
 
 To get quality of life improvements for the Spring components install "Spring Tools 4" from "Help -> Eclipse Marketplace...".
 
-### SonarLint
+### SonarQube for IDE
 
-To identify issues which would surface in SonarCloud as well early before pushing, install "SonarLint" from "Help -> Eclipse Marketplace...".
+To identify issues which would surface in SonarCloud as well early before pushing, install "SonarQube for IDE" from "Help -> Eclipse Marketplace...".
 
 ### SpotBugs
 
