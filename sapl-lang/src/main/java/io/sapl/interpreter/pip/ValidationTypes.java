@@ -23,6 +23,7 @@ import io.sapl.api.validation.Int;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
+import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
 import lombok.experimental.UtilityClass;
 
@@ -30,6 +31,6 @@ import lombok.experimental.UtilityClass;
 public class ValidationTypes {
 
     static final Class<?>[] VALIDATION_ANNOTATION_TYPES = { Number.class, Int.class, Long.class, Bool.class, Text.class,
-            Array.class, JsonObject.class };
+            Array.class, JsonObject.class, Schema.class };
 
 }
