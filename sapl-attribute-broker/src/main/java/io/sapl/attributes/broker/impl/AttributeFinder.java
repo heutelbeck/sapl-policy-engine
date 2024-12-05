@@ -15,22 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter.pip;
+package io.sapl.attributes.broker.impl;
 
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Bool;
-import io.sapl.api.validation.Int;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Long;
-import io.sapl.api.validation.Number;
-import io.sapl.api.validation.Schema;
-import io.sapl.api.validation.Text;
-import lombok.experimental.UtilityClass;
+import io.sapl.api.interpreter.Val;
+import reactor.core.publisher.Flux;
 
-@UtilityClass
-public class ValidationTypes {
-
-    static final Class<?>[] VALIDATION_ANNOTATION_TYPES = { Number.class, Int.class, Long.class, Bool.class, Text.class,
-            Array.class, JsonObject.class, Schema.class };
-
+@FunctionalInterface
+interface AttributeFinder {
+    Flux<Val> invoke(PolicyInformationPointInvocation invocation);
 }

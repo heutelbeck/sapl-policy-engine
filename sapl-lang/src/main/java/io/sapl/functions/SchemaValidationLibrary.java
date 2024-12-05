@@ -123,7 +123,6 @@ public class SchemaValidationLibrary {
                     };
               isCompliantWithExternalSchemas(invalid, schema, externals) == false;
             ```
-
             """, schema = RETURNS_BOOLEAN)
     public static Val isCompliantWithExternalSchemas(Val validationSubject, @JsonObject Val jsonSchema,
             Val externalSchemas) {

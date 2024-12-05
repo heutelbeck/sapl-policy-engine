@@ -15,22 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter.pip;
+package io.sapl.attributes.documentation.api;
 
-import io.sapl.api.validation.Array;
-import io.sapl.api.validation.Bool;
-import io.sapl.api.validation.Int;
-import io.sapl.api.validation.JsonObject;
-import io.sapl.api.validation.Long;
-import io.sapl.api.validation.Number;
-import io.sapl.api.validation.Schema;
-import io.sapl.api.validation.Text;
-import lombok.experimental.UtilityClass;
+import lombok.NonNull;
 
-@UtilityClass
-public class ValidationTypes {
-
-    static final Class<?>[] VALIDATION_ANNOTATION_TYPES = { Number.class, Int.class, Long.class, Bool.class, Text.class,
-            Array.class, JsonObject.class, Schema.class };
-
-}
+public record AttributeDocumentation(@NonNull String namespace, @NonNull String pipName, @NonNull AttributeType type,
+        @NonNull String codeTemplate, @NonNull String documentationMarkdown) {}
