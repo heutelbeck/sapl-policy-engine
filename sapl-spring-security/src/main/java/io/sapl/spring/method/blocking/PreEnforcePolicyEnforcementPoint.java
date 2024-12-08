@@ -64,24 +64,23 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     @Override
     public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
 
-        var attribute = attributeRegistryProvider.getObject().getSaplAttributeForAnnotationType(methodInvocation,
+        final var attribute = attributeRegistryProvider.getObject().getSaplAttributeForAnnotationType(methodInvocation,
                 PreEnforce.class);
         if (attribute.isEmpty()) {
             return methodInvocation.proceed();
         }
-        var saplAttribute = attribute.get();
 
-        var authzDecision = getAuthorizationFromPolicyDecisionPoint(methodInvocation, saplAttribute);
+        final var saplAttribute    = attribute.get();
+        final var authzDecision    = getAuthorizationFromPolicyDecisionPoint(methodInvocation, saplAttribute);
+        final var methodReturnType = methodInvocation.getMethod().getReturnType();
+        var       bundleReturnType = methodReturnType;
 
-        var methodReturnType = methodInvocation.getMethod().getReturnType();
-        var bundleReturnType = methodReturnType;
-
-        var methodReturnsOptional = Optional.class.isAssignableFrom(methodReturnType);
+        final var methodReturnsOptional = Optional.class.isAssignableFrom(methodReturnType);
         if (methodReturnsOptional) {
             bundleReturnType = saplAttribute.genericsType();
         }
 
-        var blockingPreEnforceBundle = constraintEnforcementServiceProvider.getObject()
+        final var blockingPreEnforceBundle = constraintEnforcementServiceProvider.getObject()
                 .blockingPreEnforceBundleFor(authzDecision, bundleReturnType);
         if (blockingPreEnforceBundle == null) {
             throw new AccessDeniedException(
@@ -91,13 +90,13 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         try {
             blockingPreEnforceBundle.handleOnDecisionConstraints();
 
-            var notGranted = authzDecision.getDecision() != Decision.PERMIT;
+            final var notGranted = authzDecision.getDecision() != Decision.PERMIT;
             if (notGranted)
                 throw new AccessDeniedException("Access Denied. Action not permitted.");
 
             blockingPreEnforceBundle.handleMethodInvocationHandlers(methodInvocation);
 
-            var returnedObject = methodInvocation.proceed();
+            final var returnedObject = methodInvocation.proceed();
 
             var unpackedObject = returnedObject;
             if (returnedObject instanceof Optional<?> optional) {
@@ -119,16 +118,16 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
     private AuthorizationDecision getAuthorizationFromPolicyDecisionPoint(MethodInvocation methodInvocation,
             SaplAttribute attribute) {
-        var authzSubscription = subscriptionBuilderProvider.getObject()
+        final var authzSubscription = subscriptionBuilderProvider.getObject()
                 .constructAuthorizationSubscription(authenticationSupplier.get(), methodInvocation, attribute);
 
-        var authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
+        final var authzDecisions = policyDecisionPointProvider.getObject().decide(authzSubscription);
         if (authzDecisions == null) {
             throw new AccessDeniedException(
                     String.format("Access Denied by @PreEnforce PEP. PDP returned null. %s", attribute));
         }
 
-        var authzDecision = authzDecisions.blockFirst();
+        final var authzDecision = authzDecisions.blockFirst();
         if (authzDecision == null) {
             throw new AccessDeniedException(
                     String.format("Access Denied by @PreEnforce PEP. PDP decision stream was empty. %s", attribute));
@@ -139,7 +138,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
     private static Supplier<Authentication> getAuthentication(SecurityContextHolderStrategy strategy) {
         return () -> {
-            var authentication = strategy.getContext().getAuthentication();
+            final var authentication = strategy.getContext().getAuthentication();
             if (authentication == null) {
                 throw new AuthenticationCredentialsNotFoundException(
                         "An Authentication object was not found in the SecurityContext");

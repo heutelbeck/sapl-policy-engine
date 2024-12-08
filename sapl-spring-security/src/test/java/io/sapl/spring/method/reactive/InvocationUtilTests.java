@@ -30,7 +30,7 @@ class InvocationUtilTests {
 
     @Test
     void sneakyThrows() throws Throwable {
-        var mock = mock(MethodInvocation.class);
+        final var mock = mock(MethodInvocation.class);
         when(mock.proceed()).thenThrow(new IOException());
         assertThrows(IOException.class, () -> InvocationUtil.proceed(mock));
     }

@@ -36,10 +36,10 @@ public class LessImplCustom extends LessImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return arithmeticOperator(this, this, this::lessThan);
+        return arithmeticOperator(this, this, LessImplCustom::lessThan);
     }
 
-    private Val lessThan(Val left, Val right) {
+    public static Val lessThan(Val left, Val right) {
         return Val.of(left.decimalValue().compareTo(right.decimalValue()) < 0).withTrace(Less.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }

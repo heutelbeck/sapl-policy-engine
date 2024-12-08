@@ -68,7 +68,7 @@ public class KeyStepImplCustom extends KeyStepImpl {
             }
         }
 
-        var resultArray = Val.JSON.arrayNode();
+        final var resultArray = Val.JSON.arrayNode();
         for (var value : parentValue.getArrayNode()) {
             if (value.has(id)) {
                 resultArray.add(value.get(id));
@@ -93,19 +93,19 @@ public class KeyStepImplCustom extends KeyStepImpl {
 
     private static Flux<Val> applyFilterStatementToObject(String id, Val unfilteredValue, int stepId,
             FilterStatement statement) {
-        var object      = unfilteredValue.getObjectNode();
-        var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
-        var fields      = object.fields();
+        final var object      = unfilteredValue.getObjectNode();
+        final var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
+        final var fields      = object.fields();
         while (fields.hasNext()) {
-            var field = fields.next();
-            var key   = field.getKey();
-            var value = Val.of(field.getValue()).withTrace(KeyStep.class, true,
+            final var field = fields.next();
+            final var key   = field.getKey();
+            final var value = Val.of(field.getValue()).withTrace(KeyStep.class, true,
                     Map.of(Trace.UNFILTERED_VALUE, unfilteredValue, Trace.KEY, Val.of(key)));
             if (field.getKey().equals(id)) {
                 if (stepId == statement.getTarget().getSteps().size() - 1) {
                     // this was the final step. apply filter
                     fieldFluxes.add(FilterAlgorithmUtil
-                            .applyFilterFunction(value, statement.getArguments(), statement.getFsteps(),
+                            .applyFilterFunction(value, statement.getArguments(), statement.getIdentifier(),
                                     statement.isEach(), statement)
                             .contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.of(object)))
                             .map(val -> Tuples.of(field.getKey(), val)));
@@ -125,16 +125,16 @@ public class KeyStepImplCustom extends KeyStepImpl {
 
     private static Flux<Val> applyFilterStatementToArray(String id, Val unfilteredValue, int stepId,
             FilterStatement statement) {
-        var array = unfilteredValue.getArrayNode();
+        final var array = unfilteredValue.getArrayNode();
         if (array.isEmpty()) {
             return Flux.just(
                     unfilteredValue.withTrace(KeyStep.class, true, Map.of(Trace.UNFILTERED_VALUE, unfilteredValue)));
         }
-        var elementFluxes = new ArrayList<Flux<Val>>(array.size());
-        var elements      = array.elements();
-        var i             = 0;
+        final var elementFluxes = new ArrayList<Flux<Val>>(array.size());
+        final var elements      = array.elements();
+        var       i             = 0;
         while (elements.hasNext()) {
-            var element = Val.of(elements.next()).withTrace(KeyStep.class, true,
+            final var element = Val.of(elements.next()).withTrace(KeyStep.class, true,
                     Map.of(Trace.UNFILTERED_VALUE, unfilteredValue, Trace.INDEX, Val.of(i++)));
             if (element.isObject()) {
                 // array element is an object. apply this step to the object.

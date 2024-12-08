@@ -24,7 +24,7 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.constraints.ConstraintEnforcementService;
@@ -42,22 +42,22 @@ import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 @SpringBootTest(classes = SaplMongoReactiveAutoConfiguration.class)
 class SaplMongoReactiveAutoConfigurationTests {
 
-    @MockBean
+    @MockitoBean
     ObjectProvider<BeanFactory> beanFactoryMock;
 
-    @MockBean
+    @MockitoBean
     ObjectProvider<QueryEnforceAuthorizationSubscriptionService> queryEnforceAuthorizationSubscriptionServiceMock;
 
-    @MockBean
+    @MockitoBean
     ObjectProvider<PolicyDecisionPoint> pdpProviderMock;
 
-    @MockBean
+    @MockitoBean
     ObjectProvider<ConstraintQueryEnforcementService> constraintQueryEnforcementServiceMock;
 
-    @MockBean
+    @MockitoBean
     ConstraintEnforcementService constraintEnforcementServiceMock;
 
-    @MockBean
+    @MockitoBean
     RepositoryInformationCollectorService repositoryInformationCollectorServiceMock;
 
     @Autowired

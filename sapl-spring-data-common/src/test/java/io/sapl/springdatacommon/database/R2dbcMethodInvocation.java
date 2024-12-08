@@ -21,11 +21,11 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 
+import javax.annotation.Nonnull;
+
 import org.aopalliance.intercept.MethodInvocation;
 
 import lombok.AllArgsConstructor;
-
-import javax.annotation.Nonnull;
 
 @AllArgsConstructor
 public class R2dbcMethodInvocation implements MethodInvocation {

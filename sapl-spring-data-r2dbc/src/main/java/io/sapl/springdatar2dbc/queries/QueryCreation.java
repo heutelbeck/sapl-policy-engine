@@ -53,13 +53,13 @@ public class QueryCreation {
     }
 
     private String createConditionPartWithoutWherePart(String query, ArrayNode conditions) {
-        var indexWithoutWhere = query.toLowerCase().indexOf(" where ");
-        var indexWithWhere    = indexWithoutWhere + 7;
+        final var indexWithoutWhere = query.toLowerCase().indexOf(" where ");
+        final var indexWithWhere    = indexWithoutWhere + 7;
 
-        var originalConditions    = query.substring(indexWithWhere);
-        var queryBeforeConditions = query.substring(0, indexWithWhere);
+        final var originalConditions    = query.substring(indexWithWhere);
+        final var queryBeforeConditions = query.substring(0, indexWithWhere);
 
-        var queryBuilder = new StringBuilder();
+        final var queryBuilder = new StringBuilder();
 
         for (JsonNode condition : conditions) {
             queryBuilder.append(getConditionWithoutPropositionalConnectives(condition.asText()))
@@ -76,7 +76,7 @@ public class QueryCreation {
      * @return the propositionalConnectives.
      */
     private String getPropositionalConnectives(String condition) {
-        var adjustedCondition = condition.toLowerCase().trim();
+        final var adjustedCondition = condition.toLowerCase().trim();
 
         if (adjustedCondition.startsWith("or ")) {
             return " OR ";
@@ -94,7 +94,7 @@ public class QueryCreation {
      * @return the manipulated query.
      */
     private String getConditionWithoutPropositionalConnectives(String condition) {
-        var adjustedCondition = condition.toLowerCase().trim();
+        final var adjustedCondition = condition.toLowerCase().trim();
 
         if (adjustedCondition.startsWith("and ")) {
             return condition.substring(4);
@@ -108,9 +108,9 @@ public class QueryCreation {
     }
 
     public static String createBaselineQuery(MethodInvocation invocation) {
-        var queryWithParameterSolved = QueryAnnotationParameterResolver
+        final var queryWithParameterSolved = QueryAnnotationParameterResolver
                 .resolveForRelationalDatabase(invocation.getMethod(), invocation.getArguments());
-        var sortingPart              = ConvertToSQL.prepareAndMergeSortObjects(Sort.unsorted(),
+        final var sortingPart              = ConvertToSQL.prepareAndMergeSortObjects(Sort.unsorted(),
                 invocation.getArguments());
         return queryWithParameterSolved + sortingPart;
     }
@@ -126,7 +126,7 @@ public class QueryCreation {
      */
     public <T> String createSqlQuery(ArrayNode conditions, ArrayNode selection, ArrayNode transformations,
             Class<T> domainType, String baseQuery) {
-        var queryBuilder = new StringBuilder();
+        final var queryBuilder = new StringBuilder();
 
         queryBuilder.append(
                 QuerySelectionUtils.createSelectionPartForMethodNameQuery(selection, transformations, domainType));
@@ -153,11 +153,11 @@ public class QueryCreation {
      * @return the condition with conjunction or not
      */
     private String addMissingConjunction(String sqlConditionFromDecision) {
-        var conditionStartsWithPropositionalConnectives = sqlConditionFromDecision.toLowerCase().trim()
+        final var conditionStartsWithPropositionalConnectives = sqlConditionFromDecision.toLowerCase().trim()
                 .startsWith("and ") || sqlConditionFromDecision.toLowerCase().trim().startsWith("or ");
 
-        var propositionalConnective = sqlConditionFromDecision.trim().substring(0, 3);
-        var sqlCondition            = sqlConditionFromDecision.trim().substring(3);
+        final var propositionalConnective = sqlConditionFromDecision.trim().substring(0, 3);
+        final var sqlCondition            = sqlConditionFromDecision.trim().substring(3);
 
         if (conditionStartsWithPropositionalConnectives) {
             return sqlCondition + " " + propositionalConnective + " ";

@@ -18,6 +18,7 @@
 package io.sapl.springdatacommon.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.springdatacommon.utils.Utilities;
 import lombok.Getter;
 

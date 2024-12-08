@@ -27,6 +27,7 @@ import org.eclipse.emf.ecore.EObject;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
+import io.sapl.grammar.sapl.FunctionIdentifier;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
@@ -42,8 +43,11 @@ public class FunctionUtil {
         return combine(argumentFluxes(arguments));
     }
 
-    public String resolveAbsoluteFunctionName(Iterable<String> steps, Map<String, String> imports) {
-        var functionName = mergeStepsToName(steps);
+    public String resolveAbsoluteFunctionName(FunctionIdentifier identifier, Map<String, String> imports) {
+        if (null == identifier) {
+            return "";
+        }
+        final var functionName = mergeStepsToName(identifier);
         return imports.getOrDefault(functionName, functionName);
     }
 
@@ -51,8 +55,8 @@ public class FunctionUtil {
         return imports.getOrDefault(unresolvedFunctionName, unresolvedFunctionName);
     }
 
-    public Mono<Val> evaluateFunctionMono(EObject location, Iterable<String> fsteps, Val... parameters) {
-        return evaluateFunctionMono(location, mergeStepsToName(fsteps), parameters);
+    public Mono<Val> evaluateFunctionMono(EObject location, FunctionIdentifier identifier, Val... parameters) {
+        return evaluateFunctionMono(location, mergeStepsToName(identifier), parameters);
     }
 
     public Mono<Val> evaluateFunctionMono(EObject location, String unresolvedFunctionName, Val... parameters) {
@@ -61,12 +65,12 @@ public class FunctionUtil {
                 parameters)));
     }
 
-    public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(EObject location, Iterable<String> fsteps,
+    public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(EObject location, FunctionIdentifier identifier,
             Val leftHandArgument, Val... parameters) {
         Val[] mergedParameters = new Val[parameters.length + 1];
         mergedParameters[0] = leftHandArgument;
         System.arraycopy(parameters, 0, mergedParameters, 1, parameters.length);
-        return evaluateFunctionMono(location, fsteps, mergedParameters);
+        return evaluateFunctionMono(location, identifier, mergedParameters);
     }
 
     private Stream<Flux<Val>> argumentFluxes(Arguments arguments) {
@@ -78,8 +82,11 @@ public class FunctionUtil {
         return Flux.combineLatest(x, e -> Arrays.copyOf(e, e.length, Val[].class));
     }
 
-    private String mergeStepsToName(Iterable<String> steps) {
-        return String.join(".", steps);
+    private String mergeStepsToName(FunctionIdentifier identifier) {
+        if (null == identifier) {
+            return "";
+        }
+        return String.join(".", identifier.getNameFragments());
     }
 
 }

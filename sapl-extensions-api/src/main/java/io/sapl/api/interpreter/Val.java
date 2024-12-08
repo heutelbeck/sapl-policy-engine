@@ -50,7 +50,7 @@ import reactor.core.publisher.Flux;
  * This class is the central value during policy evaluation. It can be a JSON
  * value, an error,or undefined. A Val can be marked as secret.
  */
-public class Val implements Traced, Serializable {
+public final class Val implements Traced, Serializable {
 
     private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
@@ -113,7 +113,13 @@ public class Val implements Traced, Serializable {
     }
 
     private Val(JsonNode value, boolean isSecret, Trace trace, SaplError error) {
-        this.value  = (BaseJsonNode) value;
+        if (value == null) {
+            this.value = null;
+        } else if (value instanceof BaseJsonNode baseJson) {
+            this.value = baseJson;
+        } else {
+            throw new IllegalArgumentException("Value must be a BaseJsonNode or null");
+        }
         this.secret = isSecret;
         this.trace  = trace;
         this.error  = error;
@@ -202,7 +208,7 @@ public class Val implements Traced, Serializable {
      * @return the Val with attached trace
      */
     public Val withParentTrace(Class<?> operation, boolean inheritsSecretStatusOfTrace, Val parentValue) {
-        var newVal = withTrace(new Trace(operation, new ExpressionArgument(Trace.PARENT_VALUE, parentValue)));
+        final var newVal = withTrace(new Trace(operation, new ExpressionArgument(Trace.PARENT_VALUE, parentValue)));
         if (inheritsSecretStatusOfTrace && parentValue.isSecret()) {
             return newVal.asSecret();
         }
@@ -267,7 +273,7 @@ public class Val implements Traced, Serializable {
      * @return Val with a given JSON value or UNDEFINED if value was null.
      */
     public static Val of(JsonNode value) {
-        return value == null ? UNDEFINED : new Val(value);
+        return null == value ? UNDEFINED : new Val(value);
     }
 
     /**
@@ -288,7 +294,7 @@ public class Val implements Traced, Serializable {
      * @return a Val with an error.
      */
     public static Val error(SaplError error) {
-        if (error == null) {
+        if (null == error) {
             error = SaplError.UNKNOWN_ERROR;
         }
         return new Val(null, false, null, error);
@@ -299,7 +305,7 @@ public class Val implements Traced, Serializable {
      */
     public static Val error(String errorMessage) {
         var error = SaplError.UNKNOWN_ERROR;
-        if (errorMessage != null) {
+        if (null != errorMessage) {
             error = SaplError.of(errorMessage);
         }
         return new Val(null, false, null, error);
@@ -319,14 +325,14 @@ public class Val implements Traced, Serializable {
      * @return true, iff the Val is an error.
      */
     public boolean isError() {
-        return error != null;
+        return null != error;
     }
 
     /**
      * @return true, iff the Val is not an error.
      */
     public boolean noError() {
-        return error == null;
+        return null == error;
     }
 
     /**
@@ -337,7 +343,7 @@ public class Val implements Traced, Serializable {
         if (isError()) {
             throw new NoSuchElementException(String.format(VALUE_IS_AN_ERROR_S_ERROR, getMessage()));
         }
-        if (value == null) {
+        if (null == value) {
             throw new NoSuchElementException(VALUE_UNDEFINED_ERROR);
         }
         return value;
@@ -347,14 +353,14 @@ public class Val implements Traced, Serializable {
      * @return true, iff Val not an error or undefined.
      */
     public boolean isDefined() {
-        return value != null;
+        return null != value;
     }
 
     /**
      * @return true, iff error or undefined.
      */
     public boolean isUndefined() {
-        return value == null && noError();
+        return null == value && noError();
     }
 
     /**
@@ -495,7 +501,7 @@ public class Val implements Traced, Serializable {
      * @throws Exception if field is not present supplied Exception is thrown.
      */
     public JsonNode fieldJsonNodeOrElseThrow(String fieldName, Supplier<? extends RuntimeException> errorSupplier) {
-        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        final var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
         if (!isObjectAndFieldIsPresent)
             throw errorSupplier.get();
 
@@ -512,7 +518,7 @@ public class Val implements Traced, Serializable {
      * other.
      */
     public JsonNode fieldJsonNodeOrElse(String fieldName, JsonNode other) {
-        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        final var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
         return isObjectAndFieldIsPresent ? value.get(fieldName) : other;
     }
 
@@ -526,7 +532,7 @@ public class Val implements Traced, Serializable {
      * other.
      */
     public JsonNode fieldJsonNodeOrElse(String fieldName, Supplier<JsonNode> other) {
-        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        final var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
         return isObjectAndFieldIsPresent ? value.get(fieldName) : other.get();
     }
 
@@ -540,7 +546,7 @@ public class Val implements Traced, Serializable {
      * other.
      */
     public Val fieldValOrElse(String fieldName, Val other) {
-        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        final var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
         return isObjectAndFieldIsPresent ? Val.of(value.get(fieldName)) : other;
     }
 
@@ -554,7 +560,7 @@ public class Val implements Traced, Serializable {
      * other.
      */
     public Val fieldValOrElse(String fieldName, Supplier<Val> other) {
-        var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
+        final var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);
         return isObjectAndFieldIsPresent ? Val.of(value.get(fieldName)) : other.get();
     }
 
@@ -645,7 +651,7 @@ public class Val implements Traced, Serializable {
         if (isDefined() != other.isDefined()) {
             return false;
         }
-        if (value == null) {
+        if (null == value) {
             return true;
         }
         return value.equals(NUMERIC_AWARE_COMPARATOR, other.get());
@@ -653,7 +659,7 @@ public class Val implements Traced, Serializable {
 
     @Override
     public int hashCode() {
-        if (value == null)
+        if (null == value)
             return Objects.hash(error);
 
         return Objects.hash(hashCodeOfJsonNode(value), error);
@@ -685,8 +691,8 @@ public class Val implements Traced, Serializable {
     }
 
     private static int hashCodeOfObjectNode(ObjectNode objectNode) {
-        var fieldIterator = objectNode.fields();
-        var hash          = 0;
+        final var fieldIterator = objectNode.fields();
+        var       hash          = 0;
 
         Map.Entry<String, JsonNode> entry;
         while (fieldIterator.hasNext()) {
@@ -705,7 +711,7 @@ public class Val implements Traced, Serializable {
         if (isError()) {
             return ERROR_LITERAL + '[' + error.message() + ']';
         }
-        return value != null ? value.toString() : UNDEFINED_LITERAL;
+        return null != value ? value.toString() : UNDEFINED_LITERAL;
     }
 
     /**
@@ -774,6 +780,18 @@ public class Val implements Traced, Serializable {
      */
     public static Flux<Val> fluxOf(long val) {
         return Flux.just(of(val));
+    }
+
+    /**
+     * @param bool a Boolean number
+     * @return a Val with the given value.
+     */
+    public static Val of(Boolean bool) {
+        if (bool) {
+            return TRUE;
+        } else {
+            return FALSE;
+        }
     }
 
     /**
@@ -1046,9 +1064,9 @@ public class Val implements Traced, Serializable {
             val = value;
         }
 
-        var traceJson = JSON.objectNode();
+        final var traceJson = JSON.objectNode();
         traceJson.set(Trace.VALUE, val);
-        if (trace != null) {
+        if (null != trace) {
             traceJson.set(Trace.TRACE_KEY, trace.getTrace());
         }
         return traceJson;
@@ -1056,7 +1074,7 @@ public class Val implements Traced, Serializable {
 
     @Override
     public Collection<Val> getErrorsFromTrace() {
-        var errors = new ArrayList<Val>();
+        final var errors = new ArrayList<Val>();
         collectErrors(errors);
         return errors;
     }
@@ -1065,7 +1083,7 @@ public class Val implements Traced, Serializable {
         if (isError()) {
             errors.add(this);
         }
-        if (trace != null) {
+        if (null != trace) {
             trace.collectErrors(errors);
         }
     }

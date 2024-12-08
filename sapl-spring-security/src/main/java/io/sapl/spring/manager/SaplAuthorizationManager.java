@@ -44,12 +44,13 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
     private final ObjectMapper                 mapper;
 
     @Override
+    @SuppressWarnings("deprecation") // Must implement as interface still refers to deprecated method from authorize
     public AuthorizationDecision check(Supplier<Authentication> authenticationSupplier,
             RequestAuthorizationContext requestAuthorizationContext) {
-        var request        = requestAuthorizationContext.getRequest();
-        var authentication = authenticationSupplier.get();
-        var subscription   = AuthorizationSubscription.of(authentication, request, request, mapper);
-        var authzDecision  = pdp.decide(subscription).blockFirst();
+        final var request        = requestAuthorizationContext.getRequest();
+        final var authentication = authenticationSupplier.get();
+        final var subscription   = AuthorizationSubscription.of(authentication, request, request, mapper);
+        final var authzDecision  = pdp.decide(subscription).blockFirst();
 
         if (authzDecision == null || authzDecision.getResource().isPresent())
             return new AuthorizationDecision(false);

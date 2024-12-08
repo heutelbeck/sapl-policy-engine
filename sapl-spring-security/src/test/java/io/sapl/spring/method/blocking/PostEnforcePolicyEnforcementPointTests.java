@@ -32,10 +32,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.stereotype.Service;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -60,10 +60,10 @@ class PostEnforcePolicyEnforcementPointTests {
     private static final String          ORIGINAL_RETURN_OBJECT = "original return object";
     private static final String          CHANGED_RETURN_OBJECT  = "changed return object";
 
-    @MockBean
+    @MockitoBean
     private PolicyDecisionPoint pdp;
 
-    @MockBean
+    @MockitoBean
     private ConstraintEnforcementService constraintEnforcementService;
 
     @Autowired
@@ -165,9 +165,9 @@ class PostEnforcePolicyEnforcementPointTests {
     @Test
     @WithMockUser()
     void when_AfterAndDecideIsPermitWithResource_then_ReturnTheReplacementObject() {
-        var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
-                FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
-                FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
+        final var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
+                FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
+                UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));
@@ -177,9 +177,9 @@ class PostEnforcePolicyEnforcementPointTests {
     @Test
     @WithMockUser()
     void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject() {
-        var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
-                FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
-                FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
+        final var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
+                FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
+                UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
         when(pdp.decide(any(AuthorizationSubscription.class)))
@@ -199,12 +199,12 @@ class PostEnforcePolicyEnforcementPointTests {
     @Test
     @WithMockUser()
     void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsEmptyOptionalAndResourcePresent_then_ReturnResourceOptional() {
-        var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
-                FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
-                FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
+        final var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
+                FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
+                UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
         when(constraintEnforcementService.blockingPostEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
-        var expectedReturnObject = Optional.of(CHANGED_RETURN_OBJECT);
+        final var expectedReturnObject = Optional.of(CHANGED_RETURN_OBJECT);
 
         when(pdp.decide(any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.just(AuthorizationDecision.PERMIT.withResource(JSON.textNode(CHANGED_RETURN_OBJECT))));

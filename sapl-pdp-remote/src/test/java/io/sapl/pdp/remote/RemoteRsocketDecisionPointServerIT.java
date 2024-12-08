@@ -67,9 +67,10 @@ class RemoteRsocketDecisionPointServerIT {
     @Test
     void whenRequestingDecisionFromRsocketTlsPdp_withNoAuth_thenDecisionIsProvided() throws SSLException {
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
-                var container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth", "true")) {
+                final var container = saplServerWithTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth",
+                        "true")) {
             container.start();
-            var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+            final var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
                     .port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT))
                     .keepAlive(Duration.ofSeconds(20), Duration.ofSeconds(90)).withUnsecureSSL().build();
             requestDecision(pdp);
@@ -116,10 +117,10 @@ class RemoteRsocketDecisionPointServerIT {
     @Test
     void whenRequestingDecisionFromRsocketPdp_withNoAuth_thenDecisionIsProvided() {
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
-                var container = saplServerWithRSocketNoTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth",
+                final var container = saplServerWithRSocketNoTls(baseContainer).withEnv("io_sapl_server-lt_allowNoAuth",
                         "true")) {
             container.start();
-            var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+            final var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
                     .port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT)).build();
             requestDecision(pdp);
             container.stop();
@@ -128,16 +129,16 @@ class RemoteRsocketDecisionPointServerIT {
 
     @Test
     void whenRequestingDecisionFromRsocketPdp_withBasicAuth_thenDecisionIsProvided() {
-        var key           = "mpI3KjU7n1";
-        var secret        = "haTPcbYA8Dwkl91$)gG42S)UG98eF!*m";
-        var encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
+        final var key           = "mpI3KjU7n1";
+        final var secret        = "haTPcbYA8Dwkl91$)gG42S)UG98eF!*m";
+        final var encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
-                var container = saplServerWithRSocketNoTls(baseContainer)
+                final var container = saplServerWithRSocketNoTls(baseContainer)
                         .withEnv("io_sapl_server-lt_allowNoAuth", "true")
                         .withEnv("io_sapl_server-lt_allowBasicAuth", "true").withEnv("io_sapl_server-lt_key", key)
                         .withEnv("io_sapl_server-lt_secret", encodedSecret)) {
             container.start();
-            var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+            final var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
                     .port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT)).basicAuth(key, secret).build();
             requestDecision(pdp);
             container.stop();
@@ -146,16 +147,16 @@ class RemoteRsocketDecisionPointServerIT {
 
     @Test
     void whenRequestingDecisionFromRsocketPdp_withInvalidBasicAuth_thenIndeterminateDecisionIsProvided() {
-        var key           = "mpI3KjU7n1";
-        var secret        = "invalidSecret";
-        var encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
+        final var key           = "mpI3KjU7n1";
+        final var secret        = "invalidSecret";
+        final var encodedSecret = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
-                var container = saplServerWithRSocketNoTls(baseContainer)
+                final var container = saplServerWithRSocketNoTls(baseContainer)
                         .withEnv("io_sapl_server-lt_allowNoAuth", "true")
                         .withEnv("io_sapl_server-lt_allowBasicAuth", "true").withEnv("io_sapl_server-lt_key", key)
                         .withEnv("io_sapl_server-lt_secret", encodedSecret)) {
             container.start();
-            var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+            final var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
                     .port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT)).basicAuth(key, secret).build();
             StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.INDETERMINATE)
                     .thenCancel().verify();
@@ -165,14 +166,14 @@ class RemoteRsocketDecisionPointServerIT {
 
     @Test
     void whenRequestingDecisionFromRsocketPdp_withApiKeyAuth_thenDecisionIsProvided() {
-        var apiKey        = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
-        var encodedApiKey = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
+        final var apiKey        = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
+        final var encodedApiKey = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
-                var container = saplServerWithRSocketNoTls(baseContainer)
+                final var container = saplServerWithRSocketNoTls(baseContainer)
                         .withEnv("io_sapl_server-lt_allowApiKeyAuth", "true")
                         .withEnv("io_sapl_server-lt_allowedApiKeys[0]", encodedApiKey)) {
             container.start();
-            var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+            final var pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
                     .port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT)).apiKey(apiKey).build();
             requestDecision(pdp);
             container.stop();
@@ -183,34 +184,35 @@ class RemoteRsocketDecisionPointServerIT {
     void whenRequestingDecisionFromRsocketPdp_withOauth2Auth_thenDecisionIsProvided() {
         try (var oauthBaseContainer = new GenericContainer<>(
                 DockerImageName.parse("ghcr.io/navikt/mock-oauth2-server:2.1.0"));
-                var oauth2Container = oauthBaseContainer.withExposedPorts(8080).waitingFor(Wait.forListeningPort())) {
+                final var oauth2Container = oauthBaseContainer.withExposedPorts(8080)
+                        .waitingFor(Wait.forListeningPort())) {
             oauth2Container.start();
 
             try (var baseContainer = new GenericContainer<>(DockerImageName.parse(CONTAINER_IMAGE));
-                    var container = saplServerWithRSocketNoTls(baseContainer)
+                    final var container = saplServerWithRSocketNoTls(baseContainer)
                             .withEnv("io_sapl_server-lt_allowOauth2Auth", "true")
                             .withExtraHost("auth-host", "host-gateway")
                             .withEnv("spring_security_oauth2_resourceserver_jwt_issuer-uri",
                                     "http://auth-host:" + oauth2Container.getMappedPort(8080) + "/default")) {
                 container.start();
-                var clientRegistrationRepository = new ReactiveClientRegistrationRepository() {
-                                                     @Override
-                                                     public Mono<ClientRegistration> findByRegistrationId(
-                                                             String registrationId) {
-                                                         return Mono
-                                                                 .just(ClientRegistration.withRegistrationId("saplPdp")
-                                                                         .tokenUri("http://auth-host:"
-                                                                                 + oauth2Container.getMappedPort(8080)
-                                                                                 + "/default/token")
-                                                                         .clientId("0oa62xybztegSdqtZ5d7")
-                                                                         .clientSecret(
-                                                                                 "v6WUqDre1B4WMejey-6sklb5kZW7C5RB2iftv_sq")
-                                                                         .authorizationGrantType(
-                                                                                 AuthorizationGrantType.CLIENT_CREDENTIALS)
-                                                                         .scope("sapl").build());
-                                                     }
-                                                 };
-                var pdp                          = RemotePolicyDecisionPoint.builder().rsocket()
+                final var clientRegistrationRepository = new ReactiveClientRegistrationRepository() {
+                                                           @Override
+                                                           public Mono<ClientRegistration> findByRegistrationId(
+                                                                   String registrationId) {
+                                                               return Mono.just(ClientRegistration
+                                                                       .withRegistrationId("saplPdp")
+                                                                       .tokenUri("http://auth-host:"
+                                                                               + oauth2Container.getMappedPort(8080)
+                                                                               + "/default/token")
+                                                                       .clientId("0oa62xybztegSdqtZ5d7")
+                                                                       .clientSecret(
+                                                                               "v6WUqDre1B4WMejey-6sklb5kZW7C5RB2iftv_sq")
+                                                                       .authorizationGrantType(
+                                                                               AuthorizationGrantType.CLIENT_CREDENTIALS)
+                                                                       .scope("sapl").build());
+                                                           }
+                                                       };
+                final var pdp                          = RemotePolicyDecisionPoint.builder().rsocket()
                         .host(container.getHost()).port(container.getMappedPort(SAPL_SERVER_RSOCKET_PORT))
                         .oauth2(clientRegistrationRepository, "saplPdp").build();
                 requestDecision(pdp);

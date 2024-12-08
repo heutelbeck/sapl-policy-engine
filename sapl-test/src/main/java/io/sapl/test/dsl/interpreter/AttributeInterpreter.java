@@ -23,10 +23,10 @@ import static io.sapl.test.Imports.parentValue;
 import static io.sapl.test.Imports.whenAttributeParams;
 import static io.sapl.test.Imports.whenParentValue;
 
-import io.sapl.test.SaplTestException;
 import org.hamcrest.Matcher;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.test.SaplTestException;
 import io.sapl.test.grammar.sapltest.Attribute;
 import io.sapl.test.grammar.sapltest.AttributeWithParameters;
 import io.sapl.test.steps.GivenOrWhenStep;
@@ -43,14 +43,14 @@ class AttributeInterpreter {
         final var importName  = attribute.getName();
         final var returnValue = attribute.getReturnValue();
 
-        if (returnValue == null || returnValue.isEmpty()) {
+        if (null == returnValue || returnValue.isEmpty()) {
             throw new SaplTestException("Attribute has no return value");
         } else {
             final var values = returnValue.stream().map(valueInterpreter::getValFromValue).toArray(Val[]::new);
 
             final var dslTiming = attribute.getTiming();
 
-            if (dslTiming == null) {
+            if (null == dslTiming) {
                 return givenOrWhenStep.givenAttribute(importName, values);
             }
 

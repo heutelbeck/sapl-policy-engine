@@ -21,6 +21,7 @@ import org.passay.CharacterData;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.PasswordGenerator;
+import org.passay.Rule;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 import lombok.experimental.UtilityClass;
@@ -45,34 +46,36 @@ public class SecretGenerator {
     }
 
     public String encodeWithArgon2(String secret) {
-        var encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+        final var encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
         return encoder.encode(secret);
     }
 
     private String generateKey(int length) {
-        var passwordGenerator = new PasswordGenerator();
-        var lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
-        var upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
-        var digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
-        return passwordGenerator.generatePassword(length, lowerCaseRule, upperCaseRule, digitRule);
+        final var passwordGenerator = new PasswordGenerator();
+        final var lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
+        final var upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
+        final var digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
+        final var rules             = new Rule[] { lowerCaseRule, upperCaseRule, digitRule };
+        return passwordGenerator.generatePassword(length, rules);
     }
 
     private String generatePassword(int length) {
-        var passwordGenerator = new PasswordGenerator();
-        var lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
-        var upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
-        var digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
-        var splCharRule       = new CharacterRule(new CharacterData() {
-                                  @Override
-                                  public String getErrorCode() {
-                                      return "ERR_SPECIAL";
-                                  }
+        final var passwordGenerator = new PasswordGenerator();
+        final var lowerCaseRule     = new CharacterRule(EnglishCharacterData.LowerCase, 2);
+        final var upperCaseRule     = new CharacterRule(EnglishCharacterData.UpperCase, 2);
+        final var digitRule         = new CharacterRule(EnglishCharacterData.Digit, 2);
+        final var splCharRule       = new CharacterRule(new CharacterData() {
+                                        @Override
+                                        public String getErrorCode() {
+                                            return "ERR_SPECIAL";
+                                        }
 
-                                  @Override
-                                  public String getCharacters() {
-                                      return "$-_.+!*'(),";
-                                  }
-                              }, 2);
-        return passwordGenerator.generatePassword(length, splCharRule, lowerCaseRule, upperCaseRule, digitRule);
+                                        @Override
+                                        public String getCharacters() {
+                                            return "$-_.+!*'(),";
+                                        }
+                                    }, 2);
+        final var rules             = new Rule[] { splCharRule, lowerCaseRule, upperCaseRule, digitRule };
+        return passwordGenerator.generatePassword(length, rules);
     }
 }

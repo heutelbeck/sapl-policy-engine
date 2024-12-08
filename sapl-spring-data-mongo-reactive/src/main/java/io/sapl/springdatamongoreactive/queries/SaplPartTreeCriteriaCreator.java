@@ -19,10 +19,11 @@ package io.sapl.springdatamongoreactive.queries;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.springframework.data.repository.query.parser.Part;
+
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.CriteriaDefinition;
+import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import lombok.experimental.UtilityClass;
@@ -54,20 +55,20 @@ public class SaplPartTreeCriteriaCreator {
      */
     private CriteriaDefinition buildCriteria(PartTree manipulatedPartTree, List<Object> parameters) {
 
-        Criteria base     = null;
-        var      iterator = parameters.iterator();
-        var      andPart  = new ArrayList<Criteria>();
+        Criteria  base     = null;
+        final var iterator = parameters.iterator();
+        final var andPart  = new ArrayList<Criteria>();
 
         for (PartTree.OrPart node : manipulatedPartTree) {
 
-            var parts = node.iterator();
+            final var parts = node.iterator();
             andPart.add(buildCriteria(parts.next(), iterator.next()));
 
             while (parts.hasNext()) {
                 andPart.add(buildCriteria(parts.next(), iterator.next()));
             }
 
-            var criteria = new Criteria().andOperator(andPart.toArray(new Criteria[0]));
+            final var criteria = new Criteria().andOperator(andPart.toArray(new Criteria[0]));
 
             base = base == null ? criteria : base.orOperator(andPart.toArray(new Criteria[0]));
             andPart.clear();
@@ -77,7 +78,7 @@ public class SaplPartTreeCriteriaCreator {
     }
 
     private Criteria buildCriteria(Part part, Object value) {
-        var propertyName = part.getProperty().getSegment();
+        final var propertyName = part.getProperty().getSegment();
 
         switch (part.getType()) {
         case SIMPLE_PROPERTY:

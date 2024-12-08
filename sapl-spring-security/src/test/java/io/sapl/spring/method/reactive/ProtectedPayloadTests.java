@@ -31,7 +31,7 @@ class ProtectedPayloadTests {
     @Test
     void withPayload() {
         assertThatThrownBy(() -> ProtectedPayload.withPayload(null)).isInstanceOf(NullPointerException.class);
-        var pp = ProtectedPayload.withPayload("Payload");
+        final var pp = ProtectedPayload.withPayload("Payload");
         assertThat(pp.isError()).isFalse();
         assertThat(pp.hasPayload()).isTrue();
         StepVerifier.create(pp.getPayload()).expectNext("Payload").verifyComplete();
@@ -41,7 +41,7 @@ class ProtectedPayloadTests {
     @Test
     void withException() {
         assertThatThrownBy(() -> ProtectedPayload.withError(null)).isInstanceOf(NullPointerException.class);
-        var pp = ProtectedPayload.withError(new RuntimeException("ERROR"));
+        final var pp = ProtectedPayload.withError(new RuntimeException("ERROR"));
         assertThat(pp.isError()).isTrue();
         assertThat(pp.hasPayload()).isFalse();
         assertThatThrownBy(pp::getPayload).isInstanceOf(RuntimeException.class);

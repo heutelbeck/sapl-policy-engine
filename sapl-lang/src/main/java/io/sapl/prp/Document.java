@@ -27,7 +27,7 @@ import io.sapl.interpreter.DocumentType;
 public record Document(String id, String name, SAPL sapl, Diagnostic diagnostic, String errorMessage) {
 
     public boolean isInvalid() {
-        return diagnostic == null || diagnostic.getSeverity() != Diagnostic.OK;
+        return null == diagnostic || diagnostic.getSeverity() != Diagnostic.OK;
     }
 
     public String source() {

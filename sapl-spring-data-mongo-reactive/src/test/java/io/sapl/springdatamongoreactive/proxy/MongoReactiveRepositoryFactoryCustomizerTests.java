@@ -34,7 +34,8 @@ class MongoReactiveRepositoryFactoryCustomizerTests {
     @Test
     void when_usingMongoEnforcementPointIsDesired_then_customizeRepositoryFactorySupport() {
         // GIVEN
-        var customizer = new MongoReactiveRepositoryFactoryCustomizer(mongoReactiveRepositoryProxyPostProcessorMock);
+        final var customizer = new MongoReactiveRepositoryFactoryCustomizer(
+                mongoReactiveRepositoryProxyPostProcessorMock);
 
         // WHEN
         customizer.customize(repositoryFactorySupportMock);

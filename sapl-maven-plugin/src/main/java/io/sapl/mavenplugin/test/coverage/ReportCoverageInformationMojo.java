@@ -135,7 +135,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
                     "Cannot report and validate SAPL code coverage requirements if coverage collection is disabled. For details, inspect build log.");
         }
 
-        var buildConfiguredToSkipTests = mavenTestSkip || skipTests;
+        final var buildConfiguredToSkipTests = mavenTestSkip || skipTests;
 
         if (buildConfiguredToSkipTests) {
             if (this.failOnDisabledTests) {
@@ -152,8 +152,8 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
             }
         }
 
-        var documents = readSaplDocuments();
-        var targets   = readAvailableTargets(documents);
+        final var documents = readSaplDocuments();
+        final var targets   = readAvailableTargets(documents);
 
         CoverageTargets hits;
         try {
@@ -167,11 +167,11 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
             throw new MojoFailureException("Failed reading data from SAPL tests. For details, inspect build log.", e);
         }
 
-        var actualPolicySetHitRatio       = this.ratioCalculator.calculateRatio(targets.getPolicySets(),
+        final var actualPolicySetHitRatio       = this.ratioCalculator.calculateRatio(targets.getPolicySets(),
                 hits.getPolicySets());
-        var actualPolicyHitRatio          = this.ratioCalculator.calculateRatio(targets.getPolicies(),
+        final var actualPolicyHitRatio          = this.ratioCalculator.calculateRatio(targets.getPolicies(),
                 hits.getPolicies());
-        var actualPolicyConditionHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicyConditions(),
+        final var actualPolicyConditionHitRatio = this.ratioCalculator.calculateRatio(targets.getPolicyConditions(),
                 hits.getPolicyConditions());
 
         getLog().info("");
@@ -191,7 +191,7 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
 
         if (enableSonarReport || enableHtmlReport) {
 
-            var genericDocumentCoverage = reporter.calcDocumentCoverage(documents, hits);
+            final var genericDocumentCoverage = reporter.calcDocumentCoverage(documents, hits);
 
             if (enableSonarReport) {
                 sonarReporter.generateSonarLineCoverageReport(genericDocumentCoverage, getLog(),

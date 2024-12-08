@@ -123,7 +123,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
      * @param message an error message
      */
     public void genericCheckForElementInAST(final EObject startNode, final EClass aClass, final String message) {
-        var foundItem = containsClass(startNode, aClass);
+        final var foundItem = containsClass(startNode, aClass);
         if (foundItem != null) {
             error(message, foundItem, null);
         }
@@ -144,7 +144,7 @@ public class SAPLValidator extends AbstractSAPLValidator {
             return eObj;
 
         for (var o : eObj.eContents()) {
-            var result = containsClass(o, eClass);
+            final var result = containsClass(o, eClass);
             if (result != null)
                 return result;
         }

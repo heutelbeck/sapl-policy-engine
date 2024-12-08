@@ -36,10 +36,10 @@ public class EagerOrImplCustom extends EagerOrImpl {
 
     @Override
     public Flux<Val> evaluate() {
-        return booleanOperator(this, this, this::or);
+        return booleanOperator(this, this, EagerOrImplCustom::or);
     }
 
-    private Val or(Val left, Val right) {
+    public static Val or(Val left, Val right) {
         return Val.of(left.getBoolean() || right.getBoolean()).withTrace(EagerOr.class, false,
                 Map.of(Trace.LEFT, left, Trace.RIGHT, right));
     }

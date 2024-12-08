@@ -36,7 +36,7 @@ class AuthorizationManagerConfigurationTests {
 
     @Test
     void testWebApplicationWithServletContext() {
-        var ctx = new AnnotationConfigServletWebApplicationContext();
+        final var ctx = new AnnotationConfigServletWebApplicationContext();
         ctx.registerBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class));
         ctx.registerBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class));
         ctx.registerBean(ObjectMapper.class, () -> mock(ObjectMapper.class));
@@ -49,7 +49,7 @@ class AuthorizationManagerConfigurationTests {
 
     @Test
     void testWebApplicationWithReactiveWebContext() {
-        var ctx = new AnnotationConfigReactiveWebApplicationContext();
+        final var ctx = new AnnotationConfigReactiveWebApplicationContext();
         ctx.registerBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class));
         ctx.registerBean(ConstraintEnforcementService.class, () -> mock(ConstraintEnforcementService.class));
         ctx.registerBean(ObjectMapper.class, () -> mock(ObjectMapper.class));

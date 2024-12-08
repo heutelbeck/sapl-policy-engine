@@ -24,10 +24,10 @@ import static org.mockito.Mockito.when;
 import org.aopalliance.intercept.MethodInvocation;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.query.BasicQuery;
 
 class ConvertToMQLTests {
 
@@ -37,16 +37,16 @@ class ConvertToMQLTests {
     @Test
     void when_createPageable_then_createPageableWithSortObjectsASC() {
         // GIVEN
-        var sortDocument = new Document("age", 0);
-        var sortObject   = Sort.by(Sort.Direction.ASC, "firstname");
-        var objects      = new Object[] { "Juni", sortObject };
-        var sort         = Sort.by(Sort.Direction.DESC, "age");
+        final var sortDocument = new Document("age", 0);
+        final var sortObject   = Sort.by(Sort.Direction.ASC, "firstname");
+        final var objects      = new Object[] { "Juni", sortObject };
+        final var sort         = Sort.by(Sort.Direction.DESC, "age");
 
         // WHEN
         when(queryMock.getSortObject()).thenReturn(sortDocument);
         when(methodInvocationMock.getArguments()).thenReturn(objects);
 
-        var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
+        final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
         assertEquals(PageRequest.of(0, 2147483647, sort.and(sortObject)), result);
@@ -55,15 +55,15 @@ class ConvertToMQLTests {
     @Test
     void when_createPageable_then_createPageableWithPagableObjectsASC() {
         // GIVEN
-        var pageableObject = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "firstname"));
-        var sortDocument   = new Document();
-        var objects        = new Object[] { "Juni", pageableObject };
+        final var pageableObject = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "firstname"));
+        final var sortDocument   = new Document();
+        final var objects        = new Object[] { "Juni", pageableObject };
 
         // WHEN
         when(queryMock.getSortObject()).thenReturn(sortDocument);
         when(methodInvocationMock.getArguments()).thenReturn(objects);
 
-        var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
+        final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
         assertEquals(pageableObject, result);
@@ -72,18 +72,18 @@ class ConvertToMQLTests {
     @Test
     void when_createPageable_then_createPageableWithPagableObjectAndSortObjectASC() {
         // GIVEN
-        var pageableObject = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "firstname"));
-        var sortDocument   = new Document("age", 0);
-        var objects        = new Object[] { "Juni", pageableObject };
-        var sort           = Sort.by(Sort.Direction.DESC, "age");
-        var expected       = PageRequest.of(pageableObject.getPageNumber(), pageableObject.getPageSize(),
+        final var pageableObject = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "firstname"));
+        final var sortDocument   = new Document("age", 0);
+        final var objects        = new Object[] { "Juni", pageableObject };
+        final var sort           = Sort.by(Sort.Direction.DESC, "age");
+        final var expected       = PageRequest.of(pageableObject.getPageNumber(), pageableObject.getPageSize(),
                 sort.and(pageableObject.getSort()));
 
         // WHEN
         when(queryMock.getSortObject()).thenReturn(sortDocument);
         when(methodInvocationMock.getArguments()).thenReturn(objects);
 
-        var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
+        final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
         assertEquals(expected, result);
@@ -92,17 +92,17 @@ class ConvertToMQLTests {
     @Test
     void when_createPageable_then_createPageableWithPagableObjectAndSortIsEmpty() {
         // GIVEN
-        var pageableObject = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "firstname"));
-        var sortDocument   = new Document();
-        var objects        = new Object[] { "Juni", pageableObject };
-        var expected       = PageRequest.of(pageableObject.getPageNumber(), pageableObject.getPageSize(),
+        final var pageableObject = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "firstname"));
+        final var sortDocument   = new Document();
+        final var objects        = new Object[] { "Juni", pageableObject };
+        final var expected       = PageRequest.of(pageableObject.getPageNumber(), pageableObject.getPageSize(),
                 pageableObject.getSort());
 
         // WHEN
         when(queryMock.getSortObject()).thenReturn(sortDocument);
         when(methodInvocationMock.getArguments()).thenReturn(objects);
 
-        var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
+        final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
         assertEquals(expected, result);
@@ -111,15 +111,15 @@ class ConvertToMQLTests {
     @Test
     void when_createPageable_then_createUnsortedPageableBecauseSortIsEmptyAndPageableIsNull() {
         // GIVEN
-        var sortDocument = new Document();
-        var objects      = new Object[] { "Juni" };
-        var expected     = Pageable.unpaged();
+        final var sortDocument = new Document();
+        final var objects      = new Object[] { "Juni" };
+        final var expected     = Pageable.unpaged();
 
         // WHEN
         when(queryMock.getSortObject()).thenReturn(sortDocument);
         when(methodInvocationMock.getArguments()).thenReturn(objects);
 
-        var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
+        final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
         assertEquals(expected, result);
@@ -128,17 +128,17 @@ class ConvertToMQLTests {
     @Test
     void when_createPageable_then_createPageableWithSortObjectsDESC() {
         // GIVEN
-        var sortDocument = new Document("age", 1);
-        var sortObject   = Sort.by(Sort.Direction.DESC, "firstname");
-        var objects      = new Object[] { "Juni", sortObject };
+        final var sortDocument = new Document("age", 1);
+        final var sortObject   = Sort.by(Sort.Direction.DESC, "firstname");
+        final var objects      = new Object[] { "Juni", sortObject };
 
-        var sort = Sort.by(Sort.Direction.ASC, "age");
+        final var sort = Sort.by(Sort.Direction.ASC, "age");
 
         // WHEN
         when(queryMock.getSortObject()).thenReturn(sortDocument);
         when(methodInvocationMock.getArguments()).thenReturn(objects);
 
-        var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
+        final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
         assertEquals(PageRequest.of(0, 2147483647, sort.and(sortObject)), result);
@@ -147,15 +147,15 @@ class ConvertToMQLTests {
     @Test
     void when_createPageable_then_queryDoesNotContainSortObject() {
         // GIVEN
-        var sortDocument = new Document();
-        var sortObject   = Sort.by(Sort.Direction.ASC, "firstname");
-        var objects      = new Object[] { "Juni", sortObject };
+        final var sortDocument = new Document();
+        final var sortObject   = Sort.by(Sort.Direction.ASC, "firstname");
+        final var objects      = new Object[] { "Juni", sortObject };
 
         // WHEN
         when(queryMock.getSortObject()).thenReturn(sortDocument);
         when(methodInvocationMock.getArguments()).thenReturn(objects);
 
-        var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
+        final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
         assertEquals(PageRequest.of(0, 2147483647, sortObject), result);
@@ -164,15 +164,15 @@ class ConvertToMQLTests {
     @Test
     void when_createPageable_then_argumentsNotContainSortObject() {
         // GIVEN
-        var sortDocument = new Document("age", 0);
-        var sortObject   = Sort.by(Sort.Direction.DESC, "age");
-        var objects      = new Object[] { "Juni" };
+        final var sortDocument = new Document("age", 0);
+        final var sortObject   = Sort.by(Sort.Direction.DESC, "age");
+        final var objects      = new Object[] { "Juni" };
 
         // WHEN
         when(queryMock.getSortObject()).thenReturn(sortDocument);
         when(methodInvocationMock.getArguments()).thenReturn(objects);
 
-        var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
+        final var result = ConvertToMQL.createPageable(methodInvocationMock, queryMock);
 
         // THEN
         assertEquals(PageRequest.of(0, 2147483647, sortObject), result);

@@ -23,6 +23,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +43,7 @@ public class RemotePDPAutoConfiguration {
         if ("rsocket".equals(configuration.getType())) {
             log.info("Binding to rsocket remote PDP server: {}:{}", configuration.getRsocketHost(),
                     configuration.getRsocketPort());
-            var builder = RemotePolicyDecisionPoint.builder().rsocket().host(configuration.getRsocketHost())
+            final var builder = RemotePolicyDecisionPoint.builder().rsocket().host(configuration.getRsocketHost())
                     .port(configuration.getRsocketPort());
             if (!configuration.getKey().isEmpty()) {
                 log.info("Connecting with basic authentication");
@@ -58,7 +59,7 @@ public class RemotePDPAutoConfiguration {
 
         } else {
             log.info("Binding to http remote PDP server: {}", configuration.getHost());
-            var builder = RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost());
+            final var builder = RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost());
             if (!configuration.getKey().isEmpty()) {
                 log.info("Connecting with basic authentication");
                 builder.basicAuth(configuration.getKey(), configuration.getSecret());

@@ -32,18 +32,18 @@ class PredicateTests {
 
     @Test
     void testConstruction() {
-        var predicate = new Predicate(new Bool(true));
+        final var predicate = new Predicate(new Bool(true));
         assertThat(predicate, is(notNullValue()));
         assertThat(predicate.getBool().evaluate(), is(true));
     }
 
     @Test
     void testEvaluate() {
-        var boolMock = mock(Bool.class);
+        final var boolMock = mock(Bool.class);
         when(boolMock.evaluateExpression()).thenReturn(Mono.just(Val.TRUE));
 
-        var predicate = new Predicate(boolMock);
-        var result    = predicate.evaluate().block();
+        final var predicate = new Predicate(boolMock);
+        final var result    = predicate.evaluate().block();
         assertThat(result.getBoolean(), is(true));
     }
 

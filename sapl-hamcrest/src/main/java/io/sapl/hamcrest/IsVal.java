@@ -69,7 +69,7 @@ public class IsVal extends TypeSafeDiagnosingMatcher<Val> {
             mismatchDescription.appendText("undefined");
             return false;
         }
-        var json = item.get();
+        final var json = item.get();
         if (jsonMatcher.isEmpty() || jsonMatcher.get().matches(json)) {
             return true;
         } else {

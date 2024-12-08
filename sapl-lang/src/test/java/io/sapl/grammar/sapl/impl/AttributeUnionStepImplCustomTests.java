@@ -31,7 +31,7 @@ class AttributeUnionStepImplCustomTests {
 
     @Test
     void applySlicingToNonObject() {
-        var expression = "\"Otto\"['key1','key2']";
+        final var expression = "\"Otto\"['key1','key2']";
         assertExpressionReturnsErrors(expression);
     }
 

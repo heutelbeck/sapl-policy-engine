@@ -20,8 +20,9 @@ package io.sapl.springdatamongoreactive.queries;
 import java.util.Collections;
 import java.util.List;
 
-import lombok.Getter;
 import org.apache.commons.lang3.NotImplementedException;
+
+import lombok.Getter;
 
 /**
  * This enum class is used to use a uniform language when it comes to creating
@@ -62,11 +63,11 @@ public enum OperatorMongoDB {
      */
     public static OperatorMongoDB getOperatorByKeyword(String keyword) {
 
-        var replacedAllSpaceKeyword = keyword.toLowerCase().replaceAll("\\s", "");
+        final var replacedAllSpaceKeyword = keyword.toLowerCase().replaceAll("\\s", "");
         for (OperatorMongoDB operator : OperatorMongoDB.values()) {
-            var methodNameBasedKeywordsContainsSearchedKeyword = operator.methodNameBasedKeywords.stream()
+            final var methodNameBasedKeywordsContainsSearchedKeyword = operator.methodNameBasedKeywords.stream()
                     .map(key -> key.toLowerCase().replaceAll("\\s", "")).toList().contains(replacedAllSpaceKeyword);
-            var mongoBasedKeywordsContainsSearchedKeyword      = operator.mongoBasedKeywords.stream()
+            final var mongoBasedKeywordsContainsSearchedKeyword      = operator.mongoBasedKeywords.stream()
                     .map(key -> key.toLowerCase().replaceAll("\\s", "")).toList().contains(replacedAllSpaceKeyword);
 
             if (methodNameBasedKeywordsContainsSearchedKeyword || mongoBasedKeywordsContainsSearchedKeyword) {

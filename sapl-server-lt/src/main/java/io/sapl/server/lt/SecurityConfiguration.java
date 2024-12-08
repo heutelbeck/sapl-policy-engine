@@ -20,15 +20,20 @@ package io.sapl.server.lt;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Role;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authorization.ReactiveAuthorizationManager;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.rsocket.EnableRSocketSecurity;
 import org.springframework.security.config.annotation.rsocket.PayloadInterceptorOrder;
 import org.springframework.security.config.annotation.rsocket.RSocketSecurity;
@@ -51,6 +56,7 @@ import org.springframework.security.rsocket.authentication.AuthenticationPayload
 import org.springframework.security.rsocket.authentication.AuthenticationPayloadInterceptor;
 import org.springframework.security.rsocket.core.PayloadSocketAcceptorInterceptor;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.WebFilterChainProxy;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.web.server.ServerWebExchange;
 
@@ -97,7 +103,8 @@ public class SecurityConfiguration {
                 log.warn(
                         "No API keys for clients defined. Please set: 'io.sapl.server-lt.key.allowedApiKeys'. With a list of valid keys.");
             }
-            var customAuthenticationWebFilter = new AuthenticationWebFilter(new ApiKeyReactiveAuthenticationManager());
+            final var customAuthenticationWebFilter = new AuthenticationWebFilter(
+                    new ApiKeyReactiveAuthenticationManager());
             customAuthenticationWebFilter
                     .setServerAuthenticationConverter(apiKeyService.getHttpApiKeyAuthenticationConverter());
             http = http.addFilterAt(customAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);
@@ -141,17 +148,17 @@ public class SecurityConfiguration {
         if (!pdpProperties.isAllowBasicAuth()) {
             return null;
         }
-        var key = pdpProperties.getKey();
+        final var key = pdpProperties.getKey();
         if (key == null) {
             throw new IllegalStateException(
                     "If Basic authentication is active, a client key must be supplied. Please set: 'io.sapl.server-lt.key'.");
         }
-        var secret = pdpProperties.getSecret();
+        final var secret = pdpProperties.getSecret();
         if (secret == null) {
             throw new IllegalStateException(
                     "If Basic authentication is active, a client secret must be supplied. Please set: 'io.sapl.server-lt.secret'. As a BCrypt encoded secret.");
         }
-        var client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
+        final var client = User.builder().username(key).password(secret).roles("PDP_CLIENT").build();
         return new MapReactiveUserDetailsService(client);
     }
 
@@ -162,7 +169,7 @@ public class SecurityConfiguration {
      */
     @Bean
     RSocketMessageHandler rsocketMessageHandler(RSocketStrategies rSocketStrategies) {
-        var rSocketMessageHandler = new RSocketMessageHandler();
+        final var rSocketMessageHandler = new RSocketMessageHandler();
         rSocketMessageHandler.getArgumentResolverConfigurer()
                 .addCustomResolver(new AuthenticationPrincipalArgumentResolver());
         rSocketMessageHandler.setRSocketStrategies(rSocketStrategies);
@@ -210,31 +217,56 @@ public class SecurityConfiguration {
             jwtManager = new JwtReactiveAuthenticationManager(ReactiveJwtDecoders.fromIssuerLocation(jwtIssuerURI));
         }
 
-        var finalSimpleManager = simpleManager;
-        var finalJwtManager    = jwtManager;
-        var auth               = new AuthenticationPayloadInterceptor(a -> {
-                                   if (finalSimpleManager != null && a instanceof UsernamePasswordAuthenticationToken) {
-                                       return finalSimpleManager.authenticate(a);
-                                   } else if (finalJwtManager != null && a instanceof BearerTokenAuthenticationToken) {
-                                       return finalJwtManager.authenticate(a);
-                                   } else {
-                                       throw new IllegalArgumentException(
-                                               "Unsupported Authentication Type " + a.getClass().getSimpleName());
-                                   }
-                               });
+        final var finalSimpleManager = simpleManager;
+        final var finalJwtManager    = jwtManager;
+        final var auth               = new AuthenticationPayloadInterceptor(authentication -> {
+                                         if (finalSimpleManager != null
+                                                 && authentication instanceof UsernamePasswordAuthenticationToken) {
+                                             return finalSimpleManager.authenticate(authentication);
+                                         } else if (finalJwtManager != null
+                                                 && authentication instanceof BearerTokenAuthenticationToken) {
+                                             return finalJwtManager.authenticate(authentication);
+                                         } else {
+                                             throw new IllegalArgumentException("Unsupported Authentication Type "
+                                                     + authentication.getClass().getSimpleName());
+                                         }
+                                     });
         auth.setAuthenticationConverter(new AuthenticationPayloadExchangeConverter());
         auth.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
         security.addPayloadInterceptor(auth);
 
         // Configure ApiKey authentication
         if (pdpProperties.isAllowApiKeyAuth()) {
-            ReactiveAuthenticationManager    manager           = new ApiKeyReactiveAuthenticationManager();
-            AuthenticationPayloadInterceptor apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
+            final var manager           = new ApiKeyReactiveAuthenticationManager();
+            final var apikeyInterceptor = new AuthenticationPayloadInterceptor(manager);
             apikeyInterceptor.setAuthenticationConverter(apiKeyService.getRsocketApiKeyAuthenticationConverter());
             apikeyInterceptor.setOrder(PayloadInterceptorOrder.AUTHENTICATION.getOrder());
             security.addPayloadInterceptor(apikeyInterceptor);
         }
         return security.build();
 
+    }
+
+    // Fixes issue present in spring boot 3.4.0:
+    // https://github.com/spring-projects/spring-security/issues/16161#issuecomment-2498390492
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @Primary
+    static ObjectPostProcessor<ReactiveAuthorizationManager<ServerWebExchange>> primaryAuthorizationManagerPostProcessor() {
+        return ObjectPostProcessor.identity();
+    }
+
+    @Bean
+    @Role(2)
+    @Primary
+    static ObjectPostProcessor<ReactiveAuthenticationManager> primaryAuthenticationManagerPostProcessor() {
+        return ObjectPostProcessor.identity();
+    }
+
+    @Bean
+    @Role(2)
+    @Primary
+    static ObjectPostProcessor<WebFilterChainProxy.WebFilterChainDecorator> primaryFilterChainDecoratorPostProcessor() {
+        return ObjectPostProcessor.identity();
     }
 }

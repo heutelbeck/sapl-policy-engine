@@ -64,14 +64,14 @@ class JsonTestUtility {
         ObjectNode keyNode   = MAPPER.createObjectNode();
         ObjectNode valueNode = MAPPER.createObjectNode();
 
-        if (keyPair1 != null) {
+        if (null != keyPair1) {
             String encodedFirstKey = Base64.getUrlEncoder().encodeToString(keyPair1.getPublic().getEncoded());
             valueNode.put(kid1, encodedFirstKey);
         } else
             valueNode.putNull(kid1);
 
         String encodedSecondKey = "This is Bogus";
-        if (keyPair2 != null)
+        if (null != keyPair2)
             encodedSecondKey = Base64.getUrlEncoder().encodeToString(keyPair2.getPublic().getEncoded());
         valueNode.put(kid2, encodedSecondKey);
 
@@ -89,20 +89,20 @@ class JsonTestUtility {
      */
     static Map<String, Val> publicKeyUriVariables(MockWebServer server, String method) {
 
-        ObjectNode keyNode   = MAPPER.createObjectNode();
-        ObjectNode valueNode = serverNode(server, method, null);
+        final var keyNode   = MAPPER.createObjectNode();
+        final var valueNode = serverNode(server, method, null);
 
         keyNode.set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY, valueNode);
         return Map.of("jwt", Val.of(keyNode));
     }
 
     static ObjectNode serverNode(MockWebServer server, String method, Object ttl) {
-        ObjectNode valueNode = MAPPER.createObjectNode();
+        final var valueNode = MAPPER.createObjectNode();
 
-        if (server != null) {
+        if (null != server) {
             valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/") + "public-keys/{id}");
         }
-        if (method != null && !method.isEmpty()) {
+        if (null != method && !method.isEmpty()) {
             if ("NONETEXT".equals(method)) {
                 valueNode.set(JWTKeyProvider.PUBLIC_KEY_METHOD_KEY, jsonNode(Boolean.FALSE));
             } else {
@@ -114,7 +114,7 @@ class JsonTestUtility {
     }
 
     private static void putTTL(ObjectNode valueNode, Object ttl) {
-        if (ttl == null)
+        if (null == ttl)
             return;
         if (ttl instanceof Long)
             valueNode.put(JWTKeyProvider.KEY_CACHING_TTL_MILLIS, ((Long) ttl).longValue());

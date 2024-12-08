@@ -122,32 +122,32 @@ class DefaultSAPLInterpreterTests {
 
     @Test
     void parseTest() {
-        var policyDocument = "policy \"test\" permit";
+        final var policyDocument = "policy \"test\" permit";
         assertDoesNotThrow(() -> INTERPRETER.parse(policyDocument));
     }
 
     @Test
     void parseTestValidationFailsOnLazyBooleanOperatorsInTarget() {
-        var policyDocument = "policy \"test\"  permit true && false";
+        final var policyDocument = "policy \"test\"  permit true && false";
         assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDocument));
     }
 
     @Test
     void brokenInputStreamTest() {
-        var brokenInputStream = mock(InputStream.class);
+        final var brokenInputStream = mock(InputStream.class);
         assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(brokenInputStream));
     }
 
     @Test
     void parseTestWithError() {
-        var policyDocument = "xyz";
+        final var policyDocument = "xyz";
         assertThrows(PolicyEvaluationException.class, () -> INTERPRETER.parse(policyDocument));
     }
 
     @Test
     void analyzePolicy() {
-        var policyDefinition = "policy \"test\" permit";
-        var document         = INTERPRETER.parseDocument(policyDefinition);
+        final var policyDefinition = "policy \"test\" permit";
+        final var document         = INTERPRETER.parseDocument(policyDefinition);
         assertThat(document.isInvalid(), is(false));
         assertThat(document.name(), is("test"));
         assertThat(document.errorMessage(), is("OK"));
@@ -178,8 +178,8 @@ class DefaultSAPLInterpreterTests {
 
     @Test
     void transformation() {
-        var policyDefinition = "policy \"test\" permit transform null";
-        var expected         = Optional.of(JSON.nullNode());
+        final var policyDefinition = "policy \"test\" permit transform null";
+        final var expected         = Optional.of(JSON.nullNode());
         StepVerifier
                 .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
                 .assertNext(actual -> assertThat(actual.getResource(), is(expected))).verifyComplete();
@@ -187,10 +187,10 @@ class DefaultSAPLInterpreterTests {
 
     @Test
     void obligation() {
-        var policyDefinition   = "policy \"test\" permit obligation null";
-        var expectedObligation = JSON.arrayNode();
+        final var policyDefinition   = "policy \"test\" permit obligation null";
+        final var expectedObligation = JSON.arrayNode();
         expectedObligation.add(JSON.nullNode());
-        var expected = Optional.of(expectedObligation);
+        final var expected = Optional.of(expectedObligation);
         StepVerifier
                 .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
                 .assertNext(actual -> assertThat(actual.getObligations(), is(expected))).verifyComplete();
@@ -198,10 +198,10 @@ class DefaultSAPLInterpreterTests {
 
     @Test
     void advice() {
-        var policyDefinition = "policy \"test\" permit advice null";
-        var expectedAdvice   = JSON.arrayNode();
+        final var policyDefinition = "policy \"test\" permit advice null";
+        final var expectedAdvice   = JSON.arrayNode();
         expectedAdvice.add(JSON.nullNode());
-        var expected = Optional.of(expectedAdvice);
+        final var expected = Optional.of(expectedAdvice);
         StepVerifier
                 .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
                 .assertNext(actual -> assertThat(actual.getAdvice(), is(expected))).verifyComplete();

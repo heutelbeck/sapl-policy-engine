@@ -53,12 +53,19 @@ class StandardFunctionLibraryTests {
 
     @Test
     void xmlToJsonTest() {
-        var html = StandardFunctionLibrary.xmlToJson(Val.of(HTML_DOCUMENT));
+        final var html = StandardFunctionLibrary.xmlToVal(Val.of(HTML_DOCUMENT));
         assertThat(html.get().get("body").get("p").get(0).asText()).isEqualTo("First");
-        var xml = StandardFunctionLibrary.xmlToJson(Val.of(XML_DOCUMENT));
+        final var xml = StandardFunctionLibrary.xmlToVal(Val.of(XML_DOCUMENT));
         assertThat(xml.get().get("name").asText()).isEqualTo("Poppy");
-        assertThatThrownBy(() -> StandardFunctionLibrary.xmlToJson(Val.of("}NOT/><XML")))
+        assertThatThrownBy(() -> StandardFunctionLibrary.xmlToVal(Val.of("}NOT/><XML")))
                 .isInstanceOf(JsonParseException.class);
+    }
+
+    @Test
+    void jsonToValTest() {
+        final var json = "{ \"hello\": \"world\" }";
+        final var val  = StandardFunctionLibrary.jsonToVal(Val.of(json));
+        assertThat(val.get().get("hello").asText()).isEqualTo("world");
     }
 
     @Test
@@ -69,7 +76,7 @@ class StandardFunctionLibraryTests {
 
     @Test
     void lengthOfArrayWithElements() {
-        var array = Val.JSON.arrayNode();
+        final var array = Val.JSON.arrayNode();
         array.add(Val.JSON.booleanNode(false));
         array.add(Val.JSON.booleanNode(false));
         array.add(Val.JSON.booleanNode(false));
@@ -79,7 +86,7 @@ class StandardFunctionLibraryTests {
 
     @Test
     void lengthOfObjectWithElements() {
-        var object = Val.JSON.objectNode();
+        final var object = Val.JSON.objectNode();
         object.set("key1", Val.JSON.booleanNode(false));
         object.set("key2", Val.JSON.booleanNode(false));
         object.set("key3", Val.JSON.booleanNode(false));
@@ -94,23 +101,24 @@ class StandardFunctionLibraryTests {
     }
 
     @Test
-    void numberToStringBooleanLeftIntact() {
-        assertThat(StandardFunctionLibrary.numberToString(Val.TRUE), is(val("true")));
+    void numberToStringBooleanLeftIntact() throws JsonProcessingException {
+        assertThat(StandardFunctionLibrary.asString(Val.TRUE), is(val("true")));
+        assertThat(StandardFunctionLibrary.asString(Val.ofJson("[1,2,3]")), is(val("[1,2,3]")));
     }
 
     @Test
     void numberToStringSomeNumberLeftIntact() {
-        assertThat(StandardFunctionLibrary.numberToString(Val.of(1.23e-1D)), is(val("0.123")));
+        assertThat(StandardFunctionLibrary.asString(Val.of(1.23e-1D)), is(val("0.123")));
     }
 
     @Test
     void numberToStringNullEmptyString() {
-        assertThat(StandardFunctionLibrary.numberToString(Val.NULL), is(val("")));
+        assertThat(StandardFunctionLibrary.asString(Val.NULL), is(val("null")));
     }
 
     @Test
     void numberToStringTextIntact() {
-        assertThat(StandardFunctionLibrary.numberToString(Val.of("ABC")), is(val("ABC")));
+        assertThat(StandardFunctionLibrary.asString(Val.of("ABC")), is(val("ABC")));
     }
 
     @Test
@@ -143,7 +151,7 @@ class StandardFunctionLibraryTests {
 
     @Test
     void when_intersect_then_returnsIntersection() throws JsonProcessingException {
-        var actual = StandardFunctionLibrary.intersect(Val.ofJson("[ 1,2,3,4 ]"), Val.ofJson("[ 3,4 ]"),
+        final var actual = StandardFunctionLibrary.intersect(Val.ofJson("[ 1,2,3,4 ]"), Val.ofJson("[ 3,4 ]"),
                 Val.ofJson("[ 4,1,3 ]"));
         assertThatVal(actual).hasValue().isArray();
         assertThat(actual.getArrayNode()).hasSize(2);
@@ -163,8 +171,8 @@ class StandardFunctionLibraryTests {
 
     @Test
     void when_union_then_returnsUnion() throws JsonProcessingException {
-        var actual = StandardFunctionLibrary.union(Val.ofJson("[ 1,2,3 ]"), Val.ofJson("[ ]"), Val.ofJson("[ 3,4 ]"),
-                Val.ofJson("[ 4,1,3 ]"));
+        final var actual = StandardFunctionLibrary.union(Val.ofJson("[ 1,2,3 ]"), Val.ofJson("[ ]"),
+                Val.ofJson("[ 3,4 ]"), Val.ofJson("[ 4,1,3 ]"));
         assertThatVal(actual).hasValue().isArray();
         assertThat(actual.getArrayNode()).hasSize(4);
         assertThat(actual.getArrayNode()).containsExactlyInAnyOrder(Val.of(4).getJsonNode(), Val.of(3).getJsonNode(),
@@ -173,7 +181,7 @@ class StandardFunctionLibraryTests {
 
     @Test
     void when_toSet_then_returnsSet() throws JsonProcessingException {
-        var actual = StandardFunctionLibrary.toSet(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"));
+        final var actual = StandardFunctionLibrary.toSet(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"));
         assertThatVal(actual).hasValue().isArray();
         assertThat(actual.getArrayNode()).hasSize(6);
         assertThat(actual.getArrayNode()).containsExactlyInAnyOrder(Val.of(1).getJsonNode(), Val.of(2).getJsonNode(),
@@ -182,7 +190,7 @@ class StandardFunctionLibraryTests {
 
     @Test
     void when_differenceWithEmptySet_then_returnsOriginalArrayAsSet() throws JsonProcessingException {
-        var actual = StandardFunctionLibrary.difference(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"),
+        final var actual = StandardFunctionLibrary.difference(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"),
                 Val.ofJson("[]"));
         assertThatVal(actual).hasValue().isArray();
         assertThat(actual.getArrayNode()).hasSize(6);
@@ -192,7 +200,7 @@ class StandardFunctionLibraryTests {
 
     @Test
     void when_differenceWithNoIntersection_then_returnsOriginalArrayAsSet() throws JsonProcessingException {
-        var actual = StandardFunctionLibrary.difference(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"),
+        final var actual = StandardFunctionLibrary.difference(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"),
                 Val.ofJson("[20,22,\"abc\"]"));
         assertThatVal(actual).hasValue().isArray();
         assertThat(actual.getArrayNode()).hasSize(6);
@@ -202,7 +210,7 @@ class StandardFunctionLibraryTests {
 
     @Test
     void when_differenceWithIntersection_then_returnsCorrectDifferecrAsSet() throws JsonProcessingException {
-        var actual = StandardFunctionLibrary.difference(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"),
+        final var actual = StandardFunctionLibrary.difference(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"),
                 Val.ofJson("[10,2]"));
         assertThatVal(actual).hasValue().isArray();
         assertThat(actual.getArrayNode()).hasSize(4);

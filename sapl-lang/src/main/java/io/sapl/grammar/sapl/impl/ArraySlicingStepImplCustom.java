@@ -67,9 +67,9 @@ public class ArraySlicingStepImplCustom extends ArraySlicingStepImpl {
 
     private BiPredicate<Integer, Val> isInSlice(Val parentValue) {
         return (i, v) -> {
-            var arraySize = parentValue.getArrayNode().size();
+            final var arraySize = parentValue.getArrayNode().size();
             // normalize slicing ranges
-            var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
+            final var step = getStep() == null ? BigDecimal.ONE.intValue() : getStep().intValue();
             if (step == 0) {
                 throw new PolicyEvaluationException(STEP_ZERO_ERROR);
             }

@@ -44,8 +44,8 @@ class TestMockServerDispatcher extends Dispatcher {
     @NotNull
     @Override
     public MockResponse dispatch(RecordedRequest request) {
-        var path = request.getPath();
-        if (path == null || !path.startsWith(kidPath))
+        final var path = request.getPath();
+        if (null == path || !path.startsWith(kidPath))
             return new MockResponse().setResponseCode(404);
 
         String requestedId = path.substring(kidPath.length());

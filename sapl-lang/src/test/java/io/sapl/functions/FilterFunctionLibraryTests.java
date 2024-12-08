@@ -67,12 +67,12 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenTooManyArguments() {
-        var val1 = Val.of("abcde");
-        var val2 = Val.of(2);
-        var val3 = Val.of(2);
-        var val4 = Val.of(2);
-        var val5 = Val.of(2);
-        var val6 = Val.of(2);
+        final var val1 = Val.of("abcde");
+        final var val2 = Val.of(2);
+        final var val3 = Val.of(2);
+        final var val4 = Val.of(2);
+        final var val5 = Val.of(2);
+        final var val6 = Val.of(2);
         assertThrows(IllegalArgumentException.class,
                 () -> FilterFunctionLibrary.blacken(val1, val2, val3, val4, val5, val6));
     }
@@ -84,100 +84,99 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenNoString() {
-        var val1 = Val.of(2);
+        final var val1 = Val.of(2);
         assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1));
     }
 
     @Test
     void blackenReplacementNoString() {
-        var val1 = Val.of("abcde");
-        var val2 = Val.of(2);
-        var val3 = Val.of(2);
-        var val4 = Val.of(2);
-        var val5 = Val.of(2);
+        final var val1 = Val.of("abcde");
+        final var val2 = Val.of(2);
+        final var val3 = Val.of(2);
+        final var val4 = Val.of(2);
+        final var val5 = Val.of(2);
 
         assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3, val4, val5));
     }
 
     @Test
     void blackenLengthWithInvalidNumber() {
-        var val1 = Val.of("abcde");
-        var val2 = Val.of(2);
-        var val3 = Val.of(2);
-        var val4 = Val.of(2);
-        var val5 = Val.of(-1);
+        final var val1 = Val.of("abcde");
+        final var val2 = Val.of(2);
+        final var val3 = Val.of(2);
+        final var val4 = Val.of(2);
+        final var val5 = Val.of(-1);
 
         assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3, val4, val5));
     }
 
     @Test
     void blackenLengthWithInvalidType() {
-        var val1 = Val.of("abcde");
-        var val2 = Val.of(2);
-        var val3 = Val.of(2);
-        var val4 = Val.of(2);
-        var val5 = Val.of("a");
+        final var val1 = Val.of("abcde");
+        final var val2 = Val.of(2);
+        final var val3 = Val.of(2);
+        final var val4 = Val.of(2);
+        final var val5 = Val.of("a");
 
         assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3, val4, val5));
     }
 
     @Test
     void blackenReplacementNegativeRight() {
-        var val1 = Val.of("abcde");
-        var val2 = Val.of(2);
-        var val3 = Val.of(-2);
+        final var val1 = Val.of("abcde");
+        final var val2 = Val.of(2);
+        final var val3 = Val.of(-2);
 
         assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3));
     }
 
     @Test
     void blackenReplacementNegativeLeft() {
-        var val1 = Val.of("abcde");
-        var val2 = Val.of(-2);
-        var val3 = Val.of(2);
+        final var val1 = Val.of("abcde");
+        final var val2 = Val.of(-2);
+        final var val3 = Val.of(2);
 
         assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3));
     }
 
     @Test
     void blackenReplacementRightNoNumber() {
-        var val1 = Val.of("abcde");
-        var val2 = Val.of(-2);
-        var val3 = Val.NULL;
+        final var val1 = Val.of("abcde");
+        final var val2 = Val.of(-2);
+        final var val3 = Val.NULL;
 
         assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3));
     }
 
     @Test
     void blackenReplacementLeftNoNumber() {
-        var val1 = Val.of("abcde");
-        var val2 = Val.NULL;
-        var val3 = Val.of(2);
+        final var val1 = Val.of("abcde");
+        final var val2 = Val.NULL;
+        final var val3 = Val.of(2);
 
         assertThrows(IllegalArgumentException.class, () -> FilterFunctionLibrary.blacken(val1, val2, val3));
     }
 
     @Test
     void blackenWorking() {
-        var given         = Val.of("abcde");
-        var discloseLeft  = Val.of(1);
-        var discloseRight = Val.of(1);
-        var replacement   = Val.of("*");
-        var actual        = FilterFunctionLibrary.blacken(given, discloseLeft, discloseRight, replacement);
+        final var given         = Val.of("abcde");
+        final var discloseLeft  = Val.of(1);
+        final var discloseRight = Val.of(1);
+        final var replacement   = Val.of("*");
+        final var actual        = FilterFunctionLibrary.blacken(given, discloseLeft, discloseRight, replacement);
 
         assertTrue(actual.getText().startsWith("a"));
         assertTrue(actual.getText().endsWith("e"));
-
     }
 
     @Test
     void blackenWorkingAllVisible() {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.of(3);
-        var discloseRight = Val.of(3);
-        var replacement   = Val.of("*");
+        final var text          = Val.of("abcde");
+        final var discloseLeft  = Val.of(3);
+        final var discloseRight = Val.of(3);
+        final var replacement   = Val.of("*");
 
-        var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement);
+        final var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement);
 
         assertThat(result, is(val("abcde")));
     }
@@ -185,24 +184,24 @@ class FilterFunctionLibraryTests {
     @ParameterizedTest
     @CsvSource({ "2, a**e", "5, a*****e", "0, ae", })
     void blackenWorkingLength(int blackenLength, String expected) {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.of(1);
-        var discloseRight = Val.of(1);
-        var replacement   = Val.of("*");
-        var length        = Val.of(blackenLength);
+        final var text          = Val.of("abcde");
+        final var discloseLeft  = Val.of(1);
+        final var discloseRight = Val.of(1);
+        final var replacement   = Val.of("*");
+        final var length        = Val.of(blackenLength);
 
-        var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement, length);
+        final var result = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement, length);
 
         assertThat(result, is(val(expected)));
     }
 
     @Test
     void blackenNonNumberLength() {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.of(1);
-        var discloseRight = Val.of(1);
-        var replacement   = Val.of("*");
-        var length        = Val.of("NOT A NUMBER");
+        final var text          = Val.of("abcde");
+        final var discloseLeft  = Val.of(1);
+        final var discloseRight = Val.of(1);
+        final var replacement   = Val.of("*");
+        final var length        = Val.of("NOT A NUMBER");
 
         assertThrows(IllegalArgumentException.class,
                 () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement, length));
@@ -210,11 +209,11 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenNegativeLength() {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.of(1);
-        var discloseRight = Val.of(1);
-        var replacement   = Val.of("*");
-        var length        = Val.of(-1);
+        final var text          = Val.of("abcde");
+        final var discloseLeft  = Val.of(1);
+        final var discloseRight = Val.of(1);
+        final var replacement   = Val.of("*");
+        final var length        = Val.of(-1);
 
         assertThrows(IllegalArgumentException.class,
                 () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement, length));
@@ -222,23 +221,22 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenReplacementDefault() {
-        var text          = Val.of("abcde");
-        var discloseLeft  = Val.of(1);
-        var discloseRight = Val.of(1);
-        var result        = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight);
+        final var text          = Val.of("abcde");
+        final var discloseLeft  = Val.of(1);
+        final var discloseRight = Val.of(1);
+        final var result        = FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight);
 
         assertTrue(result.getText().startsWith("a"));
         assertTrue(result.getText().endsWith("e"));
         assertTrue(result.getText().contains("X"));
-
     }
 
     @Test
     void blackenDiscloseRightDefault() {
-        var text         = Val.of("abcde");
-        var discloseLeft = Val.of(2);
+        final var text         = Val.of("abcde");
+        final var discloseLeft = Val.of(2);
 
-        var result = FilterFunctionLibrary.blacken(text, discloseLeft);
+        final var result = FilterFunctionLibrary.blacken(text, discloseLeft);
 
         assertTrue(result.getText().startsWith("ab"));
         assertTrue(result.getText().endsWith("X"));
@@ -246,27 +244,39 @@ class FilterFunctionLibraryTests {
 
     @Test
     void blackenDiscloseLeftDefault() {
-        var text   = Val.of("abcde");
-        var result = FilterFunctionLibrary.blacken(text);
+        final var text   = Val.of("abcde");
+        final var result = FilterFunctionLibrary.blacken(text);
 
         assertTrue(result.getText().chars().allMatch(ch -> ch == 'X'));
     }
 
     @Test
     void remove() {
-        var result = FilterFunctionLibrary.remove(Val.of("abcde"));
+        final var result = FilterFunctionLibrary.remove(Val.of("abcde"));
         assertThat(result, is(valUndefined()));
     }
 
     @Test
     void blackenInPolicy() throws JsonProcessingException {
-        var authzSubscription     = MAPPER.readValue(
-                "{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
-                AuthorizationSubscription.class);
-        var policyDefinition      = "policy \"test\"	permit transform resource |- { @.key1 : filter.blacken(1) }";
-        var expectedResource      = MAPPER.readValue("{	\"array\": [ null, true ], \"key1\": \"aXXXX\" }",
-                JsonNode.class);
-        var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
+        final var authzSubscription     = MAPPER.readValue("""
+                {
+                  "resource" : {
+                                 "array" : [ null, true ],
+                                 "key1"  : "abcde"
+                               }
+                }""", AuthorizationSubscription.class);
+        final var policyDefinition      = """
+                policy "test"
+                permit
+                transform resource |- {
+                                        @.key1 : filter.blacken(1)
+                                      }""";
+        final var expectedResource      = MAPPER.readValue("""
+                {
+                  "array" : [ null, true ],
+                  "key1"  : "aXXXX"
+                }""", JsonNode.class);
+        final var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
                 Optional.empty(), Optional.empty());
 
         StepVerifier
@@ -277,19 +287,32 @@ class FilterFunctionLibraryTests {
 
     @Test
     void replace() {
-        var result = FilterFunctionLibrary.replace(Val.NULL, Val.of(1));
+        final var result = FilterFunctionLibrary.replace(Val.NULL, Val.of(1));
         assertThat(result, is(val(1)));
     }
 
     @Test
     void replaceInPolicy() throws JsonProcessingException {
-        var authzSubscription     = MAPPER.readValue(
-                "{ \"resource\": {	\"array\": [ null, true ], \"key1\": \"abcde\" } }",
-                AuthorizationSubscription.class);
-        var policyDefinition      = "policy \"test\" permit transform resource |- { @.array[1] : filter.replace(\"***\"), @.key1 : filter.replace(null) }";
-        var expectedResource      = MAPPER.readValue("{	\"array\": [ null, \"***\" ], \"key1\": null }",
-                JsonNode.class);
-        var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
+        final var authzSubscription     = MAPPER.readValue("""
+                {
+                  "resource" : {
+                                 "array" : [ null, true ],
+                                 "key1"  : "abcde"
+                               }
+                }""", AuthorizationSubscription.class);
+        final var policyDefinition      = """
+                policy "test"
+                permit
+                transform resource |- {
+                                        @.array[1] : filter.replace(\"***\"),
+                                        @.key1     : filter.replace(null)
+                                      }""";
+        final var expectedResource      = MAPPER.readValue("""
+                {
+                  "array" : [ null, "***" ],
+                  "key1"  : null
+                }""", JsonNode.class);
+        final var expectedAuthzDecision = new AuthorizationDecision(Decision.PERMIT, Optional.of(expectedResource),
                 Optional.empty(), Optional.empty());
 
         StepVerifier

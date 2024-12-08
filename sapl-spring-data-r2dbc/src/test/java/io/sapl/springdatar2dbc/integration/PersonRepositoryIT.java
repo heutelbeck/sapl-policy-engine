@@ -26,6 +26,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
+
 import io.sapl.springdatar2dbc.database.Person;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -40,14 +41,14 @@ class PersonRepositoryIT extends TestContainerBase {
     @Test
     void when_findAll_then_manipulateQuery() {
         // GIVEN
-        var person1    = new Person(2, null, 0, false);
-        var person2    = new Person(5, null, 0, false);
-        var person3    = new Person(7, null, 0, false);
-        var person4    = new Person(10, null, 0, false);
-        var personList = List.of(person1, person2, person3, person4);
+        final var person1    = new Person(2, null, 0, false);
+        final var person2    = new Person(5, null, 0, false);
+        final var person3    = new Person(7, null, 0, false);
+        final var person4    = new Person(10, null, 0, false);
+        final var personList = List.of(person1, person2, person3, person4);
 
         // WHEN
-        var personFlux = repository.findAll().collectList();
+        final var personFlux = repository.findAll().collectList();
 
         // THEN
         StepVerifier.create(personFlux).expectNext(personList).verifyComplete();
@@ -56,14 +57,14 @@ class PersonRepositoryIT extends TestContainerBase {
     @Test
     void when_findAllByAgeAfter_then_manipulateQuery() {
         // GIVEN
-        var person1    = new Person(9, "Ian", 45, true);
-        var person2    = new Person(8, "Hannah", 38, true);
-        var person3    = new Person(3, "Charlie", 35, true);
-        var person4    = new Person(6, "Frank", 32, true);
-        var personList = List.of(person1, person2, person3, person4);
+        final var person1    = new Person(9, "Ian", 45, true);
+        final var person2    = new Person(8, "Hannah", 38, true);
+        final var person3    = new Person(3, "Charlie", 35, true);
+        final var person4    = new Person(6, "Frank", 32, true);
+        final var personList = List.of(person1, person2, person3, person4);
 
         // WHEN
-        var personFlux = repository.findAllByAgeAfter(30, Sort.by(Sort.Direction.DESC, "age")).collectList();
+        final var personFlux = repository.findAllByAgeAfter(30, Sort.by(Sort.Direction.DESC, "age")).collectList();
 
         // THEN
         StepVerifier.create(personFlux).expectNext(personList).verifyComplete();
@@ -72,12 +73,12 @@ class PersonRepositoryIT extends TestContainerBase {
     @Test
     void when_findAllByAgeAfter_then_fetchingByQueryMethod() {
         // GIVEN
-        var person1    = new Person(0, "Alice", 0, false);
-        var person2    = new Person(0, "Charlie", 0, false);
-        var personList = List.of(person1, person2);
+        final var person1    = new Person(0, "Alice", 0, false);
+        final var person2    = new Person(0, "Charlie", 0, false);
+        final var personList = List.of(person1, person2);
 
         // WHEN
-        var personFlux = repository.fetchingByQueryMethod("l", Pageable.ofSize(2)).collectList();
+        final var personFlux = repository.fetchingByQueryMethod("l", Pageable.ofSize(2)).collectList();
 
         // THEN
         StepVerifier.create(personFlux).expectNext(personList).verifyComplete();

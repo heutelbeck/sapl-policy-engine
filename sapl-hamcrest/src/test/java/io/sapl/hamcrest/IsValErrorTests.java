@@ -37,37 +37,37 @@ class IsValErrorTests {
 
     @Test
     void testType() {
-        var sut = valError();
+        final var sut = valError();
         assertThat(Val.error(SaplError.of(null)), is(sut));
     }
 
     @Test
     void testTypeFalse() {
-        var sut = valError();
+        final var sut = valError();
         assertThat(Val.UNDEFINED, not(is(sut)));
     }
 
     @Test
     void testMessageTrue() {
-        var sut = valError(MESSAGE);
+        final var sut = valError(MESSAGE);
         assertThat(Val.error(SaplError.of(MESSAGE)), is(sut));
     }
 
     @Test
     void testMessageFalse() {
-        var sut = valError(MESSAGE);
+        final var sut = valError(MESSAGE);
         assertThat(Val.error(SaplError.of("X")), not(is(sut)));
     }
 
     @Test
     void testMatcher() {
-        var sut = valError(equalToIgnoringCase(MESSAGE_MIXED_CASE));
+        final var sut = valError(equalToIgnoringCase(MESSAGE_MIXED_CASE));
         assertThat(Val.error(SaplError.of(MESSAGE)), is(sut));
     }
 
     @Test
     void testDescriptionForEmptyConstructor() {
-        var                     sut         = valError();
+        final var               sut         = valError();
         final StringDescription description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(), is("an error with message that is ANYTHING"));

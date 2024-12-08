@@ -97,7 +97,7 @@ public class VariableContext {
      * @return a deep copy of this variable's context.
      */
     private VariableContext copy() {
-        var variablesCopy = new HashMap<String, Val>();
+        final var variablesCopy = new HashMap<String, Val>();
         variablesCopy.putAll(variables);
         return new VariableContext(variablesCopy);
     }

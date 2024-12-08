@@ -38,11 +38,11 @@ class CanonicalIndexDataCreationStrategyTests {
 
     @Test
     void testCreatePredicateInfo() {
-        var strategy = new CanonicalIndexDataCreationStrategy();
+        final var strategy = new CanonicalIndexDataCreationStrategy();
 
-        var bool    = new Bool(true);
-        var literal = new Literal(bool);
-        var clause  = new ConjunctiveClause(literal);
+        final var bool    = new Bool(true);
+        final var literal = new Literal(bool);
+        final var clause  = new ConjunctiveClause(literal);
 
         Map<Bool, PredicateInfo> boolToPredicateInfo       = new HashMap<>();
         Set<Bool>                negativesGroupedByFormula = new HashSet<>();
@@ -54,7 +54,7 @@ class CanonicalIndexDataCreationStrategyTests {
         assertThat(positivesGroupedByFormula, Matchers.contains(bool));
         assertThat(boolToPredicateInfo.get(bool).getGroupedNumberOfPositives(), is(1));
 
-        var negatedLiteral = new Literal(bool, true);
+        final var negatedLiteral = new Literal(bool, true);
         strategy.createPredicateInfo(negatedLiteral, clause, boolToPredicateInfo, negativesGroupedByFormula,
                 positivesGroupedByFormula, clause.size());
         assertThat(boolToPredicateInfo.get(bool).getNumberOfNegatives(), is(1));

@@ -47,7 +47,7 @@ public class ApiKeyPayloadExchangeAuthenticationConverterService implements Payl
      */
     @Override
     public Mono<Authentication> convert(PayloadExchange exchange) {
-        var               apiKeyMimeTypeValue = String.valueOf(MimeType.valueOf(RSOCKET_METADATA_MIME_TPYE));
+        final var         apiKeyMimeTypeValue = String.valueOf(MimeType.valueOf(RSOCKET_METADATA_MIME_TPYE));
         ByteBuf           metadata            = exchange.getPayload().metadata();
         CompositeMetadata compositeMetadata   = new CompositeMetadata(metadata, false);
         for (CompositeMetadata.Entry entry : compositeMetadata) {

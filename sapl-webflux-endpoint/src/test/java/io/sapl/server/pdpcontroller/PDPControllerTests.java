@@ -25,11 +25,11 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 
@@ -51,7 +51,7 @@ class PDPControllerTests {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    @MockBean
+    @MockitoBean
     private PolicyDecisionPoint pdp;
 
     @Autowired
@@ -62,9 +62,9 @@ class PDPControllerTests {
         when(pdp.decide((AuthorizationSubscription) any(AuthorizationSubscription.class))).thenReturn(Flux
                 .just(AuthorizationDecision.DENY, AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE));
 
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
 
-        var result = webClient.post().uri("/api/pdp/decide").contentType(MediaType.APPLICATION_JSON)
+        final var result = webClient.post().uri("/api/pdp/decide").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
                 .body(BodyInserters.fromValue(subscription)).exchange().expectStatus().isOk()
                 .returnResult(AuthorizationDecision.class);
@@ -80,9 +80,9 @@ class PDPControllerTests {
         when(pdp.decide((AuthorizationSubscription) any(AuthorizationSubscription.class))).thenReturn(Flux
                 .just(AuthorizationDecision.DENY, AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE));
 
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
 
-        var result = webClient.post().uri("/api/pdp/decide-once").contentType(MediaType.APPLICATION_JSON)
+        final var result = webClient.post().uri("/api/pdp/decide-once").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .body(BodyInserters.fromValue(subscription)).exchange().expectStatus().isOk()
                 .returnResult(AuthorizationDecision.class);
@@ -97,9 +97,9 @@ class PDPControllerTests {
         when(pdp.decide((AuthorizationSubscription) any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
 
-        var result = webClient.post().uri("/api/pdp/decide").contentType(MediaType.APPLICATION_JSON)
+        final var result = webClient.post().uri("/api/pdp/decide").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
                 .body(BodyInserters.fromValue(subscription)).exchange().expectStatus().isOk()
                 .returnResult(AuthorizationDecision.class);
@@ -114,9 +114,9 @@ class PDPControllerTests {
         when(pdp.decide((AuthorizationSubscription) any(AuthorizationSubscription.class)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
 
-        var result = webClient.post().uri("/api/pdp/decide-once").contentType(MediaType.APPLICATION_JSON)
+        final var result = webClient.post().uri("/api/pdp/decide-once").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .body(BodyInserters.fromValue(subscription)).exchange().expectStatus().isOk()
                 .returnResult(AuthorizationDecision.class);
@@ -139,12 +139,12 @@ class PDPControllerTests {
                 .just(IdentifiableAuthorizationDecision.INDETERMINATE, IdentifiableAuthorizationDecision.INDETERMINATE,
                         IdentifiableAuthorizationDecision.INDETERMINATE));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        var result = webClient.post().uri("/api/pdp/multi-decide").contentType(MediaType.APPLICATION_JSON)
+        final var result = webClient.post().uri("/api/pdp/multi-decide").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
                 .body(BodyInserters.fromValue(multiAuthzSubscription)).exchange().expectStatus().isOk()
                 .returnResult(IdentifiableAuthorizationDecision.class);
@@ -161,12 +161,12 @@ class PDPControllerTests {
         when(pdp.decide((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        var result = webClient.post().uri("/api/pdp/multi-decide").contentType(MediaType.APPLICATION_JSON)
+        final var result = webClient.post().uri("/api/pdp/multi-decide").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
                 .body(BodyInserters.fromValue(multiAuthzSubscription)).exchange().expectStatus().isOk()
                 .returnResult(IdentifiableAuthorizationDecision.class);
@@ -179,7 +179,7 @@ class PDPControllerTests {
 
     @Test
     void subscribeToMultiDecisionsInvalidBody() {
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
         webClient.post().uri("/api/pdp/multi-decide").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
                 .body(BodyInserters.fromValue(subscription)).exchange().expectStatus().isBadRequest()
@@ -192,12 +192,12 @@ class PDPControllerTests {
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        var result = webClient.post().uri("/api/pdp/multi-decide-all").contentType(MediaType.APPLICATION_JSON)
+        final var result = webClient.post().uri("/api/pdp/multi-decide-all").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
                 .body(BodyInserters.fromValue(multiAuthzSubscription)).exchange().expectStatus().isOk()
                 .returnResult(MultiAuthorizationDecision.class);
@@ -216,13 +216,13 @@ class PDPControllerTests {
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        var result = webClient.post().uri("/api/pdp/multi-decide-all-once").contentType(MediaType.APPLICATION_JSON)
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+        final var result = webClient.post().uri("/api/pdp/multi-decide-all-once")
+                .contentType(MediaType.APPLICATION_JSON).header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .body(BodyInserters.fromValue(multiAuthzSubscription)).exchange().expectStatus().isOk()
                 .returnResult(MultiAuthorizationDecision.class);
 
@@ -237,12 +237,12 @@ class PDPControllerTests {
         when(pdp.decideAll((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        var result = webClient.post().uri("/api/pdp/multi-decide-all").contentType(MediaType.APPLICATION_JSON)
+        final var result = webClient.post().uri("/api/pdp/multi-decide-all").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
                 .body(BodyInserters.fromValue(multiAuthzSubscription)).exchange().expectStatus().isOk()
                 .returnResult(MultiAuthorizationDecision.class);
@@ -258,13 +258,13 @@ class PDPControllerTests {
         when(pdp.decideAll((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        var result = webClient.post().uri("/api/pdp/multi-decide-all-once").contentType(MediaType.APPLICATION_JSON)
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+        final var result = webClient.post().uri("/api/pdp/multi-decide-all-once")
+                .contentType(MediaType.APPLICATION_JSON).header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .body(BodyInserters.fromValue(multiAuthzSubscription)).exchange().expectStatus().isOk()
                 .returnResult(MultiAuthorizationDecision.class);
 
@@ -276,7 +276,7 @@ class PDPControllerTests {
 
     @Test
     void subscribeToMultiDecisionsAllInvalidBody() {
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
         webClient.post().uri("/api/pdp/multi-decide-all").contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_NDJSON_VALUE)
                 .body(BodyInserters.fromValue(subscription)).exchange().expectStatus().isBadRequest()

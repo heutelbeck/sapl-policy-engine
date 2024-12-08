@@ -167,20 +167,20 @@ class PermitOverridesTests {
 
     @Test
     void singlePermitTransformationResource() {
-        var policySet = "set \"tests\" permit-overrides" + " policy \"testp\" permit transform true";
-        var expected  = Optional.<JsonNode>of(JSON.booleanNode(true));
+        final var policySet = "set \"tests\" permit-overrides" + " policy \"testp\" permit transform true";
+        final var expected  = Optional.<JsonNode>of(JSON.booleanNode(true));
         validateResource(EMPTY_AUTH_SUBSCRIPTION, policySet, expected);
     }
 
     @Test
     void collectObligationDeny() {
-        var policySet = "set \"tests\" permit-overrides"
+        final var policySet = "set \"tests\" permit-overrides"
                 + " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" permit false obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
 
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode("obligation1"));
         obligations.add(JSON.textNode("obligation2"));
         validateObligations(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(obligations));
@@ -188,12 +188,12 @@ class PermitOverridesTests {
 
     @Test
     void collectAdviceDeny() {
-        var policySet = "set \"tests\" permit-overrides"
+        final var policySet = "set \"tests\" permit-overrides"
                 + " policy \"testp1\" deny obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" deny obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" permit false obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny false obligation \"obligation4\" advice \"advice4\"";
-        var advice    = JSON.arrayNode();
+        final var advice    = JSON.arrayNode();
         advice.add(JSON.textNode("advice1"));
         advice.add(JSON.textNode("advice2"));
         validateAdvice(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(advice));
@@ -201,12 +201,12 @@ class PermitOverridesTests {
 
     @Test
     void collectObligationPermit() {
-        var policySet   = "set \"tests\" permit-overrides"
+        final var policySet   = "set \"tests\" permit-overrides"
                 + " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" deny false obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"";
-        var obligations = JSON.arrayNode();
+        final var obligations = JSON.arrayNode();
         obligations.add(JSON.textNode("obligation1"));
         obligations.add(JSON.textNode("obligation2"));
         validateObligations(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(obligations));
@@ -214,12 +214,12 @@ class PermitOverridesTests {
 
     @Test
     void collectAdvicePermit() {
-        var policySet = "set \"tests\" permit-overrides"
+        final var policySet = "set \"tests\" permit-overrides"
                 + " policy \"testp1\" permit obligation \"obligation1\" advice \"advice1\""
                 + " policy \"testp2\" permit obligation \"obligation2\" advice \"advice2\""
                 + " policy \"testp3\" deny false obligation \"obligation3\" advice \"advice3\""
                 + " policy \"testp4\" deny where false; obligation \"obligation4\" advice \"advice4\"";
-        var advice    = JSON.arrayNode();
+        final var advice    = JSON.arrayNode();
         advice.add(JSON.textNode("advice1"));
         advice.add(JSON.textNode("advice2"));
         validateAdvice(AUTH_SUBSCRIPTION_WITH_TRUE_RESOURCE, policySet, Optional.of(advice));

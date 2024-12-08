@@ -87,7 +87,7 @@ class SaplMqttClientConnectionIT {
     @Test
     void when_brokerConfigIsInvalid_then_returnValOfError() throws JsonProcessingException {
         // GIVEN
-        var mqttPipConfigForUndefinedVal = """
+        final var mqttPipConfigForUndefinedVal = """
                 {
                   "defaultBrokerConfigName" : "falseName",
                   "brokerConfig" : [ {
@@ -99,12 +99,12 @@ class SaplMqttClientConnectionIT {
                 }
                 """;
 
-        var configForUndefinedVal = Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig",
+        final var configForUndefinedVal = Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig",
                 Val.ofJson(mqttPipConfigForUndefinedVal), "resource", Val.NULL, "subject", Val.NULL);
 
         // WHEN
-        var testSaplMqttClient  = new SaplMqttClient();
-        var saplMqttMessageFlux = testSaplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
+        final var testSaplMqttClient  = new SaplMqttClient();
+        final var saplMqttMessageFlux = testSaplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNextMatches(Val::isError)
@@ -115,9 +115,9 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_noConfigIsSpecified_then_returnValOfError() {
         // WHEN
-        var emptyPdpConfig      = Map.<String, Val>of();
-        var testSaplMqttClient  = new SaplMqttClient();
-        var saplMqttMessageFlux = testSaplMqttClient.buildSaplMqttMessageFlux(TOPIC, emptyPdpConfig);
+        final var emptyPdpConfig      = Map.<String, Val>of();
+        final var testSaplMqttClient  = new SaplMqttClient();
+        final var saplMqttMessageFlux = testSaplMqttClient.buildSaplMqttMessageFlux(TOPIC, emptyPdpConfig);
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS)).expectNextMatches(Val::isError)
@@ -128,12 +128,14 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_connectionIsShared_then_bothMessageFluxWorking() {
         // GIVEN
-        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"), buildVariables());
-        var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables());
+        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
+                buildVariables());
+        final var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"),
+                buildVariables());
 
         // WHEN
-        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
-        var mqttClient               = startClient();
+        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
+        final var mqttClient               = startClient();
 
         // THEN
         StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
@@ -151,13 +153,15 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_connectionIsNotSharedAnymore_then_singleFluxWorking() {
         // GIVEN
-        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"), buildVariables());
-        var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
+        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
+                buildVariables());
+        final var saplMqttMessageFluxSecond = saplMqttClient
+                .buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
                 .takeUntil(message -> "lastMessage".equals(message.getText()));
 
         // WHEN
-        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
-        var mqttClient               = startClient();
+        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
+        final var mqttClient               = startClient();
 
         // THEN
         StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
@@ -179,15 +183,17 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_connectionIsNotSharedAnymoreAndThenSharedAgain_then_bothMessageFluxWorking() {
         // GIVEN
-        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"), buildVariables());
-        var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
+        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
+                buildVariables());
+        final var saplMqttMessageFluxSecond = saplMqttClient
+                .buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables())
                 .takeUntil(message -> "lastMessage".equals(message.getText()));
-        var testPublisher             = TestPublisher.create();
+        final var testPublisher             = TestPublisher.create();
 
         // WHEN
-        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond,
+        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond,
                 saplMqttMessageFluxSecond.delaySubscription(testPublisher.flux()));
-        var mqttClient               = startClient();
+        final var mqttClient               = startClient();
 
         // THEN
         StepVerifier.create(saplMqttMessageFluxMerge).expectNext(Val.UNDEFINED, Val.UNDEFINED)
@@ -211,9 +217,9 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_brokerConnectionLost_then_reconnectToBroker() {
         // WHEN
-        var secondaryBroker     = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
-        var mqttClient          = startClient();
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, buildVariables());
+        final var secondaryBroker     = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
+        final var mqttClient          = startClient();
+        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, buildVariables());
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))
@@ -237,14 +243,16 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_brokerConnectionLostWhileSharingConnection_then_reconnectToBroker() {
         // GIVEN
-        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"), buildVariables());
-        var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"), buildVariables());
+        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic1"),
+                buildVariables());
+        final var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic2"),
+                buildVariables());
 
         // WHEN
-        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
+        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
 
-        var secondaryBroker = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
-        var mqttClient      = startClient();
+        final var secondaryBroker = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
+        final var mqttClient      = startClient();
 
         // THEN
         StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
@@ -274,20 +282,20 @@ class SaplMqttClientConnectionIT {
     @Timeout(45)
     void when_sharedReconnectToBroker_then_getMessagesOfMultipleTopics() {
         // GIVEN
-        var topicsFirstFlux  = MAPPER.createArrayNode().add("topic1").add("topic2");
-        var topicsSecondFlux = MAPPER.createArrayNode().add("topic2").add("topic3");
+        final var topicsFirstFlux  = MAPPER.createArrayNode().add("topic1").add("topic2");
+        final var topicsSecondFlux = MAPPER.createArrayNode().add("topic2").add("topic3");
 
-        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
+        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
                 buildVariables());
-        var saplMqttMessageFluxSecond = saplMqttClient
+        final var saplMqttMessageFluxSecond = saplMqttClient
                 .buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables())
                 .takeUntil(value -> "message2".equals(value.getText()));
 
         // WHEN
-        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
+        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond);
 
-        var secondaryBroker = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
-        var mqttClient      = startClient();
+        final var secondaryBroker = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
+        final var mqttClient      = startClient();
 
         // THEN
         StepVerifier.create(saplMqttMessageFluxMerge).thenAwait(Duration.ofMillis(DELAY_MS))
@@ -324,8 +332,9 @@ class SaplMqttClientConnectionIT {
     void when_emitValUndefinedActivatedAndBrokerConnectionLost_then_reconnectToBrokerAndEmitValUndefined()
             throws JsonProcessingException {
         // GIVEN
-        var secondaryBroker              = buildBroker(secondaryConfigDir, secondaryDataDir, secondaryExtensionsDir);
-        var mqttPipConfigForUndefinedVal = Val.ofJson("""
+        final var secondaryBroker              = buildBroker(secondaryConfigDir, secondaryDataDir,
+                secondaryExtensionsDir);
+        final var mqttPipConfigForUndefinedVal = Val.ofJson("""
                 {
                   "defaultBrokerConfigName" : "production",
                   "brokerConfig" : [ {
@@ -336,12 +345,12 @@ class SaplMqttClientConnectionIT {
                   } ]
                 }
                 """);
-        var configForUndefinedVal        = Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig",
+        final var configForUndefinedVal        = Map.of("action", Val.NULL, "environment", Val.NULL, "mqttPipConfig",
                 mqttPipConfigForUndefinedVal, "resource", Val.NULL, "subject", Val.NULL);
 
         // WHEN
-        var mqttClient          = startClient();
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
+        final var mqttClient          = startClient();
+        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(TOPIC, configForUndefinedVal);
 
         // THEN
         StepVerifier.create(saplMqttMessageFlux).thenAwait(Duration.ofMillis(DELAY_MS))

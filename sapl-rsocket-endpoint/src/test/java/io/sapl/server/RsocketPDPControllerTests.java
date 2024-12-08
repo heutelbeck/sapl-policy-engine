@@ -27,7 +27,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
@@ -35,6 +34,7 @@ import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.TestSocketUtils;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -67,7 +67,7 @@ class RsocketPDPControllerTests {
     private final int  serverPort = TestSocketUtils.findAvailableTcpPort();
     private Disposable server;
 
-    @MockBean
+    @MockitoBean
     private PolicyDecisionPoint pdp;
 
     final RSocketStrategies  rSocketStrategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())
@@ -84,7 +84,7 @@ class RsocketPDPControllerTests {
     }
 
     RSocketRequester createRSocketRequester() {
-        var builder = RSocketRequester.builder().rsocketStrategies(rSocketStrategies);
+        final var builder = RSocketRequester.builder().rsocketStrategies(rSocketStrategies);
         return builder.transport(TcpClientTransport.create(TcpClient.create().port(serverPort)));
     }
 
@@ -93,8 +93,8 @@ class RsocketPDPControllerTests {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY,
                 AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE));
 
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var result       = requester.route("decide").data(subscription).retrieveFlux(AuthorizationDecision.class);
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var result       = requester.route("decide").data(subscription).retrieveFlux(AuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(AuthorizationDecision.DENY, AuthorizationDecision.PERMIT,
                 AuthorizationDecision.INDETERMINATE).verifyComplete();
@@ -111,8 +111,9 @@ class RsocketPDPControllerTests {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY,
                 AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE));
 
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var result       = requester.route("decide-once").data(subscription).retrieveMono(AuthorizationDecision.class);
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var result       = requester.route("decide-once").data(subscription)
+                .retrieveMono(AuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(AuthorizationDecision.DENY).verifyComplete();
 
@@ -123,8 +124,8 @@ class RsocketPDPControllerTests {
     void decideWithValidProcessingError() {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
 
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var result       = requester.route("decide").data(subscription).retrieveFlux(AuthorizationDecision.class);
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var result       = requester.route("decide").data(subscription).retrieveFlux(AuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(AuthorizationDecision.INDETERMINATE).verifyComplete();
 
@@ -135,8 +136,9 @@ class RsocketPDPControllerTests {
     void decideOnceWithValidProcessingError() {
         when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
 
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var result       = requester.route("decide-once").data(subscription).retrieveMono(AuthorizationDecision.class);
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var result       = requester.route("decide-once").data(subscription)
+                .retrieveMono(AuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(AuthorizationDecision.INDETERMINATE).verifyComplete();
 
@@ -145,7 +147,7 @@ class RsocketPDPControllerTests {
 
     @Test
     void decideWithInvalidBody() {
-        var result = requester.route("decide").data("INVALID BODY").retrieveMono(AuthorizationDecision.class);
+        final var result = requester.route("decide").data("INVALID BODY").retrieveMono(AuthorizationDecision.class);
         StepVerifier.create(result).verifyError();
     }
 
@@ -155,12 +157,12 @@ class RsocketPDPControllerTests {
                 IdentifiableAuthorizationDecision.INDETERMINATE, IdentifiableAuthorizationDecision.INDETERMINATE,
                 IdentifiableAuthorizationDecision.INDETERMINATE));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        var result = requester.route("multi-decide").data(multiAuthzSubscription)
+        final var result = requester.route("multi-decide").data(multiAuthzSubscription)
                 .retrieveFlux(IdentifiableAuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(IdentifiableAuthorizationDecision.INDETERMINATE,
@@ -174,12 +176,12 @@ class RsocketPDPControllerTests {
     void subscribeToMultiDecisionsProcessingError() {
         when(pdp.decide(any(MultiAuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        var result = requester.route("multi-decide").data(multiAuthzSubscription)
+        final var result = requester.route("multi-decide").data(multiAuthzSubscription)
                 .retrieveFlux(IdentifiableAuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(IdentifiableAuthorizationDecision.INDETERMINATE).verifyComplete();
@@ -189,8 +191,8 @@ class RsocketPDPControllerTests {
 
     @Test
     void subscribeToMultiDecisionsInvalidBody() {
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var result       = requester.route("multi-decide").data(subscription)
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var result       = requester.route("multi-decide").data(subscription)
                 .retrieveFlux(IdentifiableAuthorizationDecision.class);
         StepVerifier.create(result).expectError().verify();
     }
@@ -201,12 +203,12 @@ class RsocketPDPControllerTests {
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        var result = requester.route("multi-decide-all").data(multiAuthzSubscription)
+        final var result = requester.route("multi-decide-all").data(multiAuthzSubscription)
                 .retrieveFlux(MultiAuthorizationDecision.class);
 
         StepVerifier
@@ -223,12 +225,12 @@ class RsocketPDPControllerTests {
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        var result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
+        final var result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
                 .retrieveMono(MultiAuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(MultiAuthorizationDecision.indeterminate()).verifyComplete();
@@ -240,12 +242,12 @@ class RsocketPDPControllerTests {
     void subscribeToMultiAllDecisionsProcessingError() {
         when(pdp.decideAll(any(MultiAuthorizationSubscription.class))).thenReturn(Flux.error(new RuntimeException()));
 
-        var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
+        final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
                 JSON.textNode("subject"), JSON.textNode("action1"), JSON.textNode("resource"))
                 .addAuthorizationSubscription("id2", JSON.textNode("subject"), JSON.textNode("action2"),
                         JSON.textNode("other resource"));
 
-        var result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
+        final var result = requester.route("multi-decide-all-once").data(multiAuthzSubscription)
                 .retrieveMono(MultiAuthorizationDecision.class);
 
         StepVerifier.create(result).expectNext(MultiAuthorizationDecision.indeterminate()).verifyComplete();
@@ -255,8 +257,8 @@ class RsocketPDPControllerTests {
 
     @Test
     void subscribeToMultiDecisionsAllInvalidBody() {
-        var subscription = AuthorizationSubscription.of("subject", "action", "resource");
-        var result       = requester.route("multi-decide-all").data(subscription)
+        final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
+        final var result       = requester.route("multi-decide-all").data(subscription)
                 .retrieveFlux(IdentifiableAuthorizationDecision.class);
         StepVerifier.create(result).expectError().verify();
     }

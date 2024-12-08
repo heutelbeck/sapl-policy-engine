@@ -32,10 +32,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.stereotype.Service;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
@@ -59,10 +59,11 @@ class PreEnforcePolicyEnforcementPointTests {
     private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;
     private static final String          ORIGINAL_RETURN_OBJECT = "original return object";
     private static final String          CHANGED_RETURN_OBJECT  = "changed return object";
-    @MockBean
-    private PolicyDecisionPoint          pdp;
 
-    @MockBean
+    @MockitoBean
+    private PolicyDecisionPoint pdp;
+
+    @MockitoBean
     private ConstraintEnforcementService constraintEnforcementService;
 
     @Autowired
@@ -136,7 +137,7 @@ class PreEnforcePolicyEnforcementPointTests {
     @Test
     @WithMockUser()
     void when_BeforeAndDecidePermit_and_obligationsFail_then_ReturnFalse() {
-        var mockBundle = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(() -> {
+        final var mockBundle = BlockingConstraintHandlerBundle.preEnforceConstraintHandlerBundle(() -> {
             throw new AccessDeniedException("INTENDED FAILURE IN TEST");
         }, FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
                 FunctionUtil.all(), FunctionUtil.sink(), UnaryOperator.identity());
@@ -177,9 +178,9 @@ class PreEnforcePolicyEnforcementPointTests {
     @Test
     @WithMockUser()
     void when_AfterAndDecideIsPermitWithResourceAndMethodReturnsOptional_then_ReturnTheReplacementObject() {
-        var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(FunctionUtil.noop(),
-                FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(), UnaryOperator.identity(),
-                FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
+        final var replaceBundle = BlockingConstraintHandlerBundle.postEnforceConstraintHandlerBundle(
+                FunctionUtil.noop(), FunctionUtil.sink(), UnaryOperator.identity(), FunctionUtil.sink(),
+                UnaryOperator.identity(), FunctionUtil.all(), x -> CHANGED_RETURN_OBJECT);
 
         when(constraintEnforcementService.blockingPreEnforceBundleFor(any(), any())).thenReturn(replaceBundle);
         when(pdp.decide(any(AuthorizationSubscription.class)))

@@ -17,24 +17,26 @@
  */
 package io.sapl.springdatar2dbc.enforcement;
 
-import static io.sapl.springdatacommon.utils.Utilities.convertReturnTypeIfNecessary;
-import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryR2dbc;
 import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryEnforce;
+import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryR2dbc;
+import static io.sapl.springdatacommon.utils.Utilities.convertReturnTypeIfNecessary;
 
 import java.util.Objects;
-import lombok.extern.slf4j.Slf4j;
+
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.r2dbc.repository.Query;
+
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.springdatacommon.services.QueryEnforceAuthorizationSubscriptionService;
 import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
 import io.sapl.springdatacommon.utils.Utilities;
-import io.sapl.spring.method.metadata.QueryEnforce;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * This service is the gathering point of all SaplEnforcementPoints for the
@@ -69,15 +71,16 @@ public class R2dbcPolicyEnforcementPoint<T> implements MethodInterceptor {
     @SneakyThrows // proceeding invocation
     public Object invoke(MethodInvocation invocation) {
 
-        var repositoryMethod = invocation.getMethod();
+        final var repositoryMethod = invocation.getMethod();
 
         if (hasAnnotationQueryEnforce(repositoryMethod)) {
 
             log.debug("# R2dbcPolicyEnforcementPoint intercept: {}",
                     invocation.getMethod().getDeclaringClass().getSimpleName() + invocation.getMethod().getName());
 
-            var repository            = invocation.getMethod().getDeclaringClass();
-            var repositoryInformation = repositoryInformationCollectorService.getRepositoryByName(repository.getName());
+            final var repository            = invocation.getMethod().getDeclaringClass();
+            final var repositoryInformation = repositoryInformationCollectorService
+                    .getRepositoryByName(repository.getName());
 
             if (repositoryInformation.isCustomMethod(repositoryMethod)) {
                 throw new IllegalStateException(
@@ -85,12 +88,12 @@ public class R2dbcPolicyEnforcementPoint<T> implements MethodInterceptor {
             }
 
             @SuppressWarnings("unchecked") // over repositoryInformation we can be save about domainType
-            var domainType = (Class<T>) repositoryInformation.getDomainType();
+            final var domainType = (Class<T>) repositoryInformation.getDomainType();
 
-            var returnClassOfMethod = Objects.requireNonNull(repositoryMethod).getReturnType();
-            var queryEnforce        = AnnotationUtils.findAnnotation(repositoryMethod, QueryEnforce.class);
-            var authSub             = queryEnforceAnnotationService.getObject().getAuthorizationSubscription(invocation,
-                    queryEnforce);
+            final var returnClassOfMethod = Objects.requireNonNull(repositoryMethod).getReturnType();
+            final var queryEnforce        = AnnotationUtils.findAnnotation(repositoryMethod, QueryEnforce.class);
+            final var authSub             = queryEnforceAnnotationService.getObject()
+                    .getAuthorizationSubscription(invocation, queryEnforce);
 
             if (authSub == null) {
                 throw new IllegalStateException(
@@ -102,8 +105,8 @@ public class R2dbcPolicyEnforcementPoint<T> implements MethodInterceptor {
              */
             if (hasAnnotationQueryR2dbc(repositoryMethod)) {
 
-                var resultData = r2dbcAnnotationQueryManipulationEnforcementPointProvider.getObject().enforce(authSub,
-                        domainType, invocation);
+                final var resultData = r2dbcAnnotationQueryManipulationEnforcementPointProvider.getObject()
+                        .enforce(authSub, domainType, invocation);
 
                 return convertReturnTypeIfNecessary(resultData, returnClassOfMethod);
             }
@@ -115,8 +118,8 @@ public class R2dbcPolicyEnforcementPoint<T> implements MethodInterceptor {
             if (Utilities.isSpringDataDefaultMethod(invocation.getMethod().getName())
                     || Utilities.isMethodNameValid(invocation.getMethod().getName())) {
 
-                var resultdata = r2dbcMethodNameQueryManipulationEnforcementPointProvider.getObject().enforce(authSub,
-                        domainType, invocation);
+                final var resultdata = r2dbcMethodNameQueryManipulationEnforcementPointProvider.getObject()
+                        .enforce(authSub, domainType, invocation);
                 return convertReturnTypeIfNecessary(resultdata, returnClassOfMethod);
             }
         }

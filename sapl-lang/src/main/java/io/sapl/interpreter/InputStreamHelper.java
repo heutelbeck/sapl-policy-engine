@@ -37,7 +37,7 @@ public class InputStreamHelper {
     private static final String PARSING_ERRORS = "Parsing errors: %s";
 
     public static InputStream detectAndConvertEncodingOfStream(InputStream policyInputStream) throws IOException {
-
+        @SuppressWarnings("deprecation") // new versions break MQTT ITs
         BOMInputStream bomIn = new BOMInputStream(policyInputStream, ByteOrderMark.UTF_16LE, ByteOrderMark.UTF_16BE,
                 ByteOrderMark.UTF_32LE, ByteOrderMark.UTF_32BE, ByteOrderMark.UTF_8);
 
@@ -70,6 +70,7 @@ public class InputStreamHelper {
         return getUtf8InputStream(new InputStreamReader(bomIn, StandardCharsets.UTF_8));
     }
 
+    @SuppressWarnings("deprecation") // New versions break MQTT ITs
     private static ReaderInputStream getUtf8InputStream(Reader origin) {
         return new ReaderInputStream(origin, StandardCharsets.UTF_8);
     }
@@ -91,14 +92,14 @@ public class InputStreamHelper {
 
         @Override
         public int read() throws IOException {
-            var b = source.read();
+            final var b = source.read();
             checkByte(b);
             return b;
         }
 
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
-            var numberOfBytesRead = source.read(b, off, len);
+            final var numberOfBytesRead = source.read(b, off, len);
             if (numberOfBytesRead == EOF) {
                 return EOF;
             }
@@ -136,11 +137,11 @@ public class InputStreamHelper {
                 if (buffer[currentIndex] != 0xE2)
                     return false;
 
-                var second = buffer[(currentIndex + 1) % BUFFER_SIZE];
+                final var second = buffer[(currentIndex + 1) % BUFFER_SIZE];
                 if (second != 0x81 && second != 0x80)
                     return false;
 
-                var third = buffer[(currentIndex + 2) % BUFFER_SIZE];
+                final var third = buffer[(currentIndex + 2) % BUFFER_SIZE];
                 return third == 0xA6 || third == 0xA7 || third == 0xA9 || third == 0xAE;
             }
         }

@@ -54,13 +54,13 @@ public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpReques
         gen.writeStringField(SCHEME, value.getURI().getScheme());
         gen.writeStringField(SERVER_NAME, value.getURI().getHost());
         gen.writeNumberField(SERVER_PORT, value.getURI().getPort());
-        var remoteAddress = value.getRemoteAddress();
+        final var remoteAddress = value.getRemoteAddress();
         if (remoteAddress != null) {
             gen.writeStringField(REMOTE_ADDRESS, remoteAddress.toString());
             gen.writeStringField(REMOTE_HOST, remoteAddress.getHostString());
             gen.writeNumberField(REMOTE_PORT, remoteAddress.getPort());
         }
-        var localAddress = value.getLocalAddress();
+        final var localAddress = value.getLocalAddress();
         if (localAddress != null) {
             gen.writeStringField(LOCAL_NAME, localAddress.getHostString());
             gen.writeStringField(LOCAL_ADDRESS, localAddress.toString());
@@ -76,7 +76,7 @@ public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpReques
     }
 
     private void writeHeaders(ServerHttpRequest value, JsonGenerator gen) throws IOException {
-        var headers = value.getHeaders();
+        final var headers = value.getHeaders();
         if (headers.isEmpty())
             return;
         gen.writeObjectFieldStart(HEADERS);
@@ -90,7 +90,7 @@ public class ServerHttpRequestSerializer extends JsonSerializer<ServerHttpReques
     }
 
     private void writeCookies(ServerHttpRequest value, JsonGenerator gen) throws IOException {
-        var cookies = value.getCookies();
+        final var cookies = value.getCookies();
         if (cookies.isEmpty())
             return;
 

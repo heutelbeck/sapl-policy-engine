@@ -33,6 +33,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.platform.commons.util.ReflectionUtils;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -81,7 +82,7 @@ class SaplConditionOperationTests {
         expected.add(new SaplCondition("firstname", "Aaron", OperatorMongoDB.SIMPLE_PROPERTY, "or"));
 
         // WHEN
-        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditionsWithOrPart);
+        final var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditionsWithOrPart);
 
         // THEN
         assertTwoSaplConditions(actualSaplConditions.get(0), expected.get(0));
@@ -96,7 +97,7 @@ class SaplConditionOperationTests {
         expected.add(new SaplCondition("firstname", List.of("Cathrin", "Aaron"), OperatorMongoDB.IN, "and"));
 
         // WHEN
-        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditions);
+        final var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(conditions);
 
         // THEN
         assertTwoSaplConditions(actualSaplConditions.get(0), expected.get(0));
@@ -109,7 +110,8 @@ class SaplConditionOperationTests {
         ArrayList<SaplCondition> expected = new ArrayList<>();
 
         // WHEN
-        var actualSaplConditions = SaplConditionOperation.jsonNodeToSaplConditions(JsonNodeFactory.instance.nullNode());
+        final var actualSaplConditions = SaplConditionOperation
+                .jsonNodeToSaplConditions(JsonNodeFactory.instance.nullNode());
 
         // THEN
         assertEquals(actualSaplConditions, expected);
@@ -126,7 +128,7 @@ class SaplConditionOperationTests {
                 OperatorMongoDB.IN, logicOperator));
 
         // WHEN
-        var actualMethodName = SaplConditionOperation.toModifiedMethodName(originalMethodName, saplConditions);
+        final var actualMethodName = SaplConditionOperation.toModifiedMethodName(originalMethodName, saplConditions);
 
         // THEN
         assertEquals(methodNameManipulated, actualMethodName);
@@ -148,15 +150,15 @@ class SaplConditionOperationTests {
     @Test
     void when_methodIsQueryMethodButNoPartsCanBeCreatedByMethodName_then_returnEmptySaplConditionList() {
         // GIVEN
-        var methodInvocation = new MethodInvocationForTesting("findAllBy", new ArrayList<>(List.of()),
+        final var methodInvocation = new MethodInvocationForTesting("findAllBy", new ArrayList<>(List.of()),
                 new ArrayList<>(List.of()), null);
-        var method           = methodInvocation.getMethod();
-        var args             = methodInvocation.getArguments();
+        final var method           = methodInvocation.getMethod();
+        final var args             = methodInvocation.getArguments();
 
-        var expectedResult = new ArrayList<>();
+        final var expectedResult = new ArrayList<>();
 
         // WHEN
-        var actualResult = SaplConditionOperation.methodToSaplConditions(args, method, TestUser.class);
+        final var actualResult = SaplConditionOperation.methodToSaplConditions(args, method, TestUser.class);
 
         // THEN
         assertEquals(expectedResult, actualResult);
@@ -165,10 +167,10 @@ class SaplConditionOperationTests {
     @Test
     void when_methodIsQueryMethodButParametersDontFit_then_throwArrayIndexOutOfBoundsException() {
         // GIVEN
-        var methodInvocation = new MethodInvocationForTesting("findAllByFirstnameAndAgeBefore",
+        final var methodInvocation = new MethodInvocationForTesting("findAllByFirstnameAndAgeBefore",
                 new ArrayList<>(List.of(String.class, int.class)), new ArrayList<>(List.of("Aaron")), null);
-        var method           = methodInvocation.getMethod();
-        var args             = methodInvocation.getArguments();
+        final var method           = methodInvocation.getMethod();
+        final var args             = methodInvocation.getArguments();
 
         // WHEN
 
@@ -180,15 +182,16 @@ class SaplConditionOperationTests {
     @Test
     void when_methodIsQueryMethod_then_convertToSaplConditions() {
         // GIVEN
-        var methodInvocation = new MethodInvocationForTesting("findAllByFirstnameAndAgeBefore",
+        final var methodInvocation = new MethodInvocationForTesting("findAllByFirstnameAndAgeBefore",
                 new ArrayList<>(List.of(String.class, int.class)), new ArrayList<>(List.of("Aaron", 22)), null);
-        var method           = methodInvocation.getMethod();
-        var args             = methodInvocation.getArguments();
-        var expectedResult   = List.of(new SaplCondition("firstname", "Aaron", OperatorMongoDB.SIMPLE_PROPERTY, "And"),
+        final var method           = methodInvocation.getMethod();
+        final var args             = methodInvocation.getArguments();
+        final var expectedResult   = List.of(
+                new SaplCondition("firstname", "Aaron", OperatorMongoDB.SIMPLE_PROPERTY, "And"),
                 new SaplCondition("age", 22, OperatorMongoDB.BEFORE, "And"));
 
         // WHEN
-        var actualResult = SaplConditionOperation.methodToSaplConditions(args, method, TestUser.class);
+        final var actualResult = SaplConditionOperation.methodToSaplConditions(args, method, TestUser.class);
 
         // THEN
         for (int i = 0; i < actualResult.size(); i++) {
@@ -199,7 +202,7 @@ class SaplConditionOperationTests {
     @Test
     void when_classIsStaticUtilityClass_then_instantiateThisTestForCoverageReasonsOfConstructor() {
         assertThrows(InvocationTargetException.class, () -> {
-            var constructor = SaplConditionOperation.class.getDeclaredConstructor();
+            final var constructor = SaplConditionOperation.class.getDeclaredConstructor();
             assertTrue(Modifier.isPrivate(constructor.getModifiers()));
             ReflectionUtils.makeAccessible(constructor);
             constructor.newInstance();

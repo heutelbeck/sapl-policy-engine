@@ -74,7 +74,7 @@ public final class ReactiveSaplMethodSecurityConfiguration {
             PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
 
         log.debug("Deploy ReactiveSaplMethodInterceptor");
-        var policyEnforcementPoint = new ReactiveSaplMethodInterceptor(source, expressionHandler, pdp,
+        final var policyEnforcementPoint = new ReactiveSaplMethodInterceptor(source, expressionHandler, pdp,
                 constraintHandlerService, mapper, authorizationSubscriptionBuilderService,
                 preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
         return PolicyEnforcementPointAroundMethodInterceptor.reactive(policyEnforcementPoint);
@@ -118,7 +118,7 @@ public final class ReactiveSaplMethodSecurityConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
-        var handler = new DefaultMethodSecurityExpressionHandler();
+        final var handler = new DefaultMethodSecurityExpressionHandler();
         if (this.grantedAuthorityDefaults != null) {
             handler.setDefaultRolePrefix(this.grantedAuthorityDefaults.getRolePrefix());
         }
@@ -129,7 +129,7 @@ public final class ReactiveSaplMethodSecurityConfiguration {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     SaplAttributeRegistry saplAttributeRegistry(ObjectProvider<GrantedAuthorityDefaults> defaultsProvider,
             ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider, ApplicationContext context) {
-        var exprProvider = expressionHandlerProvider
+        final var exprProvider = expressionHandlerProvider
                 .getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, context));
         return new SaplAttributeRegistry(exprProvider);
     }

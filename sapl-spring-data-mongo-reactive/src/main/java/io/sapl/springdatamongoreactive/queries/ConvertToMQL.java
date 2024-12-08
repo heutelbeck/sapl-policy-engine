@@ -30,11 +30,11 @@ import lombok.experimental.UtilityClass;
 public class ConvertToMQL {
 
     public Pageable createPageable(MethodInvocation invocation, BasicQuery query) {
-        var arguments           = invocation.getArguments();
-        var sortMethodName      = extractSort(query);
-        var sortMethodArguments = extractSort(arguments);
-        var mergedSort          = sortMethodName.and(sortMethodArguments);
-        var pageable            = extractPageable(arguments);
+        final var arguments           = invocation.getArguments();
+        final var sortMethodName      = extractSort(query);
+        final var sortMethodArguments = extractSort(arguments);
+        final var mergedSort          = sortMethodName.and(sortMethodArguments);
+        final var pageable            = extractPageable(arguments);
 
         return processSort(pageable, mergedSort);
     }
@@ -71,15 +71,15 @@ public class ConvertToMQL {
     }
 
     private static Sort extractSort(Query query) {
-        var sortDocument = query.getSortObject();
+        final var sortDocument = query.getSortObject();
 
         if (!sortDocument.isEmpty()) {
 
-            var orders = new Sort.Order[sortDocument.size()];
-            var i      = 0;
+            final var orders = new Sort.Order[sortDocument.size()];
+            var       i      = 0;
             for (String key : sortDocument.keySet()) {
-                var directionValue = sortDocument.getInteger(key);
-                var direction      = directionValue == 1 ? Sort.Direction.ASC : Sort.Direction.DESC;
+                final var directionValue = sortDocument.getInteger(key);
+                final var direction      = directionValue == 1 ? Sort.Direction.ASC : Sort.Direction.DESC;
                 orders[i++] = new Sort.Order(direction, key);
             }
             return Sort.by(orders);

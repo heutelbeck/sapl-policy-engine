@@ -19,7 +19,6 @@ package io.sapl.springdatar2dbc.enforcement;
 
 import java.util.function.Function;
 
-import lombok.AllArgsConstructor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
@@ -35,6 +34,7 @@ import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
 import io.sapl.springdatar2dbc.queries.PartTreeToSqlQueryStringConverter;
 import io.sapl.springdatar2dbc.queries.QueryCreation;
 import io.sapl.springdatar2dbc.queries.QueryManipulationExecutor;
+import lombok.AllArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -75,27 +75,27 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> {
      */
     private Function<AuthorizationDecision, Flux<T>> enforceDecision(Class<T> domainType, MethodInvocation invocation) {
 
-        var baseQuery = PartTreeToSqlQueryStringConverter.createSqlBaseQuery(invocation, domainType);
+        final var baseQuery = PartTreeToSqlQueryStringConverter.createSqlBaseQuery(invocation, domainType);
 
         return decision -> {
 
             Flux<T> resourceAccessPoint;
 
-            var decisionIsPermit = Decision.PERMIT == decision.getDecision();
+            final var decisionIsPermit = Decision.PERMIT == decision.getDecision();
 
             if (!decisionIsPermit) {
                 resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
             } else {
-                var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
+                final var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
                         .queryManipulationForR2dbc(decision);
 
-                var obligations     = queryManipulationHandler.getQueryManipulationObligations();
-                var conditions      = queryManipulationHandler.getConditions();
-                var selections      = queryManipulationHandler.getSelections();
-                var transformations = queryManipulationHandler.getTransformations();
+                final var obligations     = queryManipulationHandler.getQueryManipulationObligations();
+                final var conditions      = queryManipulationHandler.getConditions();
+                final var selections      = queryManipulationHandler.getSelections();
+                final var transformations = queryManipulationHandler.getTransformations();
 
-                var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, domainType,
-                        obligations);
+                final var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision,
+                        domainType, obligations);
 
                 constraintHandlerBundle.handleMethodInvocationHandlers(invocation);
                 resourceAccessPoint = enforceQueryManipulation(conditions, selections, transformations, domainType,
@@ -120,8 +120,8 @@ public class R2dbcMethodNameQueryManipulationEnforcementPoint<T> {
      */
     private Flux<T> enforceQueryManipulation(ArrayNode conditions, ArrayNode selections, ArrayNode transformations,
             Class<T> domainType, String baseQuery) {
-        var manipulatedCondition = QueryCreation.createSqlQuery(conditions, selections, transformations, domainType,
-                baseQuery);
+        final var manipulatedCondition = QueryCreation.createSqlQuery(conditions, selections, transformations,
+                domainType, baseQuery);
 
         return queryManipulationExecutorProvider.getObject().execute(manipulatedCondition, domainType);
     }

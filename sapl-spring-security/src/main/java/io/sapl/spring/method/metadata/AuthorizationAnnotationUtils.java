@@ -60,7 +60,7 @@ final class AuthorizationAnnotationUtils {
      */
     public static <A extends Annotation> A findAuthorizeAnnotationOnMethodOrDeclaringClass(Method method,
             Class<A> annotationType) {
-        var preAuthorize = findUniqueAnnotation(method, annotationType);
+        final var preAuthorize = findUniqueAnnotation(method, annotationType);
         return (preAuthorize != null) ? preAuthorize : findUniqueAnnotation(method.getDeclaringClass(), annotationType);
     }
 

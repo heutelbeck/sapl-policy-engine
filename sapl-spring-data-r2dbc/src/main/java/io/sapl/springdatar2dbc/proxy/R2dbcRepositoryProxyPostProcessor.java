@@ -17,11 +17,6 @@
  */
 package io.sapl.springdatar2dbc.proxy;
 
-import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
-import io.sapl.springdatar2dbc.enforcement.R2dbcPolicyEnforcementPoint;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 import java.lang.reflect.Type;
 
 import org.springframework.aop.framework.ProxyFactory;
@@ -30,6 +25,11 @@ import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.support.RepositoryProxyPostProcessor;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.data.repository.reactive.ReactiveSortingRepository;
+
+import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
+import io.sapl.springdatar2dbc.enforcement.R2dbcPolicyEnforcementPoint;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -43,7 +43,7 @@ public class R2dbcRepositoryProxyPostProcessor<T> implements RepositoryProxyPost
         log.debug("# R2dbcRepositoryProxyPostProcessor postProcess {} {}", factory.getClass().getSimpleName(),
                 repositoryInformation.getClass().getSimpleName());
 
-        var repository = repositoryInformation.getRepositoryInterface();
+        final var repository = repositoryInformation.getRepositoryInterface();
 
         if (hasRequiredInterface(repository)) {
             repositoryInformationCollectorService.add(repositoryInformation);
@@ -53,7 +53,7 @@ public class R2dbcRepositoryProxyPostProcessor<T> implements RepositoryProxyPost
     }
 
     private boolean hasRequiredInterface(Class<?> repository) {
-        var interfaces = repository.getInterfaces();
+        final var interfaces = repository.getInterfaces();
 
         for (Type interfaceType : interfaces) {
             if (interfaceType.equals(ReactiveCrudRepository.class) || interfaceType.equals(R2dbcRepository.class)

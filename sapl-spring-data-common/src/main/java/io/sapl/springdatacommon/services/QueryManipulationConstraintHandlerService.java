@@ -17,10 +17,10 @@
  */
 package io.sapl.springdatacommon.services;
 
+import static io.sapl.springdatacommon.utils.Utilities.ALIAS;
 import static io.sapl.springdatacommon.utils.Utilities.CONDITIONS;
 import static io.sapl.springdatacommon.utils.Utilities.SELECTION;
 import static io.sapl.springdatacommon.utils.Utilities.TRANSFORMATIONS;
-import static io.sapl.springdatacommon.utils.Utilities.ALIAS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +49,7 @@ public class QueryManipulationConstraintHandlerService {
 
     public JsonNode[] getQueryManipulationObligations() {
 
-        var queryManipulationObligations = new ArrayList<JsonNode>();
+        final var queryManipulationObligations = new ArrayList<JsonNode>();
 
         if (queryManipulationRecords.isEmpty()) {
             return new JsonNode[0];
@@ -74,7 +74,7 @@ public class QueryManipulationConstraintHandlerService {
      */
     public ArrayNode getConditions() {
 
-        var conditions = MAPPER.createArrayNode();
+        final var conditions = MAPPER.createArrayNode();
 
         if (queryManipulationRecords.isEmpty()) {
             return conditions;
@@ -94,7 +94,7 @@ public class QueryManipulationConstraintHandlerService {
      */
     public ArrayNode getSelections() {
 
-        var selections = MAPPER.createArrayNode();
+        final var selections = MAPPER.createArrayNode();
 
         if (queryManipulationRecords.isEmpty()) {
             return selections;
@@ -118,7 +118,7 @@ public class QueryManipulationConstraintHandlerService {
      */
     public ArrayNode getTransformations() {
 
-        var transformations = MAPPER.createArrayNode();
+        final var transformations = MAPPER.createArrayNode();
 
         if (queryManipulationRecords.isEmpty()) {
             return transformations;
@@ -129,7 +129,7 @@ public class QueryManipulationConstraintHandlerService {
                     && constraintDataRecord.obligation().get(TRANSFORMATIONS).isObject()) {
 
                 constraintDataRecord.obligation().get(TRANSFORMATIONS).fields().forEachRemaining(entry -> {
-                    var keyValuePair = JsonNodeFactory.instance.objectNode();
+                    final var keyValuePair = JsonNodeFactory.instance.objectNode();
                     keyValuePair.put(entry.getKey(), entry.getValue().asText());
                     transformations.add(keyValuePair);
                 });
@@ -140,7 +140,7 @@ public class QueryManipulationConstraintHandlerService {
     }
 
     public String getAlias() {
-        var alias = new ArrayList<String>();
+        final var alias = new ArrayList<String>();
 
         queryManipulationRecords.stream().forEach(constraintDataRecord -> {
             if (constraintDataRecord.obligation().has(ALIAS)
@@ -165,8 +165,8 @@ public class QueryManipulationConstraintHandlerService {
      */
     private JsonNode getSelection(JsonNode obligation, JsonNode template) {
 
-        var                    schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V201909);
-        var                    schema        = schemaFactory.getSchema(template);
+        final var              schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V201909);
+        final var              schema        = schemaFactory.getSchema(template);
         Set<ValidationMessage> errors        = schema.validate(obligation);
 
         if (errors.isEmpty()) {

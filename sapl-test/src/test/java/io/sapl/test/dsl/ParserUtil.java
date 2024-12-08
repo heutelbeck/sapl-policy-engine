@@ -42,8 +42,8 @@ public class ParserUtil {
 
     public static <T extends ParserRule, R> R parseInputByRule(final String saplTest,
             Function<SAPLTestGrammarAccess, T> resolver, Class<R> clazz) {
-        var       resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-        var       resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("test:/default.sapltest"));
+        final var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+        final var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("test:/default.sapltest"));
         final var parserRule  = resolver.apply(INJECTOR.getInstance(SAPLTestGrammarAccess.class));
         resource.setEntryPoint(parserRule);
 

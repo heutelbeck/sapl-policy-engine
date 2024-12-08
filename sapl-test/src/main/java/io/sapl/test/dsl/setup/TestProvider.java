@@ -18,14 +18,15 @@
 
 package io.sapl.test.dsl.setup;
 
+import java.util.List;
+import java.util.Map;
+
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.StepConstructor;
 import io.sapl.test.grammar.sapltest.ImportType;
 import io.sapl.test.grammar.sapltest.Requirement;
 import io.sapl.test.grammar.sapltest.SAPLTest;
 import io.sapl.test.grammar.sapltest.Scenario;
-import java.util.List;
-import java.util.Map;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 

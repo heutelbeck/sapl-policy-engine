@@ -21,6 +21,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,9 +49,9 @@ public class QuerySelectionUtils {
     public static <T> String createSelectionPartForMethodNameQuery(ArrayNode selections, ArrayNode transformations,
             Class<T> domainType) {
 
-        var propertiesOfDomain     = propertiesOfDomainToList(domainType);
-        var fieldList              = createSelectionPart(selections, propertiesOfDomain);
-        var fieldListWithFunctions = QuerySelectionUtils.addFunctionsToColumns(fieldList, transformations);
+        final var propertiesOfDomain     = propertiesOfDomainToList(domainType);
+        final var fieldList              = createSelectionPart(selections, propertiesOfDomain);
+        final var fieldListWithFunctions = QuerySelectionUtils.addFunctionsToColumns(fieldList, transformations);
 
         if (fieldListWithFunctions.isEmpty()) {
             return SELECT_WITH_SPACE + ASTERISK + FROM_XXXXX_WHERE;
@@ -65,28 +66,28 @@ public class QuerySelectionUtils {
             return query;
         }
 
-        var selectIndex = query.toLowerCase().indexOf(SELECT_LOWERCASE);
-        var fromIndex   = query.toLowerCase().indexOf(FROM);
+        final var selectIndex = query.toLowerCase().indexOf(SELECT_LOWERCASE);
+        final var fromIndex   = query.toLowerCase().indexOf(FROM);
 
-        var selectionToReplace = query.substring(selectIndex + SELECT_LOWERCASE.length(), fromIndex);
+        final var selectionToReplace = query.substring(selectIndex + SELECT_LOWERCASE.length(), fromIndex);
 
-        var isAsterix              = ASTERISK.equals(selectionToReplace.trim());
-        var fieldListWithFunctions = new ArrayList<String>();
-        var propertiesOfDomain     = propertiesOfDomainToList(domainType);
+        final var isAsterix              = ASTERISK.equals(selectionToReplace.trim());
+        final var fieldListWithFunctions = new ArrayList<String>();
+        final var propertiesOfDomain     = propertiesOfDomainToList(domainType);
 
         if (isAsterix && selections.isEmpty()) {
             return query;
         }
 
         if (!selections.isEmpty()) {
-            var fieldList = QuerySelectionUtils.createSelectionPart(selections, propertiesOfDomain);
+            final var fieldList = QuerySelectionUtils.createSelectionPart(selections, propertiesOfDomain);
             fieldListWithFunctions.addAll(addFunctionsToColumns(fieldList, transformations));
         }
 
         if (!isAsterix && selections.isEmpty()) {
 
-            var columns   = selectionToReplace.split(",");
-            var fieldList = new ArrayList<String>();
+            final var columns   = selectionToReplace.split(",");
+            final var fieldList = new ArrayList<String>();
 
             for (String column : columns) {
                 fieldList.add(column.trim());
@@ -99,7 +100,7 @@ public class QuerySelectionUtils {
             applyAlias(fieldListWithFunctions, alias, propertiesOfDomain);
         }
 
-        var fieldListAsString = String.join(",", fieldListWithFunctions);
+        final var fieldListAsString = String.join(",", fieldListWithFunctions);
 
         return query.replace(selectionToReplace, fieldListAsString);
     }
@@ -113,13 +114,13 @@ public class QuerySelectionUtils {
             log.info(QUERY_LOG, selections.get(0).toPrettyString());
         }
 
-        var selection = selections.get(0);
+        final var selection = selections.get(0);
 
-        var selectionList = new ArrayList<String>();
-        var elements      = selection.get(COLUMNS).elements();
+        final var selectionList = new ArrayList<String>();
+        final var elements      = selection.get(COLUMNS).elements();
 
         while (elements.hasNext()) {
-            var element = elements.next();
+            final var element = elements.next();
             selectionList.add(element.asText().trim());
         }
 
@@ -140,13 +141,13 @@ public class QuerySelectionUtils {
             return columns;
         }
 
-        var transformationsAsPairs = transformationsToPair(transformations);
+        final var transformationsAsPairs = transformationsToPair(transformations);
 
         for (int i = 0; i < columns.size(); i++) {
-            var possiblePair = findPairByKey(transformationsAsPairs, columns.get(i));
+            final var possiblePair = findPairByKey(transformationsAsPairs, columns.get(i));
 
             if (possiblePair != null) {
-                var columnWithFunc = possiblePair.getValue() + "(" + columns.get(i) + ")";
+                final var columnWithFunc = possiblePair.getValue() + "(" + columns.get(i) + ")";
                 columns.set(i, columnWithFunc);
             }
         }
@@ -155,12 +156,12 @@ public class QuerySelectionUtils {
     }
 
     private List<Pair<String, String>> transformationsToPair(Iterable<JsonNode> transformations) {
-        var transformationsAsPairs = new ArrayList<Pair<String, String>>();
+        final var transformationsAsPairs = new ArrayList<Pair<String, String>>();
 
         for (JsonNode jsonNode : transformations) {
-            var objectNode = (ObjectNode) jsonNode;
-            var key        = objectNode.fieldNames().next();
-            var value      = objectNode.get(key).asText();
+            final var objectNode = (ObjectNode) jsonNode;
+            final var key        = objectNode.fieldNames().next();
+            final var value      = objectNode.get(key).asText();
 
             transformationsAsPairs.add(Pair.of(key, value));
         }
@@ -169,11 +170,11 @@ public class QuerySelectionUtils {
     }
 
     private static <T> List<String> propertiesOfDomainToList(Class<T> domainType) {
-        var finalFieldList = new ArrayList<String>();
-        var fields         = Arrays.asList(domainType.getDeclaredFields());
+        final var finalFieldList = new ArrayList<String>();
+        final var fields         = Arrays.asList(domainType.getDeclaredFields());
 
         for (Field field : fields) {
-            var name = field.getName();
+            final var name = field.getName();
             finalFieldList.add(name);
         }
 
@@ -191,12 +192,12 @@ public class QuerySelectionUtils {
 
     public static List<String> applyAlias(List<String> columns, String alias, List<String> properties) {
         for (int i = 0; i < columns.size(); i++) {
-            var column = columns.get(i);
+            final var column = columns.get(i);
 
             for (var property : properties) {
                 if (column.contains(property)) {
-                    var columnWithAlias = alias + DOT + property;
-                    var tempColumn      = column.replaceAll(property, columnWithAlias);
+                    final var columnWithAlias = alias + DOT + property;
+                    final var tempColumn      = column.replaceAll(property, columnWithAlias);
                     columns.set(i, tempColumn);
                 }
             }

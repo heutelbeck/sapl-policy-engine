@@ -22,6 +22,7 @@ import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
 import lombok.experimental.UtilityClass;
 
 /**
@@ -41,10 +42,10 @@ public class QueryAnnotationParameterResolver {
      */
     public static String resolveForRelationalDatabase(Method method, Object[] args) {
 
-        var queryAnnotation = method.getAnnotation(org.springframework.data.r2dbc.repository.Query.class);
-        var query           = queryAnnotation.value();
-        var parameterNames  = getParameterNames(method);
-        var finalArgs       = convertArgumentsToString(args);
+        final var queryAnnotation = method.getAnnotation(org.springframework.data.r2dbc.repository.Query.class);
+        final var query           = queryAnnotation.value();
+        final var parameterNames  = getParameterNames(method);
+        final var finalArgs       = convertArgumentsToString(args);
 
         return replaceParametersRelational(query, parameterNames, finalArgs);
     }
@@ -58,11 +59,11 @@ public class QueryAnnotationParameterResolver {
      */
     public static String resolveForMongoDB(Method method, Object[] args) {
 
-        var queryAnnotation = method.getAnnotation(org.springframework.data.mongodb.repository.Query.class);
-        var query           = String.format("%sXXXXX%sXXXXX%s", queryAnnotation.value(), queryAnnotation.fields(),
+        final var queryAnnotation = method.getAnnotation(org.springframework.data.mongodb.repository.Query.class);
+        final var query           = String.format("%sXXXXX%sXXXXX%s", queryAnnotation.value(), queryAnnotation.fields(),
                 queryAnnotation.sort());
-        var parameterNames  = getParameterNames(method);
-        var finalArgs       = convertArgumentsToString(args);
+        final var parameterNames  = getParameterNames(method);
+        final var finalArgs       = convertArgumentsToString(args);
 
         return replaceParameters(query, parameterNames, finalArgs);
     }

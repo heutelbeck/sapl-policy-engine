@@ -43,6 +43,7 @@ import org.springframework.security.access.AccessDeniedException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
@@ -53,10 +54,10 @@ import io.sapl.spring.constraints.ConstraintEnforcementService;
 import io.sapl.spring.constraints.ReactiveConstraintHandlerBundle;
 import io.sapl.springdatacommon.services.ConstraintQueryEnforcementService;
 import io.sapl.springdatacommon.services.QueryManipulationConstraintHandlerService;
+import io.sapl.springdatar2dbc.database.Person;
 import io.sapl.springdatar2dbc.queries.PartTreeToSqlQueryStringConverter;
 import io.sapl.springdatar2dbc.queries.QueryCreation;
 import io.sapl.springdatar2dbc.queries.QueryManipulationExecutor;
-import io.sapl.springdatar2dbc.database.Person;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -130,8 +131,8 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTests {
     @Test
     void when_enforce_then_returnFluxDomainObject() {
         // GIVEN
-        var authorizationSubscriptionMock = AuthorizationSubscription.of("", "permitTest", "", "");
-        var enforcementPoint              = new R2dbcMethodNameQueryManipulationEnforcementPoint<Person>(
+        final var authorizationSubscriptionMock = AuthorizationSubscription.of("", "permitTest", "", "");
+        final var enforcementPoint              = new R2dbcMethodNameQueryManipulationEnforcementPoint<Person>(
                 objectProviderPolicyDecisionPointMock, objectProviderQueryManipulationExecutorMock,
                 objectProviderConstraintQueryEnforcementServiceMock, constraintEnforcementServiceMock);
 
@@ -145,7 +146,7 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTests {
         when(constraintEnforcementServiceMock.replaceIfResourcePresent(any(), any(), eq(Person.class)))
                 .thenReturn(Flux.just(CATHRIN));
 
-        var result = enforcementPoint.enforce(authorizationSubscriptionMock, Person.class, methodInvocationMock);
+        final var result = enforcementPoint.enforce(authorizationSubscriptionMock, Person.class, methodInvocationMock);
 
         // THEN
         StepVerifier.create(result).expectNext(CATHRIN).expectComplete().verify();
@@ -164,13 +165,13 @@ class R2dbcMethodNameQueryManipulationEnforcementPointTests {
     @Test
     void when_enforce_then_throwAccessDeniedException() {
         // GIVEN
-        var authorizationSubscriptionMock = AuthorizationSubscription.of("", "denyTest", "", "");
-        var enforcementPoint              = new R2dbcMethodNameQueryManipulationEnforcementPoint<Person>(
+        final var authorizationSubscriptionMock = AuthorizationSubscription.of("", "denyTest", "", "");
+        final var enforcementPoint              = new R2dbcMethodNameQueryManipulationEnforcementPoint<Person>(
                 objectProviderPolicyDecisionPointMock, objectProviderQueryManipulationExecutorMock,
                 objectProviderConstraintQueryEnforcementServiceMock, constraintEnforcementServiceMock);
 
         // WHEN
-        var result = enforcementPoint.enforce(authorizationSubscriptionMock, Person.class, methodInvocationMock);
+        final var result = enforcementPoint.enforce(authorizationSubscriptionMock, Person.class, methodInvocationMock);
         StepVerifier.create(result).expectErrorMatches(
                 error -> error instanceof AccessDeniedException && ACCESS_DENIED_BY_PDP.equals(error.getMessage()))
                 .verify();

@@ -46,11 +46,11 @@ class LiteralTests {
 
     @Test
     void negateTest() {
-        var literal        = new Literal(new Bool(false));
-        var negatedLiteral = new Literal(new Bool(false), true);
+        final var literal        = new Literal(new Bool(false));
+        final var negatedLiteral = new Literal(new Bool(false), true);
 
-        var negated       = literal.negate();
-        var doubleNegated = negatedLiteral.negate();
+        final var negated       = literal.negate();
+        final var doubleNegated = negatedLiteral.negate();
 
         assertThat(literal.evaluate(), is(!negated.evaluate()));
         assertThat(negatedLiteral.evaluate(), is(!doubleNegated.evaluate()));
@@ -58,8 +58,8 @@ class LiteralTests {
 
     @Test
     void sharesBoolTest() {
-        var trueLiteral  = new Literal(new Bool(true));
-        var falseLiteral = new Literal(new Bool(false));
+        final var trueLiteral  = new Literal(new Bool(true));
+        final var falseLiteral = new Literal(new Bool(false));
 
         assertThat(trueLiteral.sharesBool(trueLiteral), is(true));
         assertThat(trueLiteral.sharesBool(falseLiteral), is(false));
@@ -67,8 +67,8 @@ class LiteralTests {
 
     @Test
     void sharesNegationTest() {
-        var literal        = new Literal(new Bool(true), false);
-        var negatedLiteral = new Literal(new Bool(false), true);
+        final var literal        = new Literal(new Bool(true), false);
+        final var negatedLiteral = new Literal(new Bool(false), true);
 
         assertThat(literal.sharesNegation(literal), is(true));
         assertThat(negatedLiteral.sharesNegation(negatedLiteral), is(true));
@@ -78,8 +78,8 @@ class LiteralTests {
     @Test
     @SuppressWarnings("unlikely-arg-type")
     void equalsTest() {
-        var literal     = new Literal(new Bool(false), true);
-        var literalMock = mock(Literal.class);
+        final var literal     = new Literal(new Bool(false), true);
+        final var literalMock = mock(Literal.class);
 
         assertThat(literal.equals(literal), is(true));
         assertThat(literal.equals(null), is(false));

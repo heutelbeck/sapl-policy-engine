@@ -19,7 +19,6 @@ package io.sapl.grammar.ide.contentassist;
 
 import java.util.List;
 
-import org.eclipse.xtext.testing.TestCompletionConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
@@ -33,69 +32,98 @@ import org.springframework.test.context.ContextConfiguration;
 class AuthorizationSubscriptionItemsCompletionTests extends CompletionTests {
 
     @Test
-    void testCompletion_AuthorizationSubscriptionItemsInTargetExpression() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit ";
-            it.setModel(policy);
-            it.setColumn(policy.length());
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("advice", "obligation", "transform", "where", "action", "environment",
-                        "resource", "subject");
-                assertProposalsSimple(expected, completionList);
-            });
-        });
+    void testCompletion_AuthorizationSubscriptionItemsInTargetExpression1() {
+        final var document = "policy \"test\" permit a§";
+        final var expected = List.of("action");
+        assertProposalsContain(document, expected);
+
     }
 
     @Test
-    void testCompletion_AuthorizationSubscriptionItemsInBody() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where ";
-            it.setModel(policy);
-            it.setColumn(policy.length());
-            it.setAssertCompletionList(completionList -> {
-                var expected = List.of("var", "action", "environment", "resource", "subject");
-                assertProposalsSimple(expected, completionList);
-            });
-        });
+    void testCompletion_AuthorizationSubscriptionItemsInTargetExpression2() {
+        final var document = "policy \"test\" permit e§";
+        final var expected = List.of("environment");
+        assertProposalsContain(document, expected);
+
+    }
+
+    @Test
+    void testCompletion_AuthorizationSubscriptionItemsInTargetExpression3() {
+        final var document = "policy \"test\" permit r§";
+        final var expected = List.of("resource");
+        assertProposalsContain(document, expected);
+
+    }
+
+    @Test
+    void testCompletion_AuthorizationSubscriptionItemsInTargetExpression4() {
+        final var document = "policy \"test\" permit s§";
+        final var expected = List.of("subject");
+        assertProposalsContain(document, expected);
+
+    }
+
+    @Test
+    void testCompletion_AuthorizationSubscriptionItemsInBody0() {
+        final var document = "policy \"test\" permit where §";
+        final var expected = List.of("var");
+        assertProposalsContain(document, expected);
+    }
+
+    @Test
+    void testCompletion_AuthorizationSubscriptionItemsInBody1() {
+        final var document = "policy \"test\" permit where a§";
+        final var expected = List.of("action");
+        assertProposalsContain(document, expected);
+
+    }
+
+    @Test
+    void testCompletion_AuthorizationSubscriptionItemsInBody2() {
+        final var document = "policy \"test\" permit where e§";
+        final var expected = List.of("environment");
+        assertProposalsContain(document, expected);
+
+    }
+
+    @Test
+    void testCompletion_AuthorizationSubscriptionItemsInBody3() {
+        final var document = "policy \"test\" permit where r§";
+        final var expected = List.of("resource");
+        assertProposalsContain(document, expected);
+
+    }
+
+    @Test
+    void testCompletion_AuthorizationSubscriptionItemsInBody4() {
+        final var document = "policy \"test\" permit where s§";
+        final var expected = List.of("subject");
+        assertProposalsContain(document, expected);
+
     }
 
     @Test
     void testCompletion_NoTechnicalProposalsAfterAuthorizationSubscriptionItem() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where subject.";
-            it.setModel(policy);
-            it.setColumn(policy.length());
-            it.setAssertCompletionList(completionList -> {
-                var unwantedProposals = List.of("\"id\"", "id", "idSteps");
-                assertDoesNotContainProposals(unwantedProposals, completionList);
-            });
-        });
+        final var document = "policy \"test\" permit where subject.§";
+        final var unwanted = List.of("\"id\"", "id", "idSteps");
+        assertProposalsDoNotContain(document, unwanted);
+
     }
 
     @Test
     void testCompletion_SuggestAttributesForEnvironmentalAttribute() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where <";
-            it.setModel(policy);
-            it.setColumn(policy.length());
-            it.setAssertCompletionList(completionList -> {
-                var expectedProposals = List.of("<clock.now>", "<clock.ticker>", "<clock.millis>");
-                assertProposalsSimple(expectedProposals, completionList);
-            });
-        });
+        final var document = "policy \"test\" permit where <c§";
+        final var expected = List.of("clock.millis(personLeftHand)>", "clock.now>", "clock.ticker>");
+        assertProposalsContain(document, expected);
+
     }
 
     @Test
     void testCompletion_SuggestAttributesForHeadEnvironmentalAttribute() {
-        testCompletion((TestCompletionConfiguration it) -> {
-            String policy = "policy \"test\" permit where |<";
-            it.setModel(policy);
-            it.setColumn(policy.length());
-            it.setAssertCompletionList(completionList -> {
-                var expectedProposals = List.of("<clock.now>", "<clock.ticker>", "<clock.millis>");
-                assertProposalsSimple(expectedProposals, completionList);
-            });
-        });
+        final var document = "policy \"test\" permit where |<c§";
+        final var expected = List.of("clock.millis(personLeftHand)>", "clock.now>", "clock.ticker>");
+        assertProposalsContain(document, expected);
+
     }
 
 }

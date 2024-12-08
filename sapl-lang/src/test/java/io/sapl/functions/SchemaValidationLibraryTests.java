@@ -68,7 +68,7 @@ class SchemaValidationLibraryTests {
     @Test
     @SneakyThrows
     void testDereference() {
-        var externals = MAPPER.createArrayNode();
+        final var externals = MAPPER.createArrayNode();
         externals.add(MAPPER.readValue("""
                  {
                     "$id": "https://example.com/coordinates",
@@ -82,8 +82,8 @@ class SchemaValidationLibraryTests {
                     }
                 }
                 """, JsonNode.class));
-        var externalsAsVal = Val.of(externals);
-        var specificSchema = Val.ofJson("""
+        final var externalsAsVal = Val.of(externals);
+        final var specificSchema = Val.ofJson("""
                     {
                     "$id": "https://example.com/triangle.schema.json",
                     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -97,7 +97,7 @@ class SchemaValidationLibraryTests {
                 }
                 """);
 
-        var valid = Val.ofJson("""
+        final var valid = Val.ofJson("""
                     {
                        "A" : { "x" : 1, "y" : 2, "z" : 3 },
                        "B" : { "x" : 1, "y" : 2, "z" : 3 },
@@ -107,7 +107,7 @@ class SchemaValidationLibraryTests {
 
         assertThat(isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
 
-        var invalid = Val.ofJson("""
+        final var invalid = Val.ofJson("""
                     {
                        "A" : { "x" : "I AM NOT A NUMBER I AM A FREE MAN", "y" : 2, "z" : 3 },
                        "B" : { "x" : 1, "y" : 2, "z" : 3 },
@@ -122,7 +122,7 @@ class SchemaValidationLibraryTests {
     @Test
     @SneakyThrows
     void testDereferenceDefs() {
-        var externals = MAPPER.createArrayNode();
+        final var externals = MAPPER.createArrayNode();
         externals.add(MAPPER.readValue("""
                  {
                     "$id": "https://example.com/coordinates",
@@ -141,8 +141,8 @@ class SchemaValidationLibraryTests {
                 }
                 """, JsonNode.class));
         externals.add(MAPPER.createObjectNode());
-        var externalsAsVal = Val.of(externals);
-        var specificSchema = Val.ofJson("""
+        final var externalsAsVal = Val.of(externals);
+        final var specificSchema = Val.ofJson("""
                     {
                     "$id": "https://example.com/triangle.schema.json",
                     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -156,7 +156,7 @@ class SchemaValidationLibraryTests {
                 }
                 """);
 
-        var valid = Val.ofJson("""
+        final var valid = Val.ofJson("""
                     {
                        "A" : { "x" : 1, "y" : 2, "z" : 3 },
                        "B" : { "x" : 1, "y" : 2, "z" : 3 },
@@ -166,7 +166,7 @@ class SchemaValidationLibraryTests {
 
         assertThat(isCompliantWithExternalSchemas(valid, specificSchema, externalsAsVal), is(val(true)));
 
-        var invalid = Val.ofJson("""
+        final var invalid = Val.ofJson("""
                     {
                        "A" : { "x" : "I AM NOT A NUMBER I AM A FREE MAN", "y" : 2, "z" : 3 },
                        "B" : { "x" : 1, "y" : 2, "z" : 3 },
@@ -180,34 +180,34 @@ class SchemaValidationLibraryTests {
 
     @Test
     void when_subjectIsCompliant_then_returnTrue() throws JsonProcessingException {
-        var result = isCompliant(Val.ofJson(COMPLIANT_JSON), Val.ofJson(VALID_SCHEMA));
+        final var result = isCompliant(Val.ofJson(COMPLIANT_JSON), Val.ofJson(VALID_SCHEMA));
         assertThat(result, is(val(true)));
     }
 
     @Test
     void when_subjectIsNonCompliant_then_returnFalse() throws JsonProcessingException {
-        var result = isCompliant(Val.ofJson(NONCOMPLIANT_VALID_JSON), Val.ofJson(VALID_SCHEMA));
+        final var result = isCompliant(Val.ofJson(NONCOMPLIANT_VALID_JSON), Val.ofJson(VALID_SCHEMA));
         assertThat(result, is(val(false)));
     }
 
     @Test
     void when_subjectIsUndefined_then_returnFalse() throws JsonProcessingException {
-        var result = isCompliant(Val.UNDEFINED, Val.ofJson(VALID_SCHEMA));
+        final var result = isCompliant(Val.UNDEFINED, Val.ofJson(VALID_SCHEMA));
         assertThat(result, is(val(false)));
     }
 
     @Test
     void when_subjectIsError_then_errorPropagates() throws JsonProcessingException {
-        var result = isCompliant(ErrorFactory.error("test"), Val.ofJson(VALID_SCHEMA));
+        final var result = isCompliant(ErrorFactory.error("test"), Val.ofJson(VALID_SCHEMA));
         assertThat(result, is(valError("test")));
     }
 
     @Test
     void when_schemaException_then_returnFalse() throws JsonProcessingException {
-        var validationSubject = spy(Val.NULL);
+        final var validationSubject = spy(Val.NULL);
         when(validationSubject.get()).thenThrow(new JsonSchemaException("test"));
 
-        var result = isCompliant(validationSubject, Val.ofJson(VALID_SCHEMA));
+        final var result = isCompliant(validationSubject, Val.ofJson(VALID_SCHEMA));
         assertThat(result, is(val(false)));
     }
 }

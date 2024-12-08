@@ -82,20 +82,20 @@ public class MongoReactiveMethodNameQueryManipulationEnforcementPoint<T> {
 
             Flux<T> resourceAccessPoint;
 
-            var decisionIsPermit = Decision.PERMIT == decision.getDecision();
+            final var decisionIsPermit = Decision.PERMIT == decision.getDecision();
 
             if (!decisionIsPermit) {
                 resourceAccessPoint = Flux.error(new AccessDeniedException("Access Denied by PDP"));
             } else {
-                var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
+                final var queryManipulationHandler = constraintQueryEnforcementServiceProvider.getObject()
                         .queryManipulationForMongoReactive(decision);
 
-                var obligations = queryManipulationHandler.getQueryManipulationObligations();
-                var conditions  = queryManipulationHandler.getConditions();
-                var selections  = queryManipulationHandler.getSelections();
+                final var obligations = queryManipulationHandler.getQueryManipulationObligations();
+                final var conditions  = queryManipulationHandler.getConditions();
+                final var selections  = queryManipulationHandler.getSelections();
 
-                var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision, domainType,
-                        obligations);
+                final var constraintHandlerBundle = constraintEnforcementService.reactiveTypeBundleFor(decision,
+                        domainType, obligations);
 
                 constraintHandlerBundle.handleMethodInvocationHandlers(invocation);
                 resourceAccessPoint = retrieveDataFromDatabase(conditions, selections, invocation, domainType);
@@ -121,8 +121,8 @@ public class MongoReactiveMethodNameQueryManipulationEnforcementPoint<T> {
     private Flux<T> retrieveDataFromDatabase(ArrayNode conditions, ArrayNode selections, MethodInvocation invocation,
             Class<T> domainType) {
 
-        var reactiveMongoTemplate = beanFactoryProvider.getObject().getBean(ReactiveMongoTemplate.class);
-        var manipulatedQuery      = QueryCreation.createManipulatedQuery(conditions, selections,
+        final var reactiveMongoTemplate = beanFactoryProvider.getObject().getBean(ReactiveMongoTemplate.class);
+        final var manipulatedQuery      = QueryCreation.createManipulatedQuery(conditions, selections,
                 invocation.getMethod().getName(), domainType, invocation.getArguments());
 
         log.debug(QUERY_LOG, manipulatedQuery);

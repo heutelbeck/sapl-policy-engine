@@ -47,9 +47,9 @@ public enum OperatorR2dbc {
     }
 
     public static OperatorR2dbc getOperatorByKeyword(String keyword) {
-        var replacedAllSpaceKeyword = keyword.toLowerCase().replaceAll("\\s", "");
+        final var replacedAllSpaceKeyword = keyword.toLowerCase().replaceAll("\\s", "");
         for (OperatorR2dbc operator : OperatorR2dbc.values()) {
-            var sqlQueryBasedKeywordsContainsSearchedKeyword = operator.sqlQueryBasedKeywords.stream()
+            final var sqlQueryBasedKeywordsContainsSearchedKeyword = operator.sqlQueryBasedKeywords.stream()
                     .map(key -> key.toLowerCase().replaceAll("\\s", "")).toList().contains(replacedAllSpaceKeyword);
 
             if (sqlQueryBasedKeywordsContainsSearchedKeyword) {

@@ -18,6 +18,9 @@
 
 package io.sapl.test.dsl.interfaces;
 
+import java.util.List;
+import java.util.Map;
+
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.grammar.sapltest.Document;
 import io.sapl.test.grammar.sapltest.Environment;
@@ -31,8 +34,6 @@ import io.sapl.test.steps.ExpectStep;
 import io.sapl.test.steps.GivenOrWhenStep;
 import io.sapl.test.steps.VerifyStep;
 import io.sapl.test.steps.WhenStep;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Used to define how the concrete tests steps defined in

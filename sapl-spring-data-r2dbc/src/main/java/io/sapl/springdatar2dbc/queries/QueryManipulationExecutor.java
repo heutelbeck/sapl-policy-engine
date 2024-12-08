@@ -20,6 +20,7 @@ package io.sapl.springdatar2dbc.queries;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.relational.core.mapping.Table;
+
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -36,7 +37,7 @@ public class QueryManipulationExecutor {
     public <T> Flux<T> execute(String query, Class<T> domainType) {
 
         if (query.contains(XXXXX)) {
-            var tableName = getTableName(domainType);
+            final var tableName = getTableName(domainType);
 
             query = query.replace(XXXXX, tableName);
 

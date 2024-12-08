@@ -43,8 +43,8 @@ class ApplyFilteringSimpleTests {
 
     @Test
     void removeNoEach() {
-        var expression = "{} |- filter.remove";
-        var expected   = Val.UNDEFINED;
+        final var expression = "{} |- filter.remove";
+        final var expected   = Val.UNDEFINED;
         assertExpressionEvaluatesTo(expression, expected);
     }
 

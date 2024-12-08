@@ -57,7 +57,7 @@ public final class ResourcesVariablesAndCombinatorSource implements VariablesAnd
             throws InitializationException {
         log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);
         try (var scanResult = new ClassGraph().acceptPathsNonRecursive(configPath).scan()) {
-            var configs = scanResult.getResourcesWithLeafName(CONFIG_FILE);
+            final var configs = scanResult.getResourcesWithLeafName(CONFIG_FILE);
             if (configs.isEmpty()) {
                 config = new PolicyDecisionPointConfiguration();
                 log.warn(
@@ -67,14 +67,14 @@ public final class ResourcesVariablesAndCombinatorSource implements VariablesAnd
             }
             configs.forEachByteArrayThrowingIOException((Resource res, byte[] rawDocument) -> {
                 log.debug("Loading configuration {}", res.getPath());
-                var jsonDocument = new String(rawDocument, StandardCharsets.UTF_8);
-                var jsonNode     = mapper.readValue(jsonDocument, JsonNode.class);
+                final var jsonDocument = new String(rawDocument, StandardCharsets.UTF_8);
+                final var jsonNode     = mapper.readValue(jsonDocument, JsonNode.class);
                 this.config = new PolicyDecisionPointConfiguration();
                 if (jsonNode.has("algorithm")) {
                     this.config
                             .setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
                 }
-                var variables = new HashMap<String, Val>();
+                final var variables = new HashMap<String, Val>();
                 if (jsonNode.has("variables")) {
                     jsonNode.get("variables").fields().forEachRemaining(field -> variables.put(field.getKey(),
                             Val.of(field.getValue()).withTrace(VariablesAndCombinatorSource.class)));

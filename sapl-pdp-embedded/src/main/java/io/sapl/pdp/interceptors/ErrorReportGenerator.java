@@ -39,13 +39,13 @@ public class ErrorReportGenerator {
         if (!value.isError()) {
             return "No error";
         }
-        var report = new StringBuilder();
+        final var report = new StringBuilder();
         if (format == OutputFormat.HTML) {
             report.append(
                     "<div style=\"display: block; font-family: monospace; white-space: pre; padding: 0 1em; background-color: #282a36;\">\n");
         }
 
-        var          error        = value.getError();
+        final var    error        = value.getError();
         String       errorMessage;
         MarkedSource markedSource = null;
         if (error.source() == null || error.source().isEmpty()) {
@@ -53,7 +53,7 @@ public class ErrorReportGenerator {
         } else {
             markedSource = markErrorSourcePlainText(error, enumerateLines, format);
             // %n introduces unnecessary newlines in logs. Stick with \n.
-            var name = markedSource.documentName() != null ? "'" + markedSource.documentName() + "' " : "";
+            final var name = markedSource.documentName() != null ? "'" + markedSource.documentName() + "' " : "";
             errorMessage = String.format("Error in document %sat (%d,%d): %s\n", name, markedSource.row(),
                     markedSource.column(), value.getMessage());
         }
@@ -72,25 +72,27 @@ public class ErrorReportGenerator {
     }
 
     private MarkedSource markErrorSourcePlainText(SaplError saplError, boolean enumerateLines, OutputFormat format) {
-        var documentSource          = saplError.source();
-        var start                   = saplError.offset();
-        var end                     = saplError.endOffset();
-        var documentName            = saplError.documentName();
-        var currentLineStartOffset  = 0;
-        var markedSource            = new StringBuilder();
-        var lineNumber              = 1;
-        var column                  = 0;
-        var row                     = saplError.startLine();
-        var lines                   = documentSource.split("\n");
-        var maxEnumerationWidth     = maxEnumerationWidth(lines.length + 1);
-        var enumerationFormatString = enumerationFormatString(maxEnumerationWidth);
-        var asciiMarkingLinePrefix  = " ".repeat(maxEnumerationWidth) + "|";
+        final var documentSource          = saplError.source();
+        final var start                   = saplError.offset();
+        final var end                     = saplError.endOffset();
+        final var documentName            = saplError.documentName();
+        final var markedSource            = new StringBuilder();
+        final var row                     = saplError.startLine();
+        final var lines                   = documentSource.split("\n");
+        final var maxEnumerationWidth     = maxEnumerationWidth(lines.length + 1);
+        final var enumerationFormatString = enumerationFormatString(maxEnumerationWidth);
+        final var asciiMarkingLinePrefix  = " ".repeat(maxEnumerationWidth) + "|";
+
+        var currentLineStartOffset = 0;
+        var lineNumber             = 1;
+        var column                 = 0;
+
         for (var line : lines) {
-            var currentLineEndOffset = currentLineStartOffset + line.length();
+            final var currentLineEndOffset = currentLineStartOffset + line.length();
             if (lineNumber == row) {
                 column = start - currentLineStartOffset + 1;
             }
-            var formattedLine = formatLine(line, format, start, end, currentLineStartOffset);
+            final var formattedLine = formatLine(line, format, start, end, currentLineStartOffset);
             if (enumerateLines) {
                 markedSource.append(String.format(enumerationFormatString, lineNumber, formattedLine));
             } else {
@@ -108,13 +110,13 @@ public class ErrorReportGenerator {
 
     private String createCodeMarkingLine(String line, boolean enumerateLines, int start, int end,
             int currentLineStartOffset, int currentLineEndOffset, String asciiMarkingLinePrefix) {
-        var codeMarkingLine = new StringBuilder();
+        final var codeMarkingLine = new StringBuilder();
         if (isBetween(currentLineStartOffset, start, end) || isBetween(currentLineEndOffset, start, end)) {
             if (enumerateLines) {
                 codeMarkingLine.append(asciiMarkingLinePrefix);
             }
             for (var i = 0; i < line.length(); i++) {
-                var currentOffset = currentLineStartOffset + i;
+                final var currentOffset = currentLineStartOffset + i;
                 if (currentOffset == start || currentOffset == end - 1) {
                     codeMarkingLine.append('^');
                 } else if (isBetween(currentOffset, start, end - 1)) {
@@ -148,12 +150,14 @@ public class ErrorReportGenerator {
     }
 
     private String styleLine(OutputFormat format, String line, int start, int end, int currentLineStartOffset) {
-        var newLine              = new StringBuilder();
+        final var newLine = new StringBuilder();
+        final var ansi    = format == OutputFormat.ANSI_TEXT;
+        final var on      = ansi ? ANSI_ERROR_ON : HTML_ERROR_ON;
+        final var off     = ansi ? ANSI_ERROR_OFF : HTML_ERROR_OFF;
+
         var currentOffset        = currentLineStartOffset;
-        var ansi                 = format == OutputFormat.ANSI_TEXT;
-        var on                   = ansi ? ANSI_ERROR_ON : HTML_ERROR_ON;
-        var off                  = ansi ? ANSI_ERROR_OFF : HTML_ERROR_OFF;
         var highlightingTurnedOn = false;
+
         if (start < currentLineStartOffset && end >= currentLineStartOffset) {
             newLine.append(on);
             highlightingTurnedOn = true;

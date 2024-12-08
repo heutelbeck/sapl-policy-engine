@@ -18,8 +18,10 @@
 package io.sapl.springdatar2dbc.queries;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -105,189 +107,189 @@ class QuerySelectionUtilsTests {
     @Test
     void when_createSelectionPartForMethodNameQuery_then_createSelectionPartBlacklist() {
         // GIVEN
-        var expected = "SELECT id,age,active FROM XXXXX WHERE ";
+        final var expected = "SELECT id,age,active FROM XXXXX WHERE ";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsBlacklist, transformations,
-                Person.class);
+        final var actual = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsBlacklist,
+                transformations, Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
     }
 
     @Test
     void when_createSelectionPartForMethodNameQuery_then_createSelectionPartWhitelist() {
         // GIVEN
-        var expected = "SELECT age,active FROM XXXXX WHERE ";
+        final var expected = "SELECT age,active FROM XXXXX WHERE ";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsWhitelist, transformations,
-                Person.class);
+        final var actual = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsWhitelist,
+                transformations, Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
     }
 
     @Test
     void when_createSelectionPartForMethodNameQuery_then_createSelectionPartAlias1() {
         // GIVEN
-        var expected = "SELECT id,active FROM XXXXX WHERE ";
+        final var expected = "SELECT id,active FROM XXXXX WHERE ";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsAliasBlacklist,
+        final var actual = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsAliasBlacklist,
                 transformations, Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
     }
 
     @Test
     void when_createSelectionPartForMethodNameQuery_then_createSelectionPartAlias2() {
         // GIVEN
-        var expected = "SELECT UPPER(firstname),age FROM XXXXX WHERE ";
+        final var expected = "SELECT UPPER(firstname),age FROM XXXXX WHERE ";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsAlisasWhitelist,
+        final var actual = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsAlisasWhitelist,
                 transformations, Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
     }
 
     @Test
     void when_createSelectionPartForMethodNameQuery_then_createSelectionPartAlias3() {
         // GIVEN
-        var expected = "SELECT UPPER(firstname),age FROM XXXXX WHERE ";
+        final var expected = "SELECT UPPER(firstname),age FROM XXXXX WHERE ";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsAliasIsEmptyWhitelist,
+        final var actual = QuerySelectionUtils.createSelectionPartForMethodNameQuery(selectionsAliasIsEmptyWhitelist,
                 transformations, Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
     }
 
     @Test
     void when_createSelectionPartForMethodNameQuery_then_returnEmptyStringBecauseNoCondition() {
         // GIVEN
-        var expected = "SELECT * FROM XXXXX WHERE ";
+        final var expected = "SELECT * FROM XXXXX WHERE ";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForMethodNameQuery(MAPPER.createArrayNode(),
+        final var actual = QuerySelectionUtils.createSelectionPartForMethodNameQuery(MAPPER.createArrayNode(),
                 transformations, Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
     }
 
     @Test
     void when_createSelectionPartForAnnotation_then_returnSelectionPart() {
         // GIVEN
-        var expected  = "SELECT id,age,active FROM Person WHERE firstname = 'Juni'";
-        var baseQuery = "SELECT * FROM Person WHERE firstname = 'Juni'";
+        final var expected  = "SELECT id,age,active FROM Person WHERE firstname = 'Juni'";
+        final var baseQuery = "SELECT * FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsBlacklist,
+        final var actual = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsBlacklist,
                 transformations, "", Person.class);
 
         // THEN
-        assertEquals(expected, result);
+        assertEquals(expected, actual);
     }
 
     @Test
     void when_createSelectionPartForAnnotation_then_returnQueryBecauseSelectionIsEmpty() {
         // GIVEN
-        var baseQuery = "SELECT * FROM Person WHERE firstname = 'Juni'";
+        final var baseQuery = "SELECT * FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, MAPPER.createArrayNode(),
+        final var actual = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, MAPPER.createArrayNode(),
                 transformations, "", Person.class);
 
         // THEN
-        assertEquals(baseQuery, result);
+        assertEquals(baseQuery, actual);
     }
 
     @Test
     void when_createSelectionPartForAnnotation_then_returnQueryBecauseSelectionAndTransformationIsEmpty() {
         // GIVEN
-        var baseQuery = "SELECT * FROM Person WHERE firstname = 'Juni'";
+        final var baseQuery = "SELECT * FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, MAPPER.createArrayNode(),
+        final var actual = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, MAPPER.createArrayNode(),
                 MAPPER.createArrayNode(), "", Person.class);
 
         // THEN
-        assertEquals(baseQuery, result);
+        assertEquals(baseQuery, actual);
     }
 
     @Test
     void when_createSelectionPartForAnnotation_then_returnQueryBecauseSelectionIsEmpty2() {
         // GIVEN
-        var baseQuery = "SELECT lastname, birthday FROM Person WHERE firstname = 'Juni'";
-        var expected  = "SELECT lastname,YEAR(birthday) FROM Person WHERE firstname = 'Juni'";
+        final var baseQuery = "SELECT lastname, birthday FROM Person WHERE firstname = 'Juni'";
+        final var expected  = "SELECT lastname,YEAR(birthday) FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, MAPPER.createArrayNode(),
+        final var actual = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, MAPPER.createArrayNode(),
                 transformations, "", Person.class);
 
         // THEN
-        assertEquals(expected, result);
+        assertEquals(expected, actual);
     }
 
     @Test
     void when_createSelectionPartForAnnotation_then_returnQueryBecauseIsAsterixAndelectionIsEmpty() {
         // GIVEN
-        var baseQuery = "SELECT lastname,firstname FROM Person WHERE firstname = 'Juni'";
-        var expected  = "SELECT id,age,active FROM Person WHERE firstname = 'Juni'";
+        final var baseQuery = "SELECT lastname,firstname FROM Person WHERE firstname = 'Juni'";
+        final var expected  = "SELECT id,age,active FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsBlacklist,
+        final var actual = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsBlacklist,
                 transformations, "", Person.class);
 
         // THEN
-        assertEquals(expected, result);
+        assertEquals(expected, actual);
     }
 
     @Test
     void when_createSelectionPartForAnnotation_then_returnQueryBecauseAliasIsNotEmpty() {
         // GIVEN
-        var baseQuery = "SELECT age,firstname FROM Person WHERE firstname = 'Juni'";
-        var expected  = "SELECT UPPER(p.firstname),p.age FROM Person WHERE firstname = 'Juni'";
+        final var baseQuery = "SELECT age,firstname FROM Person WHERE firstname = 'Juni'";
+        final var expected  = "SELECT UPPER(p.firstname),p.age FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsAlisasWhitelist,
+        final var actual = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsAlisasWhitelist,
                 transformations, "p", Person.class);
 
         // THEN
-        assertEquals(expected, result);
+        assertEquals(expected, actual);
     }
 
     @Test
     void when_createSelectionPartForAnnotation_then_returnQueryBecauseBlacklistRemovesField() {
         // GIVEN
-        var baseQuery = "SELECT active FROM Person WHERE firstname = 'Juni'";
-        var expected  = "SELECT id,active FROM Person WHERE firstname = 'Juni'";
+        final var baseQuery = "SELECT active FROM Person WHERE firstname = 'Juni'";
+        final var expected  = "SELECT id,active FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsAliasBlacklist,
+        final var actual = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsAliasBlacklist,
                 transformations, "", Person.class);
 
         // THEN
-        assertEquals(expected, result);
+        assertEquals(expected, actual);
     }
 
     @Test
     void when_createSelectionPartForAnnotation_then_returnQueryBecauseBlacklistRemovesField1() {
         // GIVEN
-        var baseQuery = "SELECT active FROM Person WHERE firstname = 'Juni'";
-        var expected  = "SELECT id,active FROM Person WHERE firstname = 'Juni'";
+        final var baseQuery = "SELECT active FROM Person WHERE firstname = 'Juni'";
+        final var expected  = "SELECT id,active FROM Person WHERE firstname = 'Juni'";
 
         // WHEN
-        var result = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsAliasBlacklist,
+        final var actual = QuerySelectionUtils.createSelectionPartForAnnotation(baseQuery, selectionsAliasBlacklist,
                 MAPPER.createArrayNode(), "", Person.class);
 
         // THEN
-        assertEquals(expected, result);
+        assertEquals(expected, actual);
     }
 
 }

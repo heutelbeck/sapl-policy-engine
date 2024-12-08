@@ -36,6 +36,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.interpreter.pip.AttributeFinderMetadata;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
@@ -239,12 +240,12 @@ public class MockingAttributeContext implements AttributeContext {
         String   pipName       = split[0];
         String   attributeName = split[1];
 
-        var existingDoc = this.pipDocumentations.get(pipName);
+        final var existingDoc = this.pipDocumentations.get(pipName);
         if (existingDoc != null) {
             existingDoc.getDocumentation().put(attributeName, "Mocked Attribute");
         } else {
             PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(pipName,
-                    "Mocked PIP " + pipName);
+                    "Mocked PIP " + pipName, "Mocked PIP");
             pipDocs.getDocumentation().put(attributeName, "Mocked Attribute");
             this.pipDocumentations.put(pipName, pipDocs);
         }
@@ -279,6 +280,11 @@ public class MockingAttributeContext implements AttributeContext {
     @Override
     public Map<String, JsonNode> getAttributeSchemas() {
         return Map.of();
+    }
+
+    @Override
+    public Collection<AttributeFinderMetadata> getAttributeMetatata() {
+        return List.of();
     }
 
 }

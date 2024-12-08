@@ -31,7 +31,7 @@ class TestDiscoveryHelper {
     }
 
     public static List<String> discoverTests() {
-        var dir = FileUtils.getFile(RESOURCES_ROOT);
+        final var dir = FileUtils.getFile(RESOURCES_ROOT);
 
         return FileUtils.listFiles(dir, SAPL_TEST_FILE_EXTENSIONS, true).stream()
                 .map(file -> dir.toPath().relativize(file.toPath()).toString()).toList();

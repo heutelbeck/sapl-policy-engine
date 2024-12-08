@@ -31,6 +31,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.repository.query.parser.PartTree;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import io.sapl.api.pdp.Decision;
 import io.sapl.springdatacommon.queries.QueryAnnotationParameterResolver;
 import lombok.experimental.UtilityClass;
@@ -41,7 +42,7 @@ public class QueryCreation {
     public static Query manipulateQuery(Iterable<JsonNode> conditions, Iterable<JsonNode> selections,
             BasicQuery annotationQuery, MethodInvocation invocation) {
 
-        var query = enforceQueryManipulation(annotationQuery, conditions, invocation);
+        final var query = enforceQueryManipulation(annotationQuery, conditions, invocation);
 
         return addSelectionPart(selections, query);
     }
@@ -70,10 +71,10 @@ public class QueryCreation {
      */
     private Query enforceQueryManipulation(BasicQuery annotationQuery, Iterable<JsonNode> conditions,
             MethodInvocation invocation) {
-        var sorting = ConvertToMQL.createPageable(invocation, annotationQuery);
+        final var sorting = ConvertToMQL.createPageable(invocation, annotationQuery);
 
         for (JsonNode condition : conditions) {
-            var conditionAsBasicQuery = new BasicQuery(condition.asText());
+            final var conditionAsBasicQuery = new BasicQuery(condition.asText());
             conditionAsBasicQuery.getQueryObject()
                     .forEach((key, value) -> annotationQuery.getQueryObject().append(key, value));
         }
@@ -82,28 +83,28 @@ public class QueryCreation {
     }
 
     public static BasicQuery createBaselineQuery(MethodInvocation invocation) {
-        var basicQuery = createBasicQuery(invocation);
-        var pageable   = ConvertToMQL.createPageable(invocation, basicQuery);
+        final var basicQuery = createBasicQuery(invocation);
+        final var pageable   = ConvertToMQL.createPageable(invocation, basicQuery);
         basicQuery.with(pageable);
         return basicQuery;
     }
 
     private BasicQuery createBasicQuery(MethodInvocation invocation) {
 
-        var queryAnnotation = QueryAnnotationParameterResolver.resolveForMongoDB(invocation.getMethod(),
+        final var queryAnnotation = QueryAnnotationParameterResolver.resolveForMongoDB(invocation.getMethod(),
                 invocation.getArguments());
 
-        var queryParts       = queryAnnotation.split("XXXXX");
-        var queryPartsEdited = new ArrayList<String>();
+        final var queryParts       = queryAnnotation.split("XXXXX");
+        final var queryPartsEdited = new ArrayList<String>();
 
         for (String part : queryParts) {
 
-            var editedPart = part.replace('\'', '\"');
+            final var editedPart = part.replace('\'', '\"');
 
             queryPartsEdited.add(editedPart);
         }
 
-        var basicQuery = new BasicQuery(queryPartsEdited.get(0), queryPartsEdited.get(1));
+        final var basicQuery = new BasicQuery(queryPartsEdited.get(0), queryPartsEdited.get(1));
 
         if (queryPartsEdited.size() == 3) {
             basicQuery.setSortObject(Document.parse(queryPartsEdited.get(2)));
@@ -127,16 +128,16 @@ public class QueryCreation {
     public static <T> Query createManipulatedQuery(Iterable<JsonNode> conditions, Iterable<JsonNode> selections,
             String methodName, Class<T> domainType, Object[] args) {
 
-        var cleanedArguments = removePageableAndSort(args);
+        final var cleanedArguments = removePageableAndSort(args);
 
         /**
          * Converts the conditions from the corresponding obligation into SaplConditions
          * for further operations.
          */
-        var saplParametersFromObligation = SaplConditionOperation.jsonNodeToSaplConditions(conditions);
+        final var saplParametersFromObligation = SaplConditionOperation.jsonNodeToSaplConditions(conditions);
 
         // combine method arguments and obligation arguments
-        var allParametersValueAsObjects = new ArrayList<>(List.of(cleanedArguments));
+        final var allParametersValueAsObjects = new ArrayList<>(List.of(cleanedArguments));
         for (SaplCondition condition : saplParametersFromObligation) {
             allParametersValueAsObjects.add(condition.value());
         }
@@ -145,14 +146,15 @@ public class QueryCreation {
          * Creates a new method name from the old method name and the newly acquired
          * SAPL conditions.
          */
-        var modifiedMethodName = SaplConditionOperation.toModifiedMethodName(methodName, saplParametersFromObligation);
+        final var modifiedMethodName = SaplConditionOperation.toModifiedMethodName(methodName,
+                saplParametersFromObligation);
 
         // Create PartTree of new method name
-        var manipulatedPartTree = new PartTree(modifiedMethodName, domainType);
+        final var manipulatedPartTree = new PartTree(modifiedMethodName, domainType);
 
-        var criteria = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
+        final var criteria = SaplPartTreeCriteriaCreator.create(allParametersValueAsObjects, manipulatedPartTree);
 
-        var query = createNewQuery(criteria).with(manipulatedPartTree.getSort());
+        final var query = createNewQuery(criteria).with(manipulatedPartTree.getSort());
 
         return addSelectionPart(selections, query);
     }

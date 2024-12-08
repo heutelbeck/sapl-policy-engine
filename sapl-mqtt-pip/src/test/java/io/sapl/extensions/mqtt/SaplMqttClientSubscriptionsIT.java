@@ -75,10 +75,10 @@ class SaplMqttClientSubscriptionsIT {
     @Test
     void when_subscribeToMultipleTopicsOnSingleFlux_then_getMessagesOfMultipleTopics() {
         // GIVEN
-        var topics = JSON.arrayNode().add("topic1").add("topic2");
+        final var topics = JSON.arrayNode().add("topic1").add("topic2");
 
         // WHEN
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildVariables())
+        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topics), buildVariables())
                 .filter(val -> !val.isUndefined());
 
         // THEN
@@ -92,16 +92,16 @@ class SaplMqttClientSubscriptionsIT {
     @Test
     void when_subscribeToMultipleTopicsOnDifferentFlux_then_getMessagesOfMultipleTopics() {
         // GIVEN
-        var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
-        var topicsSecondFlux = JSON.arrayNode().add("topic2").add("topic3");
+        final var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
+        final var topicsSecondFlux = JSON.arrayNode().add("topic2").add("topic3");
 
-        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
+        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
                 buildVariables());
-        var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux),
+        final var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsSecondFlux),
                 buildVariables());
 
         // WHEN
-        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
                 .filter(val -> !val.isUndefined());
 
         // THEN
@@ -117,12 +117,13 @@ class SaplMqttClientSubscriptionsIT {
     @Test
     void when_oneFluxIsCancelledWhileSubscribingToSingleTopics_then_getMessagesOfLeftTopics() {
         // GIVEN
-        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"), buildVariables());
-        var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"), buildVariables())
+        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"),
+                buildVariables());
+        final var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("topic"), buildVariables())
                 .takeUntil(value -> "message".equals(value.getText()));
 
         // WHEN
-        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
                 .filter(val -> !val.isUndefined());
 
         // THEN
@@ -136,16 +137,16 @@ class SaplMqttClientSubscriptionsIT {
     @Test
     void when_oneFluxIsCancelledWhileSubscribingToMultipleTopics_then_getMessagesOfLeftTopics() {
         // GIVEN
-        var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
-        var topicsSecondFlux = JSON.arrayNode().add("topic2").add("topic3");
+        final var topicsFirstFlux  = JSON.arrayNode().add("topic1").add("topic2");
+        final var topicsSecondFlux = JSON.arrayNode().add("topic2").add("topic3");
 
-        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
+        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of(topicsFirstFlux),
                 buildVariables());
-        var saplMqttMessageFluxSecond = saplMqttClient
+        final var saplMqttMessageFluxSecond = saplMqttClient
                 .buildSaplMqttMessageFlux(Val.of(topicsSecondFlux), buildVariables())
                 .takeUntil(value -> "message2".equals(value.getText()));
         // WHEN
-        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
                 .filter(val -> !val.isUndefined());
 
         // THEN
@@ -169,7 +170,8 @@ class SaplMqttClientSubscriptionsIT {
         // GIVEN
 
         // WHEN
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/+/level3"), buildVariables())
+        final var saplMqttMessageFlux = saplMqttClient
+                .buildSaplMqttMessageFlux(Val.of("level1/+/level3"), buildVariables())
                 .filter(val -> !val.isUndefined());
 
         // THEN
@@ -184,7 +186,7 @@ class SaplMqttClientSubscriptionsIT {
         // GIVEN
 
         // WHEN
-        var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables())
+        final var saplMqttMessageFlux = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables())
                 .filter(val -> !val.isUndefined());
 
         // THEN
@@ -199,13 +201,14 @@ class SaplMqttClientSubscriptionsIT {
     @Test
     void when_unsubscribingTopicOnSharedConnectionWithMultiLevelWildcard_then_getMessagesMatchingTopicsOfMultiLevelWildcard() {
         // GIVEN
-        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables());
-        var saplMqttMessageFluxSecond = saplMqttClient
+        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/#"),
+                buildVariables());
+        final var saplMqttMessageFluxSecond = saplMqttClient
                 .buildSaplMqttMessageFlux(Val.of("level1/level2"), buildVariables())
                 .takeUntil(value -> "message1".equals(value.getText()));
 
         // WHEN
-        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
                 .filter(val -> !val.isUndefined());
 
         // THEN
@@ -219,13 +222,14 @@ class SaplMqttClientSubscriptionsIT {
     @Test
     void when_unsubscribingMultiLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic() {
         // GIVEN
-        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/level2"),
+        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/level2"),
                 buildVariables());
-        var saplMqttMessageFluxSecond = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables())
+        final var saplMqttMessageFluxSecond = saplMqttClient
+                .buildSaplMqttMessageFlux(Val.of("level1/#"), buildVariables())
                 .takeUntil(value -> "message1".equals(value.getText()));
 
         // WHEN
-        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
                 .filter(val -> !val.isUndefined());
 
         // THEN
@@ -241,14 +245,14 @@ class SaplMqttClientSubscriptionsIT {
     @Test
     void when_unsubscribingSingleLevelWildcardTopicOnSharedConnectionWithSimpleTopic_then_getMessagesMatchingSimpleTopic() {
         // GIVEN
-        var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/level2/level3"),
+        final var saplMqttMessageFluxFirst  = saplMqttClient.buildSaplMqttMessageFlux(Val.of("level1/level2/level3"),
                 buildVariables());
-        var saplMqttMessageFluxSecond = saplMqttClient
+        final var saplMqttMessageFluxSecond = saplMqttClient
                 .buildSaplMqttMessageFlux(Val.of("level1/+/level3"), buildVariables())
                 .takeUntil(value -> "message1".equals(value.getText()));
 
         // WHEN
-        var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
+        final var saplMqttMessageFluxMerge = Flux.merge(saplMqttMessageFluxFirst, saplMqttMessageFluxSecond)
                 .filter(val -> !val.isUndefined());
 
         // THEN

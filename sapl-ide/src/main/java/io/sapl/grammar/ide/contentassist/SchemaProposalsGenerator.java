@@ -37,7 +37,7 @@ import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class SchemaProposalGenerator {
+public class SchemaProposalsGenerator {
 
     private static final String DEFAULT_ID   = "https://sapl.io/schemas";
     private static final String ANCHOR       = "$anchor";
@@ -55,25 +55,26 @@ public class SchemaProposalGenerator {
 
     public static Collection<String> getCodeTemplates(String prefix, Expression expression,
             Map<String, Val> variables) {
-        if (expression == null)
+        if (null == expression) {
             return List.of();
+        }
         return expression.evaluate().contextWrite(ctx -> AuthorizationContext.setVariables(ctx, variables))
-                .map(schema -> SchemaProposalGenerator.getCodeTemplates(prefix, schema, variables)).blockFirst();
+                .map(schema -> SchemaProposalsGenerator.getCodeTemplates(prefix, schema, variables)).blockFirst();
     }
 
     public static List<String> getCodeTemplates(String prefix, Val schema, Map<String, Val> variables) {
-        if (!schema.isDefined())
+        if (!schema.isDefined()) {
             return List.of();
-
+        }
         return getCodeTemplates(prefix, schema.get(), variables);
     }
 
     public static List<String> getCodeTemplates(String prefix, JsonNode schema, Map<String, Val> variables) {
-        var proposals = new ArrayList<String>();
-        if (schema == null)
+        final var proposals = new ArrayList<String>();
+        if (null == schema) {
             return proposals;
-
-        var definitions = new HashMap<String, JsonNode>();
+        }
+        final var definitions = new HashMap<String, JsonNode>();
         // lookup of URI vie remote web request is not supported.
         // We assume all schemas are either embedded in the schema or are stored in the
         // variables, where they are identified by their respective $id field
@@ -85,7 +86,7 @@ public class SchemaProposalGenerator {
     }
 
     private static void loadSchemasFromVariables(Map<String, Val> variables, Map<String, JsonNode> definitions) {
-        var schemaArray = variables.getOrDefault("SCHEMAS", Val.ofEmptyArray());
+        final var schemaArray = variables.getOrDefault("SCHEMAS", Val.ofEmptyArray());
         if (!schemaArray.isArray()) {
             return;
         }
@@ -102,16 +103,18 @@ public class SchemaProposalGenerator {
             Map<String, JsonNode> definitions) {
         if (!referenceNode.isTextual())
             return null;
-        var reference = referenceNode.asText();
+        final var reference = referenceNode.asText();
         try {
-            var ref = URI.create(reference);
+            final var ref = URI.create(reference);
             if (ref.isAbsolute()) {
-                var schema = definitions.get(withoutFragment(ref).toString());
-                if (schema == null)
+                final var schema = definitions.get(withoutFragment(ref).toString());
+                if (null == schema) {
                     return null;
-                var fragment = ref.getFragment();
-                if (fragment == null)
+                }
+                final var fragment = ref.getFragment();
+                if (null == fragment) {
                     return schema;
+                }
                 return lookupFragmentReference(schema, fragment);
             }
             return lookupFragmentReference(baseSchema, reference);
@@ -146,31 +149,31 @@ public class SchemaProposalGenerator {
     }
 
     private JsonNode lookupAnchorReferenceInArray(ArrayNode arrayNode, String anchor) {
-        var elementsIterator = arrayNode.elements();
+        final var elementsIterator = arrayNode.elements();
         while (elementsIterator.hasNext()) {
-            var schema = lookupAnchorReference(elementsIterator.next(), anchor);
-            if (schema != null)
+            final var schema = lookupAnchorReference(elementsIterator.next(), anchor);
+            if (null != schema)
                 return schema;
         }
         return null;
     }
 
     private JsonNode lookupAnchorReferenceInObject(ObjectNode objectNode, String anchor) {
-        var anchorField = objectNode.get(ANCHOR);
-        if (anchorField != null && anchorField.asText().equals(anchor))
+        final var anchorField = objectNode.get(ANCHOR);
+        if (null != anchorField && anchorField.asText().equals(anchor))
             return objectNode;
-        var fieldsIterator = objectNode.fields();
+        final var fieldsIterator = objectNode.fields();
         while (fieldsIterator.hasNext()) {
-            var schema = lookupAnchorReference(fieldsIterator.next().getValue(), anchor);
-            if (schema != null)
+            final var schema = lookupAnchorReference(fieldsIterator.next().getValue(), anchor);
+            if (null != schema)
                 return schema;
         }
         return null;
     }
 
     private JsonNode lookupJsonPointerReference(JsonNode schema, String fragment) {
-        var path             = fragment.split("/");
-        var identifiedSchema = schema;
+        final var path             = fragment.split("/");
+        var       identifiedSchema = schema;
         for (var step : path) {
             if (!step.isBlank()) {
                 if (!identifiedSchema.has(step))
@@ -189,11 +192,11 @@ public class SchemaProposalGenerator {
         if (!node.has(ID))
             return DEFAULT_ID;
 
-        var id = node.get(ID);
+        final var id = node.get(ID);
         if (!id.isTextual())
             return DEFAULT_ID;
 
-        var idValue = id.asText();
+        final var idValue = id.asText();
         if (idValue.isBlank())
             return DEFAULT_ID;
         return idValue;
@@ -201,7 +204,7 @@ public class SchemaProposalGenerator {
 
     private static void addProposals(JsonNode baseSchema, String prefix, JsonNode schema,
             Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
-        if (recursionDepth == MAX_DEPTH || schema == null || !schema.isObject())
+        if (recursionDepth == MAX_DEPTH || null == schema || !schema.isObject())
             return;
 
         if (schema.has(REF)) {
@@ -220,12 +223,12 @@ public class SchemaProposalGenerator {
 
         addObjectProposals(baseSchema, prefix, schema, definitions, proposals, recursionDepth);
 
-        var arrayPrefix = prefix + "[]";
+        final var arrayPrefix = prefix + "[]";
         if (schema.has(TYPE)) {
             // sometimes the "type" is omitted in schemata. only if "type" explicitly is set
             // to "array" we can conclude to add [] as a proposal, as it is not necessary to
             // declare the type of the contained items in an array
-            var typeNode = schema.get(TYPE);
+            final var typeNode = schema.get(TYPE);
             if (typeNode.isTextual() && ARRAY.equals(typeNode.asText()))
                 proposals.add(arrayPrefix);
         }
@@ -250,14 +253,14 @@ public class SchemaProposalGenerator {
             Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
         if (!schema.has(PROPERTIES))
             return;
-        var properties = schema.get(PROPERTIES);
+        final var properties = schema.get(PROPERTIES);
         if (!properties.isObject())
             return;
 
-        var fieldsIterator = properties.fields();
+        final var fieldsIterator = properties.fields();
         while (fieldsIterator.hasNext()) {
-            var field   = fieldsIterator.next();
-            var newPath = prefix + '.' + escaped(field.getKey());
+            final var field   = fieldsIterator.next();
+            final var newPath = prefix + '.' + escaped(field.getKey());
             proposals.add(newPath);
             addProposals(baseSchema, newPath, field.getValue(), definitions, proposals, recursionDepth + 1);
         }
@@ -271,7 +274,7 @@ public class SchemaProposalGenerator {
         }
         if (!schema.has(ITEMS))
             return;
-        var items = schema.get(ITEMS);
+        final var items = schema.get(ITEMS);
         if (!items.isObject())
             return;
         addProposals(baseSchema, prefix, items, definitions, proposals, recursionDepth + 1);
@@ -279,7 +282,7 @@ public class SchemaProposalGenerator {
 
     private static String escaped(String s) {
         // @formatter:off
-        var escaped = s.replace("\\", "\\\\")
+        final var escaped = s.replace("\\", "\\\\")
                        .replace("\t", "\\t")
                        .replace("\b", "\\b")
                        .replace("\n", "\\n")

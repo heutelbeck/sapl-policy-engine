@@ -29,9 +29,9 @@ class CanonicalIndexDataContainerTests {
 
     @Test
     void testGetNumberOfFormulasWithConjunction() {
-        var numberOfFormulasWithConjunction = new int[] { 0, 1, 2, 3 };
+        final var numberOfFormulasWithConjunction = new int[] { 0, 1, 2, 3 };
 
-        var container = new CanonicalIndexDataContainer(Collections.emptyMap(), Collections.emptyMap(),
+        final var container = new CanonicalIndexDataContainer(Collections.emptyMap(), Collections.emptyMap(),
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyMap(),
                 new int[0], numberOfFormulasWithConjunction);
 

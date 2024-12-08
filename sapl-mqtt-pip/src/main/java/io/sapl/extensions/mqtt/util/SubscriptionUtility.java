@@ -74,8 +74,8 @@ public class SubscriptionUtility {
      */
     public static void addSubscriptionsCountToSubscriptionList(MqttClientValues clientValues, Mqtt5SubAck mqtt5SubAck,
             Mqtt5Subscribe topicSubscription) {
-        var subscriptions = topicSubscription.getSubscriptions();
-        var reasonCodes   = mqtt5SubAck.getReasonCodes();
+        final var subscriptions = topicSubscription.getSubscriptions();
+        final var reasonCodes   = mqtt5SubAck.getReasonCodes();
         for (var i = 0; i < subscriptions.size(); i++) {
             if (!reasonCodes.get(i).isError()) {
                 String subscription = subscriptions.get(i).getTopicFilter().toString();

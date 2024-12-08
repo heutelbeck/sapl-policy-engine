@@ -82,15 +82,15 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
         module.addSerializer(HttpServletRequest.class, new HttpServletRequestSerializer());
         module.addSerializer(ServerHttpRequest.class, new ServerHttpRequestSerializer());
         mapper.registerModule(module);
-        var user = new User("the username", "the password", true, true, true, true,
+        final var user = new User("the username", "the password", true, true, true, true,
                 AuthorityUtils.createAuthorityList("ROLE_USER"));
         authentication                 = new UsernamePasswordAuthenticationToken(user, "the credentials");
         defaultWebfluxBuilderUnderTest = new WebfluxAuthorizationSubscriptionBuilderService(
                 new DefaultMethodSecurityExpressionHandler(), mapper);
-        var mockExpressionHandlerProvider = mock(ObjectProvider.class);
+        final var mockExpressionHandlerProvider = mock(ObjectProvider.class);
         when(mockExpressionHandlerProvider.getIfAvailable(any()))
                 .thenReturn(new DefaultMethodSecurityExpressionHandler());
-        var mockMapperProvider = mock(ObjectProvider.class);
+        final var mockMapperProvider = mock(ObjectProvider.class);
         when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);
         invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null, null);
     }
@@ -99,10 +99,10 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
     void when_multiArguments_then_methodIsInAction() {
         ServerWebExchange serverWebExchange   = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
         SecurityContext   securityContext     = new MockSecurityContext(authentication);
-        var               attribute           = attribute(null, null, null, null, Object.class);
-        var               multiArgsInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+        final var         attribute           = attribute(null, null, null, null, Object.class);
+        final var         multiArgsInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
                 "publicSeveralArgs", new Class<?>[] { Integer.class, String.class }, new Object[] { 1, "X" });
-        var               subscription        = defaultWebfluxBuilderUnderTest
+        final var         subscription        = defaultWebfluxBuilderUnderTest
                 .reactiveConstructAuthorizationSubscription(multiArgsInvocation, attribute)
                 .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                 .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
@@ -138,7 +138,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 
     @Test
     void when_multiArgumentsWithJsonProblem_then_DropsArguments() {
-        var failMapper = spy(ObjectMapper.class);
+        final var failMapper = spy(ObjectMapper.class);
         when(failMapper.valueToTree(any())).thenAnswer((Answer<JsonNode>) anInvocation -> {
             Object x = anInvocation.getArguments()[0];
             if ("X".equals(x)) {
@@ -146,15 +146,15 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
             }
             return mapper.valueToTree(x);
         });
-        var sut = new WebfluxAuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
+        final var sut = new WebfluxAuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
                 failMapper);
 
         ServerWebExchange serverWebExchange   = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
         SecurityContext   securityContext     = new MockSecurityContext(authentication);
-        var               attribute           = attribute(null, null, null, null, Object.class);
-        var               multiArgsInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+        final var         attribute           = attribute(null, null, null, null, Object.class);
+        final var         multiArgsInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
                 "publicSeveralArgs", new Class<?>[] { Integer.class, String.class }, new Object[] { "X", "X" });
-        var               subscription        = sut
+        final var         subscription        = sut
                 .reactiveConstructAuthorizationSubscription(multiArgsInvocation, attribute)
                 .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                 .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
@@ -190,20 +190,20 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
     void when_expressionEvaluationFails_then_throws() {
         ServerWebExchange serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
         SecurityContext   securityContext   = new MockSecurityContext(authentication);
-        var               attribute         = attribute("(#gewrq/0)", null, null, null, Object.class);
-        var               subscription      = defaultWebfluxBuilderUnderTest
+        final var         attribute         = attribute("(#gewrq/0)", null, null, null, Object.class);
+        final var         subscription      = defaultWebfluxBuilderUnderTest
                 .reactiveConstructAuthorizationSubscription(invocation, attribute)
                 .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                 .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext)));
-        StepVerifier.create(subscription).expectErrorMatches(t -> t instanceof IllegalArgumentException).verify();
+        StepVerifier.create(subscription).expectErrorMatches(IllegalArgumentException.class::isInstance).verify();
     }
 
     @Test
     void when_reactive_nullParameters_then_FactoryConstructsFromContext() {
         ServerWebExchange serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
         SecurityContext   securityContext   = new MockSecurityContext(authentication);
-        var               attribute         = attribute(null, null, null, null, Object.class);
-        var               subscription      = defaultWebfluxBuilderUnderTest
+        final var         attribute         = attribute(null, null, null, null, Object.class);
+        final var         subscription      = defaultWebfluxBuilderUnderTest
                 .reactiveConstructAuthorizationSubscription(invocation, attribute)
                 .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                 .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
@@ -231,8 +231,8 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 
     @Test
     void when_reactive_nullParametersAndNoAuthn_then_FactoryConstructsFromContextAndAnonymous() {
-        var attribute    = attribute(null, null, null, null, Object.class);
-        var subscription = defaultWebfluxBuilderUnderTest
+        final var attribute    = attribute(null, null, null, null, Object.class);
+        final var subscription = defaultWebfluxBuilderUnderTest
                 .reactiveConstructAuthorizationSubscription(invocation, attribute).block();
         // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -259,8 +259,8 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
 
     @Test
     void when_reactive_returnObjectInExpression_then_FactoryConstructsReturnObjectInSubscription() {
-        var attribute    = attribute(null, null, "returnObject", null, Object.class);
-        var subscription = defaultWebfluxBuilderUnderTest
+        final var attribute    = attribute(null, null, "returnObject", null, Object.class);
+        final var subscription = defaultWebfluxBuilderUnderTest
                 .reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject").block();
         // @formatter:off
 		assertAll(() -> assertThat(subscription.getSubject(),
@@ -285,7 +285,7 @@ class WebfluxAuthorizationSubscriptionBuilderServiceTests {
     }
 
     private Expression parameterToExpression(String parameter) {
-        var parser = new SpelExpressionParser();
+        final var parser = new SpelExpressionParser();
         return parameter == null || parameter.isEmpty() ? null : parser.parseExpression(parameter);
     }
 

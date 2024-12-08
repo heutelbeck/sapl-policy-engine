@@ -40,7 +40,7 @@ class EvaluateBasicExpressionsTests {
 
     @Test
     void evaluateBasicRelative() {
-        var expression = SaplFactoryImpl.eINSTANCE.createBasicRelative();
+        final var expression = SaplFactoryImpl.eINSTANCE.createBasicRelative();
         StepVerifier
                 .create(expression.evaluate().contextWrite(ctx -> AuthorizationContext.setRelativeNode(ctx, Val.TRUE)))
                 .expectNext(Val.TRUE).verifyComplete();
@@ -115,8 +115,8 @@ class EvaluateBasicExpressionsTests {
 
     @Test
     void evaluateBasicFunctionOneFluxOfArgs() {
-        var expression = "mock.parameters(\"\".<test.numbers>)";
-        var expected   = new String[] { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]" };
+        final var expression = "mock.parameters(\"\".<test.numbers>)";
+        final var expected   = new String[] { "[0]", "[1]", "[2]", "[3]", "[4]", "[5]" };
         assertExpressionEvaluatesTo(expression, expected);
     }
 }

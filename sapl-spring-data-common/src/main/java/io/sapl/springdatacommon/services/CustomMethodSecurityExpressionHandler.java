@@ -29,9 +29,9 @@ public class CustomMethodSecurityExpressionHandler {
     private StandardEvaluationContext context          = new StandardEvaluationContext();
 
     public Object evaluateExpression(String expressionString) {
-        var authentication     = SecurityContextHolder.getContext().getAuthentication();
-        var evaluationContext  = createEvaluationContext(authentication);
-        var expressionWithHash = expressionString;
+        final var authentication     = SecurityContextHolder.getContext().getAuthentication();
+        final var evaluationContext  = createEvaluationContext(authentication);
+        var       expressionWithHash = expressionString;
 
         if (!expressionString.startsWith("#")) {
             expressionWithHash = "#" + expressionString;

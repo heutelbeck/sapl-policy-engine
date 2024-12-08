@@ -41,7 +41,7 @@ class HasAdviceMatchingTests {
     @Test
     void test() {
         Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
-        var                 matcher = Matchers.hasAdviceMatching(pred);
+        final var           matcher = Matchers.hasAdviceMatching(pred);
 
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode   advice = mapper.createObjectNode();
@@ -57,7 +57,7 @@ class HasAdviceMatchingTests {
     @Test
     void test_neg() {
         Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("xxx");
-        var                 matcher = Matchers.hasAdviceMatching(pred);
+        final var           matcher = Matchers.hasAdviceMatching(pred);
 
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode   advice = mapper.createObjectNode();
@@ -73,7 +73,7 @@ class HasAdviceMatchingTests {
     @Test
     void test_nullDecision() {
         Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
-        var                 matcher = Matchers.hasAdviceMatching(pred);
+        final var           matcher = Matchers.hasAdviceMatching(pred);
         assertThat(null, not(is(matcher)));
     }
 
@@ -85,7 +85,7 @@ class HasAdviceMatchingTests {
     @Test
     void test_emptyAdvice() {
         Predicate<JsonNode> pred    = (JsonNode jsonNode) -> jsonNode.has("foo");
-        var                 matcher = Matchers.hasAdviceMatching(pred);
+        final var           matcher = Matchers.hasAdviceMatching(pred);
         assertThat(new AuthorizationDecision(Decision.PERMIT, Optional.empty(), Optional.empty(), Optional.empty()),
                 not(is(matcher)));
     }
@@ -93,7 +93,7 @@ class HasAdviceMatchingTests {
     @Test
     void testDescriptionForMatcher() {
         Predicate<JsonNode>     pred        = (JsonNode jsonNode) -> jsonNode.has("foo");
-        var                     sut         = Matchers.hasAdviceMatching(pred);
+        final var               sut         = Matchers.hasAdviceMatching(pred);
         final StringDescription description = new StringDescription();
         sut.describeTo(description);
         assertThat(description.toString(), is("the decision has an advice matching the predicate"));

@@ -129,18 +129,18 @@ class QueryCreationTests {
     @Test
     void when_manipulateQuery_then_returnManipulatedQueryContainsWhere1() {
         // GIVEN
-        var baseQuery = "SELECT * FROM PERSON";
-        var expected  = "SELECT id, active FROM PERSON WHERE age > 22";
+        final var baseQuery = "SELECT * FROM PERSON";
+        final var expected  = "SELECT id, active FROM PERSON WHERE age > 22";
 
         // WHEN
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        var result = QueryCreation.manipulateQuery(baseQuery, conditionsOne, selections, transdormations, "",
+        final var actual = QueryCreation.manipulateQuery(baseQuery, conditionsOne, selections, transdormations, "",
                 Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -149,18 +149,18 @@ class QueryCreationTests {
     @Test
     void when_manipulateQuery_then_returnManipulatedQueryContainsWhere2() {
         // GIVEN
-        var baseQuery = "SELECT * FROM PERSON WHERE age > 22";
-        var expected  = "SELECT id, active FROM PERSON WHERE age > 22";
+        final var baseQuery = "SELECT * FROM PERSON WHERE age > 22";
+        final var expected  = "SELECT id, active FROM PERSON WHERE age > 22";
 
         // WHEN
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        var result = QueryCreation.manipulateQuery(baseQuery, conditionsOne, selections, transdormations, "",
+        final var actual = QueryCreation.manipulateQuery(baseQuery, conditionsOne, selections, transdormations, "",
                 Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -169,18 +169,18 @@ class QueryCreationTests {
     @Test
     void when_manipulateQuery_then_returnManipulatedQueryContainsWhere3() {
         // GIVEN
-        var baseQuery = "SELECT * FROM PERSON WHERE age > 22";
-        var expected  = "SELECT id, active FROM PERSON WHERE firstname = 'Juni' AND age > 22";
+        final var baseQuery = "SELECT * FROM PERSON WHERE age > 22";
+        final var expected  = "SELECT id, active FROM PERSON WHERE firstname = 'Juni' AND age > 22";
 
         // WHEN
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        var result = QueryCreation.manipulateQuery(baseQuery, conditionsWithAnd, selections, transdormations, "",
+        final var actual = QueryCreation.manipulateQuery(baseQuery, conditionsWithAnd, selections, transdormations, "",
                 Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -189,18 +189,18 @@ class QueryCreationTests {
     @Test
     void when_manipulateQuery_then_returnManipulatedQueryContainsNoWhere() {
         // GIVEN
-        var baseQuery = "SELECT * FROM PERSON where age > 22";
-        var expected  = "SELECT id, active FROM PERSON WHERE firstname = 'Juni'";
+        final var baseQuery = "SELECT * FROM PERSON where age > 22";
+        final var expected  = "SELECT id, active FROM PERSON WHERE firstname = 'Juni'";
 
         // WHEN
         querySelectionUtilsMock.when(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class))).thenReturn(expected);
 
-        var result = QueryCreation.manipulateQuery(baseQuery, conditionsWithOr, selections, transdormations, "",
+        final var actual = QueryCreation.manipulateQuery(baseQuery, conditionsWithOr, selections, transdormations, "",
                 Person.class);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils.createSelectionPartForAnnotation(anyString(),
                 any(ArrayNode.class), any(ArrayNode.class), anyString(), eq(Person.class)), times(1));
@@ -209,9 +209,9 @@ class QueryCreationTests {
     @Test
     void when_createBaselineQuery_then_returnBaselineQuery() {
         // GIVEN
-        var sortingPart          = " ORDER BY age";
-        var baseQuery            = "SELECT id, active FROM PERSON WHERE firstname = 'Juni'";
-        var methodInvocationMock = new MethodInvocationForTesting("findUserTest",
+        final var sortingPart          = " ORDER BY age";
+        final var baseQuery            = "SELECT id, active FROM PERSON WHERE firstname = 'Juni'";
+        final var methodInvocationMock = new MethodInvocationForTesting("findUserTest",
                 new ArrayList<>(List.of(String.class)), new ArrayList<>(List.of("Aaron")), null);
 
         // WHEN
@@ -220,10 +220,10 @@ class QueryCreationTests {
         convertToSQLMock.when(() -> ConvertToSQL.prepareAndMergeSortObjects(any(Sort.class), any(Object[].class)))
                 .thenReturn(sortingPart);
 
-        var result = QueryCreation.createBaselineQuery(methodInvocationMock);
+        final var actual = QueryCreation.createBaselineQuery(methodInvocationMock);
 
         // THEN
-        assertEquals(result, baseQuery + sortingPart);
+        assertEquals(baseQuery + sortingPart, actual);
 
         queryAnnotationParameterResolverMock.verify(() -> QueryAnnotationParameterResolver
                 .resolveForRelationalDatabase(any(Method.class), any(Object[].class)), times(1));
@@ -234,19 +234,20 @@ class QueryCreationTests {
     @Test
     void when_createSqlQuery_then_returnSqlQuery1() {
         // GIVEN
-        var selectionPart = "SELECT firstname, age FROM PERSON WHERE ";
-        var baseQuery     = "age > 22";
-        var expected      = "SELECT firstname, age FROM PERSON WHERE firstname = 'Juni' AND active = true AND age > 22";
+        final var selectionPart = "SELECT firstname, age FROM PERSON WHERE ";
+        final var baseQuery     = "age > 22";
+        final var expected      = "SELECT firstname, age FROM PERSON WHERE firstname = 'Juni' AND active = true AND age > 22";
 
         // WHEN
         querySelectionUtilsMock.when(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        var result = QueryCreation.createSqlQuery(conditionsOne, selections, transdormations, Person.class, baseQuery);
+        final var actual = QueryCreation.createSqlQuery(conditionsOne, selections, transdormations, Person.class,
+                baseQuery);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),
@@ -256,19 +257,20 @@ class QueryCreationTests {
     @Test
     void when_createSqlQuery_then_returnSqlQuery2() {
         // GIVEN
-        var selectionPart = "SELECT firstname, age FROM PERSON WHERE ";
-        var baseQuery     = "";
-        var expected      = "SELECT firstname, age FROM PERSON WHERE firstname = 'Juni' AND active = true";
+        final var selectionPart = "SELECT firstname, age FROM PERSON WHERE ";
+        final var baseQuery     = "";
+        final var expected      = "SELECT firstname, age FROM PERSON WHERE firstname = 'Juni' AND active = true";
 
         // WHEN
         querySelectionUtilsMock.when(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        var result = QueryCreation.createSqlQuery(conditionsOne, selections, transdormations, Person.class, baseQuery);
+        final var actual = QueryCreation.createSqlQuery(conditionsOne, selections, transdormations, Person.class,
+                baseQuery);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),
@@ -278,20 +280,20 @@ class QueryCreationTests {
     @Test
     void when_createSqlQuery_then_returnSqlQuery3() {
         // GIVEN
-        var selectionPart = "SELECT firstname, age FROM PERSON WHERE ";
-        var baseQuery     = "age > 22";
-        var expected      = "SELECT firstname, age FROM PERSON WHERE age > 22";
+        final var selectionPart = "SELECT firstname, age FROM PERSON WHERE ";
+        final var baseQuery     = "age > 22";
+        final var expected      = "SELECT firstname, age FROM PERSON WHERE age > 22";
 
         // WHEN
         querySelectionUtilsMock.when(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        var result = QueryCreation.createSqlQuery(EMPTY_ARRAYNODE, selections, transdormations, Person.class,
+        final var actual = QueryCreation.createSqlQuery(EMPTY_ARRAYNODE, selections, transdormations, Person.class,
                 baseQuery);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),
@@ -301,19 +303,20 @@ class QueryCreationTests {
     @Test
     void when_createSqlQuery_then_returnSqlQuery4() {
         // GIVEN
-        var selectionPart = "SELECT firstname, age FROM PERSON WHERE ";
-        var baseQuery     = "age > 22";
-        var expected      = "SELECT firstname, age FROM PERSON WHERE  firstname = 'Juni' AND active = true OR  age > 22";
+        final var selectionPart = "SELECT firstname, age FROM PERSON WHERE ";
+        final var baseQuery     = "age > 22";
+        final var expected      = "SELECT firstname, age FROM PERSON WHERE  firstname = 'Juni' AND active = true OR  age > 22";
 
         // WHEN
         querySelectionUtilsMock.when(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)))
                 .thenReturn(selectionPart);
 
-        var result = QueryCreation.createSqlQuery(conditionsTwo, selections, transdormations, Person.class, baseQuery);
+        final var actual = QueryCreation.createSqlQuery(conditionsTwo, selections, transdormations, Person.class,
+                baseQuery);
 
         // THEN
-        assertEquals(result, expected);
+        assertEquals(expected, actual);
 
         querySelectionUtilsMock.verify(() -> QuerySelectionUtils
                 .createSelectionPartForMethodNameQuery(any(ArrayNode.class), any(ArrayNode.class), eq(Person.class)),

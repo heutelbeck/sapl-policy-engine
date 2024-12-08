@@ -17,16 +17,18 @@
  */
 package io.sapl.springdatamongoreactive.enforcement;
 
-import static io.sapl.springdatacommon.utils.Utilities.convertReturnTypeIfNecessary;
-import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryReactiveMongo;
 import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryEnforce;
+import static io.sapl.springdatacommon.utils.AnnotationUtilities.hasAnnotationQueryReactiveMongo;
+import static io.sapl.springdatacommon.utils.Utilities.convertReturnTypeIfNecessary;
 
 import java.util.Objects;
+
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.data.mongodb.repository.Query;
+
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.springdatacommon.services.QueryEnforceAuthorizationSubscriptionService;
@@ -69,15 +71,16 @@ public class MongoReactivePolicyEnforcementPoint<T> implements MethodInterceptor
     @SneakyThrows // Throwable by proceed() method, ClassNotFoundException
     public Object invoke(MethodInvocation invocation) {
 
-        var repositoryMethod = invocation.getMethod();
+        final var repositoryMethod = invocation.getMethod();
 
         if (hasAnnotationQueryEnforce(repositoryMethod)) {
 
             log.debug("# MongoReactivePolicyEnforcementPoint intercept: {}",
                     invocation.getMethod().getDeclaringClass().getSimpleName() + invocation.getMethod().getName());
 
-            var repository            = invocation.getMethod().getDeclaringClass();
-            var repositoryInformation = repositoryInformationCollectorService.getRepositoryByName(repository.getName());
+            final var repository            = invocation.getMethod().getDeclaringClass();
+            final var repositoryInformation = repositoryInformationCollectorService
+                    .getRepositoryByName(repository.getName());
 
             if (repositoryInformation.isCustomMethod(repositoryMethod)) {
                 throw new IllegalStateException(
@@ -85,12 +88,12 @@ public class MongoReactivePolicyEnforcementPoint<T> implements MethodInterceptor
             }
 
             @SuppressWarnings("unchecked") // over repositoryInformation we can be save about domainType
-            var domainType = (Class<T>) repositoryInformation.getDomainType();
+            final var domainType = (Class<T>) repositoryInformation.getDomainType();
 
-            var returnClassOfMethod = Objects.requireNonNull(repositoryMethod).getReturnType();
-            var queryEnforce        = AnnotationUtils.findAnnotation(repositoryMethod, QueryEnforce.class);
-            var authSub             = queryEnforceAnnotationService.getObject().getAuthorizationSubscription(invocation,
-                    queryEnforce);
+            final var returnClassOfMethod = Objects.requireNonNull(repositoryMethod).getReturnType();
+            final var queryEnforce        = AnnotationUtils.findAnnotation(repositoryMethod, QueryEnforce.class);
+            final var authSub             = queryEnforceAnnotationService.getObject()
+                    .getAuthorizationSubscription(invocation, queryEnforce);
 
             if (authSub == null) {
                 throw new IllegalStateException(
@@ -102,8 +105,8 @@ public class MongoReactivePolicyEnforcementPoint<T> implements MethodInterceptor
              */
             if (hasAnnotationQueryReactiveMongo(repositoryMethod)) {
 
-                var resultData = mongoReactiveAnnotationQueryManipulationEnforcementPoint.getObject().enforce(authSub,
-                        domainType, invocation);
+                final var resultData = mongoReactiveAnnotationQueryManipulationEnforcementPoint.getObject()
+                        .enforce(authSub, domainType, invocation);
 
                 return convertReturnTypeIfNecessary(resultData, returnClassOfMethod);
             }
@@ -114,8 +117,8 @@ public class MongoReactivePolicyEnforcementPoint<T> implements MethodInterceptor
              */
             if (Utilities.isSpringDataDefaultMethod(invocation.getMethod().getName())
                     || Utilities.isMethodNameValid(invocation.getMethod().getName())) {
-                var resultdata = mongoReactiveMethodNameQueryManipulationEnforcementPoint.getObject().enforce(authSub,
-                        domainType, invocation);
+                final var resultdata = mongoReactiveMethodNameQueryManipulationEnforcementPoint.getObject()
+                        .enforce(authSub, domainType, invocation);
                 return convertReturnTypeIfNecessary(resultdata, returnClassOfMethod);
             }
         }

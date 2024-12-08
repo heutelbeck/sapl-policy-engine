@@ -46,11 +46,11 @@ class QueryManipulationExecutorTests {
     @Test
     void when_execute_then_returnFluxOfObjects1() {
         // GIVEN
-        var query            = "SELECT firstname, age FROM XXXXX WHERE age > 22";
-        var queryTransformed = "SELECT firstname, age FROM person WHERE age > 22";
-        var flux             = Flux.just(new Person(1, "Juni", 22, true));
+        final var query            = "SELECT firstname, age FROM XXXXX WHERE age > 22";
+        final var queryTransformed = "SELECT firstname, age FROM person WHERE age > 22";
+        final var flux             = Flux.just(new Person(1, "Juni", 22, true));
 
-        var queryManipulationExecutor = new QueryManipulationExecutor(objectProviderSqlQueryExecutorMock);
+        final var queryManipulationExecutor = new QueryManipulationExecutor(objectProviderSqlQueryExecutorMock);
 
         // WHEN
         lenient().when(objectProviderSqlQueryExecutorMock.getObject()).thenReturn(sqlQueryExecutorMock);
@@ -65,10 +65,10 @@ class QueryManipulationExecutorTests {
     @Test
     void when_execute_then_returnFluxOfObjects2() {
         // GIVEN
-        var query = "SELECT firstname, age FROM person WHERE age > 22";
-        var flux  = Flux.just(new Person(1, "Juni", 22, true));
+        final var query = "SELECT firstname, age FROM person WHERE age > 22";
+        final var flux  = Flux.just(new Person(1, "Juni", 22, true));
 
-        var queryManipulationExecutor = new QueryManipulationExecutor(objectProviderSqlQueryExecutorMock);
+        final var queryManipulationExecutor = new QueryManipulationExecutor(objectProviderSqlQueryExecutorMock);
 
         // WHEN
         lenient().when(objectProviderSqlQueryExecutorMock.getObject()).thenReturn(sqlQueryExecutorMock);
@@ -83,11 +83,11 @@ class QueryManipulationExecutorTests {
     @Test
     void when_execute_then_returnFluxOfObjects3() {
         // GIVEN
-        var query            = "SELECT firstname, age FROM XXXXX WHERE age > 22";
-        var queryTransformed = "SELECT firstname, age FROM PersonWithoutAnnotation WHERE age > 22";
-        var flux             = Flux.just(new PersonWithoutAnnotation(1, "Juni", 22, true));
+        final var query            = "SELECT firstname, age FROM XXXXX WHERE age > 22";
+        final var queryTransformed = "SELECT firstname, age FROM PersonWithoutAnnotation WHERE age > 22";
+        final var flux             = Flux.just(new PersonWithoutAnnotation(1, "Juni", 22, true));
 
-        var queryManipulationExecutor = new QueryManipulationExecutor(objectProviderSqlQueryExecutorMock);
+        final var queryManipulationExecutor = new QueryManipulationExecutor(objectProviderSqlQueryExecutorMock);
 
         // WHEN
         lenient().when(objectProviderSqlQueryExecutorMock.getObject()).thenReturn(sqlQueryExecutorMock);

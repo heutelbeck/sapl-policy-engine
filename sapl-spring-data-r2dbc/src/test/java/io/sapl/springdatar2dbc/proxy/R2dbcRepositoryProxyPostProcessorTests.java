@@ -29,12 +29,12 @@ import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.data.repository.core.RepositoryInformation;
 
 import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
-import io.sapl.springdatar2dbc.enforcement.R2dbcPolicyEnforcementPoint;
 import io.sapl.springdatar2dbc.database.MethodInvocationForTesting;
 import io.sapl.springdatar2dbc.database.Person;
-import io.sapl.springdatar2dbc.database.PersonReactiveCrudRepository;
 import io.sapl.springdatar2dbc.database.PersonR2dbcRepository;
+import io.sapl.springdatar2dbc.database.PersonReactiveCrudRepository;
 import io.sapl.springdatar2dbc.database.PersonReactiveSortingRepository;
+import io.sapl.springdatar2dbc.enforcement.R2dbcPolicyEnforcementPoint;
 
 class R2dbcRepositoryProxyPostProcessorTests {
 
@@ -50,7 +50,7 @@ class R2dbcRepositoryProxyPostProcessorTests {
         // GIVEN
         when(repositoryInformationMock.getRepositoryInterface()).thenAnswer(invocation -> PersonR2dbcRepository.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
+        final var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN
@@ -68,7 +68,7 @@ class R2dbcRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> MethodInvocationForTesting.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
+        final var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN
@@ -86,7 +86,7 @@ class R2dbcRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> PersonReactiveCrudRepository.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
+        final var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN
@@ -104,7 +104,7 @@ class R2dbcRepositoryProxyPostProcessorTests {
         when(repositoryInformationMock.getRepositoryInterface())
                 .thenAnswer(invocation -> PersonReactiveSortingRepository.class);
 
-        var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
+        final var postProcessor = new R2dbcRepositoryProxyPostProcessor<Person>(r2dbcPolicyEnforcementPointMock,
                 repositoryInformationCollectorServiceMock);
 
         // WHEN

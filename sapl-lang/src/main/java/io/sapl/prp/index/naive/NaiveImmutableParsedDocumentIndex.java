@@ -62,7 +62,7 @@ public class NaiveImmutableParsedDocumentIndex implements UpdateEventDrivenPolic
         if (!consistent)
             return Mono.just(PolicyRetrievalResult.invalidPrpResult());
 
-        var documentMatches = Flux
+        final var documentMatches = Flux
                 .merge(documentsById.values().stream()
                         .map(document -> document.sapl().matches()
                                 .map(targetExpressionResult -> new DocumentMatch(document, targetExpressionResult)))
@@ -74,8 +74,8 @@ public class NaiveImmutableParsedDocumentIndex implements UpdateEventDrivenPolic
     @Override
     public UpdateEventDrivenPolicyRetrievalPoint apply(PrpUpdateEvent event) {
         // Do a shallow copy. String is immutable, and SAPL is assumed to be too.
-        var newDocuments        = new HashMap<>(documentsById);
-        var newConsistencyState = consistent;
+        final var newDocuments        = new HashMap<>(documentsById);
+        var       newConsistencyState = consistent;
         for (var update : event.getUpdates()) {
             if (update.getType() == Type.CONSISTENT) {
                 newConsistencyState = true;
@@ -90,7 +90,7 @@ public class NaiveImmutableParsedDocumentIndex implements UpdateEventDrivenPolic
 
     // only PUBLISH or WITHDRAW
     private void applyUpdate(Map<String, Document> newDocuments, PrpUpdateEvent.Update update) {
-        var name = update.getDocument().sapl().getPolicyElement().getSaplName();
+        final var name = update.getDocument().sapl().getPolicyElement().getSaplName();
         if (update.getType() == Type.WITHDRAW) {
             newDocuments.remove(name);
         } else {

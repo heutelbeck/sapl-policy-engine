@@ -41,48 +41,48 @@ public class ParserUtil {
     private static final boolean  DEBUG    = false;
 
     public static FilterComponent filterComponent(String sapl) throws IOException {
-        var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-        var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
+        final var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+        final var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
         resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getFilterComponentRule());
         InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
         resource.load(in, resourceSet.getLoadOptions());
-        var filterComponent = (FilterComponent) resource.getContents().get(0);
+        final var filterComponent = (FilterComponent) resource.getContents().get(0);
         if (DEBUG)
             EObjectUtil.dump(filterComponent);
         return filterComponent;
     }
 
     public static Expression expression(String sapl) throws IOException {
-        var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-        var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
+        final var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+        final var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
         resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getExpressionRule());
         InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
         resource.load(in, resourceSet.getLoadOptions());
-        var expression = (Expression) resource.getContents().get(0);
+        final var expression = (Expression) resource.getContents().get(0);
         if (DEBUG)
             EObjectUtil.dump(expression);
         return expression;
     }
 
     public static Statement statement(String sapl) throws IOException {
-        var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-        var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
+        final var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+        final var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
         resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getStatementRule());
         InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
         resource.load(in, resourceSet.getLoadOptions());
-        var statement = (Statement) resource.getContents().get(0);
+        final var statement = (Statement) resource.getContents().get(0);
         if (DEBUG)
             EObjectUtil.dump(statement);
         return statement;
     }
 
     public static Entitlement entitlement(String sapl) throws IOException {
-        var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
-        var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
+        final var resourceSet = INJECTOR.getInstance(XtextResourceSet.class);
+        final var resource    = (XtextResource) resourceSet.createResource(URI.createFileURI("policy:/default.sapl"));
         resource.setEntryPoint(INJECTOR.getInstance(SAPLGrammarAccess.class).getEntitlementRule());
         InputStream in = new ByteArrayInputStream(sapl.getBytes(StandardCharsets.UTF_8));
         resource.load(in, resourceSet.getLoadOptions());
-        var entitlement = (Entitlement) resource.getContents().get(0);
+        final var entitlement = (Entitlement) resource.getContents().get(0);
         if (DEBUG)
             EObjectUtil.dump(entitlement);
         return entitlement;

@@ -60,7 +60,7 @@ public class IndexUnionStepImplCustom extends IndexUnionStepImpl {
 
     private BiPredicate<Integer, Val> hasIndex(Val parentValue) {
         return (index, v) -> {
-            var arraySize = parentValue.getArrayNode().size();
+            final var arraySize = parentValue.getArrayNode().size();
             return indices.stream().map(BigDecimal::intValue).map(i -> normalizeIndex(i, arraySize))
                     .anyMatch(i -> i.equals(index));
         };

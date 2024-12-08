@@ -50,7 +50,7 @@ public class CreateVariable extends VerticalLayout {
         cancelButton.addClickListener(e -> setConfirmationResult(false));
         nameTextField.focus();
 
-        var buttonLayout = new HorizontalLayout(cancelButton, createButton);
+        final var buttonLayout = new HorizontalLayout(cancelButton, createButton);
         add(nameTextField, buttonLayout);
     }
 

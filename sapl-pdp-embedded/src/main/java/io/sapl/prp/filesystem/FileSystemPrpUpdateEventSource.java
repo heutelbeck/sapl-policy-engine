@@ -55,13 +55,13 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
     @Override
     public Flux<PrpUpdateEvent> getUpdates() {
-        var seedIndex    = new ImmutableFileIndex(this.watchDir, interpreter);
-        var initialEvent = seedIndex.getUpdateEvent();
+        final var seedIndex    = new ImmutableFileIndex(this.watchDir, interpreter);
+        final var initialEvent = seedIndex.getUpdateEvent();
         // If the predicate filters inside the monitorDirectory by suffix, then no
         // sub-folders are monitored.
         // I do not know why. But putting a filter after the monitorDirectory solves the
         // issue.
-        var monitoringFlux = FileMonitorUtil.monitorDirectory(watchDir, file -> true)
+        final var monitoringFlux = FileMonitorUtil.monitorDirectory(watchDir, file -> true)
                 .filter(event -> event.file() != null)
                 .filter(event -> event.file().toAbsolutePath().toString().endsWith(SAPL_SUFFIX));
         log.debug("Initial event: {}", initialEvent);
@@ -79,8 +79,8 @@ public class FileSystemPrpUpdateEventSource implements PrpUpdateEventSource {
 
     private Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> processFileEvent(
             Tuple2<Optional<PrpUpdateEvent>, ImmutableFileIndex> tuple, FileEvent fileEvent) {
-        var index    = tuple.getT2();
-        var newIndex = index.afterFileEvent(fileEvent);
+        final var index    = tuple.getT2();
+        final var newIndex = index.afterFileEvent(fileEvent);
         log.debug("Update event: {}", newIndex.getUpdateEvent());
         return Tuples.of(Optional.of(newIndex.getUpdateEvent()), newIndex);
     }

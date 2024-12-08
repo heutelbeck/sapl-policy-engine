@@ -43,9 +43,9 @@ class ValTests {
 
     @Test
     void createError() {
-        var error = Val.error(SaplError.UNKNOWN_ERROR);
+        final var error = Val.error(SaplError.UNKNOWN_ERROR);
 
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(error.getMessage()).isEqualTo(SaplError.UNKNOWN_ERROR_MESSAGE);
         sa.assertThat(error.isError()).isTrue();
         sa.assertThat(error.isArray()).isFalse();
@@ -71,7 +71,7 @@ class ValTests {
 
     @Test
     void notEqualComparisonTest() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.notEqual(Val.of("A"), Val.of("A"))).isEqualTo(Val.FALSE);
         sa.assertThat(Val.notEqual(Val.of("A"), Val.of("B"))).isEqualTo(Val.TRUE);
         sa.assertThat(Val.notEqual(Val.of(1.0D), Val.of(1))).isEqualTo(Val.FALSE);
@@ -86,7 +86,7 @@ class ValTests {
 
     @Test
     void equalComparisonTest() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.areEqual(Val.of("A"), Val.of("A"))).isEqualTo(Val.TRUE);
         sa.assertThat(Val.areEqual(Val.of("A"), Val.of("B"))).isEqualTo(Val.FALSE);
         sa.assertAll();
@@ -105,7 +105,7 @@ class ValTests {
 
     @Test
     void getValueFromError() {
-        var value = Val.error(SaplError.UNKNOWN_ERROR);
+        final var value = Val.error(SaplError.UNKNOWN_ERROR);
         assertThatThrownBy(value::get).isInstanceOf(NoSuchElementException.class)
                 .hasMessage(String.format(Val.VALUE_IS_AN_ERROR_S_ERROR, SaplError.UNKNOWN_ERROR_MESSAGE));
     }
@@ -118,13 +118,13 @@ class ValTests {
 
     @Test
     void getValueFromValue() {
-        var value = Val.TRUE;
+        final var value = Val.TRUE;
         assertThatJson(value.get()).isBoolean().isEqualTo(true);
     }
 
     @Test
     void valOfNullJson() {
-        var val = Val.of((JsonNode) null);
+        final var val = Val.of((JsonNode) null);
         assertThat(val.isUndefined()).isTrue();
     }
 
@@ -135,25 +135,25 @@ class ValTests {
 
     @Test
     void valOfJsonValue() {
-        var value = Val.of(JSON.booleanNode(true));
+        final var value = Val.of(JSON.booleanNode(true));
         assertThatJson(value.get()).isBoolean().isEqualTo(true);
     }
 
     @Test
     void valOfEmptyObject() {
-        var value = Val.ofEmptyObject();
+        final var value = Val.ofEmptyObject();
         assertThatJson(value.get()).isObject().isEmpty();
     }
 
     @Test
     void valOfEmptyArray() {
-        var value = Val.ofEmptyArray();
+        final var value = Val.ofEmptyArray();
         assertThatJson(value.get()).isArray().isEmpty();
     }
 
     @Test
     void isUndefined() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.isUndefined()).isFalse();
         sa.assertThat(Val.UNDEFINED.isUndefined()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isUndefined()).isFalse();
@@ -162,7 +162,7 @@ class ValTests {
 
     @Test
     void isArray() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.isArray()).isFalse();
         sa.assertThat(Val.ofEmptyArray().isArray()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isArray()).isFalse();
@@ -171,7 +171,7 @@ class ValTests {
 
     @Test
     void isBigDecimal() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.isBigDecimal()).isFalse();
         sa.assertThat(Val.of(BigDecimal.ONE).isBigDecimal()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isBigDecimal()).isFalse();
@@ -180,7 +180,7 @@ class ValTests {
 
     @Test
     void isBigInteger() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.isBigInteger()).isFalse();
         sa.assertThat(Val.of(BigInteger.ONE).isBigInteger()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isBigInteger()).isFalse();
@@ -189,7 +189,7 @@ class ValTests {
 
     @Test
     void isBoolean() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.of(1).isBoolean()).isFalse();
         sa.assertThat(Val.TRUE.isBoolean()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isBoolean()).isFalse();
@@ -198,7 +198,7 @@ class ValTests {
 
     @Test
     void isDouble() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.of(1).isDouble()).isFalse();
         sa.assertThat(Val.of(1D).isDouble()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isDouble()).isFalse();
@@ -207,7 +207,7 @@ class ValTests {
 
     @Test
     void isFloatingPointNumber() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.of(1).isFloatingPointNumber()).isFalse();
         sa.assertThat(Val.of(1F).isFloatingPointNumber()).isTrue();
         sa.assertThat(Val.of(1F).isFloatingPointNumber()).isTrue();
@@ -219,7 +219,7 @@ class ValTests {
 
     @Test
     void isInt() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.of(1L).isInt()).isFalse();
         sa.assertThat(Val.of(1).isInt()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isInt()).isFalse();
@@ -228,7 +228,7 @@ class ValTests {
 
     @Test
     void isLong() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.of(1).isLong()).isFalse();
         sa.assertThat(Val.of(1L).isLong()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isLong()).isFalse();
@@ -237,7 +237,7 @@ class ValTests {
 
     @Test
     void isFloat() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.of(1).isFloat()).isFalse();
         sa.assertThat(Val.of(1F).isFloat()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isFloat()).isFalse();
@@ -246,7 +246,7 @@ class ValTests {
 
     @Test
     void isNull() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.of(1).isNull()).isFalse();
         sa.assertThat(Val.NULL.isNull()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isNull()).isFalse();
@@ -255,7 +255,7 @@ class ValTests {
 
     @Test
     void isNumber() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.of("").isNumber()).isFalse();
         sa.assertThat(Val.of(1).isNumber()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isNumber()).isFalse();
@@ -264,7 +264,7 @@ class ValTests {
 
     @Test
     void isObject() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.of("").isObject()).isFalse();
         sa.assertThat(Val.ofEmptyObject().isObject()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isObject()).isFalse();
@@ -273,7 +273,7 @@ class ValTests {
 
     @Test
     void isTextual() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.isTextual()).isFalse();
         sa.assertThat(Val.of("A").isTextual()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isTextual()).isFalse();
@@ -282,7 +282,7 @@ class ValTests {
 
     @Test
     void isValueNode() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.ofEmptyArray().isValueNode()).isFalse();
         sa.assertThat(Val.TRUE.isValueNode()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isValueNode()).isFalse();
@@ -291,9 +291,9 @@ class ValTests {
 
     @Test
     void isEmpty() {
-        var array = JSON.arrayNode();
+        final var array = JSON.arrayNode();
         array.add(false);
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.UNDEFINED.isEmpty()).isFalse();
         sa.assertThat(Val.ofEmptyArray().isEmpty()).isTrue();
         sa.assertThat(Val.of(array).isEmpty()).isFalse();
@@ -303,7 +303,7 @@ class ValTests {
 
     @Test
     void toStringTest() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.toString()).isEqualTo("true");
         sa.assertThat(Val.UNDEFINED.toString()).isEqualTo("undefined");
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).toString())
@@ -364,13 +364,13 @@ class ValTests {
 
     @Test
     void ofJsonGoodJson() throws JsonProcessingException {
-        var val = Val.ofJson("\"ABC\"");
+        final var val = Val.ofJson("\"ABC\"");
         assertThatJson(val.get()).isString().isEqualTo("ABC");
     }
 
     @Test
     void optional() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.UNDEFINED.optional()).isEmpty();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).optional()).isEmpty();
         sa.assertAll();
@@ -379,7 +379,7 @@ class ValTests {
 
     @Test
     void getValType() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.UNDEFINED.getValType()).isEqualTo(Val.UNDEFINED_LITERAL);
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).getValType()).isEqualTo(Val.ERROR_LITERAL);
         sa.assertThat(Val.TRUE.getValType()).isEqualTo("BOOLEAN");
@@ -428,9 +428,9 @@ class ValTests {
 
     @Test
     void getBoolean() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.getBoolean()).isTrue();
-        var value = Val.of("");
+        final var value = Val.of("");
         sa.assertThatThrownBy(value::getBoolean).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.BOOLEAN_OPERATION_TYPE_MISMATCH_S_ERROR, "STRING"));
         sa.assertAll();
@@ -438,10 +438,10 @@ class ValTests {
 
     @Test
     void getLong() {
-        var sa     = new SoftAssertions();
-        var number = Val.of(123L);
+        final var sa     = new SoftAssertions();
+        final var number = Val.of(123L);
         sa.assertThat(number.getLong()).isEqualTo(123L);
-        var value = Val.of("");
+        final var value = Val.of("");
         sa.assertThatThrownBy(value::getLong).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.NUMBER_OPERATION_TYPE_MISMATCH_S_ERROR, "STRING"));
         sa.assertAll();
@@ -449,7 +449,7 @@ class ValTests {
 
     @Test
     void getText() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.getText()).isEqualTo("true");
         sa.assertThat(Val.UNDEFINED.getText()).isEqualTo(Val.UNDEFINED_LITERAL);
         sa.assertThat(Val.of("ABC").getText()).isEqualTo("ABC");
@@ -459,14 +459,14 @@ class ValTests {
 
     @Test
     void decimalValue() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.of(100D).decimalValue()).isEqualByComparingTo(new BigDecimal("100"));
-        var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
+        final var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
         sa.assertThatThrownBy(errorValue::decimalValue).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.NUMBER_OPERATION_TYPE_MISMATCH_S_ERROR, "ERROR"));
         sa.assertThatThrownBy(Val.UNDEFINED::decimalValue).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.NUMBER_OPERATION_TYPE_MISMATCH_S_ERROR, "undefined"));
-        var emptyStringValue = Val.of("");
+        final var emptyStringValue = Val.of("");
         sa.assertThatThrownBy(emptyStringValue::decimalValue).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.NUMBER_OPERATION_TYPE_MISMATCH_S_ERROR, "STRING"));
         sa.assertAll();
@@ -474,13 +474,13 @@ class ValTests {
 
     @Test
     void getObjectNode() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThatThrownBy(Val.UNDEFINED::getObjectNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, "undefined"));
-        var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
+        final var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
         sa.assertThatThrownBy(errorValue::getObjectNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, "ERROR"));
-        var emptyStringValue = Val.of("");
+        final var emptyStringValue = Val.of("");
         sa.assertThatThrownBy(emptyStringValue::getObjectNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.OBJECT_OPERATION_TYPE_MISMATCH_S_ERROR, "STRING"));
         sa.assertAll();
@@ -489,14 +489,14 @@ class ValTests {
 
     @Test
     void getArrayNode() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.of(JSON.arrayNode()).getArrayNode()).isEqualTo(JSON.arrayNode());
         sa.assertThatThrownBy(Val.UNDEFINED::getArrayNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, "undefined"));
-        var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
+        final var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
         sa.assertThatThrownBy(errorValue::getArrayNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, "ERROR"));
-        var emptyStringValue = Val.of("");
+        final var emptyStringValue = Val.of("");
         sa.assertThatThrownBy(emptyStringValue::getArrayNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.ARRAY_OPERATION_TYPE_MISMATCH_S_ERROR, "STRING"));
         sa.assertAll();
@@ -505,10 +505,10 @@ class ValTests {
 
     @Test
     void getJsonNode() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThatThrownBy(Val.UNDEFINED::getJsonNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(Val.UNDEFINED_VALUE_ERROR);
-        var errorValue = Val.error((String) null);
+        final var errorValue = Val.error((String) null);
         sa.assertThatThrownBy(errorValue::getJsonNode).isInstanceOf(PolicyEvaluationException.class)
                 .hasMessage(String.format(Val.VALUE_IS_AN_ERROR_S_ERROR, SaplError.UNKNOWN_ERROR_MESSAGE));
         sa.assertAll();
@@ -517,7 +517,7 @@ class ValTests {
 
     @Test
     void equalsTest() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE).isEqualTo(Val.TRUE);
         sa.assertThat(Val.UNDEFINED).isEqualTo(Val.UNDEFINED);
         sa.assertThat(Val.UNDEFINED).isEqualTo(Val.UNDEFINED.withTrace(getClass()));
@@ -539,7 +539,7 @@ class ValTests {
 
     @Test
     void hashTest() throws JsonProcessingException {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.UNDEFINED.hashCode()).isEqualTo(Val.UNDEFINED.hashCode());
         sa.assertThat(Val.error(SaplError.of("ABC")).hashCode()).isEqualTo(Val.error(SaplError.of("ABC")).hashCode());
         sa.assertThat(Val.error(SaplError.of("ABC")).hashCode())
@@ -562,7 +562,7 @@ class ValTests {
 
     @Test
     void orElse() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.orElse(JSON.arrayNode())).isEqualTo(JSON.booleanNode(true));
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).orElse(JSON.arrayNode())).isEqualTo(JSON.arrayNode());
         sa.assertThat(Val.UNDEFINED.orElse(JSON.arrayNode())).isEqualTo(JSON.arrayNode());
@@ -571,7 +571,7 @@ class ValTests {
 
     @Test
     void orElseGet() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.orElse(JSON::arrayNode)).isEqualTo(JSON.booleanNode(true));
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).orElse(JSON::arrayNode)).isEqualTo(JSON.arrayNode());
         sa.assertThat(Val.UNDEFINED.orElse(JSON::arrayNode)).isEqualTo(JSON.arrayNode());
@@ -580,28 +580,27 @@ class ValTests {
 
     @Test
     void ifDefinedIsDefined() {
-        var calledWithValue = new HashSet<JsonNode>();
+        final var calledWithValue = new HashSet<JsonNode>();
         Val.TRUE.ifDefined(calledWithValue::add);
         assertThat(calledWithValue).hasSize(1);
     }
 
     @Test
     void fieldJsonNodeOrElseThrow() throws Exception {
-        var val = Val.ofJson("{ \"field\":123 }");
-        var sa  = new SoftAssertions();
-        sa.assertThat(val.fieldJsonNodeOrElseThrow("field", () -> new RuntimeException()))
-                .isEqualTo(JSON.numberNode(123));
-        sa.assertThatThrownBy(() -> val.fieldJsonNodeOrElseThrow("no field", () -> new RuntimeException()))
+        final var val = Val.ofJson("{ \"field\":123 }");
+        final var sa  = new SoftAssertions();
+        sa.assertThat(val.fieldJsonNodeOrElseThrow("field", RuntimeException::new)).isEqualTo(JSON.numberNode(123));
+        sa.assertThatThrownBy(() -> val.fieldJsonNodeOrElseThrow("no field", RuntimeException::new))
                 .isInstanceOf(RuntimeException.class);
-        sa.assertThatThrownBy(() -> Val.UNDEFINED.fieldJsonNodeOrElseThrow("no field", () -> new RuntimeException()))
+        sa.assertThatThrownBy(() -> Val.UNDEFINED.fieldJsonNodeOrElseThrow("no field", RuntimeException::new))
                 .isInstanceOf(RuntimeException.class);
         sa.assertAll();
     }
 
     @Test
     void fieldJsonNodeOrElseSupplier() throws Exception {
-        var val = Val.ofJson("{ \"field\":123 }");
-        var sa  = new SoftAssertions();
+        final var val = Val.ofJson("{ \"field\":123 }");
+        final var sa  = new SoftAssertions();
         sa.assertThat(val.fieldJsonNodeOrElse("field", () -> JSON.numberNode(321))).isEqualTo(JSON.numberNode(123));
         sa.assertThat(val.fieldJsonNodeOrElse("no field", () -> JSON.numberNode(321))).isEqualTo(JSON.numberNode(321));
         sa.assertThat(Val.UNDEFINED.fieldJsonNodeOrElse("no field", () -> JSON.numberNode(321)))
@@ -611,8 +610,8 @@ class ValTests {
 
     @Test
     void fieldJsonNodeOrElse() throws Exception {
-        var val = Val.ofJson("{ \"field\":123 }");
-        var sa  = new SoftAssertions();
+        final var val = Val.ofJson("{ \"field\":123 }");
+        final var sa  = new SoftAssertions();
         sa.assertThat(val.fieldJsonNodeOrElse("field", JSON.numberNode(321))).isEqualTo(JSON.numberNode(123));
         sa.assertThat(val.fieldJsonNodeOrElse("no field", JSON.numberNode(321))).isEqualTo(JSON.numberNode(321));
         sa.assertThat(Val.UNDEFINED.fieldJsonNodeOrElse("no field", JSON.numberNode(321)))
@@ -622,8 +621,8 @@ class ValTests {
 
     @Test
     void fieldValOrElseSupplier() throws Exception {
-        var val = Val.ofJson("{ \"field\":123 }");
-        var sa  = new SoftAssertions();
+        final var val = Val.ofJson("{ \"field\":123 }");
+        final var sa  = new SoftAssertions();
         sa.assertThat(val.fieldValOrElse("field", () -> Val.of(321))).isEqualTo(Val.of(123));
         sa.assertThat(val.fieldValOrElse("no field", () -> Val.of(321))).isEqualTo(Val.of(321));
         sa.assertThat(Val.UNDEFINED.fieldValOrElse("no field", () -> Val.of(321))).isEqualTo(Val.of(321));
@@ -632,8 +631,8 @@ class ValTests {
 
     @Test
     void fieldValOrElse() throws Exception {
-        var val = Val.ofJson("{ \"field\":123 }");
-        var sa  = new SoftAssertions();
+        final var val = Val.ofJson("{ \"field\":123 }");
+        final var sa  = new SoftAssertions();
         sa.assertThat(val.fieldValOrElse("field", Val.of(321))).isEqualTo(Val.of(123));
         sa.assertThat(val.fieldValOrElse("no field", Val.of(321))).isEqualTo(Val.of(321));
         sa.assertThat(Val.UNDEFINED.fieldValOrElse("no field", Val.of(321))).isEqualTo(Val.of(321));
@@ -642,14 +641,14 @@ class ValTests {
 
     @Test
     void ifDefinedIsUndefined() {
-        var calledWithValue = new HashSet<JsonNode>();
+        final var calledWithValue = new HashSet<JsonNode>();
         Val.UNDEFINED.ifDefined(calledWithValue::add);
         assertThat(calledWithValue).isEmpty();
     }
 
     @Test
     void secretsManagement() {
-        var secret = Val.of("not to be known").asSecret().withTrace(getClass());
+        final var secret = Val.of("not to be known").asSecret().withTrace(getClass());
         assertThat(secret.isSecret()).isTrue();
         assertThat(secret).hasToString("SECRET");
         assertThatJson(secret.getTrace()).inPath("$.value").isString().isEqualTo("|SECRET|");
@@ -657,71 +656,71 @@ class ValTests {
 
     @Test
     void secretsManagementWithArrayOfExpressionArguments() throws JsonProcessingException {
-        var secret         = Val.ofJson("""
+        final var secret         = Val.ofJson("""
                 {
                     "key":"secret"
                 }
                 """).asSecret().withTrace(getClass());
-        var secretArgument = new ExpressionArgument("secretArgument", secret);
-        var publicArgument = new ExpressionArgument("publicArgument", secret);
+        final var secretArgument = new ExpressionArgument("secretArgument", secret);
+        final var publicArgument = new ExpressionArgument("publicArgument", secret);
 
-        var tracedVal = Val.of(123).withTrace(getClass(), true, secretArgument, publicArgument);
+        final var tracedVal = Val.of(123).withTrace(getClass(), true, secretArgument, publicArgument);
         assertThat(tracedVal.isSecret()).isTrue();
         assertThat(tracedVal).hasToString("SECRET");
     }
 
     @Test
     void secretsManagementWithArrayOfExpressionArgumentsNoInherit() throws JsonProcessingException {
-        var secret         = Val.ofJson("""
+        final var secret         = Val.ofJson("""
                 {
                     "key":"secret"
                 }
                 """).asSecret().withTrace(getClass());
-        var secretArgument = new ExpressionArgument("secretArgument", secret);
-        var publicArgument = new ExpressionArgument("publicArgument", secret);
+        final var secretArgument = new ExpressionArgument("secretArgument", secret);
+        final var publicArgument = new ExpressionArgument("publicArgument", secret);
 
-        var tracedVal = Val.of(123).withTrace(getClass(), false, secretArgument, publicArgument);
+        final var tracedVal = Val.of(123).withTrace(getClass(), false, secretArgument, publicArgument);
         assertThat(tracedVal.isSecret()).isFalse();
         assertThat(tracedVal).hasToString("123");
     }
 
     @Test
     void secretsManagementWithArrayOfArguments() throws JsonProcessingException {
-        var secret    = Val.ofJson("""
+        final var secret    = Val.ofJson("""
                 {
                     "key":"secret"
                 }
                 """).asSecret().withTrace(getClass());
-        var tracedVal = Val.of(123).withTrace(getClass(), true, secret, Val.of("not secret"));
+        final var tracedVal = Val.of(123).withTrace(getClass(), true, secret, Val.of("not secret"));
         assertThat(tracedVal.isSecret()).isTrue();
         assertThat(tracedVal).hasToString("SECRET");
     }
 
     @Test
     void secretsManagementWithArrayOfArgumentsNoInherit() throws JsonProcessingException {
-        var secret    = Val.ofJson("""
+        final var secret    = Val.ofJson("""
                 {
                     "key":"secret"
                 }
                 """).asSecret().withTrace(getClass());
-        var tracedVal = Val.of(123).withTrace(getClass(), false, Val.of("not secret"), secret);
+        final var tracedVal = Val.of(123).withTrace(getClass(), false, Val.of("not secret"), secret);
         assertThat(tracedVal.isSecret()).isFalse();
         assertThat(tracedVal).hasToString("123");
     }
 
     @Test
     void secretsManagementWithArrayOfArgumentsAndLeftHand() throws JsonProcessingException {
-        var secret    = Val.ofJson("""
+        final var secret    = Val.ofJson("""
                 {
                     "key":"secret"
                 }
                 """).asSecret().withTrace(getClass());
-        var tracedVal = Val.of(123).withTrace(Val.of("left hand no secret"), getClass(), true, secret,
+        final var tracedVal = Val.of(123).withTrace(Val.of("left hand no secret"), getClass(), true, secret,
                 Val.of("not secret"));
         assertThat(tracedVal.isSecret()).isTrue();
         assertThat(tracedVal).hasToString("SECRET");
 
-        var tracedVal2 = Val.of(123).withTrace(secret, getClass(), true, Val.of("not secret"),
+        final var tracedVal2 = Val.of(123).withTrace(secret, getClass(), true, Val.of("not secret"),
                 Val.of("also not secret"));
         assertThat(tracedVal2.isSecret()).isTrue();
         assertThat(tracedVal2).hasToString("SECRET");
@@ -730,17 +729,17 @@ class ValTests {
 
     @Test
     void secretsManagementWithArrayOfArgumentsNoInheritAndLeftHand() throws JsonProcessingException {
-        var secret    = Val.ofJson("""
+        final var secret    = Val.ofJson("""
                 {
                     "key":"secret"
                 }
                 """).asSecret().withTrace(getClass());
-        var tracedVal = Val.of(123).withTrace(Val.of("left hand no secret"), getClass(), false, secret,
+        final var tracedVal = Val.of(123).withTrace(Val.of("left hand no secret"), getClass(), false, secret,
                 Val.of("not secret"));
         assertThat(tracedVal.isSecret()).isFalse();
         assertThat(tracedVal).hasToString("123");
 
-        var tracedVal2 = Val.of(123).withTrace(secret, getClass(), false, Val.of("not secret"),
+        final var tracedVal2 = Val.of(123).withTrace(secret, getClass(), false, Val.of("not secret"),
                 Val.of("also not secret"));
         assertThat(tracedVal.isSecret()).isFalse();
         assertThat(tracedVal2).hasToString("123");
@@ -748,88 +747,88 @@ class ValTests {
 
     @Test
     void secretsManagementWithMapOfArguments() throws JsonProcessingException {
-        var secret    = Val.ofJson("""
+        final var secret    = Val.ofJson("""
                 {
                     "key":"secret"
                 }
                 """).asSecret().withTrace(getClass());
-        var tracedVal = Val.of(123).withTrace(getClass(), true, Map.of("a", secret, "b", Val.of("not secret")));
+        final var tracedVal = Val.of(123).withTrace(getClass(), true, Map.of("a", secret, "b", Val.of("not secret")));
         assertThat(tracedVal.isSecret()).isTrue();
         assertThat(tracedVal).hasToString("SECRET");
     }
 
     @Test
     void secretsManagementWithMapOfArgumentsNoInherit() throws JsonProcessingException {
-        var secret    = Val.ofJson("""
+        final var secret    = Val.ofJson("""
                 {
                     "key":"secret"
                 }
                 """).asSecret().withTrace(getClass());
-        var tracedVal = Val.of(123).withTrace(getClass(), false, Map.of("a", secret, "b", Val.of("not secret")));
+        final var tracedVal = Val.of(123).withTrace(getClass(), false, Map.of("a", secret, "b", Val.of("not secret")));
         assertThat(tracedVal.isSecret()).isFalse();
         assertThat(tracedVal).hasToString("123");
     }
 
     @Test
     void secretsManagementWithParentValue() throws JsonProcessingException {
-        var secret    = Val.ofJson("""
+        final var secret    = Val.ofJson("""
                 {
                     "key":"secret"
                 }
                 """).asSecret().withTrace(getClass());
-        var tracedVal = Val.of(123).withParentTrace(getClass(), true, secret);
+        final var tracedVal = Val.of(123).withParentTrace(getClass(), true, secret);
         assertThat(tracedVal.isSecret()).isTrue();
         assertThat(tracedVal).hasToString("SECRET");
     }
 
     @Test
     void secretsManagementWithPArentValueNoInherit() throws JsonProcessingException {
-        var secret    = Val.ofJson("""
+        final var secret    = Val.ofJson("""
                 {
                     "key":"secret"
                 }
                 """).asSecret().withTrace(getClass());
-        var tracedVal = Val.of(123).withParentTrace(getClass(), false, secret);
+        final var tracedVal = Val.of(123).withParentTrace(getClass(), false, secret);
         assertThat(tracedVal.isSecret()).isFalse();
         assertThat(tracedVal).hasToString("123");
     }
 
     @Test
     void withTraceNoArguments() {
-        var givenTracedValue1 = Val.of("X").withTrace(getClass());
+        final var givenTracedValue1 = Val.of("X").withTrace(getClass());
         assertThatJson(givenTracedValue1.getTrace()).inPath("$.trace.operator").isString().isEqualTo("ValTests");
         assertThatJson(givenTracedValue1.getTrace()).inPath("$.value").isString().isEqualTo("X");
     }
 
     @Test
     void traceOfUntraced() {
-        var givenUntraced = Val.of("X");
+        final var givenUntraced = Val.of("X");
         assertThatJson(givenUntraced.getTrace()).inPath("$.value").isString().isEqualTo("X");
         assertThatJson(givenUntraced.getTrace()).isObject().doesNotContainKey("trace");
     }
 
     @Test
     void traceOfUndefined() {
-        var givenUndefined = Val.UNDEFINED;
+        final var givenUndefined = Val.UNDEFINED;
         assertThatJson(givenUndefined.getTrace()).inPath("$.value").isString().isEqualTo("|UNDEFINED|");
     }
 
     @Test
     void traceOfError() {
-        var givenError = Val.error(SaplError.of("xxx"));
+        final var givenError = Val.error(SaplError.of("xxx"));
         assertThatJson(givenError.getTrace()).inPath("$.value").isString().isEqualTo("|ERROR| xxx");
     }
 
     @Test
     void withParentTrace() {
-        var givenTracedValue2 = Val.of("Y").withParentTrace(getClass(), true, Val.of("X"));
+        final var givenTracedValue2 = Val.of("Y").withParentTrace(getClass(), true, Val.of("X"));
         assertThatJson(givenTracedValue2.getTrace()).inPath("$.value").isString().isEqualTo("Y");
         assertThatJson(givenTracedValue2.getTrace()).inPath("$.trace.arguments.parentValue.value").isEqualTo("X");
     }
 
     @Test
     void withTraceOfArgumentMap() {
-        var givenTracedValue3 = Val.of("Z").withTrace(getClass(), true,
+        final var givenTracedValue3 = Val.of("Z").withTrace(getClass(), true,
                 Map.of("arg1", Val.of("X"), "arg2", Val.of("Y")));
         assertThatJson(givenTracedValue3.getTrace()).inPath("$.value").isString().isEqualTo("Z");
         assertThatJson(givenTracedValue3.getTrace()).inPath("$.trace.arguments.arg1.value").isEqualTo("X");
@@ -838,7 +837,7 @@ class ValTests {
 
     @Test
     void withTraceOfArgumentArray() {
-        var givenTracedValue4 = Val.of("A").withTrace(getClass(), true, Val.of("X"), Val.of("Y"), Val.of("Z"));
+        final var givenTracedValue4 = Val.of("A").withTrace(getClass(), true, Val.of("X"), Val.of("Y"), Val.of("Z"));
         assertThatJson(givenTracedValue4.getTrace()).inPath("$.value").isString().isEqualTo("A");
         assertThatJson(givenTracedValue4.getTrace()).inPath("$.trace.arguments.['arguments[0]'].value").isEqualTo("X");
         assertThatJson(givenTracedValue4.getTrace()).inPath("$.trace.arguments.['arguments[1]'].value").isEqualTo("Y");
@@ -847,14 +846,14 @@ class ValTests {
 
     @Test
     void withTraceOfSingleElementArgumentArray() {
-        var givenTracedValue4 = Val.of("A").withTrace(getClass(), true, Val.of("X"));
+        final var givenTracedValue4 = Val.of("A").withTrace(getClass(), true, Val.of("X"));
         assertThatJson(givenTracedValue4.getTrace()).inPath("$.value").isString().isEqualTo("A");
         assertThatJson(givenTracedValue4.getTrace()).inPath("$.trace.arguments.argument.value").isEqualTo("X");
     }
 
     @Test
     void withTraceWithLeftHandAndArgumentArray() {
-        var givenTracedValue5 = Val.of("B").withTrace(Val.of("A"), getClass(), true, Val.of("X"), Val.of("Y"),
+        final var givenTracedValue5 = Val.of("B").withTrace(Val.of("A"), getClass(), true, Val.of("X"), Val.of("Y"),
                 Val.of("Z"));
         assertThatJson(givenTracedValue5.getTrace()).inPath("$.value").isString().isEqualTo("B");
         assertThatJson(givenTracedValue5.getTrace()).inPath("$.trace.arguments.['arguments[0]'].value").isEqualTo("X");
@@ -865,7 +864,7 @@ class ValTests {
 
     @Test
     void withTraceWithLeftHandAndArgumentArrayOfOneElement() {
-        var givenTracedValue5 = Val.of("B").withTrace(Val.of("A"), getClass(), true, Val.of("X"));
+        final var givenTracedValue5 = Val.of("B").withTrace(Val.of("A"), getClass(), true, Val.of("X"));
         assertThatJson(givenTracedValue5.getTrace()).inPath("$.value").isString().isEqualTo("B");
         assertThatJson(givenTracedValue5.getTrace()).inPath("$.trace.arguments.argument.value").isEqualTo("X");
         assertThatJson(givenTracedValue5.getTrace()).inPath("$.trace.arguments.leftHandValue.value").isEqualTo("A");
@@ -873,8 +872,8 @@ class ValTests {
 
     @Test
     void withTraceOfNamedParameters() {
-        var givenTracedValue6 = Val.of("Q").withTrace(getClass(), true, new ExpressionArgument("left", Val.of("A")),
-                new ExpressionArgument("right", Val.of("B")));
+        final var givenTracedValue6 = Val.of("Q").withTrace(getClass(), true,
+                new ExpressionArgument("left", Val.of("A")), new ExpressionArgument("right", Val.of("B")));
         assertThatJson(givenTracedValue6.getTrace()).inPath("$.value").isString().isEqualTo("Q");
         assertThatJson(givenTracedValue6.getTrace()).inPath("$.trace.arguments.left.value").isEqualTo("A");
         assertThatJson(givenTracedValue6.getTrace()).inPath("$.trace.arguments.right.value").isEqualTo("B");
@@ -882,7 +881,7 @@ class ValTests {
 
     @Test
     void getArgumentsOfTrace() {
-        var trace = new Trace(getClass(), Val.of("X"), Val.of("Y"), Val.of("Z"));
+        final var trace = new Trace(getClass(), Val.of("X"), Val.of("Y"), Val.of("Z"));
         assertThat(trace.getArguments()).contains(new ExpressionArgument("arguments[0]", Val.of("X")),
                 new ExpressionArgument("arguments[1]", Val.of("Y")),
                 new ExpressionArgument("arguments[2]", Val.of("Z")));
@@ -890,11 +889,11 @@ class ValTests {
 
     @Test
     void orElseThrow() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.TRUE.orElseThrow(RuntimeException::new)).isEqualTo(JSON.booleanNode(true));
         sa.assertThatThrownBy(() -> Val.UNDEFINED.orElseThrow(RuntimeException::new))
                 .isInstanceOf(RuntimeException.class).hasMessage(null);
-        var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
+        final var errorValue = Val.error(SaplError.UNKNOWN_ERROR);
         sa.assertThatThrownBy(() -> errorValue.orElseThrow(RuntimeException::new)).isInstanceOf(RuntimeException.class)
                 .hasMessage(null);
         sa.assertAll();
@@ -902,13 +901,13 @@ class ValTests {
 
     @Test
     void filter() {
-        var sa = new SoftAssertions();
+        final var sa = new SoftAssertions();
         sa.assertThat(Val.UNDEFINED.filter(JsonNode::isArray)).isEqualTo(Val.UNDEFINED);
         sa.assertThat(Val.TRUE.filter(JsonNode::isArray)).isEqualTo(Val.UNDEFINED);
         sa.assertThat(Val.ofEmptyArray().filter(JsonNode::isArray)).isEqualTo(Val.ofEmptyArray());
         sa.assertThat(Val.of(10).filter(json -> json.intValue() > 5)).isEqualTo(Val.of(10));
         sa.assertThat(Val.of(10).filter(json -> json.intValue() < 5)).isEqualTo(Val.UNDEFINED);
-        var tenValue = Val.of(10);
+        final var tenValue = Val.of(10);
         sa.assertThatThrownBy(() -> tenValue.filter(null)).isInstanceOf(NullPointerException.class);
         sa.assertAll();
     }

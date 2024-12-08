@@ -69,7 +69,7 @@ class SpecificScenarioTests {
 
     @Test
     void tutorialAgeCheckScenario() throws JsonProcessingException, InitializationException {
-        var policySet = """
+        final var policySet = """
                 import time.*
                 import filter.*
 
@@ -98,14 +98,14 @@ class SpecificScenarioTests {
                     age >= resource.ageRating
                 """;
 
-        var subBobBook3 = MAPPER.readValue(SUB_BOB_BOOK3, AuthorizationSubscription.class);
-        var subBobBook4 = MAPPER.readValue(SUB_BOB_BOOK4, AuthorizationSubscription.class);
-        var pdp         = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(List.of(policySet),
+        final var subBobBook3 = MAPPER.readValue(SUB_BOB_BOOK3, AuthorizationSubscription.class);
+        final var subBobBook4 = MAPPER.readValue(SUB_BOB_BOOK4, AuthorizationSubscription.class);
+        final var pdp         = PolicyDecisionPointFactory.fixedInRamPolicyDecisionPoint(List.of(policySet),
                 PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, Map.of());
 
-        var decisionBook3 = pdp.decide(subBobBook3).blockFirst();
+        final var decisionBook3 = pdp.decide(subBobBook3).blockFirst();
         assertThat(decisionBook3.getObligations()).isEmpty();
-        var decisionBook4 = pdp.decide(subBobBook4).blockFirst();
+        final var decisionBook4 = pdp.decide(subBobBook4).blockFirst();
         assertThat(decisionBook4.getObligations()).isNotEmpty();
     }
 

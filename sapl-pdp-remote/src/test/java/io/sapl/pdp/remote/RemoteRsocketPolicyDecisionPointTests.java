@@ -39,7 +39,6 @@ import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
-import io.sapl.pdp.remote.metadata.SimpleAuthenticationEncoder;
 import org.springframework.stereotype.Controller;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -55,6 +54,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.pdp.remote.metadata.SimpleAuthenticationEncoder;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -112,7 +112,7 @@ public class RemoteRsocketPolicyDecisionPointTests {
         prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.NOT_APPLICABLE, null,
                 AuthorizationDecision.PERMIT });
 
-        var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+        final var subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE,
                         AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE,
@@ -122,17 +122,17 @@ public class RemoteRsocketPolicyDecisionPointTests {
 
     @Test
     void whenSubscribingMultiDecideAll_thenGetResults() {
-        var decision1 = new MultiAuthorizationDecision();
+        final var decision1 = new MultiAuthorizationDecision();
         decision1.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.PERMIT);
-        var decision2 = new MultiAuthorizationDecision();
+        final var decision2 = new MultiAuthorizationDecision();
         decision2.setAuthorizationDecisionForSubscriptionWithId(ID, AuthorizationDecision.DENY);
-        var indeterminate = MultiAuthorizationDecision.indeterminate();
+        final var indeterminate = MultiAuthorizationDecision.indeterminate();
 
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new MultiAuthorizationDecision[] { decision1, decision2 });
 
-        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
-                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        final var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decideAll(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
@@ -140,15 +140,15 @@ public class RemoteRsocketPolicyDecisionPointTests {
 
     @Test
     void whenSubscribingMultiDecide_thenGetResults() {
-        var decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
-        var decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
-        var indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
+        final var decision1     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.PERMIT);
+        final var decision2     = new IdentifiableAuthorizationDecision(ID, AuthorizationDecision.DENY);
+        final var indeterminate = IdentifiableAuthorizationDecision.INDETERMINATE;
 
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2, null });
         prepareDecisions(new IdentifiableAuthorizationDecision[] { decision1, decision2 });
 
-        var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID, JSON.textNode(SUBJECT),
-                JSON.textNode(ACTION), JSON.textNode(RESOURCE));
+        final var subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                JSON.textNode(SUBJECT), JSON.textNode(ACTION), JSON.textNode(RESOURCE));
 
         StepVerifier.create(pdp.decide(subscription))
                 .expectNext(decision1, decision2, indeterminate, decision1, decision2).thenCancel().verify();
@@ -201,7 +201,7 @@ public class RemoteRsocketPolicyDecisionPointTests {
         @Bean
         RSocketMessageHandler serverMessageHandler() {
             RSocketMessageHandler handler    = new RSocketMessageHandler();
-            var                   strategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())
+            final var             strategies = RSocketStrategies.builder().encoder(new Jackson2JsonEncoder())
                     .encoder(new SimpleAuthenticationEncoder()).decoder(new Jackson2JsonDecoder()).build();
             handler.setRSocketStrategies(strategies);
             return handler;
@@ -210,22 +210,23 @@ public class RemoteRsocketPolicyDecisionPointTests {
 
     @Test
     void construct() {
-        var pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
+        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
                 .basicAuth("secret", "key").build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void constructWithSslContext() throws SSLException {
-        var sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-        var pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
+        final var sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build();
+        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
                 .basicAuth("secret", "key").secure(sslContext).build();
         assertThat(pdpUnderTest, notNullValue());
     }
 
     @Test
     void settersAndGetters() {
-        var pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
+        final var pdpUnderTest = RemotePolicyDecisionPoint.builder().rsocket().host("localhost").port(7000)
                 .basicAuth("secret", "key").build();
         pdpUnderTest.setBackoffFactor(999);
         pdpUnderTest.setFirstBackoffMillis(998);

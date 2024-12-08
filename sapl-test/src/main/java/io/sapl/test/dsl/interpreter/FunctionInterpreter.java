@@ -43,9 +43,8 @@ class FunctionInterpreter {
             throw new SaplTestException("GivenOrWhenStep or function is null");
         }
 
-        var timesCalled = 0;
-
         final var dslTimesCalled = function.getTimesCalled();
+        var       timesCalled    = 0;
 
         if (dslTimesCalled instanceof Multiple multiple) {
             timesCalled = multipleInterpreter.getAmountFromMultiple(multiple);
