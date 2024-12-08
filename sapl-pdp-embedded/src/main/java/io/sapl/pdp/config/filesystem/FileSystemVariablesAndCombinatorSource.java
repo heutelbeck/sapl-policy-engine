@@ -47,6 +47,13 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
 
     private static final String CONFIG_FILE_GLOB_PATTERN = "pdp.json";
 
+    private static final Map<String, PolicyDocumentCombiningAlgorithm> ALGORITHMS = Map.of("deny-overrides",
+            PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, "permit-overrides",
+            PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES, "only-one-applicable",
+            PolicyDocumentCombiningAlgorithm.ONLY_ONE_APPLICABLE, "deny-unless-permit",
+            PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT, "permit-unless-deny",
+            PolicyDocumentCombiningAlgorithm.PERMIT_UNLESS_DENY);
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Path watchDir;
@@ -82,7 +89,12 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
                 return Optional.empty();
 
             if (jsonNode.has("algorithm")) {
-                config.setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(jsonNode.get("algorithm").asText()));
+                final var algorithm = jsonNode.get("algorithm").asText().toLowerCase();
+                if (ALGORITHMS.containsKey(algorithm)) {
+                    config.setAlgorithm(ALGORITHMS.get(algorithm));
+                } else {
+                    config.setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(algorithm.toUpperCase()));
+                }
             }
             final var variables = new HashMap<String, Val>();
             if (jsonNode.has("variables")) {
