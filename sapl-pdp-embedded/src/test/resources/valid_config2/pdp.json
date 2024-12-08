@@ -1,0 +1,7 @@
+{
+  "algorithm": "PeRMIT_UNLESS_DENY",
+  "variables": {
+    "key1": "value1",
+    "key2": "value2"
+  }
+}

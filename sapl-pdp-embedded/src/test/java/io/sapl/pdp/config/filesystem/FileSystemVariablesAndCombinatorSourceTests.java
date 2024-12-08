@@ -24,6 +24,8 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
@@ -66,15 +68,17 @@ class FileSystemVariablesAndCombinatorSourceTest {
         assertThat(variables.isEmpty(), is(true));
     }
 
-    @Test
-    void test_process_watcher_event() {
+    @ParameterizedTest
+    @ValueSource(strings = { "src/test/resources/valid_config", "src/test/resources/valid_config2",
+            "src/test/resources/valid_config3", "src/test/resources/valid_config4" })
+    void test_process_watcher_event(String path) {
         try (MockedStatic<FileMonitorUtil> mock = mockStatic(FileMonitorUtil.class)) {
             mock.when(() -> FileMonitorUtil.monitorDirectory(any(), any()))
                     .thenReturn(Flux.just(new FileCreatedEvent(null), new FileDeletedEvent(null)));
 
             mock.when(() -> FileMonitorUtil.resolveHomeFolderIfPresent(any())).thenCallRealMethod();
 
-            final var configProvider = new FileSystemVariablesAndCombinatorSource("src/test/resources/valid_config");
+            final var configProvider = new FileSystemVariablesAndCombinatorSource(path);
             final var algo           = configProvider.getCombiningAlgorithm().blockLast();
             configProvider.getVariables().blockFirst();
             configProvider.destroy();
