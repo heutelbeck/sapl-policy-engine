@@ -24,20 +24,22 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-class AttributeSpecificationTests {
+import io.sapl.attributes.broker.api.AttributeFinderSpecification;
+
+class AttributeFinderSpecificationTests {
 
     @Test
     void whenConstructionOfPolicyInformationPointSpecificationHasBadParametersThenThrowElseDoNotThrow() {
-        assertThatThrownBy(() -> new AttributeSpecification(null, true, 0, true, e -> {}, List.of()))
+        assertThatThrownBy(() -> new AttributeFinderSpecification(null, true, 0, true, e -> {}, List.of()))
                 .isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void whenVarArgsCheckedThenVarArgsCorrectlyDetected() {
-        var withVarArgs = new AttributeSpecification("abc.def", true,
-                AttributeSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, true, e -> {}, List.of());
+        var withVarArgs = new AttributeFinderSpecification("abc.def", true,
+                AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, true, e -> {}, List.of());
         assertThat(withVarArgs.hasVariableNumberOfArguments()).isTrue();
-        var notWithVarArgs = new AttributeSpecification("abc.def", true, 0, true, e -> {}, List.of());
+        var notWithVarArgs = new AttributeFinderSpecification("abc.def", true, 0, true, e -> {}, List.of());
         assertThat(notWithVarArgs.hasVariableNumberOfArguments()).isFalse();
     }
 

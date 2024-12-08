@@ -35,7 +35,7 @@ import io.sapl.api.validation.Long;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
-import io.sapl.attributes.broker.impl.AttributeBrokerException;
+import io.sapl.attributes.broker.api.AttributeBrokerException;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 

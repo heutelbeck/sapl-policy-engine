@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.broker.impl;
+package io.sapl.attributes.broker.api;
 
 import static io.sapl.validation.NameValidator.requireValidName;
 
@@ -24,13 +24,13 @@ import java.util.List;
 import io.sapl.validation.Validator;
 import lombok.NonNull;
 
-record AttributeSpecification(@NonNull String fullyQualifiedAttributeName, boolean isEnvironmentAttribute,
+public record AttributeFinderSpecification(@NonNull String fullyQualifiedAttributeName, boolean isEnvironmentAttribute,
         int numberOfArguments, boolean takesVariables, @NonNull Validator entityValidator,
         @NonNull List<Validator> parameterValidators) {
 
     public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;
 
-    public AttributeSpecification {
+    public AttributeFinderSpecification {
         requireValidName(fullyQualifiedAttributeName);
     }
 
@@ -38,7 +38,7 @@ record AttributeSpecification(@NonNull String fullyQualifiedAttributeName, boole
         return numberOfArguments == HAS_VARIABLE_NUMBER_OF_ARGUMENTS;
     }
 
-    public boolean matches(PolicyInformationPointInvocation invocation) {
+    public boolean matches(AttributeFinderInvocation invocation) {
         // @formatter:off
         return    (invocation.fullyQualifiedAttributeName().equals(fullyQualifiedAttributeName))
                && (null != invocation.entity() ^ isEnvironmentAttribute)
@@ -51,7 +51,7 @@ record AttributeSpecification(@NonNull String fullyQualifiedAttributeName, boole
      * @return true, if the presence of the two specifications leads to
      * disambiguates in resolving PIP lookups.
      */
-    public boolean collidesWith(AttributeSpecification other) {
+    public boolean collidesWith(AttributeFinderSpecification other) {
         if (!fullyQualifiedAttributeName.equals(other.fullyQualifiedAttributeName)
                 || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
             return false;

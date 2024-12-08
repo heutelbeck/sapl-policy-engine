@@ -25,8 +25,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeBrokerException;
+import io.sapl.attributes.broker.api.AttributeFinder;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
+import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
@@ -34,32 +37,13 @@ import reactor.core.publisher.Flux;
 public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
     static final Duration DEFAULT_GRACE_PERIOD = Duration.ofMillis(3000L);
 
-    private record SpecAndPip(AttributeSpecification specification, AttributeFinder policyInformationPoint) {}
+    private record SpecAndPip(AttributeFinderSpecification specification, AttributeFinder policyInformationPoint) {}
 
-    private final Map<PolicyInformationPointInvocation, List<AttributeStream>> attributeStreamIndex = new ConcurrentHashMap<>();
+    private final Map<AttributeFinderInvocation, List<AttributeStream>> attributeStreamIndex = new ConcurrentHashMap<>();
     private final Map<String, List<SpecAndPip>>                                pipRegistry          = new ConcurrentHashMap<>();
 
     @Override
-    public Flux<Val> attributeStream(@NonNull String pdpConfigurationId, @NonNull String attributeName,
-            @NonNull Val entity, @NonNull List<Val> arguments, @NonNull Map<String, Val> variables,
-            @NonNull Duration initialTimeOut, @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries,
-            boolean fresh) {
-        final var attributeInvocation = new PolicyInformationPointInvocation(pdpConfigurationId, attributeName, entity,
-                arguments, variables, initialTimeOut, pollIntervall, backoff, retries);
-        return attributeStream(attributeInvocation, fresh);
-    }
-
-    @Override
-    public Flux<Val> environmentAttributeStream(@NonNull String pdpConfigurationId,
-            @NonNull String environemntAttributeName, @NonNull List<Val> arguments, @NonNull Map<String, Val> variables,
-            @NonNull Duration initialTimeOut, @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries,
-            boolean fresh) {
-        final var attributeInvocation = new PolicyInformationPointInvocation(pdpConfigurationId,
-                environemntAttributeName, null, arguments, variables, initialTimeOut, pollIntervall, backoff, retries);
-        return attributeStream(attributeInvocation, fresh);
-    }
-
-    private Flux<Val> attributeStream(PolicyInformationPointInvocation invocation, boolean fresh) {
+    public Flux<Val> attributeStream(AttributeFinderInvocation invocation, boolean fresh) {
         final var attributeStreamReference = new AtomicReference<Flux<Val>>();
 
         /*
@@ -100,7 +84,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
      * present. Else directly, an error is published in the stream that no PIP was
      * was found for the invocation.
      */
-    private AttributeStream newAttributeStream(PolicyInformationPointInvocation invocation,
+    private AttributeStream newAttributeStream(AttributeFinderInvocation invocation,
             List<SpecAndPip> pipsWithNameOfInvocation) {
         final var attributeStream             = new AttributeStream(invocation, this::removeAttributeStreamFromIndex,
                 DEFAULT_GRACE_PERIOD);
@@ -120,7 +104,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
      * @param pipsWithNameOfInvocation a List of PIPs with specification.
      * @return a PIP whose specification is matching the invocation, or null.
      */
-    private AttributeFinder searchForMatchingPip(PolicyInformationPointInvocation invocation,
+    private AttributeFinder searchForMatchingPip(AttributeFinderInvocation invocation,
             List<SpecAndPip> pipsWithNameOfInvocation) {
         if (null == pipsWithNameOfInvocation) {
             return null;
@@ -155,7 +139,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
      * @param policyInformationPoint The PIP itself.
      * @throws AttributeBrokerException if there is a specification collision.
      */
-    public void registerPolicyInformationPoint(AttributeSpecification pipSpecification,
+    public void registerAttributeFinder(AttributeFinderSpecification pipSpecification,
             AttributeFinder policyInformationPoint) {
         log.debug("Publishing PIP: {}", pipSpecification);
         pipRegistry.compute(pipSpecification.fullyQualifiedAttributeName(), (key, pipsForName) -> {
@@ -176,7 +160,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
         });
     }
 
-    private void requireNoSpecCollision(List<SpecAndPip> specsAndPips, AttributeSpecification pipSpecification) {
+    private void requireNoSpecCollision(List<SpecAndPip> specsAndPips, AttributeFinderSpecification pipSpecification) {
         for (var existingSpecAndPip : specsAndPips) {
             if (existingSpecAndPip.specification().collidesWith(pipSpecification)) {
                 throw new AttributeBrokerException(String.format(
@@ -192,7 +176,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
      *
      * @param pipSpecification the specification of the PIP to remove
      */
-    public void removePolicyInformationPoint(AttributeSpecification pipSpecification) {
+    public void removePolicyInformationPoint(AttributeFinderSpecification pipSpecification) {
         log.debug("Unpublishing PIP: {}", pipSpecification);
         pipRegistry.compute(pipSpecification.fullyQualifiedAttributeName(), (key, pipsForName) -> {
             if (null == pipsForName) {
