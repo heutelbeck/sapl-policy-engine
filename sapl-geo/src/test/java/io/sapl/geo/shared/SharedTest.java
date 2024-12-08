@@ -174,6 +174,6 @@ class SharedTest {
     static class ConnectionBaseTestClass extends ConnectionBase {
     }
 
-    static class TrackerConnectionBaseTestClass extends TrackerConnectionBase {
+    static class TrackerConnectionBaseTestClass extends AbstractTrackerConnection {
     }
 }

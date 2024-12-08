@@ -35,11 +35,11 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.geo.model.Geofence;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
-import io.sapl.geo.shared.TrackerConnectionBase;
+import io.sapl.geo.shared.AbstractTrackerConnection;
 import io.sapl.pip.http.ReactiveWebClient;
 import reactor.core.publisher.Flux;
 
-public final class OwnTracks extends TrackerConnectionBase {
+public final class OwnTracks extends AbstractTrackerConnection {
 
     protected static final String HTTP_BASIC_AUTH_USER = "httpUser";
     private String                deviceId;

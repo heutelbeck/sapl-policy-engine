@@ -53,19 +53,21 @@ import reactor.retry.Repeat;
 
 public final class DatabaseStreamQuery extends ConnectionBase {
 
-    private static final String DATABASE           = "dataBase";
-    private static final String TABLE              = "table";
-    private static final String GEOCOLUMN          = "geoColumn";
-    private static final String COLUMNS            = "columns";
-    private static final String WHERE              = "where";
-    private static final String DEFAULTCRS         = "defaultCRS";
-    private static final String SINGLE_RESULT      = "singleResult";
-    private static final String SRC_LATITUDE_FIRST = "srcLatitudeFirst";
-    private static final String EPSG               = "EPSG:";
-    private static final String PORT               = "port";
+    private static final int    DEFAULT_POSTGIS_PORT = 5432;
+    private static final int    DEFAULT_MYSQL_PORT   = 3306;
+    private static final String DATABASE             = "dataBase";
+    private static final String TABLE                = "table";
+    private static final String GEOCOLUMN            = "geoColumn";
+    private static final String COLUMNS              = "columns";
+    private static final String WHERE                = "where";
+    private static final String DEFAULTCRS           = "defaultCRS";
+    private static final String SINGLE_RESULT        = "singleResult";
+    private static final String SRC_LATITUDE_FIRST   = "srcLatitudeFirst";
+    private static final String EPSG                 = "EPSG:";
+    private static final String PORT                 = "port";
     private String[]            selectColumns;
     private boolean             singleResult;
-    private DataBaseTypes       dataBaseType;
+    private DataBaseType        dataBaseType;
     private ConnectionFactory   connectionFactory;
     private JsonNode            auth;
 
@@ -73,7 +75,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
      * @param auth a {@link JsonNode} containing the settings for authorization
      * @param mapper a {@link ObjectMapper}
      */
-    public DatabaseStreamQuery(JsonNode auth, ObjectMapper mapper, DataBaseTypes dataBaseType) {
+    public DatabaseStreamQuery(JsonNode auth, ObjectMapper mapper, DataBaseType dataBaseType) {
         this.auth         = auth;
         this.dataBaseType = dataBaseType;
         this.mapper       = mapper;
@@ -84,7 +86,7 @@ public final class DatabaseStreamQuery extends ConnectionBase {
      * @return a {@link Flux} of {@link Val}
      */
     public Flux<Val> sendQuery(JsonNode settings) {
-        if (dataBaseType == DataBaseTypes.MYSQL) {
+        if (dataBaseType == DataBaseType.MYSQL) {
             createMySqlConnectionFactory(auth, getPort(auth));
         } else {
             createPostgresqlConnectionFactory(auth, getPort(auth));
@@ -284,10 +286,10 @@ public final class DatabaseStreamQuery extends ConnectionBase {
         if (requestSettings.has(PORT)) { // called in constructor
             return requestSettings.findValue(PORT).asInt();
         } else {
-            if (dataBaseType == DataBaseTypes.MYSQL) {
-                return 3306;
+            if (dataBaseType == DataBaseType.MYSQL) {
+                return DEFAULT_MYSQL_PORT;
             } else {
-                return 5432;
+                return DEFAULT_POSTGIS_PORT;
             }
         }
     }

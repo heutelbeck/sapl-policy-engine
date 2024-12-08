@@ -50,81 +50,81 @@ import io.sapl.api.validation.Schema;
 import io.sapl.geo.functions.CrsConst;
 import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.functions.JsonConverter;
-import lombok.experimental.UtilityClass;
-import io.sapl.geo.json.*;
 /*
  * Format always [Lat(y), Long(x)]
  */
+import io.sapl.geo.json.GeoJsonScheme;
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 @FunctionLibrary(name = GeoFunctions.NAME, description = GeoFunctions.DESCRIPTION)
 public class GeoFunctions {
 
-    public static final String  NAME                                                                                                                          = "geoFunctions";
-    public static final String  DESCRIPTION                                                                                                                   = "Functions enabling location based authorisation and geofencing.";
-    private static final String EQUALS_DOC                                                                                                                    = """
+    public static final String  NAME                                        = "geoFunctions";
+    public static final String  DESCRIPTION                                 = "Functions enabling location based authorisation and geofencing.";
+    private static final String EQUALS_DOC                                  = """
             equals(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are exactly (!) equal.  Two Geometries are exactly equal if:
             they have the same structure
             they have the same values for their vertices, in exactly the same order.""";
-    private static final String DISJOINT_DOC                                                                                                                  = "disjoint(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are disjoint from each other (not intersecting each other). ";
-    private static final String TOUCHES_DOC                                                                                                                   = "touches(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are touching each other.";
-    private static final String CROSSES_DOC                                                                                                                   = "crosses(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are crossing each other (having a intersecting area).";
-    private static final String WITHIN_DOC                                                                                                                    = """
+    private static final String DISJOINT_DOC                                = "disjoint(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are disjoint from each other (not intersecting each other). ";
+    private static final String TOUCHES_DOC                                 = "touches(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are touching each other.";
+    private static final String CROSSES_DOC                                 = "crosses(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are crossing each other (having a intersecting area).";
+    private static final String WITHIN_DOC                                  = """
             within(GEOMETRYTHIS, GEOMETRYTHAT): Tests if the GEOMETRYCOLLECTIONTHIS is fully within GEOMETRYCOLLECTIONTHAT (converse of contains-function).
             GEOMETRY2 can also be of type GeometryCollection.""";
-    private static final String CONTAINS_DOC                                                                                                                  = """
+    private static final String CONTAINS_DOC                                = """
             contains(GEOMETRYTHIS, GEOMETRYTHAT): Tests if the GEOMETRYCOLLECTIONTHIS fully contains GEOMETRYCOLLECTIONTHAT (converse of within-function).
             GEOMETRY1 can also be of type GeometryCollection.""";
-    private static final String OVERLAPS_DOC                                                                                                                  = "overlaps(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are overlapping.";
-    private static final String INTERSECTS_DOC                                                                                                                = "intersects(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries have at least one common intersection point.";
-    private static final String BUFFER_DOC                                                                                                                    = """
+    private static final String OVERLAPS_DOC                                = "overlaps(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are overlapping.";
+    private static final String INTERSECTS_DOC                              = "intersects(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries have at least one common intersection point.";
+    private static final String BUFFER_DOC                                  = """
             buffer(GEOMETRY, BUFFER_WIDTH): Adds a buffer area of BUFFER_WIDTH around GEOMETRY and returns the new geometry.
             BUFFER_WIDTH is in the units of the coordinates or of the projection (if projection applied)""";
-    private static final String BOUNDARY_DOC                                                                                                                  = "boundary(GEOMETRY): Returns the boundary of a geometry.";
-    private static final String CENTROID_DOC                                                                                                                  = "centroid(GEOMETRY): Returns a point that is the geometric center of gravity of the geometry.";
-    private static final String CONVEX_HULL_GEOMETRY_RETURNS_THE_CONVEX_HULL_SMALLEST_CONVEX_POLYGON_THAT_CONTAINS_ALL_POINTS_OF_THE_GEOMETRY_OF_THE_GEOMETRY = "convexHull(GEOMETRY): Returns the convex hull (smallest convex polygon, that contains all points of the geometry) of the geometry.";
-    private static final String UNION_DOC                                                                                                                     = "union(GEOMETRYTHIS, GEOMETRYTHAT): Returns the union of two geometries. GEOMETRY can also be a GEOMETRYCOLLECTION.";
-    private static final String INTERSECTION_DOC                                                                                                              = "intersection(GEOMETRYTHIS, GEOMETRYTHAT): Returns the point set intersection of the geometries. GEOMETRY can also be a GEOMETRYCOLLECTION.";
-    private static final String DIFFERENCE_DOC                                                                                                                = "difference(GEOMETRYTHIS, GEOMETRYTHAT): Returns the closure of the set difference between two geometries.";
-    private static final String BETWEEN_TWO_GEOMETRIES                                                                                                        = "symDifference(GEOMETRYTHIS, GEOMETRY2): Returns the closure of the symmetric difference between two geometries.";
-    private static final String DISTANCE_DOC                                                                                                                  = """
+    private static final String BOUNDARY_DOC                                = "boundary(GEOMETRY): Returns the boundary of a geometry.";
+    private static final String CENTROID_DOC                                = "centroid(GEOMETRY): Returns a point that is the geometric center of gravity of the geometry.";
+    private static final String CONVEX_HULL_DOC                             = "convexHull(GEOMETRY): Returns the convex hull (smallest convex polygon, that contains all points of the geometry) of the geometry.";
+    private static final String UNION_DOC                                   = "union(GEOMETRYTHIS, GEOMETRYTHAT): Returns the union of two geometries. GEOMETRY can also be a GEOMETRYCOLLECTION.";
+    private static final String INTERSECTION_DOC                            = "intersection(GEOMETRYTHIS, GEOMETRYTHAT): Returns the point set intersection of the geometries. GEOMETRY can also be a GEOMETRYCOLLECTION.";
+    private static final String DIFFERENCE_DOC                              = "difference(GEOMETRYTHIS, GEOMETRYTHAT): Returns the closure of the set difference between two geometries.";
+    private static final String BETWEEN_TWO_GEOMETRIES                      = "symDifference(GEOMETRYTHIS, GEOMETRY2): Returns the closure of the symmetric difference between two geometries.";
+    private static final String DISTANCE_DOC                                = """
             distance(GEOMETRYTHIS, GEOMETRYTHAT): Returns the (shortest) geometric (planar) distance between two geometries.
             Does return the value of the unit of the coordinates (or projection if used).""";
-    private static final String GEO_DISTANCE_DOC                                                                                                              = """
+    private static final String GEO_DISTANCE_DOC                            = """
             geoDistance(GEOMETRYTHIS, GEOMETRYTHAT): Returns the (shortest) geodetic distance of two geometries in [m].
             Coordinate Reference System is the un-projected (source) system (WGS84 recommended).""";
-    private static final String IS_WITHIN_DISTANCE_DOC                                                                                                        = """
+    private static final String IS_WITHIN_DISTANCE_DOC                      = """
             isWithinDistance(GEOMETRYTHIS, GEOMETRYTHAT, DISTANCE): Tests if two geometries are within the given geometric (planar) distance of each other.
             Uses the unit of the coordinates (or projection if used).""";
-    private static final String IS_WITHIN_GEO_DISTANCE_DOC                                                                                                    = """
+    private static final String IS_WITHIN_GEO_DISTANCE_DOC                  = """
             isWithinGeoDistance(GEOMETRYTHIS, GEOMETRYTHAT, DISTANCE): Tests if two geometries are within the given geodetic distance of each other. Uses [m] as unit.
             Coordinate Reference System is the unprojected (source) system (WGS84 recommended).""";
-    private static final String LENGTH_DOC                                                                                                                    = """
+    private static final String LENGTH_DOC                                  = """
             length(GEOMETRY): Returns the lenth of the geometry (perimeter in case of areal geometries).
             The returned value is in the units of the coordinates or of the projection (if projection applied).""";
-    private static final String AREA_DOC                                                                                                                      = """
+    private static final String AREA_DOC                                    = """
             area(GEOMETRY): Returns the area of the geometry.
             The returned value is in the units (squared) of the coordinates or of the projection (if projection applied).""";
-    private static final String IS_SIMPLE_DOC                                                                                                                 = "isSimple(GEOMETRY): Returns true if the geometry has no anomalous geometric points (e.g. self interesection, self tangency,...).";
-    private static final String IS_VALID_DOC                                                                                                                  = "isValid(GEOMETRY): Returns true if the geometry is topologically valid according to OGC specifications.";
-    private static final String IS_CLOSED_DOC                                                                                                                 = "isClosed(GEOMETRY): Returns true if the geometry is either empty or from type (Multi)Point or a closed (Multi)LineString.";
-    private static final String MILES_TOMETER_DOC                                                                                                             = "toMeter(VALUE, UNIT): Converts the given VALUE from MILES to [m].";
-    private static final String YARDS_TOMETER_DOC                                                                                                             = "toMeter(VALUE, UNIT): Converts the given VALUE from YARDS to [m].";
-    private static final String DEGREE_TOMETER_DOC                                                                                                            = "toMeter(VALUE, UNIT): Converts the given VALUE from DEGREES to [m].";
-    private static final String ONE_AND_ONLY_DOC                                                                                                              = """
+    private static final String IS_SIMPLE_DOC                               = "isSimple(GEOMETRY): Returns true if the geometry has no anomalous geometric points (e.g. self interesection, self tangency,...).";
+    private static final String IS_VALID_DOC                                = "isValid(GEOMETRY): Returns true if the geometry is topologically valid according to OGC specifications.";
+    private static final String IS_CLOSED_DOC                               = "isClosed(GEOMETRY): Returns true if the geometry is either empty or from type (Multi)Point or a closed (Multi)LineString.";
+    private static final String MILES_TOMETER_DOC                           = "toMeter(VALUE, UNIT): Converts the given VALUE from MILES to [m].";
+    private static final String YARDS_TOMETER_DOC                           = "toMeter(VALUE, UNIT): Converts the given VALUE from YARDS to [m].";
+    private static final String DEGREE_TOMETER_DOC                          = "toMeter(VALUE, UNIT): Converts the given VALUE from DEGREES to [m].";
+    private static final String ONE_AND_ONLY_DOC                            = """
             oneAndOnly(GEOMETRYCOLLECTION): If GEOMETRYCOLLECTION only contains one element, this element will be returned.
             In all other cases an error will be thrown.""";
-    private static final String BAG_SIZE_DOC                                                                                                                  = "bagSize(GOEMETRYCOLLECTION): Returns the number of elements in the GEOMETRYCOLLECTION.";
-    private static final String GEOMETRY_IS_IN_DOC                                                                                                            = "geometryIsIn(GEOMETRY, GEOMETRYCOLLECTION): Tests if GEOMETRY is included in GEOMETRYCOLLECTION.";
-    private static final String GEOMETRY_BAG_DOC                                                                                                              = "geometryBag(GEOMETRY,...): Takes any number of GEOMETRY and returns a GEOMETRYCOLLECTION containing all of them.";
-    private static final String RES_TO_GEOMETRY_BAG_DOC                                                                                                       = """
+    private static final String BAG_SIZE_DOC                                = "bagSize(GOEMETRYCOLLECTION): Returns the number of elements in the GEOMETRYCOLLECTION.";
+    private static final String GEOMETRY_IS_IN_DOC                          = "geometryIsIn(GEOMETRY, GEOMETRYCOLLECTION): Tests if GEOMETRY is included in GEOMETRYCOLLECTION.";
+    private static final String GEOMETRY_BAG_DOC                            = "geometryBag(GEOMETRY,...): Takes any number of GEOMETRY and returns a GEOMETRYCOLLECTION containing all of them.";
+    private static final String RES_TO_GEOMETRY_BAG_DOC                     = """
             resToGeometryBag(RESOURCE_ARRAY): Takes multiple Geometries from RESOURCE_ARRAY and turns them into a GeometryCollection
             (e.g. geofences from a third party system).""";
-    private static final String AT_LEAST_ONE_MEMBER_OF_DOC                                                                                                    = """
+    private static final String AT_LEAST_ONE_MEMBER_OF_DOC                  = """
             atLeastOneMemberOf(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2):
             Returns TRUE if at least one member of GEOMETRYCOLLECTIONTHIS is contained in GEOMETRYCOLLECTIONTHAT.""";
-    private static final String SUBSET_DOC                                                                                                                    = "subset(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns true, if GEOMETRYCOLLECTIONTHIS is a subset of GEOMETRYCOLLECTIONTHAT.";
-    private static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM                                                                                   = "Input must be a GeometryCollection containing only one Geometry.";
+    private static final String SUBSET_DOC                                  = "subset(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns true, if GEOMETRYCOLLECTIONTHIS is a subset of GEOMETRYCOLLECTIONTHAT.";
+    private static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM = "Input must be a GeometryCollection containing only one Geometry.";
 
     @Function(name = "equalsExact", docs = EQUALS_DOC)
     public Val geometryEquals(@Schema(GeoJsonScheme.JSON_SCHEME_COMPLETE) @JsonObject Val geoJsonThis,
@@ -254,7 +254,7 @@ public class GeoFunctions {
                 .geometryToGeoJsonNode(JsonConverter.geoJsonToGeometry(jsonGeometry.toPrettyString()).getCentroid());
     }
 
-    @Function(docs = CONVEX_HULL_GEOMETRY_RETURNS_THE_CONVEX_HULL_SMALLEST_CONVEX_POLYGON_THAT_CONTAINS_ALL_POINTS_OF_THE_GEOMETRY_OF_THE_GEOMETRY, schema = GeoJsonScheme.CONVEX_HULL)
+    @Function(docs = CONVEX_HULL_DOC, schema = GeoJsonScheme.CONVEX_HULL)
     public Val convexHull(@Schema(GeoJsonScheme.JSON_SCHEME_COMPLETE) @JsonObject Val jsonGeometry)
             throws ParseException, JsonProcessingException {
         return convexHull(jsonGeometry.get());

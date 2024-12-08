@@ -27,10 +27,9 @@ import org.locationtech.jts.io.gml2.GMLReader;
 import org.xml.sax.SAXException;
 
 import io.sapl.api.interpreter.Val;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@UtilityClass
 public final class GmlConverter {
 
     /**

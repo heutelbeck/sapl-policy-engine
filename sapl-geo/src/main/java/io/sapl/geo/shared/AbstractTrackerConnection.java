@@ -31,7 +31,7 @@ import io.sapl.geo.functions.GeometryConverter;
 import io.sapl.geo.pip.GeoPipResponse;
 import io.sapl.geo.pip.GeoPipResponseFormat;
 
-public abstract class TrackerConnectionBase extends ConnectionBase {
+public abstract class AbstractTrackerConnection extends ConnectionBase {
 
     protected String              altitude;
     protected String              lastupdate;

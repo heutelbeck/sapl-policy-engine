@@ -39,7 +39,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.PostgisTestBase;
-import io.sapl.geo.databases.DataBaseTypes;
+import io.sapl.geo.databases.DataBaseType;
 import io.sapl.geo.databases.DatabaseStreamQuery;
 import reactor.test.StepVerifier;
 
@@ -60,7 +60,7 @@ class PostGisTestsIT extends PostgisTestBase {
         final var queryString = String.format(templateAll, responseFormat, "geometries", "geom");
         final var expected    = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+                DataBaseType.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
@@ -74,7 +74,7 @@ class PostGisTestsIT extends PostgisTestBase {
         final var queryString = String.format(templatePoint, responseFormat, "geometries", "geom");
         final var expected    = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+                DataBaseType.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
@@ -87,7 +87,7 @@ class PostGisTestsIT extends PostgisTestBase {
         final var queryString = String.format(templateAll, responseFormat, "geographies", "geog");
         final var expected    = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+                DataBaseType.POSTGIS).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
@@ -101,7 +101,7 @@ class PostGisTestsIT extends PostgisTestBase {
         final var str      = String.format(templatePoint, responseFormat, "geographies", "geog");
         final var expected = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var postgis  = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(str).get()).map(Val::get).map(JsonNode::toPrettyString);
+                DataBaseType.POSTGIS).sendQuery(Val.ofJson(str).get()).map(Val::get).map(JsonNode::toPrettyString);
         StepVerifier.create(postgis).expectNext(expected).expectNext(expected).verifyComplete();
     }
 
@@ -109,7 +109,7 @@ class PostGisTestsIT extends PostgisTestBase {
     void Test05ErrorNonExistantTable() throws JsonProcessingException {
         final var str     = String.format(templatePoint, "WKT", "nonExistantTable", "geog");
         final var postgis = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS).sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
+                DataBaseType.POSTGIS).sendQuery(Val.ofJson(str).get()).map(Val::getMessage);
         StepVerifier.create(postgis).expectNext("relation \"nonexistanttable\" does not exist").verifyComplete();
     }
 
@@ -117,7 +117,7 @@ class PostGisTestsIT extends PostgisTestBase {
     void Test06ErrorInvalidTemplate() throws JsonProcessingException {
         final var queryString = "{\"invalid\":\"Template\"}";
         final var postgis     = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.POSTGIS);
+                DataBaseType.POSTGIS);
         final var query       = Val.ofJson(queryString).get();
         final var exception   = assertThrows(PolicyEvaluationException.class, () -> {
                                   postgis.sendQuery(query);

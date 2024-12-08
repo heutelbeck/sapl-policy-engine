@@ -29,12 +29,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.geo.shared.TrackerConnectionBase;
+import io.sapl.geo.shared.AbstractTrackerConnection;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-abstract class TraccarBase extends TrackerConnectionBase {
+abstract class TraccarConnection extends AbstractTrackerConnection {
 
     private int                   sessionId;
     private URI                   uri;

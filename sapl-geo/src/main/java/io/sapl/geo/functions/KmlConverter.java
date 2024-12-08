@@ -23,10 +23,9 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.kml.KMLReader;
 
 import io.sapl.api.interpreter.Val;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@UtilityClass
 public final class KmlConverter {
 
     /**

@@ -40,7 +40,7 @@ import io.r2dbc.spi.ConnectionFactory;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.MySqlTestBase;
-import io.sapl.geo.databases.DataBaseTypes;
+import io.sapl.geo.databases.DataBaseType;
 import io.sapl.geo.databases.DatabaseStreamQuery;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -63,7 +63,7 @@ class MySqlTestsIT extends MySqlTestBase {
         final var queryString   = String.format(templateAll, responseFormat, "geometries", "geom");
         final var expected      = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+                DataBaseType.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
     }
@@ -77,7 +77,7 @@ class MySqlTestsIT extends MySqlTestBase {
         final var queryString   = String.format(templatePoint, responseFormat, "geometries", "geom");
         final var expected      = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+                DataBaseType.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
 
@@ -104,7 +104,7 @@ class MySqlTestsIT extends MySqlTestBase {
         final var queryString    = String.format(templatePoint3, responseFormat);
         final var expected       = source.getJsonSource().get(expectedJsonKey).toPrettyString();
         final var mysqlResponse  = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
+                DataBaseType.MYSQL).sendQuery(Val.ofJson(queryString).get()).map(Val::get)
                 .map(JsonNode::toPrettyString);
         StepVerifier.create(mysqlResponse).expectNext(expected).expectNext(expected).verifyComplete();
 
@@ -123,7 +123,7 @@ class MySqlTestsIT extends MySqlTestBase {
                 """);
         final var queryString   = String.format(errorTemplate, "WKT", "nonExistant", "geog");
         final var mysqlResponse = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.MYSQL).sendQuery(Val.ofJson(queryString).get());
+                DataBaseType.MYSQL).sendQuery(Val.ofJson(queryString).get());
         StepVerifier.create(mysqlResponse).expectError();
     }
 
@@ -131,7 +131,7 @@ class MySqlTestsIT extends MySqlTestBase {
     void Test05ErrorInvalidTemplate() throws JsonProcessingException {
         final var queryString = "{\"invalid\":\"Template\"}";
         final var mysql       = new DatabaseStreamQuery(Val.ofJson(authTemplate).get(), new ObjectMapper(),
-                DataBaseTypes.MYSQL);
+                DataBaseType.MYSQL);
         final var query       = Val.ofJson(queryString).get();
         final var exception   = assertThrows(PolicyEvaluationException.class, () -> {
                                   mysql.sendQuery(query);

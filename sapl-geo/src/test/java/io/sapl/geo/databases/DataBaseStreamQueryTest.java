@@ -64,7 +64,7 @@ class DataBaseStreamQueryTest {
                  }
                 """;
         final var error                       = Val.ofJson(authenticationTemplateError).get();
-        final var databaseStreamQuery         = new DatabaseStreamQuery(error, mapper, DataBaseTypes.POSTGIS);
+        final var databaseStreamQuery         = new DatabaseStreamQuery(error, mapper, DataBaseType.POSTGIS);
         final var exception                   = assertThrows(PolicyEvaluationException.class,
                 () -> databaseStreamQuery.sendQuery(null));
         assertEquals("No database-name found", exception.getMessage());
@@ -75,7 +75,7 @@ class DataBaseStreamQueryTest {
         final var templateWithoutTable = "{\"geoColumn\":\"test\"}";
         final var requestWithoutTable  = Val.ofJson(templateWithoutTable).get();
         final var auth                 = Val.ofJson(authenticationTemplate).get();
-        final var databaseStreamQuery  = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
+        final var databaseStreamQuery  = new DatabaseStreamQuery(auth, mapper, DataBaseType.POSTGIS);
         final var exception            = assertThrows(PolicyEvaluationException.class, () -> {
                                            databaseStreamQuery.sendQuery(requestWithoutTable);
                                        });
@@ -87,7 +87,7 @@ class DataBaseStreamQueryTest {
         final var templateWithoutTable = "{\"dataBase\":\"test\"}";
         final var requestWithoutTable  = Val.ofJson(templateWithoutTable).get();
         final var auth                 = Val.ofJson(authenticationTemplate).get();
-        final var databaseStreamQuery  = new DatabaseStreamQuery(auth, mapper, DataBaseTypes.POSTGIS);
+        final var databaseStreamQuery  = new DatabaseStreamQuery(auth, mapper, DataBaseType.POSTGIS);
         final var exception            = assertThrows(PolicyEvaluationException.class, () -> {
                                            databaseStreamQuery.sendQuery(requestWithoutTable);
                                        });

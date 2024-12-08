@@ -17,6 +17,6 @@
  */
 package io.sapl.geo.databases;
 
-public enum DataBaseTypes {
+public enum DataBaseType {
     POSTGIS, MYSQL
 }
