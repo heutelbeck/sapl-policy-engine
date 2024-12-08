@@ -17,12 +17,13 @@
  */
 package io.sapl.attributes.documentation.api;
 
-import java.util.Collection;
+import java.util.Map;
 
 public interface AttributeDocumentationService {
 
-    Collection<PolicyInformationPointDocumentation> getDocumentationOfAllPolicyInformationPoints();
+    Map<String, PolicyInformationPointDocumentation> getPolicyInformationPointsByNamespace();
 
-    Collection<AttributeDocumentation> getDocumentationOfAllAttributesWithNamePrefix(String namePrefix);
+    Map<String, PolicyInformationPointDocumentation> getPolicyInformationPointsByConfigurationId(
+            String configurationId);
 
 }

@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinder;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +56,7 @@ import reactor.util.retry.Retry;
 @Slf4j
 class AttributeStream {
     @Getter
-    private final PolicyInformationPointInvocation invocation;
+    private final AttributeFinderInvocation invocation;
 
     private final Many<Val> sink = Sinks.many().unicast().onBackpressureBuffer();
 
@@ -74,7 +76,7 @@ class AttributeStream {
      * @param gracePeriod The time to live for the connection to the raw stream,
      * once all subscribers cancelled their subscription.
      */
-    public AttributeStream(@NonNull PolicyInformationPointInvocation invocation,
+    public AttributeStream(@NonNull AttributeFinderInvocation invocation,
             @NonNull Consumer<AttributeStream> cleanupAction, @NonNull Duration gracePeriod) {
         this.invocation    = invocation;
         this.cleanupAction = cleanupAction;

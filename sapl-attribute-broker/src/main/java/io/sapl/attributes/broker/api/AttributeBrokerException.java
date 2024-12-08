@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.broker.impl;
+package io.sapl.attributes.broker.api;
 
-import io.sapl.api.interpreter.Val;
-import reactor.core.publisher.Flux;
+import io.sapl.api.SaplVersion;
+import lombok.experimental.StandardException;
 
-@FunctionalInterface
-interface AttributeFinder {
-    Flux<Val> invoke(PolicyInformationPointInvocation invocation);
+@StandardException
+public class AttributeBrokerException extends RuntimeException {
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 }

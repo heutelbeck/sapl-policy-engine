@@ -32,12 +32,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import reactor.core.publisher.Flux;
 
 @Timeout(20)
 class AttributeStreamTests {
 
-    private static final PolicyInformationPointInvocation INVOCATION = new PolicyInformationPointInvocation("configId",
+    private static final AttributeFinderInvocation INVOCATION = new AttributeFinderInvocation("configId",
             "some.attribute", null, List.of(), Map.of(), Duration.ofSeconds(1L), Duration.ofSeconds(1L),
             Duration.ofMillis(50L), 20L);
 

@@ -31,6 +31,10 @@ import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
+import io.sapl.attributes.broker.api.AttributeBrokerException;
+import io.sapl.attributes.broker.api.AttributeFinder;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
+import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.validation.ValidationException;
 import io.sapl.validation.Validator;
@@ -184,7 +188,7 @@ public class AnnotationPolicyInformationPointLoader {
 
     @SuppressWarnings("unchecked") // All methods are pre-checked to return the correct type.
     private AttributeFinder createAttributeFinder(Object policyInformationPoint, Method method,
-            AttributeSpecification specification) {
+            AttributeFinderSpecification specification) {
         assertValidReturnType(method);
         final var methodReturnsMono = methodReturnsMono(method);
         return invocation -> {
@@ -202,8 +206,8 @@ public class AnnotationPolicyInformationPointLoader {
         };
     }
 
-    private static Object[] attributeFinderArguments(AttributeSpecification specification,
-            PolicyInformationPointInvocation invocation) throws ValidationException {
+    private static Object[] attributeFinderArguments(AttributeFinderSpecification specification,
+            AttributeFinderInvocation invocation) throws ValidationException {
         final var numberOfInvocationParameters = numberOfInvocationParametersForAttribute(specification, invocation);
         final var invocationArguments          = new Object[numberOfInvocationParameters];
 
@@ -236,8 +240,8 @@ public class AnnotationPolicyInformationPointLoader {
         return invocationArguments;
     }
 
-    private static int numberOfInvocationParametersForAttribute(AttributeSpecification attributeMetadata,
-            PolicyInformationPointInvocation invocation) {
+    private static int numberOfInvocationParametersForAttribute(AttributeFinderSpecification attributeMetadata,
+            AttributeFinderInvocation invocation) {
 
         var numberOfArguments = 0;
 
@@ -258,7 +262,7 @@ public class AnnotationPolicyInformationPointLoader {
         return numberOfArguments;
     }
 
-    private AttributeSpecification getSpecificationOfAttribute(Object policyInformationPoint,
+    private AttributeFinderSpecification getSpecificationOfAttribute(Object policyInformationPoint,
             String fullyQualifiedAttributeName, Method method, boolean isEnvironmentAttribute) {
         if (null == policyInformationPoint) {
             assertMethodIsStatic(method);
@@ -289,8 +293,8 @@ public class AnnotationPolicyInformationPointLoader {
             if (parameterUnderInspection + 1 == parameterCount) {
                 parameterValidators.add(validatorFactory
                         .parameterValidatorFromAnnotations(parameterAnnotations[parameterUnderInspection]));
-                return new AttributeSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
-                        AttributeSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, requiresVariables, entityValidator,
+                return new AttributeFinderSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
+                        AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, requiresVariables, entityValidator,
                         parameterValidators);
             } else {
                 throw new AttributeBrokerException(String.format(VARARGS_MISMATCH_AT_METHOD_S_ERROR, method.getName()));
@@ -308,7 +312,7 @@ public class AnnotationPolicyInformationPointLoader {
                         String.format(NON_VAL_PARAMETER_AT_METHOD_S_ERROR, method.getName()));
             }
         }
-        return new AttributeSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
+        return new AttributeFinderSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
                 numberOfInnerAttributeParameters, requiresVariables, entityValidator, parameterValidators);
     }
 

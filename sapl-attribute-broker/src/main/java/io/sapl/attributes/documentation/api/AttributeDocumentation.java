@@ -19,5 +19,5 @@ package io.sapl.attributes.documentation.api;
 
 import lombok.NonNull;
 
-public record AttributeDocumentation(@NonNull String namespace, @NonNull String pipName, @NonNull AttributeType type,
+public record AttributeDocumentation(@NonNull String namespace, @NonNull String attributeNAme, @NonNull AttributeType type,
         @NonNull String codeTemplate, @NonNull String documentationMarkdown) {}
