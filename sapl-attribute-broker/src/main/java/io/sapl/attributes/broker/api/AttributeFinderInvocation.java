@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.broker.impl;
+package io.sapl.attributes.broker.api;
 
 import static io.sapl.validation.NameValidator.requireValidName;
 
@@ -26,11 +26,18 @@ import java.util.Map;
 import io.sapl.api.interpreter.Val;
 import lombok.NonNull;
 
-record PolicyInformationPointInvocation(@NonNull String pdpConfigurationId, @NonNull String fullyQualifiedAttributeName,
+public record AttributeFinderInvocation(@NonNull String pdpConfigurationId, @NonNull String fullyQualifiedAttributeName,
         Val entity, @NonNull List<Val> arguments, @NonNull Map<String, Val> variables, @NonNull Duration initialTimeOut,
         @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries) {
 
-    public PolicyInformationPointInvocation {
+    public AttributeFinderInvocation(@NonNull String pdpConfigurationId, @NonNull String fullyQualifiedAttributeName,
+            @NonNull List<Val> arguments, @NonNull Map<String, Val> variables, @NonNull Duration initialTimeOut,
+            @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries) {
+        this(pdpConfigurationId, fullyQualifiedAttributeName, null, arguments, variables, initialTimeOut, pollIntervall,
+                backoff, retries);
+    }
+
+    public AttributeFinderInvocation {
         requireValidName(fullyQualifiedAttributeName);
     }
 

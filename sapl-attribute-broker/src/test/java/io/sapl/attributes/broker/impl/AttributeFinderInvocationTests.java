@@ -27,8 +27,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 
-class PolicyInformationPointInvocationTests {
+class AttributeFinderInvocationTests {
 
     private static final Duration BACKOFF    = Duration.ofMillis(50L);
     private static final Duration ONE_SECOND = Duration.ofSeconds(1L);
@@ -37,23 +38,23 @@ class PolicyInformationPointInvocationTests {
     void whenConstructionOfPolicyInformationPointInvocationHasBadParametersThenThrowElseDoNotThrow() {
         final List<Val>        emptyList = List.of();
         final Map<String, Val> emptyMap  = Map.of();
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation(null, "abc.def", Val.TRUE, emptyList, emptyMap,
+        assertThatThrownBy(() -> new AttributeFinderInvocation(null, "abc.def", Val.TRUE, emptyList, emptyMap,
                 ONE_SECOND, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", null, Val.TRUE, emptyList, emptyMap,
+        assertThatThrownBy(() -> new AttributeFinderInvocation("id", null, Val.TRUE, emptyList, emptyMap,
                 ONE_SECOND, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "abc.def", Val.TRUE, null, emptyMap,
+        assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, null, emptyMap,
                 ONE_SECOND, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "abc.def", Val.TRUE, emptyList, null,
+        assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, null,
                 ONE_SECOND, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
+        assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
                 null, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
+        assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
                 ONE_SECOND, null, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
+        assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
                 ONE_SECOND, ONE_SECOND, null, 20L)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new PolicyInformationPointInvocation("id", "123 ", Val.TRUE, emptyList, emptyMap,
+        assertThatThrownBy(() -> new AttributeFinderInvocation("id", "123 ", Val.TRUE, emptyList, emptyMap,
                 ONE_SECOND, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(IllegalArgumentException.class);
-        assertDoesNotThrow(() -> new PolicyInformationPointInvocation("id", "abc.def", null, emptyList, emptyMap,
+        assertDoesNotThrow(() -> new AttributeFinderInvocation("id", "abc.def", null, emptyList, emptyMap,
                 ONE_SECOND, ONE_SECOND, BACKOFF, 20L));
     }
 
