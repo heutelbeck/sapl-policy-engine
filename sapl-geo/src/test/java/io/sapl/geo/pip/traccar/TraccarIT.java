@@ -122,7 +122,7 @@ class TraccarIT extends TraccarTestBase {
             "GML,TraccarGeofencesDeviceGML,true", "KML,TraccarGeofencesDeviceKML,true" })
     void testTraccarGeofencesWithDeviceId(String responseFormat, String expectedJsonKey, boolean latitudeFirst)
             throws Exception {
-        final var expected         = source.getJsonSource().get(expectedJsonKey).toPrettyString();
+        final var expected         = source.getJsonSource().get(expectedJsonKey);
         final var str              = """
                 {
                    "responseFormat":"%s",
@@ -135,7 +135,7 @@ class TraccarIT extends TraccarTestBase {
         responseTemplate = responseTemplate.concat("}");
         final var val    = Val.ofJson(responseTemplate);
         final var result = new TraccarGeofences(Val.ofJson(authTemplate).get(), new ObjectMapper())
-                .getGeofences(val.get()).map(Val::get).map(JsonNode::toPrettyString);
+                .getGeofences(val.get()).map(Val::get);
         StepVerifier.create(result).expectNext(expected).expectNext(expected).thenCancel().verify();
     }
 
