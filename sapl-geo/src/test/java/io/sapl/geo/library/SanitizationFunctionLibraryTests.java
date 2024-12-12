@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.functions;
+package io.sapl.geo.library;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -23,58 +23,70 @@ import org.junit.jupiter.api.Test;
 import org.locationtech.jts.util.Assert;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.library.SqlFunctions;
 
-class SqlFunctionsTests {
-
-    private Val errorVal = Val.error("Error validating input. Input-string failed sanitization");
+class SanitizationFunctionLibraryTests {
 
     @Test
     void CheckForControlCharactersPass() {
         final var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
-        final var checkedSql = SqlFunctions.assertNoSqlControlChars(sql);
-        Assert.equals(Val.TRUE, checkedSql);
+        final var checkedSql = SanitizationFunctionLibrary.assertNoSqlControlChars(sql);
+        Assert.equals(sql, checkedSql);
     }
 
     @Test
     void CheckForControlCharacters2() {
         final var sql    = Val.of(
                 "SELECT id, value FROM table WHERE name IN (SELECT name, someField FROM table2 WHERE id = 'someNumber')");
-        final var result = SqlFunctions.assertNoSqlControlChars(sql);
-        assertEquals(Val.TRUE, result);
+        final var result = SanitizationFunctionLibrary.assertNoSqlControlChars(sql);
+        assertEquals(sql, result);
     }
 
     @Test
     void CheckForControlCharactersError() {
-        final var sql = SqlFunctions
+        final var sql = SanitizationFunctionLibrary
                 .assertNoSqlControlChars(Val.of("Select * from table where name = 'test;drop table'"));
-        assertEquals(errorVal, sql);
+        assertEquals(Val.error(SanitizationFunctionLibrary.CONTROL_CHARACTERS_FOUND_ERROR), sql);
     }
 
     @Test
     void CheckForControlCharactersError2() {
-        final var sql = SqlFunctions.assertNoSqlControlChars(Val.of("Select * from table where name = @setvalue = 1"));
-        assertEquals(errorVal, sql);
+        final var sql = SanitizationFunctionLibrary
+                .assertNoSqlControlChars(Val.of("Select * from table where name = @setvalue = 1"));
+        assertEquals(Val.error(SanitizationFunctionLibrary.CONTROL_CHARACTERS_FOUND_ERROR), sql);
     }
 
     @Test
     void CheckForKeywordsPass() {
         final var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
-        final var checkedSql = SqlFunctions.assertNoSqlKeywords(sql);
-        Assert.equals(Val.TRUE, checkedSql);
+        final var checkedSql = SanitizationFunctionLibrary.assertNoSqlKeywords(sql);
+        Assert.equals(checkedSql, checkedSql);
     }
 
     @Test
     void CheckForKeywordsError() {
-        final var sql = SqlFunctions
+        final var sql = SanitizationFunctionLibrary
                 .assertNoSqlKeywords(Val.of("Select (drop table table1) from table where name = 'test'"));
-        assertEquals(errorVal, sql);
+        assertEquals(Val.error(SanitizationFunctionLibrary.KEYWORD_FOUND_ERROR), sql);
+    }
+
+    @Test
+    void CheckForKeywordsErrorNoSql() {
+        final var sql = SanitizationFunctionLibrary
+                .assertNoSql(Val.of("Select (drop table table1) from table where name = 'test'"));
+        assertEquals(Val.error(SanitizationFunctionLibrary.KEYWORD_FOUND_ERROR), sql);
+    }
+
+    @Test
+    void CheckForControlCharactersErrorNoSql() {
+        final var sql = SanitizationFunctionLibrary
+                .assertNoSql(Val.of("Select * from table where name = 'test;drop table'"));
+        assertEquals(Val.error(SanitizationFunctionLibrary.CONTROL_CHARACTERS_FOUND_ERROR), sql);
     }
 
     @Test
     void CheckForKeywordsError2() {
-        final var sql = SqlFunctions
+        final var sql = SanitizationFunctionLibrary
                 .assertNoSqlKeywords(Val.of("Select * from table where name in (TRUNCATE table table1)"));
-        assertEquals(errorVal, sql);
+        assertEquals(Val.error(SanitizationFunctionLibrary.KEYWORD_FOUND_ERROR), sql);
     }
 }

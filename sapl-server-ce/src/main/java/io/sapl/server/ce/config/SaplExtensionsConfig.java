@@ -35,7 +35,7 @@ import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.geo.library.GeoConverter;
 import io.sapl.geo.library.GeoFunctions;
 import io.sapl.geo.library.GeoParser;
-import io.sapl.geo.library.SqlFunctions;
+import io.sapl.geo.library.SanitizationFunctionLibrary;
 import io.sapl.geo.pip.MySqlPolicyInformationPoint;
 import io.sapl.geo.pip.OwnTracksPolicyInformationPoint;
 import io.sapl.geo.pip.PostGisPolicyInformationPoint;
@@ -90,7 +90,7 @@ public class SaplExtensionsConfig {
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     StaticFunctionLibrarySupplier additionalStaticLibraries() {
-        return () -> List.of(MqttFunctionLibrary.class, GeoConverter.class, GeoFunctions.class, SqlFunctions.class);
+        return () -> List.of(MqttFunctionLibrary.class, GeoConverter.class, GeoFunctions.class, SanitizationFunctionLibrary.class);
     }
 
 }
