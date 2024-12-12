@@ -52,7 +52,7 @@ public final class JsonConverter {
      * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(String geoJson, GeometryFactory factory) throws ParseException {
-        return GEOJSON_READER.read(geoJson);
+        return (new GeoJsonReader(factory)).read(geoJson);
     }
 
     /**

@@ -60,6 +60,6 @@ public final class KmlConverter {
      * @return a {@link Geometry}
      */
     public static Geometry kmlToGeometry(String kml, GeometryFactory factory) throws ParseException {
-        return KML_READER.read(kml);
+        return (new KMLReader(factory)).read(kml);
     }
 }

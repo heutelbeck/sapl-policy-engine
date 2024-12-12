@@ -60,6 +60,6 @@ public final class WktConverter {
      * @return a {@link Geometry}
      */
     public static Geometry wktToGeometry(String wkt, GeometryFactory factory) throws ParseException {
-        return WKT_READER.read(wkt);
+        return (new WKTReader(factory)).read(wkt);
     }
 }
