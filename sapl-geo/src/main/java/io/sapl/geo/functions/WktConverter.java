@@ -27,6 +27,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public final class WktConverter {
+    private static final WKTReader WKT_READER = new WKTReader();
 
     /**
      * @param wkt a {@link Val} containing the WKT-String
@@ -50,7 +51,7 @@ public final class WktConverter {
      * @return a {@link Geometry}
      */
     public static Geometry wktToGeometry(String wkt) throws ParseException {
-        return (new WKTReader()).read(wkt);
+        return WKT_READER.read(wkt);
     }
 
     /**
@@ -59,6 +60,6 @@ public final class WktConverter {
      * @return a {@link Geometry}
      */
     public static Geometry wktToGeometry(String wkt, GeometryFactory factory) throws ParseException {
-        return (new WKTReader(factory)).read(wkt);
+        return WKT_READER.read(wkt);
     }
 }

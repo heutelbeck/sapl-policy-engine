@@ -28,8 +28,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.functions.GeometryConverter;
-import io.sapl.geo.pip.GeoPipResponse;
-import io.sapl.geo.pip.GeoPipResponseFormat;
+import io.sapl.geo.pip.model.GeoPipResponse;
+import io.sapl.geo.pip.model.GeoPipResponseFormat;
 
 public abstract class AbstractTrackerConnection extends ConnectionBase {
 

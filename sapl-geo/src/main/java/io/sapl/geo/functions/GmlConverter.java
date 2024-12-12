@@ -32,6 +32,8 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public final class GmlConverter {
 
+    private static final GMLReader GML_READER = new GMLReader();
+
     /**
      * @param gml a {@link Val} containing the GML-String
      * @return a {@link Geometry}
@@ -55,7 +57,7 @@ public final class GmlConverter {
      * @return a {@link Geometry}
      */
     public static Geometry gmlToGeometry(String gml) throws SAXException, IOException, ParserConfigurationException {
-        return (new GMLReader()).read(gml, null);
+        return GML_READER.read(gml, null);
     }
 
     /**
@@ -65,6 +67,6 @@ public final class GmlConverter {
      */
     public static Geometry gmlToGeometry(String gml, GeometryFactory factory)
             throws SAXException, IOException, ParserConfigurationException {
-        return (new GMLReader()).read(gml, factory);
+        return GML_READER.read(gml, factory);
     }
 }

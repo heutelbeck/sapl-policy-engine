@@ -32,16 +32,16 @@ import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
-import io.sapl.geo.functionlibraries.GeoConverter;
-import io.sapl.geo.functionlibraries.GeoFunctions;
-import io.sapl.geo.functionlibraries.GeoParser;
-import io.sapl.geo.functionlibraries.SqlFunctions;
+import io.sapl.geo.library.GeoConverter;
+import io.sapl.geo.library.GeoFunctions;
+import io.sapl.geo.library.GeoParser;
+import io.sapl.geo.library.SqlFunctions;
+import io.sapl.geo.pip.MySqlPolicyInformationPoint;
+import io.sapl.geo.pip.OwnTracksPolicyInformationPoint;
+import io.sapl.geo.pip.PostGisPolicyInformationPoint;
+import io.sapl.geo.pip.TraccarPolicyInformationPoint;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.pip.http.ReactiveWebClient;
-import io.sapl.server.MySqlPolicyInformationPoint;
-import io.sapl.server.OwnTracksPolicyInformationPoint;
-import io.sapl.server.PostGisPolicyInformationPoint;
-import io.sapl.server.TraccarPolicyInformationPoint;
 
 @Configuration
 @EnableAutoConfiguration(exclude = { R2dbcAutoConfiguration.class })

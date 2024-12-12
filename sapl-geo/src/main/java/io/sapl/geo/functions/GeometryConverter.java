@@ -25,8 +25,6 @@ import org.locationtech.jts.io.kml.KMLWriter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
@@ -34,47 +32,49 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public final class GeometryConverter {
 
+    private static final GMLWriter     GML_WRITER     = new GMLWriter();
+    private static final KMLWriter     KML_WRITER     = new KMLWriter();
+    private static final WKTWriter     WKT_WRITER     = new WKTWriter();
+    private static final GeoJsonWriter GEOJSON_WRITER = new GeoJsonWriter();
+
+    static {
+        // reader has problems if /n occurs in coordinates
+        GML_WRITER.setMaxCoordinatesPerLine(Integer.MAX_VALUE);
+        KML_WRITER.setMaximumCoordinatesPerLine(Integer.MAX_VALUE);
+        WKT_WRITER.setMaxCoordinatesPerLine(Integer.MAX_VALUE);
+    }
+
     /**
      * @param geo a {@link Geometry}
-     * @return a {@link Val} containing the GML-string}
+     * @return a {@link Val} containing the GML string
      */
     public static Val geometryToGML(Geometry geo) {
-        final var writer = new GMLWriter();
-        writer.setMaxCoordinatesPerLine(Integer.MAX_VALUE);// reader has problems if /n occurs in coordinates
-        return Val.of(writer.write(geo));
+        return Val.of(GML_WRITER.write(geo));
     }
 
     /**
      * @param geo a {@link Geometry}
-     * @return a {@link Val} containing the KML-string}
+     * @return a {@link Val} containing the KML string
      */
     public static Val geometryToKML(Geometry geo) {
-        final var writer = new KMLWriter();
-        writer.setMaximumCoordinatesPerLine(Integer.MAX_VALUE); // reader has problems if /n occurs in coordinates
-        return Val.of(writer.write(geo));
+        return Val.of(KML_WRITER.write(geo));
     }
 
     /**
      * @param geo a {@link Geometry}
-     * @return a {@link Val} containing the WKT-string}
+     * @return a {@link Val} containing the WKT string
      */
     public static Val geometryToWKT(Geometry geo) {
-        final var writer = new WKTWriter();
-        writer.setMaxCoordinatesPerLine(Integer.MAX_VALUE);// reader has problems if /n occurs in coordinates
-        return Val.of(writer.write(geo));
+        return Val.of(WKT_WRITER.write(geo));
     }
 
     /**
      * @param geo a {@link Geometry}
-     * @return a {@link Val} containing the GeoJSON-string}
+     * @return a {@link Val} containing the GeoJSON value
      * @throws JsonProcessingException
      * @throws JsonMappingException
      */
     public static Val geometryToGeoJsonNode(Geometry geo) throws JsonProcessingException {
-        JsonNode  json          = null;
-        final var mapper        = new ObjectMapper();
-        final var geoJsonWriter = new GeoJsonWriter();
-        json = mapper.readTree(geoJsonWriter.write(geo));
-        return Val.of(json);
+        return Val.ofJson(GEOJSON_WRITER.write(geo));
     }
 }

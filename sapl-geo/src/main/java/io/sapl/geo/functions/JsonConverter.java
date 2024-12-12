@@ -27,6 +27,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public final class JsonConverter {
+    private static final GeoJsonReader GEOJSON_READER = new GeoJsonReader();
 
     /**
      * @param geoJson a {@link Val} containing the GML-String
@@ -51,7 +52,7 @@ public final class JsonConverter {
      * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(String geoJson, GeometryFactory factory) throws ParseException {
-        return (new GeoJsonReader(factory)).read(geoJson);
+        return GEOJSON_READER.read(geoJson);
     }
 
     /**
@@ -59,6 +60,6 @@ public final class JsonConverter {
      * @return a {@link Geometry}
      */
     public static Geometry geoJsonToGeometry(String geoJson) throws ParseException {
-        return (new GeoJsonReader()).read(geoJson);
+        return GEOJSON_READER.read(geoJson);
     }
 }

@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.geo.pip.GeoPipResponseFormat;
+import io.sapl.geo.pip.model.GeoPipResponseFormat;
 
 public abstract class ConnectionBase {
 
