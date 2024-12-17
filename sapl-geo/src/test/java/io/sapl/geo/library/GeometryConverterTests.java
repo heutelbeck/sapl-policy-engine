@@ -33,7 +33,6 @@ import org.springframework.util.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.geo.common.TestBase;
-import io.sapl.geo.functions.GeometryConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GeometryConverterTests extends TestBase {

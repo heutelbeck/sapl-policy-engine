@@ -48,9 +48,7 @@ abstract class TraccarConnection extends AbstractTrackerConnection {
     protected Mono<String> establishSession(String user, String password, String serverName, String protocol)
             throws URISyntaxException {
         uri = new URI(String.format("%s://%s/api/session", protocol, serverName));
-        final var bodyProperties = new HashMap<String, String>() {
-            private static final long serialVersionUID = 1L;
-        };
+        final var bodyProperties = new HashMap<String, String>();
         bodyProperties.put("email", user);
         bodyProperties.put("password", password);
         final var form   = bodyProperties.entrySet().stream()

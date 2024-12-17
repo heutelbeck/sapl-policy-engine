@@ -33,9 +33,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 
-import io.sapl.geo.functions.CrsConst;
-import io.sapl.geo.functions.GeoProjector;
-
 @TestInstance(Lifecycle.PER_CLASS)
 class GeoProjectorTests {
 

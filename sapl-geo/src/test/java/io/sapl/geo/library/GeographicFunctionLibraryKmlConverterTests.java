@@ -40,7 +40,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.TestBase;
-import io.sapl.geo.functions.KmlConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GeographicFunctionLibraryKmlConverterTests extends TestBase {

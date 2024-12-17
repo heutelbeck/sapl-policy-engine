@@ -27,31 +27,33 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.functions.GeometryConverter;
+import io.sapl.geo.library.GeometryConverter;
 import io.sapl.geo.pip.model.GeoPipResponse;
 import io.sapl.geo.pip.model.GeoPipResponseFormat;
 
 public abstract class AbstractTrackerConnection extends ConnectionBase {
 
-    protected String              altitude;
-    protected String              lastupdate;
-    protected String              accuracy;
-    protected String              latitude;
-    protected String              longitude;
-    protected String              baseUrl;
-    protected static final String DEVICEID_CONST = "deviceId";
-    private static final int      WGS84          = 4326;
+    private static final int             WGS84            = 4326;
+    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), WGS84);
+
+    protected static final String        DEVICEID_CONST   = "deviceId";
+
+    protected String altitude;
+    protected String lastupdate;
+    protected String accuracy;
+    protected String latitude;
+    protected String longitude;
+    protected String baseUrl;
 
     protected GeoPipResponse mapPosition(String deviceId, JsonNode in, GeoPipResponseFormat format,
             boolean latitudeFirst) throws JsonProcessingException {
-        final var geometryFactory = new GeometryFactory(new PrecisionModel(), WGS84);
         Point     position;
-        final var lat             = in.findValue(latitude).asDouble();
-        final var lon             = in.findValue(longitude).asDouble();
+        final var lat = in.findValue(latitude).asDouble();
+        final var lon = in.findValue(longitude).asDouble();
         if (!latitudeFirst) {
-            position = geometryFactory.createPoint(new Coordinate(lon, lat));
+            position = GEOMETRY_FACTORY.createPoint(new Coordinate(lon, lat));
         } else {
-            position = geometryFactory.createPoint(new Coordinate(lat, lon));
+            position = GEOMETRY_FACTORY.createPoint(new Coordinate(lat, lon));
         }
         var posRes = switch (format) {
         case GEOJSON -> GeometryConverter.geometryToGeoJsonNode(position).get();

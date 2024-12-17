@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo;
+package io.sapl.geo.schemata;
 
 import lombok.experimental.UtilityClass;
 

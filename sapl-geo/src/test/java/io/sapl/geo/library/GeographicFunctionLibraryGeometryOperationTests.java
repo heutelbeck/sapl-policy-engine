@@ -41,8 +41,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.TestBase;
-import io.sapl.geo.functions.CrsConst;
-import io.sapl.geo.functions.GeometryConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GeographicFunctionLibraryGeometryOperationTests extends TestBase {

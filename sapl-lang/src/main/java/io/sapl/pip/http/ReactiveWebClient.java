@@ -58,18 +58,18 @@ import reactor.retry.Repeat;
 @RequiredArgsConstructor
 public class ReactiveWebClient {
 
-    static final String NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR = "No base URL specified for web request.";
-    static final String BASE_URL                                    = "baseUrl";
-    static final String PATH                                        = "path";
-    static final String URL_PARAMS                                  = "urlParameters";
-    static final String HEADERS                                     = "headers";
-    static final String BODY                                        = "body";
-    static final String POLLING_INTERVAL                            = "pollingIntervalMs";
-    static final String REPEAT_TIMES                                = "repetitions";
-    static final String ACCEPT_MEDIATYPE                            = "accept";
-    static final String CONTENT_MEDIATYPE                           = "contentType";
-    static final long   DEFAULT_POLLING_INTERVALL_MS                = 1000L;
-    static final long   DEFAULT_REPETITIONS                         = Long.MAX_VALUE;
+    static final String        NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR = "No base URL specified for web request.";
+    public static final String BASE_URL                                    = "baseUrl";
+    public static final String PATH                                        = "path";
+    public static final String URL_PARAMS                                  = "urlParameters";
+    public static final String HEADERS                                     = "headers";
+    public static final String BODY                                        = "body";
+    public static final String POLLING_INTERVAL                            = "pollingIntervalMs";
+    public static final String REPEAT_TIMES                                = "repetitions";
+    public static final String ACCEPT_MEDIATYPE                            = "accept";
+    public static final String CONTENT_MEDIATYPE                           = "contentType";
+    static final long          DEFAULT_POLLING_INTERVALL_MS                = 1000L;
+    static final long          DEFAULT_REPETITIONS                         = Long.MAX_VALUE;
 
     private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
     private static final TextNode        APPLICATION_JSON = JSON.textNode(MediaType.APPLICATION_JSON.toString());

@@ -39,7 +39,7 @@ import io.sapl.geo.library.SanitizationFunctionLibrary;
 import io.sapl.geo.pip.MySqlPolicyInformationPoint;
 import io.sapl.geo.pip.OwnTracksPolicyInformationPoint;
 import io.sapl.geo.pip.PostGisPolicyInformationPoint;
-import io.sapl.geo.pip.TraccarPolicyInformationPoint;
+import io.sapl.geo.pip.traccar.TraccarPolicyInformationPoint;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.pip.http.ReactiveWebClient;
 

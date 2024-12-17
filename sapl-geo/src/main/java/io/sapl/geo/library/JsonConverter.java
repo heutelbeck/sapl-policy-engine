@@ -15,51 +15,51 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.functions;
+package io.sapl.geo.library;
 
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.geojson.GeoJsonReader;
 
 import io.sapl.api.interpreter.Val;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public final class WktConverter {
-    private static final WKTReader WKT_READER = new WKTReader();
+public final class JsonConverter {
+    private static final GeoJsonReader GEOJSON_READER = new GeoJsonReader();
 
     /**
-     * @param wkt a {@link Val} containing the WKT-String
+     * @param geoJson a {@link Val} containing the GML-String
      * @return a {@link Geometry}
      */
-    public static Geometry wktToGeometry(Val wkt) throws ParseException {
-        return wktToGeometry(wkt.getText());
+    public static Geometry geoJsonToGeometry(Val geoJson) throws ParseException {
+        return geoJsonToGeometry(geoJson.getText());
     }
 
     /**
-     * @param wkt a {@link Val} containing the WKT-String
+     * @param geoJson a {@link Val} containing the GML-String
      * @param factory a {@link GeometryFactory}
      * @return a {@link Geometry}
      */
-    public static Geometry wktToGeometry(Val wkt, GeometryFactory factory) throws ParseException {
-        return wktToGeometry(wkt.getText(), factory);
+    public static Geometry geoJsonToGeometry(Val geoJson, GeometryFactory factory) throws ParseException {
+        return geoJsonToGeometry(geoJson.getText(), factory);
     }
 
     /**
-     * @param wkt a WKT-String
-     * @return a {@link Geometry}
-     */
-    public static Geometry wktToGeometry(String wkt) throws ParseException {
-        return WKT_READER.read(wkt);
-    }
-
-    /**
-     * @param wkt a WKT-String
+     * @param geoJson a GeoJson-String
      * @param factory a {@link GeometryFactory}
      * @return a {@link Geometry}
      */
-    public static Geometry wktToGeometry(String wkt, GeometryFactory factory) throws ParseException {
-        return (new WKTReader(factory)).read(wkt);
+    public static Geometry geoJsonToGeometry(String geoJson, GeometryFactory factory) throws ParseException {
+        return (new GeoJsonReader(factory)).read(geoJson);
+    }
+
+    /**
+     * @param geoJson a GeoJson-String
+     * @return a {@link Geometry}
+     */
+    public static Geometry geoJsonToGeometry(String geoJson) throws ParseException {
+        return GEOJSON_READER.read(geoJson);
     }
 }

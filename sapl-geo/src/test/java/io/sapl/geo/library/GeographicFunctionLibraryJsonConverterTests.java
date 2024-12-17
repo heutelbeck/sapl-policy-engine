@@ -38,7 +38,6 @@ import org.springframework.util.StringUtils;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.TestBase;
-import io.sapl.geo.functions.JsonConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GeographicFunctionLibraryJsonConverterTests extends TestBase {

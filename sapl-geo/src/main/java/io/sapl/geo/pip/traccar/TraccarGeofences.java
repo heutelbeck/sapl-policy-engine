@@ -36,9 +36,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.functions.GeoProjector;
-import io.sapl.geo.functions.GeometryConverter;
-import io.sapl.geo.functions.WktConverter;
+import io.sapl.geo.library.GeoProjector;
+import io.sapl.geo.library.GeometryConverter;
+import io.sapl.geo.library.WktConverter;
 import io.sapl.geo.pip.model.GeoPipResponseFormat;
 import io.sapl.geo.pip.model.Geofence;
 import io.sapl.pip.http.ReactiveWebClient;
@@ -107,12 +107,10 @@ public final class TraccarGeofences extends TraccarConnection {
 
     }
 
-    private List<Geofence> mapGeofences(JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst)
+    private List<Geofence> mapGeofences(JsonNode fences, GeoPipResponseFormat format, boolean latitudeFirst)
             throws JsonProcessingException, ParseException, FactoryException, MismatchedDimensionException,
             TransformException {
         List<Geofence> fenceRes = new ArrayList<>();
-        final var      fences   = mapper.readTree(in.toString());
-
         for (JsonNode geoFence : fences) {
             final var factory = new GeometryFactory(new PrecisionModel(), 4326);
             var       geo     = WktConverter.wktToGeometry(Val.of(geoFence.findValue(AREA).asText()), factory);

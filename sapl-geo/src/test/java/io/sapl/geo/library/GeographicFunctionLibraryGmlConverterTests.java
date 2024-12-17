@@ -40,7 +40,6 @@ import org.xml.sax.SAXException;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.common.TestBase;
-import io.sapl.geo.functions.GmlConverter;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class GeographicFunctionLibraryGmlConverterTests extends TestBase {

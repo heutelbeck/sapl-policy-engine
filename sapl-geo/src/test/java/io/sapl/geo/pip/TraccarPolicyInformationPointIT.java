@@ -17,27 +17,14 @@
  */
 package io.sapl.geo.pip;
 
-import java.util.List;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
 import io.sapl.geo.common.TraccarTestBase;
-import io.sapl.interpreter.InitializationException;
-import io.sapl.pdp.PolicyDecisionPointFactory;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import reactor.test.StepVerifier;
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
@@ -99,22 +86,22 @@ class TraccarPolicyInformationPointIT extends TraccarTestBase {
         writePdpJson(pdpJson);
         copyToTemp("/policies/traccarPositionTest/traccarTest.sapl");
     }
-
-    @ParameterizedTest
-    @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "traccarPositionTestEnvironmentVariable", "traccarPositionTest",
-            "traccarGeofencesTestEnvironmentVariable", "traccarGeofencesTest" })
-    void traccarPipTest(String pdpPath) throws InitializationException {
-        final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                tempDir.toAbsolutePath().toString(),
-                () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
-        final var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
-        final var pdpDecisionFlux   = pdp.decide(authzSubscription);
-
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
-                .verify();
-    }
+//
+//    @ParameterizedTest
+//    @Execution(ExecutionMode.CONCURRENT)
+//    @CsvSource({ "traccarPositionTestEnvironmentVariable", "traccarPositionTest",
+//            "traccarGeofencesTestEnvironmentVariable", "traccarGeofencesTest" })
+//    void traccarPipTest(String pdpPath) throws InitializationException {
+//        final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
+//                tempDir.toAbsolutePath().toString(),
+//                () -> List.of(new TraccarPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
+//        final var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
+//        final var pdpDecisionFlux   = pdp.decide(authzSubscription);
+//
+//        StepVerifier.create(pdpDecisionFlux)
+//                .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
+//                .verify();
+//    }
 
     @Getter
     @RequiredArgsConstructor

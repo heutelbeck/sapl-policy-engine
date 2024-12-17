@@ -19,12 +19,17 @@ import org.geotools.kml.v22.KMLConfiguration;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.GeodeticCalculator;
 import org.geotools.xsd.PullParser;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateFilter;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.MultiLineString;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 import org.xml.sax.SAXException;
@@ -43,13 +48,9 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
-import io.sapl.geo.GeoJsonSchemata;
-import io.sapl.geo.functions.CrsConst;
-import io.sapl.geo.functions.GeometryConverter;
-import io.sapl.geo.functions.GmlConverter;
-import io.sapl.geo.functions.JsonConverter;
-import io.sapl.geo.functions.KmlConverter;
-import io.sapl.geo.functions.WktConverter;
+import io.sapl.geo.schemata.GeoJsonSchemata;
+import io.sapl.geo.schemata.TraccarSchemata;
+import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -63,8 +64,12 @@ public class GeographicFunctionLibrary {
 
     private static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM_ERROR = "Input must be a GeometryCollection containing only one Geometry.";
 
-    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
-    private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
+    private static final GeometryFactory GEOMETRY_FACTORY       = new GeometryFactory();
+    private static final JsonNodeFactory JSON                   = JsonNodeFactory.instance;
+    private static final int             WGS84                  = 4326;
+    private static final GeoJsonWriter   GEOJSON_WRITER         = new GeoJsonWriter();
+    private static final GeometryFactory WGS84_GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), WGS84);
+    private static final WKTReader       WGS84_WKT_READER       = new WKTReader(WGS84_GEOMETRY_FACTORY);
 
     /*
      * Geometry operations
@@ -602,67 +607,68 @@ public class GeographicFunctionLibrary {
      * Converters
      */
 
-    @Function(name = "gmlToKml", docs = "converts GML to KML")
+    @Function(docs = "converts GML to KML")
     public Val gmlToKml(@Text Val gml) throws SAXException, IOException, ParserConfigurationException {
         return GeometryConverter.geometryToKML(GmlConverter.gmlToGeometry(gml));
     }
 
-    @Function(name = "gmlToGeoJson", docs = "converts GML to GeoJSON", schema = GeoJsonSchemata.JSON_SCHEME_COMPLETE)
+    @Function(docs = "converts GML to GeoJSON", schema = GeoJsonSchemata.JSON_SCHEME_COMPLETE)
     public Val gmlToGeoJson(@Text Val gml) throws SAXException, IOException, ParserConfigurationException {
         return GeometryConverter.geometryToGeoJsonNode(GmlConverter.gmlToGeometry(gml));
     }
 
-    @Function(name = "gmlToWkt", docs = "converts GML to WKT")
+    @Function(docs = "converts GML to WKT")
     public Val gmlToWkt(@Text Val gml) throws SAXException, IOException, ParserConfigurationException {
         return GeometryConverter.geometryToWKT(GmlConverter.gmlToGeometry(gml));
     }
 
-    @Function(name = "geoJsonToKml", docs = "converts GeoJSON to KML")
+    @Function(docs = "converts GeoJSON to KML")
     public Val geoJsonToKml(@Text Val geoJson) throws ParseException {
         return GeometryConverter.geometryToKML(JsonConverter.geoJsonToGeometry(geoJson));
     }
 
-    @Function(name = "geoJsonToGml", docs = "converts KML to GML")
+    @Function(docs = "converts KML to GML")
     public Val geoJsonToGml(@Text Val geoJson) throws ParseException {
         return GeometryConverter.geometryToGML(JsonConverter.geoJsonToGeometry(geoJson));
     }
 
-    @Function(name = "geoJsonToWkt", docs = "converts GeoJSON to WKT")
+    @Function(docs = "converts GeoJSON to WKT")
     public Val geoJsonToWkt(@Text Val geoJson) throws ParseException {
         return GeometryConverter.geometryToWKT(JsonConverter.geoJsonToGeometry(geoJson));
     }
 
-    @Function(name = "kmlToGml", docs = "converts KML to GML")
+    @Function(docs = "converts KML to GML")
     public Val kmlToGml(@Text Val kml) throws ParseException {
         return GeometryConverter.geometryToGML(KmlConverter.kmlToGeometry(kml));
     }
 
-    @Function(name = "kmlToGeoJson", docs = "converts KML to GeoJSON", schema = GeoJsonSchemata.JSON_SCHEME_COMPLETE)
+    @Function(docs = "converts KML to GeoJSON", schema = GeoJsonSchemata.JSON_SCHEME_COMPLETE)
     public Val kmlToGeoJson(@Text Val kml) throws ParseException, JsonProcessingException {
         return GeometryConverter.geometryToGeoJsonNode(KmlConverter.kmlToGeometry(kml));
     }
 
-    @Function(name = "kmlToWkt", docs = "converts KML to WKT")
+    @Function(docs = "converts KML to WKT")
     public Val kmlToWkt(@Text Val kml) throws ParseException {
         return GeometryConverter.geometryToWKT(KmlConverter.kmlToGeometry(kml));
     }
 
-    @Function(name = "wktToGml", docs = "converts WKT to GML")
+    @Function(docs = "converts WKT to GML")
     public Val wktToGml(@Text Val wkt) throws ParseException {
         return GeometryConverter.geometryToGML(WktConverter.wktToGeometry(wkt));
     }
 
-    @Function(name = "wktToKml", docs = "converts WKT to KML")
+    @Function(docs = "converts WKT to KML")
     public Val wktToKml(@Text Val wkt) throws ParseException {
         return GeometryConverter.geometryToKML(WktConverter.wktToGeometry(wkt));
     }
 
-    @Function(name = "wktToGeoJson", docs = "converts WKT to GeoJSON", schema = GeoJsonSchemata.JSON_SCHEME_COMPLETE)
-    public Val wktToGeoJson(@Text Val wkt) throws ParseException, JsonProcessingException {
+    @SneakyThrows
+    @Function(docs = "converts WKT to GeoJSON", schema = GeoJsonSchemata.JSON_SCHEME_COMPLETE)
+    public static Val wktToGeoJson(@Text Val wkt) {
         return GeometryConverter.geometryToGeoJsonNode(WktConverter.wktToGeometry(wkt));
     }
 
-    @Function(name = "parseKml", docs = "parses kml to Geometries")
+    @Function(docs = "parses kml to Geometries")
     public Val parseKML(@Text Val kml) throws XMLStreamException, IOException, SAXException {
         return Val.of(parseKML(kml.getText()));
     }
@@ -698,4 +704,41 @@ public class GeographicFunctionLibrary {
         }
         return arrayNode;
     }
+
+    @SneakyThrows
+    @Function(docs = "converts a traccar position to GeoJSON.")
+    public static Val traccarPositionToGeoJSON(Val traccarPosition) {
+        final var position  = traccarPosition.get();
+        final var longitude = position.get(TraccarSchemata.LONGITUDE).asDouble();
+        final var latitude  = position.get(TraccarSchemata.LATITUDE).asDouble();
+        Geometry  geometry;
+        if (position.has(TraccarSchemata.ALTITUDE)) {
+            final var altitude = position.get(TraccarSchemata.ALTITUDE).asDouble();
+            geometry = WGS84_GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude, altitude));
+        } else {
+            geometry = WGS84_GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude));
+        }
+        return Val.ofJson(GEOJSON_WRITER.write(geometry));
+    }
+
+    public static class CoordinateFlippingFilter implements CoordinateFilter {
+        public void filter(Coordinate coord) {
+            double oldX = coord.x;
+            coord.x = coord.y;
+            coord.y = oldX;
+        }
+    }
+
+    @SneakyThrows
+    @Function(docs = "converts a traccar geofence to GeoJSON.")
+    public static Val traccarGeofenceToGeoJson(Val geofence) {
+        final var area     = geofence.get().get(TraccarSchemata.AREA);
+        final var geometry = new WKTReader().read(area.asText());
+        geometry.setSRID(WGS84);
+        // GeoJSON needs coordinates in longitude then latitude. Geometry will have it
+        // the other way around.
+        geometry.apply(new CoordinateFlippingFilter());
+        return Val.ofJson(GEOJSON_WRITER.write(geometry));
+    }
+
 }
