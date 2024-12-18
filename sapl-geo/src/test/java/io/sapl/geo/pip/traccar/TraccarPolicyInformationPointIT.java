@@ -88,7 +88,6 @@ class TraccarPolicyInformationPointIT {
                 }
                 """;
         geofenceId1 = traccarClient.createGeofence(geofence1);
-        traccarClient.linkGeofenceToDevice(deviceId, geofenceId1);
 
         final var geofence2 = """
                 {
