@@ -338,7 +338,7 @@ public class GeographicFunctionLibrary {
         return Val.of(geoDistance(jsonGeometryThis.get(), jsonGeometryThat.get()));
     }
 
-    @Function(docs = """
+    @Function(name = "tempNameTODO", docs = """
             TODO: add parameter
             geoDistance(GEOMETRYTHIS, GEOMETRYTHAT): Returns the (shortest) geodetic distance of two geometries in [m].
             Coordinate Reference System is the un-projected (source) system (WGS84 recommended).""")
