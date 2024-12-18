@@ -32,9 +32,7 @@ import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
-import io.sapl.geo.library.GeoConverter;
-import io.sapl.geo.library.GeoFunctions;
-import io.sapl.geo.library.GeoParser;
+import io.sapl.geo.library.GeographicFunctionLibrary;
 import io.sapl.geo.library.SanitizationFunctionLibrary;
 import io.sapl.geo.pip.MySqlPolicyInformationPoint;
 import io.sapl.geo.pip.OwnTracksPolicyInformationPoint;
@@ -68,13 +66,8 @@ public class SaplExtensionsConfig {
     }
 
     @Bean
-    TraccarPolicyInformationPoint traccarPolicyInformationPoint(ObjectMapper mapper) {
-        return new TraccarPolicyInformationPoint(mapper);
-    }
-
-    @Bean
-    GeoParser geoParser(ObjectMapper mapper) {
-        return new GeoParser(mapper);
+    TraccarPolicyInformationPoint traccarPolicyInformationPoint(ReactiveWebClient reactiveWebClient) {
+        return new TraccarPolicyInformationPoint(reactiveWebClient);
     }
 
     @Bean
@@ -90,7 +83,8 @@ public class SaplExtensionsConfig {
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     StaticFunctionLibrarySupplier additionalStaticLibraries() {
-        return () -> List.of(MqttFunctionLibrary.class, GeoConverter.class, GeoFunctions.class, SanitizationFunctionLibrary.class);
+        return () -> List.of(MqttFunctionLibrary.class, GeographicFunctionLibrary.class,
+                SanitizationFunctionLibrary.class);
     }
 
 }

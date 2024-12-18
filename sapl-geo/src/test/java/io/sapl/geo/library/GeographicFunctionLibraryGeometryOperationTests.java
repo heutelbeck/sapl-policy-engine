@@ -193,7 +193,8 @@ class GeographicFunctionLibraryGeometryOperationTests extends TestBase {
 
     @Test
     void centroidTest() throws ParseException, JsonProcessingException {
-        assertEquals(point3.get().toPrettyString(), GeographicFunctionLibrary.centroid(polygon1).get().toPrettyString());
+        assertEquals(point3.get().toPrettyString(),
+                GeographicFunctionLibrary.centroid(polygon1).get().toPrettyString());
     }
 
     @Test
@@ -210,7 +211,8 @@ class GeographicFunctionLibraryGeometryOperationTests extends TestBase {
 
     @Test
     void unionSingleTest() throws ParseException, JsonProcessingException {
-        assertEquals(point1.get().toPrettyString(), GeographicFunctionLibrary.union(new Val[] { point1 }).get().toPrettyString());
+        assertEquals(point1.get().toPrettyString(),
+                GeographicFunctionLibrary.union(new Val[] { point1 }).get().toPrettyString());
     }
 
     @Test
@@ -221,7 +223,8 @@ class GeographicFunctionLibraryGeometryOperationTests extends TestBase {
 
     @Test
     void differenceTest() throws ParseException, JsonProcessingException {
-        assertEquals(line.get().toPrettyString(), GeographicFunctionLibrary.difference(line, line2).get().toPrettyString());
+        assertEquals(line.get().toPrettyString(),
+                GeographicFunctionLibrary.difference(line, line2).get().toPrettyString());
     }
 
     @Test
@@ -300,7 +303,8 @@ class GeographicFunctionLibraryGeometryOperationTests extends TestBase {
 
     @Test
     void oneAndOnlyTest() throws ParseException, OperationNotSupportedException, JsonProcessingException {
-        assertEquals(GeometryConverter.geometryToGeoJsonNode(p1).getText(), GeographicFunctionLibrary.oneAndOnly(coll1).getText());
+        assertEquals(GeometryConverter.geometryToGeoJsonNode(p1).getText(),
+                GeographicFunctionLibrary.oneAndOnly(coll1).getText());
         assertThrows(OperationNotSupportedException.class, () -> GeographicFunctionLibrary.oneAndOnly(coll));
         assertThrows(ClassCastException.class, () -> GeographicFunctionLibrary.oneAndOnly(polygon));
     }

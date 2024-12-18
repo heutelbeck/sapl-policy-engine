@@ -45,7 +45,7 @@ abstract class TraccarConnection extends AbstractTrackerConnection {
     protected String              protocol;
     protected static final String COOKIE_HEADER_CONST = "\"cookie\" : \"%s\"";
 
-    protected Mono<String> establishSession(String user, String password, String serverName, String protocol)
+    public Mono<String> establishSession(String user, String password, String serverName, String protocol)
             throws URISyntaxException {
         uri = new URI(String.format("%s://%s/api/session", protocol, serverName));
         final var bodyProperties = new HashMap<String, String>();

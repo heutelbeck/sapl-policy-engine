@@ -36,7 +36,7 @@ public abstract class AbstractTrackerConnection extends ConnectionBase {
     private static final int             WGS84            = 4326;
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), WGS84);
 
-    protected static final String        DEVICEID_CONST   = "deviceId";
+    protected static final String DEVICEID_CONST = "deviceId";
 
     protected String altitude;
     protected String lastupdate;

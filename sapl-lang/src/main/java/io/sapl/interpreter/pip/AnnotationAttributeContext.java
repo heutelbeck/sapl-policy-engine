@@ -427,7 +427,13 @@ public final class AnnotationAttributeContext implements AttributeContext {
         }
 
         if (!attributeSchema.isEmpty()) {
-            processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(attributeSchema);
+            try {
+                processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(attributeSchema);
+            } catch (InitializationException e) {
+                throw new InitializationException(
+                        String.format("Error in attribute schema of library %s attribute %s", pipName, attributeName),
+                        e);
+            }
         }
         final var metadata        = metadataOf(policyInformationPoint, method, pipName, attributeName,
                 processedSchemaDefinition, documentation, isEnvironmentAttribute);
