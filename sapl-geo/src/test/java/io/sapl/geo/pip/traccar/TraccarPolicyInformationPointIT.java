@@ -48,7 +48,6 @@ class TraccarPolicyInformationPointIT {
 
     private static String deviceId;
     private static String geofenceId1;
-    private static String geofenceId2;
     private static Val    settings;
 
     @Container
@@ -96,7 +95,7 @@ class TraccarPolicyInformationPointIT {
                  "area":"POLYGON ((48.150402911178844 11.566792870984045, 48.1483205765966 11.56544925428264, 48.147576865197465 11.56800995875841, 48.14969540929175 11.56935357546081, 48.150402911178844 11.566792870984045))"
                 }
                 """;
-        geofenceId2 = traccarClient.createGeofence(geofence2);
+        traccarClient.createGeofence(geofence2);
         traccarClient.addTraccarPosition(uniqueDeviceId, 51.4642414, 7.5789155, 198.8);
         settings = settings(email, password, traccarContainer.getHost(), traccarContainer.getMappedPort(8082));
     }
