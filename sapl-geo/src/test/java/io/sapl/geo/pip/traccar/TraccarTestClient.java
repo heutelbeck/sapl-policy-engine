@@ -17,14 +17,11 @@
  */
 package io.sapl.geo.pip.traccar;
 
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
-import java.util.Optional;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,27 +32,14 @@ public class TraccarTestClient {
 
     private final WebClient apiClient;
     private final WebClient positioningClient;
-    private final String    email;
-    private final String    password;
     private final String    basicAuthValue;
 
     public TraccarTestClient(String host, int apiPort, int positioningPort, String email, String password) {
-        this.email        = email;
-        this.password     = password;
         basicAuthValue    = "Basic " + Base64.getEncoder().encodeToString((email + ":" + password).getBytes());
         apiClient         = WebClient.builder().baseUrl(String.format(BASE_URL_TEMPLATE, host, apiPort))
                 .defaultHeader(HttpHeaders.AUTHORIZATION, basicAuthValue).build();
         positioningClient = WebClient.builder().baseUrl(String.format(BASE_URL_TEMPLATE, host, positioningPort))
                 .defaultHeader(HttpHeaders.AUTHORIZATION, basicAuthValue).build();
-    }
-
-    public Optional<String> newSession() {
-        final var response = apiClient.post().uri("/api/session")
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .body(BodyInserters.fromFormData("email", email).with("password", password)).retrieve()
-                .toEntity(String.class).blockOptional();
-        return response.flatMap(r -> Optional.ofNullable(r.getHeaders().getFirst(HttpHeaders.SET_COOKIE))).flatMap(
-                header -> Arrays.stream(header.split(";")).filter(s -> s.startsWith("JSESSIONID")).findFirst());
     }
 
     public String registerUser(String email, String password) {
@@ -70,13 +54,13 @@ public class TraccarTestClient {
                 .bodyValue(userJson).retrieve().bodyToMono(String.class).block();
     }
 
-    public String createDevice() throws Exception {
-        final var body          = """
+    public String createDevice(String uniqueId) throws Exception {
+        final var body          = String.format("""
                 {
                     "name": "Test Device",
-                    "uniqueId": "1234567890"
+                    "uniqueId": "%s"
                 }
-                """;
+                """, uniqueId);
         final var createdDevice = apiClient.post().uri("/api/devices")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).bodyValue(body).retrieve()
                 .bodyToMono(JsonNode.class).blockOptional();
@@ -89,20 +73,6 @@ public class TraccarTestClient {
     public String createGeofence(String geoFenceData) {
         return apiClient.post().uri("/api/geofences").header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .bodyValue(geoFenceData).retrieve().bodyToMono(JsonNode.class).block().get("id").asText();
-    }
-
-    public String linkGeofenceToDevice(String deviceId, String geofenceId) {
-        final var linkData = String.format("{\"deviceId\":\"%s\",\"geofenceId\": %s}", deviceId, geofenceId);
-        return apiClient.post().uri("/api/permissions")
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).bodyValue(linkData).retrieve()
-                .bodyToMono(String.class).block();
-    }
-
-    public String linkDeviceToUser(String deviceId, String userId) {
-        final var linkData = String.format("{\"userId\":\"%s\",\"deviceId\": %s}", userId, deviceId);
-        return apiClient.post().uri("/api/permissions")
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).bodyValue(linkData).retrieve()
-                .bodyToMono(String.class).block();
     }
 
     public String addTraccarPosition(String deviceId, Double lat, Double lon, Double altitude) {

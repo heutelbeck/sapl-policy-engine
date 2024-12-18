@@ -73,12 +73,13 @@ class TraccarPolicyInformationPointIT {
     @SneakyThrows
     static void setUp() {
         traccarContainer.start();
-        final var email         = "test@fake.de";
-        final var password      = "1234";
-        final var traccarClient = new TraccarTestClient(traccarContainer.getHost(),
+        final var email          = "test@fake.de";
+        final var password       = "1234";
+        final var uniqueDeviceId = "12345689";
+        final var traccarClient  = new TraccarTestClient(traccarContainer.getHost(),
                 traccarContainer.getMappedPort(8082), traccarContainer.getMappedPort(5055), email, password);
         traccarClient.registerUser(email, password);
-        deviceId = traccarClient.createDevice();
+        deviceId = traccarClient.createDevice(uniqueDeviceId);
         final var geofence1 = """
                 {
                  "name":"fence1",
@@ -97,14 +98,7 @@ class TraccarPolicyInformationPointIT {
                 }
                 """;
         geofenceId2 = traccarClient.createGeofence(geofence2);
-        traccarClient.linkGeofenceToDevice(deviceId, geofenceId2);
-        log.error("deviceId: {}", deviceId);
-        /*
-         * Why does the following still attach the position to the deviceId of the
-         * created device and it fails with the actual generated deviceId?
-         */
-        traccarClient.addTraccarPosition("1234567890", 51.4642414, 7.5789155, 198.8);
-
+        traccarClient.addTraccarPosition(uniqueDeviceId, 51.4642414, 7.5789155, 198.8);
         settings = settings(email, password, traccarContainer.getHost(), traccarContainer.getMappedPort(8082));
     }
 
