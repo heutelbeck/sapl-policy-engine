@@ -21,24 +21,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.geo.pip.model.GeoPipResponseFormat;
+import io.sapl.geo.pip.owntracks.GeoPipResponseFormat;
 
 public abstract class ConnectionBase {
 
-    protected static final String USER_CONST                         = "user";
-    protected static final String PASSWORD_CONST                     = "password";
-    protected static final String SERVER_CONST                       = "server";
-    protected static final String RESPONSEFORMAT_CONST               = "responseFormat";
-    protected static final String POLLING_INTERVAL_CONST             = "pollingIntervalMs";
-    protected static final String REPEAT_TIMES_CONST                 = "repetitions";
-    protected static final String PROTOCOL_CONST                     = "protocol";
-    protected static final String LATITUDE_FIRST_CONST               = "latitudeFirst";
-    protected static final long   DEFAULT_POLLING_INTERVALL_MS_CONST = 1000L;
-    protected static final long   DEFAULT_REPETITIONS_CONST          = Long.MAX_VALUE;
+    public static final String USER_CONST                         = "user";
+    public static final String PASSWORD_CONST                     = "password";
+    public static final String SERVER_CONST                       = "server";
+    public static final String RESPONSEFORMAT_CONST               = "responseFormat";
+    public static final String POLLING_INTERVAL_CONST             = "pollingIntervalMs";
+    public static final String REPEAT_TIMES_CONST                 = "repetitions";
+    public static final String PROTOCOL_CONST                     = "protocol";
+    public static final String LATITUDE_FIRST_CONST               = "latitudeFirst";
+    public static final long   DEFAULT_POLLING_INTERVALL_MS_CONST = 1000L;
+    public static final long   DEFAULT_REPETITIONS_CONST          = Long.MAX_VALUE;
 
-    protected ObjectMapper mapper;
+    public ObjectMapper mapper;
 
-    protected String getUser(JsonNode requestSettings) throws PolicyEvaluationException {
+    public String getUser(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(USER_CONST)) {
             return requestSettings.findValue(USER_CONST).asText();
         } else {
@@ -46,7 +46,7 @@ public abstract class ConnectionBase {
         }
     }
 
-    protected String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
+    public String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(PASSWORD_CONST)) {
             return requestSettings.findValue(PASSWORD_CONST).asText();
         } else {
@@ -54,7 +54,7 @@ public abstract class ConnectionBase {
         }
     }
 
-    protected String getServer(JsonNode requestSettings) throws PolicyEvaluationException {
+    public String getServer(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(SERVER_CONST)) {
             return requestSettings.findValue(SERVER_CONST).asText();
         } else {
@@ -62,7 +62,7 @@ public abstract class ConnectionBase {
         }
     }
 
-    protected GeoPipResponseFormat getResponseFormat(JsonNode requestSettings, ObjectMapper mapper) {
+    public GeoPipResponseFormat getResponseFormat(JsonNode requestSettings, ObjectMapper mapper) {
         if (requestSettings.has(RESPONSEFORMAT_CONST)) {
             return mapper.convertValue(requestSettings.findValue(RESPONSEFORMAT_CONST), GeoPipResponseFormat.class);
         } else {
@@ -70,7 +70,7 @@ public abstract class ConnectionBase {
         }
     }
 
-    protected boolean getLatitudeFirst(JsonNode requestSettings) {
+    public boolean getLatitudeFirst(JsonNode requestSettings) {
         if (requestSettings.has(LATITUDE_FIRST_CONST)) {
             return requestSettings.findValue(LATITUDE_FIRST_CONST).asBoolean();
         } else {

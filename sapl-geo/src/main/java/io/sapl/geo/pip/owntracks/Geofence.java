@@ -15,9 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.pip.model;
-
-import java.util.List;
+package io.sapl.geo.pip.owntracks;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -33,11 +31,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(Include.NON_NULL)
-public class GeoPipResponse {
-    private String         deviceId;
-    private JsonNode       position;
-    private double         altitude;
-    private String         lastUpdate;
-    private double         accuracy;
-    private List<Geofence> geoFences;
+public class Geofence {
+    private int      id;
+    private JsonNode attributes;
+    private String   calendarId;
+    private String   name;
+    private String   description;
+    private JsonNode area;
 }

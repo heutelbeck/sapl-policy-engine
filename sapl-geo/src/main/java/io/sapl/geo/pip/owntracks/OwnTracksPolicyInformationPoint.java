@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.pip;
+package io.sapl.geo.pip.owntracks;
 
 import java.util.Map;
 
@@ -26,7 +26,6 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
-import io.sapl.geo.pip.owntracks.OwnTracks;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 

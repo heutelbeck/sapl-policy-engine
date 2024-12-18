@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.pip;
+package io.sapl.geo.pip.owntracks;
 
 import java.io.IOException;
 import java.net.URISyntaxException;

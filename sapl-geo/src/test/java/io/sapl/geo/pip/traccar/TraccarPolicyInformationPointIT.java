@@ -34,7 +34,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.library.GeographicFunctionLibrary;
-import io.sapl.geo.schemata.TraccarSchemata;
 import io.sapl.pip.http.ReactiveWebClient;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;

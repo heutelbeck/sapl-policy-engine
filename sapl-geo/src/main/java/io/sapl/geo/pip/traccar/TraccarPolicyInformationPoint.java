@@ -38,7 +38,6 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
 import io.sapl.geo.library.GeographicFunctionLibrary;
 import io.sapl.geo.schemata.GeoJsonSchemata;
-import io.sapl.geo.schemata.TraccarSchemata;
 import io.sapl.pip.http.ReactiveWebClient;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;

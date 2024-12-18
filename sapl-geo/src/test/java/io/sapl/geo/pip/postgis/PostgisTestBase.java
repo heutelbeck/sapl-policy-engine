@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.common;
+package io.sapl.geo.pip.postgis;
 
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -23,6 +23,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
+import io.sapl.geo.common.DatabaseTestBase;
 
 public abstract class PostgisTestBase extends DatabaseTestBase {
 

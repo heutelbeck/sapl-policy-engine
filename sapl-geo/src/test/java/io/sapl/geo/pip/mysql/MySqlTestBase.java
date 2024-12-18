@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.common;
+package io.sapl.geo.pip.mysql;
 
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -24,6 +24,7 @@ import org.testcontainers.utility.DockerImageName;
 import io.asyncer.r2dbc.mysql.MySqlConnectionConfiguration;
 import io.asyncer.r2dbc.mysql.MySqlConnectionFactory;
 import io.r2dbc.spi.ConnectionFactory;
+import io.sapl.geo.common.DatabaseTestBase;
 
 public abstract class MySqlTestBase extends DatabaseTestBase {
 

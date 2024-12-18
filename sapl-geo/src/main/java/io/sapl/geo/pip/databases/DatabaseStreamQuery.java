@@ -45,7 +45,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.geo.library.GeoProjector;
 import io.sapl.geo.library.GeometryConverter;
 import io.sapl.geo.library.JsonConverter;
-import io.sapl.geo.pip.model.GeoPipResponseFormat;
+import io.sapl.geo.pip.owntracks.GeoPipResponseFormat;
 import io.sapl.geo.shared.ConnectionBase;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

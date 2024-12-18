@@ -65,8 +65,8 @@ import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
+import io.sapl.geo.pip.traccar.TraccarSchemata;
 import io.sapl.geo.schemata.GeoJsonSchemata;
-import io.sapl.geo.schemata.TraccarSchemata;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 

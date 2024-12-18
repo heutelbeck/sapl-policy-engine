@@ -28,25 +28,25 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.geo.library.GeometryConverter;
-import io.sapl.geo.pip.model.GeoPipResponse;
-import io.sapl.geo.pip.model.GeoPipResponseFormat;
+import io.sapl.geo.pip.owntracks.GeoPipResponse;
+import io.sapl.geo.pip.owntracks.GeoPipResponseFormat;
 
 public abstract class AbstractTrackerConnection extends ConnectionBase {
 
     private static final int             WGS84            = 4326;
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), WGS84);
 
-    protected static final String DEVICEID_CONST = "deviceId";
+    public static final String DEVICEID_CONST = "deviceId";
 
-    protected String altitude;
-    protected String lastupdate;
-    protected String accuracy;
-    protected String latitude;
-    protected String longitude;
-    protected String baseUrl;
+    public String altitude;
+    public String lastupdate;
+    public String accuracy;
+    public String latitude;
+    public String longitude;
+    public String baseUrl;
 
-    protected GeoPipResponse mapPosition(String deviceId, JsonNode in, GeoPipResponseFormat format,
-            boolean latitudeFirst) throws JsonProcessingException {
+    public GeoPipResponse mapPosition(String deviceId, JsonNode in, GeoPipResponseFormat format, boolean latitudeFirst)
+            throws JsonProcessingException {
         Point     position;
         final var lat = in.findValue(latitude).asDouble();
         final var lon = in.findValue(longitude).asDouble();
@@ -65,7 +65,7 @@ public abstract class AbstractTrackerConnection extends ConnectionBase {
                 .lastUpdate(in.findValue(lastupdate).asText()).accuracy(in.findValue(accuracy).asDouble()).build();
     }
 
-    protected Val createRequestTemplate(String baseUrl, String path, String mediaType, String header,
+    public Val createRequestTemplate(String baseUrl, String path, String mediaType, String header,
             String[] urlParameters, Long pollingInterval, Long repetitions) throws JsonProcessingException {
         final var template = new StringBuilder(String
                 .format("{\"baseUrl\" : \"%s\", \"path\" : \"%s\", \"accept\" : \"%s\"", baseUrl, path, mediaType));
@@ -111,7 +111,7 @@ public abstract class AbstractTrackerConnection extends ConnectionBase {
         }
     }
 
-    protected String getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
+    public String getDeviceId(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(DEVICEID_CONST)) {
             return requestSettings.findValue(DEVICEID_CONST).asText();
         } else {
@@ -119,7 +119,7 @@ public abstract class AbstractTrackerConnection extends ConnectionBase {
         }
     }
 
-    protected String getProtocol(JsonNode requestSettings) {
+    public String getProtocol(JsonNode requestSettings) {
         if (requestSettings.has(PROTOCOL_CONST)) {
             return requestSettings.findValue(PROTOCOL_CONST).asText();
         } else {
@@ -127,7 +127,7 @@ public abstract class AbstractTrackerConnection extends ConnectionBase {
         }
     }
 
-    protected Long getPollingInterval(JsonNode requestSettings) {
+    public Long getPollingInterval(JsonNode requestSettings) {
         if (requestSettings.has(POLLING_INTERVAL_CONST)) {
             return requestSettings.findValue(POLLING_INTERVAL_CONST).asLong();
         } else {
@@ -135,7 +135,7 @@ public abstract class AbstractTrackerConnection extends ConnectionBase {
         }
     }
 
-    protected Long getRepetitions(JsonNode requestSettings) {
+    public Long getRepetitions(JsonNode requestSettings) {
         if (requestSettings.has(REPEAT_TIMES_CONST)) {
             return requestSettings.findValue(REPEAT_TIMES_CONST).asLong();
         } else {

@@ -161,7 +161,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
                 return ErrorFactory.error(location, e);
             }
         }
-        // THe following cast is actually necessary. Reason unknown.
+        // The following cast is actually necessary. Reason unknown.
         return invokeFunction(location, metadata, (Object[]) new Object[] { parameters });
     }
 

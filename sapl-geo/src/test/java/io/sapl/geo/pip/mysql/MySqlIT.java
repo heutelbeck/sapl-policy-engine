@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.pip.databases;
+package io.sapl.geo.pip.mysql;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,7 +39,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.r2dbc.spi.ConnectionFactory;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.common.MySqlTestBase;
+import io.sapl.geo.pip.databases.DataBaseType;
+import io.sapl.geo.pip.databases.DatabaseStreamQuery;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 

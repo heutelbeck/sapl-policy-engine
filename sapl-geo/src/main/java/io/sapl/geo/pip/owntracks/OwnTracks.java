@@ -32,9 +32,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.pip.model.GeoPipResponse;
-import io.sapl.geo.pip.model.GeoPipResponseFormat;
-import io.sapl.geo.pip.model.Geofence;
 import io.sapl.geo.shared.AbstractTrackerConnection;
 import io.sapl.pip.http.ReactiveWebClient;
 import reactor.core.publisher.Flux;
@@ -129,7 +126,7 @@ public final class OwnTracks extends AbstractTrackerConnection {
     }
 
     @Override
-    protected String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
+    public String getPassword(JsonNode requestSettings) throws PolicyEvaluationException {
         if (requestSettings.has(PASSWORD_CONST)) {
             return requestSettings.findValue(PASSWORD_CONST).asText();
         } else {

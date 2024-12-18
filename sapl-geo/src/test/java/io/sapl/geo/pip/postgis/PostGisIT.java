@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.pip.databases;
+package io.sapl.geo.pip.postgis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -38,7 +38,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.geo.common.PostgisTestBase;
+import io.sapl.geo.pip.databases.DataBaseType;
+import io.sapl.geo.pip.databases.DatabaseStreamQuery;
 import reactor.test.StepVerifier;
 
 @Testcontainers

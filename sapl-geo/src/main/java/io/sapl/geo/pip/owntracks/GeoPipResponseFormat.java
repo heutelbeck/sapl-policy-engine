@@ -15,27 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.pip.model;
+package io.sapl.geo.pip.owntracks;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.JsonNode;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@JsonInclude(Include.NON_NULL)
-public class Geofence {
-    private int      id;
-    private JsonNode attributes;
-    private String   calendarId;
-    private String   name;
-    private String   description;
-    private JsonNode area;
+public enum GeoPipResponseFormat {
+    GEOJSON, WKT, GML, KML;
 }

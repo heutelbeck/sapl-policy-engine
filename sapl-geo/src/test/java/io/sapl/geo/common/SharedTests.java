@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.shared;
+package io.sapl.geo.common;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,7 +31,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
-import io.sapl.geo.pip.model.GeoPipResponseFormat;
+import io.sapl.geo.pip.owntracks.GeoPipResponseFormat;
+import io.sapl.geo.shared.AbstractTrackerConnection;
+import io.sapl.geo.shared.ConnectionBase;
 
 @TestInstance(Lifecycle.PER_CLASS)
 class SharedTests {

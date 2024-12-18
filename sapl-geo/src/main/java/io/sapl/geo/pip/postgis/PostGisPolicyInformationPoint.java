@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.pip;
+package io.sapl.geo.pip.postgis;
 
 import java.util.Map;
 
@@ -31,22 +31,22 @@ import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 
 @RequiredArgsConstructor
-@PolicyInformationPoint(name = MySqlPolicyInformationPoint.NAME, description = MySqlPolicyInformationPoint.DESCRIPTION)
-public class MySqlPolicyInformationPoint {
+@PolicyInformationPoint(name = PostGisPolicyInformationPoint.NAME, description = PostGisPolicyInformationPoint.DESCRIPTION)
+public class PostGisPolicyInformationPoint {
 
-    public static final String  NAME                 = "mySql";
-    public static final String  DESCRIPTION          = "PIP for geographical data from MySQL.";
+    public static final String  NAME                   = "postGis";
+    public static final String  DESCRIPTION            = "PIP for geographical data from PostGIS.";
+    private static final String POSTGIS_DEFAULT_CONFIG = "POSTGIS_DEFAULT_CONFIG";
     private final ObjectMapper  mapper;
-    private static final String MYSQL_DEFAULT_CONFIG = "MYSQL_DEFAULT_CONFIG";
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(Map<String, Val> auth, @JsonObject Val variables) {
-        return new DatabaseStreamQuery(auth.get(MYSQL_DEFAULT_CONFIG).get(), mapper, DataBaseType.MYSQL)
+        return new DatabaseStreamQuery(auth.get(POSTGIS_DEFAULT_CONFIG).get(), mapper, DataBaseType.POSTGIS)
                 .sendQuery(variables.get());
     }
 
     @EnvironmentAttribute(name = "geometry")
     public Flux<Val> geometry(@JsonObject Val auth, @JsonObject Val variables) {
-        return new DatabaseStreamQuery(auth.get(), mapper, DataBaseType.MYSQL).sendQuery(variables.get());
+        return new DatabaseStreamQuery(auth.get(), mapper, DataBaseType.POSTGIS).sendQuery(variables.get());
     }
 }

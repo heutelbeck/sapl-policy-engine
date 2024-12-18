@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.geo.pip;
+package io.sapl.geo.pip.postgis;
 
 import java.util.List;
 
@@ -32,7 +32,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.geo.common.MySqlTestBase;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.PolicyDecisionPointFactory;
 import lombok.Getter;
@@ -41,47 +40,45 @@ import reactor.test.StepVerifier;
 
 @Testcontainers
 @TestInstance(Lifecycle.PER_CLASS)
-class MySqlPolicyInformationPointIT extends MySqlTestBase {
+class PostGisPolicyInformationPointIT extends PostgisTestBase {
 
     @BeforeAll
     void setUp() throws Exception {
-
         commonSetUp();
         final var template = """
-                {
-                  "algorithm": "DENY_OVERRIDES",
-                  "variables":
-                	{
-                		"MYSQL_DEFAULT_CONFIG":
-                		{
-                			"user":"%s",
-                			"password":"%s",
-                			"server":"%s",
-                			"port": %s,
-                			"dataBase":"%s",
-                			"dataBaseType":"MYSQL"
-                		}
-                	}
-                }
+                    {
+                      "algorithm": "DENY_OVERRIDES",
+                      "variables":
+                      	{
+                      		"POSTGIS_DEFAULT_CONFIG":
+                      		{
+                      			"user":"%s",
+                      			"password":"%s",
+                      			"server":"%s",
+                      			"port": %s,
+                      			"dataBase":"%s",
+                      			"dataBaseType" : "POSTGIS"
+                      		}
+                      	}
+                      }
                 """;
-        final var pdpJson  = String.format(template, mySqlContainer.getUsername(), mySqlContainer.getPassword(),
-                mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
+        final var pdpJson  = String.format(template, postgisContainer.getUsername(), postgisContainer.getPassword(),
+                postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
         writePdpJson(pdpJson);
-        copyToTemp("/policies/mysqlTest/mysqlTest.sapl");
+        copyToTemp("/policies/postgisTest/postgisTest.sapl");
     }
 
     @ParameterizedTest
     @Execution(ExecutionMode.CONCURRENT)
-    @CsvSource({ "mysqlTest", "mysqlTestEnvironmentVariable" })
-    void MySqlPipTest(String pdpPath) throws InitializationException {
+    @CsvSource({ "postgisTest", "postgisTestEnvironmentVariable" })
+    void PostGisPipTest(String pdpPath) throws InitializationException {
         final var pdp               = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint(
-                tempDir.toAbsolutePath().toString(), () -> List.of(new MySqlPolicyInformationPoint(new ObjectMapper())),
-                List::of, List::of, List::of);
-        final var subject           = new Subject(mySqlContainer.getUsername(), mySqlContainer.getPassword(),
-                mySqlContainer.getHost(), mySqlContainer.getMappedPort(3306), mySqlContainer.getDatabaseName());
+                tempDir.toAbsolutePath().toString(),
+                () -> List.of(new PostGisPolicyInformationPoint(new ObjectMapper())), List::of, List::of, List::of);
+        final var subject           = new Subject(postgisContainer.getUsername(), postgisContainer.getPassword(),
+                postgisContainer.getHost(), postgisContainer.getMappedPort(5432), postgisContainer.getDatabaseName());
         final var authzSubscription = AuthorizationSubscription.of(subject, "action", "resource");
         final var pdpDecisionFlux   = pdp.decide(authzSubscription);
-
         StepVerifier.create(pdpDecisionFlux)
                 .expectNextMatches(authzDecision -> authzDecision.getDecision() == Decision.PERMIT).thenCancel()
                 .verify();
