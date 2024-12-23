@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.functions.time.TemporalFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.integration.SaplIntegrationTestFixture;

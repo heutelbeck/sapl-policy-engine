@@ -1,0 +1,7 @@
+policy "traccarTest"
+permit
+where
+  
+  var position=<traccar.position({"user": subject.user, "password": subject.password, "server": subject.server, "protocol": "http"}, {"responseFormat": "WKT", "deviceId":subject.deviceId})>;
+  position.deviceId == subject.deviceId;
+  

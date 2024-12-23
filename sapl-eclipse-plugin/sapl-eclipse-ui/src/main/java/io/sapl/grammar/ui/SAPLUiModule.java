@@ -34,7 +34,7 @@ import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.functions.time.TemporalFunctionLibrary;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;

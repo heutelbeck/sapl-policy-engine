@@ -94,7 +94,7 @@
 		<jupiter.version>5.11.3</jupiter.version>
 		<assertj.version>3.26.3</assertj.version>
 		<flexmark.version>0.64.8</flexmark.version>
-		<springboot.version>3.4.0</springboot.version>
+		<springboot.version>3.4.1</springboot.version>
 		<reactor-netty.version>1.2.0</reactor-netty.version>
 		<spotify.hamcrest.version>1.3.2</spotify.hamcrest.version>
 		<json-unit-assertj.version>4.1.0</json-unit-assertj.version>
@@ -118,39 +118,50 @@
 
 	<modules>
 		<module>sapl-code-style</module>
+		
 		<module>sapl-pdp-api</module>
 		<module>sapl-extensions-api</module>
+		
+		<module>pdp-extensions/time</module>
+		<module>pdp-extensions/geo-functions</module>
+		<module>pdp-extensions/geo-pip-traccar</module>
+		<module>pdp-extensions/geo-pip-owntracks</module>
+		<module>pdp-extensions/geo-pip-postgis</module>
+		<module>pdp-extensions/geo-pip-mysql</module>
+		<module>pdp-extensions/http-pip</module>
+		<module>pdp-extensions/input-sanitization-functions</module>
+		<module>pdp-extensions/jwt</module>
+		<module>pdp-extensions/mqtt-functions</module>
+		<module>pdp-extensions/mqtt-pip</module>
+		
 		<module>sapl-hamcrest</module>
 		<module>sapl-assertj</module>
+		
 		<module>sapl-generator</module>
 		<module>sapl-lang</module>
 		<module>sapl-ide</module>
 		<module>sapl-web</module>
+		
+		<module>sapl-coverage-api</module>
 		<module>sapl-test</module>
 		<module>sapl-test-junit</module>
 		<module>sapl-test-lang</module>
 		<module>sapl-test-ide</module>
-		<module>sapl-test-web</module>
-		<module>sapl-coverage-api</module>
+		<module>sapl-test-web</module>		
 		<module>sapl-maven-plugin</module>
-		<module>sapl-jwt</module>
+
 		<module>sapl-bom</module>
+
 		<module>sapl-pdp-embedded</module>
 		<module>sapl-pdp-remote</module>
-		<module>sapl-mqtt-pip</module>
-		<module>sapl-mqtt-functions</module>
+
 		<module>sapl-spring-pdp-embedded</module>
 		<module>sapl-spring-pdp-remote</module>
 		<module>sapl-spring-security</module>
-		<module>sapl-webflux-endpoint</module>
-		<module>sapl-rsocket-endpoint</module>
-		<module>sapl-server-lt</module>
-		<module>sapl-vaadin-theme</module>
-		<module>sapl-vaadin-editor</module>
-		<module>sapl-server-ce</module>
 		<module>sapl-spring-data-r2dbc</module>
 		<module>sapl-spring-data-mongo-reactive</module>
 		<module>sapl-spring-data-common</module>
+
 		<module>sapl-language-server</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-ui</module>
 		<module>sapl-eclipse-plugin/sapl-test-eclipse-ui</module>
@@ -158,7 +169,14 @@
 		<module>sapl-eclipse-plugin/sapl-eclipse-thirdparty</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-feature</module>
 		<module>sapl-eclipse-plugin/sapl-eclipse-repository</module>
-		<module>sapl-geo</module>
+
+		<module>sapl-webflux-endpoint</module>
+		<module>sapl-rsocket-endpoint</module>
+		<module>sapl-vaadin-theme</module>
+		<module>sapl-vaadin-editor</module>
+
+		<module>sapl-server-lt</module>
+		<module>sapl-server-ce</module>
 	</modules>
 	<dependencyManagement>
 		<dependencies>

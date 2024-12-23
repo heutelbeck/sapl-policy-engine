@@ -93,7 +93,7 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-hancrest</artifactId>
+				<artifactId>sapl-hamcrest</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -208,7 +208,17 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-geo</artifactId>
+				<artifactId>geo-functions</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>geo-pip-traccar</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>time</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 		</dependencies>

@@ -29,7 +29,7 @@ import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.functions.time.TemporalFunctionLibrary;
 
 /**
  * This configuration deploys the default function libraries for the PDP.
