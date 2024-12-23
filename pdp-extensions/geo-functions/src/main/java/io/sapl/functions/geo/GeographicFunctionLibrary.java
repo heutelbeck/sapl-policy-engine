@@ -33,7 +33,6 @@ import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
-import org.locationtech.jts.io.gml2.GMLReader;
 import org.locationtech.jts.io.kml.KMLReader;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.spatial4j.distance.DistanceUtils;
@@ -58,14 +57,15 @@ public class GeographicFunctionLibrary {
             A function library to manipulate, inspect, and convert geograpihc data.
             """;
 
-    private static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM_ERROR = "Input must be a GeometryCollection containing only one Geometry.";
-    private static final String OPERATION_IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR    = "Operation isClosed is not applicable for the type %s.";
-    private static final String WGS84                                             = "EPSG:4326";
+    static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM_ERROR = "Input must be a GeometryCollection containing only one Geometry.";
+    static final String OPERATION_IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR    = "Operation isClosed is not applicable for the type %s.";
+    static final String PARAMETER_NOT_A_GEOMETRY_COLLECTION_ERROR         = "The second parameter of the geometryIsIn was not a geometry collection.";
+
+    private static final String WGS84 = "EPSG:4326";
 
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
     private static final WKTReader       WKT_READER       = new WKTReader();
     private static final KMLReader       KML_READER       = new KMLReader();
-    private static final GMLReader       GML_READER       = new GMLReader();
     private static final GeoJsonReader   GEOJSON_READER   = new GeoJsonReader();
     private static final GeoJsonWriter   GEOJSON_WRITER   = new GeoJsonWriter();
 
@@ -374,8 +374,8 @@ public class GeographicFunctionLibrary {
             oneAndOnly(GEOMETRYCOLLECTION): If GEOMETRYCOLLECTION only contains one element, this element will be returned.
             In all other cases an error will be thrown.""", schema = GeoJSONSchemata.GEOMETRIES)
     public Val oneAndOnly(@Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val jsonGeometryCollection) {
-        final var geometryCollection = (GeometryCollection) geoJsonToGeometry(jsonGeometryCollection);
-        if (geometryCollection.getNumGeometries() == 1) {
+        if (geoJsonToGeometry(jsonGeometryCollection) instanceof GeometryCollection geometryCollection
+                && geometryCollection.getNumGeometries() == 1) {
             return geometryToGeoJSON(geometryCollection.getGeometryN(0));
         } else {
             return Val.error(INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM_ERROR);
@@ -385,14 +385,16 @@ public class GeographicFunctionLibrary {
     @Function(docs = "geometryIsIn(GEOMETRY, GEOMETRYCOLLECTION): Tests if GEOMETRY is included in GEOMETRYCOLLECTION.")
     public Val geometryIsIn(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val jsonGeometry,
             @Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val jsonGeometryCollection) {
-        final var geometry           = geoJsonToGeometry(jsonGeometry);
-        final var geometryCollection = (GeometryCollection) geoJsonToGeometry(jsonGeometryCollection);
-        for (int i = 0; i < geometryCollection.getNumGeometries(); i++) {
-            if (geometry.equals(geometryCollection.getGeometryN(i))) {
-                return Val.TRUE;
+        if (geoJsonToGeometry(jsonGeometryCollection) instanceof GeometryCollection geometryCollection) {
+            final var geometry = geoJsonToGeometry(jsonGeometry);
+            for (int i = 0; i < geometryCollection.getNumGeometries(); i++) {
+                if (geometry.equals(geometryCollection.getGeometryN(i))) {
+                    return Val.TRUE;
+                }
             }
+            return Val.FALSE;
         }
-        return Val.FALSE;
+        return Val.error(PARAMETER_NOT_A_GEOMETRY_COLLECTION_ERROR);
     }
 
     @Function(docs = "geometryBag(GEOMETRY,...): Takes any number of GEOMETRY and returns a GEOMETRYCOLLECTION containing all of them.", schema = GeoJSONSchemata.GEOMETRY_COLLECTION)
@@ -407,7 +409,7 @@ public class GeographicFunctionLibrary {
     @Function(docs = """
             flattenGometryBag(RESOURCE_ARRAY): Takes multiple Geometries from RESOURCE_ARRAY and turns them into a GeometryCollection
             (e.g. geofences from a third party system).""", schema = GeoJSONSchemata.GEOMETRY_COLLECTION)
-    public Val flattenGometryBag(@Array Val arrayOfGeometries) {
+    public Val flattenGeometryBag(@Array Val arrayOfGeometries) {
         final var nodes = arrayOfGeometries.getArrayNode();
         final var vals  = new Val[nodes.size()];
         for (int i = 0; i < nodes.size(); i++) {
@@ -422,7 +424,7 @@ public class GeographicFunctionLibrary {
 
     @Function(docs = "toMeter(VALUE, UNIT): Converts the given VALUE from MILES to [m].")
     public Val milesToMeter(@Number Val jsonValue) {
-        return Val.of(jsonValue.get().asDouble());
+        return Val.of(milesToMeter(jsonValue.get().asDouble()));
     }
 
     private double milesToMeter(@Number double value) {
@@ -448,17 +450,11 @@ public class GeographicFunctionLibrary {
      */
 
     @SneakyThrows
-    @Function(docs = "converts GML to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
-    public Val gmlToGeoJSON(@Text Val gml) {
-        return geometryToGeoJSON(GML_READER.read(gml.getText(), null));
-    }
-
-    @SneakyThrows
     @Function(docs = "converts KML to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public Val kmlToGeoJSON(@Text Val kml) {
         return geometryToGeoJSON(KML_READER.read(kml.getText()));
     }
-
+    
     @SneakyThrows
     @Function(docs = "converts WKT to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public static Val wktToGeoJSON(@Text Val wkt) {
@@ -468,7 +464,7 @@ public class GeographicFunctionLibrary {
     /*
      * Convert Val to Geometry and back
      */
-    
+
     @SneakyThrows
     private static Geometry geoJsonToGeometry(Val geoJson) {
         return GEOJSON_READER.read(geoJson.toString());

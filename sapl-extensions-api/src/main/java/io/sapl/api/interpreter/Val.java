@@ -909,6 +909,17 @@ public final class Val implements Traced, Serializable {
     }
 
     /**
+     * @return if the Val is a number, the number is returned as double. Else throws
+     * a PolicyEvaluationException.
+     */
+    public double getDouble() {
+        if (isNumber()) {
+            return value.doubleValue();
+        }
+        throw new PolicyEvaluationException(NUMBER_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(this));
+    }
+
+    /**
      * @return the Val as a String. If the Val was a JSON String, the contents is
      * returned. Else the contents toString is used.
      */

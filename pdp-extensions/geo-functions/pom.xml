@@ -57,7 +57,24 @@
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-extensions-api</artifactId>
 		</dependency>
-
+   		<!-- JTS -->
+    	<dependency>
+        	<groupId>org.locationtech.jts</groupId>
+        	<artifactId>jts-core</artifactId>
+			<version>${jts.version}</version>
+    	</dependency>
+		<!-- Utility functions to convert units -->
+		<dependency>
+			<groupId>org.locationtech.spatial4j</groupId>
+			<artifactId>spatial4j</artifactId>
+			<version>${spatial4j.version}</version>
+		</dependency>
+		<!-- GeoJsonReader and GeoJsonWriter -->
+		<dependency>
+			<groupId>org.locationtech.jts.io</groupId>
+			<artifactId>jts-io-common</artifactId>
+			<version>${jts.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-geojson</artifactId>
@@ -69,24 +86,17 @@
 			<artifactId>gt-xsd-kml</artifactId>
 			<version>${geotools.version}</version>
 		</dependency>
-
+ 		<dependency>
+        	<groupId>org.geotools.xsd</groupId>
+        	<artifactId>gt-xsd-wfs</artifactId>
+        	<version>${geotools.version}</version>
+    	</dependency>
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-epsg-hsql</artifactId>
 			<version>${geotools.version}</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.locationtech.spatial4j</groupId>
-			<artifactId>spatial4j</artifactId>
-			<version>${spatial4j.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.locationtech.jts.io</groupId>
-			<artifactId>jts-io-common</artifactId>
-			<version>${jts.version}</version>
-		</dependency>
 
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -102,15 +112,31 @@
 
 		<dependency>
 			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
 			<scope>test</scope>
 		</dependency>
 
-	</dependencies>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-assertj</artifactId>
+			<scope>test</scope>
+		</dependency>
 
+	</dependencies>
+  <repositories>
+    <repository>
+    <id>osgeo</id>
+    <name>OSGeo Release Repository</name>
+    <url>https://repo.osgeo.org/repository/release/</url>
+    <snapshots><enabled>false</enabled></snapshots>
+    <releases><enabled>true</enabled></releases>
+    </repository>
+    <repository>
+    <id>osgeo-snapshot</id>
+    <name>OSGeo Snapshot Repository</name>
+    <url>https://repo.osgeo.org/repository/snapshot/</url>
+    <snapshots><enabled>true</enabled></snapshots>
+    <releases><enabled>false</enabled></releases>
+    </repository>
+  </repositories>
 </project>
