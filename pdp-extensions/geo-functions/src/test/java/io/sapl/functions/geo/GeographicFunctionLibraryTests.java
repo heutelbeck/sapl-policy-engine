@@ -35,6 +35,7 @@ import static io.sapl.functions.geo.GeographicFunctionLibrary.distance;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.equalsExact;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.flattenGeometryBag;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.geoDistance;
+import static io.sapl.functions.geo.GeographicFunctionLibrary.geodesicDistance;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.geometryBag;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.geometryIsIn;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.gml3ToGeoJSON;
@@ -44,7 +45,7 @@ import static io.sapl.functions.geo.GeographicFunctionLibrary.isClosed;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.isSimple;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.isValid;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.isWithinDistance;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.isWithinGeoDistance;
+import static io.sapl.functions.geo.GeographicFunctionLibrary.isWithinGeodesicDistance;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.kmlToGeoJSON;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.length;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.milesToMeter;
@@ -58,6 +59,7 @@ import static io.sapl.functions.geo.GeographicFunctionLibrary.within;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.wktToGeoJSON;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.yardToMeter;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.referencing.CRS;
@@ -75,6 +77,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import lombok.SneakyThrows;
 
 class GeographicFunctionLibraryTests {
@@ -197,6 +200,12 @@ class GeographicFunctionLibraryTests {
                                                                                     POINT_1_2_GEOMETRY,
                                                                                     POINT_90_90_GEOMETRY }));
     // @formatter:on
+
+    @Test
+    void libraryLoadsWithoutErrors() {
+        final var functionCtx = new AnnotationFunctionContext();
+        assertThatCode(() -> functionCtx.loadLibrary(GeographicFunctionLibrary.class)).doesNotThrowAnyException();
+    }
 
     @Test
     void equalsTest() {
@@ -398,10 +407,8 @@ class GeographicFunctionLibraryTests {
         final var expected = POLYGON_1;
         final var actual   = oneAndOnly(COLLECTION_2);
         assertThatVal(actual).isEqualTo(expected);
-        assertThatVal(oneAndOnly(COLLECTION_1))
-                .isError(GeographicFunctionLibrary.INCORRECT_NUMER_OF_GEOEMTRIES_ERROR);
-        assertThatVal(oneAndOnly(POLYGON_4))
-                .isError(GeographicFunctionLibrary.INCORRECT_NUMER_OF_GEOEMTRIES_ERROR);
+        assertThatVal(oneAndOnly(COLLECTION_1)).isError(GeographicFunctionLibrary.INCORRECT_NUMER_OF_GEOEMTRIES_ERROR);
+        assertThatVal(oneAndOnly(POLYGON_4)).isError(GeographicFunctionLibrary.INCORRECT_NUMER_OF_GEOEMTRIES_ERROR);
     }
 
     @Test
@@ -453,14 +460,14 @@ class GeographicFunctionLibraryTests {
     void geoDistanceTest() {
         final var st             = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(10.0, 10.0)));
         final var de             = geometryToGeoJSON(GEO_FACTORY.createPoint(new Coordinate(10.0, 10.000001)));
-        final var actualDistance = geoDistance(st, de);
+        final var actualDistance = geodesicDistance(st, de);
         assertThatVal(actualDistance).matches(v -> v.getDouble() > 0.1);
     }
 
     @Test
     void isWithingeoDistanceTest() {
-        assertThatVal(isWithinGeoDistance(POINT_90_90, POINT_89_99_89_99, Val.of(1200))).isTrue();
-        assertThatVal(isWithinGeoDistance(POINT_90_90, POINT_89_99_89_99, Val.of(2))).isFalse();
+        assertThatVal(isWithinGeodesicDistance(POINT_90_90, POINT_89_99_89_99, Val.of(1200))).isTrue();
+        assertThatVal(isWithinGeodesicDistance(POINT_90_90, POINT_89_99_89_99, Val.of(2))).isFalse();
     }
 
     @Test
@@ -926,4 +933,5 @@ class GeographicFunctionLibraryTests {
         final var result      = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2Invalid));
         assertThatVal(result).isError().contains(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
     }
+
 }

@@ -65,11 +65,50 @@ public class GeographicFunctionLibrary {
 
     private static final String DESCRIPTION   = "A function library to manipulate, inspect, and convert geograpihc data.";
     private static final String DOCUMENTATION = """
-            A function library to manipulate, inspect, and convert geograpihc data.
+            # Geographic Function Library
+
+            The Geographic Function Library provides a rich set of geospatial functions for manipulating, analyzing, and converting geographic data. It is designed to work with GeoJSON as the primary format for representing geographic features.
+
+            ## Overview
+            This library allows users to perform:
+
+            1. **Geometric Comparisons:** Evaluate spatial relationships between geometries, such as equality, disjointedness, adjacency, and intersection.
+            2. **Geometric Operations:** Transform geometries through buffering, convex hull computation, unions, intersections, and differences.
+            3. **Measurement Calculations:** Measure distances, lengths, areas, and geodesic distances between geometries.
+            4. **Geometry Validation:** Check validity, simplicity, and closure of geometries.
+            5. **Collection Operations:** Combine, subset, and test membership of geometries within collections.
+            6. **Unit Conversions:** Convert measurements between units such as miles, yards, and degrees into meters.
+            7. **Format Conversions:** Parse and convert geographic data between KML, GML, WKT, and GeoJSON formats.
+
+            ## GeoJSON Format
+            GeoJSON is a widely used format for encoding geographic data structures. It supports:
+            - **Point:** Represents a single location (e.g., [longitude, latitude]).
+            - **LineString:** Represents a sequence of points forming a line.
+            - **Polygon:** Represents an area bounded by linear rings.
+            - **MultiPoint, MultiLineString, MultiPolygon:** Collections of points, lines, or polygons.
+            - **GeometryCollection:** Groups multiple geometries into a single structure.
+
+            GeoJSON also includes properties for defining coordinate reference systems, though it defaults to WGS84 (EPSG:4326).
+
+            ## Use Cases
+            The library is suitable for:
+            - Spatial analysis and validation.
+            - Geographic data transformations and conversions.
+            - Calculating distances and areas for geospatial features.
+            - Validating and simplifying complex geometries.
+            - Building complex policies for geospatial access control.
+
+            ## Notes
+            - The library assumes all geometries are in GeoJSON format.
+            - All functions are schema-validated for correctness.
+            - Methods operate seamlessly with input data using JSON processing.
+
+            For more details, refer to individual function documentation.
             """;
 
     static final String FAILED_TO_PARSE_GML_ERROR            = "Failed to parse GML.";
     static final String FAILED_TO_PARSE_KML_ERROR            = "Failed to parse KML.";
+    static final String GEOMETRY_TO_GEO_JSON_ERROR_S         = "Error converting Geometry to GeoJSON: %s";
     static final String INCORRECT_NUMER_OF_GEOEMTRIES_ERROR  = "Input must be a GeometryCollection containing only one Geometry.";
     static final String INVALID_WKT_ERROR                    = "Invalid WKT.";
     static final String NO_GEOMETRIES_IN_GML_ERROR           = "No geometries in GML.";
@@ -93,35 +132,181 @@ public class GeographicFunctionLibrary {
      */
 
     @Function(docs = """
-            equalsExact(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are exactly equal. Two Geometries are exactly equal if:
-            they have the same structure
-            they have the same values for their vertices, in exactly the same order.""")
+            ```equalsExact(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```:
+            Tests whether two geometries are exactly equal in terms of their structure and vertex values.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if the geometries have identical structures and coordinate values in the same order.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+            policy "example"
+            permit
+            where
+                var point1 = { "type": "Point", "coordinates": [10.0, 20.0] };
+                var point2 = { "type": "Point", "coordinates": [10.0, 20.0] };
+                equalsExact(point1, point2) == true;
+            ```
+
+            **Notes:**
+
+            - Only exact matches are considered equal; differences in precision or coordinate order will result in `false`.
+            - Suitable for testing identical geometries in scenarios requiring strict equality.
+            """)
     public Val equalsExact(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::equalsExact);
     }
 
-    @Function(docs = "disjoint(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are disjoint from each other (not intersecting each other). ")
+    @Function(docs = """
+            ```disjoint(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```:
+            Tests whether two geometries are disjoint, meaning they do not intersect.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if the geometries do not share any points.
+            - Returns `false` if they intersect at any point.
+
+            **Example:**
+
+            ```
+            import geo.*
+            policy "example"
+            permit
+            where
+                var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                var point = { "type": "Point", "coordinates": [20.0, 20.0] };
+                disjoint(polygon, point) == true;
+            ```
+
+            **Notes:**
+
+            - Disjoint geometries have no spatial overlap.
+            - Use this function to confirm spatial separation between geometries.
+            """)
     public Val disjoint(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::disjoint);
     }
 
-    @Function(docs = "touches(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are touching each other.")
+    @Function(docs = """
+            ```touches(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```:
+            Tests whether two geometries touch at their boundaries but do not overlap.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if the geometries share at least one boundary point but no interior points.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+            policy "example"
+            permit
+            where
+                var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                var polygon2 = { "type": "Polygon", "coordinates": [[[10,0], [10,10], [20,10], [20,0], [10,0]]] };
+                touches(polygon1, polygon2) == true;
+            ```
+
+            **Notes:**
+
+            - Use this function to determine adjacency without overlap.
+            """)
     public Val touches(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::touches);
     }
 
-    @Function(docs = "crosses(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are crossing each other (having a intersecting area).")
+    @Function(docs = """
+            ```crosses(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```:
+            Tests whether two geometries cross each other, meaning they intersect and share interior points without fully containing one another.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if the geometries intersect and cross each other at one or more points but do not contain one another.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var line1 = { "type": "LineString", "coordinates": [[0,0], [10,10]] };
+                var line2 = { "type": "LineString", "coordinates": [[0,10], [10,0]] };
+                crosses(line1, line2) == true;
+            ```
+
+            **Notes:**
+            - Suitable for checking intersections between lines or other geometries that share some interior points.
+            - Does not apply if one geometry fully contains the other.
+            """)
     public Val crosses(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::crosses);
     }
 
     @Function(docs = """
-            within(GEOMETRYTHIS, GEOMETRYTHAT): Tests if the GEOMETRYCOLLECTIONTHIS is fully within GEOMETRYCOLLECTIONTHAT (converse of contains-function).
-            GEOMETRY2 can also be of type GeometryCollection.""")
+            ```within(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```:
+            Tests whether one geometry is completely within another geometry.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if every point of `thisGeometry` is inside `thatGeometry`.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var point = { "type": "Point", "coordinates": [5, 5] };
+                var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                within(point, polygon) == true;
+            ```
+
+            **Notes:**
+
+            - Useful for containment checks where the geometry must be fully enclosed.
+            """)
     public Val within(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry,
@@ -129,29 +314,150 @@ public class GeographicFunctionLibrary {
     }
 
     @Function(docs = """
-            contains(GEOMETRYTHIS, GEOMETRYTHAT): Tests if the GEOMETRYCOLLECTIONTHIS fully contains GEOMETRYCOLLECTIONTHAT (converse of within-function).
-            GEOMETRY1 can also be of type GeometryCollection.""")
+            ```contains(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```:
+            Tests whether one geometry completely contains another geometry.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if `thisGeometry` fully contains `thatGeometry`.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                var point = { "type": "Point", "coordinates": [5, 5] };
+                contains(polygon, point) == true;
+            ```
+
+            **Notes:**
+
+            - Suitable for verifying if a geometry encompasses another geometry entirely.
+            """)
     public Val contains(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, (thiz,
                 that) -> (thiz instanceof GeometryCollection) ? thiz.union().contains(that) : thiz.contains(that));
     }
 
-    @Function(docs = "overlaps(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries are overlapping.")
+    @Function(docs = """
+            ```overlaps(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```:
+            Tests whether two geometries overlap, meaning they share some but not all interior points.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if the geometries overlap and share some but not all points.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
+                overlaps(polygon1, polygon2) == true;
+            ```
+
+            **Notes:**
+
+            - Use this function to check partial overlap without full containment.
+            """)
     public Val overlaps(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::overlaps);
     }
 
-    @Function(docs = "intersects(GEOMETRYTHIS, GEOMETRYTHAT): Tests if two geometries have at least one common intersection point.")
+    @Function(docs = """
+            ```intersects(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```:
+            Tests whether two geometries intersect, meaning they share at least one point.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if the geometries intersect at any point.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var line1 = { "type": "LineString", "coordinates": [[0,0], [10,10]] };
+                var line2 = { "type": "LineString", "coordinates": [[0,10], [10,0]] };
+                intersects(line1, line2) == true;
+            ```
+
+            **Notes:**
+
+            - Use this function to verify if geometries have any spatial overlap.
+            """)
     public Val intersects(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry, Geometry::intersects);
     }
 
     @Function(docs = """
-            isWithinDistance(GEOMETRYTHIS, GEOMETRYTHAT, DISTANCE): Tests if two geometries are within the given geometric (planar) distance of each other.
-            Uses the unit of the coordinates (or projection if used).""")
+            ```isWithinDistance(GEOMETRY thisGeometry, GEOMETRY thatGeometry, DOUBLE distance)```:
+            Tests whether the distance between two geometries is within a specified value.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+            - `distance`: A numeric value specifying the distance threshold.
+
+            **Output:**
+
+            - Returns `true` if the distance between the geometries is less than or equal to `distance`.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var point1 = { "type": "Point", "coordinates": [0, 0] };
+                var point2 = { "type": "Point", "coordinates": [3, 4] };
+                isWithinDistance(point1, point2, 5.0) == true;
+            ```
+
+            **Notes:**
+
+            - Use this function for proximity checks between geometries.
+            """)
     public Val isWithinDistance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry, @Number Val distance) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry,
@@ -159,9 +465,39 @@ public class GeographicFunctionLibrary {
     }
 
     @Function(docs = """
-            isWithinGeoDistance(GEOMETRYTHIS, GEOMETRYTHAT, DISTANCE): Tests if two geometries are within the given geodetic distance of each other. Uses [m] as unit.
-            Coordinate Reference System is the unprojected (source) system (WGS84 recommended).""")
-    public Val isWithinGeoDistance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
+            ```isWithinGeodesicDistance(GEOMETRY thisGeometry, GEOMETRY thatGeometry, DOUBLE distance)```:
+            Tests whether two geometries are within a specified geodesic (earth surface) distance.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+            - `distance`: A numeric value specifying the geodesic distance threshold (meters).
+
+            **Output:**
+
+            - Returns `true` if the geometries are within the specified geodesic distance.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var point1 = { "type": "Point", "coordinates": [0, 0] };
+                var point2 = { "type": "Point", "coordinates": [0.001, 0.001] };
+                isWithinGeoDistance(point1, point2, 150) == true;
+            ```
+
+            **Notes:**
+
+            - Suitable for geodesic distance checks, especially for large-scale geographic data.
+            """)
+    public Val isWithinGeodesicDistance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry, @Number Val distance) {
         return testGeometryBiPredicate(thisGeometry, thatGeometry,
                 (thiz, that) -> geodesicDistance(thiz, that) <= distance.get().asDouble());
@@ -175,30 +511,117 @@ public class GeographicFunctionLibrary {
      * Geometry Predicates
      */
 
-    @Function(docs = "isSimple(GEOMETRY): Returns true if the geometry has no anomalous geometric points (e.g. self interesection, self tangency,...).")
-    public Val isSimple(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val jsonGeometry) {
-        return Val.of(geoJsonToGeometry(jsonGeometry).isSimple());
+    @Function(docs = """
+            ```isSimple(GEOMETRY geometry)```:
+            Tests whether a geometry is simple, meaning it has no self-intersections or anomalies.
+
+            **Inputs:**
+
+            - `geometry`: A geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if the geometry is simple.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var line = { "type": "LineString", "coordinates": [[0,0], [1,1], [1,0], [0,0]] };
+                isSimple(line) == false;
+            ```
+
+            **Notes:**
+
+            - Use this function to validate geometry simplicity, especially for topological checks.
+            """)
+    public Val isSimple(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry) {
+        return Val.of(geoJsonToGeometry(geometry).isSimple());
     }
 
-    @Function(docs = "isValid(GEOMETRY): Returns true if the geometry is topologically valid according to OGC specifications.")
+    @Function(docs = """
+            ```isValid(GEOMETRY geometry)```:
+            Tests whether a geometry is valid based on topological rules.
+
+            **Inputs:**
+
+            - `geometry`: A geometry object in GeoJSON format.
+
+            **Output:**
+            - Returns `true` if the geometry is valid.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                isValid(polygon) == true;
+            ```
+
+            **Notes:**
+
+            - A valid geometry adheres to topological constraints such as no self-intersections.
+            """)
     public Val isValid(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val jsonGeometry) {
         return Val.of(geoJsonToGeometry(jsonGeometry).isValid());
     }
 
-    @Function(docs = "isClosed(GEOMETRY): Returns true if the geometry is either empty or from type (Multi)Point or a closed (Multi)LineString.")
-    public Val isClosed(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val jsonGeometry) {
-        final var geometry = geoJsonToGeometry(jsonGeometry);
-        if (Geometry.TYPENAME_POINT.equals(geometry.getGeometryType())
-                || Geometry.TYPENAME_MULTIPOINT.equals(geometry.getGeometryType())) {
+    @Function(docs = """
+            ```isClosed(GEOMETRY geometry)```:
+            Tests whether a geometry like a LineString is closed, meaning it starts and ends at the same point.
+
+            **Inputs:**
+
+            - `geometry`: A geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if the geometry is closed.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var ring = { "type": "LineString", "coordinates": [[0,0], [0,10], [10,10], [10,0], [0,0]] };
+                isClosed(ring) == true;
+            ```
+
+            **Notes:**
+
+            - Only applicable to LineStrings and other linear geometries.
+            - Use to ensure rings or loops are adequately closed.
+            """)
+    public Val isClosed(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val geometry) {
+        final var jtsGeometry = geoJsonToGeometry(geometry);
+        if (Geometry.TYPENAME_POINT.equals(jtsGeometry.getGeometryType())
+                || Geometry.TYPENAME_MULTIPOINT.equals(jtsGeometry.getGeometryType())) {
             return Val.TRUE;
         }
-        switch (geometry.getGeometryType()) {
+        switch (jtsGeometry.getGeometryType()) {
         case Geometry.TYPENAME_LINESTRING:
-            return Val.of(((LineString) geometry).isClosed());
+            return Val.of(((LineString) jtsGeometry).isClosed());
         case Geometry.TYPENAME_MULTILINESTRING:
-            return Val.of(((MultiLineString) geometry).isClosed());
+            return Val.of(((MultiLineString) jtsGeometry).isClosed());
         default:
-            return Val.error(String.format(IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR, geometry.getGeometryType()));
+            return Val.error(String.format(IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR, jtsGeometry.getGeometryType()));
         }
     }
 
@@ -207,23 +630,134 @@ public class GeographicFunctionLibrary {
      */
 
     @Function(docs = """
-            buffer(GEOMETRY, BUFFER_WIDTH): Adds a buffer area of BUFFER_WIDTH around GEOMETRY and returns the new geometry.
-            BUFFER_WIDTH is in the units of the coordinates or of the projection (if projection applied)""", schema = GeoJSONSchemata.POLYGON)
-    public Val buffer(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry, @Number Val buffer) {
-        return applyUnaryTransformation(geometry, g -> g.buffer(buffer.get().asDouble()));
+            ```buffer(GEOMETRY geometry, NUMBER bufferWidth)```: Adds a buffer area of BUFFER_WIDTH around GEOMETRY and returns
+            the new geometry.
+
+            **Inputs:**
+
+            - `geometry`: A geometry object in GeoJSON format.
+            - `bufferWidth`: A numeric value specifying the width of the buffer (same units as coordinates).
+
+            **Output:**
+
+            - Returns a new geometry representing the buffered area.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var point = { "type": "Point", "coordinates": [0, 0] };
+                buffer(point, 10.0) == { "type": "Polygon", "coordinates": [[[10,0], [0,10], [-10,0], [0,-10], [10,0]]] };
+            ```
+
+            **Notes:**
+
+            - Useful for creating buffer zones around points, lines, or polygons.
+            """, schema = GeoJSONSchemata.POLYGON)
+    public Val buffer(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry, @Number Val bufferWidth) {
+        return applyUnaryTransformation(geometry, g -> g.buffer(bufferWidth.get().asDouble()));
     }
 
-    @Function(docs = "boundary(GEOMETRY): Returns the boundary of a geometry.", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
+    @Function(docs = """
+            ```boundary(GEOMETRY geometry)```: Returns the boundary of a geometry.
+
+            **Inputs:**
+
+            - `geometry`: A geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns a geometry representing the boundary.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                boundary(polygon) == { "type": "LineString", "coordinates": [[0,0], [0,10], [10,10], [10,0], [0,0]] };
+            ```
+
+            **Notes:**
+
+            - Returns the outer boundary for polygonal geometries.
+            - Returns line segments or points depending on input geometry type.
+            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public Val boundary(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val geometry) {
         return applyUnaryTransformation(geometry, Geometry::getBoundary);
     }
 
-    @Function(docs = "centroid(GEOMETRY): Returns a point that is the geometric center of gravity of the geometry.", schema = GeoJSONSchemata.POINT)
+    @Function(docs = """
+            ```centroid(GEOMETRY geometry)```: Returns the geometric center (centroid) of the geometry.
+
+            **Inputs:**
+
+            - `geometry`: A geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns a Point geometry representing the centroid.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                centroid(polygon) == { "type": "Point", "coordinates": [5, 5] };
+            ```
+
+            **Notes:**
+
+            - The centroid is the center of mass for the geometry.
+            - For multi-part geometries, the result considers all components.
+            """, schema = GeoJSONSchemata.POINT)
     public Val centroid(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry) {
         return applyUnaryTransformation(geometry, Geometry::getCentroid);
     }
 
-    @Function(docs = "convexHull(GEOMETRY): Returns the convex hull (smallest convex polygon, that contains all points of the geometry) of the geometry.", schema = GeoJSONSchemata.CONVEX_HULL)
+    @Function(docs = """
+            ```convexHull(GEOMETRY geometry)```: Returns the convex hull of the geometry.
+
+            **Inputs:**
+
+            - `geometry`: A geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns a Polygon geometry representing the convex hull.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var points = { "type": "MultiPoint", "coordinates": [[0,0], [0,10], [10,10], [10,0]] };
+                convexHull(points) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+            ```
+
+            **Notes:**
+
+            - Computes the smallest convex polygon containing all points.
+            - Useful for simplifying geometries or bounding datasets.
+            """, schema = GeoJSONSchemata.CONVEX_HULL)
     public Val convexHull(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry) {
         return applyUnaryTransformation(geometry, Geometry::convexHull);
     }
@@ -232,32 +766,151 @@ public class GeographicFunctionLibrary {
         return geometryToGeoJSON(transformation.apply(geoJsonToGeometry(thisGeometry)));
     }
 
-    @Function(docs = "union(GEOMETRYTHIS, GEOMETRYTHAT): Returns the union of two geometries. GEOMETRY can also be a GEOMETRYCOLLECTION.", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
-    public Val union(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val... jsonGeometries) {
-        if (jsonGeometries.length == 0) {
+    @Function(docs = """
+            ```union(GEOMETRY... geometries)```: Returns the union of an arbritrary number of geometries.
+
+            **Inputs:**
+
+            - `geometries`: A variable number of arguments of geometry objects in GeoJSON format.
+
+            **Output:**
+
+            - Returns a geometry representing the union of inputs.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
+                union(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [5,10], [5,15], [15,15], [15,5], [10,5], [10,0], [0,0]]] };
+            ```
+
+            **Notes:**
+
+            - Merges overlapping areas of geometries.
+            - Accepts geometry collections as input.
+            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
+    public Val union(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val... geometries) {
+        if (geometries.length == 0) {
             return geometryToGeoJSON(WGS84_FACTORY.createEmpty(-1));
         }
 
-        var geomUnion = geoJsonToGeometry(jsonGeometries[0]);
-        for (int i = 1; i < jsonGeometries.length; i++) {
-            geomUnion = geomUnion.union(geoJsonToGeometry(jsonGeometries[i]));
+        var geomUnion = geoJsonToGeometry(geometries[0]);
+        for (int i = 1; i < geometries.length; i++) {
+            geomUnion = geomUnion.union(geoJsonToGeometry(geometries[i]));
         }
         return geometryToGeoJSON(geomUnion);
     }
 
-    @Function(docs = "intersection(GEOMETRYTHIS, GEOMETRYTHAT): Returns the point set intersection of the geometries. GEOMETRY can also be a GEOMETRYCOLLECTION.", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
+    @Function(docs = """
+            ```intersection(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```: Returns the intersection of the geometries.
+
+            **Inputs:**
+
+            - `geometryThis`: A geometry object in GeoJSON format.
+            - `geometryThat`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns a geometry representing the common area of the inputs.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
+                intersection(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[5,5], [5,10], [10,10], [10,5], [5,5]]] };
+            ```
+
+            **Notes:**
+
+            - Computes the overlap between geometries.
+            - Useful for finding shared areas.
+            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public Val intersection(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
         return applyBinaryTransformation(thisGeometry, thatGeometry, Geometry::intersection);
     }
 
-    @Function(docs = "difference(GEOMETRYTHIS, GEOMETRYTHAT): Returns the closure of the set difference between two geometries.", schema = GeoJSONSchemata.GEOMETRIES)
+    @Function(docs = """
+            ```difference(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```: Computes the difference between two geometries.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns a geometry representing the part of `thisGeometry` that does not intersect with `thatGeometry`.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
+                difference(polygon1, polygon2) == { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+            ```
+
+            **Notes:**
+
+            - Computes the geometric difference by subtracting overlapping areas.
+            - Useful for isolating non-intersecting regions.
+            """, schema = GeoJSONSchemata.GEOMETRIES)
     public Val difference(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thatGeometry) {
         return applyBinaryTransformation(thisGeometry, thatGeometry, Geometry::difference);
     }
 
-    @Function(docs = "symDifference(GEOMETRYTHIS, GEOMETRY2): Returns the closure of the symmetric difference between two geometries.", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
+    @Function(docs = """
+            ```symDifference(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```: Computes the symmetric difference between two geometries.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns a geometry representing the parts of both geometries that do not intersect.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var polygon1 = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                var polygon2 = { "type": "Polygon", "coordinates": [[[5,5], [5,15], [15,15], [15,5], [5,5]]] };
+                symDifference(polygon1, polygon2) == { "type": "MultiPolygon", "coordinates": [[[[0,0], [0,10], [10,10], [10,0], [0,0]]], [[[5,5], [5,15], [15,15], [15,5], [5,5]]]] };
+            ```
+
+            **Notes:**
+
+            - Computes areas that are exclusive to each input geometry.
+            - Useful for highlighting non-overlapping regions.
+            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public Val symDifference(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val thatGeometry) {
         return applyBinaryTransformation(thisGeometry, thatGeometry, Geometry::symDifference);
@@ -273,31 +926,119 @@ public class GeographicFunctionLibrary {
      */
 
     @Function(docs = """
-            distance(GEOMETRYTHIS, GEOMETRYTHAT): Returns the (shortest) geometric (planar) distance between two geometries.
-            Does return the value of the unit of the coordinates (or projection if used).""")
+            ```distance(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```: Returns the shortest planar distance between
+            two geometries.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns a numeric value representing the distance.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var point1 = { "type": "Point", "coordinates": [0, 0] };
+                var point2 = { "type": "Point", "coordinates": [3, 4] };
+                distance(point1, point2) == 5.0;
+            ```
+
+            **Notes:**
+
+            - The distance is calculated based on the coordinate units.
+            - Suitable for planar (non-geodesic) distance calculations.
+            """)
     public Val distance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
         return Val.of(geoJsonToGeometry(thisGeometry).distance(geoJsonToGeometry(thatGeometry)));
     }
 
-    @Function(name = "geodesicDistance", docs = """
-            geodesicDistance(GEOMETRYTHIS, GEOMETRYTHAT): Returns the (shortest) geodetic distance of two geometries in [m].
-            Coordinate Reference System is the un-projected (source) system (WGS84 recommended).""")
-    public Val geoDistance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
+    @Function(docs = """
+            ```geodesicDistance(GEOMETRY thisGeometry, GEOMETRY thatGeometry)```: Returns the shortest geodesic distance between two
+            geometries in meters. This method uses WGS84 as its reference coordinate system.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+
+            **Output:**
+            - Returns a numeric value representing the geodesic distance in meters.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var point1 = { "type": "Point", "coordinates": [0, 0] };
+                var point2 = { "type": "Point", "coordinates": [0.001, 0.001] };
+                geoDistance(point1, point2) <= 157.25;
+            ```
+
+            **Notes:**
+
+            - Uses geodesic calculations suitable for geographic coordinates.
+            - Ideal for large-scale or global distance computations.
+            """)
+    public Val geodesicDistance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thisGeometry,
             @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val thatGeometry) {
-        return Val.of(geodesicDistance(thisGeometry, thatGeometry));
+        return Val.of(geodesicDistanceOfVals(thisGeometry, thatGeometry));
     }
 
-    @Function(name = "geodesicDistance", docs = """
-            geodesicDistance(GEOMETRYTHIS, GEOMETRYTHAT, COORDINATE SYSTEM): Returns the (shortest) geodetic distance of two geometries in [m].
-            Coordinate Reference System is the un-projected (source) system (WGS84 recommended).""")
+    @Function(docs = """
+            ```geodesicDistance(GEOMETRY thisGeometry, GEOMETRY thatGeometry, TEXT coordinateReferenceSystem)```:
+            Returns the shortest geodesic distance between two geometries in meters.
+
+            **Inputs:**
+
+            - `thisGeometry`: A geometry object in GeoJSON format.
+            - `thatGeometry`: Another geometry object in GeoJSON format.
+            - `coordinateReferenceSystem`: A coordinate system, such as WGS84, i.e. `"EPSG:4326"`.
+              Also see: (https://epsg.io).
+
+            **Output:**
+
+            - Returns a numeric value representing the geodesic distance in meters.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var point1 = { "type": "Point", "coordinates": [0, 0] };
+                var point2 = { "type": "Point", "coordinates": [0.001, 0.001] };
+                geoDistance(point1, point2, "EPSG:4326") <= 157.25;
+            ```
+
+            **Notes:**
+
+            - Uses geodesic calculations suitable for geographic coordinates.
+            - Ideal for large-scale or global distance computations.
+            """)
     public Val geoDistance(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val jsonGeometryThis,
             @Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val jsonGeometryThat,
             Val coordinateReferenceSystem) {
         return Val.of(geodesicDistance(jsonGeometryThis, jsonGeometryThat, coordinateReferenceSystem.getText()));
     }
 
-    private double geodesicDistance(Val thisGeometry, Val thatGeometry) {
+    private double geodesicDistanceOfVals(Val thisGeometry, Val thatGeometry) {
         return geodesicDistance(geoJsonToGeometry(thisGeometry), geoJsonToGeometry(thatGeometry));
     }
 
@@ -324,24 +1065,111 @@ public class GeographicFunctionLibrary {
     }
 
     @Function(docs = """
-            length(GEOMETRY): Returns the lenth of the geometry (perimeter in case of areal geometries).
-            The returned value is in the units of the coordinates or of the projection (if projection applied).""")
-    public Val length(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val jsonGeometry) {
-        return Val.of(geoJsonToGeometry(jsonGeometry).getLength());
+            ```length(GEOMETRY geometry)```: Returns the length of a geometry, including perimeter for polygons.
+
+            **Inputs:**
+
+            - `geometry`: A geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns a numeric value representing the length.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var line = { "type": "LineString", "coordinates": [[0,0], [0,10], [10,10], [10,0], [0,0]] };
+                length(line) == 40.0;
+            ```
+
+            **Notes:**
+
+            - Measures the total length or perimeter based on input geometry.
+            """)
+    public Val length(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry) {
+        return Val.of(geoJsonToGeometry(geometry).getLength());
     }
 
     @Function(docs = """
-            area(GEOMETRY): Returns the area of the geometry.
-            The returned value is in the units (squared) of the coordinates or of the projection (if projection applied).""")
-    public Val area(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val jsonGeometry) {
-        return Val.of(geoJsonToGeometry(jsonGeometry).getArea());
+            ```area(GEOMETRY geometry)```: Returns the area of a geometry.
+
+            **Inputs:**
+
+            - `geometry`: A geometry object in GeoJSON format.
+
+            **Output:**
+
+            - Returns a numeric value representing the area.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var polygon = { "type": "Polygon", "coordinates": [[[0,0], [0,10], [10,10], [10,0], [0,0]]] };
+                area(polygon) == 100.0;
+            ```
+
+            **Notes:**
+
+            - Computes the area for polygonal geometries.
+            - Units depend on coordinate system or projection used.
+            """)
+    public Val area(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val geometry) {
+        return Val.of(geoJsonToGeometry(geometry).getArea());
     }
 
     /*
      * Geometry Collection Set Operations
      */
 
-    @Function(docs = "subset(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2): Returns true, if GEOMETRYCOLLECTIONTHIS is a subset of GEOMETRYCOLLECTIONTHAT.")
+    @Function(docs = """
+            ```subset(GEOMETRYCOLLECTION thisGeometryCollection, GEOMETRYCOLLECTION thatGeometryCollection)```:
+            Checks if one geometry collection is a subset of another.
+
+            **Inputs:**
+
+            - `thisGeometryCollection`: A geometry collection in GeoJSON format.
+            - `thatGeometryCollection`: Another geometry collection in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if `GEOMETRYCOLLECTION1` is entirely contained within `GEOMETRYCOLLECTION2`.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var collection1 = { "type": "GeometryCollection", "geometries": [
+                    { "type": "Point", "coordinates": [0, 0] }
+                ] };
+                var collection2 = { "type": "GeometryCollection", "geometries": [
+                    { "type": "Point", "coordinates": [0, 0] },
+                    { "type": "Point", "coordinates": [1, 1] }
+                ] };
+                subset(collection1, collection2) == true;
+            ```
+
+            **Notes:**
+
+            - Suitable for verifying hierarchical relationships between geometry collections.
+            """)
     public Val subset(@Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val thisGeometryCollection,
             @Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val thatGeometryCollection) {
         return testGeometryBiPredicate(thisGeometryCollection, thatGeometryCollection,
@@ -365,8 +1193,41 @@ public class GeographicFunctionLibrary {
     }
 
     @Function(docs = """
-            atLeastOneMemberOf(GEOMETRYCOLLECTION1, GEOMETRYCOLLECTION2):
-            Returns TRUE if at least one member of GEOMETRYCOLLECTIONTHIS is contained in GEOMETRYCOLLECTIONTHAT.""")
+            ```atLeastOneMemberOf(GEOMETRYCOLLECTION thisGeometryCollection, GEOMETRYCOLLECTION thatGeometryCollection)```: Checks if at least one geometry in the first collection is present in the second collection.
+
+            **Inputs:**
+
+            - `thisGeometryCollection`: A geometry collection in GeoJSON format.
+            - `thatGeometryCollection`: Another geometry collection in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if at least one geometry from `thisGeometryCollection` exists in `thatGeometryCollection`.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var collection1 = { "type": "GeometryCollection", "geometries": [
+                    { "type": "Point", "coordinates": [0, 0] }
+                ] };
+                var collection2 = { "type": "GeometryCollection", "geometries": [
+                    { "type": "Point", "coordinates": [1, 1] },
+                    { "type": "Point", "coordinates": [0, 0] }
+                ] };
+                atLeastOneMemberOf(collection1, collection2) == true;
+            ```
+
+            **Notes:**
+
+            - Checks for partial membership between geometry collections.
+            """)
     public Val atLeastOneMemberOf(@Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val thisGeometryCollection,
             @JsonObject Val thatGeometryCollection) {
         return testGeometryBiPredicate(thisGeometryCollection, thatGeometryCollection,
@@ -384,14 +1245,73 @@ public class GeographicFunctionLibrary {
         return false;
     }
 
-    @Function(docs = "bagSize(GOEMETRYCOLLECTION): Returns the number of elements in the GEOMETRYCOLLECTION.")
+    @Function(docs = """
+            ```bagSize(GEOMETRYCOLLECTION geometryCollection)```: Returns the number of geometries in a collection.
+
+            **Inputs:**
+
+            - `geometryCollection`: A geometry collection in GeoJSON format.
+
+            **Output:**
+
+            - Returns an integer representing the number of geometries in the collection.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var collection = { "type": "GeometryCollection", "geometries": [
+                    { "type": "Point", "coordinates": [0, 0] },
+                    { "type": "Point", "coordinates": [1, 1] }
+                ] };
+                bagSize(collection) == 2;
+            ```
+
+            **Notes:**
+
+            - Useful for evaluating collection size.
+            """)
     public Val bagSize(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val jsonGeometry) {
         return Val.of(geoJsonToGeometry(jsonGeometry).getNumGeometries());
     }
 
     @Function(docs = """
-            oneAndOnly(GEOMETRYCOLLECTION): If GEOMETRYCOLLECTION only contains one element, this element will be returned.
-            In all other cases an error will be thrown.""", schema = GeoJSONSchemata.GEOMETRIES)
+            ```oneAndOnly(GEOMETRYCOLLECTION geometryCollection)```: Returns the only geometry in a collection if it contains exactly one geometry.
+
+            **Inputs:**
+
+            - `geometryCollection`: A geometry collection in GeoJSON format.
+
+            **Output:**
+
+            - Returns the single geometry if the collection contains exactly one geometry.
+            - Returns an error otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var collection = { "type": "GeometryCollection", "geometries": [
+                    { "type": "Point", "coordinates": [0, 0] }
+                ] };
+                oneAndOnly(collection) == { "type": "Point", "coordinates": [0, 0] };
+            ```
+
+            **Notes:**
+
+            - Ensures uniqueness of geometry within a collection.
+            - Returns an error if more than one geometry is present.
+            """, schema = GeoJSONSchemata.GEOMETRIES)
     public Val oneAndOnly(@Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val jsonGeometryCollection) {
         if (geoJsonToGeometry(jsonGeometryCollection) instanceof GeometryCollection geometryCollection
                 && geometryCollection.getNumGeometries() == 1) {
@@ -401,7 +1321,39 @@ public class GeographicFunctionLibrary {
         }
     }
 
-    @Function(docs = "geometryIsIn(GEOMETRY, GEOMETRYCOLLECTION): Tests if GEOMETRY is included in GEOMETRYCOLLECTION.")
+    @Function(docs = """
+            ```geometryIsIn(GEOMETRY geometry, GEOMETRYCOLLECTION geometryCollection)```: Checks if a geometry is contained within a collection.
+
+            **Inputs:**
+
+            - `geometry`: A geometry object in GeoJSON format.
+            - `geometryCollection`: A geometry collection in GeoJSON format.
+
+            **Output:**
+
+            - Returns `true` if the geometry is in the collection.
+            - Returns `false` otherwise.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var point = { "type": "Point", "coordinates": [0, 0] };
+                var collection = { "type": "GeometryCollection", "geometries": [
+                    { "type": "Point", "coordinates": [0, 0] }
+                ] };
+                geometryIsIn(point, collection) == true;
+            ```
+
+            **Notes:**
+
+            - Checks for the existence of a specific geometry within a collection.
+            """)
     public Val geometryIsIn(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val jsonGeometry,
             @Schema(GeoJSONSchemata.GEOMETRY_COLLECTION) @JsonObject Val jsonGeometryCollection) {
         if (geoJsonToGeometry(jsonGeometryCollection) instanceof GeometryCollection geometryCollection) {
@@ -416,7 +1368,38 @@ public class GeographicFunctionLibrary {
         return Val.error(NOT_A_GEOMETRY_COLLECTION_ERROR);
     }
 
-    @Function(docs = "geometryBag(GEOMETRY,...): Takes any number of GEOMETRY and returns a GEOMETRYCOLLECTION containing all of them.", schema = GeoJSONSchemata.GEOMETRY_COLLECTION)
+    @Function(docs = """
+            ```geometryBag(GEOMETRY... geometries)```: Combines multiple geometries into a single geometry collection.
+
+            **Inputs:**
+
+            - `geometries`: A variable number of geometry objects in GeoJSON format.
+
+            **Output:**
+
+            - Returns a geometry collection containing all input geometries.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var point1 = { "type": "Point", "coordinates": [0, 0] };
+                var point2 = { "type": "Point", "coordinates": [1, 1] };
+                geometryBag(point1, point2) == { "type": "GeometryCollection", "geometries": [
+                    { "type": "Point", "coordinates": [0, 0] },
+                    { "type": "Point", "coordinates": [1, 1] }
+                ] };
+            ```
+
+            **Notes:**
+
+            - Useful for grouping geometries into collections.
+            """, schema = GeoJSONSchemata.GEOMETRY_COLLECTION)
     public Val geometryBag(@Schema(GeoJSONSchemata.JSON_SCHEME_COMPLETE) @JsonObject Val... geometryValues) {
         final var geometries = new Geometry[geometryValues.length];
         for (int i = 0; i < geometryValues.length; i++) {
@@ -426,8 +1409,39 @@ public class GeographicFunctionLibrary {
     }
 
     @Function(docs = """
-            flattenGometryBag(RESOURCE_ARRAY): Takes multiple Geometries from RESOURCE_ARRAY and turns them into a GeometryCollection
-            (e.g. geofences from a third party system).""", schema = GeoJSONSchemata.GEOMETRY_COLLECTION)
+            ```flattenGeometryBag(ARRAY geometriesArray)```: Flattens an array of geometries into a single geometry collection.
+
+            **Inputs:**
+
+            - `geometriesArray`: An array of geometry objects in GeoJSON format.
+
+            **Output:**
+
+            - Returns a geometry collection containing all geometries from the input array.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var geometries = [
+                    { "type": "Point", "coordinates": [0, 0] },
+                    { "type": "Point", "coordinates": [1, 1] }
+                ];
+                flattenGeometryBag(geometries) == { "type": "GeometryCollection", "geometries": [
+                    { "type": "Point", "coordinates": [0, 0] },
+                    { "type": "Point", "coordinates": [1, 1] }
+                ] };
+            ```
+
+            **Notes:**
+
+            - Useful for combining geometries from arrays into collections.
+            """, schema = GeoJSONSchemata.GEOMETRY_COLLECTION)
     public Val flattenGeometryBag(@Array Val arrayOfGeometries) {
         final var nodes = arrayOfGeometries.getArrayNode();
         final var vals  = new Val[nodes.size()];
@@ -441,34 +1455,139 @@ public class GeographicFunctionLibrary {
      * Unit Conversions
      */
 
-    @Function(docs = "toMeter(VALUE, UNIT): Converts the given VALUE from MILES to [m].")
-    public Val milesToMeter(@Number Val jsonValue) {
-        return Val.of(milesToMeter(jsonValue.get().asDouble()));
+    @Function(docs = """
+            ```milesToMeter(NUMBER value)```: Converts a distance in miles to meters.
+
+            **Inputs:**
+
+            - `value`: A numeric value representing distance in miles.
+
+            **Output:**
+
+            - Returns a numeric value representing the converted distance in meters.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                milesToMeter(1.0) == 1609.34;
+            ```
+
+            **Notes:**
+
+            - Useful for converting mile-based measurements to meters for calculations.
+            """)
+    public Val milesToMeter(@Number Val value) {
+        return Val.of(milesToMeter(value.get().asDouble()));
     }
 
     private double milesToMeter(@Number double value) {
         return value * DistanceUtils.MILES_TO_KM * 1000.0D;
     }
 
-    @Function(docs = "toMeter(VALUE, UNIT): Converts the given VALUE from YARDS to [m].")
-    public Val yardToMeter(@Number Val jsonValue) {
-        return Val.of(yardToMeter(jsonValue.get().asDouble()));
+    @Function(docs = """
+            ```yardToMeter(NUMBER value)```: Converts a distance in yards to meters.
+
+            **Inputs:**
+
+            - `value`: A numeric value representing distance in yards.
+
+            **Output:**
+
+            - Returns a numeric value representing the converted distance in meters.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                yardToMeter(1.0) == 0.9144;
+            ```
+
+            **Notes:**
+
+            - Converts yard-based measurements to meters for compatibility in geospatial calculations.
+            """)
+    public Val yardToMeter(@Number Val value) {
+        return Val.of(yardToMeter(value.get().asDouble()));
     }
 
     private double yardToMeter(double yards) {
         return milesToMeter(yards / 1760.0D);
     }
 
-    @Function(docs = "toMeter(VALUE, UNIT): Converts the given VALUE from DEGREES to [m].")
-    public Val degreeToMeter(@Number Val jsonValue) {
-        return Val.of(jsonValue.get().asDouble() * DistanceUtils.DEG_TO_KM * 1000);
+    @Function(docs = """
+            ```degreeToMeter(NUMBER value)```: Converts a distance in degrees to meters.
+
+            **Inputs:**
+
+            - `value`: A numeric value representing distance in degrees.
+
+            **Output:**
+
+            - Returns a numeric value representing the converted distance in meters.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                degreeToMeter(1.0) == 111319.9;
+            ```
+
+            **Notes:**
+
+            - Converts degree-based distances to meters, useful for geographic coordinate transformations.
+            """)
+    public Val degreeToMeter(@Number Val value) {
+        return Val.of(value.get().asDouble() * DistanceUtils.DEG_TO_KM * 1000);
     }
 
     /*
      * Geographic Data Converters
      */
 
-    @Function(docs = "converts KML to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
+    @Function(docs = """
+            ```kmlToGeoJSON(TEXT kml)```: Converts KML data to GeoJSON format.
+
+            **Inputs:**
+
+            - `kml`: A string containing KML data.
+
+            **Output:**
+
+            - Returns a GeoJSON object representing the converted KML data.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var kmlData = "<kml><Placemark><Point><coordinates>10,20</coordinates></Point></Placemark></kml>";
+                kmlToGeoJSON(kmlData) == { "type": "Point", "coordinates": [10, 20] };
+            ```
+
+            **Notes:**
+
+            - Use this function to transform KML data into a GeoJSON format for compatibility.
+            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public Val kmlToGeoJSON(@Text Val kml) {
         return parseKmlToGeoJSON(kml);
     }
@@ -531,7 +1650,34 @@ public class GeographicFunctionLibrary {
         return geometries;
     }
 
-    @Function(docs = "converts WKT to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
+    @Function(docs = """
+            ```wktToGeoJSON(TEXT wkt)```: Converts WKT data to GeoJSON format.
+
+            **Inputs:**
+
+            - `wkt`: A string containing Well-Known Text (WKT) geometry.
+
+            **Output:**
+
+            - Returns a GeoJSON object representing the converted WKT data.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var wktData = "POINT(10 20)";
+                wktToGeoJSON(wktData) == { "type": "Point", "coordinates": [10, 20] };
+            ```
+
+            **Notes:**
+
+            - Useful for converting WKT geometries into GeoJSON for processing.
+            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public static Val wktToGeoJSON(@Text Val wkt) {
         try {
             return geometryToGeoJSON(WKT_READER.read(wkt.getText()));
@@ -540,12 +1686,64 @@ public class GeographicFunctionLibrary {
         }
     }
 
-    @Function(docs = "converts GML3 to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
+    @Function(docs = """
+            ```gml3ToGeoJSON(TEXT gml)```: Converts GML 3 data to GeoJSON format.
+
+            **Inputs:**
+
+            - `gml`: A string containing GML 3 data.
+
+            **Output:**
+            - Returns a GeoJSON object representing the converted GML 3 data.
+
+            **Example:**
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var gmlData = "<gml:Point><gml:coordinates>10,20</gml:coordinates></gml:Point>";
+                gml3ToGeoJSON(gmlData) == { "type": "Point", "coordinates": [10, 20] };
+            ```
+
+            **Notes:**
+
+            - Designed for compatibility with GML 3 formatted data.
+            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public static Val gml3ToGeoJSON(@Text Val gml) {
         return gmlToGeoJSON(gml, GML3_READER);
     }
 
-    @Function(docs = "converts GML2 to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
+    @Function(docs = """
+            ```gml2ToGeoJSON(TEXT gml)```: Converts GML 2 data to GeoJSON format.
+
+            **Inputs:**
+
+            - `gml`: A string containing GML 2 data.
+
+            **Output:**
+
+            - Returns a GeoJSON object representing the converted GML 2 data.
+
+            **Example:**
+
+            ```
+            import geo.*
+
+            policy "example"
+
+            permit
+            where
+                var gmlData = "<gml:Point><gml:coordinates>10,20</gml:coordinates></gml:Point>";
+                gml2ToGeoJSON(gmlData) == { "type": "Point", "coordinates": [10, 20] };
+            ```
+
+            **Notes:**
+
+            - Designed for compatibility with GML 2 formatted data.
+            """, schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public static Val gml2ToGeoJSON(@Text Val gml) {
         return gmlToGeoJSON(gml, GML2_READER);
     }
@@ -580,7 +1778,7 @@ public class GeographicFunctionLibrary {
         try {
             return Val.ofJson(GEOJSON_WRITER.write(geo));
         } catch (JsonProcessingException e) {
-            return Val.error("Error converting Geometry to GeoJSON: " + e.getMessage());
+            return Val.error(String.format(GEOMETRY_TO_GEO_JSON_ERROR_S, e.getMessage()));
         }
     }
 

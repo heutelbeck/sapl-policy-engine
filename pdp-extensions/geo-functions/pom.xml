@@ -114,5 +114,10 @@
 			<artifactId>sapl-assertj</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-lang</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 </project>
