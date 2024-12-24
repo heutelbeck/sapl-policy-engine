@@ -18,7 +18,7 @@
 package io.sapl.functions.geo;
 
 import static io.sapl.assertj.SaplAssertions.assertThatVal;
-import static io.sapl.functions.geo.GeographicFunctionLibrary.PARAMETER_NOT_A_GEOMETRY_COLLECTION_ERROR;
+import static io.sapl.functions.geo.GeographicFunctionLibrary.NOT_A_GEOMETRY_COLLECTION_ERROR;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.area;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.atLeastOneMemberOf;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.bagSize;
@@ -37,6 +37,7 @@ import static io.sapl.functions.geo.GeographicFunctionLibrary.flattenGeometryBag
 import static io.sapl.functions.geo.GeographicFunctionLibrary.geoDistance;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.geometryBag;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.geometryIsIn;
+import static io.sapl.functions.geo.GeographicFunctionLibrary.gml3ToGeoJSON;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.intersection;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.intersects;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.isClosed;
@@ -54,14 +55,16 @@ import static io.sapl.functions.geo.GeographicFunctionLibrary.symDifference;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.touches;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.union;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.within;
+import static io.sapl.functions.geo.GeographicFunctionLibrary.wktToGeoJSON;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.yardToMeter;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.referencing.CRS;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
@@ -386,8 +389,8 @@ class GeographicFunctionLibraryTests {
 
     @Test
     void bagSizeTest() {
-        assertEquals(1, bagSize(LINE_1).get().asInt());
-        assertEquals(2, bagSize(COLLECTION_1).get().asInt());
+        assertThat(bagSize(LINE_1).get().asInt()).isEqualTo(1);
+        assertThat(bagSize(COLLECTION_1).get().asInt()).isEqualTo(2);
     }
 
     @Test
@@ -396,16 +399,16 @@ class GeographicFunctionLibraryTests {
         final var actual   = oneAndOnly(COLLECTION_2);
         assertThatVal(actual).isEqualTo(expected);
         assertThatVal(oneAndOnly(COLLECTION_1))
-                .isError(GeographicFunctionLibrary.INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM_ERROR);
+                .isError(GeographicFunctionLibrary.INCORRECT_NUMER_OF_GEOEMTRIES_ERROR);
         assertThatVal(oneAndOnly(POLYGON_4))
-                .isError(GeographicFunctionLibrary.INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM_ERROR);
+                .isError(GeographicFunctionLibrary.INCORRECT_NUMER_OF_GEOEMTRIES_ERROR);
     }
 
     @Test
     void geometryIsInTest() {
         assertThatVal(geometryIsIn(POLYGON_1, COLLECTION_1)).isTrue();
         assertThatVal(geometryIsIn(POLYGON_6, COLLECTION_1)).isFalse();
-        assertThatVal(geometryIsIn(POLYGON_4, POLYGON_1)).isError(PARAMETER_NOT_A_GEOMETRY_COLLECTION_ERROR);
+        assertThatVal(geometryIsIn(POLYGON_4, POLYGON_1)).isError(NOT_A_GEOMETRY_COLLECTION_ERROR);
     }
 
     @Test
@@ -586,7 +589,7 @@ class GeographicFunctionLibraryTests {
     }
 
     @Test
-    void kmlToGeoJSONMultiplePlacemarksTest() throws FactoryException {
+    void kmlToGeoJSONMultiplePlacemarksTest() {
         final var kml = """
                 <kml xmlns="http://www.opengis.net/kml/2.2">
                   <Document>
@@ -610,7 +613,6 @@ class GeographicFunctionLibraryTests {
                 </kml>
                 """;
 
-        // Build the expected JTS GeometryCollection for multiple placemarks:
         var point      = WGS84_FACTORY.createPoint(new Coordinate(-10.0, 10.0, 0.0));
         var lineString = WGS84_FACTORY.createLineString(new Coordinate[] { new Coordinate(-10.0, 12.0, 0.0),
                 new Coordinate(-9.0, 13.0, 0.0), new Coordinate(-8.0, 12.0, 0.0) });
@@ -679,7 +681,6 @@ class GeographicFunctionLibraryTests {
 
     @Test
     void kmlToGeoJSONParseErrorTest() {
-        // Malformed/invalid KML to force the parser to throw an Exception
         final var invalidKml = """
                 <kml xmlns="http://www.opengis.net/kml/2.2">
                   <Placemark>
@@ -688,16 +689,12 @@ class GeographicFunctionLibraryTests {
                   <!-- Tag not closed properly -->
                 """;
 
-        // This will indirectly call parseKmlToGeoJSON, hitting the catch block
         final var result = kmlToGeoJSON(Val.of(invalidKml));
-
-        // Assert the Val is an error containing "Failed to parse KML"
         assertThatVal(result).isError();
     }
 
     @Test
     void kmlToGeoJSONNoGeometriesTest() {
-        // Valid KML but no geometry elements -> collect(parsed) returns empty
         final var emptyKml = """
                 <kml xmlns="http://www.opengis.net/kml/2.2">
                   <Placemark>
@@ -706,45 +703,227 @@ class GeographicFunctionLibraryTests {
                 </kml>
                 """;
 
-        // This will indirectly call parseKmlToGeoJSON, hitting geometries.isEmpty()
         final var result = kmlToGeoJSON(Val.of(emptyKml));
-
-        // Assert the Val is exactly "No geometries in KML."
-        assertThatVal(result).isError("No geometries in KML.");
+        assertThatVal(result).isError(GeographicFunctionLibrary.NO_GEOMETRIES_IN_KML_ERROR);
     }
+
     @Test
     void kmlToGeoJSONFeatureCollectionCaseTest() {
-        // KML with multiple Placemarks in a single <Document> => often parses as a FeatureCollection
         final var multiPlacemarksKml = """
-            <kml xmlns="http://www.opengis.net/kml/2.2">
-              <Document>
-                <Placemark>
-                  <name>Placemark One</name>
-                  <Point>
-                    <coordinates>1,2,0</coordinates>
-                  </Point>
-                </Placemark>
-                <Placemark>
-                  <name>Placemark Two</name>
-                  <LineString>
-                    <coordinates>
-                      1,2,0
-                      2,3,0
-                    </coordinates>
-                  </LineString>
-                </Placemark>
-              </Document>
-            </kml>
-            """;
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                  <Document>
+                    <Placemark>
+                      <name>Placemark One</name>
+                      <Point>
+                        <coordinates>1,2,0</coordinates>
+                      </Point>
+                    </Placemark>
+                    <Placemark>
+                      <name>Placemark Two</name>
+                      <LineString>
+                        <coordinates>
+                          1,2,0
+                          2,3,0
+                        </coordinates>
+                      </LineString>
+                    </Placemark>
+                  </Document>
+                </kml>
+                """;
 
-        // Indirectly calls collect(...) in parseKmlToGeoJSON.
         final var result = kmlToGeoJSON(Val.of(multiPlacemarksKml));
-
-        // Example assertion to ensure we got a valid (non-error) Val back
-        // (adjust this as needed for your particular expectations)
         assertThatVal(result).hasValue();
+    }
 
-        // For demonstration: print the output to see the resulting GeoJSON
-        System.out.println("FeatureCollection parse result => " + result);
+    @Test
+    void wktToGeoJSONPointTest() {
+        final var wkt           = "POINT (10 20)";
+        final var result        = wktToGeoJSON(Val.of(wkt));
+        final var expectedPoint = GEO_FACTORY.createPoint(new Coordinate(10, 20));
+        final var expectedVal   = geometryToGeoJSON(expectedPoint);
+        assertThatVal(result).isEqualTo(expectedVal);
+    }
+
+    @Test
+    void wktToGeoJSONPolygonWithHoleTest() {
+        final var wkt         = "POLYGON ((10 10, 20 10, 20 20, 10 20, 10 10),"
+                + "         (12 12, 18 12, 18 18, 12 18, 12 12))";
+        final var result      = wktToGeoJSON(Val.of(wkt));
+        final var outer       = GEO_FACTORY.createLinearRing(new Coordinate[] { new Coordinate(10, 10),
+                new Coordinate(20, 10), new Coordinate(20, 20), new Coordinate(10, 20), new Coordinate(10, 10) });
+        final var inner       = GEO_FACTORY.createLinearRing(new Coordinate[] { new Coordinate(12, 12),
+                new Coordinate(18, 12), new Coordinate(18, 18), new Coordinate(12, 18), new Coordinate(12, 12) });
+        final var polygon     = GEO_FACTORY.createPolygon(outer, new org.locationtech.jts.geom.LinearRing[] { inner });
+        final var expectedVal = geometryToGeoJSON(polygon);
+        assertThatVal(result).isEqualTo(expectedVal);
+    }
+
+    @Test
+    void wktToGeoJSONParseErrorTest() {
+        final var invalidWkt = "POINT 10 20"; // missing parentheses => parse error
+        final var result     = wktToGeoJSON(Val.of(invalidWkt));
+        assertThatVal(result).isError().contains(GeographicFunctionLibrary.INVALID_WKT_ERROR);
+    }
+
+    @Test
+    void gmlToGeoJSONPointTest() {
+        final var singlePointGml = """
+                <gml:Point xmlns:gml="http://www.opengis.net/gml" srsName="EPSG:4326">
+                  <gml:coordinates>10,20</gml:coordinates>
+                </gml:Point>
+                """;
+        final var result         = gml3ToGeoJSON(Val.of(singlePointGml));
+        assertThatVal(result).hasValue();
+        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        assertThat(geometry.getGeometryType()).isEqualTo("Point");
+        assertThat(geometry.getCoordinate().x).isEqualTo(10.0);
+        assertThat(geometry.getCoordinate().y).isEqualTo(20.0);
+    }
+
+    @Test
+    void gmlToGeoJSONFeatureCollectionTest() {
+        final var multiGeomGml = """
+                <gml:FeatureCollection xmlns:gml="http://www.opengis.net/gml" xmlns:myNS="http://example.com/myNS">
+                  <gml:featureMember>
+                    <myNS:someFeature>
+                      <myNS:the_geom>
+                        <gml:Point srsName="EPSG:4326">
+                          <gml:coordinates>1,2</gml:coordinates>
+                        </gml:Point>
+                      </myNS:the_geom>
+                    </myNS:someFeature>
+                  </gml:featureMember>
+                  <gml:featureMember>
+                    <myNS:someFeature>
+                      <myNS:the_geom>
+                        <gml:LineString srsName="EPSG:4326">
+                          <gml:coordinates>10,10 20,20</gml:coordinates>
+                        </gml:LineString>
+                      </myNS:the_geom>
+                    </myNS:someFeature>
+                  </gml:featureMember>
+                </gml:FeatureCollection>
+                """;
+        final var result       = gml3ToGeoJSON(Val.of(multiGeomGml));
+        assertThatVal(result).hasValue();
+        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        assertThat(geometry.getGeometryType()).isEqualTo("GeometryCollection");
+        var gc = (GeometryCollection) geometry;
+        assertThat(gc.getNumGeometries()).isEqualTo(2);
+    }
+
+    @Test
+    void gmlToGeoJSONNoGeometryTest() {
+        final var noGeomGml = """
+                <gml:FeatureCollection xmlns:gml="http://www.opengis.net/gml">
+                  <gml:featureMember>
+                    <SomeFeatureWithoutGeometry>
+                      <SomeProperty>42</SomeProperty>
+                    </SomeFeatureWithoutGeometry>
+                  </gml:featureMember>
+                </gml:FeatureCollection>
+                """;
+        final var result    = gml3ToGeoJSON(Val.of(noGeomGml));
+        assertThatVal(result).isError().contains("No geometries in GML.");
+    }
+
+    @Test
+    void gmlToGeoJSONInvalidTest() {
+        final var invalidGml = """
+                <gml:Point xmlns:gml="http://www.opengis.net/gml">
+                """;
+        final var result     = gml3ToGeoJSON(Val.of(invalidGml));
+        assertThatVal(result).isError(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
+    }
+
+    @Test
+    void gml2ToGeoJSONPointTest() {
+        final var gml2Point = """
+                <gml:Point xmlns:gml="http://www.opengis.net/gml">
+                  <gml:coordinates>10,20</gml:coordinates>
+                </gml:Point>
+                """;
+        final var result    = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2Point));
+        assertThatVal(result).hasValue();
+        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        assertThat(geometry.getGeometryType()).isEqualTo("Point");
+        assertThat(geometry.getCoordinate()).isEqualTo(new Coordinate(10.0, 20.0));
+    }
+
+    @Test
+    void gml2ToGeoJSONLineStringTest() {
+        final var gml2LineString = """
+                <gml:LineString xmlns:gml="http://www.opengis.net/gml">
+                  <gml:coordinates>10,10 20,20 30,10</gml:coordinates>
+                </gml:LineString>
+                """;
+        final var result         = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2LineString));
+        assertThatVal(result).hasValue();
+        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        assertThat(geometry.getGeometryType()).isEqualTo("LineString");
+        assertThat(geometry.getCoordinates()).containsExactly(new Coordinate(10, 10), new Coordinate(20, 20),
+                new Coordinate(30, 10));
+    }
+
+    @Test
+    void gml2ToGeoJSONPolygonTest() {
+        final var gml2Polygon = """
+                <gml:Polygon xmlns:gml="http://www.opengis.net/gml">
+                  <gml:outerBoundaryIs>
+                    <gml:LinearRing>
+                      <gml:coordinates>10,10 20,10 20,20 10,20 10,10</gml:coordinates>
+                    </gml:LinearRing>
+                  </gml:outerBoundaryIs>
+                </gml:Polygon>
+                """;
+        final var result      = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2Polygon));
+        assertThatVal(result).hasValue();
+        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        assertThat(geometry.getGeometryType()).isEqualTo("Polygon");
+        assertThat(geometry.getCoordinates()).containsExactly(new Coordinate(10, 10), new Coordinate(20, 10),
+                new Coordinate(20, 20), new Coordinate(10, 20), new Coordinate(10, 10));
+    }
+
+    @Test
+    void gml2ToGeoJSONMultiGeometryTest() {
+        final var gml2MultiGeom = """
+                <gml:MultiGeometry xmlns:gml="http://www.opengis.net/gml">
+                  <gml:geometryMember>
+                    <gml:Point>
+                      <gml:coordinates>10,20</gml:coordinates>
+                    </gml:Point>
+                  </gml:geometryMember>
+                  <gml:geometryMember>
+                    <gml:LineString>
+                      <gml:coordinates>10,10 20,20</gml:coordinates>
+                    </gml:LineString>
+                  </gml:geometryMember>
+                </gml:MultiGeometry>
+                """;
+        final var result        = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2MultiGeom));
+        assertThatVal(result).hasValue();
+        final var geometry = GeographicFunctionLibrary.geoJsonToGeometry(result);
+        assertThat(geometry.getGeometryType()).isEqualTo("GeometryCollection");
+        final var gc = (GeometryCollection) geometry;
+        assertThat(gc.getNumGeometries()).isEqualTo(2);
+    }
+
+    @Test
+    void gml2ToGeoJSONEmptyTest() {
+        final var gml2Empty = """
+                <gml:FeatureCollection xmlns:gml="http://www.opengis.net/gml">
+                </gml:FeatureCollection>
+                """;
+        final var result    = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2Empty));
+        assertThatVal(result).isError(GeographicFunctionLibrary.NO_GEOMETRIES_IN_GML_ERROR);
+    }
+
+    @Test
+    void gml2ToGeoJSONInvalidTest() {
+        final var gml2Invalid = """
+                <gml:Point xmlns:gml="http://www.opengis.net/gml">
+                """;
+        final var result      = GeographicFunctionLibrary.gml2ToGeoJSON(Val.of(gml2Invalid));
+        assertThatVal(result).isError().contains(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
     }
 }

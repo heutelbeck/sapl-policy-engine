@@ -39,11 +39,14 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.spatial4j.distance.DistanceUtils;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
@@ -65,18 +68,25 @@ public class GeographicFunctionLibrary {
             A function library to manipulate, inspect, and convert geograpihc data.
             """;
 
-    static final String INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM_ERROR = "Input must be a GeometryCollection containing only one Geometry.";
-    static final String OPERATION_IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR    = "Operation isClosed is not applicable for the type %s.";
-    static final String PARAMETER_NOT_A_GEOMETRY_COLLECTION_ERROR         = "The second parameter of the geometryIsIn was not a geometry collection.";
+    static final String FAILED_TO_PARSE_GML_ERROR            = "Failed to parse GML.";
+    static final String FAILED_TO_PARSE_KML_ERROR            = "Failed to parse KML.";
+    static final String INCORRECT_NUMER_OF_GEOEMTRIES_ERROR  = "Input must be a GeometryCollection containing only one Geometry.";
+    static final String INVALID_WKT_ERROR                    = "Invalid WKT.";
+    static final String NO_GEOMETRIES_IN_GML_ERROR           = "No geometries in GML.";
+    static final String NO_GEOMETRIES_IN_KML_ERROR           = "No geometries in KML.";
+    static final String IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR = "Operation isClosed is not applicable for the type %s.";
+    static final String NOT_A_GEOMETRY_COLLECTION_ERROR      = "The second parameter of the geometryIsIn was not a geometry collection.";
 
     private static final String WGS84 = "EPSG:4326";
 
-    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
-    private static final GeometryFactory WGS84_FACTORY    = new GeometryFactory(new PrecisionModel(), 4326);
-    private static final WKTReader       WKT_READER       = new WKTReader();
-    private static final Parser          KML_READER       = new Parser(new KMLConfiguration() );
     private static final GeoJsonReader   GEOJSON_READER   = new GeoJsonReader();
     private static final GeoJsonWriter   GEOJSON_WRITER   = new GeoJsonWriter();
+    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
+    private static final Parser          GML2_READER      = new Parser(new org.geotools.gml2.GMLConfiguration());
+    private static final Parser          GML3_READER      = new Parser(new org.geotools.gml3.GMLConfiguration());
+    private static final Parser          KML_READER       = new Parser(new KMLConfiguration());
+    private static final GeometryFactory WGS84_FACTORY    = new GeometryFactory(new PrecisionModel(), 4326);
+    private static final WKTReader       WKT_READER       = new WKTReader();
 
     /*
      * Geometry Comparisons
@@ -188,7 +198,7 @@ public class GeographicFunctionLibrary {
         case Geometry.TYPENAME_MULTILINESTRING:
             return Val.of(((MultiLineString) geometry).isClosed());
         default:
-            return Val.error(String.format(OPERATION_IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR, geometry.getGeometryType()));
+            return Val.error(String.format(IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR, geometry.getGeometryType()));
         }
     }
 
@@ -387,7 +397,7 @@ public class GeographicFunctionLibrary {
                 && geometryCollection.getNumGeometries() == 1) {
             return geometryToGeoJSON(geometryCollection.getGeometryN(0));
         } else {
-            return Val.error(INPUT_NOT_GEO_COLLECTION_WITH_ONLY_ONE_GEOM_ERROR);
+            return Val.error(INCORRECT_NUMER_OF_GEOEMTRIES_ERROR);
         }
     }
 
@@ -403,7 +413,7 @@ public class GeographicFunctionLibrary {
             }
             return Val.FALSE;
         }
-        return Val.error(PARAMETER_NOT_A_GEOMETRY_COLLECTION_ERROR);
+        return Val.error(NOT_A_GEOMETRY_COLLECTION_ERROR);
     }
 
     @Function(docs = "geometryBag(GEOMETRY,...): Takes any number of GEOMETRY and returns a GEOMETRYCOLLECTION containing all of them.", schema = GeoJSONSchemata.GEOMETRY_COLLECTION)
@@ -454,26 +464,10 @@ public class GeographicFunctionLibrary {
         return Val.of(jsonValue.get().asDouble() * DistanceUtils.DEG_TO_KM * 1000);
     }
 
-//    private void dump(Object o, String prefix) {
-//        // If it's a Feature, list properties:
-//        if (o instanceof Feature feature) {
-//            for (Property prop : feature.getProperties()) {
-//                System.out.println(prefix + "Property name=" + prop.getName() + ", value class="
-//                        + (prop.getValue() == null ? "null" : prop.getValue().getClass().getName()));
-//                if (prop.getValue() != null) {
-//                    dump(prop.getValue(), prefix + "->");
-//                }
-//            }
-//        } else if (o instanceof List list) {
-//            for (var li : list) {
-//                dump(li, prefix + "#>");
-//            }
-//        }
-//    }
-
     /*
      * Geographic Data Converters
      */
+
     @Function(docs = "converts KML to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public Val kmlToGeoJSON(@Text Val kml) {
         return parseKmlToGeoJSON(kml);
@@ -484,11 +478,11 @@ public class GeographicFunctionLibrary {
         try {
             parsed = KML_READER.parse(new StringReader(kml.getText()));
         } catch (Exception e) {
-            return Val.error("Failed to parse KML: " + e.getMessage());
+            return Val.error(FAILED_TO_PARSE_KML_ERROR);
         }
         final var geometries = collect(parsed);
         if (geometries.isEmpty()) {
-            return Val.error("No geometries in KML.");
+            return Val.error(NO_GEOMETRIES_IN_KML_ERROR);
         } else if (geometries.size() == 1) {
             return geometryToGeoJSON(geometries.get(0));
         }
@@ -537,10 +531,40 @@ public class GeographicFunctionLibrary {
         return geometries;
     }
 
-    @SneakyThrows
     @Function(docs = "converts WKT to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public static Val wktToGeoJSON(@Text Val wkt) {
-        return geometryToGeoJSON(WKT_READER.read(wkt.getText()));
+        try {
+            return geometryToGeoJSON(WKT_READER.read(wkt.getText()));
+        } catch (ParseException e) {
+            return Val.error(INVALID_WKT_ERROR);
+        }
+    }
+
+    @Function(docs = "converts GML3 to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
+    public static Val gml3ToGeoJSON(@Text Val gml) {
+        return gmlToGeoJSON(gml, GML3_READER);
+    }
+
+    @Function(docs = "converts GML2 to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
+    public static Val gml2ToGeoJSON(@Text Val gml) {
+        return gmlToGeoJSON(gml, GML2_READER);
+    }
+
+    private static Val gmlToGeoJSON(@Text Val gml, Parser parser) {
+        Object parsed;
+        try {
+            parsed = parser.parse(new StringReader(gml.getText()));
+        } catch (Exception e) {
+            return Val.error(FAILED_TO_PARSE_GML_ERROR);
+        }
+        final var geometries = collect(parsed);
+        if (geometries.isEmpty()) {
+            return Val.error(NO_GEOMETRIES_IN_GML_ERROR);
+        } else if (geometries.size() == 1) {
+            return geometryToGeoJSON(geometries.get(0));
+        }
+        var geometryCollection = WGS84_FACTORY.createGeometryCollection(geometries.toArray(new Geometry[0]));
+        return geometryToGeoJSON(geometryCollection);
     }
 
     /*
@@ -548,13 +572,16 @@ public class GeographicFunctionLibrary {
      */
 
     @SneakyThrows
-    private static Geometry geoJsonToGeometry(Val geoJson) {
+    static Geometry geoJsonToGeometry(Val geoJson) {
         return GEOJSON_READER.read(geoJson.toString());
     }
 
-    @SneakyThrows
-    private Val geometryToGeoJSON(Geometry geo) {
-        return Val.ofJson(GEOJSON_WRITER.write(geo));
+    Val geometryToGeoJSON(Geometry geo) {
+        try {
+            return Val.ofJson(GEOJSON_WRITER.write(geo));
+        } catch (JsonProcessingException e) {
+            return Val.error("Error converting Geometry to GeoJSON: " + e.getMessage());
+        }
     }
 
 }
