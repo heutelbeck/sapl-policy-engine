@@ -17,23 +17,31 @@
  */
 package io.sapl.functions.geo;
 
+import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
 
+import org.geotools.api.feature.Feature;
+import org.geotools.api.feature.Property;
+import org.geotools.feature.FeatureCollection;
 import org.geotools.geometry.jts.JTS;
+import org.geotools.kml.v22.KMLConfiguration;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.GeodeticCalculator;
+import org.geotools.xsd.Parser;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.MultiLineString;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
-import org.locationtech.jts.io.kml.KMLReader;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
@@ -64,8 +72,9 @@ public class GeographicFunctionLibrary {
     private static final String WGS84 = "EPSG:4326";
 
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
+    private static final GeometryFactory WGS84_FACTORY    = new GeometryFactory(new PrecisionModel(), 4326);
     private static final WKTReader       WKT_READER       = new WKTReader();
-    private static final KMLReader       KML_READER       = new KMLReader();
+    private static final Parser          KML_READER       = new Parser(new KMLConfiguration() );
     private static final GeoJsonReader   GEOJSON_READER   = new GeoJsonReader();
     private static final GeoJsonWriter   GEOJSON_WRITER   = new GeoJsonWriter();
 
@@ -216,7 +225,7 @@ public class GeographicFunctionLibrary {
     @Function(docs = "union(GEOMETRYTHIS, GEOMETRYTHAT): Returns the union of two geometries. GEOMETRY can also be a GEOMETRYCOLLECTION.", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public Val union(@Schema(GeoJSONSchemata.GEOMETRIES) @JsonObject Val... jsonGeometries) {
         if (jsonGeometries.length == 0) {
-            return geometryToGeoJSON(GEOMETRY_FACTORY.createEmpty(-1));
+            return geometryToGeoJSON(WGS84_FACTORY.createEmpty(-1));
         }
 
         var geomUnion = geoJsonToGeometry(jsonGeometries[0]);
@@ -445,16 +454,89 @@ public class GeographicFunctionLibrary {
         return Val.of(jsonValue.get().asDouble() * DistanceUtils.DEG_TO_KM * 1000);
     }
 
+//    private void dump(Object o, String prefix) {
+//        // If it's a Feature, list properties:
+//        if (o instanceof Feature feature) {
+//            for (Property prop : feature.getProperties()) {
+//                System.out.println(prefix + "Property name=" + prop.getName() + ", value class="
+//                        + (prop.getValue() == null ? "null" : prop.getValue().getClass().getName()));
+//                if (prop.getValue() != null) {
+//                    dump(prop.getValue(), prefix + "->");
+//                }
+//            }
+//        } else if (o instanceof List list) {
+//            for (var li : list) {
+//                dump(li, prefix + "#>");
+//            }
+//        }
+//    }
+
     /*
      * Geographic Data Converters
      */
-
-    @SneakyThrows
     @Function(docs = "converts KML to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public Val kmlToGeoJSON(@Text Val kml) {
-        return geometryToGeoJSON(KML_READER.read(kml.getText()));
+        return parseKmlToGeoJSON(kml);
     }
-    
+
+    private static Val parseKmlToGeoJSON(Val kml) {
+        Object parsed;
+        try {
+            parsed = KML_READER.parse(new StringReader(kml.getText()));
+        } catch (Exception e) {
+            return Val.error("Failed to parse KML: " + e.getMessage());
+        }
+        final var geometries = collect(parsed);
+        if (geometries.isEmpty()) {
+            return Val.error("No geometries in KML.");
+        } else if (geometries.size() == 1) {
+            return geometryToGeoJSON(geometries.get(0));
+        }
+        var geometryCollection = WGS84_FACTORY.createGeometryCollection(geometries.toArray(new Geometry[0]));
+        return geometryToGeoJSON(geometryCollection);
+    }
+
+    @SneakyThrows
+    private static List<Geometry> collect(Object o) {
+        if (o instanceof Feature feature) {
+            return collectGeometries(feature);
+        } else if (o instanceof FeatureCollection<?, ?> featureCollection) {
+            return collectGeometries(featureCollection);
+        } else if (o instanceof List<?> featureList) {
+            return collectGeometries(featureList);
+        } else if (o instanceof Geometry geometry) {
+            geometry.setUserData(CRS.decode(WGS84));
+            return List.of(geometry);
+        }
+        return List.of();
+    }
+
+    private static List<Geometry> collectGeometries(List<?> featureList) {
+        final var geometries = new ArrayList<Geometry>();
+        for (var feature : featureList) {
+            geometries.addAll(collect(feature));
+        }
+        return geometries;
+    }
+
+    private static List<Geometry> collectGeometries(FeatureCollection<?, ?> featureCollection) {
+        final var geometries = new ArrayList<Geometry>();
+        try (var features = featureCollection.features()) {
+            while (features.hasNext()) {
+                geometries.addAll(collect(features.next()));
+            }
+        }
+        return geometries;
+    }
+
+    private static List<Geometry> collectGeometries(Feature feature) {
+        final var geometries = new ArrayList<Geometry>();
+        for (Property property : feature.getProperties()) {
+            geometries.addAll(collect(property.getValue()));
+        }
+        return geometries;
+    }
+
     @SneakyThrows
     @Function(docs = "converts WKT to GeoJSON", schema = GeoJSONSchemata.JSON_SCHEME_COMPLETE)
     public static Val wktToGeoJSON(@Text Val wkt) {

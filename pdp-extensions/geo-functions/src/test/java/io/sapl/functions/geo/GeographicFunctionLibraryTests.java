@@ -44,6 +44,7 @@ import static io.sapl.functions.geo.GeographicFunctionLibrary.isSimple;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.isValid;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.isWithinDistance;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.isWithinGeoDistance;
+import static io.sapl.functions.geo.GeographicFunctionLibrary.kmlToGeoJSON;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.length;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.milesToMeter;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.oneAndOnly;
@@ -56,11 +57,14 @@ import static io.sapl.functions.geo.GeographicFunctionLibrary.within;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.yardToMeter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.geotools.api.referencing.FactoryException;
+import org.geotools.referencing.CRS;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
@@ -76,6 +80,7 @@ class GeographicFunctionLibraryTests {
 
     private static final GeoJsonWriter   GEOJSON_WRITER = new GeoJsonWriter();
     private static final GeometryFactory GEO_FACTORY    = new GeometryFactory();
+    private static final GeometryFactory WGS84_FACTORY  = new GeometryFactory(new PrecisionModel(), 4326);
 
     // @formatter:off
     private static final Point POINT_1_2_GEOMETRY         = GEO_FACTORY.createPoint(new Coordinate(1    , 2    ));
@@ -290,7 +295,7 @@ class GeographicFunctionLibraryTests {
 
     @Test
     void unionEmptyTest() {
-        final var expectedGeometry = geometryToGeoJSON(GEO_FACTORY.createEmpty(-1));
+        final var expectedGeometry = geometryToGeoJSON(WGS84_FACTORY.createEmpty(-1));
         final var actualGeometry   = union(new Val[] {});
         assertThatVal(actualGeometry).isEqualTo(expectedGeometry);
     }
@@ -499,5 +504,247 @@ class GeographicFunctionLibraryTests {
     @SneakyThrows
     private static Val geometryToGeoJSON(Geometry geo) {
         return Val.ofJson(GEOJSON_WRITER.write(geo));
+    }
+
+    @Test
+    void kmlToGeoJSONTest() throws FactoryException {
+        final var kml              = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                  <Placemark>
+                    <Point>
+                      <coordinates>-122.0822035425683,37.42228990140251,0</coordinates>
+                    </Point>
+                  </Placemark>
+                </kml>
+                """;
+        final var expectedGeometry = GEO_FACTORY
+                .createPoint(new Coordinate(-122.0822035425683, 37.42228990140251, 0.0));
+        expectedGeometry.setUserData(CRS.decode(WGS84));
+        final var expectedVal = geometryToGeoJSON(expectedGeometry);
+        final var result      = kmlToGeoJSON(Val.of(kml));
+        assertThatVal(result).isEqualTo(expectedVal);
+    }
+
+    @Test
+    void kmlToGeoJSONMultiGeometryTest() throws FactoryException {
+        final var kml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                  <Placemark>
+                    <name>MultiGeometry Example</name>
+                    <MultiGeometry>
+                      <Point>
+                        <coordinates>1.0,2.0,0</coordinates>
+                      </Point>
+                      <LineString>
+                        <coordinates>
+                          0.0,0.0,0
+                          1.0,1.0,0
+                          2.0,0.0,0
+                        </coordinates>
+                      </LineString>
+                      <Polygon>
+                        <outerBoundaryIs>
+                          <LinearRing>
+                            <coordinates>
+                              3.0,3.0,0
+                              5.0,3.0,0
+                              5.0,5.0,0
+                              3.0,5.0,0
+                              3.0,3.0,0
+                            </coordinates>
+                          </LinearRing>
+                        </outerBoundaryIs>
+                      </Polygon>
+                    </MultiGeometry>
+                  </Placemark>
+                </kml>
+                """;
+
+        // Build the expected JTS GeometryCollection:
+        var point      = GEO_FACTORY.createPoint(new Coordinate(1.0, 2.0, 0.0));
+        var lineString = GEO_FACTORY.createLineString(new Coordinate[] { new Coordinate(0.0, 0.0, 0.0),
+                new Coordinate(1.0, 1.0, 0.0), new Coordinate(2.0, 0.0, 0.0) });
+        var polygon    = GEO_FACTORY
+                .createPolygon(new Coordinate[] { new Coordinate(3.0, 3.0, 0.0), new Coordinate(5.0, 3.0, 0.0),
+                        new Coordinate(5.0, 5.0, 0.0), new Coordinate(3.0, 5.0, 0.0), new Coordinate(3.0, 3.0, 0.0) });
+
+        var multiGeometry = GEO_FACTORY.createGeometryCollection(new Geometry[] { point, lineString, polygon });
+
+        // Set WGS84 explicitly
+        multiGeometry.setUserData(CRS.decode(WGS84));
+
+        // Convert the expected geometry to GeoJSON
+        final var expectedVal = geometryToGeoJSON(multiGeometry);
+
+        // Run the code under test
+        final var result = kmlToGeoJSON(Val.of(kml));
+
+        // Assert
+        assertThatVal(result).isEqualTo(expectedVal);
+    }
+
+    @Test
+    void kmlToGeoJSONMultiplePlacemarksTest() throws FactoryException {
+        final var kml = """
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                  <Document>
+                    <Placemark>
+                      <name>First Placemark</name>
+                      <Point>
+                        <coordinates>-10,10,0</coordinates>
+                      </Point>
+                    </Placemark>
+                    <Placemark>
+                      <name>Second Placemark</name>
+                      <LineString>
+                        <coordinates>
+                          -10,12,0
+                          -9,13,0
+                          -8,12,0
+                        </coordinates>
+                      </LineString>
+                    </Placemark>
+                  </Document>
+                </kml>
+                """;
+
+        // Build the expected JTS GeometryCollection for multiple placemarks:
+        var point      = WGS84_FACTORY.createPoint(new Coordinate(-10.0, 10.0, 0.0));
+        var lineString = WGS84_FACTORY.createLineString(new Coordinate[] { new Coordinate(-10.0, 12.0, 0.0),
+                new Coordinate(-9.0, 13.0, 0.0), new Coordinate(-8.0, 12.0, 0.0) });
+
+        var multiGeometry = WGS84_FACTORY.createGeometryCollection(new Geometry[] { point, lineString });
+
+        final var expectedVal = geometryToGeoJSON(multiGeometry);
+
+        final var result = kmlToGeoJSON(Val.of(kml));
+        assertThatVal(result).isEqualTo(expectedVal);
+    }
+
+    @Test
+    void kmlToGeoJSONPolygonWithHoleTest() throws FactoryException {
+        final var kml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                  <Placemark>
+                    <Polygon>
+                      <outerBoundaryIs>
+                        <LinearRing>
+                          <coordinates>
+                            10,10,0
+                            20,10,0
+                            20,20,0
+                            10,20,0
+                            10,10,0
+                          </coordinates>
+                        </LinearRing>
+                      </outerBoundaryIs>
+                      <innerBoundaryIs>
+                        <LinearRing>
+                          <coordinates>
+                            12,12,0
+                            18,12,0
+                            18,18,0
+                            12,18,0
+                            12,12,0
+                          </coordinates>
+                        </LinearRing>
+                      </innerBoundaryIs>
+                    </Polygon>
+                  </Placemark>
+                </kml>
+                """;
+
+        // Outer ring
+        var outer = GEO_FACTORY
+                .createLinearRing(new Coordinate[] { new Coordinate(10, 10, 0), new Coordinate(20, 10, 0),
+                        new Coordinate(20, 20, 0), new Coordinate(10, 20, 0), new Coordinate(10, 10, 0), });
+
+        // Inner ring (hole)
+        var inner = GEO_FACTORY
+                .createLinearRing(new Coordinate[] { new Coordinate(12, 12, 0), new Coordinate(18, 12, 0),
+                        new Coordinate(18, 18, 0), new Coordinate(12, 18, 0), new Coordinate(12, 12, 0), });
+
+        // Polygon with hole
+        var polygon = GEO_FACTORY.createPolygon(outer, new org.locationtech.jts.geom.LinearRing[] { inner });
+        polygon.setUserData(CRS.decode(WGS84));
+
+        final var expectedVal = geometryToGeoJSON(polygon);
+
+        final var result = kmlToGeoJSON(Val.of(kml));
+        assertThatVal(result).isEqualTo(expectedVal);
+    }
+
+    @Test
+    void kmlToGeoJSONParseErrorTest() {
+        // Malformed/invalid KML to force the parser to throw an Exception
+        final var invalidKml = """
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                  <Placemark>
+                    <Point>
+                      <!-- Missing <coordinates> or other syntax errors -->
+                  <!-- Tag not closed properly -->
+                """;
+
+        // This will indirectly call parseKmlToGeoJSON, hitting the catch block
+        final var result = kmlToGeoJSON(Val.of(invalidKml));
+
+        // Assert the Val is an error containing "Failed to parse KML"
+        assertThatVal(result).isError();
+    }
+
+    @Test
+    void kmlToGeoJSONNoGeometriesTest() {
+        // Valid KML but no geometry elements -> collect(parsed) returns empty
+        final var emptyKml = """
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                  <Placemark>
+                    <name>No geometry here</name>
+                  </Placemark>
+                </kml>
+                """;
+
+        // This will indirectly call parseKmlToGeoJSON, hitting geometries.isEmpty()
+        final var result = kmlToGeoJSON(Val.of(emptyKml));
+
+        // Assert the Val is exactly "No geometries in KML."
+        assertThatVal(result).isError("No geometries in KML.");
+    }
+    @Test
+    void kmlToGeoJSONFeatureCollectionCaseTest() {
+        // KML with multiple Placemarks in a single <Document> => often parses as a FeatureCollection
+        final var multiPlacemarksKml = """
+            <kml xmlns="http://www.opengis.net/kml/2.2">
+              <Document>
+                <Placemark>
+                  <name>Placemark One</name>
+                  <Point>
+                    <coordinates>1,2,0</coordinates>
+                  </Point>
+                </Placemark>
+                <Placemark>
+                  <name>Placemark Two</name>
+                  <LineString>
+                    <coordinates>
+                      1,2,0
+                      2,3,0
+                    </coordinates>
+                  </LineString>
+                </Placemark>
+              </Document>
+            </kml>
+            """;
+
+        // Indirectly calls collect(...) in parseKmlToGeoJSON.
+        final var result = kmlToGeoJSON(Val.of(multiPlacemarksKml));
+
+        // Example assertion to ensure we got a valid (non-error) Val back
+        // (adjust this as needed for your particular expectations)
+        assertThatVal(result).hasValue();
+
+        // For demonstration: print the output to see the resulting GeoJSON
+        System.out.println("FeatureCollection parse result => " + result);
     }
 }
