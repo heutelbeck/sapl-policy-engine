@@ -17,75 +17,49 @@
  */
 package io.sapl.functions.sanitization;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static io.sapl.assertj.SaplAssertions.assertThatVal;
 
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.interpreter.Val;
 
 class SanitizationFunctionLibraryTests {
 
-    @Test
-    void CheckForControlCharactersPass() {
-        final var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
-        final var checkedSql = SanitizationFunctionLibrary.assertNoSqlControlChars(sql);
-        assertEquals(sql, checkedSql);
+    static Stream<Arguments> sqlInjectionTestCases() {
+        // @formatter:off
+        return Stream.of(
+            Arguments.of("Select * from table where name < 'test-1' and date > 12-12-2000", true),
+            Arguments.of("DROP TABLE students;", true),
+            Arguments.of("' OR '1'='1", true),
+            Arguments.of("%27 OR %271%3D%271", true), // Encoded version of ' OR '1'='1
+            Arguments.of("Hello, this is a safe string!", false),
+            Arguments.of("SELECT * FROM users; DROP TABLE students;", true),
+            Arguments.of("UNION SELECT username, password FROM users;", true),
+            Arguments.of("username'; --", true),
+            Arguments.of("SELECT * FROM users; DROP TABLE logs;", true),
+            Arguments.of("%55%4e%49%4f%4e%20%53%45%4c%45%43%54%20%2a%20%46%52%4f%4d%20%75%73%65%72%73", true), // Hex-encoded UNION SELECT * FROM users
+            Arguments.of("%53%45%4c%45%43%54 * %46%52%4f%4d users", true), // Hex-encoded SELECT * FROM users
+            Arguments.of("%44%52%4f%50 %54%41%42%4c%45 students", true), // Hex-encoded DROP TABLE students
+            Arguments.of("%2d%2d comment", true), // Encoded -- comment      
+            Arguments.of("ＳＥＬＥＣＴ * ＦＲＯＭ users;", true), // Unicode obfuscation of SELECT * FROM users
+            Arguments.of("ＤＲＯＰ ＴＡＢＬＥ students;", true) // Unicode obfuscation of DROP TABLE students
+            );
+        // @formatter:on
     }
 
-    @Test
-    void CheckForControlCharacters2() {
-        final var sql    = Val.of(
-                "SELECT id, value FROM table WHERE name IN (SELECT name, someField FROM table2 WHERE id = 'someNumber')");
-        final var result = SanitizationFunctionLibrary.assertNoSqlControlChars(sql);
-        assertEquals(sql, result);
-    }
-
-    @Test
-    void CheckForControlCharactersError() {
-        final var sql = SanitizationFunctionLibrary
-                .assertNoSqlControlChars(Val.of("Select * from table where name = 'test;drop table'"));
-        assertEquals(Val.error(SanitizationFunctionLibrary.CONTROL_CHARACTERS_FOUND_ERROR), sql);
-    }
-
-    @Test
-    void CheckForControlCharactersError2() {
-        final var sql = SanitizationFunctionLibrary
-                .assertNoSqlControlChars(Val.of("Select * from table where name = @setvalue = 1"));
-        assertEquals(Val.error(SanitizationFunctionLibrary.CONTROL_CHARACTERS_FOUND_ERROR), sql);
-    }
-
-    @Test
-    void CheckForKeywordsPass() {
-        final var sql        = Val.of("Select * from table where name < 'test-1' and date > 12-12-2000");
-        final var checkedSql = SanitizationFunctionLibrary.assertNoSqlKeywords(sql);
-        assertEquals(sql, checkedSql);
-    }
-
-    @Test
-    void CheckForKeywordsError() {
-        final var sql = SanitizationFunctionLibrary
-                .assertNoSqlKeywords(Val.of("Select (drop table table1) from table where name = 'test'"));
-        assertEquals(Val.error(SanitizationFunctionLibrary.KEYWORD_FOUND_ERROR), sql);
-    }
-
-    @Test
-    void CheckForKeywordsErrorNoSql() {
-        final var sql = SanitizationFunctionLibrary
-                .assertNoSql(Val.of("Select (drop table table1) from table where name = 'test'"));
-        assertEquals(Val.error(SanitizationFunctionLibrary.KEYWORD_FOUND_ERROR), sql);
-    }
-
-    @Test
-    void CheckForControlCharactersErrorNoSql() {
-        final var sql = SanitizationFunctionLibrary
-                .assertNoSql(Val.of("Select * from table where name = 'test;drop table'"));
-        assertEquals(Val.error(SanitizationFunctionLibrary.CONTROL_CHARACTERS_FOUND_ERROR), sql);
-    }
-
-    @Test
-    void CheckForKeywordsError2() {
-        final var sql = SanitizationFunctionLibrary
-                .assertNoSqlKeywords(Val.of("Select * from table where name in (TRUNCATE table table1)"));
-        assertEquals(Val.error(SanitizationFunctionLibrary.KEYWORD_FOUND_ERROR), sql);
+    @ParameterizedTest
+    @MethodSource("sqlInjectionTestCases")
+    void testSqlInjectionPatterns(String input, boolean isInjection) {
+        final var inputVal       = Val.of(input);
+        final var sanitizedInput = SanitizationFunctionLibrary.assertNoSqlInjection(inputVal);
+        if (isInjection) {
+            assertThatVal(sanitizedInput).isError(SanitizationFunctionLibrary.POTENTIAL_SQL_INJECTION_DETECTED_IN_TEXT);
+        } else {
+            assertThatVal(sanitizedInput).isEqualTo(inputVal);
+        }
     }
 }
