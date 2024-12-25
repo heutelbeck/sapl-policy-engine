@@ -183,11 +183,6 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>time</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
 				<artifactId>input-sanitization-functions</artifactId>
 				<version>${project.version}</version>
 			</dependency>

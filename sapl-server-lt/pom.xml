@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -90,7 +90,7 @@
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-jwt</artifactId>
+			<artifactId>jwt</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
@@ -107,6 +107,10 @@
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>mqtt-functions</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>input-sanitization-functions</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>

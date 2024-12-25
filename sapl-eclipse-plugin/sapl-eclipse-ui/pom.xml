@@ -1,6 +1,6 @@
 <!--
 
-    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -44,11 +44,6 @@
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-pdp-embedded</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>time</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>

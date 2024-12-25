@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -63,8 +63,8 @@ import lombok.experimental.UtilityClass;
 @FunctionLibrary(name = "geo", description = GeographicFunctionLibrary.DESCRIPTION, libraryDocumentation = GeographicFunctionLibrary.DOCUMENTATION)
 public class GeographicFunctionLibrary {
 
-    private static final String DESCRIPTION   = "A function library to manipulate, inspect, and convert geograpihc data.";
-    private static final String DOCUMENTATION = """
+    static final String DESCRIPTION   = "A function library to manipulate, inspect, and convert geograpihc data.";
+    static final String DOCUMENTATION = """
             # Geographic Function Library
 
             The Geographic Function Library provides a rich set of geospatial functions for manipulating, analyzing, and converting geographic data. It is designed to work with GeoJSON as the primary format for representing geographic features.

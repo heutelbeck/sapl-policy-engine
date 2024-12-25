@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+    Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
 
     SPDX-License-Identifier: Apache-2.0
 
@@ -122,13 +122,8 @@
 		<module>sapl-pdp-api</module>
 		<module>sapl-extensions-api</module>
 		
-		<module>pdp-extensions/time</module>
 		<module>pdp-extensions/geo-functions</module>
-		<module>pdp-extensions/geo-pip-traccar</module>
-		<module>pdp-extensions/geo-pip-owntracks</module>
-		<module>pdp-extensions/geo-pip-postgis</module>
-		<module>pdp-extensions/geo-pip-mysql</module>
-		<module>pdp-extensions/http-pip</module>
+		<module>pdp-extensions/geo-traccar</module>
 		<module>pdp-extensions/input-sanitization-functions</module>
 		<module>pdp-extensions/jwt</module>
 		<module>pdp-extensions/mqtt-functions</module>

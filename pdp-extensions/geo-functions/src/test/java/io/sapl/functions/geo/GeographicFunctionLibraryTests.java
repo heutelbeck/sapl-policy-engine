@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -101,102 +101,102 @@ class GeographicFunctionLibraryTests {
     private static final Val POINT_150_150     = geometryToGeoJSON(POINT_150_150_GEOMETRY);
     private static final Val POINT_89_99_89_99 = geometryToGeoJSON(POINT_89_99_89_99_GEOMETRY);
 
-    private static final Val MULTIPOINT_1_2_150_150   = geometryToGeoJSON(GEO_FACTORY.createMultiPoint(new Point[] { 
-                                                                                    POINT_1_2_GEOMETRY, 
+    private static final Val MULTIPOINT_1_2_150_150   = geometryToGeoJSON(GEO_FACTORY.createMultiPoint(new Point[] {
+                                                                                    POINT_1_2_GEOMETRY,
                                                                                     POINT_150_150_GEOMETRY }));
-    
-    private static final Val MULTIPOINT_90_90_150_150 = geometryToGeoJSON(GEO_FACTORY.createMultiPoint(new Point[] { 
-                                                                                    POINT_90_90_GEOMETRY, 
+
+    private static final Val MULTIPOINT_90_90_150_150 = geometryToGeoJSON(GEO_FACTORY.createMultiPoint(new Point[] {
+                                                                                    POINT_90_90_GEOMETRY,
                                                                                     POINT_150_150_GEOMETRY }));
 
     private static final Val MULTIPOINT_1_2_90_90     = geometryToGeoJSON(GEO_FACTORY.createMultiPoint(new Point[] {
-                                                                                    POINT_1_2_GEOMETRY, 
+                                                                                    POINT_1_2_GEOMETRY,
                                                                                     POINT_90_90_GEOMETRY }));
 
-    private static final Geometry POLYGON_1_GEOMETRY = GEO_FACTORY.createPolygon(new Coordinate[] { 
-                                                                                    new Coordinate(100, 100), 
+    private static final Geometry POLYGON_1_GEOMETRY = GEO_FACTORY.createPolygon(new Coordinate[] {
+                                                                                    new Coordinate(100, 100),
                                                                                     new Coordinate(100, 200),
-                                                                                    new Coordinate(200, 200), 
-                                                                                    new Coordinate(200, 100), 
+                                                                                    new Coordinate(200, 200),
+                                                                                    new Coordinate(200, 100),
                                                                                     new Coordinate(100, 100), });
-    
-    private static final Geometry POLYGON_2_GEOMETRY = GEO_FACTORY.createLinearRing(new Coordinate[] { 
+
+    private static final Geometry POLYGON_2_GEOMETRY = GEO_FACTORY.createLinearRing(new Coordinate[] {
                                                                                     new Coordinate(105, 105),
                                                                                     new Coordinate(250, 100),
                                                                                     new Coordinate(100, 200),
                                                                                     new Coordinate(250, 200),
                                                                                     new Coordinate(105, 105), });
 
-    private static final Geometry POLYGON_3_GEOMETRY = GEO_FACTORY.createPolygon(new Coordinate[] { 
+    private static final Geometry POLYGON_3_GEOMETRY = GEO_FACTORY.createPolygon(new Coordinate[] {
                                                                                     new Coordinate(200, 100),
                                                                                     new Coordinate(200, 200),
-                                                                                    new Coordinate(300, 200), 
-                                                                                    new Coordinate(300, 100), 
+                                                                                    new Coordinate(300, 200),
+                                                                                    new Coordinate(300, 100),
                                                                                     new Coordinate(200, 100), });
-    
-    private static final Geometry POLYGON_4_GEOMETRY = GEO_FACTORY.createPolygon(new Coordinate[] { 
-                                                                                    new Coordinate(10, 12), 
+
+    private static final Geometry POLYGON_4_GEOMETRY = GEO_FACTORY.createPolygon(new Coordinate[] {
+                                                                                    new Coordinate(10, 12),
                                                                                     new Coordinate(10, 14),
-                                                                                    new Coordinate(12, 10), 
-                                                                                    new Coordinate(13, 14), 
+                                                                                    new Coordinate(12, 10),
+                                                                                    new Coordinate(13, 14),
                                                                                     new Coordinate(10, 12), });
-    
-    private static final Geometry POLYGON_5_GEOMETRY =   GEO_FACTORY.createPolygon(new Coordinate[] { 
+
+    private static final Geometry POLYGON_5_GEOMETRY =   GEO_FACTORY.createPolygon(new Coordinate[] {
                                                                                     new Coordinate(105, 105),
                                                                                     new Coordinate(250, 100),
                                                                                     new Coordinate(100, 200),
                                                                                     new Coordinate(250, 200),
                                                                                     new Coordinate(105, 105), });
-    
-    private static final Geometry POLYGON_6_GEOMETRY = GEO_FACTORY.createPolygon(new Coordinate[] { 
-                                                                                    new Coordinate(100, 100), 
+
+    private static final Geometry POLYGON_6_GEOMETRY = GEO_FACTORY.createPolygon(new Coordinate[] {
+                                                                                    new Coordinate(100, 100),
                                                                                     new Coordinate(250, 100),
-                                                                                    new Coordinate(100, 200), 
-                                                                                    new Coordinate(250, 200), 
+                                                                                    new Coordinate(100, 200),
+                                                                                    new Coordinate(250, 200),
                                                                                     new Coordinate(100, 100), });
 
-    
+
     private static final Val POLYGON_1 = geometryToGeoJSON(POLYGON_1_GEOMETRY);
     private static final Val POLYGON_2 = geometryToGeoJSON(POLYGON_2_GEOMETRY);
     private static final Val POLYGON_3 = geometryToGeoJSON(POLYGON_3_GEOMETRY);
     private static final Val POLYGON_4 = geometryToGeoJSON(POLYGON_4_GEOMETRY);
     private static final Val POLYGON_5 = geometryToGeoJSON(POLYGON_5_GEOMETRY);
     private static final Val POLYGON_6 = geometryToGeoJSON(POLYGON_6_GEOMETRY);
-    
+
     private static final Val SELF_INTERSECTING_POLYGON = geometryToGeoJSON(GEO_FACTORY.createPolygon(
-                                                                           GEO_FACTORY.createLinearRing(new Coordinate[] { 
+                                                                           GEO_FACTORY.createLinearRing(new Coordinate[] {
                                                                                     new Coordinate(0, 0),
-                                                                                    new Coordinate(4, 4), 
-                                                                                    new Coordinate(4, 0), 
-                                                                                    new Coordinate(0, 4), 
+                                                                                    new Coordinate(4, 4),
+                                                                                    new Coordinate(4, 0),
+                                                                                    new Coordinate(0, 4),
                                                                                     new Coordinate(0, 0) }), null));
 
-    private static final Val LINE_1 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] { 
+    private static final Val LINE_1 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
                                                                                     new Coordinate(80, 100),
                                                                                     new Coordinate(200, 250) }));
-    
+
     private static final Val LINE_2 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
-                                                                                    new Coordinate(200, 100), 
-                                                                                    new Coordinate(200, 200), 
-                                                                                    new Coordinate(300, 200), 
+                                                                                    new Coordinate(200, 100),
+                                                                                    new Coordinate(200, 200),
+                                                                                    new Coordinate(300, 200),
                                                                                     new Coordinate(300, 100) }));
-    
-    private static final Val LINE_3 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] { 
-                                                                                    new Coordinate(100, 100), 
+
+    private static final Val LINE_3 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
+                                                                                    new Coordinate(100, 100),
                                                                                     new Coordinate(200, 200) }));
-    
-    private static final Val LINE_4 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] { 
+
+    private static final Val LINE_4 = geometryToGeoJSON(GEO_FACTORY.createLineString(new Coordinate[] {
                                                                                     new Coordinate(0, 50),
                                                                                     new Coordinate(0, 150) }));
-    
-    private static final Val COLLECTION_1 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] { 
-                                                                                    POLYGON_1_GEOMETRY, 
+
+    private static final Val COLLECTION_1 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] {
+                                                                                    POLYGON_1_GEOMETRY,
                                                                                     POLYGON_3_GEOMETRY }));
-    
-    private static final Val COLLECTION_2 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] { 
+
+    private static final Val COLLECTION_2 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] {
                                                                                     POLYGON_1_GEOMETRY }));
-    
-    private static final Val COLLECTION_3 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] { 
+
+    private static final Val COLLECTION_3 = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(new Geometry[] {
                                                                                     POINT_1_2_GEOMETRY,
                                                                                     POINT_90_90_GEOMETRY }));
     // @formatter:on

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -32,12 +32,10 @@ import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
-import io.sapl.geo.library.GeographicFunctionLibrary;
-import io.sapl.geo.library.SanitizationFunctionLibrary;
-import io.sapl.geo.pip.mysql.MySqlPolicyInformationPoint;
-import io.sapl.geo.pip.owntracks.OwnTracksPolicyInformationPoint;
-import io.sapl.geo.pip.postgis.PostGisPolicyInformationPoint;
-import io.sapl.geo.pip.traccar.TraccarPolicyInformationPoint;
+import io.sapl.functions.geo.GeographicFunctionLibrary;
+import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
+import io.sapl.functions.sanitization.SanitizationFunctionLibrary;
+import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
 import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.pip.http.ReactiveWebClient;
 
@@ -48,21 +46,6 @@ public class SaplExtensionsConfig {
     @Bean
     ReactiveWebClient reactiveWebClient(ObjectMapper mapper) {
         return new ReactiveWebClient(mapper);
-    }
-
-    @Bean
-    MySqlPolicyInformationPoint mySqlPolicyInformationPoint(ObjectMapper mapper) {
-        return new MySqlPolicyInformationPoint(mapper);
-    }
-
-    @Bean
-    OwnTracksPolicyInformationPoint ownTracksPolicyInformationPoint(ObjectMapper mapper) {
-        return new OwnTracksPolicyInformationPoint(mapper);
-    }
-
-    @Bean
-    PostGisPolicyInformationPoint postGisPolicyInformationPoint(ObjectMapper mapper) {
-        return new PostGisPolicyInformationPoint(mapper);
     }
 
     @Bean
@@ -83,7 +66,7 @@ public class SaplExtensionsConfig {
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     StaticFunctionLibrarySupplier additionalStaticLibraries() {
-        return () -> List.of(MqttFunctionLibrary.class, GeographicFunctionLibrary.class,
+        return () -> List.of(MqttFunctionLibrary.class, GeographicFunctionLibrary.class, TraccarFunctionLibrary.class,
                 SanitizationFunctionLibrary.class);
     }
 
