@@ -178,17 +178,27 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-jwt</artifactId>
+				<artifactId>jwt</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-mqtt-pip</artifactId>
+				<artifactId>time</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-mqtt-functions</artifactId>
+				<artifactId>input-sanitization-functions</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>mqtt-pip</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>mqtt-functions</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -213,12 +223,7 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>geo-pip-traccar</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>${project.groupId}</groupId>
-				<artifactId>time</artifactId>
+				<artifactId>geo-traccar</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 		</dependencies>

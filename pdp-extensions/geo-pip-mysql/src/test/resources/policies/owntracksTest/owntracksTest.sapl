@@ -1,8 +1,0 @@
-policy "owntracksTest"
-permit
-where
-  
-  var position=<ownTracks.positionAndFences({"server": subject.server, "protocol": "http"}, {"user": subject.user, "deviceId": subject.deviceId})>;
-  position.deviceId == subject.deviceId;
-  
-  

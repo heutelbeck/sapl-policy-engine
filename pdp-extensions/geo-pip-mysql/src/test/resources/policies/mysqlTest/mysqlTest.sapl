@@ -1,7 +1,0 @@
-policy "mysqlTest"
-permit
-where
-  var geometry= <mySql.geometry({"user": subject.user, "password": subject.password, "server": subject.server, "port": subject.port, "dataBase": subject.dataBase}, {"table":"geometries", "geoColumn":"geom", "responseFormat":"GEOJSON", "columns": ["name"], "singleResult": true, "where": "name = 'point'"})>;
-  geometry.name == 'point' ;
-  
-  
