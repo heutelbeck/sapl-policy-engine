@@ -45,6 +45,7 @@ class SanitizationFunctionLibraryTests {
             Arguments.of("%53%45%4c%45%43%54 * %46%52%4f%4d users", true), // Hex-encoded SELECT * FROM users
             Arguments.of("%44%52%4f%50 %54%41%42%4c%45 students", true), // Hex-encoded DROP TABLE students
             Arguments.of("%2d%2d comment", true), // Encoded -- comment
+            Arguments.of("%2D%2D comment", true), // Encoded -- comment
             Arguments.of("ＳＥＬＥＣＴ * ＦＲＯＭ users;", true), // Unicode obfuscation of SELECT * FROM users
             Arguments.of("ＤＲＯＰ ＴＡＢＬＥ students;", true) // Unicode obfuscation of DROP TABLE students
             );

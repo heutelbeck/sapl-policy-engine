@@ -1,20 +1,3 @@
-/*
- * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
- *
- * SPDX-License-Identifier: Apache-2.0
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package io.sapl.extension.jwt;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,11 +12,15 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import io.sapl.extension.jwt.JWTKeyProvider.CachingException;
@@ -159,30 +146,23 @@ class JWTKeyProviderTests {
         assertThrows(CachingException.class, () -> provider.provide(kid, serverNode));
     }
 
-    @Test
-    void provide_withUriEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
-        dispatcher.setDispatchMode(DispatchMode.TRUE);
-        final var serverNode = JsonTestUtility.serverNode(server, null, null);
-        final var mono       = provider.provide(kid, serverNode);
-        StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
+     @ParameterizedTest
+     @MethodSource("provideWithUriEnvironmentSource")
+    void provide_withUriEnvironment_usingBase64Url_shouldBePublicKey(String method) throws CachingException {
+         dispatcher.setDispatchMode(DispatchMode.TRUE);
+         final var serverNode = JsonTestUtility.serverNode(server, method, null);
+         final var mono       = provider.provide(kid, serverNode);
+         StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
     }
 
-    @Test
-    void provide_withUriAndMethodPostEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
-        dispatcher.setDispatchMode(DispatchMode.TRUE);
-        final var serverNode = JsonTestUtility.serverNode(server, "POST", null);
-        final var mono       = provider.provide(kid, serverNode);
-        StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
-    }
 
-    @Test
-    void provide_withUriAndMethodNonTextEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
-        dispatcher.setDispatchMode(DispatchMode.TRUE);
-        final var serverNode = JsonTestUtility.serverNode(server, "NONETEXT", null);
-        final var mono       = provider.provide(kid, serverNode);
-        StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
+    private static Stream<Arguments> provideWithUriEnvironmentSource() {
+        return Stream.of(
+                Arguments.of((String)null),
+                Arguments.of("POST"),
+                Arguments.of("NONETEXT")
+        );
     }
-
     @Test
     void provide_withUriAndCustomTTLEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);

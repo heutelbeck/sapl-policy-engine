@@ -82,7 +82,7 @@ public class SanitizationFunctionLibrary {
             Pattern.compile(".*(['\"][\\s]*\\b(OR|AND)\\b[\\s]*['\"]).*", Pattern.CASE_INSENSITIVE),
 
             // Detects encoded inputs like %27 (') or %3B (;)
-            Pattern.compile(".*(%[0-9A-Fa-f]{2}|0x[0-9A-Fa-f]+).*", Pattern.CASE_INSENSITIVE) };
+            Pattern.compile(".*(%[0-9a-f]{2}|0x[0-9a-f]+).*", Pattern.CASE_INSENSITIVE) };
     static final String            POTENTIAL_SQL_INJECTION_DETECTED_IN_TEXT = "Potential SQL injection detected in text";
 
     private static final Predicate<String> SQL_INJECTION_PREDICATE = userInput -> {

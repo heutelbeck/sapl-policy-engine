@@ -71,7 +71,8 @@ public class TraccarTestClient {
 
     public String createGeofence(String geoFenceData) {
         return apiClient.post().uri("/api/geofences").header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .bodyValue(geoFenceData).retrieve().bodyToMono(JsonNode.class).block().get("id").asText();
+                .bodyValue(geoFenceData).retrieve().bodyToMono(JsonNode.class).blockOptional()
+                .map(o -> o.get("id").asText()).orElse("");
     }
 
     public String addTraccarPosition(String deviceId, Double lat, Double lon, Double altitude) {

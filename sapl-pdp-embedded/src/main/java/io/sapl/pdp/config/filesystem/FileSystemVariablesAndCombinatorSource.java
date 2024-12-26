@@ -82,7 +82,7 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
         }
         try {
             final var jsonNode = MAPPER.readValue(configurationFile.toFile(), JsonNode.class);
-            final var config = new PolicyDecisionPointConfiguration();
+            final var config   = new PolicyDecisionPointConfiguration();
             if (jsonNode == null) {
                 return Optional.empty();
             }
