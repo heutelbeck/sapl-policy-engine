@@ -71,13 +71,12 @@ class TraccarPolicyInformationPointIT {
     @SneakyThrows
     private static Val settings(String email, String password, String host, int port) {
         return Val.ofJson(String.format("""
-                {
-                    "baseUrl": "http://%s:%d",
-                    "userName": "%s",
-                    "password": "%s",
-                    "pollingIntervalMs": 250
-                }
-                """, host, port, email, password));
+                {\
+                    "baseUrl": "http://%s:%d",\
+                    "userName": "%s",\
+                    "password": "%s",\
+                    "pollingIntervalMs": 250\
+                }""", host, port, email, password));
     }
 
     @BeforeAll
@@ -126,13 +125,12 @@ class TraccarPolicyInformationPointIT {
     @Test
     void serverTest_noPollIntervall() throws JsonProcessingException {
         final var noPollSettings  = Val.ofJson(String.format("""
-                    {
-                    "baseUrl": "http://%s:%d",
-                    "userName": "%s",
-                    "password": "%s",
-                    "pollingIntervalMs": 250
-                }
-                """, host, port, email, password));
+                {\
+                    "baseUrl": "http://%s:%d",\
+                    "userName": "%s",\
+                    "password": "%s",\
+                    "pollingIntervalMs": 250\
+                }""", host, port, email, password));
         final var attributestream = TRACCAR_PIP
                 .server(Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, noPollSettings)).next();
         StepVerifier.create(attributestream).expectNextMatches(a -> a.get().has(TraccarSchemata.MAP_URL))
@@ -142,13 +140,12 @@ class TraccarPolicyInformationPointIT {
     @Test
     void serverTest_withRepetitions() throws JsonProcessingException {
         final var noPollSettings  = Val.ofJson(String.format("""
-                    {
-                    "baseUrl": "http://%s:%d",
-                    "userName": "%s",
-                    "password": "%s",
-                    "repetitions": 250
-                }
-                """, host, port, email, password));
+                {\
+                    "baseUrl": "http://%s:%d",\
+                    "userName": "%s",\
+                    "password": "%s",\
+                    "repetitions": 250\
+                }""", host, port, email, password));
         final var attributestream = TRACCAR_PIP
                 .server(Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, noPollSettings)).next();
         StepVerifier.create(attributestream).expectNextMatches(a -> a.get().has(TraccarSchemata.MAP_URL))

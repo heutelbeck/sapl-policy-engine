@@ -25,6 +25,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.github.dockerjava.zerodep.shaded.org.apache.commons.codec.Charsets;
 
 public class TraccarTestClient {
 
@@ -32,10 +33,10 @@ public class TraccarTestClient {
 
     private final WebClient apiClient;
     private final WebClient positioningClient;
-    private final String    basicAuthValue;
 
     public TraccarTestClient(String host, int apiPort, int positioningPort, String email, String password) {
-        basicAuthValue    = "Basic " + Base64.getEncoder().encodeToString((email + ":" + password).getBytes());
+        final var basicAuthValue = "Basic "
+                + Base64.getEncoder().encodeToString((email + ":" + password).getBytes(Charsets.UTF_8));
         apiClient         = WebClient.builder().baseUrl(String.format(BASE_URL_TEMPLATE, host, apiPort))
                 .defaultHeader(HttpHeaders.AUTHORIZATION, basicAuthValue).build();
         positioningClient = WebClient.builder().baseUrl(String.format(BASE_URL_TEMPLATE, host, positioningPort))
@@ -44,23 +45,21 @@ public class TraccarTestClient {
 
     public String registerUser(String email, String password) {
         final var userJson = String.format("""
-                {
-                    "name": "testuser",
-                    "email": "%s",
-                    "password": "%s"
-                }
-                """, email, password);
+                {\
+                    "name": "testuser",\
+                    "email": "%s",\
+                    "password": "%s"\
+                }""", email, password);
         return apiClient.post().uri("/api/users").header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .bodyValue(userJson).retrieve().bodyToMono(String.class).block();
     }
 
     public String createDevice(String uniqueId) throws Exception {
         final var body          = String.format("""
-                {
-                    "name": "Test Device",
-                    "uniqueId": "%s"
-                }
-                """, uniqueId);
+                {\
+                    "name": "Test Device",\
+                    "uniqueId": "%s"\
+                }""", uniqueId);
         final var createdDevice = apiClient.post().uri("/api/devices")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).bodyValue(body).retrieve()
                 .bodyToMono(JsonNode.class).blockOptional();
