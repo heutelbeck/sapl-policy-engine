@@ -22,14 +22,16 @@ import org.locationtech.jts.geom.CoordinateFilter;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
 import io.sapl.pip.geo.traccar.TraccarSchemata;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -42,7 +44,13 @@ public class TraccarFunctionLibrary {
     private static final GeoJsonWriter   GEOJSON_WRITER         = new GeoJsonWriter();
     private static final GeometryFactory WGS84_GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), WGS84);
 
-    @SneakyThrows
+    static final String GEOMETRY_PROCESSING_ERROR_S_ERROR = "Error processing geometry: %s";
+    static final String GEOFENCE_MISSING_AREA_ERROR       = "The geofence object missing the 'area' field.";
+    static final String EXPECTED_GEOFENCE_BUT_GOT_S_ERROR = "Expected a Traccar geofence object, but got: %s";
+    static final String NO_VALID_LATITUDE_FIELD_ERROR     = "Expected a Traccar position object, but there is no valid latitude field.";
+    static final String NO_VALID_LONGITUDE_FIELD_ERROR    = "Expected a Traccar position object, but there is no valid longitude field.";
+    static final String EXPECTED_POSITION_BUT_GOT_S_ERROR = "Expected a Traccar position object, but got %s";
+
     @Function(docs = """
             ```traccarPositionToGeoJSON(OBJECT traccarPosition)```: Converts a Traccar position object to a GeoJSON string
             representing a Point.
@@ -81,17 +89,32 @@ public class TraccarFunctionLibrary {
             ```
             """)
     public static Val traccarPositionToGeoJSON(Val traccarPosition) {
-        final var position  = traccarPosition.get();
-        final var longitude = position.get(TraccarSchemata.LONGITUDE).asDouble();
-        final var latitude  = position.get(TraccarSchemata.LATITUDE).asDouble();
+        if (!traccarPosition.isDefined()) {
+            return Val.error(String.format(EXPECTED_POSITION_BUT_GOT_S_ERROR, traccarPosition));
+        }
+        final var positionJson  = traccarPosition.get();
+        final var longitudeNode = positionJson.get(TraccarSchemata.LONGITUDE);
+        if (longitudeNode == null || !longitudeNode.isNumber()) {
+            return Val.error(NO_VALID_LONGITUDE_FIELD_ERROR);
+        }
+        final var longitude    = longitudeNode.asDouble();
+        final var latitudeNode = positionJson.get(TraccarSchemata.LATITUDE);
+        if (latitudeNode == null || !latitudeNode.isNumber()) {
+            return Val.error(NO_VALID_LATITUDE_FIELD_ERROR);
+        }
+        final var latitude = latitudeNode.asDouble();
         Geometry  geometry;
-        if (position.has(TraccarSchemata.ALTITUDE)) {
-            final var altitude = position.get(TraccarSchemata.ALTITUDE).asDouble();
+        if (positionJson.has(TraccarSchemata.ALTITUDE)) {
+            final var altitude = positionJson.get(TraccarSchemata.ALTITUDE).asDouble();
             geometry = WGS84_GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude, altitude));
         } else {
             geometry = WGS84_GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude));
         }
-        return Val.ofJson(GEOJSON_WRITER.write(geometry));
+        try {
+            return Val.ofJson(GEOJSON_WRITER.write(geometry));
+        } catch (JsonProcessingException e) {
+            return Val.error(String.format(GEOMETRY_PROCESSING_ERROR_S_ERROR, e.getMessage()));
+        }
     }
 
     public static class CoordinateFlippingFilter implements CoordinateFilter {
@@ -102,7 +125,6 @@ public class TraccarFunctionLibrary {
         }
     }
 
-    @SneakyThrows
     @Function(docs = """
             ```traccarGeofenceToGeoJson(OBJECT geofence)```: Converts a Traccar geofence object to a GeoJSON string
             representing the geofence's geometry.
@@ -132,13 +154,23 @@ public class TraccarFunctionLibrary {
             ```
              """)
     public static Val traccarGeofenceToGeoJson(Val geofence) {
-        final var area     = geofence.get().get(TraccarSchemata.AREA);
-        final var geometry = new WKTReader().read(area.asText());
-        geometry.setSRID(WGS84);
-        // GeoJSON needs coordinates in longitude then latitude. Geometry will have it
-        // the other way around.
-        geometry.apply(new CoordinateFlippingFilter());
-        return Val.ofJson(GEOJSON_WRITER.write(geometry));
+        if (!geofence.isDefined()) {
+            return Val.error(String.format(EXPECTED_GEOFENCE_BUT_GOT_S_ERROR, geofence));
+        }
+        final var area = geofence.get().get(TraccarSchemata.AREA);
+        if (area == null) {
+            return Val.error(GEOFENCE_MISSING_AREA_ERROR);
+        }
+        try {
+            final var geometry = new WKTReader().read(area.asText());
+            geometry.setSRID(WGS84);
+            // GeoJSON needs coordinates in longitude then latitude. Geometry will have it
+            // the other way around.
+            geometry.apply(new CoordinateFlippingFilter());
+            return Val.ofJson(GEOJSON_WRITER.write(geometry));
+        } catch (ParseException | JsonProcessingException e) {
+            return Val.error(String.format(GEOMETRY_PROCESSING_ERROR_S_ERROR, e.getMessage()));
+        }
     }
 
 }

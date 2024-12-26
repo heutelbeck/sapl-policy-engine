@@ -17,31 +17,39 @@
  */
 package io.sapl.functions.geo.traccar;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static io.sapl.assertj.SaplAssertions.assertThatVal;
+import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.EXPECTED_GEOFENCE_BUT_GOT_S_ERROR;
+import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.EXPECTED_POSITION_BUT_GOT_S_ERROR;
+import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.GEOFENCE_MISSING_AREA_ERROR;
+import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.GEOMETRY_PROCESSING_ERROR_S_ERROR;
+import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.NO_VALID_LATITUDE_FIELD_ERROR;
+import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.NO_VALID_LONGITUDE_FIELD_ERROR;
+import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.traccarGeofenceToGeoJson;
+import static io.sapl.functions.geo.traccar.TraccarFunctionLibrary.traccarPositionToGeoJSON;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.withPrecision;
 
 import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.pip.geo.traccar.TraccarSchemata;
+import io.sapl.functions.geo.traccar.TraccarFunctionLibrary.CoordinateFlippingFilter;
 
 class TraccarFunctionLibraryTests {
 
-    private static final ObjectMapper    MAPPER = new ObjectMapper();
-    private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
-
     @Test
     void traccarPositionToGeoJSON_withAltitude() throws IOException {
-        // Arrange
-        final var position           = JSON.objectNode().put(TraccarSchemata.LATITUDE, 37.7749)
-                .put(TraccarSchemata.LONGITUDE, -122.4194).put(TraccarSchemata.ALTITUDE, 100.0);
-        final var positionVal        = Val.of(position);
-        final var expectedJsonString = """
+        final var position = Val.ofJson("""
+                {
+                  "latitude" : 37.7749,
+                  "longitude": -122.4194,
+                  "altitude" : 100.0
+                }
+                """);
+        final var expected = Val.ofJson("""
                 {
                     "type":"Point",
                     "coordinates":[-122.4194,37.7749,100],
@@ -52,25 +60,19 @@ class TraccarFunctionLibraryTests {
                             }
                         }
                 }
-                """;
-        final var expectedJson       = MAPPER.readTree(expectedJsonString);
-
-        // Act
-        final var result     = TraccarFunctionLibrary.traccarPositionToGeoJSON(positionVal);
-        final var resultJson = MAPPER.readTree(result.getText());
-        // Assert
-        assertNotNull(result);
-        assertEquals(expectedJson, resultJson);
+                """);
+        assertThatVal(traccarPositionToGeoJSON(position)).isEqualTo(expected);
     }
 
     @Test
-    void traccarPositionToGeoJSON_withoutAltitude() throws IOException {
-        // Arrange
-        final var position    = JSON.objectNode().put(TraccarSchemata.LATITUDE, 37.7749).put(TraccarSchemata.LONGITUDE,
-                -122.4194);
-        final var positionVal = Val.of(position);
-
-        final var expectedJsonString = """
+    void traccarPositionToGeoJSON_withoutAltitude() throws JsonProcessingException {
+        final var position = Val.ofJson("""
+                {
+                  "latitude" : 37.7749,
+                  "longitude": -122.4194
+                }
+                """);
+        final var expected = Val.ofJson("""
                 {
                     "type":"Point",
                     "coordinates":[-122.4194,37.7749],
@@ -81,52 +83,42 @@ class TraccarFunctionLibraryTests {
                             }
                         }
                 }
-                """;
-        final var expectedJson       = MAPPER.readTree(expectedJsonString);
-
-        // Act
-        final var result     = TraccarFunctionLibrary.traccarPositionToGeoJSON(positionVal);
-        final var resultJson = MAPPER.readTree(result.getText());
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(expectedJson, resultJson);
+                """);
+        assertThatVal(traccarPositionToGeoJSON(position)).isEqualTo(expected);
     }
 
     @Test
-    void traccarPositionToGeoJSON_invalidInput() {
-        // Arrange
-        final var invalidPositionVal = Val.of(JSON.objectNode().put("invalid", "data"));
-
-        // Act & Assert
-        try {
-            TraccarFunctionLibrary.traccarPositionToGeoJSON(invalidPositionVal);
-        } catch (Exception e) {
-            assertNotNull(e);
-        }
+    void traccarPositionToGeoJSON_invalidInput() throws JsonProcessingException {
+        final var noLong = Val.ofJson("{}");
+        assertThatVal(traccarPositionToGeoJSON(noLong)).isError().contains(NO_VALID_LONGITUDE_FIELD_ERROR);
+        final var noLat = Val.ofJson("""
+                {
+                    "longitude": 12.12
+                }
+                """);
+        assertThatVal(traccarPositionToGeoJSON(noLat)).isError().contains(NO_VALID_LATITUDE_FIELD_ERROR);
+        final var undefined = Val.UNDEFINED;
+        assertThatVal(traccarPositionToGeoJSON(undefined)).isError()
+                .contains(String.format(EXPECTED_POSITION_BUT_GOT_S_ERROR, undefined));
     }
 
     @Test
     void coordinateFlippingFilterTest() {
-        // Arrange
-        final var filter = new TraccarFunctionLibrary.CoordinateFlippingFilter();
+        final var filter = new CoordinateFlippingFilter();
         final var coord  = new org.locationtech.jts.geom.Coordinate(10, 20);
-
-        // Act
         filter.filter(coord);
-        // Assert
-        assertEquals(20, coord.x);
-        assertEquals(10, coord.y);
+        assertThat(coord.x).isEqualTo(20, withPrecision(0.001d));
+        assertThat(coord.y).isEqualTo(10, withPrecision(0.001d));
     }
 
     @Test
-    void traccarGeofenceToGeoJson_validPolygon() throws IOException {
-        // Arrange
-        final var wktPolygon  = "POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))";
-        final var geofence    = JSON.objectNode().put(TraccarSchemata.AREA, wktPolygon);
-        final var geofenceVal = Val.of(geofence);
-
-        final var expectedJsonString = """
+    void traccarGeofenceToGeoJson_validPolygon() throws JsonProcessingException {
+        final var geofence = Val.ofJson("""
+                {
+                  "area" : "POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))"
+                }
+                """);
+        final var expected = Val.ofJson("""
                 {
                     "type":"Polygon",
                     "coordinates":[[[10,30],[40,40],[40,20],[20,10],[10,30]]],
@@ -137,42 +129,35 @@ class TraccarFunctionLibraryTests {
                             }
                         }
                 }
-                """;
-        final var expectedJson       = MAPPER.readTree(expectedJsonString);
-
-        // Act
-        final var result     = TraccarFunctionLibrary.traccarGeofenceToGeoJson(geofenceVal);
-        final var resultJson = MAPPER.readTree(result.getText());
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(expectedJson, resultJson);
+                """);
+        assertThatVal(traccarGeofenceToGeoJson(geofence)).isEqualTo(expected);
     }
 
     @Test
-    void traccarGeofenceToGeoJson_invalidWKT() {
-        // Arrange
-        final var geofence    = JSON.objectNode().put(TraccarSchemata.AREA, "invalid WKT");
-        final var geofenceVal = Val.of(geofence);
-
-        // Act & Assert
-        try {
-            TraccarFunctionLibrary.traccarGeofenceToGeoJson(geofenceVal);
-        } catch (Exception e) {
-            assertNotNull(e);
-        }
+    void traccarGeofenceToGeoJson_invalidWKT() throws JsonProcessingException {
+        final var geofence = Val.ofJson("""
+                {
+                  "area" : "invalid WKT"
+                }
+                """);
+        assertThatVal(traccarGeofenceToGeoJson(geofence)).isError()
+                .contains(String.format(GEOMETRY_PROCESSING_ERROR_S_ERROR, "Unknown geometry type: INVALID (line 1)"));
     }
 
     @Test
-    void traccarGeofenceToGeoJson_invalidInput() {
-        // Arrange
-        final var geofenceVal = Val.of(JSON.objectNode().put("invalid", "data"));
+    void traccarGeofenceToGeoJson_invalidInput() throws JsonProcessingException {
+        final var geofence = Val.ofJson("""
+                {
+                  "invalid" : "data"
+                }
+                """);
+        assertThatVal(traccarGeofenceToGeoJson(geofence)).isError().contains(GEOFENCE_MISSING_AREA_ERROR);
+    }
 
-        // Act & Assert
-        try {
-            TraccarFunctionLibrary.traccarGeofenceToGeoJson(geofenceVal);
-        } catch (Exception e) {
-            assertNotNull(e);
-        }
+    @Test
+    void traccarGeofenceToGeoJson_invalidUndefinedInput() {
+        final var geofence = Val.UNDEFINED;
+        assertThatVal(traccarGeofenceToGeoJson(geofence)).isError()
+                .contains(String.format(EXPECTED_GEOFENCE_BUT_GOT_S_ERROR, geofence));
     }
 }

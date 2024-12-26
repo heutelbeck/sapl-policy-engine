@@ -25,11 +25,9 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.locationtech.jts.io.ParseException;
 import org.mockito.Mockito;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -266,14 +264,14 @@ class TraccarPolicyInformationPointIT {
     void positionTest_invalidInput() {
         final var attributestream = TRACCAR_PIP
                 .position(Val.of("invalid"), Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, settings)).next();
-        StepVerifier.create(attributestream).expectError().verify();
+        StepVerifier.create(attributestream).expectNextMatches(Val::isError).verifyComplete();
     }
 
     @Test
     void positionTest_invalidConfig() {
         final var attributestream = TRACCAR_PIP
                 .position(deviceId, Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, badSettings)).next();
-        StepVerifier.create(attributestream).expectError(NoSuchElementException.class).verify();
+        StepVerifier.create(attributestream).expectNextMatches(Val::isError).thenCancel().verify();
     }
 
     @Test
@@ -342,7 +340,7 @@ class TraccarPolicyInformationPointIT {
         final var attributestream = TRACCAR_PIP
                 .geofenceGeometry(Val.of("invalid"), Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, settings))
                 .next();
-        StepVerifier.create(attributestream).expectError().verify();
+        StepVerifier.create(attributestream).expectNextMatches(Val::isError).verifyComplete();
     }
 
     @Test
@@ -350,11 +348,11 @@ class TraccarPolicyInformationPointIT {
         final var attributestream = TRACCAR_PIP
                 .geofenceGeometry(geofenceId1, Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, badSettings))
                 .next();
-        StepVerifier.create(attributestream).expectError().verify();
+        StepVerifier.create(attributestream).expectNextMatches(Val::isError).verifyComplete();
     }
 
     @Test
-    void checkContainsCompatibilityBetweenLocationsAndFences() throws ParseException {
+    void checkContainsCompatibilityBetweenLocationsAndFences() {
         final var position = TRACCAR_PIP
                 .position(deviceId, Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, settings)).blockFirst();
         final var fence    = TRACCAR_PIP
@@ -366,7 +364,7 @@ class TraccarPolicyInformationPointIT {
     }
 
     @Test
-    void checkContainsCompatibilityBetweenLocationsAndFences_withConfig() throws ParseException {
+    void checkContainsCompatibilityBetweenLocationsAndFences_withConfig() {
         final var position = TRACCAR_PIP.position(deviceId, settings).blockFirst();
         final var fence    = TRACCAR_PIP.geofenceGeometry(geofenceId1, settings).blockFirst();
         assertNotNull(position);
@@ -375,7 +373,7 @@ class TraccarPolicyInformationPointIT {
     }
 
     @Test
-    void checkContainsCompatibilityBetweenLocationsAndFences_notContains() throws ParseException {
+    void checkContainsCompatibilityBetweenLocationsAndFences_notContains() {
         final var position     = TRACCAR_PIP
                 .position(deviceId, Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, settings)).blockFirst();
         final var outsideFence = TRACCAR_PIP
@@ -390,14 +388,14 @@ class TraccarPolicyInformationPointIT {
     void checkContainsCompatibilityBetweenLocationsAndFences_invalidInput() {
         final var attributeStream = TRACCAR_PIP.position(Val.of("invalid"),
                 Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, settings));
-        StepVerifier.create(attributeStream).expectError(NoSuchElementException.class).verify();
+        StepVerifier.create(attributeStream).expectNextMatches(Val::isError).thenCancel().verify();
     }
 
     @Test
     void checkContainsCompatibilityBetweenLocationsAndFences_invalidConfig() {
         final var attributeStream = TRACCAR_PIP.position(deviceId,
                 Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, badSettings));
-        StepVerifier.create(attributeStream).expectError(NoSuchElementException.class).verify();
+        StepVerifier.create(attributeStream).expectNextMatches(Val::isError).thenCancel().verify();
     }
 
     @Test
