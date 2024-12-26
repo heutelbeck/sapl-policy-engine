@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -904,6 +904,17 @@ public final class Val implements Traced, Serializable {
     public long getLong() {
         if (isNumber()) {
             return value.longValue();
+        }
+        throw new PolicyEvaluationException(NUMBER_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(this));
+    }
+
+    /**
+     * @return if the Val is a number, the number is returned as double. Else throws
+     * a PolicyEvaluationException.
+     */
+    public double getDouble() {
+        if (isNumber()) {
+            return value.doubleValue();
         }
         throw new PolicyEvaluationException(NUMBER_OPERATION_TYPE_MISMATCH_S_ERROR, typeOf(this));
     }

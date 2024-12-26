@@ -93,7 +93,7 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-hancrest</artifactId>
+				<artifactId>sapl-hamcrest</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -178,17 +178,22 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-jwt</artifactId>
+				<artifactId>jwt</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-mqtt-pip</artifactId>
+				<artifactId>input-sanitization-functions</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
-				<artifactId>sapl-mqtt-functions</artifactId>
+				<artifactId>mqtt-pip</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>mqtt-functions</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -204,6 +209,16 @@
 			<dependency>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-code-style</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>geo-functions</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>geo-traccar</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 		</dependencies>

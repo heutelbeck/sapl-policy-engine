@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,8 @@
  * limitations under the License.
  */
 /**
- * This package contains a generic PIP for accessing and polling web resources.
+ * This package contains functions which can be used in sapl policies by
+ * default.
  */
 @org.osgi.annotation.versioning.Version("3.0.0")
 @org.osgi.annotation.bundle.Export

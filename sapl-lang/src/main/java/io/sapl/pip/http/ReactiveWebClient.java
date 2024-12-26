@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -47,7 +47,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.impl.util.ErrorFactory;
+import io.sapl.api.pdp.SaplError;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -58,18 +58,18 @@ import reactor.retry.Repeat;
 @RequiredArgsConstructor
 public class ReactiveWebClient {
 
-    static final String NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR = "No base URL specified for web request.";
-    static final String BASE_URL                                    = "baseUrl";
-    static final String PATH                                        = "path";
-    static final String URL_PARAMS                                  = "urlParameters";
-    static final String HEADERS                                     = "headers";
-    static final String BODY                                        = "body";
-    static final String POLLING_INTERVAL                            = "pollingIntervalMs";
-    static final String REPEAT_TIMES                                = "repetitions";
-    static final String ACCEPT_MEDIATYPE                            = "accept";
-    static final String CONTENT_MEDIATYPE                           = "contentType";
-    static final long   DEFAULT_POLLING_INTERVALL_MS                = 1000L;
-    static final long   DEFAULT_REPETITIONS                         = Long.MAX_VALUE;
+    static final String        NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST_ERROR = "No base URL specified for web request.";
+    public static final String BASE_URL                                    = "baseUrl";
+    public static final String PATH                                        = "path";
+    public static final String URL_PARAMS                                  = "urlParameters";
+    public static final String HEADERS                                     = "headers";
+    public static final String BODY                                        = "body";
+    public static final String POLLING_INTERVAL                            = "pollingIntervalMs";
+    public static final String REPEAT_TIMES                                = "repetitions";
+    public static final String ACCEPT_MEDIATYPE                            = "accept";
+    public static final String CONTENT_MEDIATYPE                           = "contentType";
+    static final long          DEFAULT_POLLING_INTERVALL_MS                = 1000L;
+    static final long          DEFAULT_REPETITIONS                         = Long.MAX_VALUE;
 
     private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
     private static final TextNode        APPLICATION_JSON = JSON.textNode(MediaType.APPLICATION_JSON.toString());
@@ -214,9 +214,11 @@ public class ReactiveWebClient {
 
     private Mono<Val> mapError(Throwable e) {
         if (e instanceof WebClientResponseException clientException) {
-            return Mono.just(ErrorFactory.error(null, clientException.getRootCause()));
+            final var cause   = clientException.getRootCause();
+            final var message = cause == null ? e.getMessage() : cause.getMessage();
+            return Mono.just(Val.error(SaplError.of(message)));
         }
-        return Mono.just(ErrorFactory.error(null, e));
+        return Mono.just(Val.error(SaplError.of(e.getMessage())));
     }
 
     private Mono<Void> sendAndListen(WebSocketSession session, JsonNode body, Many<Val> receiveBuffer) {
@@ -235,7 +237,7 @@ public class ReactiveWebClient {
             try {
                 receiveBuffer.tryEmitNext(Val.ofJson(payload));
             } catch (JsonProcessingException e) {
-                receiveBuffer.tryEmitNext(ErrorFactory.error(e.getMessage()));
+                receiveBuffer.tryEmitNext(Val.error(SaplError.of(e.getMessage())));
             }
         }).then();
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -19,16 +19,44 @@ package io.sapl.server.ce.config;
 
 import java.util.List;
 
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Role;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
+import io.sapl.functions.geo.GeographicFunctionLibrary;
+import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
+import io.sapl.functions.sanitization.SanitizationFunctionLibrary;
+import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
+import io.sapl.pip.http.HttpPolicyInformationPoint;
+import io.sapl.pip.http.ReactiveWebClient;
 
 @Configuration
+@EnableAutoConfiguration(exclude = { R2dbcAutoConfiguration.class })
 public class SaplExtensionsConfig {
+
+    @Bean
+    ReactiveWebClient reactiveWebClient(ObjectMapper mapper) {
+        return new ReactiveWebClient(mapper);
+    }
+
+    @Bean
+    TraccarPolicyInformationPoint traccarPolicyInformationPoint(ReactiveWebClient reactiveWebClient) {
+        return new TraccarPolicyInformationPoint(reactiveWebClient);
+    }
+
+    @Bean
+    HttpPolicyInformationPoint httpPolicyInformationPoint(ReactiveWebClient reactiveWebClient) {
+        return new HttpPolicyInformationPoint(reactiveWebClient);
+    }
 
     @Bean
     StaticPolicyInformationPointSupplier mqttPolicyInformationPoint() {
@@ -36,7 +64,10 @@ public class SaplExtensionsConfig {
     }
 
     @Bean
-    StaticFunctionLibrarySupplier additionalLibraries() {
-        return () -> List.of(MqttFunctionLibrary.class);
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    StaticFunctionLibrarySupplier additionalStaticLibraries() {
+        return () -> List.of(MqttFunctionLibrary.class, GeographicFunctionLibrary.class, TraccarFunctionLibrary.class,
+                SanitizationFunctionLibrary.class);
     }
+
 }
