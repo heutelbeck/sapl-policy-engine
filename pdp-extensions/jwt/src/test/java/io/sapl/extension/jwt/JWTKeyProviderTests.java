@@ -163,23 +163,19 @@ class JWTKeyProviderTests {
         assertThrows(CachingException.class, () -> provider.provide(kid, serverNode));
     }
 
-     @ParameterizedTest
-     @MethodSource("provideWithUriEnvironmentSource")
+    @ParameterizedTest
+    @MethodSource("provideWithUriEnvironmentSource")
     void provide_withUriEnvironment_usingBase64Url_shouldBePublicKey(String method) throws CachingException {
-         dispatcher.setDispatchMode(DispatchMode.TRUE);
-         final var serverNode = JsonTestUtility.serverNode(server, method, null);
-         final var mono       = provider.provide(kid, serverNode);
-         StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
+        dispatcher.setDispatchMode(DispatchMode.TRUE);
+        final var serverNode = JsonTestUtility.serverNode(server, method, null);
+        final var mono       = provider.provide(kid, serverNode);
+        StepVerifier.create(mono).expectNextMatches(KeyTestUtility.keyValidator(keyPair)).verifyComplete();
     }
-
 
     private static Stream<Arguments> provideWithUriEnvironmentSource() {
-        return Stream.of(
-                Arguments.of((String)null),
-                Arguments.of("POST"),
-                Arguments.of("NONETEXT")
-        );
+        return Stream.of(Arguments.of((String) null), Arguments.of("POST"), Arguments.of("NONETEXT"));
     }
+
     @Test
     void provide_withUriAndCustomTTLEnvironment_usingBase64Url_shouldBePublicKey() throws CachingException {
         dispatcher.setDispatchMode(DispatchMode.TRUE);
