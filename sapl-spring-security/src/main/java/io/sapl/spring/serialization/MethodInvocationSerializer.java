@@ -79,8 +79,9 @@ public class MethodInvocationSerializer extends JsonSerializer<MethodInvocation>
         gen.writeEndArray();
 
         gen.writeArrayFieldStart(INSTANCEOF);
-        if (value.getThis() != null)
-            writeClassHierarchy(gen, value.getThis().getClass());
+        final var thiz = value.getThis();
+        if (thiz != null)
+            writeClassHierarchy(gen, thiz.getClass());
         else
             writeClassHierarchy(gen, value.getMethod().getDeclaringClass());
         gen.writeEndArray();

@@ -21,6 +21,8 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 
+import javax.annotation.Nonnull;
+
 import org.aopalliance.intercept.MethodInvocation;
 
 import lombok.AllArgsConstructor;
@@ -34,7 +36,7 @@ public class MethodInvocationForRepositoryError implements MethodInvocation {
     Object              proceedObject;
 
     @Override
-    public Method getMethod() {
+    public @Nonnull Method getMethod() {
         try {
             return RepositoryNotFoundException.class.getMethod(methodName,
                     argumentClasses.toArray(new Class[argumentClasses.size()]));
@@ -44,7 +46,7 @@ public class MethodInvocationForRepositoryError implements MethodInvocation {
     }
 
     @Override
-    public Object[] getArguments() {
+    public @Nonnull Object[] getArguments() {
         return argumentValues.toArray(new Object[argumentValues.size()]);
     }
 
@@ -59,7 +61,7 @@ public class MethodInvocationForRepositoryError implements MethodInvocation {
     }
 
     @Override
-    public AccessibleObject getStaticPart() {
+    public @Nonnull AccessibleObject getStaticPart() {
         return getMethod();
     }
 }
