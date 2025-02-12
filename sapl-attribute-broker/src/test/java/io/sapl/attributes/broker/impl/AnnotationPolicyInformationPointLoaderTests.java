@@ -30,9 +30,9 @@ class AnnotationPolicyInformationPointLoaderTests {
     @Test
     void loadTest() {
         final var validatorFactory = new ValidatorFactory(new ObjectMapper());
-        final var loader = new AnnotationPolicyInformationPointLoader(null, validatorFactory);
-        final var clock  = Clock.systemDefaultZone();
-  //      loader.loadPolicyInformationPoint(new TimePolicyInformationPoint(clock));
+        final var loader           = new AnnotationPolicyInformationPointLoader(null, validatorFactory);
+        final var clock            = Clock.systemDefaultZone();
+        // loader.loadPolicyInformationPoint(new TimePolicyInformationPoint(clock));
         loader.loadStaticPolicyInformationPoint(TestPolicyInformationPoint.class);
     }
 }
