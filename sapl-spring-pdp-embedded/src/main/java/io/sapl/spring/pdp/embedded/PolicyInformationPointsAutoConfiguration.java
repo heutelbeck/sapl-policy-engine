@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
 import io.sapl.api.pip.PolicyInformationPointSupplier;
-import io.sapl.pip.TimePolicyInformationPoint;
+import io.sapl.pip.time.TimePolicyInformationPoint;
 
 @AutoConfiguration
 public class PolicyInformationPointsAutoConfiguration {

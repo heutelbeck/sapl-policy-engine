@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -82,19 +82,17 @@ public class FileSystemVariablesAndCombinatorSource implements VariablesAndCombi
         }
         try {
             final var jsonNode = MAPPER.readValue(configurationFile.toFile(), JsonNode.class);
-
-            final var config = new PolicyDecisionPointConfiguration();
-
-            if (jsonNode == null)
+            final var config   = new PolicyDecisionPointConfiguration();
+            if (jsonNode == null) {
                 return Optional.empty();
-
+            }
             if (jsonNode.has("algorithm")) {
-                final var algorithm = jsonNode.get("algorithm").asText().toLowerCase();
-                if (ALGORITHMS.containsKey(algorithm)) {
-                    config.setAlgorithm(ALGORITHMS.get(algorithm));
-                } else {
-                    config.setAlgorithm(PolicyDocumentCombiningAlgorithm.valueOf(algorithm.toUpperCase()));
+                final var algorithmString = jsonNode.get("algorithm").asText().toLowerCase();
+                var       algorithmEnum   = ALGORITHMS.get(algorithmString);
+                if (algorithmEnum == null) {
+                    algorithmEnum = PolicyDocumentCombiningAlgorithm.valueOf(algorithmString.toUpperCase());
                 }
+                config.setAlgorithm(algorithmEnum);
             }
             final var variables = new HashMap<String, Val>();
             if (jsonNode.has("variables")) {

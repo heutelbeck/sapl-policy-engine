@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -161,7 +161,7 @@ public final class AnnotationFunctionContext implements FunctionContext {
                 return ErrorFactory.error(location, e);
             }
         }
-        // THe following cast is actually necessary. Reason unknown.
+        // The following cast is actually necessary. Reason unknown.
         return invokeFunction(location, metadata, (Object[]) new Object[] { parameters });
     }
 
@@ -245,7 +245,12 @@ public final class AnnotationFunctionContext implements FunctionContext {
         }
 
         if (!funSchema.isEmpty()) {
-            processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(funSchema);
+            try {
+                processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(funSchema);
+            } catch (InitializationException e) {
+                throw new InitializationException(
+                        String.format("Error in function schema of library %s function %s", libName, funName), e);
+            }
         }
 
         if (!Val.class.isAssignableFrom(method.getReturnType()))
