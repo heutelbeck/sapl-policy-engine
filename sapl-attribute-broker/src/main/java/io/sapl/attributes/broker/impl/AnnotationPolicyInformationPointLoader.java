@@ -294,8 +294,8 @@ public class AnnotationPolicyInformationPointLoader {
                 parameterValidators.add(validatorFactory
                         .parameterValidatorFromAnnotations(parameterAnnotations[parameterUnderInspection]));
                 return new AttributeFinderSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
-                        AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, requiresVariables, entityValidator,
-                        parameterValidators);
+                        AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, requiresVariables,
+                        entityValidator, parameterValidators);
             } else {
                 throw new AttributeBrokerException(String.format(VARARGS_MISMATCH_AT_METHOD_S_ERROR, method.getName()));
             }
