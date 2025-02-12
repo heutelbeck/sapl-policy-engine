@@ -40,7 +40,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
     private record SpecAndPip(AttributeFinderSpecification specification, AttributeFinder policyInformationPoint) {}
 
     private final Map<AttributeFinderInvocation, List<AttributeStream>> attributeStreamIndex = new ConcurrentHashMap<>();
-    private final Map<String, List<SpecAndPip>>                                pipRegistry          = new ConcurrentHashMap<>();
+    private final Map<String, List<SpecAndPip>>                         pipRegistry          = new ConcurrentHashMap<>();
 
     @Override
     public Flux<Val> attributeStream(AttributeFinderInvocation invocation, boolean fresh) {

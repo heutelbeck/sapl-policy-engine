@@ -61,7 +61,7 @@ public class TestPolicyInformationPoint {
             """;
 
     @Attribute
-    public static Mono<Val> a1( @Text Val entity, Map<String, Val> variables, @Text Val p1,
+    public static Mono<Val> a1(@Text Val entity, Map<String, Val> variables, @Text Val p1,
             @Text @Schema(SCHEMA) @Number @Long @Int @Bool @Array @JsonObject Val p2) {
         return Mono.just(Val.of("output a1"));
     }
