@@ -404,7 +404,7 @@ jobs:
       # The image digest is used to prevent TOCTOU issues.
       # This is an output of the docker/build-push-action
       # See: https://github.com/slsa-framework/slsa-verifier#toctou-attacks
-      digest: ${{ needs.deploy.outputs.sapl-server-lt-docker-digest }}
+      # digest: ${{ needs.deploy.outputs.sapl-server-lt-docker-digest }}
       # registry-username: ${{ github.actor }}
     secrets:
       registry-password: ${{ secrets.GHUB_ACCESS_TOKEN }}
