@@ -406,8 +406,8 @@ jobs:
       # See: https://github.com/slsa-framework/slsa-verifier#toctou-attacks
       # digest: ${{ needs.deploy.outputs.sapl-server-lt-docker-digest }}
       # registry-username: ${{ github.actor }}
-    secrets:
-      registry-password: ${{ secrets.GHUB_ACCESS_TOKEN }}
+#    secrets:
+#      registry-password: ${{ secrets.GHUB_ACCESS_TOKEN }}
 
   # Sign the docker image
   docker-sign:
