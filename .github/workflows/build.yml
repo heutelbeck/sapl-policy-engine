@@ -82,7 +82,7 @@ jobs:
       uses: actions/dependency-review-action@4901385134134e04cec5fbe5ddfe3b2c5bd5d976 # v4.0.0
 
     - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+      uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: ${{ matrix.java }}
@@ -230,7 +230,7 @@ jobs:
         fetch-depth: 0
 
     - name: Set up JDK 17
-      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+      uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
