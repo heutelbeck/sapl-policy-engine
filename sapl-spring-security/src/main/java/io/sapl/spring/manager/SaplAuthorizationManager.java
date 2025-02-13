@@ -44,6 +44,9 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
     private final ObjectMapper                 mapper;
 
     @Override
+    // Must implement as interface still refers to deprecated method from authorize.  
+    // Cannot remove deprecation warning, as it would break CI build with -Werror.
+    @SuppressWarnings("deprecation") 
     public AuthorizationDecision check(Supplier<Authentication> authenticationSupplier,
             RequestAuthorizationContext requestAuthorizationContext) {
         final var request        = requestAuthorizationContext.getRequest();
