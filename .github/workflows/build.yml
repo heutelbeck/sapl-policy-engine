@@ -82,7 +82,7 @@ jobs:
       uses: actions/dependency-review-action@4901385134134e04cec5fbe5ddfe3b2c5bd5d976 # v4.0.0
 
     - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
       with:
         distribution: 'temurin'
         java-version: ${{ matrix.java }}
@@ -124,7 +124,7 @@ jobs:
         
     - name: Cache Sonar Packages
       if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
-      uses: actions/cache@v4
+      uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         path: ~/.sonar/cache
         key: ${{ runner.os }}-sonar
@@ -230,7 +230,7 @@ jobs:
         fetch-depth: 0
 
     - name: Set up JDK 17
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
       with:
         distribution: 'temurin'
         java-version: '17'
