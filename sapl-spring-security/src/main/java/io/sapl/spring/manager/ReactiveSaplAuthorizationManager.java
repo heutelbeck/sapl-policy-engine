@@ -80,9 +80,9 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
      * @return a decision
      */
     @Override
-    // Must implement as interface still refers to deprecated method from authorize.  
+    // Must implement as interface still refers to deprecated method from authorize.
     // Cannot remove deprecation warning, as it would break CI build with -Werror.
-    @SuppressWarnings("deprecation") 
+    @SuppressWarnings("deprecation")
     public Mono<org.springframework.security.authorization.AuthorizationDecision> check(
             Mono<Authentication> authentication, AuthorizationContext context) {
         return reactiveConstructAuthorizationSubscription(authentication, context).flatMap(this::isPermitted)
