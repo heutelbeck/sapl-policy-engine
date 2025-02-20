@@ -20,6 +20,8 @@ package io.sapl.spring.method.blocking;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import javax.annotation.Nonnull;
+
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
@@ -38,7 +40,6 @@ import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.subscriptions.WebAuthorizationSubscriptionBuilderService;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import reactor.core.Exceptions;
 
@@ -62,7 +63,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private final ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
 
     @Override
-    public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
+    public Object invoke(@Nonnull MethodInvocation methodInvocation) throws Throwable {
 
         final var attribute = attributeRegistryProvider.getObject().getSaplAttributeForAnnotationType(methodInvocation,
                 PreEnforce.class);

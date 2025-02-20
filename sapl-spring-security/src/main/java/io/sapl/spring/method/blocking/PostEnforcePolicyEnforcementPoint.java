@@ -20,6 +20,8 @@ package io.sapl.spring.method.blocking;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import javax.annotation.Nonnull;
+
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
@@ -54,9 +56,9 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
     private final ObjectProvider<ConstraintEnforcementService>               constraintEnforcementServiceProvider;
     private final ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
 
+    @SuppressWarnings({ "unchecked", "null" }) // instanceof ensures type and non-null
     @Override
-    @SuppressWarnings("unchecked")
-    public Object invoke(MethodInvocation methodInvocation) throws Throwable {
+    public Object invoke(@Nonnull MethodInvocation methodInvocation) throws Throwable {
         final var returnedObject = methodInvocation.proceed();
         final var attribute      = attributeRegistryProvider.getObject()
                 .getSaplAttributeForAnnotationType(methodInvocation, PostEnforce.class);

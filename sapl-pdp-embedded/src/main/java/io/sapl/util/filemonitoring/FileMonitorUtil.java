@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
@@ -53,23 +54,28 @@ public class FileMonitorUtil {
 
     public static Flux<FileEvent> monitorDirectory(final Path watchDir, final FileFilter fileFilter) {
         return Flux.push(emitter -> {
-            final var adaptor  = new FileEventAdaptor(emitter);
-            final var monitor  = new FileAlterationMonitor(POLL_INTERVAL_IN_MS);
-            final var observer = new FileAlterationObserver(watchDir.toFile(), fileFilter);
-            monitor.addObserver(observer);
-            observer.addListener(adaptor);
-            emitter.onDispose(() -> {
+            final var              adaptor = new FileEventAdaptor(emitter);
+            final var              monitor = new FileAlterationMonitor(POLL_INTERVAL_IN_MS);
+            FileAlterationObserver observer;
+            try {
+                observer = FileAlterationObserver.builder().setFile(watchDir.toFile()).setFileFilter(fileFilter).get();
+                monitor.addObserver(observer);
+                observer.addListener(adaptor);
+                emitter.onDispose(() -> {
+                    try {
+                        monitor.stop();
+                    } catch (Exception e) {
+                        emitter.error(e);
+                    }
+                });
+
                 try {
-                    monitor.stop();
+                    monitor.start();
                 } catch (Exception e) {
                     emitter.error(e);
                 }
-            });
-
-            try {
-                monitor.start();
-            } catch (Exception e) {
-                emitter.error(e);
+            } catch (IOException e) {
+                throw new PolicyEvaluationException("failed to monitor %s: %s", watchDir.toString(), e.getMessage());
             }
         });
     }

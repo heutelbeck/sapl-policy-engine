@@ -30,9 +30,7 @@ class MultipleInterpreter {
 
             if (amount == null) {
                 isValid = false;
-            }
-
-            if (isValid) {
+            } else {
                 intValue = amount.intValueExact();
             }
 

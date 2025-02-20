@@ -48,10 +48,10 @@ class MqttTestUtility {
     public static EmbeddedHiveMQ buildBroker(Path configDir, Path dataDir, Path extensionsDir) {
         InternalConfigurations.PAYLOAD_PERSISTENCE_TYPE.set(PersistenceType.FILE);
         InternalConfigurations.RETAINED_MESSAGE_PERSISTENCE_TYPE.set(PersistenceType.FILE);
-        InternalConfigurations.PERSISTENCE_SHUTDOWN_TIMEOUT.set(1);
-        InternalConfigurations.PERSISTENCE_SHUTDOWN_GRACE_PERIOD.set(10);
+        InternalConfigurations.PERSISTENCE_SHUTDOWN_GRACE_PERIOD_MSEC.set(100);
+        InternalConfigurations.PERSISTENCE_SHUTDOWN_GRACE_PERIOD_MSEC.set(1000);
         InternalConfigurations.PERSISTENCE_CLOSE_RETRIES.set(1);
-        InternalConfigurations.PERSISTENCE_CLOSE_RETRY_INTERVAL.set(10);
+        InternalConfigurations.PERSISTENCE_CLOSE_RETRY_INTERVAL_MSEC.set(1000);
 
         return EmbeddedHiveMQ.builder().withConfigurationFolder(configDir).withDataFolder(dataDir)
                 .withExtensionsFolder(extensionsDir).build();

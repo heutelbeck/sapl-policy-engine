@@ -82,7 +82,7 @@ jobs:
       uses: actions/dependency-review-action@4901385134134e04cec5fbe5ddfe3b2c5bd5d976 # v4.0.0
 
     - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+      uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
       with:
         distribution: 'temurin'
         java-version: ${{ matrix.java }}
@@ -124,7 +124,7 @@ jobs:
         
     - name: Cache Sonar Packages
       if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
-      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+      uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         path: ~/.sonar/cache
         key: ${{ runner.os }}-sonar
@@ -230,7 +230,7 @@ jobs:
         fetch-depth: 0
 
     - name: Set up JDK 17
-      uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4.0.0
+      uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
       with:
         distribution: 'temurin'
         java-version: '17'
@@ -329,7 +329,7 @@ jobs:
 
     # Upload the sapl-server-lt artifact and additional files
     - name: Upload artifact and signature
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3 
+      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
       with:
         if-no-files-found: error 
         path: |
@@ -355,133 +355,3 @@ jobs:
 
     - name: Clean up Local Repository before Caching
       run: rm -rf ~/.m2/repository/io/sapl
-  
-  # Create provenance for the artifact
-  sapl-server-lt-provenance:
-    needs: [ deploy ]
-    permissions:
-      actions: read # To read the workflow path
-      id-token: write # To sign the provenance
-      contents: write # To add assets to a release
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.10.0
-    with:
-      base64-subjects: ${{ needs.deploy.outputs.sapl-server-lt-hashes }}
-  
-  # Verify the provenance of artifact
-  sapl-server-lt-verify:
-    needs: [ sapl-server-lt-provenance ]
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read # To read the workflow path
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
-        with:
-          egress-policy: audit
-
-      - uses: slsa-framework/slsa-verifier/actions/installer@3714a2a4684014deb874a0e737dffa0ee02dd647 # v2.6.0
-
-      - name: Download the artifact
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-
-      # SLSA provenance verification using slsa-verifier
-      - name: Verify SLSA Provenance (slsa-verifier)
-        run: |
-          slsa-verifier verify-artifact ./**/sapl-server-lt*.jar  --source-uri "github.com/$GITHUB_REPOSITORY" --provenance-path "./${{ needs.sapl-server-lt-provenance.outputs.provenance-name}}/${{ needs.sapl-server-lt-provenance.outputs.provenance-name}}"
-
-
-  # Generate provenance for docker image
-  docker-provenance:
-    needs: [ deploy ]
-    permissions:
-      actions: read # for detecting the Github Actions environment.
-      id-token: write # for creating OIDC tokens for signing.
-      packages: write # for uploading attestations.
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v1.10.0
-    with:
-      image: ghcr.io/heutelbeck/sapl-server-lt
-      # The image digest is used to prevent TOCTOU issues.
-      # This is an output of the docker/build-push-action
-      # See: https://github.com/slsa-framework/slsa-verifier#toctou-attacks
-      digest: ${{ needs.deploy.outputs.sapl-server-lt-docker-digest }}
-      registry-username: ${{ github.actor }}
-    secrets:
-      registry-password: ${{ secrets.GHUB_ACCESS_TOKEN }}
-
-  # Sign the docker image
-  docker-sign:
-    needs: [ deploy ]
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      packages: write
-    steps:
-
-      # https://github.com/sigstore/cosign-installer
-      - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
-        with:
-          egress-policy: audit
-
-      # Install the cosign tool 
-      - name: Install cosign
-        uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4 # v3.4.0
-        with:
-          cosign-release: 'v2.2.3'
-      
-      # Login against a Docker registry
-      # https://github.com/docker/login-action
-      - name: Log in to the Container Registry
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHUB_ACCESS_TOKEN }}
-        
-      # TUTORIAL: https://dev.to/n3wt0n/sign-your-container-images-with-cosign-github-actions-and-github-container-registry-3mni
-      # Write the private key to disk to be accessible by the cosign tool
-      # Can be generated with `cosign generate-key-pair`
-      - name: Write signing cosign key to disk
-        env:
-          # Generate private key of cosign certificate
-          KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}    
-        run: echo "${KEY}" > cosign.key
-
-      # Sign the resulting Docker image digest.
-      # This will only write to the public Rekor transparency log when the Docker
-      # repository is public to avoid leaking data.  If you would like to publish
-      # transparency data even for private images, pass --force to cosign below.
-      # https://github.com/sigstore/cosign
-      - name: Sign the published Server LT Docker image
-        # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-        env:
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-          # The image name and digest are passed from the build job
-          TAGS: ghcr.io/heutelbeck/sapl-server-lt:${{ needs.deploy.outputs.artifact-version }}
-        # This step uses the identity token to provision an ephemeral certificate
-        # against the sigstore community Fulcio instance.
-        run: cosign sign --key cosign.key --yes ${TAGS}
-
-      - name: Sign the published Server LT Docker image
-        # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-        env:
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-          # The image name and digest are passed from the build job
-          TAGS: ghcr.io/heutelbeck/sapl-server-ce:${{ needs.deploy.outputs.artifact-version }}
-        # This step uses the identity token to provision an ephemeral certificate
-        # against the sigstore community Fulcio instance.
-        run: cosign sign --key cosign.key --yes ${TAGS}
-
-      # Write the private key to disk to be accessible by the cosign tool
-      # Can be generated with `cosign generate-key-pair`
-      - name: Write public cosign key to disk
-        env:
-          # Generate private key of cosign certificate
-          KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
-        run: echo "${KEY}" > cosign.pub
-        
-
-      - name: Verify docker image signature
-        run: | 
-          cosign verify  ghcr.io/heutelbeck/sapl-server-lt:${{ needs.deploy.outputs.artifact-version }} \
-            --key cosign.pub

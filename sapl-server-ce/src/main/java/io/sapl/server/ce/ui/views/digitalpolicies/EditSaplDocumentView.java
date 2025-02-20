@@ -213,13 +213,12 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
     }
 
     private void setUiForPublishing() {
-        SaplDocumentVersion publishedVersion           = saplDocument.getPublishedVersion();
-        boolean             isPublishedVersionExisting = publishedVersion != null;
+        SaplDocumentVersion publishedVersion = saplDocument.getPublishedVersion();
 
         String publishedVersionAsString;
         String publishedNameAsString;
 
-        if (isPublishedVersionExisting) {
+        if (null != publishedVersion) {
             String publishedName = publishedVersion.getName();
 
             publishedVersionAsString = Integer.toString(publishedVersion.getVersionNumber());
@@ -233,8 +232,10 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
                         .getVersionNumber();
                 publishButton.setEnabled(!isSelectedVersionPublished);
             }
+            unpublishButton.setEnabled(true);
         } else {
             publishButton.setEnabled(true);
+            unpublishButton.setEnabled(false);
 
             publishedVersionAsString = "-";
             publishedNameAsString    = "-";
@@ -244,8 +245,6 @@ public class EditSaplDocumentView extends VerticalLayout implements HasUrlParame
         publishedVersionField.setReadOnly(true);
         publishedNameField.setValue(publishedNameAsString);
         publishedNameField.setReadOnly(true);
-
-        unpublishButton.setEnabled(isPublishedVersionExisting);
     }
 
     private Collection<String> getAvailableVersions() {

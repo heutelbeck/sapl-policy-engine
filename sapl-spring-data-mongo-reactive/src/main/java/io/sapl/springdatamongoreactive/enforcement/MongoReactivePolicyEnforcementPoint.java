@@ -23,6 +23,8 @@ import static io.sapl.springdatacommon.utils.Utilities.convertReturnTypeIfNecess
 
 import java.util.Objects;
 
+import javax.annotation.Nonnull;
+
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
@@ -69,7 +71,7 @@ public class MongoReactivePolicyEnforcementPoint<T> implements MethodInterceptor
     private final RepositoryInformationCollectorService                                       repositoryInformationCollectorService;
 
     @SneakyThrows // Throwable by proceed() method, ClassNotFoundException
-    public Object invoke(MethodInvocation invocation) {
+    public Object invoke(@Nonnull MethodInvocation invocation) {
 
         final var repositoryMethod = invocation.getMethod();
 
