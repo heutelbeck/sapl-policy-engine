@@ -17,12 +17,15 @@
  */
 package io.sapl.attributes.broker.impl;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
+
 import java.time.Clock;
 
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
 import io.sapl.validation.ValidatorFactory;
 
 class AnnotationPolicyInformationPointLoaderTests {
@@ -32,7 +35,9 @@ class AnnotationPolicyInformationPointLoaderTests {
         final var validatorFactory = new ValidatorFactory(new ObjectMapper());
         final var loader           = new AnnotationPolicyInformationPointLoader(null, validatorFactory);
         final var clock            = Clock.systemDefaultZone();
-        // loader.loadPolicyInformationPoint(new TimePolicyInformationPoint(clock));
-        loader.loadStaticPolicyInformationPoint(TestPolicyInformationPoint.class);
+        assertThatCode(() -> {
+            loader.loadPolicyInformationPoint(new TimePolicyInformationPoint(clock));
+            loader.loadStaticPolicyInformationPoint(TestPolicyInformationPoint.class);
+        }).doesNotThrowAnyException();
     }
 }

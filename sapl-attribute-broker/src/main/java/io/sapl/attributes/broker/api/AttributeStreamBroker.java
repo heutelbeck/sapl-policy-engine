@@ -22,6 +22,6 @@ import reactor.core.publisher.Flux;
 
 public interface AttributeStreamBroker {
 
-    Flux<Val> attributeStream(AttributeFinderInvocation invocation, boolean fresh);
+    Flux<Val> attributeStream(AttributeFinderInvocation invocation);
 
 }
