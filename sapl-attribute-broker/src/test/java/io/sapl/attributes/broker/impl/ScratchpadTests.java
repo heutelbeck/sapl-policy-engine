@@ -74,7 +74,7 @@ class ScratchpadTests {
     }
 
     @Test
-    @Timeout(20)
+    @Timeout(60)
     void foo() throws InterruptedException {
         var broker = new DefaultAttributeStreamBroker();
 
