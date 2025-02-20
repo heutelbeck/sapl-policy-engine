@@ -39,23 +39,23 @@ class AttributeFinderInvocationTests {
         final List<Val>        emptyList = List.of();
         final Map<String, Val> emptyMap  = Map.of();
         assertThatThrownBy(() -> new AttributeFinderInvocation(null, "abc.def", Val.TRUE, emptyList, emptyMap,
-                ONE_SECOND, ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", null, Val.TRUE, emptyList, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, null, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, null, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap, null,
-                ONE_SECOND, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
-                ONE_SECOND, null, BACKOFF, 20L)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, null, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
-                ONE_SECOND, ONE_SECOND, null, 20L)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, ONE_SECOND, null, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "123 ", Val.TRUE, emptyList, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L)).isInstanceOf(IllegalArgumentException.class);
+                ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(IllegalArgumentException.class);
         assertDoesNotThrow(() -> new AttributeFinderInvocation("id", "abc.def", null, emptyList, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L));
+                ONE_SECOND, BACKOFF, 20L, false));
     }
 
 }

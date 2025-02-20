@@ -31,34 +31,30 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
-import reactor.core.publisher.Flux;
 
 @Timeout(20)
 class AttributeStreamTests {
 
     private static final AttributeFinderInvocation INVOCATION = new AttributeFinderInvocation("configId",
             "some.attribute", null, List.of(), Map.of(), Duration.ofSeconds(1L), Duration.ofSeconds(1L),
-            Duration.ofMillis(50L), 20L);
+            Duration.ofMillis(50L), 20L, false);
 
     @Test
     void whenGetInvocationThenIncovationIsReturned() {
-        final var invocation         = INVOCATION;
-        final var pipAttributeStream = Flux.<Val>empty();
-        final var cleanupCallback    = (Consumer<AttributeStream>) a -> {};
-        final var attributeStream    = new AttributeStream(invocation, cleanupCallback, Duration.ofMillis(500L));
+        final var invocation      = INVOCATION;
+        final var cleanupCallback = (Consumer<AttributeStream>) a -> {};
+        final var attributeStream = new AttributeStream(invocation, cleanupCallback, Duration.ofMillis(500L));
 
         assertThat(attributeStream.getInvocation()).isEqualTo(invocation);
     }
 
     @Test
     void whenWhenSubscriptionEndsThenAfterGracePeriodCleanupCallbackIsCalled() {
-        final var invocation         = INVOCATION;
-        final var pipAttributeStream = Flux.range(0, 100).delayElements(Duration.ofMillis(50L)).map(Val::of);
-        final var cleanupCalled      = new AtomicInteger(0);
-        final var cleanupCallback    = (Consumer<AttributeStream>) a -> cleanupCalled.addAndGet(1);
-        final var attributeStream    = new AttributeStream(invocation, cleanupCallback, Duration.ofMillis(200L));
+        final var invocation      = INVOCATION;
+        final var cleanupCalled   = new AtomicInteger(0);
+        final var cleanupCallback = (Consumer<AttributeStream>) a -> cleanupCalled.addAndGet(1);
+        final var attributeStream = new AttributeStream(invocation, cleanupCallback, Duration.ofMillis(200L));
         attributeStream.getStream().blockFirst();
         assertThat(cleanupCalled.get()).isZero();
         await().atMost(250, MILLISECONDS).until(() -> cleanupCalled.get() == 1);
@@ -66,12 +62,11 @@ class AttributeStreamTests {
 
     @Test
     void whenWhenSubscriptionEndsAndNewSubscriberDuringGracePeriodThenCacedValueReturnedNoCallbackAndCallbackAfterSecondSubscriberCancels() {
-        final var invocation         = INVOCATION;
-        final var pipAttributeStream = Flux.range(0, 100).delayElements(Duration.ofMillis(100L)).map(Val::of);
-        final var cleanupCalled      = new AtomicInteger(0);
-        final var cleanupCallback    = (Consumer<AttributeStream>) a -> cleanupCalled.addAndGet(1);
-        final var attributeStream    = new AttributeStream(invocation, cleanupCallback, Duration.ofMillis(200L));
-        final var firstValue         = attributeStream.getStream().blockFirst();
+        final var invocation      = INVOCATION;
+        final var cleanupCalled   = new AtomicInteger(0);
+        final var cleanupCallback = (Consumer<AttributeStream>) a -> cleanupCalled.addAndGet(1);
+        final var attributeStream = new AttributeStream(invocation, cleanupCallback, Duration.ofMillis(200L));
+        final var firstValue      = attributeStream.getStream().blockFirst();
         assertThat(cleanupCalled.get()).isZero();
         final var secondValue = attributeStream.getStream().blockFirst();
         assertThat(secondValue).isEqualTo(firstValue);
