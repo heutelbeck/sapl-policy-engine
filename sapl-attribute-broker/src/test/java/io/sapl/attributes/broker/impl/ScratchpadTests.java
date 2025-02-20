@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinder;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -85,8 +86,8 @@ class ScratchpadTests {
 
         broker.registerAttributeFinder(dummyPipSpec1, dummyPip1);
 
-        var attributeStream = broker.environmentAttributeStream("id", "xdummy.pip", List.of(), Map.of(),
-                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofMillis(50L), 20L, false);
+        var attributeStream = broker.attributeStream(new AttributeFinderInvocation("id", "xdummy.pip", List.of(),
+                Map.of(), Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofMillis(50L), 20L, false));
 
         var streamSubscription = attributeStream.log().subscribe();
 

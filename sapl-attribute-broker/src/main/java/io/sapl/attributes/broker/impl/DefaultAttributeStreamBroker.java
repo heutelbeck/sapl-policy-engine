@@ -43,7 +43,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
     private final Map<String, List<SpecAndPip>>                         pipRegistry          = new ConcurrentHashMap<>();
 
     @Override
-    public Flux<Val> attributeStream(AttributeFinderInvocation invocation, boolean fresh) {
+    public Flux<Val> attributeStream(AttributeFinderInvocation invocation) {
         final var attributeStreamReference = new AtomicReference<Flux<Val>>();
 
         /*
@@ -60,7 +60,7 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
                             streams = new ArrayList<>();
                         }
                         AttributeStream stream;
-                        if (streams.isEmpty() || fresh) {
+                        if (streams.isEmpty() || invocation.fresh()) {
                             stream = newAttributeStream(invocation, pipsWithNameOfInvocation);
                             streams.add(stream);
                         } else {

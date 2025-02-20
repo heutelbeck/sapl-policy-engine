@@ -28,13 +28,13 @@ import lombok.NonNull;
 
 public record AttributeFinderInvocation(@NonNull String pdpConfigurationId, @NonNull String fullyQualifiedAttributeName,
         Val entity, @NonNull List<Val> arguments, @NonNull Map<String, Val> variables, @NonNull Duration initialTimeOut,
-        @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries) {
+        @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries, boolean fresh) {
 
     public AttributeFinderInvocation(@NonNull String pdpConfigurationId, @NonNull String fullyQualifiedAttributeName,
             @NonNull List<Val> arguments, @NonNull Map<String, Val> variables, @NonNull Duration initialTimeOut,
-            @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries) {
+            @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries, boolean fresh) {
         this(pdpConfigurationId, fullyQualifiedAttributeName, null, arguments, variables, initialTimeOut, pollIntervall,
-                backoff, retries);
+                backoff, retries, fresh);
     }
 
     public AttributeFinderInvocation {
