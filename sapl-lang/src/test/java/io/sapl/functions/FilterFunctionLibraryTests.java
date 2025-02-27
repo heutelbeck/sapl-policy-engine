@@ -43,10 +43,10 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.broker.impl.NaiveAttributeStreamBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import reactor.test.StepVerifier;
 
 class FilterFunctionLibraryTests {
@@ -54,7 +54,7 @@ class FilterFunctionLibraryTests {
     private static final ObjectMapper               MAPPER           = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
     private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
-    private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
+    private static final NaiveAttributeStreamBroker ATTRIBUTE_BROKER = new NaiveAttributeStreamBroker();
     private static final Map<String, Val>           SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
     private AnnotationFunctionContext functionCtx;
@@ -280,7 +280,7 @@ class FilterFunctionLibraryTests {
                 Optional.empty(), Optional.empty());
 
         StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, functionCtx,
+                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_BROKER, functionCtx,
                         SYSTEM_VARIABLES))
                 .assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
     }
@@ -316,7 +316,7 @@ class FilterFunctionLibraryTests {
                 Optional.empty(), Optional.empty());
 
         StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_CTX, functionCtx,
+                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, ATTRIBUTE_BROKER, functionCtx,
                         SYSTEM_VARIABLES))
                 .assertNext(authzDecision -> assertThat(authzDecision, is(expectedAuthzDecision))).verifyComplete();
     }

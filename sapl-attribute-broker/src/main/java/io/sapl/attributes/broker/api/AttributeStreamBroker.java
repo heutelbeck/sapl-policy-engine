@@ -17,11 +17,17 @@
  */
 package io.sapl.attributes.broker.api;
 
+import java.util.Collection;
+
 import io.sapl.api.interpreter.Val;
 import reactor.core.publisher.Flux;
 
 public interface AttributeStreamBroker {
 
     Flux<Val> attributeStream(AttributeFinderInvocation invocation);
+
+    Collection<String> providedFunctionsOfLibrary(String library);
+
+    boolean isProvidedFunction(String fullyQualifiedFunctionName);
 
 }

@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.impl.NaiveAttributeStreamBroker;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
@@ -37,20 +38,19 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SimpleFunctionLibrary;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import lombok.SneakyThrows;
 
 class EnforcedSchemaTests {
     private static final ObjectMapper           MAPPER      = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
     private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-    private static AnnotationAttributeContext   attributeContext;
+    private static NaiveAttributeStreamBroker   attributeStreamBroker;
     private static AnnotationFunctionContext    functionContext;
 
     @BeforeAll
     static void beforeAll() throws InitializationException {
-        attributeContext = new AnnotationAttributeContext();
-        functionContext  = new AnnotationFunctionContext();
+        attributeStreamBroker = new NaiveAttributeStreamBroker();
+        functionContext       = new AnnotationFunctionContext();
         functionContext.loadLibrary(SimpleFunctionLibrary.class);
         functionContext.loadLibrary(SchemaValidationLibrary.class);
         functionContext.loadLibrary(FilterFunctionLibrary.class);
@@ -336,7 +336,7 @@ class EnforcedSchemaTests {
         final var match             = sapl.matches()
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
-                .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
+                .contextWrite(ctx -> AuthorizationContext.setAttributeStreamBroker(ctx, attributeStreamBroker))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
 
         assertThat(match).isNotNull();
@@ -345,7 +345,7 @@ class EnforcedSchemaTests {
         final var implicitMatch = MatchingUtil.matches(sapl.getImplicitTargetExpression(), sapl)
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
-                .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
+                .contextWrite(ctx -> AuthorizationContext.setAttributeStreamBroker(ctx, attributeStreamBroker))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
 
         assertThat(implicitMatch).isNotNull();
@@ -359,7 +359,7 @@ class EnforcedSchemaTests {
         final var match             = sapl.matches()
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
-                .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
+                .contextWrite(ctx -> AuthorizationContext.setAttributeStreamBroker(ctx, attributeStreamBroker))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
 
         assertThat(match.isError()).isTrue();
@@ -367,7 +367,7 @@ class EnforcedSchemaTests {
         final var implicitMatch = MatchingUtil.matches(sapl.getImplicitTargetExpression(), sapl)
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, Map.of()))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription))
-                .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
+                .contextWrite(ctx -> AuthorizationContext.setAttributeStreamBroker(ctx, attributeStreamBroker))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext)).block();
 
         assertThat(implicitMatch.isError()).isTrue();

@@ -59,7 +59,7 @@ import reactor.core.publisher.Flux;
  * evaluation.
  */
 @NoArgsConstructor
-public final class AnnotationAttributeContext implements AttributeContext {
+public final class LegacyAnnotationAttributeContext implements AttributeContext {
 
     static final String FIRST_PARAMETER_NOT_PRESENT_S_ERROR                     = "Argument missing. First parameter of the method '%s' must be a Val for taking in the left-hand argument, but no argument was present.";
     static final String FIRST_PARAMETER_S_UNEXPECTED_S_ERROR                    = "First parameter of the method %s has an unexpected type. Was expecting a Val but got %s.";
@@ -90,7 +90,7 @@ public final class AnnotationAttributeContext implements AttributeContext {
      * static methods as functions
      * @throws InitializationException if initialization fails.
      */
-    public AnnotationAttributeContext(PolicyInformationPointSupplier pipSupplier,
+    public LegacyAnnotationAttributeContext(PolicyInformationPointSupplier pipSupplier,
             StaticPolicyInformationPointSupplier staticPipSupplier) throws InitializationException {
         loadPolicyInformationPoints(pipSupplier);
         loadPolicyInformationPoints(staticPipSupplier);

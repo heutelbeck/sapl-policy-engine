@@ -25,9 +25,9 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.Document;
 import io.sapl.prp.PolicyRetrievalException;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -48,26 +48,26 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
 
     private final boolean consistent;
 
-    private final AttributeContext attributeCtx;
+    private final AttributeStreamBroker attributeStreamBroker;
 
     private final FunctionContext functionCtx;
 
     public CanonicalImmutableParsedDocumentIndex(PredicateOrderStrategy predicateOrderStrategy,
-            AttributeContext attributeCtx, FunctionContext functionCtx) {
-        this(Collections.emptyMap(), predicateOrderStrategy, true, attributeCtx, functionCtx);
+            AttributeStreamBroker attributeStreamBroker, FunctionContext functionCtx) {
+        this(Collections.emptyMap(), predicateOrderStrategy, true, attributeStreamBroker, functionCtx);
     }
 
-    public CanonicalImmutableParsedDocumentIndex(AttributeContext attributeCtx, FunctionContext functionCtx) {
-        this(Collections.emptyMap(), new DefaultPredicateOrderStrategy(), true, attributeCtx, functionCtx);
+    public CanonicalImmutableParsedDocumentIndex(AttributeStreamBroker attributeStreamBroker, FunctionContext functionCtx) {
+        this(Collections.emptyMap(), new DefaultPredicateOrderStrategy(), true, attributeStreamBroker, functionCtx);
     }
 
     private CanonicalImmutableParsedDocumentIndex(Map<String, Document> updatedDocuments,
-            PredicateOrderStrategy predicateOrderStrategy, boolean consistent, AttributeContext attributeCtx,
+            PredicateOrderStrategy predicateOrderStrategy, boolean consistent, AttributeStreamBroker attributeStreamBroker,
             FunctionContext functionCtx) {
         this.documents              = updatedDocuments;
         this.predicateOrderStrategy = predicateOrderStrategy;
         this.consistent             = consistent;
-        this.attributeCtx           = attributeCtx;
+        this.attributeStreamBroker           = attributeStreamBroker;
         this.functionCtx            = functionCtx;
 
         Map<String, DisjunctiveFormula> targets = this.documents.entrySet().stream()
@@ -79,7 +79,7 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
 
     CanonicalImmutableParsedDocumentIndex recreateIndex(Map<String, Document> updatedDocuments, boolean consistent) {
         return new CanonicalImmutableParsedDocumentIndex(updatedDocuments, predicateOrderStrategy, consistent,
-                attributeCtx, functionCtx);
+                attributeStreamBroker, functionCtx);
     }
 
     @Override
@@ -130,7 +130,7 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
         if (null == targetExpression) {
             targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
         } else {
-            final var imports = ImportsUtil.fetchImports(document.sapl(), attributeCtx, functionCtx);
+            final var imports = ImportsUtil.fetchImports(document.sapl(), attributeStreamBroker, functionCtx);
             targetFormula = TreeWalker.walk(targetExpression, imports);
         }
 

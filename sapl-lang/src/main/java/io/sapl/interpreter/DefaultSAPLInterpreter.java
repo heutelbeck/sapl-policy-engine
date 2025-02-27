@@ -40,11 +40,11 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.grammar.SAPLStandaloneSetup;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.Document;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -144,7 +144,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
 
     @Override
     public Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authorizationSubscription,
-            String saplDocumentSource, AttributeContext attributeContext, FunctionContext functionContext,
+            String saplDocumentSource, AttributeStreamBroker attributeStreamBroker, FunctionContext functionContext,
             Map<String, Val> environmentVariables) {
         final var document = parseDocument(saplDocumentSource);
         if (document.isInvalid()) {
@@ -154,7 +154,7 @@ public class DefaultSAPLInterpreter implements SAPLInterpreter {
         return saplDocument.matches().flux().switchMap(evaluateBodyIfMatching(saplDocument))
                 .contextWrite(ctx -> AuthorizationContext.setVariables(ctx, environmentVariables))
                 .contextWrite(ctx -> AuthorizationContext.setSubscriptionVariables(ctx, authorizationSubscription))
-                .contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx, attributeContext))
+                .contextWrite(ctx -> AuthorizationContext.setAttributeStreamBroker(ctx, attributeStreamBroker))
                 .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, functionContext))
                 .onErrorReturn(AuthorizationDecision.INDETERMINATE);
     }

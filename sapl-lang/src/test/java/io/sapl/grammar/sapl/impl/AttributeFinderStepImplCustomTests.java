@@ -20,7 +20,6 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.testutil.TestUtil.assertExpressionErrors;
 import static io.sapl.testutil.TestUtil.assertExpressionReturnsError;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,11 +32,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.testutil.MockUtil;
 import io.sapl.testutil.ParserUtil;
 import reactor.core.publisher.Flux;
@@ -87,8 +86,8 @@ class AttributeFinderStepImplCustomTests {
     @Test
     void exceptionDuringEvaluation() {
         final var step = attributeFinderStep();
-        final var sut  = step.apply(Val.NULL).contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
-                mockAttributeContext(Flux.just(ErrorFactory.error("ERROR")))));
+        final var sut  = step.apply(Val.NULL).contextWrite(ctx -> AuthorizationContext.setAttributeStreamBroker(ctx,
+                mockAttributeStreamBrokerWithStream(Flux.just(ErrorFactory.error("ERROR")))));
         StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
     }
 
@@ -96,16 +95,15 @@ class AttributeFinderStepImplCustomTests {
     void applyWithSomeStreamData() {
         Val[]     data = { Val.FALSE, ErrorFactory.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
         final var step = attributeFinderStep();
-        final var sut  = step.apply(Val.NULL).contextWrite(
-                ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContext(Flux.just(data))));
+        final var sut  = step.apply(Val.NULL).contextWrite(ctx -> AuthorizationContext.setAttributeStreamBroker(ctx,
+                mockAttributeStreamBrokerWithStream(Flux.just(data))));
         StepVerifier.create(sut).expectNext(data).verifyComplete();
     }
 
-    private static AttributeContext mockAttributeContext(Flux<Val> stream) {
-        final var attributeCtx = mock(AttributeContext.class);
-        when(attributeCtx.evaluateAttribute(any(), eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any()))
-                .thenReturn(stream);
-        return attributeCtx;
+    private static AttributeStreamBroker mockAttributeStreamBrokerWithStream(Flux<Val> stream) {
+        final var attributeBroker = mock(AttributeStreamBroker.class);
+        when(attributeBroker.attributeStream(any())).thenReturn(stream);
+        return attributeBroker;
     }
 
     private static AttributeFinderStep attributeFinderStep() {

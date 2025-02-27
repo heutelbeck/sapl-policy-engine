@@ -19,6 +19,7 @@ package io.sapl.attributes.broker.impl;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,7 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 @Slf4j
-public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
+public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     static final Duration DEFAULT_GRACE_PERIOD = Duration.ofMillis(3000L);
 
     private record SpecAndPip(AttributeFinderSpecification specification, AttributeFinder policyInformationPoint) {}
@@ -197,6 +198,18 @@ public class DefaultAttributeStreamBroker implements AttributeStreamBroker {
             });
             return newPipsForName;
         });
+    }
+
+    @Override
+    public Collection<String> providedFunctionsOfLibrary(String library) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public boolean isProvidedFunction(String fullyQualifiedFunctionName) {
+        // TODO Auto-generated method stub
+        return false;
     }
 
 }

@@ -20,7 +20,6 @@ package io.sapl.grammar.sapl.impl;
 import static io.sapl.testutil.TestUtil.assertExpressionErrors;
 import static io.sapl.testutil.TestUtil.assertExpressionEvaluatesTo;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,11 +28,11 @@ import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.context.AuthorizationContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.testutil.MockUtil;
 import io.sapl.testutil.ParserUtil;
 import reactor.core.publisher.Flux;
@@ -71,8 +70,8 @@ class BasicEnvironmentHeadAttributeImplTests {
     @Test
     void exceptionDuringEvaluation() {
         final var step = headAttributeFinderStep();
-        final var sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeContext(ctx,
-                mockAttributeContextWithStream(Flux.just(ErrorFactory.error("ERROR")))));
+        final var sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeStreamBroker(ctx,
+                mockAttributeStreamBrokerWithStream(Flux.just(ErrorFactory.error("ERROR")))));
         StepVerifier.create(sut).expectNextMatches(Val::isError).verifyComplete();
     }
 
@@ -80,18 +79,15 @@ class BasicEnvironmentHeadAttributeImplTests {
     void applyWithSomeStreamData() {
         Val[]     data = { Val.FALSE, ErrorFactory.error("ERROR"), Val.TRUE, Val.NULL, Val.UNDEFINED };
         final var step = headAttributeFinderStep();
-        final var sut  = step.evaluate().contextWrite(
-                ctx -> AuthorizationContext.setAttributeContext(ctx, mockAttributeContextWithStream(Flux.just(data))));
+        final var sut  = step.evaluate().contextWrite(ctx -> AuthorizationContext.setAttributeStreamBroker(ctx,
+                mockAttributeStreamBrokerWithStream(Flux.just(data))));
         StepVerifier.create(sut).expectNext(Val.FALSE).verifyComplete();
     }
 
-    private static AttributeContext mockAttributeContextWithStream(Flux<Val> stream) {
-        final var attributeCtx = mock(AttributeContext.class);
-        when(attributeCtx.evaluateAttribute(any(), eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any(), any()))
-                .thenReturn(stream);
-        when(attributeCtx.evaluateEnvironmentAttribute(any(), eq(FULLY_QUALIFIED_ATTRIBUTE), any(), any()))
-                .thenReturn(stream);
-        return attributeCtx;
+    private static AttributeStreamBroker mockAttributeStreamBrokerWithStream(Flux<Val> stream) {
+        final var attributeBroker = mock(AttributeStreamBroker.class);
+        when(attributeBroker.attributeStream(any())).thenReturn(stream);
+        return attributeBroker;
     }
 
     private static BasicEnvironmentHeadAttribute headAttributeFinderStep() {
