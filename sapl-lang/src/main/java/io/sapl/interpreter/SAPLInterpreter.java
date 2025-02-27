@@ -23,9 +23,9 @@ import java.util.Map;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.Document;
 import reactor.core.publisher.Flux;
 
@@ -97,12 +97,13 @@ public interface SAPLInterpreter {
      *
      * @param authzSubscription the authorization subscription object
      * @param saplDocumentSource the String representing the SAPL document
-     * @param attributeContext the PDP's AttributeContext
+     * @param attributeStreamBroker the PDP's AttributeStreamBroker
      * @param functionContext the PDP's FunctionContext
      * @param environmentVariables map containing the PDP's environment variables
      * @return A {@link Flux} of {@link AuthorizationDecision} objects.
      */
     Flux<AuthorizationDecision> evaluate(AuthorizationSubscription authzSubscription, String saplDocumentSource,
-            AttributeContext attributeContext, FunctionContext functionContext, Map<String, Val> environmentVariables);
+            AttributeStreamBroker attributeStreamBroker, FunctionContext functionContext,
+            Map<String, Val> environmentVariables);
 
 }

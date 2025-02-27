@@ -76,7 +76,7 @@ class ScratchpadTests {
     @Test
     @Timeout(60)
     void foo() throws InterruptedException {
-        var broker = new DefaultAttributeStreamBroker();
+        var broker = new CachingAttributeStreamBroker();
 
         var dummyPipSpec1 = new AttributeFinderSpecification("dummy.pip", true, 0, false, e -> {}, List.of());
 //        var dummyPip     = (PolicyInformationPoint) invocation -> Flux.range(0, 100)

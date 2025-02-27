@@ -31,6 +31,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.Expression;
@@ -41,7 +42,6 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SimpleFunctionLibrary;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
@@ -63,10 +63,10 @@ public class MockUtil {
     }
 
     public static Context setUpAuthorizationContext(Context ctx) {
-        final var attributeCtx = new AnnotationAttributeContext();
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
         final var functionCtx  = new AnnotationFunctionContext();
         try {
-            attributeCtx.loadPolicyInformationPoint(new TestPolicyInformationPoint());
+            attributeStreamBroker.loadPolicyInformationPoint(new TestPolicyInformationPoint());
             functionCtx.loadLibrary(SimpleFunctionLibrary.class);
             functionCtx.loadLibrary(FilterFunctionLibrary.class);
             functionCtx.loadLibrary(TestFunctionLibrary.class);
@@ -74,7 +74,7 @@ public class MockUtil {
             fail("The loading of libraries for the test environment failed: " + e.getMessage());
         }
 
-        ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
+        ctx = AuthorizationContext.setAttributeStreamBroker(ctx, attributeStreamBroker);
         ctx = AuthorizationContext.setFunctionContext(ctx, functionCtx);
         ctx = AuthorizationContext.setVariable(ctx, "nullVariable", Val.NULL);
         ctx = AuthorizationContext.setImports(ctx, new HashMap<>());

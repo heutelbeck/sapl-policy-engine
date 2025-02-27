@@ -17,18 +17,10 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static io.sapl.interpreter.context.AuthorizationContext.getImports;
-
-import java.util.Map;
-
-import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.FilterStatement;
-import io.sapl.grammar.sapl.HeadAttributeFinderStep;
+import io.sapl.grammar.sapl.impl.util.AttributeFactory;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
-import io.sapl.grammar.sapl.impl.util.FunctionUtil;
-import io.sapl.grammar.sapl.impl.util.TargetExpressionUtil;
-import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
 
@@ -39,36 +31,14 @@ import reactor.core.publisher.Flux;
 public class HeadAttributeFinderStepImplCustom extends HeadAttributeFinderStepImpl {
 
     private static final String ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR = "AttributeFinderStep not permitted in filter selection steps.";
-    private static final String UNDEFINED_VALUE_ERROR                     = "Undefined value handed over as parameter to policy information point";
-    private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR        = "Attribute resolution error. Attributes not allowed in target.";
 
     @Override
-    public Flux<Val> apply(@NonNull Val parentValue) {
-
-        return Flux.deferContextual(ctxView -> {
-            final var attributeName = FunctionUtil.resolveAbsoluteFunctionName(getIdentifier(), getImports(ctxView));
-
-            if (parentValue.isError()) {
-                return Flux.just(parentValue.withTrace(HeadAttributeFinderStep.class, false,
-                        Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
-            }
-            if (TargetExpressionUtil.isInTargetExpression(this)) {
-                return Flux.just(ErrorFactory.error(this, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(
-                        HeadAttributeFinderStep.class, false,
-                        Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
-            }
-            if (parentValue.isUndefined()) {
-                return Flux.just(
-                        ErrorFactory.error(this, UNDEFINED_VALUE_ERROR).withTrace(HeadAttributeFinderStep.class, false,
-                                Map.of(Trace.PARENT_VALUE, parentValue, Trace.ATTRIBUTE, Val.of(attributeName))));
-            }
-            return AuthorizationContext.getAttributeContext(ctxView).evaluateAttribute(this, attributeName, parentValue,
-                    getArguments(), AuthorizationContext.getVariables(ctxView)).take(1);
-        });
+    public Flux<Val> apply(@NonNull Val entity) {
+        return Flux.from(AttributeFactory.evaluateAttibute(this, identifier, entity, arguments).next());
     }
 
     @Override
-    public Flux<Val> applyFilterStatement(@NonNull Val parentValue, int stepId, @NonNull FilterStatement statement) {
+    public Flux<Val> applyFilterStatement(@NonNull Val entity, int stepId, @NonNull FilterStatement statement) {
         return Flux.just(ErrorFactory.error(this, ATTRIBUTE_FINDER_STEP_NOT_PERMITTED_ERROR));
     }
 
