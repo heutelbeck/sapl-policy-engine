@@ -26,10 +26,9 @@ import reactor.core.publisher.Flux;
  */
 public class BasicEnvironmentAttributeImplCustom extends BasicEnvironmentAttributeImpl {
 
-
     @Override
     public Flux<Val> evaluate() {
-        return AttributeFactory.evaluateEnvironmentAttibute(this,getIdentifier(),arguments);     
+        return AttributeFactory.evaluateEnvironmentAttibute(this, getIdentifier(), arguments);
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2024 Dominic Heutelbeck (dominic@heutelbeck.com)
+ * Copyright (C) 2017-2025 Dominic Heutelbeck (dominic@heutelbeck.com)
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -45,6 +45,10 @@ import reactor.core.CorePublisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ * This class uses reflection to detect any attribute finders declared by the @AttributeFinder 
+ * annotation and loads it into the AttributeStreamBroker. 
+ */
 @Slf4j
 @RequiredArgsConstructor
 public class AnnotationPolicyInformationPointLoader {

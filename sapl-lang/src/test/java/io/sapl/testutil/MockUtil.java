@@ -24,6 +24,8 @@ import java.util.Map;
 
 import org.eclipse.emf.common.util.EList;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
@@ -31,6 +33,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.AttributeFinderStep;
@@ -42,6 +45,7 @@ import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SimpleFunctionLibrary;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
+import io.sapl.validation.ValidatorFactory;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.util.context.Context;
@@ -63,10 +67,14 @@ public class MockUtil {
     }
 
     public static Context setUpAuthorizationContext(Context ctx) {
+        final var mapper                = new ObjectMapper();
+        final var validatorFactory      = new ValidatorFactory(mapper);
         final var attributeStreamBroker = new CachingAttributeStreamBroker();
-        final var functionCtx  = new AnnotationFunctionContext();
+        final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                validatorFactory);
+        final var functionCtx           = new AnnotationFunctionContext();
         try {
-            attributeStreamBroker.loadPolicyInformationPoint(new TestPolicyInformationPoint());
+            pipLoader.loadPolicyInformationPoint(new TestPolicyInformationPoint());
             functionCtx.loadLibrary(SimpleFunctionLibrary.class);
             functionCtx.loadLibrary(FilterFunctionLibrary.class);
             functionCtx.loadLibrary(TestFunctionLibrary.class);

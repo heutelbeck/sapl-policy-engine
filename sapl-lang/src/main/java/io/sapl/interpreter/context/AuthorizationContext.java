@@ -86,11 +86,11 @@ public class AuthorizationContext {
         }
         return new NaiveAttributeStreamBroker();
     }
+
     public Context setAttributeStreamBroker(Context ctx, AttributeStreamBroker attributeStreamBroker) {
         return ctx.put(ATTRIBUTE_BROKER, attributeStreamBroker);
     }
 
-    
     public static Context setVariables(@NonNull Context ctx, Map<String, Val> environmentVariables) {
         Map<String, Val> variables = new HashMap<>(ctx.getOrDefault(VARIABLES, new HashMap<>()));
         for (var variable : environmentVariables.entrySet()) {

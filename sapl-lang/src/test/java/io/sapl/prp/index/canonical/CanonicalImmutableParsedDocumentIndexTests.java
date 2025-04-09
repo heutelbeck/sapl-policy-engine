@@ -55,11 +55,11 @@ import com.google.common.collect.Maps;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.Document;
 import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
@@ -89,7 +89,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
             bindings.put(variable, null);
         }
 
-        emptyIndex = new CanonicalImmutableParsedDocumentIndex(new AnnotationAttributeContext(),
+        emptyIndex = new CanonicalImmutableParsedDocumentIndex(new CachingAttributeStreamBroker(),
                 new AnnotationFunctionContext());
         variables  = new HashMap<>();
     }
@@ -155,7 +155,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -175,7 +175,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
     void test_orphaned() {
         // given
         emptyIndex = new CanonicalImmutableParsedDocumentIndex(new NoPredicateOrderStrategy(),
-                new AnnotationAttributeContext(), new AnnotationFunctionContext());
+                new CachingAttributeStreamBroker(), new AnnotationFunctionContext());
         List<Update> updates = new ArrayList<>(3);
 
         final var doc1 = INTERPERETER.parseDocument("policy \"p_0\" permit !resource.x1");
@@ -194,7 +194,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -230,7 +230,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -257,7 +257,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -294,7 +294,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -321,7 +321,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
@@ -351,7 +351,7 @@ class CanonicalImmutableParsedDocumentIndexTests {
 
         // when
         PolicyRetrievalResult result = updatedIndex.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, createRequestObject());
