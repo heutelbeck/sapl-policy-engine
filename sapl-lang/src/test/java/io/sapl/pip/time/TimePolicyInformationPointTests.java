@@ -26,21 +26,29 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.validation.ValidatorFactory;
 import reactor.test.StepVerifier;
 
 class TimePolicyInformationPointTests {
 
     @Test
     void contextIsAbleToLoadTimePolicyInformationPoint() {
-        final var sut = new TimePolicyInformationPoint(mock(Clock.class));
-        assertDoesNotThrow(() -> new AnnotationAttributeContext(() -> List.of(sut), List::of));
+        final var sut                   = new TimePolicyInformationPoint(mock(Clock.class));
+        final var mapper                = new ObjectMapper();
+        final var validatorFactory      = new ValidatorFactory(mapper);
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                validatorFactory);
+        assertDoesNotThrow(() -> pipLoader.loadPolicyInformationPoint(sut));
     }
 
     @Test

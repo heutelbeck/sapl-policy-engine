@@ -67,8 +67,8 @@ public class ImportsUtil {
         return imports;
     }
 
-    private static void addImport(Import anImport, Map<String, String> imports, AttributeStreamBroker attributeStreamBroker,
-            FunctionContext functionContext) {
+    private static void addImport(Import anImport, Map<String, String> imports,
+            AttributeStreamBroker attributeStreamBroker, FunctionContext functionContext) {
         final var library = String.join(".", anImport.getLibSteps());
 
         if (anImport instanceof WildcardImport) {
@@ -97,7 +97,7 @@ public class ImportsUtil {
             throw new PolicyEvaluationException(IMPORT_NOT_FOUND_ERROR, fullyQualifiedFunctionName);
     }
 
-    private static boolean evaluationContextProvidesFunction(  AttributeStreamBroker attributeStreamBroker,
+    private static boolean evaluationContextProvidesFunction(AttributeStreamBroker attributeStreamBroker,
             FunctionContext functionContext, String fullyQualifiedFunctionName) {
         return functionContext.isProvidedFunction(fullyQualifiedFunctionName)
                 || attributeStreamBroker.isProvidedFunction(fullyQualifiedFunctionName);
@@ -111,12 +111,13 @@ public class ImportsUtil {
         }
     }
 
-    private static void addLibraryImports(Map<String, String> imports, Collection<String> libraryFunctions, String library, String alias) {
+    private static void addLibraryImports(Map<String, String> imports, Collection<String> libraryFunctions,
+            String library, String alias) {
         for (var name : libraryFunctions) {
             final var key = String.join(".", alias, name);
             if (imports.put(key, String.join(".", library, name)) != null)
                 throw new PolicyEvaluationException(LIBRARY_IMPORT_EXISTS_ERROR, library, name);
         }
     }
-   
+
 }
