@@ -46,8 +46,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * This class uses reflection to detect any attribute finders declared by the @AttributeFinder 
- * annotation and loads it into the AttributeStreamBroker. 
+ * This class uses reflection to detect any attribute finders declared by
+ * the @AttributeFinder annotation and loads it into the AttributeStreamBroker.
  */
 @Slf4j
 @RequiredArgsConstructor
