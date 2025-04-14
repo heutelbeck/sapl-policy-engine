@@ -19,12 +19,15 @@ package io.sapl.spring.method.metadata;
 
 import org.springframework.security.authorization.AuthorizationDecision;
 
+import io.sapl.api.SaplVersion;
 import lombok.Getter;
 
 @Getter
 public class SaplAuthorizationDecision extends AuthorizationDecision {
 
-    SaplAttribute attribute;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
+
+    transient SaplAttribute attribute;
 
     public SaplAuthorizationDecision(boolean granted, SaplAttribute attribute) {
         super(granted);
