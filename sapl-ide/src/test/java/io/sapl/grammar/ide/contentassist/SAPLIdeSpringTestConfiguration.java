@@ -40,13 +40,15 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalPoint;
+import io.sapl.validation.ValidatorFactory;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
@@ -57,10 +59,15 @@ public class SAPLIdeSpringTestConfiguration {
 
     @Bean
     PDPConfigurationProvider pdpConfiguration() throws IOException, InitializationException {
-        final var attributeContext = new AnnotationAttributeContext();
-        attributeContext.loadPolicyInformationPoint(TemperatureTestPip.class);
-        attributeContext.loadPolicyInformationPoint(ClockTestPip.class);
-        attributeContext.loadPolicyInformationPoint(PersonTestPip.class);
+        final var mapper                = new ObjectMapper();
+        final var validatorFactory      = new ValidatorFactory(mapper);
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                validatorFactory);
+
+        pipLoader.loadPolicyInformationPoint(TemperatureTestPip.class);
+        pipLoader.loadPolicyInformationPoint(ClockTestPip.class);
+        pipLoader.loadPolicyInformationPoint(PersonTestPip.class);
 
         final var functionContext = new AnnotationFunctionContext();
         functionContext.loadLibrary(SchemaTestFunctionLibrary.class);
@@ -90,8 +97,8 @@ public class SAPLIdeSpringTestConfiguration {
                 }
                 """));
 
-        final var staticPlaygroundConfiguration = new PDPConfiguration("testConfig", attributeContext, functionContext,
-                variables, PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(),
+        final var staticPlaygroundConfiguration = new PDPConfiguration("testConfig", attributeStreamBroker,
+                functionContext, variables, PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(),
                 UnaryOperator.identity(), mock(PolicyRetrievalPoint.class));
         return () -> Flux.just(staticPlaygroundConfiguration);
     }

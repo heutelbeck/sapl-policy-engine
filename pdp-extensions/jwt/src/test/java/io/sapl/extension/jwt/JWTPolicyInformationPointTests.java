@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -42,7 +41,9 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jwt.JWTClaimsSet;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.validation.ValidatorFactory;
 import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -63,7 +64,7 @@ class JWTPolicyInformationPointTests {
     private JWTKeyProvider                  provider;
 
     @BeforeAll
-    public static void preSetup() throws IOException, NoSuchAlgorithmException {
+    static void preSetup() throws IOException, NoSuchAlgorithmException {
         Logger.getLogger(MockWebServer.class.getName()).setLevel(Level.OFF);
         keyPair    = Base64DataUtil.generateRSAKeyPair();
         keyPair2   = Base64DataUtil.generateRSAKeyPair();
@@ -76,7 +77,7 @@ class JWTPolicyInformationPointTests {
     }
 
     @AfterAll
-    public static void teardown() throws IOException {
+    static void teardown() throws IOException {
         server.close();
     }
 
@@ -88,7 +89,12 @@ class JWTPolicyInformationPointTests {
 
     @Test
     void contextIsAbleToLoadJWTPolicyInformationPoint() {
-        assertDoesNotThrow(() -> new AnnotationAttributeContext(() -> List.of(jwtPolicyInformationPoint), List::of));
+        final var mapper                = new ObjectMapper();
+        final var validatorFactory      = new ValidatorFactory(mapper);
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                validatorFactory);
+        assertDoesNotThrow(() -> pipLoader.loadPolicyInformationPoint(jwtPolicyInformationPoint));
     }
 
     /*
