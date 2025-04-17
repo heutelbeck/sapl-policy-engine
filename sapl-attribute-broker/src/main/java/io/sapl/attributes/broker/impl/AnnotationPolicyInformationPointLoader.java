@@ -96,7 +96,7 @@ public class AnnotationPolicyInformationPointLoader {
             However the array is followed by some other parameters. This is prohibited. \
             The array must be the last parameter of the attribute declaration.""";
 
-    private final AttributeStreamBroker broker;
+    private final CachingAttributeStreamBroker broker;
     private final ValidatorFactory      validatorFactory;
 
     /**
@@ -106,7 +106,7 @@ public class AnnotationPolicyInformationPointLoader {
      * @param staticPipSupplier supplies libraries contained in utility classes with
      * static methods as functions
      */
-    public AnnotationPolicyInformationPointLoader(AttributeStreamBroker broker,
+    public AnnotationPolicyInformationPointLoader(CachingAttributeStreamBroker broker,
             PolicyInformationPointSupplier pipSupplier, StaticPolicyInformationPointSupplier staticPipSupplier,
             ValidatorFactory validatorFactory) {
         this.broker           = broker;
@@ -182,6 +182,7 @@ public class AnnotationPolicyInformationPointLoader {
                         isEnvironmentAttribute);
                 final var attributeFinder = createAttributeFinder(policyInformationPoint, method, specification);
                 log.debug("Found: {}", specification);
+                broker.registerAttributeFinder(specification, attributeFinder);
             }
         }
 

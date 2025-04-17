@@ -91,7 +91,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
                 DEFAULT_GRACE_PERIOD);
         final var uniquePipMatchingInvocation = searchForMatchingPip(invocation, pipsWithNameOfInvocation);
         if (null == uniquePipMatchingInvocation) {
-            attributeStream.publish(Val.error("No policy information point found for " + invocation));
+            attributeStream.publish(Val.error("No unique policy information point found for " + invocation));
         } else {
             attributeStream.connectToPolicyInformationPoint(uniquePipMatchingInvocation);
         }
@@ -110,9 +110,9 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         if (null == pipsWithNameOfInvocation) {
             return null;
         }
-        for (var apecAndPip : pipsWithNameOfInvocation) {
-            if (apecAndPip.specification().matches(invocation)) {
-                return apecAndPip.policyInformationPoint();
+        for (var specAndPip : pipsWithNameOfInvocation) {
+            if (specAndPip.specification().matches(invocation)) {
+                return specAndPip.policyInformationPoint();
             }
         }
         return null;

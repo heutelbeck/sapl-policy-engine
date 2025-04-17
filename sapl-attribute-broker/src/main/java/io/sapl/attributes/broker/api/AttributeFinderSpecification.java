@@ -39,6 +39,11 @@ public record AttributeFinderSpecification(@NonNull String fullyQualifiedAttribu
     }
 
     public boolean matches(AttributeFinderInvocation invocation) {
+        System.out.println("This: "+this);
+        System.out.println("That: "+invocation);
+        System.out.println("Name match: "+invocation.fullyQualifiedAttributeName().equals(fullyQualifiedAttributeName));
+        System.out.println("Type match: "+(null != invocation.entity() ^ isEnvironmentAttribute));
+        System.out.println("Arguments match: "+(invocation.arguments().size() == numberOfArguments || hasVariableNumberOfArguments()));
         // @formatter:off
         return    (invocation.fullyQualifiedAttributeName().equals(fullyQualifiedAttributeName))
                && (null != invocation.entity() ^ isEnvironmentAttribute)
