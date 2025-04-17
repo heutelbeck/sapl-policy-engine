@@ -45,10 +45,13 @@ import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.testutil.ParserUtil;
+import io.sapl.validation.ValidatorFactory;
 import jakarta.validation.constraints.NotNull;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -59,10 +62,13 @@ class AnnotationAttributeContextTests {
 
     @Test
     void when_classHasNoAnnotation_fail() {
-        assertThrows(InitializationException.class,
-                () -> new AnnotationAttributeContext(
-                        () -> List.of("I am an instance of a class without a @PolicyInformationPoint annotation"),
-                        List::of));
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                new ValidatorFactory(MAPPER));
+        pipLoader.loadPolicyInformationPoint(new TestPIP());
+
+        assertThrows(InitializationException.class, () -> pipLoader.loadPolicyInformationPoint(
+                "I am an instance of a class without a @PolicyInformationPoint annotation"));
     }
 
     @Test

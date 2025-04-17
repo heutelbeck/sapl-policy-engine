@@ -35,20 +35,20 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 
 class DemoDomainTests {
-    private static final ObjectMapper               MAPPER           = new ObjectMapper()
+    private static final ObjectMapper                 MAPPER           = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
-    private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
-    private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
-    private static final AnnotationFunctionContext  FUNCTION_CTX     = new AnnotationFunctionContext();
-    private static final Map<String, Val>           SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+    private static final DefaultSAPLInterpreter       INTERPRETER      = new DefaultSAPLInterpreter();
+    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER = new CachingAttributeStreamBroker();
+    private static final AnnotationFunctionContext    FUNCTION_CTX     = new AnnotationFunctionContext();
+    private static final Map<String, Val>             SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
     @BeforeEach
-    public void setUp() throws InitializationException {
+    void setUp() throws InitializationException {
         FUNCTION_CTX.loadLibrary(SimpleFunctionLibrary.class);
         FUNCTION_CTX.loadLibrary(FilterFunctionLibrary.class);
         final var systemUTC                   = Clock.systemUTC();
@@ -80,9 +80,8 @@ class DemoDomainTests {
 
         final var expectedDecision = AuthorizationDecision.NOT_APPLICABLE;
 
-        assertThat(
-                INTERPRETER.evaluate(authorizationSubscription, policy, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
-                        .blockFirst(),
-                equalTo(expectedDecision));
+        assertThat(INTERPRETER
+                .evaluate(authorizationSubscription, policy, ATTRIBUTE_BROKER, FUNCTION_CTX, SYSTEM_VARIABLES)
+                .blockFirst(), equalTo(expectedDecision));
     }
 }

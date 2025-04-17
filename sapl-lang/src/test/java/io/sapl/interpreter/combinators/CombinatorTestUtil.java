@@ -28,19 +28,19 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 @UtilityClass
 public class CombinatorTestUtil {
-    private static final DefaultSAPLInterpreter     INTERPRETER   = new DefaultSAPLInterpreter();
-    private static final AnnotationAttributeContext ATTRIBUTE_CTX = new AnnotationAttributeContext();
-    private static final AnnotationFunctionContext  FUNCTION_CTX  = new AnnotationFunctionContext();
-    private static final Map<String, Val>           VARIABLES     = new HashMap<>();
+    private static final DefaultSAPLInterpreter       INTERPRETER      = new DefaultSAPLInterpreter();
+    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER = new CachingAttributeStreamBroker();
+    private static final AnnotationFunctionContext    FUNCTION_CTX     = new AnnotationFunctionContext();
+    private static final Map<String, Val>             VARIABLES        = new HashMap<>();
 
     public static void validateDecision(AuthorizationSubscription subscription, String policySet, Decision expected) {
         final var decisions = evaluate(subscription, policySet).map(AuthorizationDecision::getDecision);
@@ -66,7 +66,7 @@ public class CombinatorTestUtil {
     }
 
     private Flux<AuthorizationDecision> evaluate(AuthorizationSubscription subscription, String policySet) {
-        return INTERPRETER.evaluate(subscription, policySet, ATTRIBUTE_CTX, FUNCTION_CTX, VARIABLES);
+        return INTERPRETER.evaluate(subscription, policySet, ATTRIBUTE_BROKER, FUNCTION_CTX, VARIABLES);
     }
 
 }

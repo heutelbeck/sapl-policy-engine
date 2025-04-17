@@ -39,23 +39,23 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import lombok.SneakyThrows;
 
 class DefaultSAPLInterpreterTransformationTests {
 
-    private static final ObjectMapper               MAPPER           = new ObjectMapper()
+    private static final ObjectMapper                 MAPPER           = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
-    private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
-    private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
-    private static final Map<String, Val>           SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+    private static final DefaultSAPLInterpreter       INTERPRETER      = new DefaultSAPLInterpreter();
+    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER = new CachingAttributeStreamBroker();
+    private static final Map<String, Val>             SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
     private AnnotationFunctionContext functionCtx;
 
     @BeforeEach
-    public void setUp() throws InitializationException {
+    void setUp() throws InitializationException {
         functionCtx = new AnnotationFunctionContext();
         functionCtx.loadLibrary(SimpleFunctionLibrary.class);
         functionCtx.loadLibrary(FilterFunctionLibrary.class);
@@ -481,8 +481,10 @@ class DefaultSAPLInterpreterTransformationTests {
     private void assertThatPolicyEvaluationReturnsExpectedDecisionFirstForSubscription(
             AuthorizationSubscription authorizationSubscription, String policy,
             AuthorizationDecision expectedDecision) {
-        assertThat(INTERPRETER.evaluate(authorizationSubscription, policy, ATTRIBUTE_CTX, functionCtx, SYSTEM_VARIABLES)
-                .blockFirst()).isEqualTo(expectedDecision);
+        assertThat(
+                INTERPRETER.evaluate(authorizationSubscription, policy, ATTRIBUTE_BROKER, functionCtx, SYSTEM_VARIABLES)
+                        .blockFirst())
+                .isEqualTo(expectedDecision);
     }
 
 }
