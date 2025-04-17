@@ -105,6 +105,7 @@ public class ImportsUtil {
 
     private static void addWildcardImports(Map<String, String> imports, String library,
             Collection<String> libraryFunctions) {
+        System.err.println("->"+libraryFunctions);
         for (var name : libraryFunctions) {
             if (imports.put(name, String.join(".", library, name)) != null)
                 throw new PolicyEvaluationException(WILDCARD_IMPORT_EXISTS_ERROR, library, name);
@@ -113,6 +114,8 @@ public class ImportsUtil {
 
     private static void addLibraryImports(Map<String, String> imports, Collection<String> libraryFunctions,
             String library, String alias) {
+        System.err.println("+>"+libraryFunctions);
+
         for (var name : libraryFunctions) {
             final var key = String.join(".", alias, name);
             if (imports.put(key, String.join(".", library, name)) != null)
