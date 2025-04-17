@@ -48,7 +48,6 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.functions.FilterFunctionLibrary;
@@ -363,18 +362,18 @@ class DefaultSAPLInterpreterTests {
 				// functionCallOnEachArrayItemWithRelativeArguments
 				Arguments.of(
 						"""
-				        import simple.* 
-				        import filter.* 
-				        policy "test" permit 
-				        where 
+				        import simple.*
+				        import filter.*
+				        policy "test" permit
+				        where
 				          [
-				            { "name": "Hans", "origin": "Hagen"}, 
+				            { "name": "Hans", "origin": "Hagen"},
 				            { "name": "Felix", "origin": "Zürich"}
-				          ] |- { 
-				                 @..name : append(" aus ", @.origin),  
+				          ] |- {
+				                 @..name : append(" aus ", @.origin),
 				                 @..origin : remove
 				               } == [
-				                      { "name": "Hans aus Hagen"}, 
+				                      { "name": "Hans aus Hagen"},
 				                      { "name": "Felix aus Zürich"}
 				                    ];
 				        """,

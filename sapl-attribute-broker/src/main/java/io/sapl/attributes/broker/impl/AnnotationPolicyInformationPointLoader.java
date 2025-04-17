@@ -97,7 +97,7 @@ public class AnnotationPolicyInformationPointLoader {
             The array must be the last parameter of the attribute declaration.""";
 
     private final CachingAttributeStreamBroker broker;
-    private final ValidatorFactory      validatorFactory;
+    private final ValidatorFactory             validatorFactory;
 
     /**
      * Initialize with context from a supplied PIPs.

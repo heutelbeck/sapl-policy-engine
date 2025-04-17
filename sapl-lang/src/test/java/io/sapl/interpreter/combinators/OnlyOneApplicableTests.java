@@ -42,12 +42,12 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalResult;
 import reactor.test.StepVerifier;
@@ -177,7 +177,7 @@ class OnlyOneApplicableTests {
                         .contextWrite(
                                 ctx -> AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext()))
                         .contextWrite(
-                                ctx -> AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext())))
+                                ctx -> AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker())))
                 .expectNext(expected).verifyComplete();
     }
 
