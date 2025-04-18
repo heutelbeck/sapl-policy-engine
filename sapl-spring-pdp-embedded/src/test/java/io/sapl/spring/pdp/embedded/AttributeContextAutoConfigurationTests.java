@@ -29,8 +29,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 
 class AttributeContextAutoConfigurationTests {
 
@@ -41,16 +40,16 @@ class AttributeContextAutoConfigurationTests {
     void whenContextLoaded_thenAFunctionContextIsPresent() {
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(AttributeContext.class);
+            assertThat(context).hasSingleBean(AttributeStreamBroker.class);
         });
     }
 
     @Test
     void whenAttributeContextIsPresent_thenDoNotLoadANewOne() {
-        contextRunner.withBean(AttributeContext.class, () -> mock(AttributeContext.class)).run(context -> {
+        contextRunner.withBean(AttributeStreamBroker.class, () -> mock(AttributeStreamBroker.class)).run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(AttributeContext.class);
-            assertThat(context).doesNotHaveBean(AnnotationAttributeContext.class);
+            assertThat(context).hasSingleBean(AttributeStreamBroker.class);
+            assertThat(context).doesNotHaveBean(AttributeStreamBroker.class);
         });
     }
 
@@ -59,8 +58,8 @@ class AttributeContextAutoConfigurationTests {
         contextRunner.withConfiguration(AutoConfigurations.of(PolicyInformationPointsAutoConfiguration.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(AttributeContext.class);
-                    assertThat(context.getBean(AttributeContext.class).isProvidedFunction("time.now")).isTrue();
+                    assertThat(context).hasSingleBean(AttributeStreamBroker.class);
+                    assertThat(context.getBean(AttributeStreamBroker.class).isProvidedFunction("time.now")).isTrue();
                 });
     }
 

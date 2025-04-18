@@ -98,13 +98,13 @@ public class SaplIntegrationTestFixture extends SaplTestFixtureTemplate {
     @Override
     public GivenStep constructTestCaseWithMocks() {
         return StepBuilder.newBuilderAtGivenStep(prpSupplier.get(), variablesAndCombinatorSourceSupplier.get(),
-                this.attributeCtx, this.functionCtx, this.variables);
+                this.attributeStreamBroker, this.functionCtx, this.variables);
     }
 
     @Override
     public WhenStep constructTestCase() {
         return StepBuilder.newBuilderAtWhenStep(prpSupplier.get(), variablesAndCombinatorSourceSupplier.get(),
-                this.attributeCtx, this.functionCtx, this.variables);
+                this.attributeStreamBroker, this.functionCtx, this.variables);
     }
 
     private PolicyRetrievalPoint constructPRP(final boolean usePolicyFolder, final String pathToPoliciesFolder,

@@ -25,10 +25,10 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
 import io.sapl.prp.PolicyRetrievalPointSource;
@@ -43,15 +43,15 @@ class FixedFunctionsAndAttributesPDPConfigurationProviderTests {
 
         final var source    = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
         final var prpSource = constructFilesystemPolicyRetrievalPointSource("src/test/resources/policies");
-        final var attrCtx   = new AnnotationAttributeContext();
+        final var broker    = new CachingAttributeStreamBroker();
         final var funcCtx   = new AnnotationFunctionContext();
-        final var provider  = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source,
+        final var provider  = new FixedFunctionsAndAttributesPDPConfigurationProvider(broker, funcCtx, source,
                 List.of(), List.of(), prpSource);
         final var config    = provider.pdpConfiguration().blockFirst();
         provider.destroy();
         assertThat(config.documentsCombinator() == PolicyDocumentCombiningAlgorithm.DENY_UNLESS_PERMIT,
                 is(Boolean.TRUE));
-        assertThat(config.attributeContext(), is(attrCtx));
+        assertThat(config.attributeStreamBroker(), is(broker));
         assertThat(config.functionContext(), is(funcCtx));
         assertThat(config.variables(), notNullValue());
     }

@@ -18,7 +18,7 @@
 package io.sapl.test.mocking.attribute;
 
 import java.time.Duration;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,17 +33,18 @@ import org.eclipse.emf.ecore.EObject;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
+import io.sapl.attributes.broker.api.AttributeFinderSpecification;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.interpreter.pip.AttributeFinderMetadata;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
 import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
 import reactor.core.publisher.Flux;
 
-public class MockingAttributeContext implements AttributeContext {
+public class MockingAttributeStreamBroker implements AttributeStreamBroker {
 
     private static final String ERROR_MOCK_INVALID_FULL_NAME = "Got invalid attribute reference containing more than one \".\" delimiter: \"%s\"";
 
@@ -57,7 +58,7 @@ public class MockingAttributeContext implements AttributeContext {
      * Holds an AttributeContext implementation to delegate evaluations if this
      * attribute is not mocked
      */
-    private final AttributeContext originalAttributeContext;
+    private final AttributeStreamBroker originalAttributeStreamBroker;
 
     /**
      * Contains a Map of all registered mocks. Key is the String of the full name of
@@ -73,17 +74,17 @@ public class MockingAttributeContext implements AttributeContext {
      * @param originalAttributeContext original "normal" AttributeContext do
      * delegate original attribute calls
      */
-    public MockingAttributeContext(AttributeContext originalAttributeContext) {
-        this.originalAttributeContext = originalAttributeContext;
-        this.registeredMocks          = new HashMap<>();
-        this.pipDocumentations        = new HashMap<>();
+    public MockingAttributeStreamBroker(AttributeStreamBroker originalAttributeContext) {
+        this.originalAttributeStreamBroker = originalAttributeContext;
+        this.registeredMocks               = new HashMap<>();
+        this.pipDocumentations             = new HashMap<>();
     }
 
     @Override
-    public Boolean isProvidedFunction(String function) {
+    public boolean isProvidedFunction(String function) {
         if (this.registeredMocks.containsKey(function)) {
             return Boolean.TRUE;
-        } else if (Boolean.TRUE.equals(originalAttributeContext.isProvidedFunction(function))) {
+        } else if (Boolean.TRUE.equals(originalAttributeStreamBroker.isProvidedFunction(function))) {
             return Boolean.TRUE;
         } else {
             return Boolean.FALSE;
@@ -91,7 +92,7 @@ public class MockingAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Collection<String> providedFunctionsOfLibrary(String pipName) {
+    public List<String> providedFunctionsOfLibrary(String pipName) {
         Set<String> set = new HashSet<>();
 
         for (String fullName : this.registeredMocks.keySet()) {
@@ -100,9 +101,15 @@ public class MockingAttributeContext implements AttributeContext {
                 set.add(split[1]);
         }
 
-        set.addAll(this.originalAttributeContext.providedFunctionsOfLibrary(pipName));
+        set.addAll(this.originalAttributeStreamBroker.providedFunctionsOfLibrary(pipName));
 
         return set;
+    }
+
+    @Override
+    public Flux<Val> attributeStream(AttributeFinderInvocation invocation) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     @Override
@@ -118,7 +125,8 @@ public class MockingAttributeContext implements AttributeContext {
             }
             return mock.evaluate(attribute, value, variables, args);
         } else {
-            return this.originalAttributeContext.evaluateAttribute(location, attribute, value, arguments, variables);
+            return this.originalAttributeStreamBroker.evaluateAttribute(location, attribute, value, arguments,
+                    variables);
         }
     }
 
@@ -135,16 +143,16 @@ public class MockingAttributeContext implements AttributeContext {
             }
             return mock.evaluate(attribute, Val.UNDEFINED, variables, args);
         } else {
-            return this.originalAttributeContext.evaluateEnvironmentAttribute(location, attribute, arguments,
+            return this.originalAttributeStreamBroker.evaluateEnvironmentAttribute(location, attribute, arguments,
                     variables);
         }
     }
 
     @Override
-    public Collection<PolicyInformationPointDocumentation> getDocumentation() {
-        Collection<PolicyInformationPointDocumentation> doc = new LinkedList<>(this.pipDocumentations.values());
-        doc.addAll(this.originalAttributeContext.getDocumentation());
-        return Collections.unmodifiableCollection(doc);
+    public List<PolicyInformationPointDocumentation> getDocumentation() {
+        List<PolicyInformationPointDocumentation> doc = new LinkedList<>(this.pipDocumentations.values());
+        doc.addAll(this.originalAttributeStreamBroker.getDocumentation());
+        return Collections.unmodifiableList(doc);
     }
 
     public void markAttributeMock(String fullName) {
@@ -253,12 +261,12 @@ public class MockingAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Collection<String> getAvailableLibraries() {
-        return registeredMocks.keySet();
+    public List<String> getAvailableLibraries() {
+        return new ArrayList<>(registeredMocks.keySet());
     }
 
     @Override
-    public Collection<String> getAllFullyQualifiedFunctions() {
+    public List<String> getAllFullyQualifiedFunctions() {
         return List.of();
     }
 
@@ -283,7 +291,7 @@ public class MockingAttributeContext implements AttributeContext {
     }
 
     @Override
-    public Collection<AttributeFinderMetadata> getAttributeMetatata() {
+    public List<AttributeFinderSpecification> getAttributeMetatata() {
         return List.of();
     }
 

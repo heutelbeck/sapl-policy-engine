@@ -27,9 +27,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 
 class DocumentationAutoConfigurationTests {
@@ -40,7 +40,7 @@ class DocumentationAutoConfigurationTests {
     @Test
     void whenContextLoaded_thenDocumentationBeansArePresent() {
 
-        final var mockAttributeContext = mock(AttributeContext.class);
+        final var mockAttributeContext = mock(AttributeStreamBroker.class);
         final var mockPipDoc           = new PolicyInformationPointDocumentation("PIP name", "PIP description",
                 "PIP documentation");
         when(mockAttributeContext.getDocumentation()).thenReturn(List.of(mockPipDoc));
@@ -50,7 +50,7 @@ class DocumentationAutoConfigurationTests {
                 "Library documentation");
         when(functionContext.getDocumentation()).thenReturn(List.of(mockFunDoc));
 
-        contextRunner.withBean(AttributeContext.class, () -> mockAttributeContext)
+        contextRunner.withBean(AttributeStreamBroker.class, () -> mockAttributeContext)
                 .withBean(FunctionContext.class, () -> functionContext).run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(PolicyInformationPointsDocumentation.class);

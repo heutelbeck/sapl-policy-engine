@@ -171,13 +171,11 @@ class OnlyOneApplicableTests {
     }
 
     private void verifyDocumentsCombinator(PolicyRetrievalResult given, AuthorizationDecision expected) {
-        StepVerifier
-                .create(OnlyOneApplicable.onlyOneApplicable(given.getMatchingDocuments())
-                        .map(CombinedDecision::getAuthorizationDecision)
-                        .contextWrite(
-                                ctx -> AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext()))
-                        .contextWrite(
-                                ctx -> AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker())))
+        StepVerifier.create(OnlyOneApplicable.onlyOneApplicable(given.getMatchingDocuments())
+                .map(CombinedDecision::getAuthorizationDecision)
+                .contextWrite(ctx -> AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext()))
+                .contextWrite(
+                        ctx -> AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker())))
                 .expectNext(expected).verifyComplete();
     }
 

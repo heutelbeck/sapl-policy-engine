@@ -43,7 +43,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.attributes.broker.impl.NaiveAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -54,7 +54,7 @@ class FilterFunctionLibraryTests {
     private static final ObjectMapper               MAPPER           = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
     private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
-    private static final NaiveAttributeStreamBroker ATTRIBUTE_BROKER = new NaiveAttributeStreamBroker();
+    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER = new CachingAttributeStreamBroker();
     private static final Map<String, Val>           SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
     private AnnotationFunctionContext functionCtx;

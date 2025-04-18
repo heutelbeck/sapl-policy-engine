@@ -18,6 +18,10 @@
 package io.sapl.attributes.broker.api;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import reactor.core.publisher.Flux;
@@ -26,8 +30,24 @@ public interface AttributeStreamBroker {
 
     Flux<Val> attributeStream(AttributeFinderInvocation invocation);
 
-    Collection<String> providedFunctionsOfLibrary(String library);
+    List<String> providedFunctionsOfLibrary(String library);
 
     boolean isProvidedFunction(String fullyQualifiedFunctionName);
+
+    List<String> getAllFullyQualifiedFunctions();
+
+    Map<String, JsonNode> getAttributeSchemas();
+
+    List<AttributeFinderSpecification> getAttributeMetatata();
+
+    List<String> getAvailableLibraries();
+
+    List<String> getEnvironmentAttributeCodeTemplates();
+
+    List<String> getAttributeCodeTemplates();
+
+    Map<String, String> getDocumentedAttributeCodeTemplates();
+
+    Collection<LibraryDocumentation> getDocumentation();
 
 }

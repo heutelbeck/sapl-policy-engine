@@ -139,11 +139,10 @@ public class ExpressionSchemaResolver {
 
     private List<JsonNode> inferPotentialSchemasFromAttributeFinder(Iterable<String> idSteps,
             ContentAssistContext context, PDPConfiguration pdpConfiguration) {
-        final var attributeContext = pdpConfiguration.attributeContext();
-        final var nameInUse        = joinStepsToName(idSteps);
-        final var resolvedName     = resolveImport(nameInUse, context,
-                attributeContext.getAllFullyQualifiedFunctions());
-        return lookupSchemasByName(resolvedName, attributeContext.getAttributeSchemas());
+        final var broker       = pdpConfiguration.attributeStreamBroker();
+        final var nameInUse    = joinStepsToName(idSteps);
+        final var resolvedName = resolveImport(nameInUse, context, broker.getAllFullyQualifiedFunctions());
+        return lookupSchemasByName(resolvedName, broker.getAttributeSchemas());
     }
 
     private List<JsonNode> inferPotentialSchemasFromFunction(Iterable<String> idSteps, ContentAssistContext context,

@@ -27,8 +27,8 @@ import org.springframework.context.annotation.Role;
 
 import io.sapl.api.pdp.AuthorizationSubscriptionInterceptor;
 import io.sapl.api.pdp.TracedDecisionInterceptor;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
@@ -41,7 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PDPConfigurationProviderAutoConfiguration {
 
-    private final AttributeContext                           attributeCtx;
+    private final AttributeStreamBroker                      attributeStreamBroker;
     private final FunctionContext                            functionCtx;
     private final VariablesAndCombinatorSource               combinatorProvider;
     private final List<AuthorizationSubscriptionInterceptor> subscriptionInterceptors;
@@ -54,9 +54,9 @@ public class PDPConfigurationProviderAutoConfiguration {
     PDPConfigurationProvider pdpConfigurationProvider() {
         log.debug(
                 "Deploying PDP configuration provider with AttributeContext: {} FunctionContext: {} VariablesAndCombinatorSource: {} #SubscriptionIntercptors: {} #DecisionInterceptors: {}",
-                attributeCtx.getClass().getSimpleName(), functionCtx.getClass().getSimpleName(), combinatorProvider,
+                attributeStreamBroker.getClass().getSimpleName(), functionCtx.getClass().getSimpleName(), combinatorProvider,
                 subscriptionInterceptors.size(), decisionInterceptors.size());
-        return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider,
+        return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeStreamBroker, functionCtx, combinatorProvider,
                 subscriptionInterceptors, decisionInterceptors, policyRetrievalPointSource);
     }
 

@@ -15,29 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter.pip;
+package io.sapl.attributes.broker.api;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
-import org.eclipse.emf.ecore.EObject;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.Arguments;
+import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import reactor.core.publisher.Flux;
 
-public interface AttributeContext extends LibraryFunctionProvider {
+public interface AttributeStreamBroker {
 
-    Flux<Val> evaluateAttribute(EObject location, String attributeName, Val leftHandValue, Arguments arguments,
-            Map<String, Val> variables);
+    Flux<Val> attributeStream(AttributeFinderInvocation invocation);
 
-    Flux<Val> evaluateEnvironmentAttribute(EObject location, String attributeName, Arguments arguments,
-            Map<String, Val> variables);
+    List<String> providedFunctionsOfLibrary(String library);
 
-    Collection<PolicyInformationPointDocumentation> getDocumentation();
+    boolean isProvidedFunction(String fullyQualifiedFunctionName);
+
+    List<String> getAllFullyQualifiedFunctions();
+
+    Map<String, JsonNode> getAttributeSchemas();
+
+    List<AttributeFinderSpecification> getAttributeMetatata();
+
+    List<String> getAvailableLibraries();
 
     List<String> getEnvironmentAttributeCodeTemplates();
 
@@ -45,8 +48,6 @@ public interface AttributeContext extends LibraryFunctionProvider {
 
     Map<String, String> getDocumentedAttributeCodeTemplates();
 
-    Map<String, JsonNode> getAttributeSchemas();
-
-    Collection<AttributeFinderMetadata> getAttributeMetatata();
+    List<PolicyInformationPointDocumentation> getDocumentation();
 
 }

@@ -44,10 +44,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.test.SaplTestException;
@@ -72,8 +72,8 @@ class ClasspathPolicyRetrievalPointTests {
         final var prp               = new ClasspathPolicyRetrievalPoint(Paths.get("policiesIT"), this.interpreter);
         final var authzSubscription = AuthorizationSubscription.of("WILLI", "access", "foo", "");
         final var prpResult         = prp.retrievePolicies().contextWrite(ctx -> {
-                                        ctx = AuthorizationContext.setAttributeContext(ctx,
-                                                new AnnotationAttributeContext());
+                                        ctx = AuthorizationContext.setAttributeStreamBroker(ctx,
+                                                new CachingAttributeStreamBroker());
                                         ctx = AuthorizationContext.setFunctionContext(ctx,
                                                 new AnnotationFunctionContext());
                                         ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
@@ -121,7 +121,7 @@ class ClasspathPolicyRetrievalPointTests {
         final var prp = new ClasspathPolicyRetrievalPoint(Paths.get(path), this.interpreter);
 
         final var result = prp.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
             return AuthorizationContext.setSubscriptionVariables(ctx, EMPTY_SUBSCRIPTION);
@@ -139,8 +139,8 @@ class ClasspathPolicyRetrievalPointTests {
 
         final var authzSubscription1 = AuthorizationSubscription.of(null, "read", null);
         final var result1            = prp.retrievePolicies().contextWrite(ctx -> {
-                                         ctx = AuthorizationContext.setAttributeContext(ctx,
-                                                 new AnnotationAttributeContext());
+                                         ctx = AuthorizationContext.setAttributeStreamBroker(ctx,
+                                                 new CachingAttributeStreamBroker());
                                          ctx = AuthorizationContext.setFunctionContext(ctx,
                                                  new AnnotationFunctionContext());
                                          ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
@@ -158,7 +158,7 @@ class ClasspathPolicyRetrievalPointTests {
         final var authzSubscription2 = AuthorizationSubscription.of("Willi", "eat", "ice cream");
 
         final var result2 = prp.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription2);
@@ -179,7 +179,7 @@ class ClasspathPolicyRetrievalPointTests {
         final var authzSubscription = AuthorizationSubscription.of("WILLI", "access", "foo", "");
 
         final var result = prp.retrievePolicies().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
             return AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
@@ -194,7 +194,7 @@ class ClasspathPolicyRetrievalPointTests {
         private PolicyRetrievalResult getResultFromPRP(final PolicyRetrievalPoint policyRetrievalPoint,
                 final AuthorizationSubscription authorizationSubscription) {
             return policyRetrievalPoint.retrievePolicies().contextWrite(ctx -> {
-                ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+                ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
                 ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
                 ctx = AuthorizationContext.setVariables(ctx, Collections.emptyMap());
                 return AuthorizationContext.setSubscriptionVariables(ctx, authorizationSubscription);

@@ -23,14 +23,14 @@ import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalPointSource;
-import io.sapl.test.mocking.attribute.MockingAttributeContext;
+import io.sapl.test.mocking.attribute.MockingAttributeStreamBroker;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.steps.AttributeMockReturnValues;
 import io.sapl.test.steps.GivenStep;
@@ -47,8 +47,8 @@ public class StepBuilder {
      * @return {@link GivenStep} to start constructing the test case.
      */
     static GivenStep newBuilderAtGivenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
-            AttributeContext attrCtx, FunctionContext funcCtx, Map<String, Val> variables) {
-        return new Steps(prp, pdpConfig, attrCtx, funcCtx, variables);
+            AttributeStreamBroker attributeStreamBroker, FunctionContext funcCtx, Map<String, Val> variables) {
+        return new Steps(prp, pdpConfig, attributeStreamBroker, funcCtx, variables);
     }
 
     /**
@@ -57,8 +57,8 @@ public class StepBuilder {
      * @return {@link WhenStep} to start constructing the test case.
      */
     static WhenStep newBuilderAtWhenStep(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
-            AttributeContext attrCtx, FunctionContext funcCtx, Map<String, Val> variables) {
-        return new Steps(prp, pdpConfig, attrCtx, funcCtx, variables);
+            AttributeStreamBroker attributeStreamBroker, FunctionContext funcCtx, Map<String, Val> variables) {
+        return new Steps(prp, pdpConfig, attributeStreamBroker, funcCtx, variables);
     }
 
     // disable default constructor
@@ -75,12 +75,12 @@ public class StepBuilder {
 
         private final VariablesAndCombinatorSource pdpConfig;
 
-        Steps(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig, AttributeContext attrCtx,
+        Steps(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig, AttributeStreamBroker attributeStreamBroker,
                 FunctionContext funcCtx, Map<String, Val> variables) {
             this.prp                     = prp;
             this.pdpConfig               = pdpConfig;
             this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
-            this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
+            this.mockingAttributeStreamBroker = new MockingAttributeStreamBroker(attributeStreamBroker);
             this.variables               = variables;
             this.mockedAttributeValues   = new LinkedList<>();
         }
@@ -100,7 +100,7 @@ public class StepBuilder {
                                                 }
                                             };
             final var configurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(
-                    this.mockingAttributeContext, this.mockingFunctionContext, this.pdpConfig, List.of(), List.of(),
+                    this.mockingAttributeStreamBroker, this.mockingFunctionContext, this.pdpConfig, List.of(), List.of(),
                     prpSource);
             final var pdp                   = new EmbeddedPolicyDecisionPoint(configurationProvider);
 
@@ -113,7 +113,7 @@ public class StepBuilder {
             for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
                 final var fullName = mock.getFullName();
                 for (Val val : mock.getMockReturnValues()) {
-                    this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullName, val));
+                    this.steps = this.steps.then(() -> this.mockingAttributeStreamBroker.mockEmit(fullName, val));
                 }
             }
         }

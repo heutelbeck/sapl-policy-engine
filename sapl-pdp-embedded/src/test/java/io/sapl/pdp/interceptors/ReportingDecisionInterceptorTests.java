@@ -30,11 +30,12 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
@@ -42,6 +43,7 @@ import io.sapl.prp.Document;
 import io.sapl.prp.DocumentMatch;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
+import io.sapl.validation.ValidatorFactory;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
@@ -95,9 +97,13 @@ class ReportingDecisionInterceptorTests {
         @Override
         @SneakyThrows
         public Flux<PDPConfiguration> pdpConfiguration() {
-            final var dInterceptor = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true, true);
-            return Flux.just(new PDPConfiguration("testConfiguration",
-                    new AnnotationAttributeContext(List::of, () -> List.of(ReportingTestPIP.class)),
+            final var dInterceptor          = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true,
+                    true);
+            final var attributeStreamBroker = new CachingAttributeStreamBroker();
+            final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                    new ValidatorFactory(new ObjectMapper()));
+            loader.loadPolicyInformationPoint(ReportingTestPIP.class);
+            return Flux.just(new PDPConfiguration("testConfiguration", attributeStreamBroker,
                     new AnnotationFunctionContext(), Map.of(), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES,
                     dInterceptor, x -> x, new TestingPolicyRetrievalPoint()));
         }
