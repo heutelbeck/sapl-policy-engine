@@ -31,6 +31,10 @@ import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 import org.eclipse.xtext.ui.editor.contentassist.IContentProposalProvider;
 import org.eclipse.xtext.ui.editor.contentassist.UiToIdeContentProposalProvider;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
@@ -39,13 +43,13 @@ import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pip.time.TimePolicyInformationPoint;
 import io.sapl.prp.Document;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalResult;
+import io.sapl.validation.ValidatorFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -68,8 +72,10 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
     }
 
     public PDPConfigurationProvider bindPDPConfigurationProvider() throws InitializationException {
-        var attributeContext = new AnnotationAttributeContext();
-        attributeContext.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                new ValidatorFactory(new ObjectMapper()));
+        loader.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
 
         var functionContext = new AnnotationFunctionContext();
         functionContext.loadLibrary(FilterFunctionLibrary.class);
@@ -96,7 +102,7 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
 
         };
 
-        var pdpConfiguration = new PDPConfiguration("editorConfig", attributeContext, functionContext, Map.of(),
+        var pdpConfiguration = new PDPConfiguration("editorConfig", attributeStreamBroker, functionContext, Map.of(),
                 PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, UnaryOperator.identity(), UnaryOperator.identity(),
                 dummyPrp);
         return () -> Flux.just(pdpConfiguration);

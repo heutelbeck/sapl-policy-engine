@@ -40,4 +40,5 @@ public record PDPConfiguration(@NonNull String configurationId, @NonNull Attribu
         return policyRetrievalPoint != null && variables != null && documentsCombinator != null
                 && policyRetrievalPoint.isConsistent();
     }
+
 }

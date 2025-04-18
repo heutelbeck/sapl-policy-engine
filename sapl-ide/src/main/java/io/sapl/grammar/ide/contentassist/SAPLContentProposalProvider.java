@@ -328,7 +328,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
      */
     private void createImportProposals(ContextAnalysisResult analysis, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        final var attributeContext = pdpConfiguration.attributeContext();
+        final var attributeContext = pdpConfiguration.attributeStreamBroker();
         final var proposals        = new ArrayList<>(attributeContext.getAllFullyQualifiedFunctions());
         proposals.addAll(attributeContext.getAvailableLibraries());
         final var functionContext = pdpConfiguration.functionContext();

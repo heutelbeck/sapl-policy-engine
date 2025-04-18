@@ -19,11 +19,12 @@ package io.sapl.attributes.broker.impl;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeBrokerException;
@@ -201,15 +202,57 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     }
 
     @Override
-    public Collection<String> providedFunctionsOfLibrary(String library) {
+    public List<String> providedFunctionsOfLibrary(String library) {
         // TODO Auto-generated method stub
-        return null;
+        return List.of();
     }
 
     @Override
     public boolean isProvidedFunction(String fullyQualifiedFunctionName) {
         // TODO Auto-generated method stub
         return false;
+    }
+
+    @Override
+    public List<String> getAllFullyQualifiedFunctions() {
+        // TODO Auto-generated method stub
+        return List.of();
+    }
+
+    @Override
+    public Map<String, JsonNode> getAttributeSchemas() {
+        // TODO Auto-generated method stub
+        return Map.of();
+    }
+
+    @Override
+    public List<AttributeFinderSpecification> getAttributeMetatata() {
+        // TODO Auto-generated method stub
+        return List.of();
+    }
+
+    @Override
+    public List<String> getAvailableLibraries() {
+        // TODO Auto-generated method stub
+        return List.of();
+    }
+
+    @Override
+    public List<String> getEnvironmentAttributeCodeTemplates() {
+        // TODO Auto-generated method stub
+        return List.of();
+    }
+
+    @Override
+    public List<String> getAttributeCodeTemplates() {
+        // TODO Auto-generated method stub
+        return List.of();
+    }
+
+    @Override
+    public Map<String, String> getDocumentedAttributeCodeTemplates() {
+        // TODO Auto-generated method stub
+        return Map.of();
     }
 
 }

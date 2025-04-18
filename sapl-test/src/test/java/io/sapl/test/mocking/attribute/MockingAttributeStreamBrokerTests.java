@@ -38,25 +38,25 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-class MockingAttributeContextTests {
+class MockingAttributeStreamBrokerTests {
 
-    private AttributeContext        unmockedCtx;
-    private MockingAttributeContext attrCtx;
-    private HashMap<String, Val>    variables;
+    private AttributeStreamBroker        unmockedCtx;
+    private MockingAttributeStreamBroker attrCtx;
+    private HashMap<String, Val>         variables;
 
     @BeforeEach
     void setup() {
-        this.unmockedCtx = Mockito.mock(AnnotationAttributeContext.class);
-        this.attrCtx     = new MockingAttributeContext(unmockedCtx);
+        this.unmockedCtx = Mockito.mock(AttributeStreamBroker.class);
+        this.attrCtx     = new MockingAttributeStreamBroker(unmockedCtx);
         this.variables   = new HashMap<>();
     }
 
@@ -283,8 +283,8 @@ class MockingAttributeContextTests {
 
     @Test
     void test_mockEmit_UnmockedAttribute() {
-        final var anUnmockedCtx = new AnnotationAttributeContext();
-        final var ctx           = new MockingAttributeContext(anUnmockedCtx);
+        final var anUnmockedCtx = new CachingAttributeStreamBroker();
+        final var ctx           = new MockingAttributeStreamBroker(anUnmockedCtx);
         final var valOne        = Val.of(1);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.mockEmit("foo.bar", valOne));
     }

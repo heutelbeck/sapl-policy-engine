@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.attributes.broker.impl.NaiveAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
@@ -44,12 +44,12 @@ class EnforcedSchemaTests {
     private static final ObjectMapper           MAPPER      = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
     private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-    private static NaiveAttributeStreamBroker   attributeStreamBroker;
+    private static CachingAttributeStreamBroker attributeStreamBroker;
     private static AnnotationFunctionContext    functionContext;
 
     @BeforeAll
     static void beforeAll() throws InitializationException {
-        attributeStreamBroker = new NaiveAttributeStreamBroker();
+        attributeStreamBroker = new CachingAttributeStreamBroker();
         functionContext       = new AnnotationFunctionContext();
         functionContext.loadLibrary(SimpleFunctionLibrary.class);
         functionContext.loadLibrary(SchemaValidationLibrary.class);

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter.pip;
+package io.sapl.attributes.broker.impl;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.CoreMatchers.is;
@@ -41,13 +41,11 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
-import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.validation.Bool;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
-import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
-import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.interpreter.InitializationException;
+import io.sapl.attributes.broker.api.AttributeBrokerException;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.testutil.ParserUtil;
@@ -57,17 +55,15 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
-class AnnotationAttributeContextTests {
+class LegacyAnnotationPolicyInformationPointLoaderTests {
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     void when_classHasNoAnnotation_fail() {
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
-        final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
-                new ValidatorFactory(MAPPER));
+        final var pipLoader = newPipLoader();
         pipLoader.loadPolicyInformationPoint(new TestPIP());
-
-        assertThrows(InitializationException.class, () -> pipLoader.loadPolicyInformationPoint(
+        assertThrows(AttributeBrokerException.class, () -> pipLoader.loadPolicyInformationPoint(
                 "I am an instance of a class without a @PolicyInformationPoint annotation"));
     }
 
@@ -78,9 +74,8 @@ class AnnotationAttributeContextTests {
 
         }
         final var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
-        assertThrows(InitializationException.class,
-                () -> new AnnotationAttributeContext(List::of, () -> List.of(PIP.class)));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
+        assertLoadingPipThrowsAttributeBrokerException(PIP.class);
     }
 
     @Test
@@ -95,10 +90,12 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip = new PIP();
-        assertThatThrownBy(() -> new AnnotationAttributeContext(() -> List.of(pip, pip), List::of))
-                .isInstanceOf(InitializationException.class).hasMessage(String.format(
-                        AnnotationAttributeContext.A_PIP_WITH_THE_NAME_S_HAS_ALREADY_BEEN_REGISTERED_ERROR, "somePip"));
+        final var pip       = new PIP();
+        final var pipLoader = newPipLoader();
+        pipLoader.loadPolicyInformationPoint(pip);
+        assertThatThrownBy(() -> pipLoader.loadPolicyInformationPoint(pip)).isInstanceOf(AttributeBrokerException.class)
+                .hasMessage(String.format(
+                        AnnotationPolicyInformationPointLoader.A_PIP_WITH_NAME_S_ALREADY_REGISTERED_ERROR, "somePip"));
     }
 
     @Test
@@ -112,9 +109,7 @@ class AnnotationAttributeContextTests {
             }
 
         }
-
-        assertThrows(InitializationException.class,
-                () -> new AnnotationAttributeContext(List::of, () -> List.of(PIP.class)));
+        assertLoadingPipThrowsAttributeBrokerException(PIP.class);
     }
 
     @Test
@@ -128,9 +123,8 @@ class AnnotationAttributeContextTests {
             }
 
         }
-
         final var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
@@ -144,9 +138,8 @@ class AnnotationAttributeContextTests {
             }
 
         }
-
         final var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
@@ -160,9 +153,8 @@ class AnnotationAttributeContextTests {
             }
 
         }
-
         final var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
@@ -177,20 +169,22 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertDoesNotThrow(() -> ctx.loadPolicyInformationPoint(pip));
-        assertThat(ctx.getAvailableLibraries().contains("PIP"), is(true));
-        assertThat(ctx.providedFunctionsOfLibrary("PIP").contains("x"), is(true));
-        assertThat(ctx.isProvidedFunction("PIP.x"), is(Boolean.TRUE));
-        assertThat(new ArrayList<>(ctx.getDocumentation()).get(0).getName(), is("PIP"));
+        final var pip                   = new PIP();
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                new ValidatorFactory(new ObjectMapper()));
+        assertDoesNotThrow(() -> pipLoader.loadPolicyInformationPoint(pip));
+        assertThat(attributeStreamBroker.getAvailableLibraries().contains("PIP"), is(true));
+        assertThat(attributeStreamBroker.providedFunctionsOfLibrary("PIP").contains("x"), is(true));
+        assertThat(attributeStreamBroker.isProvidedFunction("PIP.x"), is(Boolean.TRUE));
+        assertThat(new ArrayList<>(attributeStreamBroker.getDocumentation()).get(0).getName(), is("PIP"));
     }
 
     @Test
     void when_noPip_providedIsEmpty() {
-        final var ctx = new AnnotationAttributeContext();
-        assertThat(ctx.providedFunctionsOfLibrary("PIP").isEmpty(), is(true));
-        assertThat(ctx.getDocumentation().isEmpty(), is(true));
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        assertThat(attributeStreamBroker.providedFunctionsOfLibrary("PIP").isEmpty(), is(true));
+        assertThat(attributeStreamBroker.getDocumentation().isEmpty(), is(true));
     }
 
     @Test
@@ -204,11 +198,9 @@ class AnnotationAttributeContextTests {
             }
 
         }
-
         final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertDoesNotThrow(() -> ctx.loadPolicyInformationPoint(pip));
-        assertDoesNotThrow(() -> new AnnotationAttributeContext(List::of, () -> List.of(PIP.class)));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
+        assertLoadingPipThrowsAttributeBrokerException(PIP.class);
     }
 
     @Test
@@ -222,9 +214,7 @@ class AnnotationAttributeContextTests {
             }
 
         }
-
-        assertThatThrownBy(() -> new AnnotationAttributeContext(List::of, () -> List.of(PIP.class)))
-                .isInstanceOf(InitializationException.class);
+        assertLoadingPipThrowsAttributeBrokerException(PIP.class);
     }
 
     @Test
@@ -238,9 +228,8 @@ class AnnotationAttributeContextTests {
             }
 
         }
-
         final var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
@@ -254,9 +243,8 @@ class AnnotationAttributeContextTests {
             }
 
         }
-
         final var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
 
         @PolicyInformationPoint
         class PIP2 {
@@ -269,8 +257,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip2 = new PIP2();
-        assertThrows(InitializationException.class,
-                () -> new AnnotationAttributeContext(() -> List.of(pip2), List::of));
+        assertLoadingPipThrowsAttributeBrokerException(pip2);
 
         @PolicyInformationPoint
         class PIP3 {
@@ -283,8 +270,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip3 = new PIP3();
-        assertThrows(InitializationException.class,
-                () -> new AnnotationAttributeContext(() -> List.of(pip3), List::of));
+        assertLoadingPipThrowsAttributeBrokerException(pip3);
 
     }
 
@@ -301,8 +287,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertDoesNotThrow(() -> ctx.loadPolicyInformationPoint(pip));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
@@ -318,10 +303,8 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-
-        assertThatThrownBy(() -> new AnnotationAttributeContext(() -> List.of(pip), List::of))
-                .isInstanceOf(InitializationException.class).hasMessage(
-                        String.format(AnnotationAttributeContext.FIRST_PARAMETER_S_UNEXPECTED_S_ERROR, "x", "Object"));
+        assertLoadingPipThrowsAttributeBrokerException(pip, String.format(
+                AnnotationPolicyInformationPointLoader.FIRST_PARAMETER_S_UNEXPECTED_TYPE_S_ERROR, "x", "Object"));
     }
 
     @Test
@@ -338,9 +321,8 @@ class AnnotationAttributeContextTests {
 
         final var pip = new PIP();
 
-        assertThatThrownBy(() -> new AnnotationAttributeContext(() -> List.of(pip), List::of))
-                .isInstanceOf(InitializationException.class)
-                .hasMessage(String.format(AnnotationAttributeContext.FIRST_PARAMETER_NOT_PRESENT_S_ERROR, "x"));
+        assertLoadingPipThrowsAttributeBrokerException(pip,
+                String.format(AnnotationPolicyInformationPointLoader.FIRST_PARAMETER_NOT_PRESENT_S_ERROR, "x"));
     }
 
     @Test
@@ -356,7 +338,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(() -> List.of(pip), List::of));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
@@ -372,8 +354,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertDoesNotThrow(() -> ctx.loadPolicyInformationPoint(pip));
+        assertLoadingPipDoesNotThrow(pip);
     }
 
     @Test
@@ -389,8 +370,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertDoesNotThrow(() -> ctx.loadPolicyInformationPoint(pip));
+        assertLoadingPipDoesNotThrow(pip);
     }
 
     @Test
@@ -406,8 +386,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertThrows(InitializationException.class, () -> ctx.loadPolicyInformationPoint(pip));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
@@ -423,8 +402,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertThrows(InitializationException.class, () -> ctx.loadPolicyInformationPoint(pip));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
@@ -445,8 +423,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertDoesNotThrow(() -> ctx.loadPolicyInformationPoint(pip));
+        assertLoadingPipDoesNotThrow(pip);
     }
 
     @Test
@@ -467,8 +444,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertDoesNotThrow(() -> ctx.loadPolicyInformationPoint(pip));
+        assertLoadingPipDoesNotThrow(pip);
     }
 
     @Test
@@ -489,8 +465,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertDoesNotThrow(() -> ctx.loadPolicyInformationPoint(pip));
+        assertLoadingPipDoesNotThrow(pip);
     }
 
     @Test
@@ -511,8 +486,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertThrows(InitializationException.class, () -> ctx.loadPolicyInformationPoint(pip));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
@@ -533,21 +507,20 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        final var ctx = new AnnotationAttributeContext();
-        assertThrows(InitializationException.class, () -> ctx.loadPolicyInformationPoint(pip));
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
     void when_evaluateUnknownAttribute_fails() throws IOException {
-        final var attributeCtx = new AnnotationAttributeContext();
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var broker     = new CachingAttributeStreamBroker();
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
     }
 
     @Test
-    void when_varArgsWithVariablesEnvironmentAttribute_evaluates() throws InitializationException, IOException {
+    void when_varArgsWithVariablesEnvironmentAttribute_evaluates() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -558,16 +531,16 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of("param2")).verifyComplete();
     }
 
     @Test
-    void when_varArgsWithVariablesAttribute_evaluates() throws InitializationException, IOException {
+    void when_varArgsWithVariablesAttribute_evaluates() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -578,16 +551,16 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of("param2")).verifyComplete();
     }
 
     @Test
-    void when_varArgsWithVariablesAndTwoAttributes_evaluates() throws InitializationException, IOException {
+    void when_varArgsWithVariablesAndTwoAttributes_evaluates() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -598,16 +571,16 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of("param2")).verifyComplete();
     }
 
     @Test
-    void when_varArgsWithVariablesAndVarArgsAndNoArguments_evaluates() throws InitializationException, IOException {
+    void when_varArgsWithVariablesAndVarArgsAndNoArguments_evaluates() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -618,16 +591,16 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("\"\".<test.attribute>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("\"\".<test.attribute>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of("")).verifyComplete();
     }
 
     @Test
-    void when_varArgsWithoutVariablesAndVarArgsAndNoArguments_evaluates() throws InitializationException, IOException {
+    void when_varArgsWithoutVariablesAndVarArgsAndNoArguments_evaluates() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -637,16 +610,16 @@ class AnnotationAttributeContextTests {
             }
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("\"\".<test.attribute(\"A\",\"B\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("\"\".<test.attribute(\"A\",\"B\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of("")).verifyComplete();
     }
 
     @Test
-    void when_varArgsNoVariablesEnvironmentAttribute_evaluates() throws InitializationException, IOException {
+    void when_varArgsNoVariablesEnvironmentAttribute_evaluates() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -657,16 +630,16 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of("param2")).verifyComplete();
     }
 
     @Test
-    void when_varsAndParamEnvironmentAttribute_evaluates() throws InitializationException, IOException {
+    void when_varsAndParamEnvironmentAttribute_evaluates() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -677,17 +650,17 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("<test.envAttribute(\"param1\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("<test.envAttribute(\"param1\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of("param1")).verifyComplete();
     }
 
     @Test
     void when_varArgsAndTwoParamEnvironmentAttribute_evaluatesExactParameterMatch()
-            throws InitializationException, IOException {
+            throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -703,17 +676,17 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of("param1")).verifyComplete();
     }
 
     @Test
     void when_varArgsEnvironmentAttribute_calledWithNoParams_evaluatesVarArgsWithEmptyParamArray()
-            throws InitializationException, IOException {
+            throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -724,16 +697,16 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("<test.envAttribute>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("<test.envAttribute>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of(0)).verifyComplete();
     }
 
     @Test
-    void when_noArgsEnvironmentAttribute_called_evaluates() throws InitializationException, IOException {
+    void when_noArgsEnvironmentAttribute_called_evaluates() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -744,16 +717,17 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("<test.envAttribute>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("<test.envAttribute>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of("OK")).verifyComplete();
     }
 
     @Test
-    void when_noArgsEnvironmentAttribute_calledAndFails_evaluatesToError() throws InitializationException, IOException {
+    void when_noArgsEnvironmentAttribute_calledAndFails_evaluatesToError()
+            throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -764,16 +738,16 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("<test.envAttribute>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("<test.envAttribute>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(valErrorText("INTENDED ERROR FROM TEST")).verifyComplete();
     }
 
     @Test
-    void when_noArgsAttribute_calledAndFails_evaluatesToError() throws InitializationException, IOException {
+    void when_noArgsAttribute_calledAndFails_evaluatesToError() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -784,11 +758,11 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("\"\".<test.attribute>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("\"\".<test.attribute>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(valErrorText("INTENDED ERROR FROM TEST")).verifyComplete();
     }
 
@@ -797,7 +771,7 @@ class AnnotationAttributeContextTests {
     }
 
     @Test
-    void when_noArgsAttribute_called_evaluates() throws InitializationException, IOException {
+    void when_noArgsAttribute_called_evaluates() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -808,26 +782,26 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("\"\".<test.attribute>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("\"\".<test.attribute>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of("")).verifyComplete();
     }
 
     @Test
     void when_unknownAttribute_called_evaluatesToError() throws IOException {
-        final var attributeCtx = new AnnotationAttributeContext();
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("\"\".<test.envAttribute>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var broker     = new CachingAttributeStreamBroker();
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("\"\".<test.envAttribute>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
     }
 
     @Test
     void when_twoParamEnvironmentAttribute_calledWithOneParam_evaluatesToError()
-            throws InitializationException, IOException {
+            throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -838,17 +812,17 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("<test.envAttribute(\"param1\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("<test.envAttribute(\"param1\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
     }
 
     @Test
     void when_varArgsWithVariablesEnvironmentAttributeAndBadParamType_evaluatesToError()
-            throws InitializationException, IOException {
+            throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -859,18 +833,18 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(
                         valErrorText("Illegal parameter type. Got: STRING Expected: @io.sapl.api.validation.Bool() "))
                 .verifyComplete();
     }
 
     @Test
-    void when_argWithParamSchema_validatesCorrectly() throws InitializationException, IOException {
+    void when_argWithParamSchema_validatesCorrectly() throws AttributeBrokerException, IOException {
 
         final String PERSON_SCHEMA = """
                 {
@@ -909,18 +883,17 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
+        final var pip       = new PIP();
+        final var broker    = brokerWithPip(pip);
+        final var variables = Map.of("key1", Val.of("valueOfKey"));
 
-        final var context         = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var functionSchemas = context.getAttributeSchemas();
+        final var functionSchemas = broker.getAttributeSchemas();
         assertThat(functionSchemas,
                 hasEntry("test.attributeWithAnnotation", MAPPER.readValue(PERSON_SCHEMA, JsonNode.class)));
 
         final var validExpression = ParserUtil.expression("<test.envAttribute({\"name\": \"Joe\"})>");
         final var expected        = new ObjectMapper().readTree("{\"name\": \"Joe\"}\")>");
-        StepVerifier.create(validExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        StepVerifier.create(validExpression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of(expected)).verifyComplete();
 
         final var invalidExpression = ParserUtil.expression("<test.envAttribute({\"name\": 23})>");
@@ -934,12 +907,12 @@ class AnnotationAttributeContextTests {
                   }
                 }
                 """;
-        StepVerifier.create(invalidExpression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        StepVerifier.create(invalidExpression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(valErrorText(errorMessage)).verifyComplete();
     }
 
     @Test
-    void generatesCodeTemplates() throws InitializationException {
+    void generatesCodeTemplates() throws AttributeBrokerException {
 
         @PolicyInformationPoint(name = "test")
         class PIP {
@@ -982,7 +955,7 @@ class AnnotationAttributeContextTests {
         }
 
         final var pip = new PIP();
-        final var sut = new AnnotationAttributeContext(() -> List.of(pip), List::of);
+        final var sut = brokerWithPip(pip);
 
         final var expectedEnvironmentTemplates = new String[] { "<test.a(a1, a2)>", "<test.a(varArgsParams...)>",
                 "<test.a2(a1, a2)>", "<test.a2>" };
@@ -1001,7 +974,7 @@ class AnnotationAttributeContextTests {
     }
 
     @Test
-    void when_environmentAttributeButOnlyNonEnvAttributePresent_fail() throws InitializationException, IOException {
+    void when_environmentAttributeButOnlyNonEnvAttributePresent_fail() throws AttributeBrokerException, IOException {
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -1012,17 +985,18 @@ class AnnotationAttributeContextTests {
 
         }
 
-        final var pip          = new PIP();
-        final var attributeCtx = new AnnotationAttributeContext(() -> List.of(pip), List::of);
-        final var variables    = Map.of("key1", Val.of("valueOfKey"));
-        final var expression   = ParserUtil.expression("<test.attribute(\"param1\",\"param2\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(attributeCtx, variables)))
+        final var pip        = new PIP();
+        final var broker     = brokerWithPip(pip);
+        final var variables  = Map.of("key1", Val.of("valueOfKey"));
+        final var expression = ParserUtil.expression("<test.attribute(\"param1\",\"param2\")>");
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(valErrorText("Unknown attribute test.attribute")).verifyComplete();
     }
 
-    private Function<Context, Context> constructContext(AttributeContext attributeCtx, Map<String, Val> variables) {
+    private Function<Context, Context> constructContext(AttributeStreamBroker attributeStreamBroker,
+            Map<String, Val> variables) {
         return ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, attributeStreamBroker);
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, variables);
             return ctx;
@@ -1030,7 +1004,7 @@ class AnnotationAttributeContextTests {
     }
 
     @Test
-    void addsDocumentedAttributeCodeTemplates() throws InitializationException {
+    void addsDocumentedAttributeCodeTemplates() throws AttributeBrokerException {
 
         final String pipName        = "test";
         final String pipDescription = "description";
@@ -1044,10 +1018,10 @@ class AnnotationAttributeContextTests {
             }
         }
 
-        final var pip = new PIP();
-        final var sut = new AnnotationAttributeContext(() -> List.of(pip), List::of);
+        final var pip    = new PIP();
+        final var broker = brokerWithPip(pip);
 
-        final var actualTemplates = sut.getDocumentedAttributeCodeTemplates();
+        final var actualTemplates = broker.getDocumentedAttributeCodeTemplates();
         assertThat(actualTemplates, hasEntry(pipName, pipDescription));
     }
 
@@ -1063,8 +1037,8 @@ class AnnotationAttributeContextTests {
             }
         }
 
-        PolicyInformationPointSupplier pips = () -> List.of(new PIP());
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pips, List::of));
+        final var pip = new PIP();
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
@@ -1079,8 +1053,8 @@ class AnnotationAttributeContextTests {
             }
         }
 
-        PolicyInformationPointSupplier pips = () -> List.of(new PIP());
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pips, List::of));
+        final var pip = new PIP();
+        assertLoadingPipThrowsAttributeBrokerException(pip);
     }
 
     @Test
@@ -1094,9 +1068,44 @@ class AnnotationAttributeContextTests {
                 return Flux.empty();
             }
         }
+        final var pip = new PIP();
+        assertLoadingPipThrowsAttributeBrokerException(pip);
+    }
 
-        PolicyInformationPointSupplier pips = () -> List.of(new PIP());
-        assertThrows(InitializationException.class, () -> new AnnotationAttributeContext(pips, List::of));
+    private AttributeStreamBroker brokerWithPip(Object pip) {
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                new ValidatorFactory(new ObjectMapper()));
+        loader.loadPolicyInformationPoint(pip);
+        return attributeStreamBroker;
+    }
+
+    private void assertLoadingPipDoesNotThrow(Object pip) {
+        final var pipLoader = newPipLoader();
+        assertDoesNotThrow(() -> pipLoader.loadPolicyInformationPoint(pip));
+    }
+
+    private void assertLoadingPipThrowsAttributeBrokerException(Object pip) {
+        final var pipLoader = newPipLoader();
+        assertThatThrownBy(() -> pipLoader.loadPolicyInformationPoint(pip))
+                .isInstanceOf(AttributeBrokerException.class);
+    }
+
+    private void assertLoadingPipThrowsAttributeBrokerException(Object pip, String errorMessage) {
+        final var pipLoader = newPipLoader();
+        assertThatThrownBy(() -> pipLoader.loadPolicyInformationPoint(pip)).isInstanceOf(AttributeBrokerException.class)
+                .hasMessage(errorMessage);
+    }
+
+    private void assertLoadingPipThrowsAttributeBrokerException(Class<?> pipClass) {
+        final var pipLoader = newPipLoader();
+        assertThatThrownBy(() -> pipLoader.loadPolicyInformationPoint(pipClass))
+                .isInstanceOf(AttributeBrokerException.class);
+    }
+
+    private AnnotationPolicyInformationPointLoader newPipLoader() {
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        return new AnnotationPolicyInformationPointLoader(attributeStreamBroker, new ValidatorFactory(MAPPER));
     }
 
 }

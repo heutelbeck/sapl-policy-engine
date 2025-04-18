@@ -39,12 +39,12 @@ import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.grammar.sapl.CombiningAlgorithm;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
@@ -120,10 +120,10 @@ class EmbeddedPolicyDecisionPointTests {
         final var prpSource = mock(PolicyRetrievalPointSource.class);
 
         final var source   = new FileSystemVariablesAndCombinatorSource("src/test/resources/policies");
-        final var attrCtx  = new AnnotationAttributeContext();
+        final var broker   = new CachingAttributeStreamBroker();
         final var funcCtx  = new AnnotationFunctionContext();
-        final var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attrCtx, funcCtx, source,
-                List.of(), List.of(), prpSource);
+        final var provider = new FixedFunctionsAndAttributesPDPConfigurationProvider(broker, funcCtx, source, List.of(),
+                List.of(), prpSource);
 
         final var embeddedPdp = new EmbeddedPolicyDecisionPoint(provider);
 
@@ -268,7 +268,7 @@ class EmbeddedPolicyDecisionPointTests {
         final var prp              = mock(PolicyRetrievalPoint.class);
         final var configProvider   = mock(PDPConfigurationProvider.class);
         final var mockAlgorithm    = PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES;
-        final var attributeContext = mock(AttributeContext.class);
+        final var attributeContext = mock(AttributeStreamBroker.class);
         final var functionContext  = mock(FunctionContext.class);
         final var validConfig      = new PDPConfiguration("", attributeContext, functionContext, Map.of(),
                 mockAlgorithm, UnaryOperator.identity(), UnaryOperator.identity(), prp);

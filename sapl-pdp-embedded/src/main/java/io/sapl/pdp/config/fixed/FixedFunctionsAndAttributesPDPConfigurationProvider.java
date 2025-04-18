@@ -29,9 +29,9 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.AuthorizationSubscriptionInterceptor;
 import io.sapl.api.pdp.TracedDecision;
 import io.sapl.api.pdp.TracedDecisionInterceptor;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
@@ -41,7 +41,7 @@ import reactor.core.publisher.Flux;
 
 public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPConfigurationProvider {
 
-    private final AttributeContext attributeCtx;
+    private final AttributeStreamBroker attributeStreamBroker;
 
     private final FunctionContext functionCtx;
 
@@ -51,11 +51,11 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
 
     private final List<TracedDecisionInterceptor> decisionInterceptors;
 
-    public FixedFunctionsAndAttributesPDPConfigurationProvider(AttributeContext attributeCtx,
+    public FixedFunctionsAndAttributesPDPConfigurationProvider(AttributeStreamBroker attributeStreamBroker,
             FunctionContext functionCtx, VariablesAndCombinatorSource variablesAndCombinatorSource,
             Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
             Collection<TracedDecisionInterceptor> decisionInterceptors, PolicyRetrievalPointSource prpSource) {
-        this.attributeCtx                 = attributeCtx;
+        this.attributeStreamBroker        = attributeStreamBroker;
         this.functionCtx                  = functionCtx;
         this.variablesAndCombinatorSource = variablesAndCombinatorSource;
         this.prpSource                    = prpSource;
@@ -76,8 +76,8 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
         final var combiningAlgorithm = ((Optional<PolicyDocumentCombiningAlgorithm>) values[0]).orElse(null);
         final var variables          = ((Optional<Map<String, Val>>) values[1]).orElse(null);
         final var prp                = (PolicyRetrievalPoint) values[2];
-        return new PDPConfiguration("defaultConfiguration", attributeCtx, functionCtx, variables, combiningAlgorithm,
-                decisionInterceptorChain(), subscriptionInterceptorChain(), prp);
+        return new PDPConfiguration("defaultConfiguration", attributeStreamBroker, functionCtx, variables,
+                combiningAlgorithm, decisionInterceptorChain(), subscriptionInterceptorChain(), prp);
     }
 
     private UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain() {

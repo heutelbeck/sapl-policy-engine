@@ -17,11 +17,14 @@
  */
 package io.sapl.attributes.broker.impl;
 
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
+import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -35,7 +38,7 @@ public class NaiveAttributeStreamBroker implements AttributeStreamBroker {
     }
 
     @Override
-    public Collection<String> providedFunctionsOfLibrary(String library) {
+    public List<String> providedFunctionsOfLibrary(String library) {
         return List.of("test.test");
     }
 
@@ -43,4 +46,47 @@ public class NaiveAttributeStreamBroker implements AttributeStreamBroker {
     public boolean isProvidedFunction(String fullyQualifiedFunctionName) {
         return fullyQualifiedFunctionName.equals("test.test");
     }
+
+    @Override
+    public List<String> getAllFullyQualifiedFunctions() {
+        // TODO Auto-generated method stub
+        return List.of();
+    }
+
+    @Override
+    public Map<String, JsonNode> getAttributeSchemas() {
+        // TODO Auto-generated method stub
+        return Map.of();
+    }
+
+    @Override
+    public List<AttributeFinderSpecification> getAttributeMetatata() {
+        // TODO Auto-generated method stub
+        return List.of();
+    }
+
+    @Override
+    public List<String> getAvailableLibraries() {
+        // TODO Auto-generated method stub
+        return List.of();
+    }
+
+    @Override
+    public List<String> getEnvironmentAttributeCodeTemplates() {
+        // TODO Auto-generated method stub
+        return List.of();
+    }
+
+    @Override
+    public List<String> getAttributeCodeTemplates() {
+        // TODO Auto-generated method stub
+        return List.of();
+    }
+
+    @Override
+    public Map<String, String> getDocumentedAttributeCodeTemplates() {
+        // TODO Auto-generated method stub
+        return Map.of();
+    }
+
 }

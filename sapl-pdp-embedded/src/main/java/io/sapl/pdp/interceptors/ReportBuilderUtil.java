@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.TextNode;
 
 import io.sapl.api.interpreter.Trace;
-import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -270,6 +270,6 @@ public class ReportBuilderUtil {
         if (!trace.has(Trace.OPERATOR))
             return false;
 
-        return AttributeContext.class.getSimpleName().equals(trace.get(Trace.OPERATOR).asText());
+        return AttributeStreamBroker.class.getSimpleName().equals(trace.get(Trace.OPERATOR).asText());
     }
 }

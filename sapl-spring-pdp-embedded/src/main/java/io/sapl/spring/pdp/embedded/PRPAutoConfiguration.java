@@ -25,8 +25,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
 import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.prp.PrpUpdateEventSource;
@@ -46,7 +46,7 @@ public class PRPAutoConfiguration {
     private final EmbeddedPDPProperties pdpProperties;
     private final PrpUpdateEventSource  eventSource;
     private final FunctionContext       functionContext;
-    private final AttributeContext      attributeContext;
+    private final AttributeStreamBroker attributeStreamBrokert;
 
     @Bean
     @ConditionalOnMissingBean
@@ -62,7 +62,7 @@ public class PRPAutoConfiguration {
             // scoped
             // evaluation context is sufficient. Variables will be bound later in the
             // subscription scoped EvaluationContext handed over for lookup.
-            seedIndex = new CanonicalImmutableParsedDocumentIndex(attributeContext, functionContext);
+            seedIndex = new CanonicalImmutableParsedDocumentIndex(attributeStreamBrokert, functionContext);
         }
         return new GenericInMemoryIndexedPolicyRetrievalPointSource(seedIndex, eventSource);
     }

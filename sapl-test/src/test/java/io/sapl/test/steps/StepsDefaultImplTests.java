@@ -43,17 +43,16 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.attribute.MockingAttributeContext;
+import io.sapl.test.mocking.attribute.MockingAttributeStreamBroker;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 
 class StepsDefaultImplTests {
 
-    private AttributeContext attrCtx;
+    private AttributeStreamBroker attrCtx;
 
     private FunctionContext funcCtx;
 
@@ -83,7 +82,7 @@ class StepsDefaultImplTests {
 
     @BeforeEach
     void setUp() {
-        this.attrCtx   = new MockingAttributeContext(Mockito.mock(AnnotationAttributeContext.class));
+        this.attrCtx   = new MockingAttributeStreamBroker(Mockito.mock(AttributeStreamBroker.class));
         this.funcCtx   = new MockingFunctionContext(Mockito.mock(AnnotationFunctionContext.class));
         this.variables = new HashMap<>();
     }

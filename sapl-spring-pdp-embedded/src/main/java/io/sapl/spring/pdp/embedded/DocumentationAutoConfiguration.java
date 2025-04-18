@@ -23,8 +23,8 @@ import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -34,7 +34,7 @@ public class DocumentationAutoConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PolicyInformationPointsDocumentation pipDocumentation(AttributeContext attributeCtx) {
+    PolicyInformationPointsDocumentation pipDocumentation(AttributeStreamBroker attributeCtx) {
         log.info("Provisioning PIP Documentation Bean");
         for (var doc : attributeCtx.getDocumentation()) {
             log.debug("AttributeCtx contains: {}", doc.getName());

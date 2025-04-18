@@ -31,11 +31,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicyConditionHit;
 import reactor.test.StepVerifier;
@@ -58,7 +58,7 @@ class PolicyBodyImplCustomCoverageTests {
         final var expected = AuthorizationDecision.PERMIT;
         StepVerifier
                 .create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
-                    ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+                    ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
                     ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
                     ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
                     return ctx;
@@ -78,7 +78,7 @@ class PolicyBodyImplCustomCoverageTests {
         final var expected = AuthorizationDecision.PERMIT;
         StepVerifier
                 .create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
-                    ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+                    ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
                     ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
                     ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
                     return ctx;
@@ -98,7 +98,7 @@ class PolicyBodyImplCustomCoverageTests {
         final var expected = AuthorizationDecision.INDETERMINATE;
         StepVerifier
                 .create(policy.evaluate().map(DocumentEvaluationResult::getAuthorizationDecision).contextWrite(ctx -> {
-                    ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+                    ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
                     ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
                     ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
                     return ctx;

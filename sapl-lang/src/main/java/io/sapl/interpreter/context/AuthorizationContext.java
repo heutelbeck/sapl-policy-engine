@@ -27,7 +27,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.attributes.broker.impl.NaiveAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
 import lombok.NonNull;
@@ -84,7 +84,7 @@ public class AuthorizationContext {
         if (ctx.hasKey(ATTRIBUTE_BROKER)) {
             return ctx.get(ATTRIBUTE_BROKER);
         }
-        return new NaiveAttributeStreamBroker();
+        return new CachingAttributeStreamBroker();
     }
 
     public Context setAttributeStreamBroker(Context ctx, AttributeStreamBroker attributeStreamBroker) {
