@@ -88,10 +88,10 @@ public class PolicyDecisionPointFactory {
     public static EmbeddedPolicyDecisionPoint fixedInRamPolicyDecisionPoint(Collection<String> documents,
             PolicyDocumentCombiningAlgorithm documentsCombinator, Map<String, Val> variables)
             throws InitializationException {
-        final var functionContext  = constructFunctionContext(List::of, List::of);
-        final var attributeContext = constructAttributeStreamBroker(List::of, List::of);
+        final var functionContext       = constructFunctionContext(List::of, List::of);
+        final var attributeStreamBroker = constructAttributeStreamBroker(List::of, List::of);
         return fixedInRamPolicyDecisionPoint(new DefaultSAPLInterpreter(), documents, documentsCombinator, variables,
-                attributeContext, functionContext, UnaryOperator.identity(), UnaryOperator.identity());
+                attributeStreamBroker, functionContext, UnaryOperator.identity(), UnaryOperator.identity());
     }
 
     public static EmbeddedPolicyDecisionPoint fixedInRamPolicyDecisionPoint(SAPLInterpreter parser,
@@ -100,9 +100,9 @@ public class PolicyDecisionPointFactory {
             StaticFunctionLibrarySupplier staticFunctionLibraries, PolicyInformationPointSupplier pips,
             StaticPolicyInformationPointSupplier staticPips, UnaryOperator<TracedDecision> decisionInterceptorChain,
             UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) throws InitializationException {
-        final var functionContext  = constructFunctionContext(functionLibraries, staticFunctionLibraries);
-        final var attributeContext = constructAttributeStreamBroker(pips, staticPips);
-        return fixedInRamPolicyDecisionPoint(parser, documents, documentsCombinator, variables, attributeContext,
+        final var functionContext       = constructFunctionContext(functionLibraries, staticFunctionLibraries);
+        final var attributeStreamBroker = constructAttributeStreamBroker(pips, staticPips);
+        return fixedInRamPolicyDecisionPoint(parser, documents, documentsCombinator, variables, attributeStreamBroker,
                 functionContext, decisionInterceptorChain, subscriptionInterceptorChain);
     }
 
@@ -231,7 +231,7 @@ public class PolicyDecisionPointFactory {
     }
 
     private static AttributeStreamBroker constructAttributeStreamBroker(PolicyInformationPointSupplier pips,
-            StaticPolicyInformationPointSupplier staticPips) throws InitializationException {
+            StaticPolicyInformationPointSupplier staticPips) {
         final var mapper                = new ObjectMapper();
         final var attributeStreamBroker = new CachingAttributeStreamBroker();
         final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,

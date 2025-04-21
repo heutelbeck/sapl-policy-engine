@@ -21,11 +21,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.hamcrest.Matcher;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.test.Imports;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.MockCall;
@@ -72,58 +72,53 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
     }
 
     @Override
-    public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, Val> variables, List<Flux<Val>> args) {
-
+    public Flux<Val> evaluate(AttributeFinderInvocation invocation) {
         List<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingParentValueMockReturnValue(
-                parentValue);
+                invocation.entity());
 
         checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
 
-        return Flux.combineLatest(args, latestPublishedEventsPerArgument -> {
-            final var trace = new HashMap<String, Val>(latestPublishedEventsPerArgument.length + 1);
-            trace.put("attributeName", Val.of(attributeName));
-            for (int i = 0; i < latestPublishedEventsPerArgument.length; i++) {
-                trace.put("argument[" + i + "]", (Val) latestPublishedEventsPerArgument[i]);
+        final var arguments = invocation.arguments();
+        final var trace     = new HashMap<String, Val>(arguments.size() + 1);
+        trace.put("attributeName", Val.of(invocation.fullyQualifiedAttributeName()));
+        for (int i = 0; i < arguments.size(); i++) {
+            trace.put("argument[" + i + "]", arguments.get(i));
+        }
+        // interpret a call to an AttributeMock as not when the evaluate method is
+        // called but for every combination of Val objects from parentValue and by
+        // argument flux emitted
+        saveCall(invocation.entity(), arguments);
+
+        for (ParameterSpecificMockReturnValue parameterSpecificMockReturnValue : matchingParameterSpecificMockReturnValues) {
+
+            final var argumentMatchers = parameterSpecificMockReturnValue.getExpectedParameters().getArgumentMatchers();
+
+            checkAttributeArgumentsCountEqualsNumberOfArgumentMatcher(argumentMatchers.getMatchers(), arguments);
+
+            if (isEveryArgumentValueMatchingItsMatcher(argumentMatchers.getMatchers(), arguments)) {
+                return Flux.just(parameterSpecificMockReturnValue.getMockReturnValue()
+                        .withTrace(AttributeMockForParentValueAndArguments.class, false, trace));
             }
-            // interpret a call to an AttributeMock as
-            // not when the evaluate method is called
-            // but for every combination of Val objects from parentValue and by argument
-            // flux emitted
-            saveCall(parentValue, latestPublishedEventsPerArgument);
+        }
+        throw new SaplTestException(ERROR_NO_MATCHING_ARGUMENTS);
 
-            for (ParameterSpecificMockReturnValue parameterSpecificMockReturnValue : matchingParameterSpecificMockReturnValues) {
-
-                final var argumentMatchers = parameterSpecificMockReturnValue.getExpectedParameters()
-                        .getArgumentMatchers();
-
-                checkAttributeArgumentsCountEqualsNumberOfArgumentMatcher(argumentMatchers.getMatchers(),
-                        latestPublishedEventsPerArgument);
-
-                if (isEveryArgumentValueMatchingItsMatcher(argumentMatchers.getMatchers(),
-                        latestPublishedEventsPerArgument)) {
-                    return parameterSpecificMockReturnValue.getMockReturnValue()
-                            .withTrace(AttributeMockForParentValueAndArguments.class, false, trace);
-                }
-            }
-            throw new SaplTestException(ERROR_NO_MATCHING_ARGUMENTS);
-        });
     }
 
-    private void saveCall(Val parentValue, Object[] arguments) {
-        Val[] parameter = new Val[1 + arguments.length];
+    private void saveCall(Val parentValue, List<Val> arguments) {
+        Val[] parameter = new Val[1 + arguments.size()];
         parameter[0] = parentValue;
-        for (int i = 0; i < arguments.length; i++) {
-            parameter[i + 1] = (Val) arguments[i];
+        for (int i = 0; i < arguments.size(); i++) {
+            parameter[i + 1] = arguments.get(i);
         }
         this.mockRunInformation.saveCall(new MockCall(parameter));
     }
 
     private boolean isEveryArgumentValueMatchingItsMatcher(Matcher<Val>[] argumentMatchers,
-            Object[] latestPublishedEventsPerArgument) {
+            List<Val> latestPublishedEventsPerArgument) {
         boolean isMatching = true;
         for (int i = 0; i < argumentMatchers.length; i++) {
             Matcher<Val> argumentMatcher = argumentMatchers[i];
-            Val          argumentValue   = (Val) latestPublishedEventsPerArgument[i];
+            Val          argumentValue   = latestPublishedEventsPerArgument.get(i);
             if (!argumentMatcher.matches(argumentValue))
                 isMatching = false;
         }
@@ -131,10 +126,10 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
     }
 
     private void checkAttributeArgumentsCountEqualsNumberOfArgumentMatcher(Matcher<Val>[] argumentMatchers,
-            Object[] latestPublishedEventsPerArgument) {
-        if (latestPublishedEventsPerArgument.length != argumentMatchers.length) {
+            List<Val> latestPublishedEventsPerArgument) {
+        if (latestPublishedEventsPerArgument.size() != argumentMatchers.length) {
             throw new SaplTestException(String.format(ERROR_INVALID_NUMBER_PARAMETERS, this.fullName,
-                    argumentMatchers.length, latestPublishedEventsPerArgument.length));
+                    argumentMatchers.length, latestPublishedEventsPerArgument.size()));
         }
     }
 

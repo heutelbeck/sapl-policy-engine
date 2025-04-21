@@ -28,16 +28,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.eclipse.emf.ecore.EObject;
-
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.grammar.sapl.Arguments;
-import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
@@ -103,49 +99,16 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
 
         set.addAll(this.originalAttributeStreamBroker.providedFunctionsOfLibrary(pipName));
 
-        return set;
+        return List.copyOf(set);
     }
 
     @Override
     public Flux<Val> attributeStream(AttributeFinderInvocation invocation) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Flux<Val> evaluateAttribute(EObject location, String attribute, Val value, Arguments arguments,
-            Map<String, Val> variables) {
-        AttributeMock mock = this.registeredMocks.get(attribute);
-        if (mock != null) {
-            List<Flux<Val>> args = new LinkedList<>();
-            if (arguments != null) {
-                for (Expression argument : arguments.getArgs()) {
-                    args.add(argument.evaluate());
-                }
-            }
-            return mock.evaluate(attribute, value, variables, args);
-        } else {
-            return this.originalAttributeStreamBroker.evaluateAttribute(location, attribute, value, arguments,
-                    variables);
+        AttributeMock mock = this.registeredMocks.get(invocation.fullyQualifiedAttributeName());
+        if (null == mock) {
+            return this.originalAttributeStreamBroker.attributeStream(invocation);
         }
-    }
-
-    @Override
-    public Flux<Val> evaluateEnvironmentAttribute(EObject location, String attribute, Arguments arguments,
-            Map<String, Val> variables) {
-        AttributeMock mock = this.registeredMocks.get(attribute);
-        if (mock != null) {
-            List<Flux<Val>> args = new LinkedList<>();
-            if (arguments != null) {
-                for (Expression argument : arguments.getArgs()) {
-                    args.add(argument.evaluate());
-                }
-            }
-            return mock.evaluate(attribute, Val.UNDEFINED, variables, args);
-        } else {
-            return this.originalAttributeStreamBroker.evaluateEnvironmentAttribute(location, attribute, arguments,
-                    variables);
-        }
+        return mock.evaluate(invocation);
     }
 
     @Override

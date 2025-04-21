@@ -25,6 +25,7 @@ import java.util.Optional;
 import org.hamcrest.Matcher;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.test.Imports;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.MockCall;
@@ -66,16 +67,17 @@ public class AttributeMockForParentValue implements AttributeMock {
     }
 
     @Override
-    public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, Val> variables, List<Flux<Val>> args) {
-        this.mockRunInformation.saveCall(new MockCall(parentValue));
+    public Flux<Val> evaluate(AttributeFinderInvocation invocation) {
+        this.mockRunInformation.saveCall(new MockCall(invocation.entity()));
 
         Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingParameterSpecificMockReturnValue(
-                parentValue);
+                invocation.entity());
 
         checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
 
-        return Flux.just(matchingParameterSpecificMockReturnValues.get().getMockReturnValue()).map(val -> val
-                .withTrace(AttributeMockForParentValue.class, true, Map.of("attributeName", Val.of(attributeName))));
+        return Flux.just(matchingParameterSpecificMockReturnValues.get().getMockReturnValue())
+                .map(val -> val.withTrace(AttributeMockForParentValue.class, true,
+                        Map.of("attributeName", Val.of(invocation.fullyQualifiedAttributeName()))));
     }
 
     private void checkAtLeastOneMatchingMockReturnValueExists(
