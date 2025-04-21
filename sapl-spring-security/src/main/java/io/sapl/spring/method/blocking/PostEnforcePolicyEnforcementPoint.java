@@ -56,7 +56,7 @@ public class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
     private final ObjectProvider<ConstraintEnforcementService>               constraintEnforcementServiceProvider;
     private final ObjectProvider<WebAuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
 
-    @SuppressWarnings({ "unchecked", "null" }) // instanceof ensures type and non-null
+    @SuppressWarnings("unchecked")
     @Override
     public Object invoke(@Nonnull MethodInvocation methodInvocation) throws Throwable {
         final var returnedObject = methodInvocation.proceed();

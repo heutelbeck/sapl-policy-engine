@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.LinkedList;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,8 +66,7 @@ class AttributeMockForParentValueAndArgumentsTests {
         mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1))),
                 Val.of(true));
 
-        final var arguments = new LinkedList<Flux<Val>>();
-        arguments.add(Flux.just(Val.of(1)));
+        final var arguments = List.of(Val.of(1));
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> mock.evaluate("test.attribute", Val.FALSE, null, arguments));
     }
@@ -76,10 +76,7 @@ class AttributeMockForParentValueAndArgumentsTests {
         mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(1))),
                 Val.of(true));
 
-        final var arguments = new LinkedList<Flux<Val>>();
-        arguments.add(Flux.just(Val.of(99)));
-        arguments.add(Flux.just(Val.of(99)));
-
+        final var arguments = List.of(Val.of(99), Val.of(99));
         StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectError().verify();
     }
 
@@ -88,9 +85,7 @@ class AttributeMockForParentValueAndArgumentsTests {
         mock.loadMockForParentValueAndArguments(whenAttributeParams(parentValue(val(true)), arguments(val(1), val(1))),
                 Val.of(true));
 
-        final var arguments = new LinkedList<Flux<Val>>();
-        arguments.add(Flux.just(Val.of(1)));
-
+        final var arguments = List.of(Val.of(1));
         StepVerifier.create(mock.evaluate("test.attribute", Val.of(true), null, arguments)).expectError().verify();
     }
 
