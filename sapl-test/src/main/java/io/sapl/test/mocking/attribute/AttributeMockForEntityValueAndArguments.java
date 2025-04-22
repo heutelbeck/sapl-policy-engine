@@ -44,7 +44,7 @@ public class AttributeMockForEntityValueAndArguments implements AttributeMock {
 
     private static final String ERROR_INVALID_NUMBER_PARAMETERS = "Test case has configured mocked attribute \"%s\" return value depending on %d parameters, but is called at runtime with %d parameters";
 
-    private static final String ERROR_NO_MATCHING_PARENT_VALUE = "Unable to find a mocked return value for this parent value";
+    private static final String ERROR_NO_MATCHING_ENTITY_VALUE = "Unable to find a mocked return value for this entity value";
 
     private final String fullName;
 
@@ -136,7 +136,7 @@ public class AttributeMockForEntityValueAndArguments implements AttributeMock {
     private void checkAtLeastOneMatchingMockReturnValueExists(
             Collection<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues) {
         if (matchingParameterSpecificMockReturnValues.isEmpty()) {
-            throw new SaplTestException(ERROR_NO_MATCHING_PARENT_VALUE);
+            throw new SaplTestException(ERROR_NO_MATCHING_ENTITY_VALUE);
         }
     }
 

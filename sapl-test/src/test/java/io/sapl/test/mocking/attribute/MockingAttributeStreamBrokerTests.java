@@ -31,9 +31,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.eclipse.emf.common.util.BasicEList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -42,11 +40,8 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.grammar.sapl.Arguments;
-import io.sapl.grammar.sapl.Expression;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
-import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 class MockingAttributeStreamBrokerTests {
@@ -73,7 +68,7 @@ class MockingAttributeStreamBrokerTests {
     void test_dynamicMock() {
         attrCtx.markAttributeMock("foo.bar");
 
-        final var invocation = new AttributeFinderInvocation("", "foo.bar", List.of(), variables,
+        final var invocation = new AttributeFinderInvocation("", "foo.bar", Val.TRUE, List.of(), variables,
                 Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
 
         StepVerifier.create(attrCtx.attributeStream(invocation)).then(() -> attrCtx.mockEmit("foo.bar", Val.of(1)))
@@ -96,16 +91,22 @@ class MockingAttributeStreamBrokerTests {
     @Test
     void test_dynamicMock_ForEnvironmentAttribute() {
         attrCtx.markAttributeMock("foo.bar");
-        StepVerifier.create(attrCtx.evaluateEnvironmentAttribute(null, "foo.bar", null, variables))
-                .then(() -> attrCtx.mockEmit("foo.bar", Val.of(1))).expectNext(Val.of(1)).thenCancel().verify();
+        final var invocation = new AttributeFinderInvocation("", "foo.bar", List.of(), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+
+        StepVerifier.create(attrCtx.attributeStream(invocation)).then(() -> attrCtx.mockEmit("foo.bar", Val.of(1)))
+                .expectNext(Val.of(1)).thenCancel().verify();
     }
 
     @Test
     void test_timingMock() {
         attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-        StepVerifier.withVirtualTime(() -> attrCtx.evaluateAttribute(null, "foo.bar", null, null, variables))
-                .thenAwait(Duration.ofSeconds(10)).expectNext(Val.of(1)).thenAwait(Duration.ofSeconds(10))
-                .expectNext(Val.of(2)).verifyComplete();
+
+        final var invocation = new AttributeFinderInvocation("", "foo.bar", Val.of(1), List.of(), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+
+        StepVerifier.withVirtualTime(() -> attrCtx.attributeStream(invocation)).thenAwait(Duration.ofSeconds(10))
+                .expectNext(Val.of(1)).thenAwait(Duration.ofSeconds(10)).expectNext(Val.of(2)).verifyComplete();
     }
 
     @Test
@@ -121,26 +122,38 @@ class MockingAttributeStreamBrokerTests {
     @Test
     void test_timingMock_ForEnvironmentAttribute() {
         attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-        StepVerifier.withVirtualTime(() -> attrCtx.evaluateEnvironmentAttribute(null, "foo.bar", null, variables))
-                .thenAwait(Duration.ofSeconds(10)).expectNext(Val.of(1)).thenAwait(Duration.ofSeconds(10))
-                .expectNext(Val.of(2)).verifyComplete();
+
+        final var invocation = new AttributeFinderInvocation("", "foo.bar", List.of(), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+
+        StepVerifier.withVirtualTime(() -> attrCtx.attributeStream(invocation)).thenAwait(Duration.ofSeconds(10))
+                .expectNext(Val.of(1)).thenAwait(Duration.ofSeconds(10)).expectNext(Val.of(2)).verifyComplete();
     }
 
     @Test
     void test_loadAttributeMockForParentValue() {
-        attrCtx.loadAttributeMockForParentValue("foo.bar", entityValue(val(1)), Val.of(2));
-        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), null, variables))
-                .expectNext(Val.of(2)).verifyComplete();
+        attrCtx.loadAttributeMockForEntityValue("foo.bar", entityValue(val(1)), Val.of(2));
+
+        final var invocation = new AttributeFinderInvocation("", "foo.bar", Val.of(1), List.of(), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+
+        StepVerifier.create(attrCtx.attributeStream(invocation)).expectNext(Val.of(2)).verifyComplete();
     }
 
     @Test
     void test_loadAttributeMockForParentValue_duplicateRegistration() {
-        attrCtx.loadAttributeMockForParentValue("foo.bar", entityValue(val(1)), Val.of(2));
-        attrCtx.loadAttributeMockForParentValue("foo.bar", entityValue(val(2)), Val.of(3));
-        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), null, variables))
-                .expectNext(Val.of(2)).verifyComplete();
-        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(2), null, variables))
-                .expectNext(Val.of(3)).verifyComplete();
+        attrCtx.loadAttributeMockForEntityValue("foo.bar", entityValue(val(1)), Val.of(2));
+        attrCtx.loadAttributeMockForEntityValue("foo.bar", entityValue(val(2)), Val.of(3));
+
+        final var invocation1 = new AttributeFinderInvocation("", "foo.bar", Val.of(1), List.of(), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+
+        StepVerifier.create(attrCtx.attributeStream(invocation1)).expectNext(Val.of(2)).verifyComplete();
+
+        final var invocation2 = new AttributeFinderInvocation("", "foo.bar", Val.of(2), List.of(), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+
+        StepVerifier.create(attrCtx.attributeStream(invocation2)).expectNext(Val.of(3)).verifyComplete();
     }
 
     @Test
@@ -149,28 +162,26 @@ class MockingAttributeStreamBrokerTests {
         final var parent = entityValue(val(1));
         final var valTwo = Val.of(2);
         assertThatExceptionOfType(SaplTestException.class)
-                .isThrownBy(() -> attrCtx.loadAttributeMockForParentValue("foo.bar", parent, valTwo));
+                .isThrownBy(() -> attrCtx.loadAttributeMockForEntityValue("foo.bar", parent, valTwo));
     }
 
     @Test
     void test_ForParentValue_ForEnvironmentAttribute() {
-        attrCtx.loadAttributeMockForParentValue("foo.bar", entityValue(is(Val.UNDEFINED)), Val.of(2));
-        StepVerifier.create(attrCtx.evaluateEnvironmentAttribute(null, "foo.bar", null, variables))
-                .expectNext(Val.of(2)).verifyComplete();
+        attrCtx.loadAttributeMockForEntityValue("foo.bar", entityValue(is(Val.UNDEFINED)), Val.of(2));
+        final var invocation = new AttributeFinderInvocation("", "foo.bar", List.of(), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+
+        StepVerifier.create(attrCtx.attributeStream(invocation)).expectNext(Val.of(2)).verifyComplete();
     }
 
     @Test
     void test_loadAttributeMockForParentValueAndArguments() {
         attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
                 whenAttributeParams(entityValue(val(1)), arguments(val(true))), Val.of(2));
+        final var invocation = new AttributeFinderInvocation("", "foo.bar", Val.of(1), List.of(Val.TRUE), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
 
-        final var expression = Mockito.mock(Expression.class);
-        Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
-        final var arguments = Mockito.mock(Arguments.class);
-        Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
-
-        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), arguments, variables))
-                .expectNext(Val.of(2)).verifyComplete();
+        StepVerifier.create(attrCtx.attributeStream(invocation)).expectNext(Val.of(2)).verifyComplete();
     }
 
     @Test
@@ -180,13 +191,10 @@ class MockingAttributeStreamBrokerTests {
         attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
                 whenAttributeParams(entityValue(val(1)), arguments(val(false))), Val.of(1));
 
-        final var expression = Mockito.mock(Expression.class);
-        Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
-        final var arguments = Mockito.mock(Arguments.class);
-        Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
+        final var invocation = new AttributeFinderInvocation("", "foo.bar", Val.of(1), List.of(Val.TRUE), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
 
-        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), arguments, variables))
-                .expectNext(Val.of(0)).verifyComplete();
+        StepVerifier.create(attrCtx.attributeStream(invocation)).expectNext(Val.of(0)).verifyComplete();
     }
 
     @Test
@@ -205,13 +213,10 @@ class MockingAttributeStreamBrokerTests {
         attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
                 whenAttributeParams(entityValue(is(Val.UNDEFINED)), arguments(val(true))), Val.of(2));
 
-        final var expression = Mockito.mock(Expression.class);
-        Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
-        final var arguments = Mockito.mock(Arguments.class);
-        Mockito.when(arguments.getArgs()).thenReturn(new BasicEList<>(List.of(expression)));
+        final var invocation = new AttributeFinderInvocation("", "foo.bar", Val.UNDEFINED, List.of(Val.TRUE), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
 
-        StepVerifier.create(attrCtx.evaluateEnvironmentAttribute(null, "foo.bar", arguments, variables))
-                .expectNext(Val.of(2)).verifyComplete();
+        StepVerifier.create(attrCtx.attributeStream(invocation)).expectNext(Val.of(2)).verifyComplete();
     }
 
     @Test
@@ -253,9 +258,12 @@ class MockingAttributeStreamBrokerTests {
 
     @Test
     void test_ReturnUnmockedEvaluation() {
-        when(unmockedCtx.evaluateAttribute(any(), any(), any(), any(), any())).thenReturn(Val.fluxOf("abc"));
-        StepVerifier.create(this.attrCtx.evaluateAttribute(null, "foo.bar", null, null, null)).expectNext(Val.of("abc"))
-                .expectComplete().verify();
+        when(unmockedCtx.attributeStream(any())).thenReturn(Val.fluxOf("abc"));
+        final var invocation = new AttributeFinderInvocation("", "foo.bar", List.of(), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+
+        StepVerifier.create(this.attrCtx.attributeStream(invocation)).expectNext(Val.of("abc")).expectComplete()
+                .verify();
     }
 
     @Test

@@ -141,7 +141,7 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
         }
     }
 
-    public void loadAttributeMockForParentValue(String fullName, AttributeEntityValueMatcher parentValueMatcher,
+    public void loadAttributeMockForEntityValue(String fullName, AttributeEntityValueMatcher parentValueMatcher,
             Val returns) {
         checkImportName(fullName);
 
