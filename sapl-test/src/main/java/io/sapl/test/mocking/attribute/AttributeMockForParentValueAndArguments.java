@@ -84,24 +84,24 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
         for (int i = 0; i < arguments.size(); i++) {
             trace.put("argument[" + i + "]", arguments.get(i));
         }
-        // interpret a call to an AttributeMock as not when the evaluate method is
-        // called but for every combination of Val objects from parentValue and by
-        // argument flux emitted
         saveCall(invocation.entity(), arguments);
+        try {
+            for (ParameterSpecificMockReturnValue parameterSpecificMockReturnValue : matchingParameterSpecificMockReturnValues) {
 
-        for (ParameterSpecificMockReturnValue parameterSpecificMockReturnValue : matchingParameterSpecificMockReturnValues) {
+                final var argumentMatchers = parameterSpecificMockReturnValue.getExpectedParameters()
+                        .getArgumentMatchers();
 
-            final var argumentMatchers = parameterSpecificMockReturnValue.getExpectedParameters().getArgumentMatchers();
+                checkAttributeArgumentsCountEqualsNumberOfArgumentMatcher(argumentMatchers.getMatchers(), arguments);
 
-            checkAttributeArgumentsCountEqualsNumberOfArgumentMatcher(argumentMatchers.getMatchers(), arguments);
-
-            if (isEveryArgumentValueMatchingItsMatcher(argumentMatchers.getMatchers(), arguments)) {
-                return Flux.just(parameterSpecificMockReturnValue.getMockReturnValue()
-                        .withTrace(AttributeMockForParentValueAndArguments.class, false, trace));
+                if (isEveryArgumentValueMatchingItsMatcher(argumentMatchers.getMatchers(), arguments)) {
+                    return Flux.just(parameterSpecificMockReturnValue.getMockReturnValue()
+                            .withTrace(AttributeMockForParentValueAndArguments.class, false, trace));
+                }
             }
+            throw new SaplTestException(ERROR_NO_MATCHING_ARGUMENTS);
+        } catch (SaplTestException e) {
+            return Flux.error(e);
         }
-        throw new SaplTestException(ERROR_NO_MATCHING_ARGUMENTS);
-
     }
 
     private void saveCall(Val parentValue, List<Val> arguments) {

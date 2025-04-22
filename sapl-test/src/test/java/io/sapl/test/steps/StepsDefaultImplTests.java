@@ -20,7 +20,7 @@ package io.sapl.test.steps;
 import static io.sapl.hamcrest.Matchers.anyVal;
 import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.test.Imports.arguments;
-import static io.sapl.test.Imports.parentValue;
+import static io.sapl.test.Imports.entityValue;
 import static io.sapl.test.Imports.thenReturn;
 import static io.sapl.test.Imports.times;
 import static io.sapl.test.Imports.whenAttributeParams;
@@ -112,8 +112,8 @@ class StepsDefaultImplTests {
         final var steps                                     = new StepsDefaultImplTestsImpl(
                 policyAttributeWithAttributeAsParentValue, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1", Val.of(true), Val.of(false))
-                .givenAttribute("pip.attribute2", parentValue(val(true)), thenReturn(Val.of(0)))
-                .givenAttribute("pip.attribute2", parentValue(val(false)), thenReturn(Val.of(99)))
+                .givenAttribute("pip.attribute2", entityValue(val(true)), thenReturn(Val.of(0)))
+                .givenAttribute("pip.attribute2", entityValue(val(false)), thenReturn(Val.of(99)))
                 .when(AuthorizationSubscription.of("willi", "read", "something")).expectNextPermit()
                 .expectNextNotApplicable().verify();
     }
@@ -130,13 +130,13 @@ class StepsDefaultImplTests {
                 policyAttributeWithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
                 .givenAttribute("pip.attributeWithParams",
-                        whenAttributeParams(parentValue(val(true)), arguments(val(2), val(2))),
+                        whenAttributeParams(entityValue(val(true)), arguments(val(2), val(2))),
                         thenReturn(Val.of(true)))
                 .givenAttribute("pip.attributeWithParams",
-                        whenAttributeParams(parentValue(val(true)), arguments(val(2), val(1))),
+                        whenAttributeParams(entityValue(val(true)), arguments(val(2), val(1))),
                         thenReturn(Val.of(false)))
                 .givenAttribute("pip.attributeWithParams",
-                        whenAttributeParams(parentValue(val(true)), arguments(val(1), val(2))),
+                        whenAttributeParams(entityValue(val(true)), arguments(val(1), val(2))),
                         thenReturn(Val.of(false)))
                 .when(AuthorizationSubscription.of("willi", "read", "something"))
                 .thenAttribute("pip.attribute1", Val.of(1)).thenAttribute("pip.attribute2", Val.of(2))

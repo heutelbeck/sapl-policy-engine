@@ -40,8 +40,8 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.MockingAttributeStreamBroker;
+import io.sapl.test.mocking.attribute.models.AttributeEntityValueMatcher;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
-import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
@@ -150,7 +150,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
     }
 
     @Override
-    public GivenOrWhenStep givenAttribute(String importName, AttributeParentValueMatcher parentValueMatcher,
+    public GivenOrWhenStep givenAttribute(String importName, AttributeEntityValueMatcher parentValueMatcher,
             Val returns) {
         this.mockingAttributeStreamBroker.loadAttributeMockForParentValue(importName, parentValueMatcher, returns);
         return this;

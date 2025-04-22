@@ -36,8 +36,8 @@ import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
+import io.sapl.test.mocking.attribute.models.AttributeEntityValueMatcher;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
-import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
 import reactor.core.publisher.Flux;
 
 public class MockingAttributeStreamBroker implements AttributeStreamBroker {
@@ -141,7 +141,7 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
         }
     }
 
-    public void loadAttributeMockForParentValue(String fullName, AttributeParentValueMatcher parentValueMatcher,
+    public void loadAttributeMockForParentValue(String fullName, AttributeEntityValueMatcher parentValueMatcher,
             Val returns) {
         checkImportName(fullName);
 

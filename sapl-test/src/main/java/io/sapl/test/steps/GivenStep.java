@@ -21,8 +21,8 @@ import java.time.Duration;
 import java.util.function.Function;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.test.mocking.attribute.models.AttributeEntityValueMatcher;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
-import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
 
@@ -116,7 +116,7 @@ public interface GivenStep {
      * @param returns the mocked return value
      * @param parameters only return the specified {@link Val} if the parameters of
      * the call to the function are equal to the Val's specified here. See
-     * {@link io.sapl.test.Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
+     * {@link io.sapl.test.Imports#whenAttributeParams(AttributeEntityValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
      * @param verification verification for this mocking. See
      * {@link io.sapl.test.verification.MockingVerification}
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
@@ -214,7 +214,7 @@ public interface GivenStep {
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
      * the {@link WhenStep}
      */
-    GivenOrWhenStep givenAttribute(String importName, AttributeParentValueMatcher parentValueMatcher, Val returns);
+    GivenOrWhenStep givenAttribute(String importName, AttributeEntityValueMatcher parentValueMatcher, Val returns);
 
     /**
      * Mock the return value of a PIP in the SAPL policy when the parentValue
@@ -233,7 +233,7 @@ public interface GivenStep {
      * @param importName the reference in the SAPL policy to the PIP
      * @param parameters only return the specified {@link Val} if the parameters of
      * the call to the attribute match the expectations. Use
-     * {@link io.sapl.test.Imports#whenAttributeParams(AttributeParentValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
+     * {@link io.sapl.test.Imports#whenAttributeParams(AttributeEntityValueMatcher, io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers)}
      * @param returns the mocked return value
      * @return {@link GivenOrWhenStep} to define another {@link GivenStep} or go to
      * the {@link WhenStep}
