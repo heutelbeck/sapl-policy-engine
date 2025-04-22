@@ -38,11 +38,11 @@ import reactor.test.StepVerifier;
 
 class AttributeMockForEntityValueAndArgumentsTests {
 
-    private AttributeMockForParentValueAndArguments mock;
+    private AttributeMockForEntityValueAndArguments mock;
 
     @BeforeEach
     void setUp() {
-        mock = new AttributeMockForParentValueAndArguments("attr.test");
+        mock = new AttributeMockForEntityValueAndArguments("attr.test");
     }
 
     @Test
@@ -56,10 +56,12 @@ class AttributeMockForEntityValueAndArgumentsTests {
         final var invocation1 = new AttributeFinderInvocation("", "test.attribute", Val.TRUE, arguments1, Map.of(),
                 Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
         StepVerifier.create(mock.evaluate(invocation1)).expectNext(Val.TRUE).thenCancel().verify();
+        
         final var arguments2  = List.of(Val.of(1), Val.of(2));
         final var invocation2 = new AttributeFinderInvocation("", "test.attribute", Val.TRUE, arguments2, Map.of(),
                 Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
         StepVerifier.create(mock.evaluate(invocation2)).expectNext(Val.FALSE).thenCancel().verify();
+        
         mock.assertVerifications();
     }
 

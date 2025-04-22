@@ -18,11 +18,15 @@
 package io.sapl.test.mocking.attribute;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import reactor.test.StepVerifier;
 
 class AttributeMockPublisherTests {
@@ -31,8 +35,10 @@ class AttributeMockPublisherTests {
     void test() {
         final var mock = new AttributeMockPublisher("foo.bar");
 
-        StepVerifier.create(mock.evaluate("test.attribute", null, null, null)).then(() -> mock.mockEmit(Val.of(1)))
-                .expectNext(Val.of(1)).thenCancel().verify();
+        final var invocation = new AttributeFinderInvocation("", "test.attribute", List.of(), Map.of(),
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+        StepVerifier.create(mock.evaluate(invocation)).then(() -> mock.mockEmit(Val.of(1))).expectNext(Val.of(1))
+                .thenCancel().verify();
 
         mock.assertVerifications();
     }

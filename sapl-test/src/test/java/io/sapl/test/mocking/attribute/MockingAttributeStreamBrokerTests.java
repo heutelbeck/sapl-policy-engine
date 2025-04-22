@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.emf.common.util.BasicEList;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.grammar.sapl.Arguments;
@@ -70,8 +72,12 @@ class MockingAttributeStreamBrokerTests {
     @Test
     void test_dynamicMock() {
         attrCtx.markAttributeMock("foo.bar");
-        StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", null, null, variables))
-                .then(() -> attrCtx.mockEmit("foo.bar", Val.of(1))).expectNext(Val.of(1)).thenCancel().verify();
+
+        final var invocation = new AttributeFinderInvocation("", "foo.bar", List.of(), variables,
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+
+        StepVerifier.create(attrCtx.attributeStream(invocation)).then(() -> attrCtx.mockEmit("foo.bar", Val.of(1)))
+                .expectNext(Val.of(1)).thenCancel().verify();
     }
 
     @Test

@@ -36,7 +36,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import reactor.core.publisher.Flux;
 
-public class AttributeMockForParentValueAndArguments implements AttributeMock {
+public class AttributeMockForEntityValueAndArguments implements AttributeMock {
 
     private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS = "You already defined a Mock for %s which is returning specified values when parameters are matching the expectation";
 
@@ -54,7 +54,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 
     private final List<TimesParameterCalledVerification> listMockingVerifications;
 
-    public AttributeMockForParentValueAndArguments(String fullName) {
+    public AttributeMockForEntityValueAndArguments(String fullName) {
         this.fullName                              = fullName;
         this.listParameterSpecificMockReturnValues = new LinkedList<>();
         this.listMockingVerifications              = new LinkedList<>();
@@ -95,7 +95,7 @@ public class AttributeMockForParentValueAndArguments implements AttributeMock {
 
                 if (isEveryArgumentValueMatchingItsMatcher(argumentMatchers.getMatchers(), arguments)) {
                     return Flux.just(parameterSpecificMockReturnValue.getMockReturnValue()
-                            .withTrace(AttributeMockForParentValueAndArguments.class, false, trace));
+                            .withTrace(AttributeMockForEntityValueAndArguments.class, false, trace));
                 }
             }
             throw new SaplTestException(ERROR_NO_MATCHING_ARGUMENTS);

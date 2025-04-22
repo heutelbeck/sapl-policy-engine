@@ -147,13 +147,13 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
 
         AttributeMock mock = this.registeredMocks.get(fullName);
         if (mock != null) {
-            if (mock instanceof AttributeMockForParentValue attributeMockForParentValue) {
+            if (mock instanceof AttributeMockForEntityValue attributeMockForParentValue) {
                 attributeMockForParentValue.loadMockForParentValue(parentValueMatcher, returns);
             } else {
                 throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
             }
         } else {
-            AttributeMockForParentValue newMock = new AttributeMockForParentValue(fullName);
+            AttributeMockForEntityValue newMock = new AttributeMockForEntityValue(fullName);
             newMock.loadMockForParentValue(parentValueMatcher, returns);
             this.registeredMocks.put(fullName, newMock);
 
@@ -167,13 +167,13 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
 
         AttributeMock mock = this.registeredMocks.get(fullName);
         if (mock != null) {
-            if (mock instanceof AttributeMockForParentValueAndArguments attributeMockForParentValueAndArguments) {
+            if (mock instanceof AttributeMockForEntityValueAndArguments attributeMockForParentValueAndArguments) {
                 attributeMockForParentValueAndArguments.loadMockForParentValueAndArguments(parameters, returns);
             } else {
                 throw new SaplTestException(String.format(ERROR_DUPLICATE_MOCK_REGISTRATION, fullName));
             }
         } else {
-            AttributeMockForParentValueAndArguments newMock = new AttributeMockForParentValueAndArguments(fullName);
+            AttributeMockForEntityValueAndArguments newMock = new AttributeMockForEntityValueAndArguments(fullName);
             newMock.loadMockForParentValueAndArguments(parameters, returns);
             this.registeredMocks.put(fullName, newMock);
 
