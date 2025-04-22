@@ -41,7 +41,7 @@ public class AttributeMockForEntityValue implements AttributeMock {
 
     private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS = "You already defined a Mock for %s which is returning specified values when parameters are matching the expectation";
 
-    private static final String ERROR_NO_MATCHING_PARENT_VALUE = "Unable to find a mocked return value for this parent value";
+    private static final String ERROR_NO_MATCHING_ENTITY_VALUE = "Unable to find a mocked return value for this entity value";
 
     private final String fullName;
 
@@ -86,13 +86,15 @@ public class AttributeMockForEntityValue implements AttributeMock {
     private void checkAtLeastOneMatchingMockReturnValueExists(
             Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues) {
         if (matchingParameterSpecificMockReturnValues.isEmpty()) {
-            throw new SaplTestException(ERROR_NO_MATCHING_PARENT_VALUE);
+            throw new SaplTestException(ERROR_NO_MATCHING_ENTITY_VALUE);
         }
     }
 
     private Optional<ParameterSpecificMockReturnValue> findMatchingParameterSpecificMockReturnValue(Val parentValue) {
+        final var mockValue = null == parentValue ? Val.UNDEFINED : parentValue;
+
         return this.listParameterSpecificMockReturnValues.stream()
-                .filter((ParameterSpecificMockReturnValue mock) -> mock.getExpectedParentValue().matches(parentValue))
+                .filter((ParameterSpecificMockReturnValue mock) -> mock.getExpectedParentValue().matches(mockValue))
                 .findFirst();
     }
 

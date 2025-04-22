@@ -152,7 +152,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
     @Override
     public GivenOrWhenStep givenAttribute(String importName, AttributeEntityValueMatcher parentValueMatcher,
             Val returns) {
-        this.mockingAttributeStreamBroker.loadAttributeMockForParentValue(importName, parentValueMatcher, returns);
+        this.mockingAttributeStreamBroker.loadAttributeMockForEntityValue(importName, parentValueMatcher, returns);
         return this;
     }
 
