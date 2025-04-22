@@ -37,7 +37,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import reactor.core.publisher.Flux;
 
-public class AttributeMockForParentValue implements AttributeMock {
+public class AttributeMockForEntityValue implements AttributeMock {
 
     private static final String ERROR_DUPLICATE_MOCK_REGISTRATION_FOR_PARAMETERS = "You already defined a Mock for %s which is returning specified values when parameters are matching the expectation";
 
@@ -51,7 +51,7 @@ public class AttributeMockForParentValue implements AttributeMock {
 
     private final List<MockingVerification> listMockingVerifications;
 
-    public AttributeMockForParentValue(String fullName) {
+    public AttributeMockForEntityValue(String fullName) {
         this.fullName                              = fullName;
         this.listParameterSpecificMockReturnValues = new LinkedList<>();
         this.mockRunInformation                    = new MockRunInformation(fullName);
@@ -73,10 +73,13 @@ public class AttributeMockForParentValue implements AttributeMock {
         Optional<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingParameterSpecificMockReturnValue(
                 invocation.entity());
 
-        checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
-
+        try {
+            checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
+        } catch (SaplTestException e) {
+            return Flux.error(e);
+        }
         return Flux.just(matchingParameterSpecificMockReturnValues.get().getMockReturnValue())
-                .map(val -> val.withTrace(AttributeMockForParentValue.class, true,
+                .map(val -> val.withTrace(AttributeMockForEntityValue.class, true,
                         Map.of("attributeName", Val.of(invocation.fullyQualifiedAttributeName()))));
     }
 

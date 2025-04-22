@@ -22,42 +22,49 @@ import static io.sapl.test.Imports.entityValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.test.SaplTestException;
 import reactor.test.StepVerifier;
 
 class AttributeMockForEntityValueTests {
 
-    private AttributeMockForParentValue mock;
+    private AttributeMockForEntityValue mock;
 
     @BeforeEach
     void setUp() {
-        mock = new AttributeMockForParentValue("attr.test");
+        mock = new AttributeMockForEntityValue("attr.test");
     }
 
     @Test
     void test() {
-        mock.loadMockForParentValue(entityValue(val(1)), Val.of(true));
-        mock.loadMockForParentValue(entityValue(val(2)), Val.of(false));
+        mock.loadMockForParentValue(entityValue(val(1)), Val.TRUE);
+        mock.loadMockForParentValue(entityValue(val(2)), Val.FALSE);
 
-        StepVerifier.create(mock.evaluate("test.attribute", Val.of(1), null, null)).expectNext(Val.of(true))
-                .thenCancel().verify();
+        final var invocation1 = new AttributeFinderInvocation("", "test.attribute", Val.of(1), List.of(), Map.of(),
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+        StepVerifier.create(mock.evaluate(invocation1)).expectNext(Val.TRUE).thenCancel().verify();
 
-        StepVerifier.create(mock.evaluate("test.attribute", Val.of(2), null, null)).expectNext(Val.of(false))
-                .thenCancel().verify();
+        final var invocation2 = new AttributeFinderInvocation("", "test.attribute", Val.of(2), List.of(), Map.of(),
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+        StepVerifier.create(mock.evaluate(invocation2)).expectNext(Val.FALSE).thenCancel().verify();
 
         mock.assertVerifications();
     }
 
     @Test
     void test_noMatchingMockDefined() {
-        final var val99 = Val.of(99);
-        mock.loadMockForParentValue(entityValue(val(1)), Val.of(true));
-        assertThatExceptionOfType(SaplTestException.class)
-                .isThrownBy(() -> mock.evaluate("test.attribute", val99, null, null));
+        mock.loadMockForParentValue(entityValue(val(1)), Val.TRUE);
+        final var invocation = new AttributeFinderInvocation("", "test.attribute", Val.of(99), List.of(), Map.of(),
+                Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
+        assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> mock.evaluate(invocation));
     }
 
     @Test
