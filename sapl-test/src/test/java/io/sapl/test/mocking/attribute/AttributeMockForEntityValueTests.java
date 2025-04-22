@@ -18,7 +18,7 @@
 package io.sapl.test.mocking.attribute;
 
 import static io.sapl.hamcrest.Matchers.val;
-import static io.sapl.test.Imports.parentValue;
+import static io.sapl.test.Imports.entityValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
@@ -29,7 +29,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
 import reactor.test.StepVerifier;
 
-class AttributeMockForParentValueTests {
+class AttributeMockForEntityValueTests {
 
     private AttributeMockForParentValue mock;
 
@@ -40,8 +40,8 @@ class AttributeMockForParentValueTests {
 
     @Test
     void test() {
-        mock.loadMockForParentValue(parentValue(val(1)), Val.of(true));
-        mock.loadMockForParentValue(parentValue(val(2)), Val.of(false));
+        mock.loadMockForParentValue(entityValue(val(1)), Val.of(true));
+        mock.loadMockForParentValue(entityValue(val(2)), Val.of(false));
 
         StepVerifier.create(mock.evaluate("test.attribute", Val.of(1), null, null)).expectNext(Val.of(true))
                 .thenCancel().verify();
@@ -55,7 +55,7 @@ class AttributeMockForParentValueTests {
     @Test
     void test_noMatchingMockDefined() {
         final var val99 = Val.of(99);
-        mock.loadMockForParentValue(parentValue(val(1)), Val.of(true));
+        mock.loadMockForParentValue(entityValue(val(1)), Val.of(true));
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> mock.evaluate("test.attribute", val99, null, null));
     }

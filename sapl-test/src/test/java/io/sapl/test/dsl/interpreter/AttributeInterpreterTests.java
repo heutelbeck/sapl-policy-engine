@@ -17,7 +17,7 @@
  */
 package io.sapl.test.dsl.interpreter;
 
-import static io.sapl.test.Imports.whenParentValue;
+import static io.sapl.test.Imports.whenEntityValue;
 import static io.sapl.test.dsl.ParserUtil.compareArgumentToStringLiteral;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -176,7 +176,7 @@ class AttributeInterpreterTests {
 
             when(attributeWithParametersMock.getParameterMatchers()).thenReturn(null);
 
-            when(givenOrWhenStepMock.givenAttribute("fooAttribute", whenParentValue(parentValueMatcherMock),
+            when(givenOrWhenStepMock.givenAttribute("fooAttribute", whenEntityValue(parentValueMatcherMock),
                     returnValMock)).thenReturn(givenOrWhenStepMock);
 
             final var result = attributeInterpreter.interpretAttributeWithParameters(givenOrWhenStepMock,
@@ -207,7 +207,7 @@ class AttributeInterpreterTests {
 
             when(parameterMatchersMock.getMatchers()).thenReturn(null);
 
-            when(givenOrWhenStepMock.givenAttribute("fooAttribute", whenParentValue(parentValueMatcherMock),
+            when(givenOrWhenStepMock.givenAttribute("fooAttribute", whenEntityValue(parentValueMatcherMock),
                     returnValMock)).thenReturn(givenOrWhenStepMock);
 
             final var result = attributeInterpreter.interpretAttributeWithParameters(givenOrWhenStepMock,
@@ -238,7 +238,7 @@ class AttributeInterpreterTests {
 
             TestHelper.mockEListResult(parameterMatchersMock::getMatchers, Collections.emptyList());
 
-            when(givenOrWhenStepMock.givenAttribute("fooAttribute", whenParentValue(parentValueMatcherMock),
+            when(givenOrWhenStepMock.givenAttribute("fooAttribute", whenEntityValue(parentValueMatcherMock),
                     returnValMock)).thenReturn(givenOrWhenStepMock);
 
             final var result = attributeInterpreter.interpretAttributeWithParameters(givenOrWhenStepMock,
@@ -258,7 +258,7 @@ class AttributeInterpreterTests {
             when(matcherInterpreterMock.getHamcrestValMatcher(attributeWithParameters.getParentMatcher()))
                     .thenReturn(parentValueMatcherMock);
 
-            when(givenOrWhenStepMock.givenAttribute("fooAttribute", whenParentValue(parentValueMatcherMock),
+            when(givenOrWhenStepMock.givenAttribute("fooAttribute", whenEntityValue(parentValueMatcherMock),
                     expectedReturnValue)).thenReturn(givenOrWhenStepMock);
 
             final var result = attributeInterpreter.interpretAttributeWithParameters(givenOrWhenStepMock,

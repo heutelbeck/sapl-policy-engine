@@ -25,7 +25,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class AttributeParentValueMatcher {
+public class AttributeEntityValueMatcher {
 
     private Matcher<Val> matcher;
 

@@ -19,7 +19,7 @@ package io.sapl.test.mocking.attribute;
 
 import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.test.Imports.arguments;
-import static io.sapl.test.Imports.parentValue;
+import static io.sapl.test.Imports.entityValue;
 import static io.sapl.test.Imports.whenAttributeParams;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -122,15 +122,15 @@ class MockingAttributeStreamBrokerTests {
 
     @Test
     void test_loadAttributeMockForParentValue() {
-        attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
+        attrCtx.loadAttributeMockForParentValue("foo.bar", entityValue(val(1)), Val.of(2));
         StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), null, variables))
                 .expectNext(Val.of(2)).verifyComplete();
     }
 
     @Test
     void test_loadAttributeMockForParentValue_duplicateRegistration() {
-        attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(1)), Val.of(2));
-        attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(val(2)), Val.of(3));
+        attrCtx.loadAttributeMockForParentValue("foo.bar", entityValue(val(1)), Val.of(2));
+        attrCtx.loadAttributeMockForParentValue("foo.bar", entityValue(val(2)), Val.of(3));
         StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(1), null, variables))
                 .expectNext(Val.of(2)).verifyComplete();
         StepVerifier.create(attrCtx.evaluateAttribute(null, "foo.bar", Val.of(2), null, variables))
@@ -140,7 +140,7 @@ class MockingAttributeStreamBrokerTests {
     @Test
     void test_loadAttributeMockForParentValue_registeredButWrongType() {
         attrCtx.markAttributeMock("foo.bar");
-        final var parent = parentValue(val(1));
+        final var parent = entityValue(val(1));
         final var valTwo = Val.of(2);
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> attrCtx.loadAttributeMockForParentValue("foo.bar", parent, valTwo));
@@ -148,7 +148,7 @@ class MockingAttributeStreamBrokerTests {
 
     @Test
     void test_ForParentValue_ForEnvironmentAttribute() {
-        attrCtx.loadAttributeMockForParentValue("foo.bar", parentValue(is(Val.UNDEFINED)), Val.of(2));
+        attrCtx.loadAttributeMockForParentValue("foo.bar", entityValue(is(Val.UNDEFINED)), Val.of(2));
         StepVerifier.create(attrCtx.evaluateEnvironmentAttribute(null, "foo.bar", null, variables))
                 .expectNext(Val.of(2)).verifyComplete();
     }
@@ -156,7 +156,7 @@ class MockingAttributeStreamBrokerTests {
     @Test
     void test_loadAttributeMockForParentValueAndArguments() {
         attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
-                whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(2));
+                whenAttributeParams(entityValue(val(1)), arguments(val(true))), Val.of(2));
 
         final var expression = Mockito.mock(Expression.class);
         Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
@@ -170,9 +170,9 @@ class MockingAttributeStreamBrokerTests {
     @Test
     void test_loadAttributeMockForParentValueAndArguments_duplicateRegistration() {
         attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
-                whenAttributeParams(parentValue(val(1)), arguments(val(true))), Val.of(0));
+                whenAttributeParams(entityValue(val(1)), arguments(val(true))), Val.of(0));
         attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
-                whenAttributeParams(parentValue(val(1)), arguments(val(false))), Val.of(1));
+                whenAttributeParams(entityValue(val(1)), arguments(val(false))), Val.of(1));
 
         final var expression = Mockito.mock(Expression.class);
         Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));
@@ -186,7 +186,7 @@ class MockingAttributeStreamBrokerTests {
     @Test
     void test_loadAttributeMockForParentValueAndArguments_registeredButWrongType() {
         attrCtx.markAttributeMock("foo.bar");
-        final var parent     = parentValue(val(1));
+        final var parent     = entityValue(val(1));
         final var valTwo     = Val.of(2);
         final var arguments  = arguments(val(true));
         final var whenParams = whenAttributeParams(parent, arguments);
@@ -197,7 +197,7 @@ class MockingAttributeStreamBrokerTests {
     @Test
     void test_ForParentValueAndArguments_ForEnvironmentAttribute() {
         attrCtx.loadAttributeMockForParentValueAndArguments("foo.bar",
-                whenAttributeParams(parentValue(is(Val.UNDEFINED)), arguments(val(true))), Val.of(2));
+                whenAttributeParams(entityValue(is(Val.UNDEFINED)), arguments(val(true))), Val.of(2));
 
         final var expression = Mockito.mock(Expression.class);
         Mockito.when(expression.evaluate()).thenReturn(Flux.just(Val.TRUE));

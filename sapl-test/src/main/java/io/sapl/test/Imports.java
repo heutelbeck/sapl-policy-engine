@@ -26,7 +26,7 @@ import org.hamcrest.Matcher;
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.mocking.attribute.models.AttributeArgumentMatchers;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
-import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
+import io.sapl.test.mocking.attribute.models.AttributeEntityValueMatcher;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
 import lombok.experimental.UtilityClass;
@@ -49,12 +49,12 @@ public class Imports {
      * specify Matchers for the parent value and all arguments of an attribute mock
      *
      * @param parentValueMatcher Matcher for the parent value. See
-     * {@link #parentValue(Matcher)}
+     * {@link #entityValue(Matcher)}
      * @param argumentMatchers Matcher for the arguments. See
      * {@link #arguments(Matcher[])}
      * @return an {@link AttributeParameters} object required by the given step
      */
-    public static AttributeParameters whenAttributeParams(AttributeParentValueMatcher parentValueMatcher,
+    public static AttributeParameters whenAttributeParams(AttributeEntityValueMatcher parentValueMatcher,
             AttributeArgumentMatchers argumentMatchers) {
         return new AttributeParameters(parentValueMatcher, argumentMatchers);
     }
@@ -67,40 +67,40 @@ public class Imports {
      * @return an {@link AttributeParameters} object required by the given step
      */
     public static AttributeParameters whenEnvironmentAttributeParams(AttributeArgumentMatchers argumentMatchers) {
-        return new AttributeParameters(new AttributeParentValueMatcher(valUndefined()), argumentMatchers);
+        return new AttributeParameters(new AttributeEntityValueMatcher(valUndefined()), argumentMatchers);
     }
 
     /**
      * specify Matcher for the parent value of an attribute mock
      *
      * @param matcher Matcher for the parent value
-     * @return an {@link AttributeParentValueMatcher} object required by the given
+     * @return an {@link AttributeEntityValueMatcher} object required by the given
      * step
      */
-    public static AttributeParentValueMatcher whenParentValue(Matcher<Val> matcher) {
-        return new AttributeParentValueMatcher(matcher);
+    public static AttributeEntityValueMatcher whenEntityValue(Matcher<Val> matcher) {
+        return new AttributeEntityValueMatcher(matcher);
     }
 
     /**
      * specify a matcher for the parent value used in
-     * {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
+     * {@link #whenAttributeParams(AttributeEntityValueMatcher, AttributeArgumentMatchers)}
      *
      * @param matcher the matcher for the parent value
-     * @return an {@link AttributeParentValueMatcher} object required by the
-     * {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
+     * @return an {@link AttributeEntityValueMatcher} object required by the
+     * {@link #whenAttributeParams(AttributeEntityValueMatcher, AttributeArgumentMatchers)}
      * method
      */
-    public static AttributeParentValueMatcher parentValue(Matcher<Val> matcher) {
-        return new AttributeParentValueMatcher(matcher);
+    public static AttributeEntityValueMatcher entityValue(Matcher<Val> matcher) {
+        return new AttributeEntityValueMatcher(matcher);
     }
 
     /**
      * specify matchers for the arguments used in
-     * {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
+     * {@link #whenAttributeParams(AttributeEntityValueMatcher, AttributeArgumentMatchers)}
      *
      * @param argumentMatcher the matchers for the arguments
      * @return an {@link AttributeArgumentMatchers} object required by the
-     * {@link #whenAttributeParams(AttributeParentValueMatcher, AttributeArgumentMatchers)}
+     * {@link #whenAttributeParams(AttributeEntityValueMatcher, AttributeArgumentMatchers)}
      * method
      */
     @SafeVarargs
