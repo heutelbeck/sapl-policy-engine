@@ -172,20 +172,23 @@ public class AnnotationPolicyInformationPointLoader {
             String  name                   = "";
             String  attributeSchema        = "";
             String  pathToSchema           = "";
+            boolean isAttributeFinder      = false;
             boolean isEnvironmentAttribute = false;
             if (method.isAnnotationPresent(Attribute.class)) {
+                isAttributeFinder = true;
                 final var annotation = method.getAnnotation(Attribute.class);
-                name            = annotation.name();
+                name            = annotationNameOrMethodName(annotation.name(), method);
                 attributeSchema = annotation.schema();
                 pathToSchema    = annotation.pathToSchema();
             } else if (method.isAnnotationPresent(EnvironmentAttribute.class)) {
+                isAttributeFinder      = true;
                 isEnvironmentAttribute = true;
                 final var annotation = method.getAnnotation(EnvironmentAttribute.class);
-                name            = annotation.name();
+                name            = annotationNameOrMethodName(annotation.name(), method);
                 attributeSchema = annotation.schema();
                 pathToSchema    = annotation.pathToSchema();
             }
-            if (name != null && !name.isBlank()) {
+            if (isAttributeFinder) {
                 foundAtLeastOneSuppliedAttributeInPip = true;
                 final var attributeName   = fullyQualifiedAttributeName(pipClass, method, pipName, name);
                 final var specification   = getSpecificationOfAttribute(policyInformationPoint, attributeName, method,
@@ -199,6 +202,13 @@ public class AnnotationPolicyInformationPointLoader {
         if (!foundAtLeastOneSuppliedAttributeInPip) {
             throw new AttributeBrokerException(String.format(PIP_S_DECLARES_NO_ATTRIBUTES_ERROR, pipName));
         }
+    }
+
+    private String annotationNameOrMethodName(String nameFromAnnotation, Method method) {
+        if (null != nameFromAnnotation && !nameFromAnnotation.isBlank()) {
+            return nameFromAnnotation;
+        }
+        return method.getName();
     }
 
     @SuppressWarnings("unchecked") // All methods are pre-checked to return the correct type.
@@ -216,7 +226,12 @@ public class AnnotationPolicyInformationPointLoader {
                 }
             } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
                     | ValidationException e) {
-                return Flux.error(e);
+                final var cause = e.getCause();
+                if (cause == null) {
+                    return Flux.error(e);
+                } else {
+                    return Flux.error(cause);
+                }
             }
         };
     }

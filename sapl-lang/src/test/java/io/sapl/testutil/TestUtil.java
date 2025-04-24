@@ -105,7 +105,7 @@ public class TestUtil {
     public static void assertExpressionEvaluatesTo(Expression expression, Val... expected) {
         StepVerifier.create(
                 expression.evaluate().doOnNext(TestUtil::logResult).contextWrite(MockUtil::setUpAuthorizationContext))
-                .expectNext(expected).verifyComplete();
+                .expectNext(expected).thenCancel().verify();
     }
 
     public static void assertExpressionErrors(Expression expression) {

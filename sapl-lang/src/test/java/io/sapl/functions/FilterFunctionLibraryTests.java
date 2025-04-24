@@ -51,11 +51,11 @@ import reactor.test.StepVerifier;
 
 class FilterFunctionLibraryTests {
 
-    private static final ObjectMapper               MAPPER           = new ObjectMapper()
+    private static final ObjectMapper                 MAPPER           = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
-    private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
+    private static final DefaultSAPLInterpreter       INTERPRETER      = new DefaultSAPLInterpreter();
     private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER = new CachingAttributeStreamBroker();
-    private static final Map<String, Val>           SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+    private static final Map<String, Val>             SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
     private AnnotationFunctionContext functionCtx;
 

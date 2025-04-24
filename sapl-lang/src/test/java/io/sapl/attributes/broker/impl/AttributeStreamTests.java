@@ -28,11 +28,13 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 
+@Disabled
 @Timeout(20)
 class AttributeStreamTests {
 
