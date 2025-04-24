@@ -198,8 +198,8 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
 
         }
         final var pip = new PIP();
-        assertLoadingPipThrowsAttributeBrokerException(pip);
-        assertLoadingPipThrowsAttributeBrokerException(PIP.class);
+        assertLoadingPipDoesNotThrow(pip);
+        assertLoadingStaticPipDoesNotThrow(PIP.class);
     }
 
     @Test
@@ -286,7 +286,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         }
 
         final var pip = new PIP();
-        assertLoadingPipThrowsAttributeBrokerException(pip);
+        assertLoadingPipDoesNotThrow(pip);
     }
 
     @Test
@@ -595,7 +595,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("\"\".<test.attribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of("")).verifyComplete();
+                .expectNext(Val.of("")).thenCancel().verify();
     }
 
     @Test
@@ -614,7 +614,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("\"\".<test.attribute(\"A\",\"B\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of("")).verifyComplete();
+                .expectNext(Val.of("")).thenCancel().verify();
     }
 
     @Test
@@ -634,7 +634,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of("param2")).verifyComplete();
+                .expectNext(Val.of("param2")).thenCancel().verify();
     }
 
     @Test
@@ -654,7 +654,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute(\"param1\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of("param1")).verifyComplete();
+                .expectNext(Val.of("param1")).thenCancel().verify();
     }
 
     @Test
@@ -721,7 +721,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of("OK")).verifyComplete();
+                .expectNext(Val.of("OK")).thenCancel().verify();
     }
 
     @Test
@@ -762,7 +762,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("\"\".<test.attribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(valErrorText("INTENDED ERROR FROM TEST")).verifyComplete();
+                .expectNextMatches(valErrorText("INTENDED ERROR FROM TEST")).thenCancel().verify();
     }
 
     private Predicate<Val> valErrorText(String errorMessage) {
@@ -790,7 +790,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("\"\".<test.attribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of("")).verifyComplete();
+                .expectNext(Val.of("")).thenCancel().verify();
     }
 
     @Test
@@ -1086,6 +1086,10 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
     private void assertLoadingPipDoesNotThrow(Object pip) {
         final var pipLoader = newPipLoader();
         assertDoesNotThrow(() -> pipLoader.loadPolicyInformationPoint(pip));
+    }
+    private void assertLoadingStaticPipDoesNotThrow(Class<?> pip) {
+        final var pipLoader = newPipLoader();
+        assertDoesNotThrow(() -> pipLoader.loadStaticPolicyInformationPoint(pip));
     }
 
     private void assertLoadingPipThrowsAttributeBrokerException(Object pip) {
