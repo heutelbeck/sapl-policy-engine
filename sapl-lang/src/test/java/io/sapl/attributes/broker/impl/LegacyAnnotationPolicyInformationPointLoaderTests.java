@@ -94,8 +94,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var pipLoader = newPipLoader();
         pipLoader.loadPolicyInformationPoint(pip);
         assertThatThrownBy(() -> pipLoader.loadPolicyInformationPoint(pip)).isInstanceOf(AttributeBrokerException.class)
-                .hasMessage(String.format(
-                        AnnotationPolicyInformationPointLoader.A_PIP_WITH_NAME_S_ALREADY_REGISTERED_ERROR, "somePip"));
+                .hasMessageContaining("collides");
     }
 
     @Test
@@ -536,7 +535,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of("param2")).verifyComplete();
+                .expectNext(Val.of("param2")).thenCancel().verify();
     }
 
     @Test
@@ -702,7 +701,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of(0)).verifyComplete();
+                .expectNext(Val.of(0)).thenCancel().verify();
     }
 
     @Test
@@ -743,7 +742,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(valErrorText("INTENDED ERROR FROM TEST")).verifyComplete();
+                .expectNextMatches(valErrorText("INTENDED ERROR FROM TEST")).thenCancel().verify();
     }
 
     @Test
@@ -768,6 +767,10 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
 
     private Predicate<Val> valErrorText(String errorMessage) {
         return val -> val.isError() && errorMessage.equals(val.getMessage());
+    }
+
+    private Predicate<Val> valErrorContains(String errorMessage) {
+        return val -> val.isError() && val.getMessage().contains(errorMessage);
     }
 
     @Test
@@ -817,7 +820,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute(\"param1\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
+                .expectNextMatches(valErrorContains("No unique policy information point found")).thenCancel().verify();
     }
 
     @Test

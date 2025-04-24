@@ -31,6 +31,7 @@ import io.sapl.attributes.broker.api.AttributeBrokerException;
 import io.sapl.attributes.broker.api.AttributeFinder;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification;
+import io.sapl.attributes.broker.api.AttributeFinderSpecification.Match;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ import reactor.core.publisher.Flux;
 
 @Slf4j
 public class CachingAttributeStreamBroker implements AttributeStreamBroker {
+    private static final String THE_SPECIFICATION_COLLISION_PIP_S_WITH_S_ERROR = "The specification of the new PIP:%s collides with an existing specification: %s.";
     static final Duration DEFAULT_GRACE_PERIOD = Duration.ofMillis(3000L);
 
     private record SpecAndPip(AttributeFinderSpecification specification, AttributeFinder policyInformationPoint) {}
@@ -112,12 +114,16 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         if (null == pipsWithNameOfInvocation) {
             return null;
         }
+        AttributeFinder varArgsMatch = null;
         for (var specAndPip : pipsWithNameOfInvocation) {
-            if (specAndPip.specification().matches(invocation)) {
+            final var matchQuality = specAndPip.specification().matches(invocation);
+            if (matchQuality == Match.EXACT_MATCH) {
                 return specAndPip.policyInformationPoint();
+            } else if (matchQuality == Match.VARARGS_MATCH) {
+                varArgsMatch = specAndPip.policyInformationPoint();
             }
         }
-        return null;
+        return varArgsMatch;
     }
 
     /**
@@ -135,7 +141,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     /**
      * This method registers a new PIP with the attribute broker. The specification
      * must not collide with any existing specification. If there are any matching
-     * attribute streams consumed my policies, the streams are connected to the new
+     * attribute streams consumed by policies, the streams are connected to the new
      * PIP.
      *
      * @param pipSpecification The specification of the PIP.
@@ -146,28 +152,50 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
             AttributeFinder policyInformationPoint) {
         log.debug("Publishing PIP: {}", pipSpecification);
         pipRegistry.compute(pipSpecification.fullyQualifiedAttributeName(), (key, pipsForName) -> {
+
             final var newPipsForName = new ArrayList<SpecAndPip>();
             if (null != pipsForName) {
                 requireNoSpecCollision(pipsForName, pipSpecification);
                 newPipsForName.addAll(pipsForName);
             }
             newPipsForName.add(new SpecAndPip(pipSpecification, policyInformationPoint));
-            attributeStreamIndex.forEach((invocation, streams) -> {
-                if (pipSpecification.matches(invocation)) {
-                    for (var attributeStream : streams) {
-                        attributeStream.connectToPolicyInformationPoint(policyInformationPoint);
-                    }
+
+            for (var invocationAndStreams : attributeStreamIndex.entrySet()) {
+                final var invocation  = invocationAndStreams.getKey();
+                final var streams     = invocationAndStreams.getValue();
+                final var newPipMatch = pipSpecification.matches(invocation);
+
+                if (newPipMatch == Match.EXACT_MATCH || (newPipMatch == Match.VARARGS_MATCH
+                        && !doesExactlyMatchingPipExtist(pipsForName, invocation))) {
+                    connectStreamsToPip(policyInformationPoint, streams);
                 }
-            });
+            }
             return newPipsForName;
         });
+    }
+
+    private boolean doesExactlyMatchingPipExtist(List<SpecAndPip> pipsForName,
+            final AttributeFinderInvocation invocation) {
+        for (var pip : pipsForName) {
+            final var existingPipMatch = pip.specification().matches(invocation);
+            if (existingPipMatch == Match.EXACT_MATCH) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void connectStreamsToPip(AttributeFinder policyInformationPoint, final List<AttributeStream> streams) {
+        for (var attributeStream : streams) {
+            attributeStream.connectToPolicyInformationPoint(policyInformationPoint);
+        }
     }
 
     private void requireNoSpecCollision(List<SpecAndPip> specsAndPips, AttributeFinderSpecification pipSpecification) {
         for (var existingSpecAndPip : specsAndPips) {
             if (existingSpecAndPip.specification().collidesWith(pipSpecification)) {
                 throw new AttributeBrokerException(String.format(
-                        "The specification of the new PIP:%s collides with an existing specification: %s.",
+                        THE_SPECIFICATION_COLLISION_PIP_S_WITH_S_ERROR,
                         existingSpecAndPip.specification(), pipSpecification));
             }
         }
@@ -191,15 +219,40 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
                     newPipsForName.add(pip);
                 }
             }
-            attributeStreamIndex.forEach((invocation, streams) -> {
-                if (pipSpecification.matches(invocation)) {
-                    for (var attributeStream : streams) {
-                        attributeStream.disconnectFromPolicyInformationPoint();
+
+            for (var invocationAndStreams : attributeStreamIndex.entrySet()) {
+                final var invocation      = invocationAndStreams.getKey();
+                final var streams         = invocationAndStreams.getValue();
+                final var removedPipMatch = pipSpecification.matches(invocation);
+
+                if (removedPipMatch != Match.NO_MATCH) {
+                    disconnectStreams(streams);
+                    // Check if the subscription now falls back to a still existing var args PIP.
+                    // There cannot be another exact match, as the consistency rules at PIP load
+                    // time forbids it.
+
+                    // TODO: Make sure varargs PIPs are removed first when unloading a class to
+                    // avoid race conditions so that this does not lead to a case where this
+                    // temporarily switches to a varargs PIP that is about to be removed.
+
+                    if (removedPipMatch == Match.EXACT_MATCH) {
+                        for (var pip : newPipsForName) {
+                            if (pip.specification().matches(invocation) == Match.VARARGS_MATCH) {
+                                connectStreamsToPip(pip.policyInformationPoint(), streams);
+                            }
+                        }
                     }
+
                 }
-            });
+            }
             return newPipsForName;
         });
+    }
+
+    private void disconnectStreams(final List<AttributeStream> streams) {
+        for (var attributeStream : streams) {
+            attributeStream.disconnectFromPolicyInformationPoint();
+        }
     }
 
     @Override

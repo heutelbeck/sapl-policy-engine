@@ -30,6 +30,10 @@ public record AttributeFinderSpecification(@NonNull String fullyQualifiedAttribu
         int numberOfArguments, boolean takesVariables, @NonNull Validator entityValidator,
         @NonNull List<Validator> parameterValidators, JsonNode attributeSchema) {
 
+    public enum Match {
+        NO_MATCH, EXACT_MATCH, VARARGS_MATCH
+    }
+
     public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;
 
     public AttributeFinderSpecification {
@@ -40,18 +44,21 @@ public record AttributeFinderSpecification(@NonNull String fullyQualifiedAttribu
         return numberOfArguments == HAS_VARIABLE_NUMBER_OF_ARGUMENTS;
     }
 
-    public boolean matches(AttributeFinderInvocation invocation) {
-        System.out.println("This: " + this);
-        System.out.println("That: " + invocation);
-        System.out
-                .println("Name match: " + invocation.fullyQualifiedAttributeName().equals(fullyQualifiedAttributeName));
-        System.out.println("Type match: " + (null != invocation.entity() ^ isEnvironmentAttribute));
-        System.out.println("Arguments match: "
-                + (invocation.arguments().size() == numberOfArguments || hasVariableNumberOfArguments()));
+    public Match matches(AttributeFinderInvocation invocation) {
         // @formatter:off
-        return    (invocation.fullyQualifiedAttributeName().equals(fullyQualifiedAttributeName))
-               && (null != invocation.entity() ^ isEnvironmentAttribute)
-               && (invocation.arguments().size() == numberOfArguments || hasVariableNumberOfArguments());
+        if(!invocation.fullyQualifiedAttributeName().equals(fullyQualifiedAttributeName) || (isEnvironmentAttribute && null != invocation.entity())) {
+            return Match.NO_MATCH;            
+        }
+        
+        if (invocation.arguments().size() == numberOfArguments) {
+            return Match.EXACT_MATCH;
+        }
+        
+        if(hasVariableNumberOfArguments()) {
+            return Match.VARARGS_MATCH;
+        }
+
+        return Match.NO_MATCH;            
         // @formatter:on
     }
 
@@ -61,11 +68,17 @@ public record AttributeFinderSpecification(@NonNull String fullyQualifiedAttribu
      * disambiguates in resolving PIP lookups.
      */
     public boolean collidesWith(AttributeFinderSpecification other) {
+        System.out.println("This: " + this);
+        System.out.println("That: " + other);
+        System.out.println("Name match: " + other.fullyQualifiedAttributeName().equals(fullyQualifiedAttributeName));
+        System.out.println("Type match: " + (other.isEnvironmentAttribute() && isEnvironmentAttribute));
+        System.out.println(
+                "Arguments match: " + (other.numberOfArguments == numberOfArguments || hasVariableNumberOfArguments()));
         if (!fullyQualifiedAttributeName.equals(other.fullyQualifiedAttributeName)
                 || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
             return false;
         }
-        return (hasVariableNumberOfArguments() || other.hasVariableNumberOfArguments())
+        return (hasVariableNumberOfArguments() && other.hasVariableNumberOfArguments())
                 || numberOfArguments == other.numberOfArguments;
     }
 

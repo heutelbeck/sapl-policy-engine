@@ -54,10 +54,10 @@ public class PDPConfigurationProviderAutoConfiguration {
     PDPConfigurationProvider pdpConfigurationProvider() {
         log.debug(
                 "Deploying PDP configuration provider with AttributeContext: {} FunctionContext: {} VariablesAndCombinatorSource: {} #SubscriptionIntercptors: {} #DecisionInterceptors: {}",
-                attributeStreamBroker.getClass().getSimpleName(), functionCtx.getClass().getSimpleName(), combinatorProvider,
-                subscriptionInterceptors.size(), decisionInterceptors.size());
-        return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeStreamBroker, functionCtx, combinatorProvider,
-                subscriptionInterceptors, decisionInterceptors, policyRetrievalPointSource);
+                attributeStreamBroker.getClass().getSimpleName(), functionCtx.getClass().getSimpleName(),
+                combinatorProvider, subscriptionInterceptors.size(), decisionInterceptors.size());
+        return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeStreamBroker, functionCtx,
+                combinatorProvider, subscriptionInterceptors, decisionInterceptors, policyRetrievalPointSource);
     }
 
 }

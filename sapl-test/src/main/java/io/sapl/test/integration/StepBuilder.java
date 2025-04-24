@@ -75,14 +75,14 @@ public class StepBuilder {
 
         private final VariablesAndCombinatorSource pdpConfig;
 
-        Steps(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig, AttributeStreamBroker attributeStreamBroker,
-                FunctionContext funcCtx, Map<String, Val> variables) {
-            this.prp                     = prp;
-            this.pdpConfig               = pdpConfig;
-            this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
+        Steps(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
+                AttributeStreamBroker attributeStreamBroker, FunctionContext funcCtx, Map<String, Val> variables) {
+            this.prp                          = prp;
+            this.pdpConfig                    = pdpConfig;
+            this.mockingFunctionContext       = new MockingFunctionContext(funcCtx);
             this.mockingAttributeStreamBroker = new MockingAttributeStreamBroker(attributeStreamBroker);
-            this.variables               = variables;
-            this.mockedAttributeValues   = new LinkedList<>();
+            this.variables                    = variables;
+            this.mockedAttributeValues        = new LinkedList<>();
         }
 
         @Override
@@ -100,8 +100,8 @@ public class StepBuilder {
                                                 }
                                             };
             final var configurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(
-                    this.mockingAttributeStreamBroker, this.mockingFunctionContext, this.pdpConfig, List.of(), List.of(),
-                    prpSource);
+                    this.mockingAttributeStreamBroker, this.mockingFunctionContext, this.pdpConfig, List.of(),
+                    List.of(), prpSource);
             final var pdp                   = new EmbeddedPolicyDecisionPoint(configurationProvider);
 
             if (this.withVirtualTime) {
