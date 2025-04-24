@@ -515,7 +515,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
+                .expectNextMatches(valErrorContains("No unique policy information point found")).thenCancel().verify();
     }
 
     @Test
@@ -555,7 +555,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of("param2")).verifyComplete();
+                .expectNext(Val.of("param2")).thenCancel().verify();
     }
 
     @Test
@@ -575,7 +575,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("\"\".<test.attribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of("param2")).verifyComplete();
+                .expectNext(Val.of("param2")).thenCancel().verify();
     }
 
     @Test
@@ -680,7 +680,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of("param1")).verifyComplete();
+                .expectNext(Val.of("param1")).thenCancel().verify();
     }
 
     @Test
@@ -841,9 +841,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.envAttribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(
-                        valErrorText("Illegal parameter type. Got: STRING Expected: @io.sapl.api.validation.Bool() "))
-                .verifyComplete();
+                .expectNextMatches(valErrorText("Expected a Boolean value, but got \"param1\"")).thenCancel().verify();
     }
 
     @Test
@@ -993,7 +991,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.attribute(\"param1\",\"param2\")>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(valErrorText("Unknown attribute test.attribute")).verifyComplete();
+                .expectNextMatches(valErrorText("Unknown attribute test.attribute")).thenCancel().verify();
     }
 
     private Function<Context, Context> constructContext(AttributeStreamBroker attributeStreamBroker,
@@ -1087,6 +1085,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var pipLoader = newPipLoader();
         assertDoesNotThrow(() -> pipLoader.loadPolicyInformationPoint(pip));
     }
+
     private void assertLoadingStaticPipDoesNotThrow(Class<?> pip) {
         final var pipLoader = newPipLoader();
         assertDoesNotThrow(() -> pipLoader.loadStaticPolicyInformationPoint(pip));
