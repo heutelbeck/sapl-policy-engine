@@ -34,7 +34,6 @@ import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.SaplFactory;
 import io.sapl.grammar.sapl.Schema;
-import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.grammar.sapl.impl.util.MatchingUtil;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import reactor.core.publisher.Flux;
@@ -77,12 +76,7 @@ public class SAPLImplCustom extends SAPLImpl {
 
     @Override
     public Flux<DocumentEvaluationResult> evaluate() {
-        return policyElement.evaluate().contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx))
-                .onErrorResume(this::importFailure);
-    }
-
-    private Flux<DocumentEvaluationResult> importFailure(Throwable error) {
-        return Flux.just(policyElement.importError(error.getMessage()));
+        return policyElement.evaluate();
     }
 
     @Override

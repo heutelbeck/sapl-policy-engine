@@ -104,7 +104,7 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
 
     @Override
     public Flux<Val> attributeStream(AttributeFinderInvocation invocation) {
-        AttributeMock mock = this.registeredMocks.get(invocation.fullyQualifiedAttributeName());
+        AttributeMock mock = this.registeredMocks.get(invocation.attributeName());
         if (null == mock) {
             return this.originalAttributeStreamBroker.attributeStream(invocation);
         }

@@ -19,9 +19,9 @@ package io.sapl.attributes.broker.impl;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -40,43 +40,31 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     private static final String THE_SPECIFICATION_COLLISION_PIP_S_WITH_S_ERROR = "The specification of the new PIP:%s collides with an existing specification: %s.";
-    static final Duration DEFAULT_GRACE_PERIOD = Duration.ofMillis(3000L);
+    static final Duration       DEFAULT_GRACE_PERIOD                           = Duration.ofMillis(3000L);
 
     private record SpecAndPip(AttributeFinderSpecification specification, AttributeFinder policyInformationPoint) {}
 
-    private final Map<AttributeFinderInvocation, List<AttributeStream>> attributeStreamIndex = new ConcurrentHashMap<>();
-    private final Map<String, List<SpecAndPip>>                         pipRegistry          = new ConcurrentHashMap<>();
+    private final Map<AttributeFinderInvocation, List<AttributeStream>> attributeStreamIndex = new HashMap<>();
+    private final Map<String, List<SpecAndPip>>                         pipRegistry          = new HashMap<>();
 
     @Override
     public Flux<Val> attributeStream(AttributeFinderInvocation invocation) {
         final var attributeStreamReference = new AtomicReference<Flux<Val>>();
-
-        /*
-         * Design intent: To avoid deadlocks, the pipRegistry is always the first
-         * locking data structure to be accessed before the attributeStreamIndex. If one
-         * would call pipRegistry.get() within the newAttributeStream method, this could
-         * potentially lead to a deadlock with the publishing and removal of PIPs to the
-         * broker.
-         */
-        pipRegistry.compute(invocation.fullyQualifiedAttributeName(),
-                (fullyQualifiedAttributeName, pipsWithNameOfInvocation) -> {
-                    attributeStreamIndex.compute(invocation, (attributeName, streams) -> {
-                        if (null == streams) {
-                            streams = new ArrayList<>();
-                        }
-                        AttributeStream stream;
-                        if (streams.isEmpty() || invocation.fresh()) {
-                            stream = newAttributeStream(invocation, pipsWithNameOfInvocation);
-                            streams.add(stream);
-                        } else {
-                            stream = streams.get(0);
-                        }
-                        attributeStreamReference.set(stream.getStream());
-                        return streams;
-                    });
-                    return pipsWithNameOfInvocation;
-                });
-
+        attributeStreamIndex.compute(invocation, (attributeName, streams) -> {
+            if (null == streams) {
+                streams = new ArrayList<>();
+            }
+            AttributeStream stream;
+            if (streams.isEmpty() || invocation.fresh()) {
+                final var matchingSpecsAndPips = pipRegistry.get(invocation.attributeName());
+                stream = newAttributeStream(invocation, matchingSpecsAndPips);
+                streams.add(stream);
+            } else {
+                stream = streams.get(0);
+            }
+            attributeStreamReference.set(stream.getStream());
+            return streams;
+        });
         return attributeStreamReference.get();
     }
 
@@ -151,7 +139,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     public void registerAttributeFinder(AttributeFinderSpecification pipSpecification,
             AttributeFinder policyInformationPoint) {
         log.debug("Publishing PIP: {}", pipSpecification);
-        pipRegistry.compute(pipSpecification.fullyQualifiedAttributeName(), (key, pipsForName) -> {
+        pipRegistry.compute(pipSpecification.attributeName(), (key, pipsForName) -> {
 
             final var newPipsForName = new ArrayList<SpecAndPip>();
             if (null != pipsForName) {
@@ -194,8 +182,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     private void requireNoSpecCollision(List<SpecAndPip> specsAndPips, AttributeFinderSpecification pipSpecification) {
         for (var existingSpecAndPip : specsAndPips) {
             if (existingSpecAndPip.specification().collidesWith(pipSpecification)) {
-                throw new AttributeBrokerException(String.format(
-                        THE_SPECIFICATION_COLLISION_PIP_S_WITH_S_ERROR,
+                throw new AttributeBrokerException(String.format(THE_SPECIFICATION_COLLISION_PIP_S_WITH_S_ERROR,
                         existingSpecAndPip.specification(), pipSpecification));
             }
         }
@@ -209,7 +196,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      */
     public void removePolicyInformationPoint(AttributeFinderSpecification pipSpecification) {
         log.debug("Unpublishing PIP: {}", pipSpecification);
-        pipRegistry.compute(pipSpecification.fullyQualifiedAttributeName(), (key, pipsForName) -> {
+        pipRegistry.compute(pipSpecification.attributeName(), (key, pipsForName) -> {
             if (null == pipsForName) {
                 return null;
             }
@@ -257,8 +244,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
 
     @Override
     public List<String> providedFunctionsOfLibrary(String library) {
-        // TODO Auto-generated method stub
-        return List.of();
+        return pipRegistry.keySet().stream().filter(s -> s.startsWith(library)).toList();
     }
 
     @Override
@@ -313,6 +299,12 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     public List<PolicyInformationPointDocumentation> getDocumentation() {
         // TODO Auto-generated method stub
         return List.of();
+    }
+
+    @Override
+    public void publishAttribute(String fullyQualifiedAttributeName, Val value) {
+        // TODO Auto-generated method stub
+
     }
 
 }

@@ -27,9 +27,8 @@ SAPL:
 	policyElement=PolicyElement;
 
 Import:
-	'import' ( {WildcardImport} libSteps+=SaplID ('.' libSteps+=SaplID)* '.' '*'
-	         | {LibraryImport} (libSteps+=SaplID '.')* libSteps+=SaplID 'as' libAlias=SaplID
-	         |                  libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID);
+	'import' ( {AliasImport}  libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID 'as' functionAlias=SaplID
+	         |                libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID);
 
 Schema:
 	subscriptionElement=ReservedID (enforced?='enforced')? 'schema' schemaExpression=Expression;

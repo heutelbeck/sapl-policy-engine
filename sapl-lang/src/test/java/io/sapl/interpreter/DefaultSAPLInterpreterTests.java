@@ -392,10 +392,13 @@ class DefaultSAPLInterpreterTests {
 				Arguments.of("policy \"test\" permit advice \"a\" > 5", INDETERMINATE),
 				// importWildcard
 				Arguments.of("import simple.* policy \"test\" permit where var a = append(\"a\",\"b\");", PERMIT),
-				// importAttributeFinder
-				Arguments.of("import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;",
-						PERMIT),
-				// importLibrary
+                // FIXME: importAttributeFinder
+                Arguments.of("import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;",
+                        PERMIT),
+                // importAttributeFinder no import
+                Arguments.of("policy \"test\" permit where \"echo\" == \"echo\".<sapl.pip.test.echo>;",
+                        PERMIT),
+    			// importLibrary
 				Arguments.of(
 						"import simple as simple_lib policy \"test\" permit where var a = simple_lib.append(\"a\",\"b\");",
 						PERMIT),

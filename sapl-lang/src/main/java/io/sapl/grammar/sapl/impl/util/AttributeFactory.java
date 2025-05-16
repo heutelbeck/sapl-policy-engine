@@ -18,7 +18,6 @@
 package io.sapl.grammar.sapl.impl.util;
 
 import static io.sapl.interpreter.context.AuthorizationContext.getAttributeStreamBroker;
-import static io.sapl.interpreter.context.AuthorizationContext.getImports;
 
 import java.time.Duration;
 import java.util.List;
@@ -42,23 +41,27 @@ public class AttributeFactory {
     private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR = "Attribute resolution error. Attributes not allowed in target.";
     private static final String UNDEFINED_VALUE_ERROR              = "Undefined value handed over as left-hand parameter to policy information point";
 
-    public static AttributeFinderInvocation attributeFinderInvocationFor(ContextView ctx,
-            String fullyQualifiedAttributeName, Val entity, List<Val> arguments) {
+    public static AttributeFinderInvocation attributeFinderInvocationFor(ContextView ctx, EObject source,
+            String attributeNameReference, Val entity, List<Val> arguments) {
         // TODO: Introduce meaningful default values to context and make them
         // configurable
-        final var pdpConfigurationId = "none";
-        final var variables          = AuthorizationContext.getVariables(ctx);
-        final var initialTimeOut     = Duration.ofMillis(100L);
-        final var pollIntervall      = Duration.ofMillis(500L);
-        final var backoff            = Duration.ofMillis(1000L);
-        final var retries            = 100;
-        final var fresh              = true;
-        return new AttributeFinderInvocation(pdpConfigurationId, fullyQualifiedAttributeName, entity, arguments,
-                variables, initialTimeOut, pollIntervall, backoff, retries, fresh);
+        var configIdValue      = ctx.get("CONFIGURATION_ID");
+        var pdpConfigurationId = "none";
+        if (configIdValue instanceof String configIdString) {
+            pdpConfigurationId = configIdString;
+        }
+        final var variables      = AuthorizationContext.getVariables(ctx);
+        final var initialTimeOut = Duration.ofMillis(100L);
+        final var pollIntervall  = Duration.ofMillis(500L);
+        final var backoff        = Duration.ofMillis(1000L);
+        final var retries        = 100;
+        final var fresh          = true;
+        return new AttributeFinderInvocation(pdpConfigurationId, attributeNameReference, entity,
+                arguments, variables, initialTimeOut, pollIntervall, backoff, retries, fresh);
     }
 
     public static AttributeFinderInvocation environmentAttributeFinderInvocationFor(ContextView ctx,
-            String fullyQualifiedAttributeName, List<Val> arguments) {
+            EObject source, String attributeNameReference, List<Val> arguments) {
         // TODO: Introduce meaningful default values to context and make them
         // configurable
         final var pdpConfigurationId = "none";
@@ -68,8 +71,8 @@ public class AttributeFactory {
         final var backoff            = Duration.ofMillis(1000L);
         final var retries            = 100;
         final var fresh              = true;
-        return new AttributeFinderInvocation(pdpConfigurationId, fullyQualifiedAttributeName, arguments, variables,
-                initialTimeOut, pollIntervall, backoff, retries, fresh);
+        return new AttributeFinderInvocation(pdpConfigurationId, attributeNameReference, arguments,
+                variables, initialTimeOut, pollIntervall, backoff, retries, fresh);
     }
 
     public Flux<Val> evaluateEnvironmentAttibute(EObject source, FunctionIdentifier identifier, Arguments arguments) {
@@ -85,41 +88,40 @@ public class AttributeFactory {
 
             if (null != arguments && !arguments.getArgs().isEmpty()) {
                 final var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments).map(List::of);
-                return argumentFluxes.switchMap(argumentsList -> attributeStreamBroker
-                        .attributeStream(environmentAttributeFinderInvocationFor(ctx, attributeName, argumentsList)));
+                return argumentFluxes.switchMap(argumentsList -> attributeStreamBroker.attributeStream(
+                        environmentAttributeFinderInvocationFor(ctx, source, attributeName, argumentsList)));
             } else {
-                return attributeStreamBroker
-                        .attributeStream(environmentAttributeFinderInvocationFor(ctx, attributeName, List.of()));
+                return attributeStreamBroker.attributeStream(
+                        environmentAttributeFinderInvocationFor(ctx, source, attributeName, List.of()));
             }
         });
     }
 
     public Flux<Val> evaluateAttibute(EObject source, FunctionIdentifier identifier, Val entity, Arguments arguments) {
-
         return Flux.deferContextual(ctx -> {
-            final var attributeName = FunctionUtil.resolveAbsoluteFunctionName(identifier, getImports(ctx));
+            final var attributereference = FunctionUtil.functionIdentifierToReference(identifier);
 
             if (entity.isError()) {
                 return Flux.just(entity.withTrace(AttributeFinderStep.class, false,
-                        Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(attributeName))));
+                        Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(attributereference))));
             }
             if (TargetExpressionUtil.isInTargetExpression(source)) {
                 return Flux.just(ErrorFactory.error(source, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(
                         AttributeFinderStep.class, false,
-                        Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(attributeName))));
+                        Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(attributereference))));
             }
             if (entity.isUndefined()) {
                 return Flux.just(ErrorFactory.error(source, UNDEFINED_VALUE_ERROR).withTrace(AttributeFinderStep.class,
-                        false, Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(attributeName))));
+                        false, Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(attributereference))));
             }
             final var attributeStreamBroker = getAttributeStreamBroker(ctx);
             if (null != arguments && !arguments.getArgs().isEmpty()) {
                 final var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments).map(List::of);
-                return argumentFluxes.switchMap(argumentsList -> attributeStreamBroker
-                        .attributeStream(attributeFinderInvocationFor(ctx, attributeName, entity, argumentsList)));
+                return argumentFluxes.switchMap(argumentsList -> attributeStreamBroker.attributeStream(
+                        attributeFinderInvocationFor(ctx, source, attributereference, entity, argumentsList)));
             } else {
-                return attributeStreamBroker
-                        .attributeStream(attributeFinderInvocationFor(ctx, attributeName, entity, List.of()));
+                final var invocation = attributeFinderInvocationFor(ctx, source, attributereference, entity, List.of());
+                return attributeStreamBroker.attributeStream(invocation);
             }
         });
     }

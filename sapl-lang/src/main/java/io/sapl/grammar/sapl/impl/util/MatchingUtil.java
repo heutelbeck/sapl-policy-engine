@@ -42,7 +42,7 @@ public class MatchingUtil {
             return Mono.just(Val.TRUE);
         }
 
-        return targetExpression.evaluate().contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(startObject, ctx))
+        return targetExpression.evaluate()
                 .onErrorResume(error -> Mono.just(ErrorFactory.error(targetExpression, error))).next()
                 .defaultIfEmpty(Val.FALSE).flatMap(result -> {
                     if (result.isError() || !result.isBoolean()) {

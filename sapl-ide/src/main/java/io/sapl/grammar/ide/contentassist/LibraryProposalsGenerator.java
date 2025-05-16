@@ -51,7 +51,7 @@ public class LibraryProposalsGenerator {
         final var attributes = pdpConfiguration.attributeStreamBroker().getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
         attributes.stream().filter(AttributeFinderSpecification::isEnvironmentAttribute)
-                .filter(function -> aliasNamesOfFunctionFromImports(function.fullyQualifiedAttributeName(), context)
+                .filter(function -> aliasNamesOfFunctionFromImports(function.attributeName(), context)
                         .contains(analysis.functionName()))
                 .forEach(attribute -> proposals.addAll(entryForMetadata(analysis, attribute, variables)));
         return proposals;
@@ -63,7 +63,7 @@ public class LibraryProposalsGenerator {
         final var attributes = pdpConfiguration.attributeStreamBroker().getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
         attributes.stream().filter(attribute -> !attribute.isEnvironmentAttribute())
-                .filter(function -> aliasNamesOfFunctionFromImports(function.fullyQualifiedAttributeName(), context)
+                .filter(function -> aliasNamesOfFunctionFromImports(function.attributeName(), context)
                         .contains(analysis.functionName()))
                 .forEach(attribute -> proposals.addAll(entryForMetadata(analysis, attribute, variables)));
         return proposals;
@@ -199,7 +199,7 @@ public class LibraryProposalsGenerator {
     private static Collection<Proposal> documentedProposalsForLibraryEntry(String prefix, String ctxPrefix,
             AttributeFinderSpecification function, ContentAssistContext context) {
         final var proposals = new ArrayList<Proposal>();
-        final var aliases   = aliasNamesOfFunctionFromImports(function.fullyQualifiedAttributeName(), context);
+        final var aliases   = aliasNamesOfFunctionFromImports(function.attributeName(), context);
         aliases.forEach(alias -> ProposalCreator
                 .createNormalizedEntry(function.getCodeTemplate(alias), prefix, ctxPrefix).ifPresent(proposals::add));
         return proposals;

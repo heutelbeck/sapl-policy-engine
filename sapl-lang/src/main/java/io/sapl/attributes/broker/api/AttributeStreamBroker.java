@@ -30,6 +30,8 @@ public interface AttributeStreamBroker {
 
     Flux<Val> attributeStream(AttributeFinderInvocation invocation);
 
+    void publishAttribute(String fullyQualifiedAttributeName, Val value);
+
     List<String> providedFunctionsOfLibrary(String library);
 
     boolean isProvidedFunction(String fullyQualifiedFunctionName);

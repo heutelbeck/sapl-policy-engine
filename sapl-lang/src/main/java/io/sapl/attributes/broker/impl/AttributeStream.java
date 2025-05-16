@@ -54,7 +54,7 @@ import reactor.util.retry.Retry;
  * attribute streams.
  */
 @Slf4j
-class AttributeStream {
+public class AttributeStream {
     @Getter
     private final AttributeFinderInvocation invocation;
 

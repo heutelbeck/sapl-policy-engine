@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.prp.Document;
 import io.sapl.prp.PolicyRetrievalException;
@@ -131,8 +130,7 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
         if (null == targetExpression) {
             targetFormula = new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(true))));
         } else {
-            final var imports = ImportsUtil.fetchImports(document.sapl(), attributeStreamBroker, functionCtx);
-            targetFormula = TreeWalker.walk(targetExpression, imports);
+            targetFormula = TreeWalker.walk(targetExpression);
         }
 
         return targetFormula;

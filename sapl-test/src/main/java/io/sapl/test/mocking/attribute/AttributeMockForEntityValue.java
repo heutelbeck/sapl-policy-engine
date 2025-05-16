@@ -80,7 +80,7 @@ public class AttributeMockForEntityValue implements AttributeMock {
         }
         return Flux.just(matchingParameterSpecificMockReturnValues.get().getMockReturnValue())
                 .map(val -> val.withTrace(AttributeMockForEntityValue.class, true,
-                        Map.of("attributeName", Val.of(invocation.fullyQualifiedAttributeName()))));
+                        Map.of("attributeName", Val.of(invocation.attributeName()))));
     }
 
     private void checkAtLeastOneMatchingMockReturnValueExists(
