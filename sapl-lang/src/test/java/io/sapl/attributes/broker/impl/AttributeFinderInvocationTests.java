@@ -31,31 +31,31 @@ import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 
 class AttributeFinderInvocationTests {
 
-    private static final Duration BACKOFF    = Duration.ofMillis(50L);
-    private static final Duration ONE_SECOND = Duration.ofSeconds(1L);
+    private static final Duration FIFTY_MILLISECONDS = Duration.ofMillis(50L);
+    private static final Duration ONE_SECOND         = Duration.ofSeconds(1L);
 
     @Test
     void whenConstructionOfPolicyInformationPointInvocationHasBadParametersThenThrowElseDoNotThrow() {
         final List<Val>        emptyList = List.of();
         final Map<String, Val> emptyMap  = Map.of();
         assertThatThrownBy(() -> new AttributeFinderInvocation(null, "abc.def", Val.TRUE, emptyList, emptyMap,
-                ONE_SECOND, ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, ONE_SECOND, FIFTY_MILLISECONDS, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", null, Val.TRUE, emptyList, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, FIFTY_MILLISECONDS, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, null, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, FIFTY_MILLISECONDS, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, null, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, FIFTY_MILLISECONDS, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap, null,
-                ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, FIFTY_MILLISECONDS, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
-                ONE_SECOND, null, BACKOFF, 20L, false)).isInstanceOf(NullPointerException.class);
+                ONE_SECOND, null, FIFTY_MILLISECONDS, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "abc.def", Val.TRUE, emptyList, emptyMap,
                 ONE_SECOND, ONE_SECOND, null, 20L, false)).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new AttributeFinderInvocation("id", "123 ", Val.TRUE, emptyList, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L, false)).isInstanceOf(IllegalArgumentException.class);
+                ONE_SECOND, FIFTY_MILLISECONDS, 20L, false)).isInstanceOf(IllegalArgumentException.class);
         assertDoesNotThrow(() -> new AttributeFinderInvocation("id", "abc.def", null, emptyList, emptyMap, ONE_SECOND,
-                ONE_SECOND, BACKOFF, 20L, false));
+                ONE_SECOND, FIFTY_MILLISECONDS, 20L, false));
     }
 
 }

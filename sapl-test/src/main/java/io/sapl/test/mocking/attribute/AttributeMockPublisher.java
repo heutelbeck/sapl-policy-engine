@@ -65,7 +65,7 @@ public class AttributeMockPublisher implements AttributeMock {
     public Flux<Val> evaluate(AttributeFinderInvocation invocation) {
         this.mockRunInformation.saveCall(new MockCall());
         return this.returnFlux.map(val -> val.withTrace(AttributeMockPublisher.class, true,
-                Map.of("attributeName", Val.of(invocation.fullyQualifiedAttributeName()))));
+                Map.of("attributeName", Val.of(invocation.attributeName()))));
     }
 
     @Override

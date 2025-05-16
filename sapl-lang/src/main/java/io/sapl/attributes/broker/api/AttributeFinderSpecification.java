@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.sapl.validation.Validator;
 import lombok.NonNull;
 
-public record AttributeFinderSpecification(@NonNull String fullyQualifiedAttributeName, boolean isEnvironmentAttribute,
+public record AttributeFinderSpecification(@NonNull String attributeName, boolean isEnvironmentAttribute,
         int numberOfArguments, boolean takesVariables, @NonNull Validator entityValidator,
         @NonNull List<Validator> parameterValidators, JsonNode attributeSchema) {
 
@@ -37,29 +37,11 @@ public record AttributeFinderSpecification(@NonNull String fullyQualifiedAttribu
     public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;
 
     public AttributeFinderSpecification {
-        requireValidName(fullyQualifiedAttributeName);
+        requireValidName(attributeName);
     }
 
     public boolean hasVariableNumberOfArguments() {
         return numberOfArguments == HAS_VARIABLE_NUMBER_OF_ARGUMENTS;
-    }
-
-    public Match matches(AttributeFinderInvocation invocation) {
-        // @formatter:off
-        if(!invocation.fullyQualifiedAttributeName().equals(fullyQualifiedAttributeName) || (isEnvironmentAttribute && null != invocation.entity())) {
-            return Match.NO_MATCH;            
-        }
-        
-        if (invocation.arguments().size() == numberOfArguments) {
-            return Match.EXACT_MATCH;
-        }
-        
-        if(hasVariableNumberOfArguments()) {
-            return Match.VARARGS_MATCH;
-        }
-
-        return Match.NO_MATCH;            
-        // @formatter:on
     }
 
     /**
@@ -68,13 +50,7 @@ public record AttributeFinderSpecification(@NonNull String fullyQualifiedAttribu
      * disambiguates in resolving PIP lookups.
      */
     public boolean collidesWith(AttributeFinderSpecification other) {
-        System.out.println("This: " + this);
-        System.out.println("That: " + other);
-        System.out.println("Name match: " + other.fullyQualifiedAttributeName().equals(fullyQualifiedAttributeName));
-        System.out.println("Type match: " + (other.isEnvironmentAttribute() && isEnvironmentAttribute));
-        System.out.println(
-                "Arguments match: " + (other.numberOfArguments == numberOfArguments || hasVariableNumberOfArguments()));
-        if (!fullyQualifiedAttributeName.equals(other.fullyQualifiedAttributeName)
+        if (!attributeName.equals(other.attributeName)
                 || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
             return false;
         }
@@ -87,4 +63,20 @@ public record AttributeFinderSpecification(@NonNull String fullyQualifiedAttribu
         return "UNIMPLEMENTED TEMPLATE CREATION";
     }
 
+    public Match matches(AttributeFinderInvocation invocation) {
+        if (!invocation.attributeName().equals(attributeName)
+                || (isEnvironmentAttribute && null != invocation.entity())) {
+            return Match.NO_MATCH;
+        }
+
+        if (invocation.arguments().size() == numberOfArguments) {
+            return Match.EXACT_MATCH;
+        }
+
+        if (hasVariableNumberOfArguments()) {
+            return Match.VARARGS_MATCH;
+        }
+
+        return Match.NO_MATCH;
+    }
 }

@@ -28,8 +28,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -51,7 +49,7 @@ class BoolTests {
 
         final var expressionMock = mock(Expression.class, RETURNS_DEEP_STUBS);
         when(expressionMock.evaluate()).thenReturn(Flux.just(Val.TRUE));
-        expressionBool = new Bool(expressionMock, Collections.emptyMap());
+        expressionBool = new Bool(expressionMock);
     }
 
     @Test
@@ -81,10 +79,10 @@ class BoolTests {
         assertThat(constantBool.equals(new Bool(true)), is(false));
 
         try (MockedStatic<EquivalenceAndHashUtil> mock = mockStatic(EquivalenceAndHashUtil.class)) {
-            mock.when(() -> EquivalenceAndHashUtil.semanticHash(any(), any())).thenReturn(42);
+            mock.when(() -> EquivalenceAndHashUtil.semanticHash(any())).thenReturn(42);
 
             final var expressionMock      = mock(Expression.class, RETURNS_DEEP_STUBS);
-            final var otherExpressionBool = new Bool(expressionMock, Collections.emptyMap());
+            final var otherExpressionBool = new Bool(expressionMock);
 
             assertThat(expressionBool.equals(otherExpressionBool), is(false));
         }
@@ -103,7 +101,7 @@ class BoolTests {
         final var expressionMock = mock(Expression.class);
         when(expressionMock.evaluate()).thenReturn(Flux.just(ErrorFactory.error("error")));
 
-        final var bool   = new Bool(expressionMock, Collections.emptyMap());
+        final var bool   = new Bool(expressionMock);
         final var result = bool.evaluateExpression().block();
 
         assertThat(result.isError(), is(true));
@@ -115,7 +113,7 @@ class BoolTests {
         final var expressionMock = mock(Expression.class);
         when(expressionMock.evaluate()).thenReturn(Flux.just(Val.FALSE));
 
-        final var bool   = new Bool(expressionMock, Collections.emptyMap());
+        final var bool   = new Bool(expressionMock);
         final var result = bool.evaluateExpression().block();
 
         assertThat(result.isBoolean(), is(true));
@@ -127,7 +125,7 @@ class BoolTests {
         final var expressionMock = mock(Expression.class);
         when(expressionMock.evaluate()).thenReturn(Flux.just(Val.of(0L)));
 
-        final var bool   = new Bool(expressionMock, Collections.emptyMap());
+        final var bool   = new Bool(expressionMock);
         final var result = bool.evaluateExpression().block();
 
         assertThat(result.isBoolean(), is(false));
@@ -145,7 +143,7 @@ class BoolTests {
         final var expressionMock = mock(Expression.class);
         when(expressionMock.evaluate()).thenReturn(Flux.just(valMock));
 
-        final var bool   = new Bool(expressionMock, Collections.emptyMap());
+        final var bool   = new Bool(expressionMock);
         final var result = bool.evaluateExpression().block();
 
         assertThat(result.isError(), is(true));

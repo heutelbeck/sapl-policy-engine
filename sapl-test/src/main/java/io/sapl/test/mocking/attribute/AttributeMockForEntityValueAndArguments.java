@@ -80,7 +80,7 @@ public class AttributeMockForEntityValueAndArguments implements AttributeMock {
 
         final var arguments = invocation.arguments();
         final var trace     = new HashMap<String, Val>(arguments.size() + 1);
-        trace.put("attributeName", Val.of(invocation.fullyQualifiedAttributeName()));
+        trace.put("attributeName", Val.of(invocation.attributeName()));
         for (int i = 0; i < arguments.size(); i++) {
             trace.put("argument[" + i + "]", arguments.get(i));
         }

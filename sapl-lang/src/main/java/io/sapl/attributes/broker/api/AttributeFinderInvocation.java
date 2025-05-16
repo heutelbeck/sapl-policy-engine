@@ -26,19 +26,19 @@ import java.util.Map;
 import io.sapl.api.interpreter.Val;
 import lombok.NonNull;
 
-public record AttributeFinderInvocation(@NonNull String pdpConfigurationId, @NonNull String fullyQualifiedAttributeName,
+public record AttributeFinderInvocation(@NonNull String pdpConfigurationId, @NonNull String attributeName,
         Val entity, @NonNull List<Val> arguments, @NonNull Map<String, Val> variables, @NonNull Duration initialTimeOut,
         @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries, boolean fresh) {
 
-    public AttributeFinderInvocation(@NonNull String pdpConfigurationId, @NonNull String fullyQualifiedAttributeName,
+    public AttributeFinderInvocation(@NonNull String pdpConfigurationId, @NonNull String fullyQualifiedName,
             @NonNull List<Val> arguments, @NonNull Map<String, Val> variables, @NonNull Duration initialTimeOut,
             @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries, boolean fresh) {
-        this(pdpConfigurationId, fullyQualifiedAttributeName, null, arguments, variables, initialTimeOut, pollIntervall,
-                backoff, retries, fresh);
+        this(pdpConfigurationId, fullyQualifiedName, null, arguments, variables, initialTimeOut, pollIntervall, backoff,
+                retries, fresh);
     }
 
     public AttributeFinderInvocation {
-        requireValidName(fullyQualifiedAttributeName);
+        requireValidName(attributeName);
     }
 
 }

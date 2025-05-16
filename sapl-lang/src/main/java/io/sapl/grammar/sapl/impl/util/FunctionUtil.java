@@ -47,7 +47,7 @@ public class FunctionUtil {
         if (null == identifier) {
             return "";
         }
-        final var functionName = mergeStepsToName(identifier);
+        final var functionName = functionIdentifierToReference(identifier);
         return imports.getOrDefault(functionName, functionName);
     }
 
@@ -56,7 +56,7 @@ public class FunctionUtil {
     }
 
     public Mono<Val> evaluateFunctionMono(EObject location, FunctionIdentifier identifier, Val... parameters) {
-        return evaluateFunctionMono(location, mergeStepsToName(identifier), parameters);
+        return evaluateFunctionMono(location, functionIdentifierToReference(identifier), parameters);
     }
 
     public Mono<Val> evaluateFunctionMono(EObject location, String unresolvedFunctionName, Val... parameters) {
@@ -82,7 +82,7 @@ public class FunctionUtil {
         return Flux.combineLatest(x, e -> Arrays.copyOf(e, e.length, Val[].class));
     }
 
-    private String mergeStepsToName(FunctionIdentifier identifier) {
+    public String functionIdentifierToReference(FunctionIdentifier identifier) {
         if (null == identifier) {
             return "";
         }

@@ -17,8 +17,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.Map;
-
 import com.google.common.base.Preconditions;
 
 import io.sapl.grammar.sapl.BasicGroup;
@@ -31,45 +29,44 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class TreeWalker {
 
-    public static DisjunctiveFormula walk(final Expression expression, final Map<String, String> imports) {
-        Preconditions.checkNotNull(imports);
+    public static DisjunctiveFormula walk(final Expression expression) {
         if (Preconditions.checkNotNull(expression) instanceof EagerAnd) {
-            return traverse((EagerAnd) expression, imports);
+            return traverse((EagerAnd) expression);
         } else if (expression instanceof EagerOr eagerOr) {
-            return traverse(eagerOr, imports);
+            return traverse(eagerOr);
         } else if (expression instanceof Not not) {
-            return traverse(not, imports);
+            return traverse(not);
         } else if (expression instanceof BasicGroup basicGroup) {
-            return traverse(basicGroup, imports);
+            return traverse(basicGroup);
         }
-        return endRecursion(expression, imports);
+        return endRecursion(expression);
     }
 
-    static DisjunctiveFormula endRecursion(final Expression node, final Map<String, String> imports) {
-        return new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(node, imports))));
+    static DisjunctiveFormula endRecursion(final Expression node) {
+        return new DisjunctiveFormula(new ConjunctiveClause(new Literal(new Bool(node))));
     }
 
-    private static DisjunctiveFormula traverse(final EagerAnd node, final Map<String, String> imports) {
-        DisjunctiveFormula left  = walk(node.getLeft(), imports);
-        DisjunctiveFormula right = walk(node.getRight(), imports);
+    private static DisjunctiveFormula traverse(final EagerAnd node) {
+        DisjunctiveFormula left  = walk(node.getLeft());
+        DisjunctiveFormula right = walk(node.getRight());
         return left.distribute(right);
     }
 
-    static DisjunctiveFormula traverse(final BasicGroup node, final Map<String, String> imports) {
+    static DisjunctiveFormula traverse(final BasicGroup node) {
         if (null == node.getFilter() && node.getSteps().isEmpty() && node.getSubtemplate() == null) {
-            return walk(node.getExpression(), imports);
+            return walk(node.getExpression());
         }
-        return endRecursion(node, imports);
+        return endRecursion(node);
     }
 
-    private static DisjunctiveFormula traverse(final Not node, final Map<String, String> imports) {
-        DisjunctiveFormula child = walk(node.getExpression(), imports);
+    private static DisjunctiveFormula traverse(final Not node) {
+        DisjunctiveFormula child = walk(node.getExpression());
         return child.negate();
     }
 
-    private static DisjunctiveFormula traverse(final EagerOr node, final Map<String, String> imports) {
-        DisjunctiveFormula left  = walk(node.getLeft(), imports);
-        DisjunctiveFormula right = walk(node.getRight(), imports);
+    private static DisjunctiveFormula traverse(final EagerOr node) {
+        DisjunctiveFormula left  = walk(node.getLeft());
+        DisjunctiveFormula right = walk(node.getRight());
         return left.combine(right);
     }
 
