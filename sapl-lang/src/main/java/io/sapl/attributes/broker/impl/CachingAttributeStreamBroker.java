@@ -301,10 +301,4 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         return List.of();
     }
 
-    @Override
-    public void publishAttribute(String fullyQualifiedAttributeName, Val value) {
-        // TODO Auto-generated method stub
-
-    }
-
 }

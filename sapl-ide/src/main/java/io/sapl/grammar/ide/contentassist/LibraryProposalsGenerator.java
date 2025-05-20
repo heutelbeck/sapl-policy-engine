@@ -32,10 +32,10 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
 import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
+import io.sapl.grammar.sapl.AliasImport;
 import io.sapl.grammar.sapl.Import;
 import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.interpreter.pip.LibraryEntryMetadata;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
@@ -223,35 +223,14 @@ public class LibraryProposalsGenerator {
         if (context.getRootModel() instanceof final SAPL sapl) {
             final var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
             for (final var anImport : imports) {
-                if (anImport instanceof final WildcardImport wildcardImport) {
-                    wildcardAlias(wildcardImport, fullyQualifiedName).ifPresent(aliases::add);
-                } else if (anImport instanceof final LibraryImport libraryImport) {
-                    libraryImportAlias(libraryImport, fullyQualifiedName).ifPresent(aliases::add);
+                if (anImport instanceof final AliasImport aliasImport) {
+                    aliasImports(aliasImport, fullyQualifiedName).ifPresent(aliases::add);
                 } else {
-                    importAlias(anImport, fullyQualifiedName).ifPresent(aliases::add);
+                    resolveImport(anImport, fullyQualifiedName).ifPresent(aliases::add);
                 }
             }
         }
         return aliases;
-    }
-
-    /**
-     * Generates an alias for a fully qualified name if the import is applicable.
-     *
-     * @param anImport an import statement
-     * @param fullyQualifiedName the original fully qualified name of the function
-     * @return an Optional containing an alias for the function, if the import was
-     * applicable. Else returns empty Optional.
-     */
-    private static Optional<String> importAlias(Import anImport, String fullyQualifiedName) {
-        final var steps        = anImport.getLibSteps();
-        final var functionName = anImport.getFunctionName();
-        final var prefix       = joinStepsToPrefix(steps) + functionName;
-        if (fullyQualifiedName.startsWith(prefix)) {
-            return Optional.of(fullyQualifiedName.replaceFirst(prefix, functionName));
-        } else {
-            return Optional.empty();
-        }
     }
 
     /**
@@ -262,11 +241,11 @@ public class LibraryProposalsGenerator {
      * @return an Optional containing an alias for the function, if the import was
      * applicable. Else returns empty Optional.
      */
-    private static Optional<String> libraryImportAlias(LibraryImport libraryImport, String fullyQualifiedName) {
-        final var shortPrefix = String.join(".", libraryImport.getLibSteps());
+    private static Optional<String> aliasImports(AliasImport aliasImport, String fullyQualifiedName) {
+        final var shortPrefix = String.join(".", aliasImport.getLibSteps());
         final var prefix      = shortPrefix + '.';
         if (fullyQualifiedName.startsWith(prefix)) {
-            return Optional.of(fullyQualifiedName.replaceFirst(shortPrefix, libraryImport.getLibAlias()));
+            return Optional.of(fullyQualifiedName.replaceFirst(shortPrefix, aliasImport.getLibAlias()));
         } else {
             return Optional.empty();
         }
@@ -275,15 +254,17 @@ public class LibraryProposalsGenerator {
     /**
      * Generates an alias for a fully qualified name if the import is applicable.
      *
-     * @param anImport a wild-card import statement
+     * @param anImport an import statement
      * @param fullyQualifiedName the original fully qualified name of the function
      * @return an Optional containing an alias for the function, if the import was
      * applicable. Else returns empty Optional.
      */
-    private static Optional<String> wildcardAlias(WildcardImport wildcardImport, String fullyQualifiedName) {
-        final var prefix = joinStepsToPrefix(wildcardImport.getLibSteps());
+    private static Optional<String> resolveImport(Import anImport, String fullyQualifiedName) {
+        final var steps        = anImport.getLibSteps();
+        final var functionName = anImport.getFunctionName();
+        final var prefix       = joinStepsToPrefix(steps) + functionName;
         if (fullyQualifiedName.startsWith(prefix)) {
-            return Optional.of(fullyQualifiedName.replaceFirst(prefix, ""));
+            return Optional.of(fullyQualifiedName.replaceFirst(prefix, functionName));
         } else {
             return Optional.empty();
         }
