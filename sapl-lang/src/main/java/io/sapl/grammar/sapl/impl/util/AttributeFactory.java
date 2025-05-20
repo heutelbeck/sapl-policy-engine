@@ -38,6 +38,7 @@ import reactor.util.context.ContextView;
 
 @UtilityClass
 public class AttributeFactory {
+    private static final String CONFIGURATION_ID                   = "CONFIGURATION_ID";
     private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR = "Attribute resolution error. Attributes not allowed in target.";
     private static final String UNDEFINED_VALUE_ERROR              = "Undefined value handed over as left-hand parameter to policy information point";
 
@@ -45,10 +46,12 @@ public class AttributeFactory {
             String attributeNameReference, Val entity, List<Val> arguments) {
         // TODO: Introduce meaningful default values to context and make them
         // configurable
-        var configIdValue      = ctx.get("CONFIGURATION_ID");
         var pdpConfigurationId = "none";
-        if (configIdValue instanceof String configIdString) {
-            pdpConfigurationId = configIdString;
+        if (ctx.hasKey(CONFIGURATION_ID)) {
+            var configIdValue = ctx.get(CONFIGURATION_ID);
+            if (configIdValue instanceof String configIdString) {
+                pdpConfigurationId = configIdString;
+            }
         }
         final var variables      = AuthorizationContext.getVariables(ctx);
         final var initialTimeOut = Duration.ofMillis(100L);

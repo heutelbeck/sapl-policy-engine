@@ -85,10 +85,17 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
         final var valueDefinition           = valueDefinitions.get(valueDefinitionId);
         final var evaluatedValueDefinitions = valueDefinition.getEval().evaluate();
-        return evaluatedValueDefinitions.switchMap(value -> evaluateValueDefinitionsAndPolicies(valueDefinitionId + 1)
-                .contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(),
-                        value.withTrace(PolicySet.class, true, Map.of(Trace.POLICY_SET, Val.of(saplName),
-                                Trace.VARIABLE_NAME, Val.of(valueDefinition.getName()), Trace.VALUE, value)))));
+        return evaluatedValueDefinitions.switchMap(value -> {
+            if (value.isError()) {
+                return Flux.just(CombinedDecision.error(value.getError().message()));
+            } else {
+                return evaluateValueDefinitionsAndPolicies(valueDefinitionId + 1)
+                        .contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(),
+                                value.withTrace(PolicySet.class, true, Map.of(Trace.POLICY_SET, Val.of(saplName),
+                                        Trace.VARIABLE_NAME, Val.of(valueDefinition.getName()), Trace.VALUE, value))));
+            }
+        });
+
     }
 
 }
