@@ -117,7 +117,7 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
         doc.addAll(this.originalAttributeStreamBroker.getDocumentation());
         return Collections.unmodifiableList(doc);
     }
-
+    
     public void markAttributeMock(String fullName) {
         checkImportName(fullName);
 
@@ -257,5 +257,6 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
     public List<AttributeFinderSpecification> getAttributeMetatata() {
         return List.of();
     }
+
 
 }
