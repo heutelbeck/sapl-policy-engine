@@ -32,9 +32,9 @@ class TimeOutWrapperTests {
 
     @Test
     void whenEmptyFluxThenEmpty() {
-        var source  = Flux.<Val>empty();
-        var wrapped = TimeOutWrapper.wrap(source, Duration.ofMillis(2500L), TIME_OUT, EMPTY);
-        StepVerifier.withVirtualTime(() -> wrapped).thenAwait(Duration.ofMillis(10L)).expectNext(EMPTY)
+        final var source  = Flux.<Val>empty();
+        final var wrapped = TimeOutWrapper.wrap(source, Duration.ofMillis(2500L), TIME_OUT, EMPTY);
+        StepVerifier.<Val>withVirtualTime(() -> wrapped).thenAwait(Duration.ofMillis(10L)).expectNext(EMPTY)
                 .verifyComplete();
     }
 
