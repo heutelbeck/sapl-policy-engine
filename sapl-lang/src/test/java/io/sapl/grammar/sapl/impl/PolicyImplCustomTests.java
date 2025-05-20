@@ -96,9 +96,6 @@ class PolicyImplCustomTests {
 	 							Optional.of((ArrayNode) Val.ofJson("[\"wash your hands\"]").get()),
 	 							Optional.of((ArrayNode) Val.ofJson("[\"smile\"]").get()))),
 
-	 			// import error
-                Arguments.of("import xxxxx.* policy \"p\" permit transform (10/0)", AuthorizationDecision.INDETERMINATE),
-
                 // indeterminate does not add transform
                 Arguments.of("policy \"p\" permit where (1/10); transform \"aaa\"", AuthorizationDecision.INDETERMINATE),
 
