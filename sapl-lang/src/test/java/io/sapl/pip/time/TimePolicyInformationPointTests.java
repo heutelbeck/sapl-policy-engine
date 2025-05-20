@@ -67,7 +67,8 @@ class TimePolicyInformationPointTests {
     void now_zeroDelay_Fails() {
         final var clock = mock(Clock.class);
         final var sut   = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.now(Val.of(0L))).expectError(PolicyEvaluationException.class).verify();
+        StepVerifier.<Val>withVirtualTime(() -> sut.now(Val.of(0L))).expectError(PolicyEvaluationException.class)
+                .verify();
     }
 
     @Test
@@ -83,7 +84,7 @@ class TimePolicyInformationPointTests {
         final var clock        = mock(Clock.class);
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.nowIsAfter(checkpoint)).expectNext(Val.FALSE)
+        StepVerifier.<Val>withVirtualTime(() -> sut.nowIsAfter(checkpoint)).expectNext(Val.FALSE)
                 .thenAwait(Duration.ofMinutes(91L)).expectNext(Val.TRUE).verifyComplete();
     }
 
@@ -94,7 +95,7 @@ class TimePolicyInformationPointTests {
         final var clock        = mock(Clock.class);
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.localTimeIsAfter(checkpoint)).expectNext(Val.TRUE).verifyComplete();
+        StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsAfter(checkpoint)).expectNext(Val.TRUE).verifyComplete();
     }
 
     @Test
@@ -104,7 +105,8 @@ class TimePolicyInformationPointTests {
         final var clock        = mock(Clock.class);
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.localTimeIsAfter(checkpoint)).expectNext(Val.FALSE).verifyComplete();
+        StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsAfter(checkpoint)).expectNext(Val.FALSE)
+                .verifyComplete();
     }
 
     @Test
@@ -115,7 +117,8 @@ class TimePolicyInformationPointTests {
         final var clock        = mock(Clock.class);
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.FALSE).verifyComplete();
+        StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.FALSE)
+                .verifyComplete();
     }
 
     @Test
@@ -126,7 +129,8 @@ class TimePolicyInformationPointTests {
         final var clock        = mock(Clock.class);
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE).verifyComplete();
+        StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE)
+                .verifyComplete();
     }
 
     @Test
@@ -137,7 +141,7 @@ class TimePolicyInformationPointTests {
         final var clock        = mock(Clock.class);
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE).thenCancel()
+        StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE).thenCancel()
                 .verify();
     }
 
@@ -149,7 +153,7 @@ class TimePolicyInformationPointTests {
         final var clock        = mock(Clock.class);
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE).thenCancel()
+        StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE).thenCancel()
                 .verify();
     }
 
@@ -161,7 +165,8 @@ class TimePolicyInformationPointTests {
         final var clock        = mock(Clock.class);
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE).verifyComplete();
+        StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsBetween(start, end)).expectNext(Val.TRUE)
+                .verifyComplete();
     }
 
     @Test
@@ -173,7 +178,7 @@ class TimePolicyInformationPointTests {
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
         // @formatter:off
-		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end))
+		StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsBetween(start, end))
 			.expectNext(Val.FALSE)
 			.thenAwait(Duration.ofHours(1L)).expectNext(Val.TRUE)
 			.thenAwait(Duration.ofHours(1L)).expectNext(Val.FALSE)
@@ -195,7 +200,7 @@ class TimePolicyInformationPointTests {
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
         // @formatter:off
-		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end))
+		StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsBetween(start, end))
 			.expectNext(Val.TRUE)
 			.thenAwait(Duration.ofHours(1L)).expectNext(Val.FALSE)
 			.thenAwait(Duration.ofHours(1L)).expectNext(Val.TRUE)
@@ -217,7 +222,7 @@ class TimePolicyInformationPointTests {
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
         // @formatter:off
-		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end))
+		StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsBetween(start, end))
 			.expectNext(Val.TRUE)
 			.thenAwait(Duration.ofHours(1L)).expectNext(Val.FALSE)
 			.thenAwait(Duration.ofHours(22L)).expectNext(Val.TRUE)
@@ -238,7 +243,7 @@ class TimePolicyInformationPointTests {
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
         // @formatter:off
-		StepVerifier.withVirtualTime(() -> sut.localTimeIsBetween(start, end))
+		StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsBetween(start, end))
 			.expectNext(Val.FALSE)
 			.thenAwait(Duration.ofHours(20L)).expectNext(Val.TRUE)
 			.thenAwait(Duration.ofHours(2L)).expectNext(Val.FALSE)
@@ -259,7 +264,7 @@ class TimePolicyInformationPointTests {
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
         // @formatter:off
-		StepVerifier.withVirtualTime(() -> sut.localTimeIsAfter(checkpoint))
+		StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsAfter(checkpoint))
 			.expectNext(Val.TRUE)
 			.thenAwait(Duration.ofHours(11L)).expectNext(Val.FALSE)
 			.thenAwait(Duration.ofHours(12L)).expectNext(Val.TRUE)
@@ -278,7 +283,7 @@ class TimePolicyInformationPointTests {
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
         // @formatter:off
-		StepVerifier.withVirtualTime(() -> sut.localTimeIsAfter(checkpoint))
+		StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsAfter(checkpoint))
 			.expectNext(Val.FALSE)
 			.thenAwait(Duration.ofHours(1L)).expectNext(Val.TRUE)
 			.thenAwait(Duration.ofHours(12L)).expectNext(Val.FALSE)
@@ -298,7 +303,7 @@ class TimePolicyInformationPointTests {
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
         // @formatter:off
-		StepVerifier.withVirtualTime(() -> sut.localTimeIsBefore(checkpoint))
+		StepVerifier.<Val>withVirtualTime(() -> sut.localTimeIsBefore(checkpoint))
 			.expectNext(Val.TRUE)
 			.thenAwait(Duration.ofHours(1L)).expectNext(Val.FALSE)
 			.thenAwait(Duration.ofHours(12L)).expectNext(Val.TRUE)
@@ -320,7 +325,7 @@ class TimePolicyInformationPointTests {
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
 
-        StepVerifier.withVirtualTime(() -> sut.nowIsBetween(intervalStart, intervalEnd)).expectNext(Val.FALSE)
+        StepVerifier.<Val>withVirtualTime(() -> sut.nowIsBetween(intervalStart, intervalEnd)).expectNext(Val.FALSE)
                 .verifyComplete();
     }
 
@@ -333,7 +338,7 @@ class TimePolicyInformationPointTests {
         final var clock = mock(Clock.class);
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.nowIsBetween(intervalStart, intervalEnd)).expectNext(Val.TRUE)
+        StepVerifier.<Val>withVirtualTime(() -> sut.nowIsBetween(intervalStart, intervalEnd)).expectNext(Val.TRUE)
                 .thenAwait(Duration.ofSeconds(5L)).expectNext(Val.FALSE).verifyComplete();
     }
 
@@ -346,7 +351,7 @@ class TimePolicyInformationPointTests {
         final var clock = mock(Clock.class);
         when(clock.instant()).thenReturn(startingTime);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.nowIsBetween(intervalStart, intervalEnd)).expectNext(Val.FALSE)
+        StepVerifier.<Val>withVirtualTime(() -> sut.nowIsBetween(intervalStart, intervalEnd)).expectNext(Val.FALSE)
                 .thenAwait(Duration.ofSeconds(5L)).expectNext(Val.TRUE).thenAwait(Duration.ofSeconds(5L))
                 .expectNext(Val.FALSE).verifyComplete();
     }
@@ -358,7 +363,7 @@ class TimePolicyInformationPointTests {
         final var clock      = mock(Clock.class);
         when(clock.instant()).thenReturn(now);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.nowIsAfter(checkpoint)).expectNext(Val.TRUE).verifyComplete();
+        StepVerifier.<Val>withVirtualTime(() -> sut.nowIsAfter(checkpoint)).expectNext(Val.TRUE).verifyComplete();
     }
 
     @Test
@@ -368,14 +373,14 @@ class TimePolicyInformationPointTests {
         final var clock      = mock(Clock.class);
         when(clock.instant()).thenReturn(now);
         final var sut = new TimePolicyInformationPoint(clock);
-        StepVerifier.withVirtualTime(() -> sut.nowIsBefore(checkpoint)).expectNext(Val.TRUE)
+        StepVerifier.<Val>withVirtualTime(() -> sut.nowIsBefore(checkpoint)).expectNext(Val.TRUE)
                 .thenAwait(Duration.ofMinutes(91L)).expectNext(Val.FALSE).verifyComplete();
     }
 
     @Test
     void toggleTest() {
         final var sut = new TimePolicyInformationPoint(mock(Clock.class));
-        StepVerifier.withVirtualTime(() -> sut.toggle(Val.of(5_000L), Val.of(1_000L))).expectNext(Val.TRUE)
+        StepVerifier.<Val>withVirtualTime(() -> sut.toggle(Val.of(5_000L), Val.of(1_000L))).expectNext(Val.TRUE)
                 .thenAwait(Duration.ofMillis(5_0000L)).expectNext(Val.FALSE).thenAwait(Duration.ofMillis(1_000L))
                 .expectNext(Val.TRUE).thenCancel().verify();
     }

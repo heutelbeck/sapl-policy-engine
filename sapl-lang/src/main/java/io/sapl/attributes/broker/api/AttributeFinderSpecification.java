@@ -50,8 +50,7 @@ public record AttributeFinderSpecification(@NonNull String attributeName, boolea
      * disambiguates in resolving PIP lookups.
      */
     public boolean collidesWith(AttributeFinderSpecification other) {
-        if (!attributeName.equals(other.attributeName)
-                || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
+        if (!attributeName.equals(other.attributeName) || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
             return false;
         }
         return (hasVariableNumberOfArguments() && other.hasVariableNumberOfArguments())
