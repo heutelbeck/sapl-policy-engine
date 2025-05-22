@@ -80,8 +80,8 @@ public class AttributeFactory {
 
     public Flux<Val> evaluateEnvironmentAttibute(EObject source, FunctionIdentifier identifier, Arguments arguments) {
         return Flux.deferContextual(ctx -> {
-            final var attributeName = FunctionUtil.resolveAbsoluteFunctionName(identifier,
-                    AuthorizationContext.getImports(ctx));
+            final var attributereference = FunctionUtil.functionIdentifierToReference(identifier);
+
 
             if (TargetExpressionUtil.isInTargetExpression(source))
                 return Flux.just(ErrorFactory.error(source, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR)

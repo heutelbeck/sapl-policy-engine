@@ -162,7 +162,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> x(Val leftHand) {
+            public Flux<Val> x(Val entity) {
                 return null;
             }
 
@@ -410,12 +410,12 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> x(Val leftHand) {
+            public Flux<Val> x(Val entity) {
                 return null;
             }
 
             @Attribute
-            public Flux<Val> y(Val leftHand) {
+            public Flux<Val> y(Val entity) {
                 return null;
             }
 
@@ -436,7 +436,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
             }
 
             @Attribute
-            public Flux<Val> x(Val leftHand) {
+            public Flux<Val> x(Val entity) {
                 return null;
             }
 
@@ -544,7 +544,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> attribute(Val leftHand, Map<String, Val> variables, @Text Val... varArgsParams) {
+            public Flux<Val> attribute(Val entity, Map<String, Val> variables, @Text Val... varArgsParams) {
                 return Flux.just(varArgsParams[1]);
             }
 
@@ -564,7 +564,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> attribute(Val leftHand, Map<String, Val> variables, @Text Val param1, @Text Val param2) {
+            public Flux<Val> attribute(Val entity, Map<String, Val> variables, @Text Val param1, @Text Val param2) {
                 return Flux.just(param2);
             }
 
@@ -584,8 +584,8 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> attribute(Val leftHand, Map<String, Val> variables, @Text Val... params) {
-                return Flux.just(leftHand);
+            public Flux<Val> attribute(Val entity, Map<String, Val> variables, @Text Val... params) {
+                return Flux.just(entity);
             }
 
         }
@@ -604,8 +604,8 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> attribute(Val leftHand, @Text Val... params) {
-                return Flux.just(leftHand);
+            public Flux<Val> attribute(Val entity, @Text Val... params) {
+                return Flux.just(entity);
             }
         }
 
@@ -751,7 +751,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> attribute(Val leftHand) {
+            public Flux<Val> attribute(Val entity) {
                 throw new IllegalStateException("INTENDED ERROR FROM TEST");
             }
 
@@ -769,6 +769,10 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         return val -> val.isError() && errorMessage.equals(val.getMessage());
     }
 
+    private Predicate<Val> valErrorTextContains(String errorMessage) {
+        return val -> val.isError() && val.getMessage().contains(errorMessage);
+    }
+
     private Predicate<Val> valErrorContains(String errorMessage) {
         return val -> val.isError() && val.getMessage().contains(errorMessage);
     }
@@ -779,8 +783,8 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> attribute(Val leftHand) {
-                return Flux.just(leftHand);
+            public Flux<Val> attribute(Val entity) {
+                return Flux.just(entity);
             }
 
         }
@@ -799,7 +803,9 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("\"\".<test.envAttribute>");
         StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(valErrorText("Unknown attribute test.envAttribute")).verifyComplete();
+                .expectNextMatches(
+                        valErrorTextContains("No unique policy information point found for AttributeFinderInvocation"))
+                .thenCancel().verify();
     }
 
     @Test
@@ -939,17 +945,17 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
             }
 
             @Attribute
-            public Flux<Val> x(Val leftHand, Map<String, Val> variables, @Bool @Text Val... varArgsParams) {
+            public Flux<Val> x(Val entity, Map<String, Val> variables, @Bool @Text Val... varArgsParams) {
                 return Flux.just(varArgsParams[1]);
             }
 
             @Attribute
-            public Flux<Val> x(Val leftHand, @NotNull @Bool @Text Val a1, @Bool Val a2) {
+            public Flux<Val> x(Val entity, @NotNull @Bool @Text Val a1, @Bool Val a2) {
                 return Flux.just(a1);
             }
 
             @Attribute
-            public Flux<Val> x2(Val leftHand, Val a1, Val a2) {
+            public Flux<Val> x2(Val entity, Val a1, Val a2) {
                 return Flux.just(a1);
             }
 
@@ -980,7 +986,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         class PIP {
 
             @Attribute
-            public Flux<Val> attribute(Val leftHand, Map<String, Val> variables, @Text Val... varArgsParams) {
+            public Flux<Val> attribute(Val entity, Map<String, Val> variables, @Text Val... varArgsParams) {
                 return Flux.just(varArgsParams[1]);
             }
 
@@ -990,8 +996,10 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var broker     = brokerWithPip(pip);
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.attribute(\"param1\",\"param2\")>");
-        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(valErrorText("Unknown attribute test.attribute")).thenCancel().verify();
+        StepVerifier.create(expression.evaluate().log().contextWrite(this.constructContext(broker, variables)))
+                .expectNextMatches(
+                        valErrorTextContains("No unique policy information point found for AttributeFinderInvocation"))
+                .thenCancel().verify();
     }
 
     private Function<Context, Context> constructContext(AttributeStreamBroker attributeStreamBroker,

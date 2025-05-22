@@ -43,25 +43,13 @@ public class FunctionUtil {
         return combine(argumentFluxes(arguments));
     }
 
-    public String resolveAbsoluteFunctionName(FunctionIdentifier identifier, Map<String, String> imports) {
-        if (null == identifier) {
-            return "";
-        }
-        final var functionName = functionIdentifierToReference(identifier);
-        return imports.getOrDefault(functionName, functionName);
-    }
-
-    public String resolveAbsoluteFunctionName(String unresolvedFunctionName, Map<String, String> imports) {
-        return imports.getOrDefault(unresolvedFunctionName, unresolvedFunctionName);
-    }
-
     public Mono<Val> evaluateFunctionMono(EObject location, FunctionIdentifier identifier, Val... parameters) {
         return evaluateFunctionMono(location, functionIdentifierToReference(identifier), parameters);
     }
 
     public Mono<Val> evaluateFunctionMono(EObject location, String unresolvedFunctionName, Val... parameters) {
         return Mono.deferContextual(ctx -> Mono.just(AuthorizationContext.functionContext(ctx).evaluate(location,
-                resolveAbsoluteFunctionName(unresolvedFunctionName, AuthorizationContext.getImports(ctx)),
+                resolveAbsoluteFunctionName(location, unresolvedFunctionName),
                 parameters)));
     }
 
