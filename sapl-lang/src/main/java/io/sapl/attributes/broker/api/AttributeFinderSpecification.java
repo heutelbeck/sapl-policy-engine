@@ -64,7 +64,7 @@ public record AttributeFinderSpecification(@NonNull String attributeName, boolea
 
     public Match matches(AttributeFinderInvocation invocation) {
         if (!invocation.attributeName().equals(attributeName)
-                || (isEnvironmentAttribute && null != invocation.entity())) {
+                || (isEnvironmentAttribute != invocation.isEnvironmentAttributeInvocation())) {
             return Match.NO_MATCH;
         }
 

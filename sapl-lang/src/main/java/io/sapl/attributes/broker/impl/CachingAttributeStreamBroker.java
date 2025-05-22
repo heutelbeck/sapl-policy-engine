@@ -77,7 +77,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      * present. Else directly, an error is published in the stream that no PIP was
      * was found for the invocation.
      */
-    private AttributeStream newAttributeStream(AttributeFinderInvocation invocation,
+    private AttributeStream newAttributeStream(final AttributeFinderInvocation invocation,
             List<SpecAndPip> pipsWithNameOfInvocation) {
         final var attributeStream             = new AttributeStream(invocation, this::removeAttributeStreamFromIndex,
                 DEFAULT_GRACE_PERIOD);

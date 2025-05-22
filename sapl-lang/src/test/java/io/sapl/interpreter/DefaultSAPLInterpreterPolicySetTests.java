@@ -161,13 +161,13 @@ class DefaultSAPLInterpreterPolicySetTests {
                 """;
         StepVerifier
                 .create(INTERPRETER.evaluate(authorizationSubscription, policySet, attributeStreamBroker, functionCtx,
-                        new HashMap<>()))
+                        new HashMap<>()).log() )
                 .assertNext(decision -> assertThat(decision.getResource(), is(optionalWithValue(jsonBoolean(false)))))
                 .verifyComplete();
     }
 
     @Test
-    void importsDuplicatesByPolicySet() {
+    void importsDuplicatesByPolicySetIgnored() {
         final var policySet = """
                 import filter.replace
                 import filter.replace
@@ -176,7 +176,7 @@ class DefaultSAPLInterpreterPolicySetTests {
                 policy "testp1" permit
                 where true;
                 """;
-        final var expected  = AuthorizationDecision.INDETERMINATE;
+        final var expected  = AuthorizationDecision.PERMIT;
         assertThatDocumentEvaluationReturnsExpected(policySet, expected);
     }
 

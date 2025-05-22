@@ -41,4 +41,8 @@ public record AttributeFinderInvocation(@NonNull String pdpConfigurationId, @Non
         requireValidName(attributeName);
     }
 
+    public boolean isEnvironmentAttributeInvocation() {
+        return null == entity;
+    }
+
 }
