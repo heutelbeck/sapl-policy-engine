@@ -19,7 +19,6 @@ package io.sapl.grammar.sapl.impl.util;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.EObject;
@@ -28,6 +27,8 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Arguments;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.FunctionIdentifier;
+import io.sapl.grammar.sapl.Import;
+import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.context.AuthorizationContext;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
@@ -44,13 +45,9 @@ public class FunctionUtil {
     }
 
     public Mono<Val> evaluateFunctionMono(EObject location, FunctionIdentifier identifier, Val... parameters) {
-        return evaluateFunctionMono(location, functionIdentifierToReference(identifier), parameters);
-    }
-
-    public Mono<Val> evaluateFunctionMono(EObject location, String unresolvedFunctionName, Val... parameters) {
-        return Mono.deferContextual(ctx -> Mono.just(AuthorizationContext.functionContext(ctx).evaluate(location,
-                resolveAbsoluteFunctionName(location, unresolvedFunctionName),
-                parameters)));
+        final var fullyQualifiedFunctionName = resolveFunctionIdentifierByImports(location, identifier);
+        return Mono.deferContextual(ctx -> Mono.just(
+                AuthorizationContext.functionContext(ctx).evaluate(location, fullyQualifiedFunctionName, parameters)));
     }
 
     public Mono<Val> evaluateFunctionWithLeftHandArgumentMono(EObject location, FunctionIdentifier identifier,
@@ -70,11 +67,54 @@ public class FunctionUtil {
         return Flux.combineLatest(x, e -> Arrays.copyOf(e, e.length, Val[].class));
     }
 
-    public String functionIdentifierToReference(FunctionIdentifier identifier) {
+    public String resolveFunctionIdentifierByImports(EObject source, FunctionIdentifier identifier) {
+        return resolveFunctionReferenceByImports(source, functionIdentifierToReference(identifier));
+    }
+
+    public String resolveFunctionReferenceByImports(EObject source, String nameReference) {
+        if (nameReference.contains(".")) {
+            return nameReference;
+        }
+
+        var sapl = getSourceSaplDocument(source);
+        if (null == sapl) {
+            return nameReference;
+        }
+
+        final var imports = sapl.getImports();
+        if (null == imports) {
+            return nameReference;
+        }
+
+        for (var currentImport : imports) {
+            final var importedFunction = fullyQualifiedFunctionName(currentImport);
+            if (nameReference.equals(currentImport.getFunctionAlias()) || importedFunction.endsWith(nameReference)) {
+                return importedFunction;
+            }
+        }
+        return nameReference;
+    }
+
+    private String fullyQualifiedFunctionName(Import anImport) {
+        final var library = String.join(".", anImport.getLibSteps());
+        return library + "." + anImport.getFunctionName();
+    }
+
+    private String functionIdentifierToReference(FunctionIdentifier identifier) {
         if (null == identifier) {
             return "";
         }
         return String.join(".", identifier.getNameFragments());
+    }
+
+    private SAPL getSourceSaplDocument(EObject source) {
+        if (null == source) {
+            return null;
+        }
+        if (source instanceof SAPL sapl) {
+            return sapl;
+        }
+        return getSourceSaplDocument(source.eContainer());
     }
 
 }

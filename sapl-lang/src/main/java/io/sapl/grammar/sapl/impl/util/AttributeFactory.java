@@ -80,50 +80,50 @@ public class AttributeFactory {
 
     public Flux<Val> evaluateEnvironmentAttibute(EObject source, FunctionIdentifier identifier, Arguments arguments) {
         return Flux.deferContextual(ctx -> {
-            final var attributereference = FunctionUtil.functionIdentifierToReference(identifier);
-
+            final var resolvedAttributeName = FunctionUtil.resolveFunctionIdentifierByImports(source, identifier);
 
             if (TargetExpressionUtil.isInTargetExpression(source))
-                return Flux.just(ErrorFactory.error(source, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR)
-                        .withTrace(AttributeFinderStep.class, false, Map.of(Trace.ATTRIBUTE, Val.of(attributeName))));
+                return Flux.just(ErrorFactory.error(source, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(
+                        AttributeFinderStep.class, false, Map.of(Trace.ATTRIBUTE, Val.of(resolvedAttributeName))));
 
             final var attributeStreamBroker = AuthorizationContext.getAttributeStreamBroker(ctx);
 
             if (null != arguments && !arguments.getArgs().isEmpty()) {
                 final var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments).map(List::of);
                 return argumentFluxes.switchMap(argumentsList -> attributeStreamBroker.attributeStream(
-                        environmentAttributeFinderInvocationFor(ctx, source, attributeName, argumentsList)));
+                        environmentAttributeFinderInvocationFor(ctx, source, resolvedAttributeName, argumentsList)));
             } else {
                 return attributeStreamBroker.attributeStream(
-                        environmentAttributeFinderInvocationFor(ctx, source, attributeName, List.of()));
+                        environmentAttributeFinderInvocationFor(ctx, source, resolvedAttributeName, List.of()));
             }
         });
     }
 
     public Flux<Val> evaluateAttibute(EObject source, FunctionIdentifier identifier, Val entity, Arguments arguments) {
         return Flux.deferContextual(ctx -> {
-            final var attributereference = FunctionUtil.functionIdentifierToReference(identifier);
+            final var resolvedAttributeName = FunctionUtil.resolveFunctionIdentifierByImports(source, identifier);
 
             if (entity.isError()) {
                 return Flux.just(entity.withTrace(AttributeFinderStep.class, false,
-                        Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(attributereference))));
+                        Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(resolvedAttributeName))));
             }
             if (TargetExpressionUtil.isInTargetExpression(source)) {
                 return Flux.just(ErrorFactory.error(source, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR).withTrace(
                         AttributeFinderStep.class, false,
-                        Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(attributereference))));
+                        Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(resolvedAttributeName))));
             }
             if (entity.isUndefined()) {
                 return Flux.just(ErrorFactory.error(source, UNDEFINED_VALUE_ERROR).withTrace(AttributeFinderStep.class,
-                        false, Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(attributereference))));
+                        false, Map.of(Trace.PARENT_VALUE, entity, Trace.ATTRIBUTE, Val.of(resolvedAttributeName))));
             }
             final var attributeStreamBroker = getAttributeStreamBroker(ctx);
             if (null != arguments && !arguments.getArgs().isEmpty()) {
                 final var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments).map(List::of);
                 return argumentFluxes.switchMap(argumentsList -> attributeStreamBroker.attributeStream(
-                        attributeFinderInvocationFor(ctx, source, attributereference, entity, argumentsList)));
+                        attributeFinderInvocationFor(ctx, source, resolvedAttributeName, entity, argumentsList)));
             } else {
-                final var invocation = attributeFinderInvocationFor(ctx, source, attributereference, entity, List.of());
+                final var invocation = attributeFinderInvocationFor(ctx, source, resolvedAttributeName, entity,
+                        List.of());
                 return attributeStreamBroker.attributeStream(invocation);
             }
         });

@@ -27,8 +27,7 @@ SAPL:
 	policyElement=PolicyElement;
 
 Import:
-	'import' ( {AliasImport}  libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID 'as' functionAlias=SaplID
-	         |                libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID);
+	'import' libSteps+=SaplID ('.' libSteps+=SaplID)* '.' functionName=SaplID ('as' functionAlias=SaplID)?;
 
 Schema:
 	subscriptionElement=ReservedID (enforced?='enforced')? 'schema' schemaExpression=Expression;

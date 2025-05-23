@@ -123,8 +123,8 @@ public final class AnnotationFunctionContext implements FunctionContext {
         }
         final var metadata = functions.get(functionReference);
         if (metadata == null)
-            return ErrorFactory.error(location, UNKNOWN_FUNCTION_ERROR, functionReference).withTrace(FunctionContext.class,
-                    false, functionTrace);
+            return ErrorFactory.error(location, UNKNOWN_FUNCTION_ERROR, functionReference)
+                    .withTrace(FunctionContext.class, false, functionTrace);
 
         final var funParams = metadata.getFunction().getParameters();
 
