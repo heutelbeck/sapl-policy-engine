@@ -25,7 +25,7 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 
 import com.google.common.base.Objects;
 
-import io.sapl.grammar.sapl.impl.util.ImportsUtil;
+import io.sapl.grammar.sapl.impl.util.FunctionUtil;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
@@ -115,7 +115,7 @@ public class EquivalenceAndHashUtil {
 
     private String resolveStepsToFullyQualifiedName(EList<Object> steps, EObject eObject) {
         final var baseString = steps.stream().map(String.class::cast).collect(Collectors.joining("."));
-        return ImportsUtil.resolveAttributeNameReferenceByImports(eObject, baseString);
+        return FunctionUtil.resolveFunctionReferenceByImports(eObject, baseString);
     }
 
     static boolean featuresAreEquivalent(Object thisFeatureInstance, Object thatFeatureInstance) {

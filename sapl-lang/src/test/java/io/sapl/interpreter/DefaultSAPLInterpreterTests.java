@@ -362,8 +362,8 @@ class DefaultSAPLInterpreterTests {
 				// functionCallOnEachArrayItemWithRelativeArguments
 				Arguments.of(
 						"""
-				        import simple.*
-				        import filter.*
+				        import simple.append
+				        import filter.remove
 				        policy "test" permit
 				        where
 				          [
@@ -390,37 +390,32 @@ class DefaultSAPLInterpreterTests {
 				Arguments.of("policy \"test\" permit obligation \"a\" > 5", INDETERMINATE),
 				// adviceError
 				Arguments.of("policy \"test\" permit advice \"a\" > 5", INDETERMINATE),
-				// importWildcard
-				Arguments.of("import simple.* policy \"test\" permit where var a = append(\"a\",\"b\");", PERMIT),
-                // FIXME: importAttributeFinder
+				// import
+				Arguments.of("import simple.append policy \"test\" permit where var a = append(\"a\",\"b\");", PERMIT),
+                // importAttributeFinder
                 Arguments.of("import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;",
                         PERMIT),
                 // importAttributeFinder no import
                 Arguments.of("policy \"test\" permit where \"echo\" == \"echo\".<sapl.pip.test.echo>;",
                         PERMIT),
-    			// importLibrary
+    			// import alias
 				Arguments.of(
-						"import simple as simple_lib policy \"test\" permit where var a = simple_lib.append(\"a\",\"b\");",
+						"import simple.append as concat policy \"test\" permit where var a = concat(\"a\",\"b\");",
 						PERMIT),
 				// importMultiple
 				Arguments.of(
 						"import simple.length import simple.append policy \"test\" permit where var a = append(\"a\",\"b\");",
 						PERMIT),
 				// importNonExistingFunction
-				Arguments.of("import simple.non_existing policy \"test\" permit where true;", INDETERMINATE),
+				Arguments.of("import simple.non_existing policy \"test\" permit where true;", PERMIT),
 				// importDuplicateFunction
 				Arguments.of("import simple.append import simple.append policy \"test\" permit where true;",
-						INDETERMINATE),
-				// importDuplicateFunctionMatchingPolicy
-				Arguments.of("import simple.append import simple.append policy \"test\" permit where true;",
-						INDETERMINATE),
-				// importDuplicateWildcard
-				Arguments.of("import simple.append import simple.* policy \"test\" permit where true;", INDETERMINATE),
-				// importDuplicateAlias
-				Arguments.of("import simple as test import simple as test policy \"test\" permit where true;",
-						INDETERMINATE),
+				        PERMIT),
+				// importDuplicateAlias no problem. First one takes precedence
+				Arguments.of("import simple.append as test import simple.length as test policy \"test\" permit where \"ab\" == test(\"a\",\"b\");",
+				        PERMIT),
 				// onErrorMap
-				Arguments.of("import standard.* policy \"errors\" permit where onErrorMap(100/0, true);", PERMIT)
+				Arguments.of("import standard.onErrorMap policy \"errors\" permit where onErrorMap(100/0, true);", PERMIT)
 				);
 		// @formatter:on
     }
