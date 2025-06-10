@@ -18,7 +18,6 @@
 package io.sapl.grammar.ide.contentassist;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,14 +38,12 @@ import io.sapl.grammar.sapl.BasicIdentifier;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.HeadAttributeFinderStep;
 import io.sapl.grammar.sapl.Import;
-import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.Schema;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.grammar.sapl.ValueDefinition;
-import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
@@ -141,7 +138,7 @@ public class ExpressionSchemaResolver {
             ContentAssistContext context, PDPConfiguration pdpConfiguration) {
         final var broker       = pdpConfiguration.attributeStreamBroker();
         final var nameInUse    = joinStepsToName(idSteps);
-        final var resolvedName = resolveImport(nameInUse, context, broker.getAllFullyQualifiedFunctions());
+        final var resolvedName = resolveImport(nameInUse, context);
         return lookupSchemasByName(resolvedName, broker.getAttributeSchemas());
     }
 
@@ -149,8 +146,13 @@ public class ExpressionSchemaResolver {
             PDPConfiguration pdpConfiguration) {
         final var functionContext = pdpConfiguration.functionContext();
         final var nameInUse       = joinStepsToName(idSteps);
-        final var resolvedName    = resolveImport(nameInUse, context, functionContext.getAllFullyQualifiedFunctions());
+        final var resolvedName    = resolveImport(nameInUse, context);
         return lookupSchemasByName(resolvedName, functionContext.getFunctionSchemas());
+    }
+
+
+    private String joinStepsToName(Iterable<String> steps) {
+        return String.join(".", steps);
     }
 
     private List<JsonNode> lookupSchemasByName(String resolvedFunctionName,
@@ -245,53 +247,31 @@ public class ExpressionSchemaResolver {
         return NodeModelUtils.getNode(statement).getOffset();
     }
 
-    private String joinStepsToPrefix(Iterable<String> steps) {
-        return joinStepsToName(steps) + '.';
-    }
+    private String resolveImport(String nameReference, ContentAssistContext context) {
+        if (nameReference.contains(".")) {
+            return nameReference;
+        }
 
-    private String joinStepsToName(Iterable<String> steps) {
-        return String.join(".", steps);
-    }
-
-    private String resolveImport(String nameInUse, ContentAssistContext context, Collection<String> allFunctions) {
         final var rootModel = context.getRootModel();
         if (rootModel instanceof final SAPL sapl) {
-            final var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
-            for (final var anImport : imports) {
-                final var importResolution = resolveIndividualImport(nameInUse, anImport, allFunctions);
-                if (importResolution.isPresent()) {
-                    return importResolution.get();
+            final var imports = sapl.getImports();
+            if (null == imports) {
+                return nameReference;
+            }
+
+            for (var currentImport : imports) {
+                final var importedFunction = fullyQualifiedFunctionName(currentImport);
+                if (nameReference.equals(currentImport.getFunctionAlias()) || importedFunction.endsWith(nameReference)) {
+                    return importedFunction;
                 }
             }
         }
-        return nameInUse;
+        return nameReference;
     }
 
-    private Optional<String> resolveIndividualImport(String nameInUse, Import anImport,
-            Collection<String> allFunctions) {
-        if (anImport instanceof final WildcardImport wildcardImport) {
-            final var resolutionCandidate = joinStepsToPrefix(wildcardImport.getLibSteps()) + nameInUse;
-            if (allFunctions.contains(resolutionCandidate)) {
-                return Optional.of(resolutionCandidate);
-            }
-        } else if (anImport instanceof final LibraryImport libraryImport) {
-            final var alias = libraryImport.getLibAlias();
-            if (nameInUse.startsWith(alias)) {
-                final var prefix              = joinStepsToPrefix(libraryImport.getLibSteps());
-                final var suffix              = nameInUse.substring(alias.length() + 1);
-                final var resolutionCandidate = prefix + suffix;
-                if (allFunctions.contains(resolutionCandidate)) {
-                    return Optional.of(resolutionCandidate);
-                }
-            }
-        } else {
-            // Basic Import
-            final var importedName = joinStepsToName(anImport.getLibSteps());
-            if (importedName.endsWith(nameInUse) && allFunctions.contains(importedName)) {
-                return Optional.of(importedName);
-            }
-        }
-        return Optional.empty();
+    private String fullyQualifiedFunctionName(Import anImport) {
+        final var library = String.join(".", anImport.getLibSteps());
+        return library + "." + anImport.getFunctionName();
     }
 
 }

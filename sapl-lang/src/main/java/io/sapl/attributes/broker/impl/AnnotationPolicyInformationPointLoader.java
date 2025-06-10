@@ -22,8 +22,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -37,6 +39,10 @@ import io.sapl.attributes.broker.api.AttributeBrokerException;
 import io.sapl.attributes.broker.api.AttributeFinder;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
+import io.sapl.attributes.broker.api.PolicyInformationPointDocumentationProvider;
+import io.sapl.attributes.broker.api.PolicyInformationPointImplementation;
+import io.sapl.attributes.broker.api.PolicyInformationPointSpecification;
 import io.sapl.attributes.documentation.api.SchemaLoadingUtil;
 import io.sapl.validation.ValidationException;
 import io.sapl.validation.Validator;
@@ -67,10 +73,6 @@ public class AnnotationPolicyInformationPointLoader {
             Argument missing. First parameter of the method '%s' must be a Val for taking in the left-hand argument, \
             but no argument was present.""";
 
-    static final String FIRST_PARAMETER_S_UNEXPECTED_TYPE_S_ERROR = """
-            First parameter of the method %s has an unexpected type. \
-            Was expecting a Val but got '%s'.""";
-
     static final String INVALID_SCHEMA_DEFINITION_ERROR = """
             Invalid schema definition for attribute found. This only validated JSON syntax, not \
             compliance with the JSONSchema specification""";
@@ -98,8 +100,11 @@ public class AnnotationPolicyInformationPointLoader {
             However the array is followed by some other parameters. This is prohibited. \
             The array must be the last parameter of the attribute declaration.""";
 
-    private final CachingAttributeStreamBroker broker;
-    private final ValidatorFactory             validatorFactory;
+    private static final String THE_SPECIFICATION_COLLISION_PIP_S_WITH_S_ERROR = "The specification of the new PIP:%s collides with an existing specification: %s.";
+
+    private final AttributeStreamBroker                       broker;
+    private final PolicyInformationPointDocumentationProvider documentationProvider;
+    private final ValidatorFactory                            validatorFactory;
 
     /**
      * Initialize with context from a supplied PIPs.
@@ -108,11 +113,13 @@ public class AnnotationPolicyInformationPointLoader {
      * @param staticPipSupplier supplies libraries contained in utility classes with
      * static methods as functions
      */
-    public AnnotationPolicyInformationPointLoader(CachingAttributeStreamBroker broker,
+    public AnnotationPolicyInformationPointLoader(AttributeStreamBroker broker,
+            PolicyInformationPointDocumentationProvider documentationProvider,
             PolicyInformationPointSupplier pipSupplier, StaticPolicyInformationPointSupplier staticPipSupplier,
             ValidatorFactory validatorFactory) {
-        this.broker           = broker;
-        this.validatorFactory = validatorFactory;
+        this.broker                = broker;
+        this.documentationProvider = documentationProvider;
+        this.validatorFactory      = validatorFactory;
         loadPolicyInformationPoints(pipSupplier);
         loadPolicyInformationPoints(staticPipSupplier);
     }
@@ -156,6 +163,12 @@ public class AnnotationPolicyInformationPointLoader {
     }
 
     private void loadPolicyInformationPoint(Object policyInformationPoint, Class<?> pipClass) {
+        final var implementation = createImplementation(policyInformationPoint, pipClass);
+        broker.loadPolicyInformationPoint(implementation);        
+    }
+
+    private PolicyInformationPointImplementation createImplementation(Object policyInformationPoint,
+            Class<?> pipClass) {
         final var pipAnnotation = pipClass.getAnnotation(PolicyInformationPoint.class);
 
         if (null == pipAnnotation) {
@@ -166,8 +179,9 @@ public class AnnotationPolicyInformationPointLoader {
         if (pipName.isBlank()) {
             pipName = pipClass.getSimpleName();
         }
-
-        var foundAtLeastOneSuppliedAttributeInPip = false;
+        log.debug("Analyzing PIP {}...", pipName);
+        var       foundAtLeastOneSuppliedAttributeInPip = false;
+        final var implementations                       = new HashMap<AttributeFinderSpecification, AttributeFinder>();
         for (final Method method : pipClass.getDeclaredMethods()) {
             String  name                   = "";
             String  attributeSchema        = "";
@@ -190,17 +204,32 @@ public class AnnotationPolicyInformationPointLoader {
             }
             if (isAttributeFinder) {
                 foundAtLeastOneSuppliedAttributeInPip = true;
-                final var attributeName   = fullyQualifiedAttributeName(pipClass, method, pipName, name);
-                final var specification   = getSpecificationOfAttribute(policyInformationPoint, attributeName, method,
+                final var attributeName = fullyQualifiedAttributeName(pipClass, method, pipName, name);
+                final var specification = getSpecificationOfAttribute(policyInformationPoint, attributeName, method,
                         isEnvironmentAttribute, attributeSchema, pathToSchema);
+                requireNoSpecCollision(implementations.keySet(), specification);
                 final var attributeFinder = createAttributeFinder(policyInformationPoint, method, specification);
-                log.debug("Found: {}", specification);
-                broker.registerAttributeFinder(specification, attributeFinder);
+                log.debug("Found attribute finder: {}", specification);
+                implementations.put(specification, attributeFinder);
             }
         }
 
         if (!foundAtLeastOneSuppliedAttributeInPip) {
             throw new AttributeBrokerException(String.format(PIP_S_DECLARES_NO_ATTRIBUTES_ERROR, pipName));
+        }
+
+        final var pipSpecification = new PolicyInformationPointSpecification(pipName, pipAnnotation.description(),
+                pipAnnotation.description(), implementations.keySet());
+        return new PolicyInformationPointImplementation(pipSpecification, implementations);
+    }
+
+    private void requireNoSpecCollision(Set<AttributeFinderSpecification> existingSpecs,
+            AttributeFinderSpecification pipSpecification) {
+        for (var existingSpec : existingSpecs) {
+            if (existingSpec.collidesWith(pipSpecification)) {
+                throw new AttributeBrokerException(
+                        String.format(THE_SPECIFICATION_COLLISION_PIP_S_WITH_S_ERROR, existingSpec, pipSpecification));
+            }
         }
     }
 
@@ -329,37 +358,27 @@ public class AnnotationPolicyInformationPointLoader {
         }
 
         if (!attributeSchema.isEmpty()) {
-            try {
-                processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(attributeSchema);
-            } catch (AttributeBrokerException e) {
-                throw new AttributeBrokerException(
-                        String.format("Error in attribute schema of %s", fullyQualifiedAttributeName), e);
-            }
+            processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(attributeSchema);
         }
 
         List<Validator> parameterValidators = new ArrayList<>(parameterCount);
         if (parameterUnderInspection < parameterCount && parameterTypeIsArrayOfVal(method, parameterUnderInspection)) {
-            if (parameterUnderInspection + 1 == parameterCount) {
-                parameterValidators.add(validatorFactory
-                        .parameterValidatorFromAnnotations(parameterAnnotations[parameterUnderInspection]));
-                return new AttributeFinderSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
-                        AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, requiresVariables,
-                        entityValidator, parameterValidators, processedSchemaDefinition);
-            } else {
+            if (parameterUnderInspection + 1 != parameterCount) {
                 throw new AttributeBrokerException(String.format(VARARGS_MISMATCH_AT_METHOD_S_ERROR, method.getName()));
             }
+            parameterValidators.add(
+                    validatorFactory.parameterValidatorFromAnnotations(parameterAnnotations[parameterUnderInspection]));
+            return new AttributeFinderSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
+                    AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, requiresVariables, entityValidator,
+                    parameterValidators, processedSchemaDefinition);
         }
 
         var numberOfInnerAttributeParameters = 0;
         for (; parameterUnderInspection < parameterCount; parameterUnderInspection++) {
-            if (parameterTypeIsVal(method, parameterUnderInspection)) {
-                parameterValidators.add(validatorFactory
-                        .parameterValidatorFromAnnotations(parameterAnnotations[parameterUnderInspection]));
-                numberOfInnerAttributeParameters++;
-            } else {
-                throw new AttributeBrokerException(
-                        String.format(NON_VAL_PARAMETER_AT_METHOD_S_ERROR, method.getName()));
-            }
+            assertParameterTypeIsVal(method, parameterUnderInspection);
+            parameterValidators.add(
+                    validatorFactory.parameterValidatorFromAnnotations(parameterAnnotations[parameterUnderInspection]));
+            numberOfInnerAttributeParameters++;
         }
         return new AttributeFinderSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
                 numberOfInnerAttributeParameters, requiresVariables, entityValidator, parameterValidators,
@@ -409,8 +428,10 @@ public class AnnotationPolicyInformationPointLoader {
         return Mono.class.isAssignableFrom(returnType);
     }
 
-    private static boolean parameterTypeIsVal(Method method, int indexOfParameter) {
-        return isVal(method.getParameterTypes()[indexOfParameter]);
+    private static void assertParameterTypeIsVal(Method method, int indexOfParameter) {
+        if (!isVal(method.getParameterTypes()[indexOfParameter])) {
+            throw new AttributeBrokerException(String.format(NON_VAL_PARAMETER_AT_METHOD_S_ERROR, method.getName()));
+        }
     }
 
     private static boolean parameterTypeIsArrayOfVal(Method method, int indexOfParameter) {
@@ -442,10 +463,7 @@ public class AnnotationPolicyInformationPointLoader {
         if (method.getParameterCount() == 0) {
             throw new AttributeBrokerException(String.format(FIRST_PARAMETER_NOT_PRESENT_S_ERROR, method.getName()));
         }
-        if (!parameterTypeIsVal(method, 0)) {
-            throw new AttributeBrokerException(String.format(FIRST_PARAMETER_S_UNEXPECTED_TYPE_S_ERROR,
-                    method.getName(), method.getParameters()[0].getType().getSimpleName()));
-        }
+        assertParameterTypeIsVal(method, 0);
     }
 
 }

@@ -32,9 +32,7 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
 import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
-import io.sapl.grammar.sapl.AliasImport;
 import io.sapl.grammar.sapl.Import;
-import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.pip.LibraryEntryMetadata;
 import io.sapl.pdp.config.PDPConfiguration;
@@ -223,32 +221,10 @@ public class LibraryProposalsGenerator {
         if (context.getRootModel() instanceof final SAPL sapl) {
             final var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
             for (final var anImport : imports) {
-                if (anImport instanceof final AliasImport aliasImport) {
-                    aliasImports(aliasImport, fullyQualifiedName).ifPresent(aliases::add);
-                } else {
-                    resolveImport(anImport, fullyQualifiedName).ifPresent(aliases::add);
-                }
+                resolveImport(anImport, fullyQualifiedName).ifPresent(aliases::add);
             }
         }
         return aliases;
-    }
-
-    /**
-     * Generates an alias for a fully qualified name if the import is applicable.
-     *
-     * @param anImport a library import statement
-     * @param fullyQualifiedName the original fully qualified name of the function
-     * @return an Optional containing an alias for the function, if the import was
-     * applicable. Else returns empty Optional.
-     */
-    private static Optional<String> aliasImports(AliasImport aliasImport, String fullyQualifiedName) {
-        final var shortPrefix = String.join(".", aliasImport.getLibSteps());
-        final var prefix      = shortPrefix + '.';
-        if (fullyQualifiedName.startsWith(prefix)) {
-            return Optional.of(fullyQualifiedName.replaceFirst(shortPrefix, aliasImport.getLibAlias()));
-        } else {
-            return Optional.empty();
-        }
     }
 
     /**

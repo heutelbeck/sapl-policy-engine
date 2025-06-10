@@ -22,9 +22,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeBrokerException;
@@ -33,39 +30,42 @@ import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification.Match;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
+import io.sapl.attributes.broker.api.PolicyInformationPointImplementation;
+import io.sapl.attributes.broker.api.PolicyInformationPointSpecification;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 @Slf4j
 public class CachingAttributeStreamBroker implements AttributeStreamBroker {
-    private static final String THE_SPECIFICATION_COLLISION_PIP_S_WITH_S_ERROR = "The specification of the new PIP:%s collides with an existing specification: %s.";
-    static final Duration       DEFAULT_GRACE_PERIOD                           = Duration.ofMillis(3000L);
+    static final Duration DEFAULT_GRACE_PERIOD = Duration.ofMillis(3000L);
 
-    private record SpecAndPip(AttributeFinderSpecification specification, AttributeFinder policyInformationPoint) {}
+    private record SpecificationAndFinder(AttributeFinderSpecification specification,
+            AttributeFinder policyInformationPoint) {}
 
-    private final Map<AttributeFinderInvocation, List<AttributeStream>> attributeStreamIndex = new HashMap<>();
-    private final Map<String, List<SpecAndPip>>                         pipRegistry          = new HashMap<>();
+    private final Map<AttributeFinderInvocation, List<AttributeStream>> activeStreamIndex    = new HashMap<>();
+    private final Map<String, List<SpecificationAndFinder>>             attributeFinderIndex = new HashMap<>();
+    private final Map<String, PolicyInformationPointSpecification>      pipRegistry          = new HashMap<>();
+
+    private final Object lock = new Object();
 
     @Override
     public Flux<Val> attributeStream(AttributeFinderInvocation invocation) {
-        final var attributeStreamReference = new AtomicReference<Flux<Val>>();
-        attributeStreamIndex.compute(invocation, (attributeName, streams) -> {
+        synchronized (lock) {
+            var streams = activeStreamIndex.get(invocation);
             if (null == streams) {
                 streams = new ArrayList<>();
+                activeStreamIndex.put(invocation, streams);
             }
             AttributeStream stream;
             if (streams.isEmpty() || invocation.fresh()) {
-                final var matchingSpecsAndPips = pipRegistry.get(invocation.attributeName());
+                final var matchingSpecsAndPips = attributeFinderIndex.get(invocation.attributeName());
                 stream = newAttributeStream(invocation, matchingSpecsAndPips);
                 streams.add(stream);
             } else {
                 stream = streams.get(0);
             }
-            attributeStreamReference.set(stream.getStream());
-            return streams;
-        });
-        return attributeStreamReference.get();
+            return stream.getStream();
+        }
     }
 
     /**
@@ -78,7 +78,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      * was found for the invocation.
      */
     private AttributeStream newAttributeStream(final AttributeFinderInvocation invocation,
-            List<SpecAndPip> pipsWithNameOfInvocation) {
+            List<SpecificationAndFinder> pipsWithNameOfInvocation) {
         final var attributeStream             = new AttributeStream(invocation, this::removeAttributeStreamFromIndex,
                 DEFAULT_GRACE_PERIOD);
         final var uniquePipMatchingInvocation = searchForMatchingPip(invocation, pipsWithNameOfInvocation);
@@ -98,7 +98,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      * @return a PIP whose specification is matching the invocation, or null.
      */
     private AttributeFinder searchForMatchingPip(AttributeFinderInvocation invocation,
-            List<SpecAndPip> pipsWithNameOfInvocation) {
+            List<SpecificationAndFinder> pipsWithNameOfInvocation) {
         if (null == pipsWithNameOfInvocation) {
             return null;
         }
@@ -106,6 +106,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         for (var specAndPip : pipsWithNameOfInvocation) {
             final var matchQuality = specAndPip.specification().matches(invocation);
             if (matchQuality == Match.EXACT_MATCH) {
+                // return exact matches early even if a varargs match already was found.
                 return specAndPip.policyInformationPoint();
             } else if (matchQuality == Match.VARARGS_MATCH) {
                 varArgsMatch = specAndPip.policyInformationPoint();
@@ -120,10 +121,44 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      * @param attributeStream An attribute stream to remove.
      */
     private void removeAttributeStreamFromIndex(AttributeStream attributeStream) {
-        attributeStreamIndex.compute(attributeStream.getInvocation(), (i, streams) -> {
+        synchronized (lock) {
+            final var streams = activeStreamIndex.get(attributeStream.getInvocation());
             streams.remove(attributeStream);
-            return streams;
-        });
+        }
+    }
+
+    @Override
+    public void loadPolicyInformationPoint(PolicyInformationPointImplementation pipImplementation) {
+        synchronized (lock) {
+            final var pipSpecification = pipImplementation.specification();
+            final var pipName          = pipSpecification.name();
+            if (pipRegistry.containsKey(pipName)) {
+                throw new AttributeBrokerException(String.format(
+                        "Namespace collission error. Policy Information Point with name %s already registered.",
+                        pipName));
+            }
+            final var finderImplementations           = pipImplementation.implementsations();
+            final var varargsFindersForDelayedLoading = new ArrayList<AttributeFinderSpecification>();
+            // Explanation: First load the non-varargs finders. If we would load a varargs
+            // first, this may trigger a match with an existing subscription and it would
+            // wrongly subscribe to it even if there also exist an exact match which has
+            // not been seen while loading yet. If you fist load the exact matches, the
+            // varargs match will not override it and the loading of the library is
+            // seemingly atomic from the perspective of existing subscriptions.
+            for (var attributeFinderSpecification : pipSpecification.attributeFinders()) {
+                if (attributeFinderSpecification.hasVariableNumberOfArguments()) {
+                    varargsFindersForDelayedLoading.add(attributeFinderSpecification);
+                } else {
+                    final var attributeFinder = finderImplementations.get(attributeFinderSpecification);
+                    registerAttributeFinder(attributeFinderSpecification, attributeFinder);
+                }
+            }
+            for (var attributeFinderSpecification : varargsFindersForDelayedLoading) {
+                final var attributeFinder = finderImplementations.get(attributeFinderSpecification);
+                registerAttributeFinder(attributeFinderSpecification, attributeFinder);
+            }
+            pipRegistry.put(pipName, pipSpecification);
+        }
     }
 
     /**
@@ -132,37 +167,33 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      * attribute streams consumed by policies, the streams are connected to the new
      * PIP.
      *
-     * @param pipSpecification The specification of the PIP.
-     * @param policyInformationPoint The PIP itself.
+     * @param attributeFinderSpecification The specification of the PIP.
+     * @param attributeFinder The PIP itself.
      * @throws AttributeBrokerException if there is a specification collision.
      */
-    public void registerAttributeFinder(AttributeFinderSpecification pipSpecification,
-            AttributeFinder policyInformationPoint) {
-        log.debug("Publishing PIP: {}", pipSpecification);
-        pipRegistry.compute(pipSpecification.attributeName(), (key, pipsForName) -> {
+    private void registerAttributeFinder(AttributeFinderSpecification attributeFinderSpecification,
+            AttributeFinder attributeFinder) {
+        log.debug("Publishing PIP: {}", attributeFinderSpecification);
+        final var pipName        = attributeFinderSpecification.attributeName();
+        var       findersForName = attributeFinderIndex.get(pipName);
+        if (null == findersForName) {
+            findersForName = new ArrayList<>();
+            attributeFinderIndex.put(pipName, findersForName);
+        }
+        findersForName.add(new SpecificationAndFinder(attributeFinderSpecification, attributeFinder));
 
-            final var newPipsForName = new ArrayList<SpecAndPip>();
-            if (null != pipsForName) {
-                requireNoSpecCollision(pipsForName, pipSpecification);
-                newPipsForName.addAll(pipsForName);
+        for (var invocationAndStreams : activeStreamIndex.entrySet()) {
+            final var invocation     = invocationAndStreams.getKey();
+            final var streams        = invocationAndStreams.getValue();
+            final var newFinderMatch = attributeFinderSpecification.matches(invocation);
+            if (newFinderMatch == Match.EXACT_MATCH || (newFinderMatch == Match.VARARGS_MATCH
+                    && !doesExactlyMatchingPipExtist(findersForName, invocation))) {
+                connectStreamsToPip(attributeFinder, streams);
             }
-            newPipsForName.add(new SpecAndPip(pipSpecification, policyInformationPoint));
-
-            for (var invocationAndStreams : attributeStreamIndex.entrySet()) {
-                final var invocation  = invocationAndStreams.getKey();
-                final var streams     = invocationAndStreams.getValue();
-                final var newPipMatch = pipSpecification.matches(invocation);
-
-                if (newPipMatch == Match.EXACT_MATCH || (newPipMatch == Match.VARARGS_MATCH
-                        && !doesExactlyMatchingPipExtist(pipsForName, invocation))) {
-                    connectStreamsToPip(policyInformationPoint, streams);
-                }
-            }
-            return newPipsForName;
-        });
+        }
     }
 
-    private boolean doesExactlyMatchingPipExtist(List<SpecAndPip> pipsForName,
+    private boolean doesExactlyMatchingPipExtist(List<SpecificationAndFinder> pipsForName,
             final AttributeFinderInvocation invocation) {
         for (var pip : pipsForName) {
             final var existingPipMatch = pip.specification().matches(invocation);
@@ -179,11 +210,27 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         }
     }
 
-    private void requireNoSpecCollision(List<SpecAndPip> specsAndPips, AttributeFinderSpecification pipSpecification) {
-        for (var existingSpecAndPip : specsAndPips) {
-            if (existingSpecAndPip.specification().collidesWith(pipSpecification)) {
-                throw new AttributeBrokerException(String.format(THE_SPECIFICATION_COLLISION_PIP_S_WITH_S_ERROR,
-                        existingSpecAndPip.specification(), pipSpecification));
+    @Override
+    public void unloadPolicyInformationPoint(String name) {
+        synchronized (lock) {
+            final var pipToRemove = pipRegistry.get(name);
+            if (null == pipToRemove) {
+                return;
+            }
+            // Make sure varargs PIPs are removed first when unloading a class to
+            // avoid race conditions so that this does not lead to a case where this
+            // temporarily switches to a varargs PIP that is about to be removed.
+            // This is the inverse order as at loading time.
+            final var nonVarargsFindersForDelayedRemoval = new ArrayList<AttributeFinderSpecification>();
+            for (var finderForRemoval : pipToRemove.attributeFinders()) {
+                if (finderForRemoval.hasVariableNumberOfArguments()) {
+                    removeAttributeFinder(finderForRemoval);
+                } else {
+                    nonVarargsFindersForDelayedRemoval.add(finderForRemoval);
+                }
+            }
+            for (var finderForRemoval : nonVarargsFindersForDelayedRemoval) {
+                removeAttributeFinder(finderForRemoval);
             }
         }
     }
@@ -192,113 +239,45 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      * Removes a PIP with a given specification from the broker and disconnects all
      * connected attribute streams.
      *
-     * @param pipSpecification the specification of the PIP to remove
+     * @param attributeFinderSpecification the specification of the PIP to remove
      */
-    public void removePolicyInformationPoint(AttributeFinderSpecification pipSpecification) {
-        log.debug("Unpublishing PIP: {}", pipSpecification);
-        pipRegistry.compute(pipSpecification.attributeName(), (key, pipsForName) -> {
-            if (null == pipsForName) {
-                return null;
+    private void removeAttributeFinder(AttributeFinderSpecification attributeFinderSpecification) {
+        log.debug("Unpublishing AttributeFinder: {}", attributeFinderSpecification);
+        final var attributeName = attributeFinderSpecification.attributeName();
+        final var pipsForName   = attributeFinderIndex.get(attributeName);
+        if (null == pipsForName) {
+            return;
+        }
+        pipsForName.removeIf(pipAndSpec -> pipAndSpec.specification().equals(attributeFinderSpecification));
+        if (pipsForName.isEmpty()) {
+            attributeFinderIndex.remove(attributeName);
+        }
+
+        for (var invocationAndStreams : activeStreamIndex.entrySet()) {
+            final var invocation      = invocationAndStreams.getKey();
+            final var streams         = invocationAndStreams.getValue();
+            final var removedPipMatch = attributeFinderSpecification.matches(invocation);
+
+            if (removedPipMatch != Match.NO_MATCH) {
+                disconnectStreams(streams);
             }
-            final var newPipsForName = new ArrayList<SpecAndPip>();
-            for (var pip : pipsForName) {
-                if (!pip.specification().equals(pipSpecification)) {
-                    newPipsForName.add(pip);
-                }
-            }
-
-            for (var invocationAndStreams : attributeStreamIndex.entrySet()) {
-                final var invocation      = invocationAndStreams.getKey();
-                final var streams         = invocationAndStreams.getValue();
-                final var removedPipMatch = pipSpecification.matches(invocation);
-
-                if (removedPipMatch != Match.NO_MATCH) {
-                    disconnectStreams(streams);
-                    // Check if the subscription now falls back to a still existing var args PIP.
-                    // There cannot be another exact match, as the consistency rules at PIP load
-                    // time forbids it.
-
-                    // TODO: Make sure varargs PIPs are removed first when unloading a class to
-                    // avoid race conditions so that this does not lead to a case where this
-                    // temporarily switches to a varargs PIP that is about to be removed.
-
-                    if (removedPipMatch == Match.EXACT_MATCH) {
-                        for (var pip : newPipsForName) {
-                            if (pip.specification().matches(invocation) == Match.VARARGS_MATCH) {
-                                connectStreamsToPip(pip.policyInformationPoint(), streams);
-                            }
-                        }
+            // Check if the subscription now falls back to a still existing varargs PIP.
+            // There cannot be another exact match, as the consistency rules at PIP load
+            // time forbids it.
+            if (removedPipMatch == Match.EXACT_MATCH) {
+                for (var pip : pipsForName) {
+                    if (pip.specification().matches(invocation) == Match.VARARGS_MATCH) {
+                        connectStreamsToPip(pip.policyInformationPoint(), streams);
                     }
-
                 }
             }
-            return newPipsForName;
-        });
+        }
     }
 
     private void disconnectStreams(final List<AttributeStream> streams) {
         for (var attributeStream : streams) {
             attributeStream.disconnectFromPolicyInformationPoint();
         }
-    }
-
-    @Override
-    public List<String> providedFunctionsOfLibrary(String library) {
-        return pipRegistry.keySet().stream().filter(s -> s.startsWith(library)).toList();
-    }
-
-    @Override
-    public boolean isProvidedFunction(String fullyQualifiedFunctionName) {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
-    public List<String> getAllFullyQualifiedFunctions() {
-        // TODO Auto-generated method stub
-        return List.of();
-    }
-
-    @Override
-    public Map<String, JsonNode> getAttributeSchemas() {
-        // TODO Auto-generated method stub
-        return Map.of();
-    }
-
-    @Override
-    public List<AttributeFinderSpecification> getAttributeMetatata() {
-        // TODO Auto-generated method stub
-        return List.of();
-    }
-
-    @Override
-    public List<String> getAvailableLibraries() {
-        // TODO Auto-generated method stub
-        return List.of();
-    }
-
-    @Override
-    public List<String> getEnvironmentAttributeCodeTemplates() {
-        // TODO Auto-generated method stub
-        return List.of();
-    }
-
-    @Override
-    public List<String> getAttributeCodeTemplates() {
-        // TODO Auto-generated method stub
-        return List.of();
-    }
-
-    @Override
-    public Map<String, String> getDocumentedAttributeCodeTemplates() {
-        // TODO Auto-generated method stub
-        return Map.of();
-    }
-
-    @Override
-    public List<PolicyInformationPointDocumentation> getDocumentation() {
-        // TODO Auto-generated method stub
-        return List.of();
     }
 
 }
