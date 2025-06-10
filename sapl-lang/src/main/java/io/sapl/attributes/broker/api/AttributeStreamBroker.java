@@ -17,37 +17,14 @@
  */
 package io.sapl.attributes.broker.api;
 
-import java.util.List;
-import java.util.Map;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.api.interpreter.Val;
-import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import reactor.core.publisher.Flux;
 
 public interface AttributeStreamBroker {
 
     Flux<Val> attributeStream(AttributeFinderInvocation invocation);
 
-    List<String> providedFunctionsOfLibrary(String library);
+    void loadPolicyInformationPoint(PolicyInformationPointImplementation pipImplementation);
 
-    boolean isProvidedFunction(String fullyQualifiedFunctionName);
-
-    List<String> getAllFullyQualifiedFunctions();
-
-    Map<String, JsonNode> getAttributeSchemas();
-
-    List<AttributeFinderSpecification> getAttributeMetatata();
-
-    List<String> getAvailableLibraries();
-
-    List<String> getEnvironmentAttributeCodeTemplates();
-
-    List<String> getAttributeCodeTemplates();
-
-    Map<String, String> getDocumentedAttributeCodeTemplates();
-
-    List<PolicyInformationPointDocumentation> getDocumentation();
-
+    void unloadPolicyInformationPoint(String name);
 }

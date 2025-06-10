@@ -28,7 +28,7 @@ import lombok.NonNull;
 
 public record AttributeFinderSpecification(@NonNull String attributeName, boolean isEnvironmentAttribute,
         int numberOfArguments, boolean takesVariables, @NonNull Validator entityValidator,
-        @NonNull List<Validator> parameterValidators, JsonNode attributeSchema) {
+        @NonNull List<Validator> parameterValidators, JsonNode attributeSchema, @NonNull documentation) {
 
     public enum Match {
         NO_MATCH, EXACT_MATCH, VARARGS_MATCH
@@ -55,11 +55,6 @@ public record AttributeFinderSpecification(@NonNull String attributeName, boolea
         }
         return (hasVariableNumberOfArguments() && other.hasVariableNumberOfArguments())
                 || numberOfArguments == other.numberOfArguments;
-    }
-
-    public String getCodeTemplate(String alias) {
-        // TODO Auto-generated method stub
-        return "UNIMPLEMENTED TEMPLATE CREATION";
     }
 
     public Match matches(AttributeFinderInvocation invocation) {

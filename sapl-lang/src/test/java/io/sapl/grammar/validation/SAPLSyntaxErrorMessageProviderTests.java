@@ -97,7 +97,7 @@ class SAPLSyntaxErrorMessageProviderTests {
         String testPolicy = "import ";
         SAPL   policy     = this.parseHelper.parse(testPolicy);
         this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-                SAPLSyntaxErrorMessageProvider.INCOMPLETE_IMPORT_ERROR);
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
     }
 
     @Test

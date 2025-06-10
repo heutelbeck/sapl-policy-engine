@@ -23,8 +23,6 @@ import org.antlr.runtime.NoViableAltException;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.Token;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.Assignment;
-import org.eclipse.xtext.RuleCall;
 import org.eclipse.xtext.diagnostics.Diagnostic;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.SyntaxErrorMessage;
@@ -42,7 +40,6 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
     public static final String VAR_ID                                   = "var";
     public static final String SEMICOLON_ID                             = ";";
     public static final String INCOMPLETE_DOCUMENT_ERROR                = "Incomplete document";
-    public static final String INCOMPLETE_IMPORT_ERROR                  = "Incomplete import statement, expected library or function name";
     public static final String INCOMPLETE_IMPORT_ALIAS_SET_POLICY_ERROR = "Expected library alias, import, set or policy";
     public static final String INCOMPLETE_SET_NAME_ERROR                = "Incomplete set, expected a set name, e.g. \\\"set name\\\"";
     public static final String INCOMPLETE_SET_ENTITLEMENT_ERROR         = "Incomplete set, expected an entitlement, e.g. deny-unless-permit or permit-unless-deny";
@@ -104,27 +101,21 @@ public class SAPLSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 
     public SyntaxErrorMessage handleNoViableAltException(IParserErrorContext context, NoViableAltException exception) {
         EObject currentContext = context.getCurrentContext();
-        INode   node           = context.getCurrentNode();
 
         if (currentContext instanceof SAPL) {
             return new SyntaxErrorMessage(INCOMPLETE_IMPORT_ALIAS_SET_POLICY_ERROR, Diagnostic.SYNTAX_DIAGNOSTIC);
-        } else if (currentContext instanceof PolicySet) {
-            return new SyntaxErrorMessage(INCOMPLETE_SET_ENTITLEMENT_ERROR, Diagnostic.SYNTAX_DIAGNOSTIC);
-        } else if (currentContext instanceof Policy) {
-            return new SyntaxErrorMessage(INCOMPLETE_POLICY_ENTITLEMENT_ERROR, Diagnostic.SYNTAX_DIAGNOSTIC);
-        } else if (currentContext instanceof ValueDefinition) {
-            return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_VALUE_ERROR, Diagnostic.SYNTAX_DIAGNOSTIC);
         }
 
-        EObject grammarElement = node.getGrammarElement();
-        if (grammarElement instanceof RuleCall ruleCall) {
-            EObject container = ruleCall.eContainer();
-            if (container instanceof Assignment assignment) {
-                String feature = assignment.getFeature();
-                if ("imports".equals(feature)) {
-                    return new SyntaxErrorMessage(INCOMPLETE_IMPORT_ERROR, Diagnostic.SYNTAX_DIAGNOSTIC);
-                }
-            }
+        if (currentContext instanceof PolicySet) {
+            return new SyntaxErrorMessage(INCOMPLETE_SET_ENTITLEMENT_ERROR, Diagnostic.SYNTAX_DIAGNOSTIC);
+        }
+
+        if (currentContext instanceof Policy) {
+            return new SyntaxErrorMessage(INCOMPLETE_POLICY_ENTITLEMENT_ERROR, Diagnostic.SYNTAX_DIAGNOSTIC);
+        }
+
+        if (currentContext instanceof ValueDefinition) {
+            return new SyntaxErrorMessage(INCOMPLETE_VARIABLE_VALUE_ERROR, Diagnostic.SYNTAX_DIAGNOSTIC);
         }
 
         if (exception.token == Token.EOF_TOKEN) {

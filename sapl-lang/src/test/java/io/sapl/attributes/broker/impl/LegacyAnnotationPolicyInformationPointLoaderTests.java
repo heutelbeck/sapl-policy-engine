@@ -302,8 +302,8 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         }
 
         final var pip = new PIP();
-        assertLoadingPipThrowsAttributeBrokerException(pip, String.format(
-                AnnotationPolicyInformationPointLoader.FIRST_PARAMETER_S_UNEXPECTED_TYPE_S_ERROR, "x", "Object"));
+        assertLoadingPipThrowsAttributeBrokerException(pip, String
+                .format(AnnotationPolicyInformationPointLoader.NON_VAL_PARAMETER_AT_METHOD_S_ERROR, "x", "Object"));
     }
 
     @Test
@@ -853,17 +853,6 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
     @Test
     void when_argWithParamSchema_validatesCorrectly() throws AttributeBrokerException, IOException {
 
-        final String PERSON_SCHEMA = """
-                {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
-                  "$id": "https://example.com/schemas/regions",
-                  "type": "object",
-                  "properties": {
-                	"name": { "type": "string" }
-                  }
-                }
-                """;
-
         @PolicyInformationPoint(name = "test")
         class PIP {
 
@@ -894,14 +883,10 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var broker    = brokerWithPip(pip);
         final var variables = Map.of("key1", Val.of("valueOfKey"));
 
-        final var functionSchemas = broker.getAttributeSchemas();
-        assertThat(functionSchemas,
-                hasEntry("test.attributeWithAnnotation", MAPPER.readValue(PERSON_SCHEMA, JsonNode.class)));
-
         final var validExpression = ParserUtil.expression("<test.envAttribute({\"name\": \"Joe\"})>");
         final var expected        = new ObjectMapper().readTree("{\"name\": \"Joe\"}\")>");
-        StepVerifier.create(validExpression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNext(Val.of(expected)).verifyComplete();
+        StepVerifier.create(validExpression.evaluate().log().contextWrite(this.constructContext(broker, variables)))
+                .expectNext(Val.of(expected)).thenCancel().verify();
 
         final var invalidExpression = ParserUtil.expression("<test.envAttribute({\"name\": 23})>");
         String    errorMessage      = """
@@ -915,7 +900,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
                 }
                 """;
         StepVerifier.create(invalidExpression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(valErrorText(errorMessage)).verifyComplete();
+                .expectNextMatches(valErrorText(errorMessage)).thenCancel().verify();
     }
 
     @Test
