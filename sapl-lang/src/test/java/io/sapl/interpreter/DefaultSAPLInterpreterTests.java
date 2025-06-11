@@ -50,6 +50,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.broker.impl.TestPIP;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
@@ -105,6 +106,8 @@ class DefaultSAPLInterpreterTests {
 
     private static CachingAttributeStreamBroker attributeStreamBroker;
 
+    private static InMemoryPolicyInformationPointDocumentationProvider docsProvider;
+
     private static AnnotationFunctionContext functionCtx;
 
     private static Map<String, Val> variables;
@@ -113,7 +116,9 @@ class DefaultSAPLInterpreterTests {
     static void beforeAll() throws JsonProcessingException, InitializationException {
         authzSubscription     = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
         attributeStreamBroker = new CachingAttributeStreamBroker();
-        final var loader = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+        docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
+
+        final var loader = new AnnotationPolicyInformationPointLoader(attributeStreamBroker, docsProvider,
                 new ValidatorFactory(MAPPER));
         loader.loadPolicyInformationPoint(new TestPIP());
         functionCtx = new AnnotationFunctionContext();

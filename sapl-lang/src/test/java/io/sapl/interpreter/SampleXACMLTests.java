@@ -39,6 +39,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.validation.ValidatorFactory;
@@ -58,7 +59,8 @@ class SampleXACMLTests {
         FUNCTION_CTX.loadLibrary(new MockXACMLStringFunctionLibrary());
         FUNCTION_CTX.loadLibrary(new MockXACMLDateFunctionLibrary());
         FUNCTION_CTX.loadLibrary(FilterFunctionLibrary.class);
-        final var loader = new AnnotationPolicyInformationPointLoader(ATTRIBUTE_BROKER, new ValidatorFactory(MAPPER));
+        final var loader = new AnnotationPolicyInformationPointLoader(ATTRIBUTE_BROKER,
+                new InMemoryPolicyInformationPointDocumentationProvider(), new ValidatorFactory(MAPPER));
         loader.loadPolicyInformationPoint(new MockXACMLPatientProfilePIP());
     }
 

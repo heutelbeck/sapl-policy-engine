@@ -35,6 +35,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.validation.ValidatorFactory;
 import reactor.test.StepVerifier;
 
@@ -46,7 +47,8 @@ class TimePolicyInformationPointTests {
         final var mapper                = new ObjectMapper();
         final var validatorFactory      = new ValidatorFactory(mapper);
         final var attributeStreamBroker = new CachingAttributeStreamBroker();
-        final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
+        final var pipLoader = new AnnotationPolicyInformationPointLoader(attributeStreamBroker, docsProvider,
                 validatorFactory);
         assertDoesNotThrow(() -> pipLoader.loadPolicyInformationPoint(sut));
     }

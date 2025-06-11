@@ -36,30 +36,20 @@ import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
 import io.sapl.attributes.broker.api.AttributeBrokerException;
-import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ValidatorFactory {
 
-    static final String INVALID_JSON_AS_SCHEMA_ERROR = "Invalid JSON value declared as parameter validation schema.";
-
-    static final String EXPECTED_AN_OBJECT_BUT_GOT_S = "Expected an object, but got %s";
-
-    static final String EXPECTED_A_LONG_INTEGER_VALUE_BUT_GOT_S = "Expected a long integer value, but got %s";
-
-    static final String EXPECTED_A_BOOLEAN_VALUE_BUT_GOT_S = "Expected a Boolean value, but got %s";
-
-    static final String EXPECTED_AN_INTEGER_BUT_GOT_S = "Expected an integer, but got %s";
-
-    static final String EXPECTED_A_NUMERIC_VALUE_BUT_GOT_S = "Expected a numeric value, but got %s";
-
-    static final String EXPECTED_AN_ARRAY_BUT_GOT_S = "Expected an array, but got %s";
-
-    static final String EXPECTED_A_TEXTUAL_VALUE_BUT_GOT_S = "Expected a textual value, but got %s";
-
-    static final String PARAMETER_NOT_COMPLY_WITH_JSON_SCHEMA = "Parameter does not comply with supplied JSONSchema. ";
-
+    static final String INVALID_JSON_AS_SCHEMA_ERROR             = "Invalid JSON value declared as parameter validation schema.";
+    static final String EXPECTED_AN_OBJECT_BUT_GOT_S             = "Expected an object, but got %s";
+    static final String EXPECTED_A_LONG_INTEGER_VALUE_BUT_GOT_S  = "Expected a long integer value, but got %s";
+    static final String EXPECTED_A_BOOLEAN_VALUE_BUT_GOT_S       = "Expected a Boolean value, but got %s";
+    static final String EXPECTED_AN_INTEGER_BUT_GOT_S            = "Expected an integer, but got %s";
+    static final String EXPECTED_A_NUMERIC_VALUE_BUT_GOT_S       = "Expected a numeric value, but got %s";
+    static final String EXPECTED_AN_ARRAY_BUT_GOT_S              = "Expected an array, but got %s";
+    static final String EXPECTED_A_TEXTUAL_VALUE_BUT_GOT_S       = "Expected a textual value, but got %s";
+    static final String PARAMETER_NOT_COMPLY_WITH_JSON_SCHEMA    = "Parameter does not comply with supplied JSONSchema. ";
     static final String EXPECTED_COMPLYING_WITH_SCHEMA_BUT_GOT_S = "Expected a value complying with schema, but got %s.";
 
     private static final JsonSchemaFactory SCHEMA_FACTORY = JsonSchemaFactory.builder()

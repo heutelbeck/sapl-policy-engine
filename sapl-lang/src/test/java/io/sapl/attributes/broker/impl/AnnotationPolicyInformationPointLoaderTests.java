@@ -34,7 +34,8 @@ class AnnotationPolicyInformationPointLoaderTests {
     void loadTest() {
         final var validatorFactory = new ValidatorFactory(new ObjectMapper());
         final var broker           = new CachingAttributeStreamBroker();
-        final var loader           = new AnnotationPolicyInformationPointLoader(broker, validatorFactory);
+        final var docsProvider     = new InMemoryPolicyInformationPointDocumentationProvider();
+        final var loader           = new AnnotationPolicyInformationPointLoader(broker, docsProvider, validatorFactory);
         final var clock            = Clock.systemDefaultZone();
         assertThatCode(() -> {
             loader.loadPolicyInformationPoint(new TimePolicyInformationPoint(clock));
