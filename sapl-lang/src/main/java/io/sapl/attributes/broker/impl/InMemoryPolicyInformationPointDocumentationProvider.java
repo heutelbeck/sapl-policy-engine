@@ -1,5 +1,6 @@
 package io.sapl.attributes.broker.impl;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +16,8 @@ import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 public class InMemoryPolicyInformationPointDocumentationProvider
         implements PolicyInformationPointDocumentationProvider {
 
-    private final Map<String, PolicyInformationPointSpecification> pipRegistry = new HashMap<>();
+    private final Map<String, PolicyInformationPointSpecification> pipRegistry        = new HashMap<>();
+    private final Map<String, PolicyInformationPointDocumentation> documentationCache = new HashMap<>();
 
     private final Object lock = new Object();
 
@@ -28,6 +30,7 @@ public class InMemoryPolicyInformationPointDocumentationProvider
                         String.format("Cannot load documentation for %s. Name already in use.", pipSpecification));
             }
             pipRegistry.put(pipName, pipSpecification);
+            documentationCache.put(pipName, toDocumentation(pipSpecification));
         }
     }
 
@@ -35,6 +38,7 @@ public class InMemoryPolicyInformationPointDocumentationProvider
     public void unloadPolicyInformationPoint(String name) {
         synchronized (lock) {
             pipRegistry.remove(name);
+            documentationCache.remove(name);
         }
     }
 
@@ -45,7 +49,8 @@ public class InMemoryPolicyInformationPointDocumentationProvider
             if (null == library) {
                 return List.of();
             }
-            return library.attributeFinders().stream().map(AttributeFinderSpecification::attributeName).toList();
+            return library.attributeFinders().stream().map(AttributeFinderSpecification::attributeName)
+                    .map(n -> n.substring(libraryName.length() + 1)).toList();
         }
     }
 
@@ -73,14 +78,26 @@ public class InMemoryPolicyInformationPointDocumentationProvider
 
     @Override
     public Map<String, JsonNode> getAttributeSchemas() {
-        // TODO Auto-generated method stub
-        return null;
+        synchronized (lock) {
+            final var result = new HashMap<String, JsonNode>();
+            for (var pip : pipRegistry.values()) {
+                for (var finder : pip.attributeFinders()) {
+                    result.put(finder.attributeName(), finder.attributeSchema());
+                }
+            }
+            return result;
+        }
     }
 
     @Override
     public List<AttributeFinderSpecification> getAttributeMetatata() {
-        // TODO Auto-generated method stub
-        return null;
+        synchronized (lock) {
+            final var result = new ArrayList<AttributeFinderSpecification>();
+            for (var pip : pipRegistry.values()) {
+                result.addAll(pip.attributeFinders());
+            }
+            return result;
+        }
     }
 
     @Override
@@ -92,34 +109,57 @@ public class InMemoryPolicyInformationPointDocumentationProvider
 
     @Override
     public List<String> getEnvironmentAttributeCodeTemplates() {
-        // TODO Auto-generated method stub
-        return null;
+        synchronized (lock) {
+            final var result = new ArrayList<String>();
+            for (var pip : pipRegistry.values()) {
+                pip.attributeFinders().stream().filter(AttributeFinderSpecification::isEnvironmentAttribute)
+                        .map(AttributeFinderSpecification::codeTemplate).forEach(result::add);
+            }
+            return result;
+        }
     }
 
     @Override
     public List<String> getAttributeCodeTemplates() {
-        // TODO Auto-generated method stub
-        return null;
+        synchronized (lock) {
+            final var result = new ArrayList<String>();
+            for (var pip : pipRegistry.values()) {
+                pip.attributeFinders().stream().filter(f -> !f.isEnvironmentAttribute())
+                        .map(AttributeFinderSpecification::codeTemplate).forEach(result::add);
+            }
+            return result;
+        }
     }
 
     @Override
     public Map<String, String> getDocumentedAttributeCodeTemplates() {
-        // TODO Auto-generated method stub
-        return null;
+        synchronized (lock) {
+            final var result = new HashMap<String, String>();
+            for (var pip : pipRegistry.values()) {
+                for (var finder : pip.attributeFinders()) {
+                    result.put(finder.codeTemplate(), finder.documentation());
+                }
+            }
+            return result;
+        }
     }
 
     @Override
     public List<PolicyInformationPointDocumentation> getDocumentation() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-    
-    private PolicyInformationPointDocumentation toDocumentation(PolicyInformationPointSpecification specification) {
-        final var finderDocs = new HashMap<String,String>();
-        for(var finder:specification.attributeFinders()) {
-            finderDocs.put(finder.attributeName(), )
+        synchronized (lock) {
+            return documentationCache.values().stream().toList();
         }
-        final var documentation =  new  PolicyInformationPointDocumentation(specification.name(),specification.description(),specification.documentation(), finderDocs);
+    }
+
+    private PolicyInformationPointDocumentation toDocumentation(PolicyInformationPointSpecification specification) {
+        final var finderDocs = new HashMap<String, String>();
+        for (var finder : specification.attributeFinders()) {
+            finderDocs.put(finder.codeTemplate(), finder.documentation());
+        }
+        final var documentation = new PolicyInformationPointDocumentation(specification.name(),
+                specification.description(), specification.documentation());
+        documentation.setDocumentation(finderDocs);
+        return documentation;
     }
 
 }

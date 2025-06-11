@@ -164,7 +164,8 @@ public class AnnotationPolicyInformationPointLoader {
 
     private void loadPolicyInformationPoint(Object policyInformationPoint, Class<?> pipClass) {
         final var implementation = createImplementation(policyInformationPoint, pipClass);
-        broker.loadPolicyInformationPoint(implementation);        
+        broker.loadPolicyInformationPoint(implementation);
+        documentationProvider.loadPolicyInformationPoint(implementation.specification());
     }
 
     private PolicyInformationPointImplementation createImplementation(Object policyInformationPoint,
@@ -186,6 +187,7 @@ public class AnnotationPolicyInformationPointLoader {
             String  name                   = "";
             String  attributeSchema        = "";
             String  pathToSchema           = "";
+            String  documentation          = "";
             boolean isAttributeFinder      = false;
             boolean isEnvironmentAttribute = false;
             if (method.isAnnotationPresent(Attribute.class)) {
@@ -194,6 +196,7 @@ public class AnnotationPolicyInformationPointLoader {
                 name            = annotationNameOrMethodName(annotation.name(), method);
                 attributeSchema = annotation.schema();
                 pathToSchema    = annotation.pathToSchema();
+                documentation   = annotation.docs();
             } else if (method.isAnnotationPresent(EnvironmentAttribute.class)) {
                 isAttributeFinder      = true;
                 isEnvironmentAttribute = true;
@@ -201,12 +204,13 @@ public class AnnotationPolicyInformationPointLoader {
                 name            = annotationNameOrMethodName(annotation.name(), method);
                 attributeSchema = annotation.schema();
                 pathToSchema    = annotation.pathToSchema();
+                documentation   = annotation.docs();
             }
             if (isAttributeFinder) {
                 foundAtLeastOneSuppliedAttributeInPip = true;
                 final var attributeName = fullyQualifiedAttributeName(pipClass, method, pipName, name);
                 final var specification = getSpecificationOfAttribute(policyInformationPoint, attributeName, method,
-                        isEnvironmentAttribute, attributeSchema, pathToSchema);
+                        isEnvironmentAttribute, attributeSchema, pathToSchema, documentation);
                 requireNoSpecCollision(implementations.keySet(), specification);
                 final var attributeFinder = createAttributeFinder(policyInformationPoint, method, specification);
                 log.debug("Found attribute finder: {}", specification);
@@ -257,9 +261,9 @@ public class AnnotationPolicyInformationPointLoader {
                     | ValidationException e) {
                 final var cause = e.getCause();
                 if (cause == null) {
-                    return Flux.error(e);
+                    return Flux.just(Val.error(e.getMessage()));
                 } else {
-                    return Flux.error(cause);
+                    return Flux.just(Val.error(cause.getMessage()));
                 }
             }
         };
@@ -323,12 +327,16 @@ public class AnnotationPolicyInformationPointLoader {
 
     private AttributeFinderSpecification getSpecificationOfAttribute(Object policyInformationPoint,
             String fullyQualifiedAttributeName, Method method, boolean isEnvironmentAttribute, String attributeSchema,
-            String attributePathToSchema) {
+            String attributePathToSchema, String documentation) {
         if (null == policyInformationPoint) {
             assertMethodIsStatic(method);
         }
         final var parameterCount       = method.getParameterCount();
         final var parameterAnnotations = method.getParameterAnnotations();
+        final var template             = new StringBuilder();
+
+        // FIXME: ....
+        template.append("UNIMPLEMENTED TEMPLATE GENERATION");
 
         var parameterUnderInspection = 0;
 
@@ -370,7 +378,7 @@ public class AnnotationPolicyInformationPointLoader {
                     validatorFactory.parameterValidatorFromAnnotations(parameterAnnotations[parameterUnderInspection]));
             return new AttributeFinderSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
                     AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, requiresVariables, entityValidator,
-                    parameterValidators, processedSchemaDefinition);
+                    parameterValidators, processedSchemaDefinition, template.toString(), documentation);
         }
 
         var numberOfInnerAttributeParameters = 0;
@@ -382,7 +390,7 @@ public class AnnotationPolicyInformationPointLoader {
         }
         return new AttributeFinderSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
                 numberOfInnerAttributeParameters, requiresVariables, entityValidator, parameterValidators,
-                processedSchemaDefinition);
+                processedSchemaDefinition, template.toString(), documentation);
     }
 
     private static String fullyQualifiedAttributeName(Class<?> pipClass, Method method,

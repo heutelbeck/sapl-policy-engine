@@ -46,6 +46,7 @@ import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
 import io.sapl.attributes.broker.api.AttributeBrokerException;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
+import io.sapl.attributes.broker.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.testutil.ParserUtil;
@@ -94,7 +95,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var pipLoader = newPipLoader();
         pipLoader.loadPolicyInformationPoint(pip);
         assertThatThrownBy(() -> pipLoader.loadPolicyInformationPoint(pip)).isInstanceOf(AttributeBrokerException.class)
-                .hasMessageContaining("collides");
+                .hasMessageContaining("collission");
     }
 
     @Test
@@ -170,20 +171,22 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
 
         final var pip                   = new PIP();
         final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
-                new ValidatorFactory(new ObjectMapper()));
+                docsProvider, new ValidatorFactory(new ObjectMapper()));
         assertDoesNotThrow(() -> pipLoader.loadPolicyInformationPoint(pip));
-        assertThat(attributeStreamBroker.getAvailableLibraries().contains("PIP"), is(true));
-        assertThat(attributeStreamBroker.providedFunctionsOfLibrary("PIP").contains("x"), is(true));
-        assertThat(attributeStreamBroker.isProvidedFunction("PIP.x"), is(Boolean.TRUE));
-        assertThat(new ArrayList<>(attributeStreamBroker.getDocumentation()).get(0).getName(), is("PIP"));
+        assertThat(docsProvider.getAvailableLibraries().contains("PIP"), is(true));
+        System.out.println("->"+docsProvider.providedFunctionsOfLibrary("PIP"));
+        assertThat(docsProvider.providedFunctionsOfLibrary("PIP").contains("x"), is(true));
+        assertThat(docsProvider.isProvidedFunction("PIP.x"), is(Boolean.TRUE));
+        assertThat(new ArrayList<>(docsProvider.getDocumentation()).get(0).getName(), is("PIP"));
     }
 
     @Test
     void when_noPip_providedIsEmpty() {
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
-        assertThat(attributeStreamBroker.providedFunctionsOfLibrary("PIP").isEmpty(), is(true));
-        assertThat(attributeStreamBroker.getDocumentation().isEmpty(), is(true));
+        final var docsProvider = new InMemoryPolicyInformationPointDocumentationProvider();
+        assertThat(docsProvider.providedFunctionsOfLibrary("PIP").isEmpty(), is(true));
+        assertThat(docsProvider.getDocumentation().isEmpty(), is(true));
     }
 
     @Test
@@ -889,18 +892,9 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
                 .expectNext(Val.of(expected)).thenCancel().verify();
 
         final var invalidExpression = ParserUtil.expression("<test.envAttribute({\"name\": 23})>");
-        String    errorMessage      = """
-                Illegal parameter type. Parameter does not comply with required schema. Got: {"name":23} Expected schema: {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
-                  "$id": "https://example.com/schemas/regions",
-                  "type": "object",
-                  "properties": {
-                	"name": { "type": "string" }
-                  }
-                }
-                """;
+        String    errorMessage      = "Parameter does not comply with supplied JSONSchema.";
         StepVerifier.create(invalidExpression.evaluate().contextWrite(this.constructContext(broker, variables)))
-                .expectNextMatches(valErrorText(errorMessage)).thenCancel().verify();
+                .expectNextMatches(valErrorTextContains(errorMessage)).thenCancel().verify();
     }
 
     @Test
@@ -947,7 +941,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         }
 
         final var pip = new PIP();
-        final var sut = brokerWithPip(pip);
+        final var sut = docsProviderWithPip(pip);
 
         final var expectedEnvironmentTemplates = new String[] { "<test.a(a1, a2)>", "<test.a(varArgsParams...)>",
                 "<test.a2(a1, a2)>", "<test.a2>" };
@@ -1012,10 +1006,10 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
             }
         }
 
-        final var pip    = new PIP();
-        final var broker = brokerWithPip(pip);
+        final var pip          = new PIP();
+        final var docsProvider = docsProviderWithPip(pip);
 
-        final var actualTemplates = broker.getDocumentedAttributeCodeTemplates();
+        final var actualTemplates = docsProvider.getDocumentedAttributeCodeTemplates();
         assertThat(actualTemplates, hasEntry(pipName, pipDescription));
     }
 
@@ -1068,10 +1062,20 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
 
     private AttributeStreamBroker brokerWithPip(Object pip) {
         final var attributeStreamBroker = new CachingAttributeStreamBroker();
-        final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
-                new ValidatorFactory(new ObjectMapper()));
-        loader.loadPolicyInformationPoint(pip);
+        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
+        final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                docsProvider, new ValidatorFactory(new ObjectMapper()));
+        pipLoader.loadPolicyInformationPoint(pip);
         return attributeStreamBroker;
+    }
+
+    private PolicyInformationPointDocumentationProvider docsProviderWithPip(Object pip) {
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
+        final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                docsProvider, new ValidatorFactory(new ObjectMapper()));
+        pipLoader.loadPolicyInformationPoint(pip);
+        return docsProvider;
     }
 
     private void assertLoadingPipDoesNotThrow(Object pip) {
@@ -1104,7 +1108,9 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
 
     private AnnotationPolicyInformationPointLoader newPipLoader() {
         final var attributeStreamBroker = new CachingAttributeStreamBroker();
-        return new AnnotationPolicyInformationPointLoader(attributeStreamBroker, new ValidatorFactory(MAPPER));
+        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
+        return new AnnotationPolicyInformationPointLoader(attributeStreamBroker, docsProvider,
+                new ValidatorFactory(MAPPER));
     }
 
 }

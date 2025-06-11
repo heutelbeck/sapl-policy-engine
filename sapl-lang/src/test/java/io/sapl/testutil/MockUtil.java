@@ -35,6 +35,7 @@ import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.Expression;
@@ -70,8 +71,9 @@ public class MockUtil {
         final var mapper                = new ObjectMapper();
         final var validatorFactory      = new ValidatorFactory(mapper);
         final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
-                validatorFactory);
+                docsProvider, validatorFactory);
         final var functionCtx           = new AnnotationFunctionContext();
         try {
             pipLoader.loadPolicyInformationPoint(new TestPolicyInformationPoint());
