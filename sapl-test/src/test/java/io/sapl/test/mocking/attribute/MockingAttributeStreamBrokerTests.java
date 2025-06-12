@@ -21,14 +21,12 @@ import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.test.Imports.arguments;
 import static io.sapl.test.Imports.entityValue;
 import static io.sapl.test.Imports.whenAttributeParams;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
@@ -40,7 +38,6 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.test.SaplTestException;
 import reactor.test.StepVerifier;
 
@@ -55,13 +52,6 @@ class MockingAttributeStreamBrokerTests {
         this.unmockedCtx = Mockito.mock(AttributeStreamBroker.class);
         this.attrCtx     = new MockingAttributeStreamBroker(unmockedCtx);
         this.variables   = new HashMap<>();
-    }
-
-    @Test
-    void templatesEmpty() {
-        assertThat(this.attrCtx.getAttributeCodeTemplates()).isEmpty();
-        assertThat(this.attrCtx.getEnvironmentAttributeCodeTemplates()).isEmpty();
-        assertThat(this.attrCtx.getAllFullyQualifiedFunctions()).isEmpty();
     }
 
     @Test
@@ -226,37 +216,6 @@ class MockingAttributeStreamBrokerTests {
     }
 
     @Test
-    void test_isProvided_False() {
-        assertThat(this.attrCtx.isProvidedFunction("foo.bar")).isFalse();
-    }
-
-    @Test
-    void test_test_isProvided() {
-        when(unmockedCtx.isProvidedFunction("iii.iii")).thenReturn(Boolean.TRUE);
-        when(unmockedCtx.providedFunctionsOfLibrary("foo")).thenReturn(List.of());
-        when(unmockedCtx.providedFunctionsOfLibrary("xxx")).thenReturn(List.of());
-        when(unmockedCtx.providedFunctionsOfLibrary("iii")).thenReturn(List.of("iii", "iiii"));
-
-        attrCtx.markAttributeMock("foo.bar");
-        attrCtx.markAttributeMock("foo.abc");
-        attrCtx.markAttributeMock("xxx.xxx");
-        attrCtx.markAttributeMock("xxx.yyy");
-        attrCtx.markAttributeMock("xxx.zzz");
-
-        assertThat(attrCtx.isProvidedFunction("foo.bar")).isTrue();
-        assertThat(attrCtx.isProvidedFunction("foo.abc")).isTrue();
-        assertThat(attrCtx.isProvidedFunction("xxx.xxx")).isTrue();
-        assertThat(attrCtx.isProvidedFunction("xxx.yyy")).isTrue();
-        assertThat(attrCtx.isProvidedFunction("xxx.zzz")).isTrue();
-        assertThat(attrCtx.isProvidedFunction("iii.iii")).isTrue();
-
-        assertThat(attrCtx.providedFunctionsOfLibrary("foo")).containsAll(List.of("bar", "abc"));
-        assertThat(attrCtx.providedFunctionsOfLibrary("xxx")).containsAll(List.of("xxx", "yyy", "zzz"));
-        assertThat(attrCtx.providedFunctionsOfLibrary("iii")).containsAll(List.of("iii", "iiii"));
-
-    }
-
-    @Test
     void test_ReturnUnmockedEvaluation() {
         when(unmockedCtx.attributeStream(any())).thenReturn(Val.fluxOf("abc"));
         final var invocation = new AttributeFinderInvocation("", "foo.bar", List.of(), variables,
@@ -267,56 +226,11 @@ class MockingAttributeStreamBrokerTests {
     }
 
     @Test
-    void test_documentation() {
-        this.attrCtx.markAttributeMock("foo.bar");
-        final var unmockedDoc = new PolicyInformationPointDocumentation("test", "Test", "Test doc");
-        unmockedDoc.getDocumentation().put("upper", "blabla");
-        when(this.unmockedCtx.getDocumentation()).thenReturn(List.of(unmockedDoc));
-
-        Collection<PolicyInformationPointDocumentation> result = this.attrCtx.getDocumentation();
-
-        assertThat(result).hasSize(2);
-        final var iterator = result.iterator();
-        final var doc1     = iterator.next();
-        assertThat(doc1.getName()).isEqualTo("foo");
-        assertThat(doc1.getDocumentation()).containsKey("bar");
-        final var doc2 = iterator.next();
-        assertThat(doc2.getName()).isEqualTo("test");
-        assertThat(doc2.getDocumentation()).containsKey("upper");
-    }
-
-    @Test
-    void test_IsProvidedFunctionOfLibrary() {
-        this.attrCtx.markAttributeMock("foo.bar");
-        when(this.unmockedCtx.providedFunctionsOfLibrary("foo")).thenReturn(List.of("bar", "xxx", "yyy"));
-
-        Collection<String> result = this.attrCtx.providedFunctionsOfLibrary("foo");
-
-        assertThat(result).hasSize(3).containsOnly("bar", "xxx", "yyy");
-    }
-
-    @Test
     void test_mockEmit_UnmockedAttribute() {
         final var anUnmockedCtx = new CachingAttributeStreamBroker();
         final var ctx           = new MockingAttributeStreamBroker(anUnmockedCtx);
         final var valOne        = Val.of(1);
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> ctx.mockEmit("foo.bar", valOne));
-    }
-
-    @Test
-    void test_getAvailableLibraries_returnsAllAvailableLibraries() {
-        this.attrCtx.loadAttributeMock("foo.bar", Duration.ofSeconds(10), Val.of(1), Val.of(2));
-        assertThat(this.attrCtx.getAvailableLibraries()).containsOnly("foo.bar");
-    }
-
-    @Test
-    void test_getDocumentedAttributeCodeTemplates_isEmpty() {
-        assertThat(this.attrCtx.getDocumentedAttributeCodeTemplates()).isEmpty();
-    }
-
-    @Test
-    void test_getAttributeSchemas_isEmpty() {
-        assertThat(this.attrCtx.getAttributeSchemas()).isEmpty();
     }
 
 }

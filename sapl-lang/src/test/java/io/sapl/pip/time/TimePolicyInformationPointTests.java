@@ -35,7 +35,7 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
+import io.sapl.attributes.documentation.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.validation.ValidatorFactory;
 import reactor.test.StepVerifier;
 

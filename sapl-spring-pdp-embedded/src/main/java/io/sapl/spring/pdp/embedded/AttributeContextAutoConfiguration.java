@@ -35,6 +35,8 @@ import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
+import io.sapl.attributes.documentation.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.validation.ValidatorFactory;
 import lombok.RequiredArgsConstructor;
@@ -54,9 +56,24 @@ public class AttributeContextAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AttributeStreamBroker attributestreamBroker() throws InitializationException {
-        final var attributeStreamBroker = new CachingAttributeStreamBroker();
-        final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+    AttributeStreamBroker attributestreamBroker() {
+        return new CachingAttributeStreamBroker();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider() {
+        return new InMemoryPolicyInformationPointDocumentationProvider();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    AnnotationPolicyInformationPointLoader annotationPolicyInformationPointLoader(
+            AttributeStreamBroker attributeStreamBroker, PolicyInformationPointDocumentationProvider docsProvider)
+            throws InitializationException {
+        final var loader = new AnnotationPolicyInformationPointLoader(attributeStreamBroker, docsProvider,
                 new ValidatorFactory(mapper));
         for (var supplier : pipSuppliers) {
             for (var pip : supplier.get()) {
@@ -75,7 +92,7 @@ public class AttributeContextAutoConfiguration {
             log.trace("loading Spring bean Policy Information Point: {}", pip.getClass().getSimpleName());
             loader.loadPolicyInformationPoint(pip);
         }
-        return attributeStreamBroker;
+        return loader;
     }
 
 }

@@ -35,6 +35,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.documentation.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
@@ -73,8 +74,9 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
 
     public PDPConfigurationProvider bindPDPConfigurationProvider() throws InitializationException {
         final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
-                new ValidatorFactory(new ObjectMapper()));
+                docsProvider, new ValidatorFactory(new ObjectMapper()));
         loader.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
 
         var functionContext = new AnnotationFunctionContext();

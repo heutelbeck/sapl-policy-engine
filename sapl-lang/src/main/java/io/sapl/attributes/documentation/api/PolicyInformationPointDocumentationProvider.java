@@ -1,10 +1,12 @@
-package io.sapl.attributes.broker.api;
+package io.sapl.attributes.documentation.api;
 
 import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.attributes.broker.api.AttributeFinderSpecification;
+import io.sapl.attributes.broker.api.PolicyInformationPointSpecification;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 
 public interface PolicyInformationPointDocumentationProvider {

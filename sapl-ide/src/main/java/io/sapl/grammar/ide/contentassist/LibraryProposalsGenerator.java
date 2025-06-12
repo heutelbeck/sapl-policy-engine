@@ -30,6 +30,7 @@ import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
 import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
 import io.sapl.grammar.sapl.Import;
@@ -44,9 +45,9 @@ public class LibraryProposalsGenerator {
     public record DocumentedProposal(String proposal, String label, String documentation) {}
 
     public static Collection<Proposal> allEnvironmentAttributeSchemaExtensions(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new HashSet<Proposal>();
-        final var attributes = pdpConfiguration.attributeStreamBroker().getAttributeMetatata();
+        final var attributes = docsProvider.getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
         attributes.stream().filter(AttributeFinderSpecification::isEnvironmentAttribute)
                 .filter(function -> aliasNamesOfFunctionFromImports(function.attributeName(), context)
@@ -56,9 +57,9 @@ public class LibraryProposalsGenerator {
     }
 
     public static Collection<Proposal> allAttributeSchemaExtensions(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new HashSet<Proposal>();
-        final var attributes = pdpConfiguration.attributeStreamBroker().getAttributeMetatata();
+        final var attributes = docsProvider.getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
         attributes.stream().filter(attribute -> !attribute.isEnvironmentAttribute())
                 .filter(function -> aliasNamesOfFunctionFromImports(function.attributeName(), context)
@@ -119,9 +120,9 @@ public class LibraryProposalsGenerator {
      * alternatives based on imports.
      */
     public static Collection<Proposal> allAttributeFinders(ContextAnalysisResult analysis, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+            PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new ArrayList<Proposal>();
-        final var attributes = pdpConfiguration.attributeStreamBroker().getAttributeMetatata();
+        final var attributes = docsProvider.getAttributeMetatata();
         attributes.stream().filter(a -> !a.isEnvironmentAttribute()).forEach(attribute -> proposals.addAll(
                 documentedProposalsForLibraryEntry(analysis.prefix(), analysis.ctxPrefix(), attribute, context)));
         return proposals;
@@ -141,9 +142,9 @@ public class LibraryProposalsGenerator {
      * alternatives based on imports.
      */
     public static Collection<Proposal> allEnvironmentAttributeFinders(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new ArrayList<Proposal>();
-        final var attributes = pdpConfiguration.attributeStreamBroker().getAttributeMetatata();
+        final var attributes = docsProvider.getAttributeMetatata();
         attributes.stream().filter(AttributeFinderSpecification::isEnvironmentAttribute)
                 .forEach(attribute -> proposals.addAll(documentedProposalsForLibraryEntry(analysis.prefix(),
                         analysis.ctxPrefix(), attribute, context)));
@@ -199,7 +200,7 @@ public class LibraryProposalsGenerator {
         final var proposals = new ArrayList<Proposal>();
         final var aliases   = aliasNamesOfFunctionFromImports(function.attributeName(), context);
         aliases.forEach(alias -> ProposalCreator
-                .createNormalizedEntry(function.getCodeTemplate(alias), prefix, ctxPrefix).ifPresent(proposals::add));
+                .createNormalizedEntry(function.codeTemplate(alias), prefix, ctxPrefix).ifPresent(proposals::add));
         return proposals;
     }
 

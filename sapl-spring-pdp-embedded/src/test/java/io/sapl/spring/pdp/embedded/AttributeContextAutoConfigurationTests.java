@@ -30,6 +30,7 @@ import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 
 class AttributeContextAutoConfigurationTests {
 
@@ -59,7 +60,7 @@ class AttributeContextAutoConfigurationTests {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(AttributeStreamBroker.class);
-                    assertThat(context.getBean(AttributeStreamBroker.class).isProvidedFunction("time.now")).isTrue();
+                    assertThat(context.getBean(PolicyInformationPointDocumentationProvider.class).isProvidedFunction("time.now")).isTrue();
                 });
     }
 

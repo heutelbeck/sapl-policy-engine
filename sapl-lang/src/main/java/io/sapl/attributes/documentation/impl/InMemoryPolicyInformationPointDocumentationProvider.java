@@ -1,4 +1,4 @@
-package io.sapl.attributes.broker.impl;
+package io.sapl.attributes.documentation.impl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,8 +9,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.attributes.broker.api.AttributeBrokerException;
 import io.sapl.attributes.broker.api.AttributeFinderSpecification;
-import io.sapl.attributes.broker.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.broker.api.PolicyInformationPointSpecification;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 
 public class InMemoryPolicyInformationPointDocumentationProvider

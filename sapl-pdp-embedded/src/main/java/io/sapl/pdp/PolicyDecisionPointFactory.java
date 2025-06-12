@@ -39,6 +39,7 @@ import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.documentation.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
@@ -108,7 +109,8 @@ public class PolicyDecisionPointFactory {
 
     public static EmbeddedPolicyDecisionPoint fixedInRamPolicyDecisionPoint(SAPLInterpreter parser,
             Collection<String> documents, PolicyDocumentCombiningAlgorithm documentsCombinator,
-            Map<String, Val> variables, AttributeStreamBroker attributeStreamBroker, FunctionContext functionContext,
+            Map<String, Val> variables, AttributeStreamBroker attributeStreamBroker,
+             FunctionContext functionContext,
             UnaryOperator<TracedDecision> decisionInterceptorChain,
             UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) {
         final var documentsById = new HashMap<String, Document>();
@@ -129,8 +131,8 @@ public class PolicyDecisionPointFactory {
         final var policyRetrievalPoint = new NaiveImmutableParsedDocumentIndex(documentsById, consistent);
 
         final var pdpConfiguration = new PDPConfiguration(UUID.randomUUID().toString(), attributeStreamBroker,
-                functionContext, variables, documentsCombinator, decisionInterceptorChain, subscriptionInterceptorChain,
-                policyRetrievalPoint);
+                functionContext, variables, documentsCombinator, decisionInterceptorChain,
+                subscriptionInterceptorChain, policyRetrievalPoint);
 
         return new EmbeddedPolicyDecisionPoint(() -> Flux.just(pdpConfiguration));
     }
@@ -234,8 +236,9 @@ public class PolicyDecisionPointFactory {
             StaticPolicyInformationPointSupplier staticPips) {
         final var mapper                = new ObjectMapper();
         final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
-                new ValidatorFactory(mapper));
+                docsProvider, new ValidatorFactory(mapper));
         loader.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
         loader.loadPolicyInformationPoint(new HttpPolicyInformationPoint(new ReactiveWebClient(mapper)));
         loader.loadPolicyInformationPoints(pips);
