@@ -28,21 +28,21 @@ import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 
 class AttributeFinderSpecificationTests {
 
-	@Test
-	void whenConstructionOfPolicyInformationPointSpecificationHasBadParametersThenThrowElseDoNotThrow() {
-		assertThatThrownBy(() -> new AttributeFinderSpecification(null, true, 0, true, e -> {
-		}, List.of(), null, "template", "docs")).isInstanceOf(NullPointerException.class);
-	}
+    @Test
+    void whenConstructionOfPolicyInformationPointSpecificationHasBadParametersThenThrowElseDoNotThrow() {
+        assertThatThrownBy(() -> new AttributeFinderSpecification(null, true, 0, true, e -> {}, List.of(), null,
+                "template", "docs")).isInstanceOf(NullPointerException.class);
+    }
 
-	@Test
-	void whenVarArgsCheckedThenVarArgsCorrectlyDetected() {
-		var withVarArgs = new AttributeFinderSpecification("abc.def", true,
-				AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, true, e -> {
-				}, List.of(), null, "template", "docs");
-		assertThat(withVarArgs.hasVariableNumberOfArguments()).isTrue();
-		var notWithVarArgs = new AttributeFinderSpecification("abc.def", true, 0, true, e -> {
-		}, List.of(), null, "template", "docs");
-		assertThat(notWithVarArgs.hasVariableNumberOfArguments()).isFalse();
-	}
+    @Test
+    void whenVarArgsCheckedThenVarArgsCorrectlyDetected() {
+        var withVarArgs = new AttributeFinderSpecification("abc.def", true,
+                AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, true, e -> {}, List.of(), null,
+                "template", "docs");
+        assertThat(withVarArgs.hasVariableNumberOfArguments()).isTrue();
+        var notWithVarArgs = new AttributeFinderSpecification("abc.def", true, 0, true, e -> {}, List.of(), null,
+                "template", "docs");
+        assertThat(notWithVarArgs.hasVariableNumberOfArguments()).isFalse();
+    }
 
 }

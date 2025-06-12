@@ -78,7 +78,8 @@ class ScratchpadTests {
     void foo() throws InterruptedException {
         var broker = new CachingAttributeStreamBroker();
 
-        var dummyPipSpec1 = new AttributeFinderSpecification("dummy.pip", true, 0, false, e -> {}, List.of(), null, "template", "docs");
+        var dummyPipSpec1 = new AttributeFinderSpecification("dummy.pip", true, 0, false, e -> {}, List.of(), null,
+                "template", "docs");
 //        var dummyPip     = (PolicyInformationPoint) invocation -> Flux.range(0, 100)
 //                .delayElements(Duration.ofSeconds(1L)).map(Val::of).log();
         var dummyPip1 = (AttributeFinder) invocation -> Flux.range(0, 3).delayElements(Duration.ofSeconds(1L))
@@ -93,16 +94,17 @@ class ScratchpadTests {
 
         Thread.sleep(1000L);
 
-        var dummyPipSpec2 = new AttributeFinderSpecification("xdummy.pip", true, 0, false, e -> {}, List.of(), null, "template", "docs");
+        var dummyPipSpec2 = new AttributeFinderSpecification("xdummy.pip", true, 0, false, e -> {}, List.of(), null,
+                "template", "docs");
         var dummyPip2     = (AttributeFinder) invocation -> Flux.range(6, 3).delayElements(Duration.ofMillis(50))
                 .map(i -> "+>" + i + "<+").map(Val::of);
 
         log.error("->register");
-  //      broker.registerAttributeFinder(dummyPipSpec2, dummyPip2);
+        // broker.registerAttributeFinder(dummyPipSpec2, dummyPip2);
 
         Thread.sleep(18000L);
         log.error("->remove");
-    //    broker.removePolicyInformationPoint(dummyPipSpec2);
+        // broker.removePolicyInformationPoint(dummyPipSpec2);
         Thread.sleep(18000L);
         streamSubscription.dispose();
         Thread.sleep(8000L);
