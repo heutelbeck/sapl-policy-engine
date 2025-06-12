@@ -104,7 +104,7 @@ class ReportingDecisionInterceptorTests {
             final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
             final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                     docsProvider, new ValidatorFactory(new ObjectMapper()));
-            loader.loadPolicyInformationPoint(ReportingTestPIP.class);
+            loader.loadStaticPolicyInformationPoint(ReportingTestPIP.class);
             return Flux.just(new PDPConfiguration("testConfiguration", attributeStreamBroker,
                     new AnnotationFunctionContext(), Map.of(), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES,
                     dInterceptor, x -> x, new TestingPolicyRetrievalPoint()));
@@ -115,8 +115,8 @@ class ReportingDecisionInterceptorTests {
     void runReportingTest() {
         final var pdp = new EmbeddedPolicyDecisionPoint(new TestingPDPConfigurationProvider());
         final var sub = AuthorizationSubscription.of("subject", "action", "resource");
-        StepVerifier.create(pdp.decide(sub)).expectNextMatches(d -> d.getDecision() == Decision.INDETERMINATE)
-                .verifyComplete();
+        StepVerifier.create(pdp.decide(sub)).expectNextMatches(d -> d.getDecision() == Decision.INDETERMINATE).thenCancel()
+                .verify();
     }
 
 }

@@ -70,8 +70,10 @@ class SpecificScenarioTests {
     @Test
     void tutorialAgeCheckScenario() throws JsonProcessingException, InitializationException {
         final var policySet = """
-                import time.*
-                import filter.*
+                import time.timeBetween
+                import time.dateOf
+                import time.now
+                import filter.blacken
 
                 set "check age set"
                 first-applicable
