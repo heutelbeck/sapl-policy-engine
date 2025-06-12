@@ -18,23 +18,14 @@
 package io.sapl.test.mocking.attribute;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
-import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
+import io.sapl.attributes.broker.api.PolicyInformationPointImplementation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.attribute.models.AttributeEntityValueMatcher;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
@@ -62,8 +53,6 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
      */
     private final Map<String, AttributeMock> registeredMocks;
 
-    private final Map<String, PolicyInformationPointDocumentation> pipDocumentations;
-
     /**
      * Constructor of MockingAttributeContext
      *
@@ -73,33 +62,6 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
     public MockingAttributeStreamBroker(AttributeStreamBroker originalAttributeContext) {
         this.originalAttributeStreamBroker = originalAttributeContext;
         this.registeredMocks               = new HashMap<>();
-        this.pipDocumentations             = new HashMap<>();
-    }
-
-    @Override
-    public boolean isProvidedFunction(String function) {
-        if (this.registeredMocks.containsKey(function)) {
-            return Boolean.TRUE;
-        } else if (Boolean.TRUE.equals(originalAttributeStreamBroker.isProvidedFunction(function))) {
-            return Boolean.TRUE;
-        } else {
-            return Boolean.FALSE;
-        }
-    }
-
-    @Override
-    public List<String> providedFunctionsOfLibrary(String pipName) {
-        Set<String> set = new HashSet<>();
-
-        for (String fullName : this.registeredMocks.keySet()) {
-            String[] split = fullName.split(Pattern.quote(NAME_DELIMITER));
-            if (split[0].equals(pipName))
-                set.add(split[1]);
-        }
-
-        set.addAll(this.originalAttributeStreamBroker.providedFunctionsOfLibrary(pipName));
-
-        return List.copyOf(set);
     }
 
     @Override
@@ -111,13 +73,6 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
         return mock.evaluate(invocation);
     }
 
-    @Override
-    public List<PolicyInformationPointDocumentation> getDocumentation() {
-        List<PolicyInformationPointDocumentation> doc = new LinkedList<>(this.pipDocumentations.values());
-        doc.addAll(this.originalAttributeStreamBroker.getDocumentation());
-        return Collections.unmodifiableList(doc);
-    }
-    
     public void markAttributeMock(String fullName) {
         checkImportName(fullName);
 
@@ -126,8 +81,6 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
         } else {
             AttributeMockPublisher mock = new AttributeMockPublisher(fullName);
             this.registeredMocks.put(fullName, mock);
-
-            addNewPIPDocumentation(fullName);
         }
     }
 
@@ -156,8 +109,6 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
             AttributeMockForEntityValue newMock = new AttributeMockForEntityValue(fullName);
             newMock.loadMockForParentValue(parentValueMatcher, returns);
             this.registeredMocks.put(fullName, newMock);
-
-            addNewPIPDocumentation(fullName);
         }
     }
 
@@ -176,8 +127,6 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
             AttributeMockForEntityValueAndArguments newMock = new AttributeMockForEntityValueAndArguments(fullName);
             newMock.loadMockForParentValueAndArguments(parameters, returns);
             this.registeredMocks.put(fullName, newMock);
-
-            addNewPIPDocumentation(fullName);
         }
     }
 
@@ -190,8 +139,6 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
             AttributeMockTiming mock = new AttributeMockTiming(fullName);
             mock.loadAttributeMockWithTiming(timing, returns);
             this.registeredMocks.put(fullName, mock);
-
-            addNewPIPDocumentation(fullName);
         }
     }
 
@@ -206,57 +153,14 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
         }
     }
 
-    private void addNewPIPDocumentation(String fullName) {
-        String[] split         = fullName.split(Pattern.quote(NAME_DELIMITER));
-        String   pipName       = split[0];
-        String   attributeName = split[1];
-
-        final var existingDoc = this.pipDocumentations.get(pipName);
-        if (existingDoc != null) {
-            existingDoc.getDocumentation().put(attributeName, "Mocked Attribute");
-        } else {
-            PolicyInformationPointDocumentation pipDocs = new PolicyInformationPointDocumentation(pipName,
-                    "Mocked PIP " + pipName, "Mocked PIP");
-            pipDocs.getDocumentation().put(attributeName, "Mocked Attribute");
-            this.pipDocumentations.put(pipName, pipDocs);
-        }
-
+    @Override
+    public void loadPolicyInformationPoint(PolicyInformationPointImplementation pipImplementation) {
+        // NOOP
     }
 
     @Override
-    public List<String> getAvailableLibraries() {
-        return new ArrayList<>(registeredMocks.keySet());
+    public void unloadPolicyInformationPoint(String name) {
+        // NOOP
     }
-
-    @Override
-    public List<String> getAllFullyQualifiedFunctions() {
-        return List.of();
-    }
-
-    @Override
-    public List<String> getEnvironmentAttributeCodeTemplates() {
-        return List.of();
-    }
-
-    @Override
-    public List<String> getAttributeCodeTemplates() {
-        return List.of();
-    }
-
-    @Override
-    public Map<String, String> getDocumentedAttributeCodeTemplates() {
-        return Map.of();
-    }
-
-    @Override
-    public Map<String, JsonNode> getAttributeSchemas() {
-        return Map.of();
-    }
-
-    @Override
-    public List<AttributeFinderSpecification> getAttributeMetatata() {
-        return List.of();
-    }
-
 
 }

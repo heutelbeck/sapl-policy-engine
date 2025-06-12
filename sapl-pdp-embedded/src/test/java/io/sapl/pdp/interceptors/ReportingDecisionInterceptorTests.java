@@ -32,6 +32,7 @@ import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.documentation.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
@@ -100,8 +101,9 @@ class ReportingDecisionInterceptorTests {
             final var dInterceptor          = new ReportingDecisionInterceptor(new ObjectMapper(), false, true, true,
                     true);
             final var attributeStreamBroker = new CachingAttributeStreamBroker();
+            final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
             final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
-                    new ValidatorFactory(new ObjectMapper()));
+                    docsProvider, new ValidatorFactory(new ObjectMapper()));
             loader.loadPolicyInformationPoint(ReportingTestPIP.class);
             return Flux.just(new PDPConfiguration("testConfiguration", attributeStreamBroker,
                     new AnnotationFunctionContext(), Map.of(), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES,

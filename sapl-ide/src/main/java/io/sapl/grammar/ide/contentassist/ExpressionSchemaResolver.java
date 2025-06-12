@@ -29,6 +29,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
 import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
@@ -52,12 +53,13 @@ import lombok.experimental.UtilityClass;
 public class ExpressionSchemaResolver {
 
     public List<JsonNode> inferPotentialSchemasOfExpression(Expression expression, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+            PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
         List<Step>     steps;
         List<JsonNode> baseSchemas;
         if (expression instanceof final BasicGroup basicGroup) {
             // a BasicGroup may contain an expression with implicit schemas
-            baseSchemas = inferPotentialSchemasOfExpression(basicGroup.getExpression(), context, pdpConfiguration);
+            baseSchemas = inferPotentialSchemasOfExpression(basicGroup.getExpression(), context, pdpConfiguration,
+                    docsProvider);
             steps       = basicGroup.getSteps();
         } else if (expression instanceof final BasicFunction basicFunction) {
             // function implementations may have schemas associated
@@ -67,19 +69,21 @@ public class ExpressionSchemaResolver {
         } else if (expression instanceof final BasicEnvironmentAttribute basicEnvironmentAttribute) {
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(
-                    basicEnvironmentAttribute.getIdentifier().getNameFragments(), context, pdpConfiguration);
+                    basicEnvironmentAttribute.getIdentifier().getNameFragments(), context, pdpConfiguration,
+                    docsProvider);
             steps       = basicEnvironmentAttribute.getSteps();
         } else if (expression instanceof final BasicEnvironmentHeadAttribute basicEnvironmentHeadAttribute) {
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(
-                    basicEnvironmentHeadAttribute.getIdentifier().getNameFragments(), context, pdpConfiguration);
+                    basicEnvironmentHeadAttribute.getIdentifier().getNameFragments(), context, pdpConfiguration,
+                    docsProvider);
             steps       = basicEnvironmentHeadAttribute.getSteps();
         } else if (expression instanceof final BasicIdentifier basicIdentifier) {
             // an identifier may be an authorization subscription element with schema, or
             // the result of a value definition with an expression with explicit or implicit
             // schemas
             baseSchemas = inferPotentialSchemasFromIdentifier(basicIdentifier.getIdentifier(), context,
-                    pdpConfiguration);
+                    pdpConfiguration, docsProvider);
             steps       = basicIdentifier.getSteps();
         } else {
             // BasicValue -> no schema possible
@@ -88,12 +92,13 @@ public class ExpressionSchemaResolver {
             // All other expressions are operations that will remove schema association.
             return new ArrayList<>();
         }
-        return inferPotentialSchemasStepsAfterExpression(baseSchemas, steps, context, pdpConfiguration);
+        return inferPotentialSchemasStepsAfterExpression(baseSchemas, steps, context, pdpConfiguration, docsProvider);
     }
 
     public List<JsonNode> inferValueDefinitionSchemas(ValueDefinition valueDefinition, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
-        final var schemas = inferPotentialSchemasOfExpression(valueDefinition.getEval(), context, pdpConfiguration);
+            PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
+        final var schemas = inferPotentialSchemasOfExpression(valueDefinition.getEval(), context, pdpConfiguration,
+                docsProvider);
         for (final var schemaExpression : valueDefinition.getSchemaVarExpression()) {
             evaluateExpressionToSchema(schemaExpression, pdpConfiguration).ifPresent(schemas::add);
         }
@@ -101,7 +106,8 @@ public class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> inferPotentialSchemasStepsAfterExpression(List<JsonNode> baseSchemas, List<Step> steps,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         if (steps.isEmpty()) {
             return baseSchemas;
         }
@@ -118,13 +124,15 @@ public class ExpressionSchemaResolver {
 
         if (head instanceof final AttributeFinderStep attributeFinderStep) {
             newSchemas = inferPotentialSchemasFromAttributeFinder(
-                    attributeFinderStep.getIdentifier().getNameFragments(), context, pdpConfiguration);
+                    attributeFinderStep.getIdentifier().getNameFragments(), context, pdpConfiguration, docsProvider);
         } else if (head instanceof final HeadAttributeFinderStep headAttributeFinderStep) {
             newSchemas = inferPotentialSchemasFromAttributeFinder(
-                    headAttributeFinderStep.getIdentifier().getNameFragments(), context, pdpConfiguration);
+                    headAttributeFinderStep.getIdentifier().getNameFragments(), context, pdpConfiguration,
+                    docsProvider);
         }
 
-        return inferPotentialSchemasStepsAfterExpression(newSchemas, tail(steps), context, pdpConfiguration);
+        return inferPotentialSchemasStepsAfterExpression(newSchemas, tail(steps), context, pdpConfiguration,
+                docsProvider);
     }
 
     private <T> List<T> tail(List<T> list) {
@@ -135,11 +143,11 @@ public class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> inferPotentialSchemasFromAttributeFinder(Iterable<String> idSteps,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
-        final var broker       = pdpConfiguration.attributeStreamBroker();
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var nameInUse    = joinStepsToName(idSteps);
         final var resolvedName = resolveImport(nameInUse, context);
-        return lookupSchemasByName(resolvedName, broker.getAttributeSchemas());
+        return lookupSchemasByName(resolvedName, docsProvider.getAttributeSchemas());
     }
 
     private List<JsonNode> inferPotentialSchemasFromFunction(Iterable<String> idSteps, ContentAssistContext context,
@@ -149,7 +157,6 @@ public class ExpressionSchemaResolver {
         final var resolvedName    = resolveImport(nameInUse, context);
         return lookupSchemasByName(resolvedName, functionContext.getFunctionSchemas());
     }
-
 
     private String joinStepsToName(Iterable<String> steps) {
         return String.join(".", steps);
@@ -167,24 +174,27 @@ public class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> inferPotentialSchemasFromIdentifier(String identifier, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+            PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
         if (VariablesProposalsGenerator.AUTHORIZATION_SUBSCRIPTION_VARIABLES.contains(identifier)) {
             return inferSubscriptionElementSchema(identifier, context, pdpConfiguration);
         }
-        final var schemas = new ArrayList<>(
-                lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(identifier, context, pdpConfiguration));
-        schemas.addAll(lookupSchemasOfMatchingValueDefinitionsInPolicyBody(identifier, context, pdpConfiguration));
+        final var schemas = new ArrayList<>(lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(identifier,
+                context, pdpConfiguration, docsProvider));
+        schemas.addAll(lookupSchemasOfMatchingValueDefinitionsInPolicyBody(identifier, context, pdpConfiguration,
+                docsProvider));
         return schemas;
     }
 
     private List<JsonNode> lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(String identifier,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var schemas = new ArrayList<JsonNode>();
         if (context.getRootModel() instanceof final SAPL sapl
                 && sapl.getPolicyElement() instanceof final PolicySet policySet) {
             for (final var valueDefinition : ((List<ValueDefinition>) policySet.getValueDefinitions())) {
                 if (nameMatchesAndIsInScope(identifier, valueDefinition, context)) {
-                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, context, pdpConfiguration));
+                    schemas.addAll(
+                            inferValueDefinitionSchemas(valueDefinition, context, pdpConfiguration, docsProvider));
                 }
             }
         }
@@ -192,7 +202,8 @@ public class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> lookupSchemasOfMatchingValueDefinitionsInPolicyBody(String identifier,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var schemas    = new ArrayList<JsonNode>();
         final var policyBody = TreeNavigationUtil.goToFirstParent(context.getCurrentModel(), PolicyBody.class);
 
@@ -203,7 +214,7 @@ public class ExpressionSchemaResolver {
         for (final var statement : policyBody.getStatements()) {
             if (statement instanceof final ValueDefinition valueDefinition
                     && nameMatchesAndIsInScope(identifier, valueDefinition, context)) {
-                schemas.addAll(inferValueDefinitionSchemas(valueDefinition, context, pdpConfiguration));
+                schemas.addAll(inferValueDefinitionSchemas(valueDefinition, context, pdpConfiguration, docsProvider));
             }
         }
         return schemas;
@@ -261,7 +272,8 @@ public class ExpressionSchemaResolver {
 
             for (var currentImport : imports) {
                 final var importedFunction = fullyQualifiedFunctionName(currentImport);
-                if (nameReference.equals(currentImport.getFunctionAlias()) || importedFunction.endsWith(nameReference)) {
+                if (nameReference.equals(currentImport.getFunctionAlias())
+                        || importedFunction.endsWith(nameReference)) {
                     return importedFunction;
                 }
             }

@@ -27,51 +27,56 @@ import io.sapl.validation.Validator;
 import lombok.NonNull;
 
 public record AttributeFinderSpecification(@NonNull String attributeName, boolean isEnvironmentAttribute,
-		int numberOfArguments, boolean takesVariables, @NonNull Validator entityValidator,
-		@NonNull List<Validator> parameterValidators, JsonNode attributeSchema, @NonNull String codeTemplate,
-		@NonNull String documentation) {
+        int numberOfArguments, boolean takesVariables, @NonNull Validator entityValidator,
+        @NonNull List<Validator> parameterValidators, JsonNode attributeSchema, @NonNull String codeTemplate,
+        @NonNull String documentation) {
 
-	public enum Match {
-		NO_MATCH, EXACT_MATCH, VARARGS_MATCH
-	}
+    public enum Match {
+        NO_MATCH, EXACT_MATCH, VARARGS_MATCH
+    }
 
-	public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;
+    public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;
 
-	public AttributeFinderSpecification {
-		requireValidName(attributeName);
-	}
+    public AttributeFinderSpecification {
+        requireValidName(attributeName);
+    }
 
-	public boolean hasVariableNumberOfArguments() {
-		return numberOfArguments == HAS_VARIABLE_NUMBER_OF_ARGUMENTS;
-	}
+    public boolean hasVariableNumberOfArguments() {
+        return numberOfArguments == HAS_VARIABLE_NUMBER_OF_ARGUMENTS;
+    }
 
-	/**
-	 * @param other another specification
-	 * @return true, if the presence of the two specifications leads to
-	 *         disambiguates in resolving PIP lookups.
-	 */
-	public boolean collidesWith(AttributeFinderSpecification other) {
-		if (!attributeName.equals(other.attributeName) || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
-			return false;
-		}
-		return (hasVariableNumberOfArguments() && other.hasVariableNumberOfArguments())
-				|| numberOfArguments == other.numberOfArguments;
-	}
+    /**
+     * @param other another specification
+     * @return true, if the presence of the two specifications leads to
+     * disambiguates in resolving PIP lookups.
+     */
+    public boolean collidesWith(AttributeFinderSpecification other) {
+        if (!attributeName.equals(other.attributeName) || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
+            return false;
+        }
+        return (hasVariableNumberOfArguments() && other.hasVariableNumberOfArguments())
+                || numberOfArguments == other.numberOfArguments;
+    }
 
-	public Match matches(AttributeFinderInvocation invocation) {
-		if (!invocation.attributeName().equals(attributeName)
-				|| (isEnvironmentAttribute != invocation.isEnvironmentAttributeInvocation())) {
-			return Match.NO_MATCH;
-		}
+    public Match matches(AttributeFinderInvocation invocation) {
+        if (!invocation.attributeName().equals(attributeName)
+                || (isEnvironmentAttribute != invocation.isEnvironmentAttributeInvocation())) {
+            return Match.NO_MATCH;
+        }
 
-		if (invocation.arguments().size() == numberOfArguments) {
-			return Match.EXACT_MATCH;
-		}
+        if (invocation.arguments().size() == numberOfArguments) {
+            return Match.EXACT_MATCH;
+        }
 
-		if (hasVariableNumberOfArguments()) {
-			return Match.VARARGS_MATCH;
-		}
+        if (hasVariableNumberOfArguments()) {
+            return Match.VARARGS_MATCH;
+        }
 
-		return Match.NO_MATCH;
-	}
+        return Match.NO_MATCH;
+    }
+
+    public String codeTemplate(String alias) {
+        return codeTemplate.replaceFirst(attributeName, alias);
+    }
+
 }

@@ -43,6 +43,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.documentation.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.validation.ValidatorFactory;
 import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Flux;
@@ -92,8 +93,9 @@ class JWTPolicyInformationPointTests {
         final var mapper                = new ObjectMapper();
         final var validatorFactory      = new ValidatorFactory(mapper);
         final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
-                validatorFactory);
+                docsProvider, validatorFactory);
         assertDoesNotThrow(() -> pipLoader.loadPolicyInformationPoint(jwtPolicyInformationPoint));
     }
 

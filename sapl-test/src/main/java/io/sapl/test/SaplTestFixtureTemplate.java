@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
+import io.sapl.attributes.documentation.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.validation.ValidatorFactory;
@@ -33,11 +35,11 @@ public abstract class SaplTestFixtureTemplate implements SaplTestFixture {
 
     protected final Map<String, Val> variables = new HashMap<>(1);
 
-    protected final AnnotationFunctionContext    functionCtx           = new AnnotationFunctionContext();
-    protected final CachingAttributeStreamBroker attributeStreamBroker = new CachingAttributeStreamBroker();
-
+    protected final AnnotationFunctionContext                   functionCtx           = new AnnotationFunctionContext();
+    protected final CachingAttributeStreamBroker                attributeStreamBroker = new CachingAttributeStreamBroker();
+    protected final PolicyInformationPointDocumentationProvider docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
     protected final AnnotationPolicyInformationPointLoader loader = new AnnotationPolicyInformationPointLoader(
-            attributeStreamBroker, new ValidatorFactory(new ObjectMapper()));
+            attributeStreamBroker, docsProvider, new ValidatorFactory(new ObjectMapper()));
 
     @Override
     public SaplTestFixture registerPIP(Object pip) throws InitializationException {
