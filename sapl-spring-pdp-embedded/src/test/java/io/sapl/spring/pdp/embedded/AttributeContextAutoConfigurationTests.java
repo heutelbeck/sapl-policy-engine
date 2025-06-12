@@ -26,6 +26,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
@@ -39,7 +41,7 @@ class AttributeContextAutoConfigurationTests {
 
     @Test
     void whenContextLoaded_thenAFunctionContextIsPresent() {
-        contextRunner.run(context -> {
+        contextRunner.withBean(ObjectMapper.class, new ObjectMapper()).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(AttributeStreamBroker.class);
         });
@@ -47,17 +49,17 @@ class AttributeContextAutoConfigurationTests {
 
     @Test
     void whenAttributeContextIsPresent_thenDoNotLoadANewOne() {
-        contextRunner.withBean(AttributeStreamBroker.class, () -> mock(AttributeStreamBroker.class)).run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(AttributeStreamBroker.class);
-            assertThat(context).doesNotHaveBean(AttributeStreamBroker.class);
-        });
+        contextRunner.withBean(ObjectMapper.class, new ObjectMapper())
+                .withBean(AttributeStreamBroker.class, () -> mock(AttributeStreamBroker.class)).run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(AttributeStreamBroker.class);
+                });
     }
 
     @Test
     void whenDefaultLibrariesArePresent_thenAFunctionContextIsPresentAndLoadedThem() {
         contextRunner.withConfiguration(AutoConfigurations.of(PolicyInformationPointsAutoConfiguration.class))
-                .run(context -> {
+                .withBean(ObjectMapper.class, new ObjectMapper()).run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(AttributeStreamBroker.class);
                     assertThat(context.getBean(PolicyInformationPointDocumentationProvider.class)
