@@ -60,7 +60,8 @@ class AttributeContextAutoConfigurationTests {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(AttributeStreamBroker.class);
-                    assertThat(context.getBean(PolicyInformationPointDocumentationProvider.class).isProvidedFunction("time.now")).isTrue();
+                    assertThat(context.getBean(PolicyInformationPointDocumentationProvider.class)
+                            .isProvidedFunction("time.now")).isTrue();
                 });
     }
 

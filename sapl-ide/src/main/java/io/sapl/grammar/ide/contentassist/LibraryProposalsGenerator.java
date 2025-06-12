@@ -45,7 +45,8 @@ public class LibraryProposalsGenerator {
     public record DocumentedProposal(String proposal, String label, String documentation) {}
 
     public static Collection<Proposal> allEnvironmentAttributeSchemaExtensions(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new HashSet<Proposal>();
         final var attributes = docsProvider.getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
@@ -57,7 +58,8 @@ public class LibraryProposalsGenerator {
     }
 
     public static Collection<Proposal> allAttributeSchemaExtensions(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new HashSet<Proposal>();
         final var attributes = docsProvider.getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
@@ -142,7 +144,8 @@ public class LibraryProposalsGenerator {
      * alternatives based on imports.
      */
     public static Collection<Proposal> allEnvironmentAttributeFinders(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new ArrayList<Proposal>();
         final var attributes = docsProvider.getAttributeMetatata();
         attributes.stream().filter(AttributeFinderSpecification::isEnvironmentAttribute)
@@ -199,8 +202,8 @@ public class LibraryProposalsGenerator {
             AttributeFinderSpecification function, ContentAssistContext context) {
         final var proposals = new ArrayList<Proposal>();
         final var aliases   = aliasNamesOfFunctionFromImports(function.attributeName(), context);
-        aliases.forEach(alias -> ProposalCreator
-                .createNormalizedEntry(function.codeTemplate(alias), prefix, ctxPrefix).ifPresent(proposals::add));
+        aliases.forEach(alias -> ProposalCreator.createNormalizedEntry(function.codeTemplate(alias), prefix, ctxPrefix)
+                .ifPresent(proposals::add));
         return proposals;
     }
 

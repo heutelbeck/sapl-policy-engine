@@ -39,7 +39,7 @@ import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.attributes.documentation.impl.InMemoryPolicyInformationPointDocumentationProvider;
+import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
@@ -109,8 +109,7 @@ public class PolicyDecisionPointFactory {
 
     public static EmbeddedPolicyDecisionPoint fixedInRamPolicyDecisionPoint(SAPLInterpreter parser,
             Collection<String> documents, PolicyDocumentCombiningAlgorithm documentsCombinator,
-            Map<String, Val> variables, AttributeStreamBroker attributeStreamBroker,
-             FunctionContext functionContext,
+            Map<String, Val> variables, AttributeStreamBroker attributeStreamBroker, FunctionContext functionContext,
             UnaryOperator<TracedDecision> decisionInterceptorChain,
             UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) {
         final var documentsById = new HashMap<String, Document>();
@@ -131,8 +130,8 @@ public class PolicyDecisionPointFactory {
         final var policyRetrievalPoint = new NaiveImmutableParsedDocumentIndex(documentsById, consistent);
 
         final var pdpConfiguration = new PDPConfiguration(UUID.randomUUID().toString(), attributeStreamBroker,
-                functionContext, variables, documentsCombinator, decisionInterceptorChain,
-                subscriptionInterceptorChain, policyRetrievalPoint);
+                functionContext, variables, documentsCombinator, decisionInterceptorChain, subscriptionInterceptorChain,
+                policyRetrievalPoint);
 
         return new EmbeddedPolicyDecisionPoint(() -> Flux.just(pdpConfiguration));
     }

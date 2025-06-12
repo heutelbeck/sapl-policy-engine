@@ -43,7 +43,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.attributes.documentation.impl.InMemoryPolicyInformationPointDocumentationProvider;
+import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.validation.ValidatorFactory;
 import okhttp3.mockwebserver.MockWebServer;
 import reactor.core.publisher.Flux;

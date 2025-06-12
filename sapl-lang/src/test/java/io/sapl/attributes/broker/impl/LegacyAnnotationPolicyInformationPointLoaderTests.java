@@ -47,7 +47,6 @@ import io.sapl.api.validation.Text;
 import io.sapl.attributes.broker.api.AttributeBrokerException;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.attributes.documentation.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.testutil.ParserUtil;
@@ -177,7 +176,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
                 docsProvider, new ValidatorFactory(new ObjectMapper()));
         assertDoesNotThrow(() -> pipLoader.loadPolicyInformationPoint(pip));
         assertThat(docsProvider.getAvailableLibraries().contains("PIP"), is(true));
-        System.out.println("->"+docsProvider.providedFunctionsOfLibrary("PIP"));
+        System.out.println("->" + docsProvider.providedFunctionsOfLibrary("PIP"));
         assertThat(docsProvider.providedFunctionsOfLibrary("PIP").contains("x"), is(true));
         assertThat(docsProvider.isProvidedFunction("PIP.x"), is(Boolean.TRUE));
         assertThat(new ArrayList<>(docsProvider.getDocumentation()).get(0).getName(), is("PIP"));
