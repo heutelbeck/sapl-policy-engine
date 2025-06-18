@@ -948,13 +948,13 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var expectedEnvironmentTemplates = new String[] { "<test.a(a1,a2)>", "<test.a(varArgsParams...)>",
                 "<test.a2(a1,a2)>", "<test.a2>" };
         final var actualEnvironmentTemplates   = sut.getEnvironmentAttributeCodeTemplates();
-        log.error("-->\n{}",actualEnvironmentTemplates);
+        log.error("-->\n{}", actualEnvironmentTemplates);
         assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvironmentTemplates));
 
         final var expectedNonEnvironmentTemplates = new String[] { "<test.x2(a1,a2)>", "<test.x(varArgsParams...)>",
                 "<test.x(a1,a2)>" };
         final var actualNonEnvironmentTemplates   = sut.getAttributeCodeTemplates();
-        log.error("+->\n{}",actualNonEnvironmentTemplates);
+        log.error("+->\n{}", actualNonEnvironmentTemplates);
 
         assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvironmentTemplates));
 
