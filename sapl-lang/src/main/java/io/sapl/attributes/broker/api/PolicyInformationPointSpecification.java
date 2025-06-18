@@ -21,4 +21,5 @@ import java.util.Set;
 
 import lombok.NonNull;
 
-public record PolicyInformationPointSpecification(@NonNull String name, @NonNull Set<AttributeFinderSpecification> attributeFinders) {}
+public record PolicyInformationPointSpecification(@NonNull String name,
+        @NonNull Set<AttributeFinderSpecification> attributeFinders) {}

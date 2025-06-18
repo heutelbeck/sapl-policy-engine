@@ -23,7 +23,6 @@ public interface AttributeDocumentationService {
 
     Map<String, LibraryDocumentation> getPolicyInformationPointsByNamespace();
 
-    Map<String, LibraryDocumentation> getPolicyInformationPointsByConfigurationId(
-            String configurationId);
+    Map<String, LibraryDocumentation> getPolicyInformationPointsByConfigurationId(String configurationId);
 
 }
