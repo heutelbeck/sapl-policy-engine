@@ -34,12 +34,12 @@ public class DocumentationAutoConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PolicyInformationPointsDocumentation pipDocumentation(PolicyInformationPointDocumentationProvider attributeCtx) {
+    PolicyInformationPointsDocumentation pipDocumentation(PolicyInformationPointDocumentationProvider docProvider) {
         log.info("Provisioning PIP Documentation Bean");
-        for (var doc : attributeCtx.getDocumentation()) {
-            log.debug("AttributeCtx contains: {}", doc.getName());
+        for (var doc : docProvider.getDocumentation()) {
+            log.debug("AttributeCtx contains: {}", doc.namespace());
         }
-        return new PolicyInformationPointsDocumentation(attributeCtx.getDocumentation());
+        return new PolicyInformationPointsDocumentation(docProvider.getDocumentation());
     }
 
     @Bean

@@ -21,5 +21,6 @@ import java.util.List;
 
 import lombok.NonNull;
 
-public record PolicyInformationPointDocumentation(@NonNull String name, @NonNull String descriptionMarkdown,
-        @NonNull String documentationMarkdown, @NonNull List<AttributeDocumentation> attributes) {}
+public record LibraryDocumentation(@NonNull LibraryType type, @NonNull String namespace,
+        @NonNull String descriptionMarkdown, @NonNull String documentationMarkdown,
+        @NonNull List<LibraryFunctionDocumentation> attributes) {}

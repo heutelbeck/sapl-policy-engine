@@ -30,18 +30,18 @@ class AttributeFinderSpecificationTests {
 
     @Test
     void whenConstructionOfPolicyInformationPointSpecificationHasBadParametersThenThrowElseDoNotThrow() {
-        assertThatThrownBy(() -> new AttributeFinderSpecification(null, true, 0, true, e -> {}, List.of(), null,
-                "template", "docs")).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new AttributeFinderSpecification(null, "a", true, 0, true, e -> {}, List.of()))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new AttributeFinderSpecification("a", null, true, 0, true, e -> {}, List.of()))
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void whenVarArgsCheckedThenVarArgsCorrectlyDetected() {
-        var withVarArgs = new AttributeFinderSpecification("abc.def", true,
-                AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, true, e -> {}, List.of(), null,
-                "template", "docs");
+        var withVarArgs = new AttributeFinderSpecification("abc", "def", true,
+                AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, true, e -> {}, List.of());
         assertThat(withVarArgs.hasVariableNumberOfArguments()).isTrue();
-        var notWithVarArgs = new AttributeFinderSpecification("abc.def", true, 0, true, e -> {}, List.of(), null,
-                "template", "docs");
+        var notWithVarArgs = new AttributeFinderSpecification("abc", "def", true, 0, true, e -> {}, List.of());
         assertThat(notWithVarArgs.hasVariableNumberOfArguments()).isFalse();
     }
 

@@ -52,10 +52,12 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.testutil.ParserUtil;
 import io.sapl.validation.ValidatorFactory;
 import jakarta.validation.constraints.NotNull;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
+@Slf4j
 class LegacyAnnotationPolicyInformationPointLoaderTests {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -179,7 +181,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         System.out.println("->" + docsProvider.providedFunctionsOfLibrary("PIP"));
         assertThat(docsProvider.providedFunctionsOfLibrary("PIP").contains("x"), is(true));
         assertThat(docsProvider.isProvidedFunction("PIP.x"), is(Boolean.TRUE));
-        assertThat(new ArrayList<>(docsProvider.getDocumentation()).get(0).getName(), is("PIP"));
+        assertThat(new ArrayList<>(docsProvider.getDocumentation()).get(0).namespace(), is("PIP"));
     }
 
     @Test
@@ -924,17 +926,17 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
             }
 
             @Attribute
-            public Flux<Val> x(Val entity, Map<String, Val> variables, @Bool @Text Val... varArgsParams) {
+            public Flux<Val> x(Val entity1, Map<String, Val> variables, @Bool @Text Val... varArgsParams) {
                 return Flux.just(varArgsParams[1]);
             }
 
             @Attribute
-            public Flux<Val> x(Val entity, @NotNull @Bool @Text Val a1, @Bool Val a2) {
+            public Flux<Val> x(Val entity2, @NotNull @Bool @Text Val a1, @Bool Val a2) {
                 return Flux.just(a1);
             }
 
             @Attribute
-            public Flux<Val> x2(Val entity, Val a1, Val a2) {
+            public Flux<Val> x2(Val entity3, Val a1, Val a2) {
                 return Flux.just(a1);
             }
 
@@ -943,14 +945,17 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var pip = new PIP();
         final var sut = docsProviderWithPip(pip);
 
-        final var expectedEnvironmentTemplates = new String[] { "<test.a(a1, a2)>", "<test.a(varArgsParams...)>",
-                "<test.a2(a1, a2)>", "<test.a2>" };
+        final var expectedEnvironmentTemplates = new String[] { "<test.a(a1,a2)>", "<test.a(varArgsParams...)>",
+                "<test.a2(a1,a2)>", "<test.a2>" };
         final var actualEnvironmentTemplates   = sut.getEnvironmentAttributeCodeTemplates();
+        log.error("-->\n{}",actualEnvironmentTemplates);
         assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvironmentTemplates));
 
-        final var expectedNonEnvironmentTemplates = new String[] { "<test.x2(a1, a2)>", "<test.x(varArgsParams...)>",
-                "<test.x(a1, a2)>" };
+        final var expectedNonEnvironmentTemplates = new String[] { "<test.x2(a1,a2)>", "<test.x(varArgsParams...)>",
+                "<test.x(a1,a2)>" };
         final var actualNonEnvironmentTemplates   = sut.getAttributeCodeTemplates();
+        log.error("+->\n{}",actualNonEnvironmentTemplates);
+
         assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvironmentTemplates));
 
         assertThat(sut.getAvailableLibraries(), containsInAnyOrder("test"));
@@ -996,21 +1001,21 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
 
         final String pipName        = "test";
         final String pipDescription = "description";
+        final String docs           = "docs";
 
         @PolicyInformationPoint(name = pipName, description = pipDescription)
         class PIP {
 
-            @EnvironmentAttribute
+            @EnvironmentAttribute(docs = docs)
             public Flux<Val> empty() {
                 return Flux.empty();
             }
         }
 
-        final var pip          = new PIP();
-        final var docsProvider = docsProviderWithPip(pip);
-
+        final var pip             = new PIP();
+        final var docsProvider    = docsProviderWithPip(pip);
         final var actualTemplates = docsProvider.getDocumentedAttributeCodeTemplates();
-        assertThat(actualTemplates, hasEntry(pipName, pipDescription));
+        assertThat(actualTemplates, hasEntry("<test.empty>", docs));
     }
 
     @Test

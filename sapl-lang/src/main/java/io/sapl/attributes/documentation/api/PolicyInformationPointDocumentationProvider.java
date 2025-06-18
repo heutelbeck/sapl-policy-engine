@@ -22,13 +22,9 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import io.sapl.attributes.broker.api.AttributeFinderSpecification;
-import io.sapl.attributes.broker.api.PolicyInformationPointSpecification;
-import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
-
 public interface PolicyInformationPointDocumentationProvider {
 
-    void loadPolicyInformationPoint(PolicyInformationPointSpecification pipSpecification);
+    void loadPolicyInformationPoint(LibraryDocumentation pipDocumentation);
 
     void unloadPolicyInformationPoint(String name);
 
@@ -40,7 +36,7 @@ public interface PolicyInformationPointDocumentationProvider {
 
     Map<String, JsonNode> getAttributeSchemas();
 
-    List<AttributeFinderSpecification> getAttributeMetatata();
+    List<LibraryFunctionDocumentation> getAttributeMetatata();
 
     List<String> getAvailableLibraries();
 
@@ -50,5 +46,5 @@ public interface PolicyInformationPointDocumentationProvider {
 
     Map<String, String> getDocumentedAttributeCodeTemplates();
 
-    List<PolicyInformationPointDocumentation> getDocumentation();
+    List<LibraryDocumentation> getDocumentation();
 }

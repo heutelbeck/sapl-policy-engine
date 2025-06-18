@@ -49,4 +49,9 @@ public interface Validator {
             }
         };
     }
+
+    default String documentation() {
+        return "";
+    }
+
 }

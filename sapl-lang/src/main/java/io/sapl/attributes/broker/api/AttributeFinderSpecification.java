@@ -21,15 +21,12 @@ import static io.sapl.validation.NameValidator.requireValidName;
 
 import java.util.List;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 import io.sapl.validation.Validator;
 import lombok.NonNull;
 
-public record AttributeFinderSpecification(@NonNull String attributeName, boolean isEnvironmentAttribute,
-        int numberOfArguments, boolean takesVariables, @NonNull Validator entityValidator,
-        @NonNull List<Validator> parameterValidators, JsonNode attributeSchema, @NonNull String codeTemplate,
-        @NonNull String documentation) {
+public record AttributeFinderSpecification(@NonNull String namespace, @NonNull String attributeName,
+        boolean isEnvironmentAttribute, int numberOfArguments, boolean takesVariables,
+        @NonNull Validator entityValidator, @NonNull List<Validator> parameterValidators) {
 
     public enum Match {
         NO_MATCH, EXACT_MATCH, VARARGS_MATCH
@@ -38,7 +35,7 @@ public record AttributeFinderSpecification(@NonNull String attributeName, boolea
     public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;
 
     public AttributeFinderSpecification {
-        requireValidName(attributeName);
+        requireValidName(fullyQualifiedName());
     }
 
     public boolean hasVariableNumberOfArguments() {
@@ -51,7 +48,8 @@ public record AttributeFinderSpecification(@NonNull String attributeName, boolea
      * disambiguates in resolving PIP lookups.
      */
     public boolean collidesWith(AttributeFinderSpecification other) {
-        if (!attributeName.equals(other.attributeName) || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
+        if (!fullyQualifiedName().equals(other.fullyQualifiedName())
+                || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
             return false;
         }
         return (hasVariableNumberOfArguments() && other.hasVariableNumberOfArguments())
@@ -59,7 +57,7 @@ public record AttributeFinderSpecification(@NonNull String attributeName, boolea
     }
 
     public Match matches(AttributeFinderInvocation invocation) {
-        if (!invocation.attributeName().equals(attributeName)
+        if (!invocation.attributeName().equals(fullyQualifiedName())
                 || (isEnvironmentAttribute != invocation.isEnvironmentAttributeInvocation())) {
             return Match.NO_MATCH;
         }
@@ -75,8 +73,8 @@ public record AttributeFinderSpecification(@NonNull String attributeName, boolea
         return Match.NO_MATCH;
     }
 
-    public String codeTemplate(String alias) {
-        return codeTemplate.replaceFirst(attributeName, alias);
+    public String fullyQualifiedName() {
+        return namespace + '.' + attributeName;
     }
 
 }

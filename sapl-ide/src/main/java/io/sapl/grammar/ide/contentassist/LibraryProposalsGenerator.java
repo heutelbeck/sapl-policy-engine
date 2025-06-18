@@ -29,7 +29,8 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.attributes.broker.api.AttributeFinderSpecification;
+import io.sapl.attributes.documentation.api.FunctionType;
+import io.sapl.attributes.documentation.api.LibraryFunctionDocumentation;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
 import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
@@ -50,8 +51,8 @@ public class LibraryProposalsGenerator {
         final var proposals  = new HashSet<Proposal>();
         final var attributes = docsProvider.getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
-        attributes.stream().filter(AttributeFinderSpecification::isEnvironmentAttribute)
-                .filter(function -> aliasNamesOfFunctionFromImports(function.attributeName(), context)
+        attributes.stream().filter(d -> d.type() == FunctionType.ENVIRONMENT_ATTRIBUTE)
+                .filter(function -> aliasNamesOfFunctionFromImports(function.fullyQualifiedName(), context)
                         .contains(analysis.functionName()))
                 .forEach(attribute -> proposals.addAll(entryForMetadata(analysis, attribute, variables)));
         return proposals;
@@ -63,8 +64,8 @@ public class LibraryProposalsGenerator {
         final var proposals  = new HashSet<Proposal>();
         final var attributes = docsProvider.getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
-        attributes.stream().filter(attribute -> !attribute.isEnvironmentAttribute())
-                .filter(function -> aliasNamesOfFunctionFromImports(function.attributeName(), context)
+        attributes.stream().filter(d -> d.type() == FunctionType.ATTRIBUTE)
+                .filter(function -> aliasNamesOfFunctionFromImports(function.fullyQualifiedName(), context)
                         .contains(analysis.functionName()))
                 .forEach(attribute -> proposals.addAll(entryForMetadata(analysis, attribute, variables)));
         return proposals;
@@ -95,10 +96,10 @@ public class LibraryProposalsGenerator {
         return proposals;
     }
 
-    private List<Proposal> entryForMetadata(ContextAnalysisResult analysis, AttributeFinderSpecification metadata,
+    private List<Proposal> entryForMetadata(ContextAnalysisResult analysis, LibraryFunctionDocumentation metadata,
             Map<String, Val> variables) {
         final var proposals = new ArrayList<Proposal>();
-        final var schema    = metadata.attributeSchema();
+        final var schema    = metadata.returnTypeSchema();
         if (null != schema) {
             SchemaProposalsGenerator.getCodeTemplates("", schema, variables)
                     .forEach(proposal -> ProposalCreator
@@ -125,7 +126,7 @@ public class LibraryProposalsGenerator {
             PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new ArrayList<Proposal>();
         final var attributes = docsProvider.getAttributeMetatata();
-        attributes.stream().filter(a -> !a.isEnvironmentAttribute()).forEach(attribute -> proposals.addAll(
+        attributes.stream().filter(d -> d.type() == FunctionType.ATTRIBUTE).forEach(attribute -> proposals.addAll(
                 documentedProposalsForLibraryEntry(analysis.prefix(), analysis.ctxPrefix(), attribute, context)));
         return proposals;
     }
@@ -148,7 +149,7 @@ public class LibraryProposalsGenerator {
             PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new ArrayList<Proposal>();
         final var attributes = docsProvider.getAttributeMetatata();
-        attributes.stream().filter(AttributeFinderSpecification::isEnvironmentAttribute)
+        attributes.stream().filter(d -> d.type() == FunctionType.ENVIRONMENT_ATTRIBUTE)
                 .forEach(attribute -> proposals.addAll(documentedProposalsForLibraryEntry(analysis.prefix(),
                         analysis.ctxPrefix(), attribute, context)));
         return proposals;
@@ -199,11 +200,11 @@ public class LibraryProposalsGenerator {
     }
 
     private static Collection<Proposal> documentedProposalsForLibraryEntry(String prefix, String ctxPrefix,
-            AttributeFinderSpecification function, ContentAssistContext context) {
+            LibraryFunctionDocumentation function, ContentAssistContext context) {
         final var proposals = new ArrayList<Proposal>();
-        final var aliases   = aliasNamesOfFunctionFromImports(function.attributeName(), context);
-        aliases.forEach(alias -> ProposalCreator.createNormalizedEntry(function.codeTemplate(alias), prefix, ctxPrefix)
-                .ifPresent(proposals::add));
+        final var aliases   = aliasNamesOfFunctionFromImports(function.fullyQualifiedName(), context);
+        aliases.forEach(alias -> ProposalCreator
+                .createNormalizedEntry(function.aliasCodeTemplate(alias), prefix, ctxPrefix).ifPresent(proposals::add));
         return proposals;
     }
 
