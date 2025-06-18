@@ -15,30 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.interpreter.pip;
+package io.sapl.attributes.documentation.api;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-
-@Data
-@NoArgsConstructor(force = true)
-@RequiredArgsConstructor
-public class PolicyInformationPointDocumentation {
-
-    @NonNull
-    String name;
-
-    @NonNull
-    String description;
-
-    @NonNull
-    String pipDocumentation;
-
-    Map<String, String> documentation = new HashMap<>();
-
+public enum FunctionType {
+    ATTRIBUTE, ENVIRONMENT_ATTRIBUTE, FUNCTION
 }

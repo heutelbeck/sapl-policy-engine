@@ -21,9 +21,9 @@ import java.util.Map;
 
 public interface AttributeDocumentationService {
 
-    Map<String, PolicyInformationPointDocumentation> getPolicyInformationPointsByNamespace();
+    Map<String, LibraryDocumentation> getPolicyInformationPointsByNamespace();
 
-    Map<String, PolicyInformationPointDocumentation> getPolicyInformationPointsByConfigurationId(
+    Map<String, LibraryDocumentation> getPolicyInformationPointsByConfigurationId(
             String configurationId);
 
 }

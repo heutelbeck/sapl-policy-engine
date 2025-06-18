@@ -1,4 +1,4 @@
-import filter.*
+import filter.blacken
 
 policy "policyWithObligationAndResource"
 permit 

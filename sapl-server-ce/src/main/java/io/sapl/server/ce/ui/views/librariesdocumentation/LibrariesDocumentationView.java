@@ -30,7 +30,6 @@ import com.vaadin.flow.router.Route;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.interpreter.functions.LibraryDocumentation;
-import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.views.MainLayout;
 import io.sapl.spring.pdp.embedded.FunctionLibrariesDocumentation;
@@ -59,10 +58,10 @@ public class LibrariesDocumentationView extends VerticalLayout {
         add(libsAndPipsTabSheet);
     }
 
-    private Component policyInformationPoints(Collection<PolicyInformationPointDocumentation> pipDocumentations) {
+    private Component policyInformationPoints(Collection<io.sapl.attributes.documentation.api.LibraryDocumentation> pipDocumentations) {
         final var sheet = new TabSheet();
         for (var pip : pipDocumentations) {
-            final var name     = pip.getName();
+            final var name     = pip.namespace();
             final var markdown = MarkdownGenerator.generateMarkdownForPolicyInformationPoint(pip);
             final var content  = MarkdownGenerator.markdownToHtml(markdown);
             final var html     = new Html(MarkdownGenerator.wrapInDiv(content));

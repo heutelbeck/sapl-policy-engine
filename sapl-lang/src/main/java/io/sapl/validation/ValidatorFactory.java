@@ -18,6 +18,8 @@
 package io.sapl.validation;
 
 import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -36,6 +38,7 @@ import io.sapl.api.validation.Number;
 import io.sapl.api.validation.Schema;
 import io.sapl.api.validation.Text;
 import io.sapl.attributes.broker.api.AttributeBrokerException;
+import io.sapl.attributes.documentation.api.TypeOption;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -56,6 +59,40 @@ public class ValidatorFactory {
             .metaSchema(JsonMetaSchema.getV202012()).defaultMetaSchemaIri(JsonMetaSchema.getV202012().getIri()).build();
 
     private final ObjectMapper mapper;
+
+    public List<TypeOption> allowedTypesFromAnnotations(Annotation[] annotations) {
+
+        if (annotations == null || annotations.length == 0) {
+            return List.of();
+        }
+
+        final var allowedTypes = new ArrayList<TypeOption>();
+        for (var annotation : annotations) {
+            if (annotation instanceof Text) {
+                allowedTypes.add(new TypeOption("TEXT", null));
+            } else if (annotation instanceof Array) {
+                allowedTypes.add(new TypeOption("ARRAY", null));
+            } else if (annotation instanceof Number) {
+                allowedTypes.add(new TypeOption("NUMBER", null));
+            } else if (annotation instanceof Int) {
+                allowedTypes.add(new TypeOption("INTEGER", null));
+            } else if (annotation instanceof Bool) {
+                allowedTypes.add(new TypeOption("BOOLEAN", null));
+            } else if (annotation instanceof Long) {
+                allowedTypes.add(new TypeOption("LONG", null));
+            } else if (annotation instanceof JsonObject) {
+                allowedTypes.add(new TypeOption("JSON", null));
+            } else if (annotation instanceof Schema schemaAnnotation) {
+                try {
+                    allowedTypes.add(
+                            new TypeOption("JSONSchema", mapper.readValue(schemaAnnotation.value(), JsonNode.class)));
+                } catch (JsonProcessingException e) {
+                    throw new AttributeBrokerException(INVALID_JSON_AS_SCHEMA_ERROR, e);
+                }
+            }
+        }
+        return allowedTypes;
+    }
 
     public Validator parameterValidatorFromAnnotations(Annotation[] annotations) {
 

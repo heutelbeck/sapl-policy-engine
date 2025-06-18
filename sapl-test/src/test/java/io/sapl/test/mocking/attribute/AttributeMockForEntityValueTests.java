@@ -20,7 +20,6 @@ package io.sapl.test.mocking.attribute;
 import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.test.Imports.entityValue;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.Duration;
 import java.util.List;
@@ -31,7 +30,6 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.attributes.broker.api.AttributeFinderInvocation;
-import io.sapl.test.SaplTestException;
 import reactor.test.StepVerifier;
 
 class AttributeMockForEntityValueTests {
@@ -64,7 +62,8 @@ class AttributeMockForEntityValueTests {
         mock.loadMockForParentValue(entityValue(val(1)), Val.TRUE);
         final var invocation = new AttributeFinderInvocation("", "test.attribute", Val.of(99), List.of(), Map.of(),
                 Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofSeconds(1L), 1, true);
-        assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> mock.evaluate(invocation));
+        StepVerifier.create(mock.evaluate(invocation))
+                .expectErrorMessage("Unable to find a mocked return value for this entity value").verify();
     }
 
     @Test

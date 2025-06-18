@@ -115,8 +115,8 @@ class ReportingDecisionInterceptorTests {
     void runReportingTest() {
         final var pdp = new EmbeddedPolicyDecisionPoint(new TestingPDPConfigurationProvider());
         final var sub = AuthorizationSubscription.of("subject", "action", "resource");
-        StepVerifier.create(pdp.decide(sub)).expectNextMatches(d -> d.getDecision() == Decision.INDETERMINATE).thenCancel()
-                .verify();
+        StepVerifier.create(pdp.decide(sub)).expectNextMatches(d -> d.getDecision() == Decision.INDETERMINATE)
+                .thenCancel().verify();
     }
 
 }

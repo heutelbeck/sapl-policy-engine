@@ -23,7 +23,6 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,6 +41,11 @@ import io.sapl.attributes.broker.api.AttributeFinderSpecification;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.attributes.broker.api.PolicyInformationPointImplementation;
 import io.sapl.attributes.broker.api.PolicyInformationPointSpecification;
+import io.sapl.attributes.documentation.api.FunctionType;
+import io.sapl.attributes.documentation.api.LibraryDocumentation;
+import io.sapl.attributes.documentation.api.LibraryFunctionDocumentation;
+import io.sapl.attributes.documentation.api.LibraryType;
+import io.sapl.attributes.documentation.api.ParameterDocumentation;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.documentation.api.SchemaLoadingUtil;
 import io.sapl.validation.ValidationException;
@@ -163,13 +167,15 @@ public class AnnotationPolicyInformationPointLoader {
     }
 
     private void loadPolicyInformationPoint(Object policyInformationPoint, Class<?> pipClass) {
-        final var implementation = createImplementation(policyInformationPoint, pipClass);
-        broker.loadPolicyInformationPoint(implementation);
-        documentationProvider.loadPolicyInformationPoint(implementation.specification());
+        final var impAndDoc = createImplementation(policyInformationPoint, pipClass);
+        broker.loadPolicyInformationPoint(impAndDoc.implementation());
+        documentationProvider.loadPolicyInformationPoint(impAndDoc.documentation());
     }
 
-    private PolicyInformationPointImplementation createImplementation(Object policyInformationPoint,
-            Class<?> pipClass) {
+    private record ImplementationAndDocumentation(PolicyInformationPointImplementation implementation,
+            LibraryDocumentation documentation) {}
+
+    private ImplementationAndDocumentation createImplementation(Object policyInformationPoint, Class<?> pipClass) {
         final var pipAnnotation = pipClass.getAnnotation(PolicyInformationPoint.class);
 
         if (null == pipAnnotation) {
@@ -183,6 +189,7 @@ public class AnnotationPolicyInformationPointLoader {
         log.debug("Analyzing PIP {}...", pipName);
         var       foundAtLeastOneSuppliedAttributeInPip = false;
         final var implementations                       = new HashMap<AttributeFinderSpecification, AttributeFinder>();
+        final var functions                             = new ArrayList<LibraryFunctionDocumentation>();
         for (final Method method : pipClass.getDeclaredMethods()) {
             String  name                   = "";
             String  attributeSchema        = "";
@@ -208,13 +215,14 @@ public class AnnotationPolicyInformationPointLoader {
             }
             if (isAttributeFinder) {
                 foundAtLeastOneSuppliedAttributeInPip = true;
-                final var attributeName = fullyQualifiedAttributeName(pipClass, method, pipName, name);
-                final var specification = getSpecificationOfAttribute(policyInformationPoint, attributeName, method,
-                        isEnvironmentAttribute, attributeSchema, pathToSchema, documentation);
-                requireNoSpecCollision(implementations.keySet(), specification);
-                final var attributeFinder = createAttributeFinder(policyInformationPoint, method, specification);
-                log.debug("Found attribute finder: {}", specification);
-                implementations.put(specification, attributeFinder);
+                final var attributeName = attributeName(method, name);
+                final var specAndDoc    = getSpecAndDocumentationOfAttribute(policyInformationPoint, pipName,
+                        attributeName, method, isEnvironmentAttribute, attributeSchema, pathToSchema, documentation);
+                requireNoSpecCollision(implementations.keySet(), specAndDoc.spec());
+                final var attributeFinder = createAttributeFinder(policyInformationPoint, method, specAndDoc.spec());
+                log.debug("Found attribute finder: {}", specAndDoc);
+                implementations.put(specAndDoc.spec(), attributeFinder);
+                functions.add(specAndDoc.doc());
             }
         }
 
@@ -222,9 +230,11 @@ public class AnnotationPolicyInformationPointLoader {
             throw new AttributeBrokerException(String.format(PIP_S_DECLARES_NO_ATTRIBUTES_ERROR, pipName));
         }
 
-        final var pipSpecification = new PolicyInformationPointSpecification(pipName, pipAnnotation.description(),
-                pipAnnotation.description(), implementations.keySet());
-        return new PolicyInformationPointImplementation(pipSpecification, implementations);
+        final var pipSpecification = new PolicyInformationPointSpecification(pipName, implementations.keySet());
+        final var implementation   = new PolicyInformationPointImplementation(pipSpecification, implementations);
+        final var libraryDoc       = new LibraryDocumentation(LibraryType.POLICY_INFORMATION_POINT, pipName,
+                pipAnnotation.description(), pipAnnotation.pipDocumentation(), functions);
+        return new ImplementationAndDocumentation(implementation, libraryDoc);
     }
 
     private void requireNoSpecCollision(Set<AttributeFinderSpecification> existingSpecs,
@@ -325,26 +335,40 @@ public class AnnotationPolicyInformationPointLoader {
         return numberOfArguments;
     }
 
-    private AttributeFinderSpecification getSpecificationOfAttribute(Object policyInformationPoint,
-            String fullyQualifiedAttributeName, Method method, boolean isEnvironmentAttribute, String attributeSchema,
-            String attributePathToSchema, String documentation) {
+    private record SpecAndDocumentation(AttributeFinderSpecification spec, LibraryFunctionDocumentation doc) {}
+
+    private SpecAndDocumentation getSpecAndDocumentationOfAttribute(Object policyInformationPoint, String namespace,
+            String attributeName, Method method, boolean isEnvironmentAttribute, String attributeSchema,
+            String attributePathToSchema, String documentationMarkdown) {
         if (null == policyInformationPoint) {
             assertMethodIsStatic(method);
         }
         final var parameterCount       = method.getParameterCount();
         final var parameterAnnotations = method.getParameterAnnotations();
-        final var template             = new StringBuilder();
 
-        // FIXME: ....
-        template.append("UNIMPLEMENTED TEMPLATE GENERATION");
+        final var functionType              = isEnvironmentAttribute ? FunctionType.ENVIRONMENT_ATTRIBUTE
+                : FunctionType.ATTRIBUTE;
+        JsonNode  processedSchemaDefinition = null;
+        if (!attributePathToSchema.isEmpty()) {
+            processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromResource(method, attributePathToSchema);
+        }
+
+        if (!attributeSchema.isEmpty()) {
+            processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(attributeSchema);
+        }
 
         var parameterUnderInspection = 0;
 
-        Validator entityValidator;
+        Validator              entityValidator;
+        ParameterDocumentation entityDocumentation = null;
         if (!isEnvironmentAttribute) {
             assertFirstParameterIsVal(method);
             entityValidator = validatorFactory
                     .parameterValidatorFromAnnotations(parameterAnnotations[parameterUnderInspection]);
+            final var allowedTypes = validatorFactory
+                    .allowedTypesFromAnnotations(parameterAnnotations[parameterUnderInspection]);
+            entityDocumentation = new ParameterDocumentation(parameterName(method, parameterUnderInspection),
+                    allowedTypes, false);
             parameterUnderInspection++;
         } else {
             entityValidator = Validator.NOOP;
@@ -360,25 +384,27 @@ public class AnnotationPolicyInformationPointLoader {
             throw new AttributeBrokerException(MULTIPLE_SCHEMA_ANNOTATIONS_NOT_ALLOWED_ERROR);
         }
 
-        JsonNode processedSchemaDefinition = null;
-        if (!attributePathToSchema.isEmpty()) {
-            processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromResource(method, attributePathToSchema);
-        }
+        final var parameterValidators     = new ArrayList<Validator>(parameterCount);
+        final var parameterDocumentations = new ArrayList<ParameterDocumentation>();
 
-        if (!attributeSchema.isEmpty()) {
-            processedSchemaDefinition = SchemaLoadingUtil.loadSchemaFromString(attributeSchema);
-        }
-
-        List<Validator> parameterValidators = new ArrayList<>(parameterCount);
+        AttributeFinderSpecification spec;
         if (parameterUnderInspection < parameterCount && parameterTypeIsArrayOfVal(method, parameterUnderInspection)) {
             if (parameterUnderInspection + 1 != parameterCount) {
                 throw new AttributeBrokerException(String.format(VARARGS_MISMATCH_AT_METHOD_S_ERROR, method.getName()));
             }
             parameterValidators.add(
                     validatorFactory.parameterValidatorFromAnnotations(parameterAnnotations[parameterUnderInspection]));
-            return new AttributeFinderSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
+            spec = new AttributeFinderSpecification(namespace, attributeName, isEnvironmentAttribute,
                     AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, requiresVariables, entityValidator,
-                    parameterValidators, processedSchemaDefinition, template.toString(), documentation);
+                    parameterValidators);
+            final var allowedTypes = validatorFactory
+                    .allowedTypesFromAnnotations(parameterAnnotations[parameterUnderInspection]);
+            final var parameterDoc = new ParameterDocumentation(parameterName(method, parameterUnderInspection),
+                    allowedTypes, true);
+            parameterDocumentations.add(parameterDoc);
+            final var docs = new LibraryFunctionDocumentation(namespace, attributeName, functionType,
+                    documentationMarkdown, entityDocumentation, parameterDocumentations, processedSchemaDefinition);
+            return new SpecAndDocumentation(spec, docs);
         }
 
         var numberOfInnerAttributeParameters = 0;
@@ -386,28 +412,25 @@ public class AnnotationPolicyInformationPointLoader {
             assertParameterTypeIsVal(method, parameterUnderInspection);
             parameterValidators.add(
                     validatorFactory.parameterValidatorFromAnnotations(parameterAnnotations[parameterUnderInspection]));
+            final var allowedTypes = validatorFactory
+                    .allowedTypesFromAnnotations(parameterAnnotations[parameterUnderInspection]);
+            final var parameterDoc = new ParameterDocumentation(parameterName(method, parameterUnderInspection),
+                    allowedTypes, false);
+            parameterDocumentations.add(parameterDoc);
             numberOfInnerAttributeParameters++;
         }
-        return new AttributeFinderSpecification(fullyQualifiedAttributeName, isEnvironmentAttribute,
-                numberOfInnerAttributeParameters, requiresVariables, entityValidator, parameterValidators,
-                processedSchemaDefinition, template.toString(), documentation);
+        spec = new AttributeFinderSpecification(namespace, attributeName, isEnvironmentAttribute,
+                numberOfInnerAttributeParameters, requiresVariables, entityValidator, parameterValidators);
+        final var docs = new LibraryFunctionDocumentation(namespace, attributeName, functionType, documentationMarkdown,
+                entityDocumentation, parameterDocumentations, processedSchemaDefinition);
+        return new SpecAndDocumentation(spec, docs);
     }
 
-    private static String fullyQualifiedAttributeName(Class<?> pipClass, Method method,
-            String explicitPolicyInformationPointName, String explicitAttributeName) {
-        final var sb = new StringBuilder();
-        if (explicitPolicyInformationPointName.isBlank()) {
-            sb.append(pipClass.getSimpleName());
-        } else {
-            sb.append(explicitPolicyInformationPointName);
-        }
-        sb.append('.');
+    private static String attributeName(Method method, String explicitAttributeName) {
         if (explicitAttributeName.isBlank()) {
-            sb.append(method.getName());
-        } else {
-            sb.append(explicitAttributeName);
+            return method.getName();
         }
-        return sb.toString();
+        return explicitAttributeName;
     }
 
     private static void assertMethodIsStatic(Method method) {
@@ -440,6 +463,14 @@ public class AnnotationPolicyInformationPointLoader {
         if (!isVal(method.getParameterTypes()[indexOfParameter])) {
             throw new AttributeBrokerException(String.format(NON_VAL_PARAMETER_AT_METHOD_S_ERROR, method.getName()));
         }
+    }
+
+    private static String parameterName(Method method, int indexOfParameter) {
+        final var parameter = method.getParameters()[indexOfParameter];
+        if (!parameter.isNamePresent()) {
+            return "p" + indexOfParameter;
+        }
+        return parameter.getName();
     }
 
     private static boolean parameterTypeIsArrayOfVal(Method method, int indexOfParameter) {

@@ -174,7 +174,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     private void registerAttributeFinder(AttributeFinderSpecification attributeFinderSpecification,
             AttributeFinder attributeFinder) {
         log.debug("Publishing PIP: {}", attributeFinderSpecification);
-        final var pipName        = attributeFinderSpecification.attributeName();
+        final var pipName        = attributeFinderSpecification.fullyQualifiedName();
         var       findersForName = attributeFinderIndex.get(pipName);
         if (null == findersForName) {
             findersForName = new ArrayList<>();
@@ -243,7 +243,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      */
     private void removeAttributeFinder(AttributeFinderSpecification attributeFinderSpecification) {
         log.debug("Unpublishing AttributeFinder: {}", attributeFinderSpecification);
-        final var attributeName = attributeFinderSpecification.attributeName();
+        final var attributeName = attributeFinderSpecification.fullyQualifiedName();
         final var pipsForName   = attributeFinderIndex.get(attributeName);
         if (null == pipsForName) {
             return;

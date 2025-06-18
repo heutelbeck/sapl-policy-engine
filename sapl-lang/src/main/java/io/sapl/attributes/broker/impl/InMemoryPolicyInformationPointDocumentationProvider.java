@@ -25,29 +25,27 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import io.sapl.attributes.broker.api.AttributeBrokerException;
-import io.sapl.attributes.broker.api.AttributeFinderSpecification;
-import io.sapl.attributes.broker.api.PolicyInformationPointSpecification;
+import io.sapl.attributes.documentation.api.FunctionType;
+import io.sapl.attributes.documentation.api.LibraryDocumentation;
+import io.sapl.attributes.documentation.api.LibraryFunctionDocumentation;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
-import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 
 public class InMemoryPolicyInformationPointDocumentationProvider
         implements PolicyInformationPointDocumentationProvider {
 
-    private final Map<String, PolicyInformationPointSpecification> pipRegistry        = new HashMap<>();
-    private final Map<String, PolicyInformationPointDocumentation> documentationCache = new HashMap<>();
+    private final Map<String, LibraryDocumentation> pipRegistry = new HashMap<>();
 
     private final Object lock = new Object();
 
     @Override
-    public void loadPolicyInformationPoint(PolicyInformationPointSpecification pipSpecification) {
+    public void loadPolicyInformationPoint(LibraryDocumentation pipDocumentation) {
         synchronized (lock) {
-            final var pipName = pipSpecification.name();
+            final var pipName = pipDocumentation.namespace();
             if (pipRegistry.containsKey(pipName)) {
                 throw new AttributeBrokerException(
-                        String.format("Cannot load documentation for %s. Name already in use.", pipSpecification));
+                        String.format("Cannot load documentation for %s. Name already in use.", pipDocumentation));
             }
-            pipRegistry.put(pipName, pipSpecification);
-            documentationCache.put(pipName, toDocumentation(pipSpecification));
+            pipRegistry.put(pipName, pipDocumentation);
         }
     }
 
@@ -55,7 +53,6 @@ public class InMemoryPolicyInformationPointDocumentationProvider
     public void unloadPolicyInformationPoint(String name) {
         synchronized (lock) {
             pipRegistry.remove(name);
-            documentationCache.remove(name);
         }
     }
 
@@ -66,7 +63,7 @@ public class InMemoryPolicyInformationPointDocumentationProvider
             if (null == library) {
                 return List.of();
             }
-            return library.attributeFinders().stream().map(AttributeFinderSpecification::attributeName)
+            return library.attributes().stream().map(LibraryFunctionDocumentation::fullyQualifiedName)
                     .map(n -> n.substring(libraryName.length() + 1)).toList();
         }
     }
@@ -75,8 +72,8 @@ public class InMemoryPolicyInformationPointDocumentationProvider
     public boolean isProvidedFunction(String fullyQualifiedFunctionName) {
         synchronized (lock) {
             for (var pip : pipRegistry.values()) {
-                for (var finder : pip.attributeFinders()) {
-                    if (finder.attributeName().equals(fullyQualifiedFunctionName)) {
+                for (var finder : pip.attributes()) {
+                    if (finder.fullyQualifiedName().equals(fullyQualifiedFunctionName)) {
                         return true;
                     }
                 }
@@ -88,8 +85,8 @@ public class InMemoryPolicyInformationPointDocumentationProvider
     @Override
     public List<String> getAllFullyQualifiedFunctions() {
         synchronized (lock) {
-            return pipRegistry.values().stream().flatMap(spec -> spec.attributeFinders().stream())
-                    .map(AttributeFinderSpecification::attributeName).toList();
+            return pipRegistry.values().stream().flatMap(spec -> spec.attributes().stream())
+                    .map(LibraryFunctionDocumentation::fullyQualifiedName).toList();
         }
     }
 
@@ -98,8 +95,8 @@ public class InMemoryPolicyInformationPointDocumentationProvider
         synchronized (lock) {
             final var result = new HashMap<String, JsonNode>();
             for (var pip : pipRegistry.values()) {
-                for (var finder : pip.attributeFinders()) {
-                    result.put(finder.attributeName(), finder.attributeSchema());
+                for (var finder : pip.attributes()) {
+                    result.put(finder.fullyQualifiedName(), finder.returnTypeSchema());
                 }
             }
             return result;
@@ -107,11 +104,11 @@ public class InMemoryPolicyInformationPointDocumentationProvider
     }
 
     @Override
-    public List<AttributeFinderSpecification> getAttributeMetatata() {
+    public List<LibraryFunctionDocumentation> getAttributeMetatata() {
         synchronized (lock) {
-            final var result = new ArrayList<AttributeFinderSpecification>();
+            final var result = new ArrayList<LibraryFunctionDocumentation>();
             for (var pip : pipRegistry.values()) {
-                result.addAll(pip.attributeFinders());
+                result.addAll(pip.attributes());
             }
             return result;
         }
@@ -129,8 +126,8 @@ public class InMemoryPolicyInformationPointDocumentationProvider
         synchronized (lock) {
             final var result = new ArrayList<String>();
             for (var pip : pipRegistry.values()) {
-                pip.attributeFinders().stream().filter(AttributeFinderSpecification::isEnvironmentAttribute)
-                        .map(AttributeFinderSpecification::codeTemplate).forEach(result::add);
+                pip.attributes().stream().filter(d -> d.type() == FunctionType.ENVIRONMENT_ATTRIBUTE)
+                        .map(LibraryFunctionDocumentation::codeTemplate).forEach(result::add);
             }
             return result;
         }
@@ -141,8 +138,8 @@ public class InMemoryPolicyInformationPointDocumentationProvider
         synchronized (lock) {
             final var result = new ArrayList<String>();
             for (var pip : pipRegistry.values()) {
-                pip.attributeFinders().stream().filter(f -> !f.isEnvironmentAttribute())
-                        .map(AttributeFinderSpecification::codeTemplate).forEach(result::add);
+                pip.attributes().stream().filter(d -> d.type() == FunctionType.ATTRIBUTE)
+                        .map(LibraryFunctionDocumentation::codeTemplate).forEach(result::add);
             }
             return result;
         }
@@ -153,8 +150,8 @@ public class InMemoryPolicyInformationPointDocumentationProvider
         synchronized (lock) {
             final var result = new HashMap<String, String>();
             for (var pip : pipRegistry.values()) {
-                for (var finder : pip.attributeFinders()) {
-                    result.put(finder.codeTemplate(), finder.documentation());
+                for (var finder : pip.attributes()) {
+                    result.put(finder.codeTemplate(), finder.documentationMarkdown());
                 }
             }
             return result;
@@ -162,21 +159,10 @@ public class InMemoryPolicyInformationPointDocumentationProvider
     }
 
     @Override
-    public List<PolicyInformationPointDocumentation> getDocumentation() {
+    public List<LibraryDocumentation> getDocumentation() {
         synchronized (lock) {
-            return documentationCache.values().stream().toList();
+            return pipRegistry.values().stream().toList();
         }
-    }
-
-    private PolicyInformationPointDocumentation toDocumentation(PolicyInformationPointSpecification specification) {
-        final var finderDocs = new HashMap<String, String>();
-        for (var finder : specification.attributeFinders()) {
-            finderDocs.put(finder.codeTemplate(), finder.documentation());
-        }
-        final var documentation = new PolicyInformationPointDocumentation(specification.name(),
-                specification.description(), specification.documentation());
-        documentation.setDocumentation(finderDocs);
-        return documentation;
     }
 
 }
