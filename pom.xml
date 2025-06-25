@@ -337,6 +337,13 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-dependency-plugin</artifactId>
 					<version>3.7.1</version>
+					<executions>
+				       <execution>
+				          <goals>
+				             <goal>properties</goal>
+				          </goals>
+				       </execution>
+				    </executions>
 				</plugin>
 				<plugin>
 					<groupId>org.springframework.boot</groupId>
@@ -395,7 +402,7 @@
 					<artifactId>maven-surefire-plugin</artifactId>
 					<version>${maven-surefire-plugin.version}</version>
 					<configuration>
-						<argLine>@{argLine} -Xshare:off</argLine>
+						<argLine>@{argLine} -Xshare:off -javaagent:${org.mockito:mockito-core:jar}</argLine>
 						<excludes>
 							<exclude>FuzzTests.java</exclude>
 						</excludes>
