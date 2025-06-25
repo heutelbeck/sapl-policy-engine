@@ -94,7 +94,7 @@
 		<jupiter.version>5.11.3</jupiter.version>
 		<assertj.version>3.26.3</assertj.version>
 		<flexmark.version>0.64.8</flexmark.version>
-		<springboot.version>3.4.6</springboot.version>
+		<springboot.version>3.4.7</springboot.version>
 		<reactor-netty.version>1.2.0</reactor-netty.version>
 		<spotify.hamcrest.version>1.3.2</spotify.hamcrest.version>
 		<json-unit-assertj.version>4.1.0</json-unit-assertj.version>
@@ -337,6 +337,13 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-dependency-plugin</artifactId>
 					<version>3.7.1</version>
+					<executions>
+				       <execution>
+				          <goals>
+				             <goal>properties</goal>
+				          </goals>
+				       </execution>
+				    </executions>
 				</plugin>
 				<plugin>
 					<groupId>org.springframework.boot</groupId>
@@ -408,7 +415,7 @@
 					<artifactId>maven-surefire-plugin</artifactId>
 					<version>${maven-surefire-plugin.version}</version>
 					<configuration>
-						<argLine>@{argLine} -Xshare:off</argLine>
+						<argLine>@{argLine} -Xshare:off -javaagent:${org.mockito:mockito-core:jar}</argLine>
 						<excludes>
 							<exclude>FuzzTests.java</exclude>
 						</excludes>

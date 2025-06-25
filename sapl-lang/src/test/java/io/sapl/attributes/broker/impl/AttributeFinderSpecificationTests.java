@@ -25,23 +25,26 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.attributes.broker.api.AttributeFinderSpecification;
+import io.sapl.validation.Validator;
 
 class AttributeFinderSpecificationTests {
 
+    private static final List<Validator> NO_VALIDATORS = List.of();
+
     @Test
     void whenConstructionOfPolicyInformationPointSpecificationHasBadParametersThenThrowElseDoNotThrow() {
-        assertThatThrownBy(() -> new AttributeFinderSpecification(null, "a", true, 0, true, e -> {}, List.of()))
+        assertThatThrownBy(() -> new AttributeFinderSpecification(null, "a", true, 0, true, e -> {}, NO_VALIDATORS))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new AttributeFinderSpecification("a", null, true, 0, true, e -> {}, List.of()))
+        assertThatThrownBy(() -> new AttributeFinderSpecification("a", null, true, 0, true, e -> {}, NO_VALIDATORS))
                 .isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void whenVarArgsCheckedThenVarArgsCorrectlyDetected() {
         var withVarArgs = new AttributeFinderSpecification("abc", "def", true,
-                AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, true, e -> {}, List.of());
+                AttributeFinderSpecification.HAS_VARIABLE_NUMBER_OF_ARGUMENTS, true, e -> {}, NO_VALIDATORS);
         assertThat(withVarArgs.hasVariableNumberOfArguments()).isTrue();
-        var notWithVarArgs = new AttributeFinderSpecification("abc", "def", true, 0, true, e -> {}, List.of());
+        var notWithVarArgs = new AttributeFinderSpecification("abc", "def", true, 0, true, e -> {}, NO_VALIDATORS);
         assertThat(notWithVarArgs.hasVariableNumberOfArguments()).isFalse();
     }
 

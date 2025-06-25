@@ -58,7 +58,8 @@ public class LibrariesDocumentationView extends VerticalLayout {
         add(libsAndPipsTabSheet);
     }
 
-    private Component policyInformationPoints(Collection<io.sapl.attributes.documentation.api.LibraryDocumentation> pipDocumentations) {
+    private Component policyInformationPoints(
+            Collection<io.sapl.attributes.documentation.api.LibraryDocumentation> pipDocumentations) {
         final var sheet = new TabSheet();
         for (var pip : pipDocumentations) {
             final var name     = pip.namespace();

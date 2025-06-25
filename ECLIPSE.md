@@ -4,6 +4,10 @@ The default development environment for SAPL is Eclipse. The reason for this is,
 
 This document outlines some key configurations to make in your Eclipse install to have the best development experience.
 
+## JDK 
+
+The policy engine uses JDK 17 as a baseline. You can use any JDK newer than JDK 17 to run Eclipse. It is however recommended to install a JDK 17 for building the actual project. You can download a current version of JDK 17 from (https://adoptium.net). We recommend a ZIP. Unpack the ZIP to a folder of your choosing. In your workspace, go to "Window -> Preferences...". Now search for "JDK" and under "Installed JREs" "Add..." the JDK 17 providing your local installation path.
+
 ## Code Formatter and Warnings
 
 SAPL applies a standardized code formatting style based on the Eclipse auto formatter. Import the settings from the [SAPL Formatter setting XML](https://github.com/heutelbeck/sapl-policy-engine/blob/master/sapl-code-style/src/main/resources/eclipse/formatter.xml) file. To import it go to "Window -> Preferences". Then navigate to "Java -> Code Style -> Formatter" and use "Import..." to import the settings.
@@ -23,7 +27,9 @@ The Lombok Plug-in cannot be downloaded via the Eclipse Marketplace. Please down
 SAPL generates an Eclipse Plug-in. This requires the tycho tooling for building and packaging. Eclipse itself cannot deal with this out of the box.
 Install the "M2E - PDE Integration" from the update site [Eclipse IDE integration for Maven](https://download.eclipse.org/technology/m2e/releases/latest). Use the "Help -> Install New Software..." menu in Eclipse. The update site should already be present.
 
-Further, in the "Install New Software..." add the update site (https://download.eclipse.org/eclipse/updates/4.4) and install "Eclipse PDE Plug-in Developer Resources".
+Next, determine your Eclipse version. Go to Help->About Eclipse IDE. In the dialogue there will be a version indicated: `Version: 2025-06 (4.36.0)`. The important part is the version in the brackets. 
+Now, go to "Help -> Install New Software..." add the update site (https://download.eclipse.org/eclipse/updates/4.xx), where `xx` is the minor version as indicated in the version identified. In this case, 3.36. 
+Now install all modules under "Eclipse Plugin Development Tools".
 
 ### Xtext Eclipse Plug-In
 
