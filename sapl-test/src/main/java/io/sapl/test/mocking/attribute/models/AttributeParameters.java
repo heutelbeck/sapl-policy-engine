@@ -24,7 +24,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class AttributeParameters {
 
-    private AttributeEntityValueMatcher parentValueMatcher;
+    private AttributeEntityValueMatcher entityValueMatcher;
 
     private AttributeArgumentMatchers argumentMatchers;
 

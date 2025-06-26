@@ -152,19 +152,26 @@ class StepsDefaultImplTests {
                 where
                   var parentValue = true;
                   <pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;""";
-        final var steps                                                            = new StepsDefaultImplTestsImpl(
+
+        final var steps = new StepsDefaultImplTestsImpl(
                 policyEnvironmentAttributeWithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
-        steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
-                .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(2))),
-                        thenReturn(Val.of(true)))
-                .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(1))),
-                        thenReturn(Val.of(false)))
-                .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(1), val(2))),
-                        thenReturn(Val.of(false)))
-                .when(AuthorizationSubscription.of("willi", "read", "something"))
-                .thenAttribute("pip.attribute1", Val.of(1)).thenAttribute("pip.attribute2", Val.of(2))
-                .expectNextNotApplicable().thenAttribute("pip.attribute1", Val.of(2)).expectNextPermit()
-                .thenAttribute("pip.attribute2", Val.of(1)).expectNextNotApplicable().verify();
+
+        // @formatter:off
+        steps.givenAttribute("pip.attribute1")
+             .givenAttribute("pip.attribute2")
+             .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(2))), thenReturn(Val.of(true)))
+             .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(1))), thenReturn(Val.of(false)))
+             .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(1), val(2))), thenReturn(Val.of(false)))
+             .when(AuthorizationSubscription.of("willi", "read", "something"))
+             .thenAttribute("pip.attribute1", Val.of(1))
+             .thenAttribute("pip.attribute2", Val.of(2))
+             .expectNextNotApplicable()
+             .thenAttribute("pip.attribute1", Val.of(2))
+             .expectNextPermit()
+             .thenAttribute("pip.attribute2", Val.of(1))
+             .expectNextNotApplicable()
+             .verify();
+        // @formatter:off
     }
 
     @Test

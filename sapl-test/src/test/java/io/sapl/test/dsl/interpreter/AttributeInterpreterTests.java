@@ -305,7 +305,7 @@ class AttributeInterpreterTests {
 
             assertArrayEquals(List.of(matcher1Mock, matcher2Mock).toArray(),
                     attributeParameters.getArgumentMatchers().getMatchers());
-            assertEquals(parentValueMatcherMock, attributeParameters.getParentValueMatcher().getMatcher());
+            assertEquals(parentValueMatcherMock, attributeParameters.getEntityValueMatcher().getMatcher());
 
             assertEquals(givenOrWhenStepMock, result);
         }

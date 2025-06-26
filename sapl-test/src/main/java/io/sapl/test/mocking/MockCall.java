@@ -17,7 +17,7 @@
  */
 package io.sapl.test.mocking;
 
-import java.util.List;
+import java.util.Arrays;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.test.SaplTestException;
@@ -43,8 +43,8 @@ public class MockCall {
         return this.parameter[index];
     }
 
-    public List<Val> getListOfArguments() {
-        return List.of(this.parameter);
+    public Val[] getListOfArguments() {
+        return Arrays.copyOf(this.parameter, this.parameter.length);
     }
 
 }

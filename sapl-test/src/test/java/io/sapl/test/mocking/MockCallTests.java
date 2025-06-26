@@ -44,12 +44,4 @@ class MockCallTests {
         assertThatExceptionOfType(SaplTestException.class).isThrownBy(() -> call.getArgument(1));
     }
 
-    @Test
-    void test_modifyParameterList() {
-        final var call      = new MockCall(Val.of("foo"));
-        final var barr      = Val.of("barr");
-        final var arguments = call.getListOfArguments();
-        assertThatExceptionOfType(UnsupportedOperationException.class).isThrownBy(() -> arguments.add(barr));
-    }
-
 }
