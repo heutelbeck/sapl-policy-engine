@@ -44,7 +44,7 @@ public class AttributeMockForEntityValueAndArguments implements AttributeMock {
 
     private static final String ERROR_INVALID_NUMBER_PARAMETERS = "Test case has configured mocked attribute \"%s\" return value depending on %d parameters, but is called at runtime with %d parameters";
 
-    private static final String ERROR_NO_MATCHING_ENTITY_VALUE = "Unable to find a mocked return value for this entity value";
+    private static final String ERROR_NO_MATCHING_ENTITY_VALUE_S = "Unable to find a mocked return value for this entity value. Invocation: %s";
 
     private final String fullName;
 
@@ -65,7 +65,7 @@ public class AttributeMockForEntityValueAndArguments implements AttributeMock {
         this.listParameterSpecificMockReturnValues.add(new ParameterSpecificMockReturnValue(parameters, returnValue));
 
         List<Matcher<Val>> listOfAllMatcher = new LinkedList<>();
-        listOfAllMatcher.add(parameters.getParentValueMatcher().getMatcher());
+        listOfAllMatcher.add(parameters.getEntityValueMatcher().getMatcher());
         listOfAllMatcher.addAll(List.of(parameters.getArgumentMatchers().getMatchers()));
         this.listMockingVerifications.add(new TimesParameterCalledVerification(Imports.times(1), listOfAllMatcher));
 
@@ -73,10 +73,10 @@ public class AttributeMockForEntityValueAndArguments implements AttributeMock {
 
     @Override
     public Flux<Val> evaluate(AttributeFinderInvocation invocation) {
-        List<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingParentValueMockReturnValue(
+        List<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues = findMatchingEntityValueMockReturnValue(
                 invocation.entity());
 
-        checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues);
+        checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues, invocation);
 
         final var arguments = invocation.arguments();
         final var trace     = new HashMap<String, Val>(arguments.size() + 1);
@@ -134,16 +134,17 @@ public class AttributeMockForEntityValueAndArguments implements AttributeMock {
     }
 
     private void checkAtLeastOneMatchingMockReturnValueExists(
-            Collection<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues) {
+            Collection<ParameterSpecificMockReturnValue> matchingParameterSpecificMockReturnValues,
+            AttributeFinderInvocation invocation) {
         if (matchingParameterSpecificMockReturnValues.isEmpty()) {
-            throw new SaplTestException(ERROR_NO_MATCHING_ENTITY_VALUE);
+            throw new SaplTestException(String.format(ERROR_NO_MATCHING_ENTITY_VALUE_S, invocation));
         }
     }
 
-    private List<ParameterSpecificMockReturnValue> findMatchingParentValueMockReturnValue(Val parentValue) {
+    private List<ParameterSpecificMockReturnValue> findMatchingEntityValueMockReturnValue(Val entityValue) {
         return this.listParameterSpecificMockReturnValues.stream()
-                .filter((ParameterSpecificMockReturnValue mock) -> mock.getExpectedParameters().getParentValueMatcher()
-                        .getMatcher().matches(parentValue))
+                .filter((ParameterSpecificMockReturnValue mock) -> mock.getExpectedParameters().getEntityValueMatcher()
+                        .getMatcher().matches(entityValue))
                 .toList();
     }
 

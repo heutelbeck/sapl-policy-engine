@@ -17,10 +17,11 @@
  */
 package io.sapl.test;
 
-import static io.sapl.hamcrest.Matchers.valUndefined;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.number.OrderingComparison.comparesEqualTo;
 
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 
 import io.sapl.api.interpreter.Val;
@@ -67,7 +68,26 @@ public class Imports {
      * @return an {@link AttributeParameters} object required by the given step
      */
     public static AttributeParameters whenEnvironmentAttributeParams(AttributeArgumentMatchers argumentMatchers) {
-        return new AttributeParameters(new AttributeEntityValueMatcher(valUndefined()), argumentMatchers);
+        return new AttributeParameters(new AttributeEntityValueMatcher(isNullpointerVal()), argumentMatchers);
+    }
+
+    public static Matcher<Val> isNullpointerVal() {
+        return new BaseMatcher<>() {
+            @Override
+            public boolean matches(Object item) {
+                return item == null;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("a nullpointer Val");
+            }
+
+            @Override
+            public void describeMismatch(Object item, Description mismatchDescription) {
+                mismatchDescription.appendText("was ").appendValue(item);
+            }
+        };
     }
 
     /**

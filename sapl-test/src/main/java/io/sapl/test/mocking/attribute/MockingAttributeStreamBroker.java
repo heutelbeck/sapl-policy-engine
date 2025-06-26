@@ -115,7 +115,6 @@ public class MockingAttributeStreamBroker implements AttributeStreamBroker {
     public void loadAttributeMockForParentValueAndArguments(String fullName, AttributeParameters parameters,
             Val returns) {
         checkImportName(fullName);
-
         AttributeMock mock = this.registeredMocks.get(fullName);
         if (mock != null) {
             if (mock instanceof AttributeMockForEntityValueAndArguments attributeMockForParentValueAndArguments) {
