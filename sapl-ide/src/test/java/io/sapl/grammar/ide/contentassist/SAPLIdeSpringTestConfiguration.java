@@ -43,6 +43,7 @@ import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
@@ -59,17 +60,22 @@ public class SAPLIdeSpringTestConfiguration {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Bean
-    PDPConfigurationProvider pdpConfiguration() throws IOException, InitializationException {
+    PolicyInformationPointDocumentationProvider PolicyInformationPointDocumentationProvider() {
+        return new InMemoryPolicyInformationPointDocumentationProvider();
+    }
+
+    @Bean
+    PDPConfigurationProvider pdpConfiguration(PolicyInformationPointDocumentationProvider docsProvider)
+            throws IOException, InitializationException {
         final var mapper                = new ObjectMapper();
         final var validatorFactory      = new ValidatorFactory(mapper);
         final var attributeStreamBroker = new CachingAttributeStreamBroker();
-        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
         final var pipLoader             = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
                 docsProvider, validatorFactory);
 
-        pipLoader.loadPolicyInformationPoint(TemperatureTestPip.class);
-        pipLoader.loadPolicyInformationPoint(ClockTestPip.class);
-        pipLoader.loadPolicyInformationPoint(PersonTestPip.class);
+        pipLoader.loadStaticPolicyInformationPoint(TemperatureTestPip.class);
+        pipLoader.loadStaticPolicyInformationPoint(ClockTestPip.class);
+        pipLoader.loadStaticPolicyInformationPoint(PersonTestPip.class);
 
         final var functionContext = new AnnotationFunctionContext();
         functionContext.loadLibrary(SchemaTestFunctionLibrary.class);
