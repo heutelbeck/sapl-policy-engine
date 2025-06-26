@@ -35,10 +35,10 @@ class AttributeSchemaTests extends CompletionTests {
     }
 
     @Test
-    void testCompletion_PolicyBody_environmentAttribute_wildcard_import() {
+    void testCompletion_PolicyBody_environmentAttribute_alias_import() {
         final var document = """
-                import temperature.*
-                policy "test" deny where <now>.§""";
+                import temperature.now as temp
+                policy "test" deny where <temp>.§""";
         final var expected = List.of("value", "unit");
         assertProposalsContain(document, expected);
     }
