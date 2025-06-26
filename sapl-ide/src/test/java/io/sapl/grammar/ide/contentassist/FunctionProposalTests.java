@@ -45,19 +45,19 @@ class FunctionProposalTests extends CompletionTests {
     @Test
     void testCompletion_PolicyBody_function_with_alias_import() {
         final var document = """
-                import schemaTest as test
-                policy "test" deny where var foo = test.person();
-                tes§""";
-        final var expected = List.of("test.dog(dogRegistryRecord)", "test.food(species)", "test.foodPrice(food)",
-                "test.location()", "test.person(name, nationality, age)");
+                import schemaTest.dog as canine
+                policy "test"
+                deny
+                can§""";
+        final var expected = List.of("canine(dogRegistryRecord)");
         assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_function_with_alias_import_inMultipleBrackets() {
         final var document = """
-                import schemaTest as test
-                policy "test" deny where var foo = ((test.person()));
+                import schemaTest.person as somebody
+                policy "test" deny where var foo = ((somebody()));
                 foo§""";
         final var expected = List.of(".name");
         assertProposalsContain(document, expected);
@@ -85,8 +85,8 @@ class FunctionProposalTests extends CompletionTests {
     @Test
     void testCompletion_PolicyBody_variable_assigned_function_with_alias_import() {
         final var document = """
-                import schemaTest as test
-                policy "test" deny where var foo = test.dog();
+                import schemaTest.dog as canine
+                policy "test" deny where var foo = canine();
                 fo§""";
         final var expected = List.of("foo", "foo.age", "foo.fur_color", "foo.name", "foo.species");
         final var unwanted = List.of("foo.nationality");
@@ -96,9 +96,9 @@ class FunctionProposalTests extends CompletionTests {
     @Test
     void testCompletion_PolicyBody_two_variables_assigned_function_with_alias_import() {
         final var document = """
-                import schemaTest as test
-                policy "test" deny where var foo = test.dog();
-                final var bar = test.dog();
+                import schemaTest.dog as canine
+                policy "test" deny where var foo = canine();
+                var bar = canine();
                 bar.§""";
         final var expected = List.of(".age", ".fur_color", ".name", ".species");
         final var unwanted = List.of(".nationality");
@@ -108,8 +108,8 @@ class FunctionProposalTests extends CompletionTests {
     @Test
     void testCompletion_PolicyBody_two_variables_assigned_function_with_alias_import_and_trailing_dot() {
         final var document = """
-                import schemaTest as test
-                policy "test" deny where var foo = test.dog();
+                import schemaTest.dog as canine
+                policy "test" deny where var foo = canine();
                 foo.§""";
         final var expected = List.of(".age", ".fur_color", ".name", ".species");
         final var unwanted = List.of("foo.name", "filter.blacken");
@@ -222,8 +222,8 @@ class FunctionProposalTests extends CompletionTests {
     @Test
     void testCompletion_variable_no_import_suggestions_after_dot() {
         final var document = """
-                import schemaTest as test
-                policy "test" deny where var foo = test.person();
+                import schemaTest.person as someone
+                policy "test" deny where var foo = someone();
                 foo.§""";
         final var expected = List.of(".name");
         assertProposalsContain(document, expected);

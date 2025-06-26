@@ -59,20 +59,11 @@ class AttributeStepIdentifierTests extends CompletionTests {
     }
 
     @Test
-    void testCompletion_PolicyBody_attributequery_with_wildcard() {
-        final var document = """
-                import person.*
-                policy "test" deny where subject.<a§""";
-        final var expected = List.of("age>");
-        assertProposalsContain(document, expected);
-    }
-
-    @Test
     void testCompletion_PolicyBody_attributequery_with_alias_import() {
         final var document = """
-                import person as humans
+                import person.age as hage
                 policy "test" deny where subject.<h§""";
-        final var expected = List.of("humans.age>");
+        final var expected = List.of("hage>");
         assertProposalsContain(document, expected);
     }
 

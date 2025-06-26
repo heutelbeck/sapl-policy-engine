@@ -30,7 +30,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
     void testCompletion_PolicyBody_environmentattribute_without_import() {
         final var document = """
                 policy "test" deny where <t§""";
-        final var expected = List.of("temperature.now>", "temperature.mean(a1, a2)>", "temperature.predicted(a1)>");
+        final var expected = List.of("temperature.mean(a1,a2)>", "temperature.now>", "temperature.predicted(a1)>");
         assertProposalsContain(document, expected);
     }
 
@@ -39,15 +39,6 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
         final var policy = """
                 policy "test" deny <t§""";
         assertProposalsEmpty(policy);
-    }
-
-    @Test
-    void testCompletion_PolicyBody_environmentattribute_with_wildcardimport() {
-        final var document = """
-                import temperature.*
-                policy "test" deny where <m§""";
-        final var expected = List.of("mean(a1, a2)>");
-        assertProposalsContain(document, expected);
     }
 
     @Test
@@ -62,9 +53,9 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
     @Test
     void testCompletion_PolicyBody_environmentattribute_with_alias() {
         final var document = """
-                import temperature as weather
+                import temperature.predicted as wpred
                 policy "test" deny where <w§""";
-        final var expected = List.of("weather.now>", "weather.mean(a1, a2)>", "weather.predicted(a1)>");
+        final var expected = List.of("wpred(a1)>");
         assertProposalsContain(document, expected);
     }
 
@@ -79,16 +70,7 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
     void testCompletion_PolicyBody_environmentheadattribute_without_import() {
         final var document = """
                 policy "test" deny where |<t§""";
-        final var expected = List.of("temperature.now>", "temperature.mean(a1, a2)>", "temperature.predicted(a1)>");
-        assertProposalsContain(document, expected);
-    }
-
-    @Test
-    void testCompletion_PolicyBody_environmentheadattribute_with_wildcardimport() {
-        final var document = """
-                import temperature.*
-                policy "test" deny where |<m§""";
-        final var expected = List.of("mean(a1, a2)>");
+        final var expected = List.of("temperature.now>", "temperature.mean(a1,a2)>", "temperature.predicted(a1)>");
         assertProposalsContain(document, expected);
     }
 
@@ -104,9 +86,9 @@ class EnvironmentAttributeIdentifierTests extends CompletionTests {
     @Test
     void testCompletion_PolicyBody_environmentheadattribute_with_alias() {
         final var document = """
-                import temperature as weather
-                policy "test" deny where |<w§""";
-        final var expected = List.of("weather.now>", "weather.mean(a1, a2)>", "weather.predicted(a1)>");
+                import temperature.predicted as wpred
+                policy "test" deny where |<wp§""";
+        final var expected = List.of("wpred(a1)>");
         assertProposalsContain(document, expected);
     }
 
