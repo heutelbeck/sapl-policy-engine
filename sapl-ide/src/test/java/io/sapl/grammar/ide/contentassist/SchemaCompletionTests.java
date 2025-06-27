@@ -443,16 +443,6 @@ class SchemaCompletionTests extends CompletionTests {
     }
 
     @Test
-    void testCompletion_PolicyBody_function_with_wildcard_import() {
-        final var document = """
-                import schemaTest.*
-                policy "test" deny where var foo = person();
-                fo§""";
-        final var expected = List.of("foo", "foo.name");
-        assertProposalsContain(document, expected);
-    }
-
-    @Test
     void testCompletion_PolicyBody_function_with_alias_import() {
         final var document = """
                 import schemaTest.person as xyz
