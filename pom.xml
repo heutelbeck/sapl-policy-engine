@@ -415,7 +415,8 @@
 					<artifactId>maven-surefire-plugin</artifactId>
 					<version>${maven-surefire-plugin.version}</version>
 					<configuration>
-						<argLine>@{argLine} -Xshare:off -javaagent:${org.mockito:mockito-core:jar}</argLine>
+						<!-- <argLine>@{argLine} -Xshare:off -javaagent:${org.mockito:mockito-core:jar}</argLine> -->
+						<argLine>@{argLine} -Xshare:off</argLine>
 						<excludes>
 							<exclude>FuzzTests.java</exclude>
 						</excludes>
