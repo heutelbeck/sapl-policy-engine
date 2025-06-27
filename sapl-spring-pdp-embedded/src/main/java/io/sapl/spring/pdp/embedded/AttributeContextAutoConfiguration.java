@@ -84,7 +84,7 @@ public class AttributeContextAutoConfiguration {
         for (var supplier : staticPipSuppliers) {
             for (var pip : supplier.get()) {
                 log.trace("loading static Policy Information Point: {}", pip.getSimpleName());
-                loader.loadPolicyInformationPoint(pip);
+                loader.loadStaticPolicyInformationPoint(pip);
             }
         }
         Collection<Object> beanPips = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class).values();
