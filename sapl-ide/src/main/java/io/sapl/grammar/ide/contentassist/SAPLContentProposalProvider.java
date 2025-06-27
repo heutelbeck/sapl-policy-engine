@@ -228,7 +228,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             return;
         }
         if (isAttributeIdentifierAssignment(assignment, analysis)) {
-            this.addProposals(LibraryProposalsGenerator.allAttributeFinders(analysis, context, pdpConfiguration,
+            this.addProposals(LibraryProposalsGenerator.allAttributeFinders(analysis, context,
                     policyInformationPointDocumentationProvider), context, acceptor);
         } else if (isEnvironmentAttributeIdentifierAssignment(assignment, analysis)) {
             this.addProposals(LibraryProposalsGenerator.allEnvironmentAttributeFinders(analysis, context,
@@ -336,14 +336,15 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
      */
     private void createImportProposals(ContextAnalysisResult analysis, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        final var proposals = new ArrayList<>(
+        final var proposals   = new ArrayList<>(
                 policyInformationPointDocumentationProvider.getAllFullyQualifiedFunctions());
+        final var functionCtx = pdpConfiguration.functionContext();
         proposals.addAll(policyInformationPointDocumentationProvider.getAvailableLibraries());
         proposals.addAll(policyInformationPointDocumentationProvider.getAllFullyQualifiedFunctions());
         proposals.addAll(policyInformationPointDocumentationProvider.getAvailableLibraries());
-        if (analysis.prefix().endsWith(".")) {
-            proposals.add(analysis.prefix() + "*");
-        }
+        proposals.addAll(functionCtx.getAvailableLibraries());
+        proposals.addAll(functionCtx.getAllFullyQualifiedFunctions());
+        proposals.addAll(functionCtx.getAvailableLibraries());
         proposals.forEach(pText -> ProposalCreator.createNormalizedEntry(pText, analysis.prefix(), analysis.ctxPrefix())
                 .ifPresent(p -> addProposal(p, context, acceptor)));
     }

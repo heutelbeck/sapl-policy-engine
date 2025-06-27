@@ -66,8 +66,8 @@ class FunctionProposalTests extends CompletionTests {
     @Test
     void testCompletion_PolicyBody_function_with_alias_import_inMultipleBrackets_butWithSteps() {
         final var document = """
-                import schemaTest as test
-                policy "test" deny where var foo = ((test.person())).name;
+                import schemaTest.person as test
+                policy "test" deny where var foo = ((test())).name;
                 tes§""";
         final var unwanted = List.of("test.name");
         assertProposalsDoNotContain(document, unwanted);

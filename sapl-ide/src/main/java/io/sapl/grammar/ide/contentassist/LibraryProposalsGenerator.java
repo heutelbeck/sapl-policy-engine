@@ -123,7 +123,7 @@ public class LibraryProposalsGenerator {
      * alternatives based on imports.
      */
     public static Collection<Proposal> allAttributeFinders(ContextAnalysisResult analysis, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new ArrayList<Proposal>();
         final var attributes = docsProvider.getAttributeMetatata();
         attributes.stream().filter(d -> d.type() == FunctionType.ATTRIBUTE).forEach(attribute -> proposals.addAll(
@@ -241,14 +241,16 @@ public class LibraryProposalsGenerator {
      * applicable. Else returns empty Optional.
      */
     private static Optional<String> resolveImport(Import anImport, String fullyQualifiedName) {
-        final var steps        = anImport.getLibSteps();
-        final var functionName = anImport.getFunctionName();
-        final var prefix       = joinStepsToPrefix(steps) + functionName;
-        if (fullyQualifiedName.startsWith(prefix)) {
-            return Optional.of(fullyQualifiedName.replaceFirst(prefix, functionName));
-        } else {
-            return Optional.empty();
+        final var steps                      = joinStepsToPrefix(anImport.getLibSteps());
+        final var functionName               = anImport.getFunctionName();
+        final var fullyQualifiedNameInImport = steps + functionName;
+        final var alias                      = anImport.getFunctionAlias();
+        if (null == alias && fullyQualifiedName.startsWith(steps) && functionName != null) {
+            return Optional.of(functionName);
+        } else if (fullyQualifiedName.equals(fullyQualifiedNameInImport)) {
+            return Optional.of(alias);
         }
+        return Optional.empty();
     }
 
     /**
