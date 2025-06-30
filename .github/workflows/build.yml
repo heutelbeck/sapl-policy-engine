@@ -252,9 +252,9 @@ jobs:
         githubServer: false
         servers: |
           [{
-              "id": "ossrh",
-              "username": "${{ secrets.OSSRH_USERNAME }}",
-              "password": "${{ secrets.OSSRH_PASSWORD }}"
+              "id": "central",
+              "username": "${{ secrets.MAVEN_CENTRAL_USER }}",
+              "password": "${{ secrets.MAVEN_CENTRAL_PASSWORD }}"
            }, {
               "id": "github",
               "username": "${{ secrets.GHUB_USERNAME }}",
