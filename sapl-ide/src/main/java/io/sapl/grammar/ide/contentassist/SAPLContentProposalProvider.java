@@ -232,7 +232,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
                     policyInformationPointDocumentationProvider), context, acceptor);
         } else if (isEnvironmentAttributeIdentifierAssignment(assignment, analysis)) {
             this.addProposals(LibraryProposalsGenerator.allEnvironmentAttributeFinders(analysis, context,
-                    pdpConfiguration, policyInformationPointDocumentationProvider), context, acceptor);
+                    policyInformationPointDocumentationProvider), context, acceptor);
         } else if (isAttributeSchemaExtension(analysis)) {
             this.addProposals(LibraryProposalsGenerator.allAttributeSchemaExtensions(analysis, context,
                     pdpConfiguration, policyInformationPointDocumentationProvider), context, acceptor);

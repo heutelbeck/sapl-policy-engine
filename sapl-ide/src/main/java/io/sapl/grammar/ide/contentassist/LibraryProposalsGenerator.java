@@ -116,7 +116,7 @@ public class LibraryProposalsGenerator {
      * @param analysis analysis of recommendation context
      * @param context The current ContentAssistContext context is needed to inspect
      * potentially defined imports in the document to resolve names correctly.
-     * @param pdpConfiguration The PDPConfiguration pdpConfiguration supplies the
+     * @param docsProvider documentation provider 
      * PIPs deployed in the PDP which supply the functions that can be used as
      * proposals.
      * @return a List of all attribute finder proposals with their aliased
@@ -138,15 +138,14 @@ public class LibraryProposalsGenerator {
      * @param analysis analysis of recommendation context
      * @param context The current ContentAssistContext context is needed to inspect
      * potentially defined imports in the document to resolve names correctly.
-     * @param pdpConfiguration The PDPConfiguration pdpConfiguration supplies the
+     * @param docsProvider the documentation provider 
      * PIPs deployed in the PDP which supply the functions that can be used as
      * proposals.
      * @return a List of all attribute finder proposals with their aliased
      * alternatives based on imports.
      */
     public static Collection<Proposal> allEnvironmentAttributeFinders(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration,
-            PolicyInformationPointDocumentationProvider docsProvider) {
+            ContentAssistContext context, PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new ArrayList<Proposal>();
         final var attributes = docsProvider.getAttributeMetatata();
         attributes.stream().filter(d -> d.type() == FunctionType.ENVIRONMENT_ATTRIBUTE)
