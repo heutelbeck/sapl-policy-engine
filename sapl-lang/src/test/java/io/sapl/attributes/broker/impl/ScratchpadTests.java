@@ -89,7 +89,7 @@ class ScratchpadTests {
         var attributeStream = broker.attributeStream(new AttributeFinderInvocation("id", "xdummy.pip", List.of(),
                 Map.of(), Duration.ofSeconds(1L), Duration.ofSeconds(1L), Duration.ofMillis(50L), 20L, false));
 
-        var streamSubscription = attributeStream.log().subscribe();
+        var streamSubscription = attributeStream.subscribe();
 
         Thread.sleep(1000L);
 

@@ -96,7 +96,8 @@ public class OperatorUtil {
     /**
      * Validation method to ensure a Val is a JsonNode, i.e., not undefined or an
      * error.
-     * @param demandingComponent the EObject in the document 
+     *
+     * @param demandingComponent the EObject in the document
      * @param value a Val
      * @return the input Val, or an error, if the input is not a JsonNode.
      */
@@ -114,7 +115,7 @@ public class OperatorUtil {
     /**
      * Validation method to ensure a Val is a Boolean.
      *
-     * @param demandingComponent the EObject in the document 
+     * @param demandingComponent the EObject in the document
      * @param value a Val
      * @return the input Val, or an error, if the input is not Boolean.
      */
@@ -132,7 +133,7 @@ public class OperatorUtil {
     /**
      * Validation method to ensure a Val is a JSON array.
      *
-     * @param demandingComponent the EObject in the document 
+     * @param demandingComponent the EObject in the document
      * @param value a Val
      * @return the input Val, or an error, if the input is not an array.
      */
@@ -150,7 +151,7 @@ public class OperatorUtil {
     /**
      * Validation method to ensure a Val is a JSON object.
      *
-     * @param demandingComponent the EObject in the document 
+     * @param demandingComponent the EObject in the document
      * @param value a Val
      * @return the input Val, or an error, if the input is not an object.
      */
@@ -168,7 +169,7 @@ public class OperatorUtil {
     /**
      * Validation method to ensure a Val is a textual value.
      *
-     * @param demandingComponent the EObject in the document 
+     * @param demandingComponent the EObject in the document
      * @param value a Val
      * @return the input Val, or an error, if the input is not textual.
      */
@@ -186,7 +187,7 @@ public class OperatorUtil {
     /**
      * Validation method to ensure a val is a numerical value.
      *
-     * @param demandingComponent the EObject in the document 
+     * @param demandingComponent the EObject in the document
      * @param value a Val
      * @return the input Val, or an error, if the input is not a number.
      */
@@ -204,7 +205,7 @@ public class OperatorUtil {
     /**
      * Validation method to ensure a val is a numerical value.
      *
-     * @param demandingComponent the EObject in the document 
+     * @param demandingComponent the EObject in the document
      * @param value a Val
      * @return the input Val, or an error, if the input is not a number.
      */

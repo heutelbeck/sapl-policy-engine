@@ -51,7 +51,8 @@ class KeyTestUtility {
     /**
      * @param keyPair the key pair
      * @return a mock web server used for testing public key requests
-     * @throws NoSuchAlgorithmException in case the specified algorithm is unavailable
+     * @throws NoSuchAlgorithmException in case the specified algorithm is
+     * unavailable
      * @throws IOException on IO errors
      */
     static MockWebServer testServer(KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
@@ -66,7 +67,8 @@ class KeyTestUtility {
      * @param keyPairs key pairs
      * @return a mock web server used for testing public key requests
      * @throws IOException on IO errors
-     * @throws NoSuchAlgorithmException in case the specified algorithm is unavailable
+     * @throws NoSuchAlgorithmException in case the specified algorithm is
+     * unavailable
      */
     static MockWebServer testServer(Set<KeyPair> keyPairs) {
         Map<String, String> mockServerKeys = new HashMap<>();
@@ -86,7 +88,8 @@ class KeyTestUtility {
     /**
      * @param keyPair a key pair
      * @return the public key's hash code
-     * @throws NoSuchAlgorithmException in case the specified algorithm is unavailable
+     * @throws NoSuchAlgorithmException in case the specified algorithm is
+     * unavailable
      * @throws IOException in IO errors
      */
     static String kid(KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
