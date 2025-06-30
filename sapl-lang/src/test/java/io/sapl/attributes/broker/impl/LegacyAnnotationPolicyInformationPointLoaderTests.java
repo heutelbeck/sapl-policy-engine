@@ -178,7 +178,6 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
                 docsProvider, new ValidatorFactory(new ObjectMapper()));
         assertDoesNotThrow(() -> pipLoader.loadPolicyInformationPoint(pip));
         assertThat(docsProvider.getAvailableLibraries().contains("PIP"), is(true));
-        System.out.println("->" + docsProvider.providedFunctionsOfLibrary("PIP"));
         assertThat(docsProvider.providedFunctionsOfLibrary("PIP").contains("x"), is(true));
         assertThat(docsProvider.isProvidedFunction("PIP.x"), is(Boolean.TRUE));
         assertThat(new ArrayList<>(docsProvider.getDocumentation()).get(0).namespace(), is("PIP"));
@@ -890,7 +889,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
 
         final var validExpression = ParserUtil.expression("<test.envAttribute({\"name\": \"Joe\"})>");
         final var expected        = new ObjectMapper().readTree("{\"name\": \"Joe\"}\")>");
-        StepVerifier.create(validExpression.evaluate().log().contextWrite(this.constructContext(broker, variables)))
+        StepVerifier.create(validExpression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNext(Val.of(expected)).thenCancel().verify();
 
         final var invalidExpression = ParserUtil.expression("<test.envAttribute({\"name\": 23})>");
@@ -980,7 +979,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var broker     = brokerWithPip(pip);
         final var variables  = Map.of("key1", Val.of("valueOfKey"));
         final var expression = ParserUtil.expression("<test.attribute(\"param1\",\"param2\")>");
-        StepVerifier.create(expression.evaluate().log().contextWrite(this.constructContext(broker, variables)))
+        StepVerifier.create(expression.evaluate().contextWrite(this.constructContext(broker, variables)))
                 .expectNextMatches(
                         valErrorTextContains("No unique policy information point found for AttributeFinderInvocation"))
                 .thenCancel().verify();
