@@ -277,7 +277,7 @@ jobs:
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Build SAPL Server CE Image
-      run: mvn -B spring-boot:build-image -pl sapl-server-ce -DskipTests -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Pproduction 
+      run: mvn -B spring-boot:build-image -pl sapl-server-ce -DskipTests -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn-Pproduction 
     
     - name: Log in to the Container Registry
       uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
