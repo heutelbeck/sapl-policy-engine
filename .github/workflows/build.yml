@@ -104,15 +104,15 @@ jobs:
 
     - name: Build Dependencies of SAPL Server LT
       if: env.RUN_ANALYSIS == 'true'
-      run: mvn -U -B install -pl sapl-server-lt -am -DskipTests 
+      run: mvn -U -B install -pl sapl-server-lt -am -DskipTests -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Build SAPL Server LT Image
       if: env.RUN_ANALYSIS == 'true'
-      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests
+      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Run Unit Tests Only
       if: env.RUN_ANALYSIS == 'false'
-      run: mvn -B package -fae javadoc:jar
+      run: mvn -B package -fae javadoc:jar -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
       # Runs JaCoCo and Spotbugs analysis which are needed for the subsequent
       # SonarCloud analysis. The SonarCloud analysis is run separately because a
@@ -120,7 +120,7 @@ jobs:
       # fork and workflows triggered by other events.
     - name: Run Unit Tests, Analysis, and Integration Tests
       if: env.RUN_ANALYSIS == 'true'
-      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs
+      run: mvn -B verify -fae javadoc:jar spotbugs:spotbugs -pl '!sapl-bom,!sapl-code-style' -Pcoverage,it,spotbugs -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         
     - name: Cache Sonar Packages
       if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
@@ -148,6 +148,7 @@ jobs:
         -Dsonar.projectKey=heutelbeck_sapl-policy-engine
         -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
         -Dsonar.qualitygate.wait=true
+		-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
         -Pproduction
 
       # The two following steps "Save PR Number" and "Upload Artifact" are needed for a
@@ -215,7 +216,7 @@ jobs:
       sapl-server-lt-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }} 
     permissions:
       actions: write # for Mattraks/delete-workflow-runs
-    timeout-minutes: 60
+    timeout-minutes: 35
     
     steps:
     - name: Harden Runner
@@ -235,31 +236,6 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
         cache: 'maven'
-        server-id: central
-        server-username: NEXUS_USERNAME
-        server-password: NEXUS_PASSWORD
-        gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-        gpg-passphrase: GPG_PASSPHRASE
-
-    - name: Configure Servers
-      uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
-      with:
-        githubServer: false
-        servers: |
-          [{
-            "id": "central",
-            "username": "${{ secrets.NEXUS_USERNAME }}",
-            "password": "${{ secrets.NEXUS_PASSWORD }}"
-          }, {
-            "id": "github",
-            "username": "${{ secrets.GHUB_USERNAME }}",
-            "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
-          }]
-
-    - name: Install GPG Code Signing Key
-      run: |
-        cat <(echo -e "${{ secrets.GPG_PRIVATE_KEY }}") | gpg --batch --import
-        gpg --list-secret-keys --keyid-format LONG
 
     - name: Setup Maven
       uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
@@ -271,25 +247,37 @@ jobs:
       with:
         node-version: '20'
  
+    - name: Configure Servers
+      uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
+      with:
+        githubServer: false
+        servers: |
+          [{
+              "id": "ossrh",
+              "username": "${{ secrets.OSSRH_USERNAME }}",
+              "password": "${{ secrets.OSSRH_PASSWORD }}"
+           }, {
+              "id": "github",
+              "username": "${{ secrets.GHUB_USERNAME }}",
+              "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+           }]
+
+    - name: Install GPG Code Signing Key
+      run: |
+        cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+        gpg --list-secret-keys --keyid-format LONG
+
     - name: Deploy Maven Artifacts
-      run: mvn -B --no-transfer-progress -pl !:sapl-server-lt,!:sapl-server-ce,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui -PsonatypeDeploy -DskipTests clean deploy
-      env:
-        MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-        MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
-        MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}	  
+      run: mvn -B --no-transfer-progress -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} -pl !:sapl-server-lt,!:sapl-server-ce,!:io.sapl.eclipse.feature,!:sapl-eclipse-repository,!:sapl-eclipse-target,!:sapl-eclipse-thirdparty,!:sapl-eclipse-ui,!:sapl-test-eclipse-ui -Ppublish -DskipTests clean install deploy -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Build All for Server and Eclipse Plugin
-      run: mvn -U -B clean install -DskipTests -Psign -Pproduction
-      env:
-        MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-        MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
-        MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}	  
+      run: mvn -U -B clean install -DskipTests -Psign -Pproduction -Dgpg.passphrase="${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}" -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Build SAPL Server LT Image
-      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests 
+      run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
     - name: Build SAPL Server CE Image
-      run: mvn -B spring-boot:build-image -pl sapl-server-ce -DskipTests -Pproduction 
+      run: mvn -B spring-boot:build-image -pl sapl-server-ce -DskipTests -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Pproduction 
     
     - name: Log in to the Container Registry
       uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
@@ -355,6 +343,7 @@ jobs:
     - name: Trigger CI Build of Downstream Repositories
       run: |
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-demos/dispatches --data '{"event_type": "build_application"}'
+        curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-server/dispatches --data '{"event_type": "build_application"}'
         curl -XPOST -u "${{ secrets.GHUB_USERNAME }}:${{ secrets.GHUB_ACCESS_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/heutelbeck/sapl-extensions/dispatches --data '{"event_type": "build_application"}'
 
     - name: Delete Workflow Runs
