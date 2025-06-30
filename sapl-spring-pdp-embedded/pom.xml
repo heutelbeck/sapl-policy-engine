@@ -57,7 +57,7 @@
 		<!-- Optional JWT SAPL Extensions -->
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>sapl-jwt</artifactId>
+			<artifactId>jwt</artifactId>
 			<version>${project.version}</version>
 			<optional>true</optional>
 		</dependency>
