@@ -34,6 +34,7 @@ public interface CoverageHitReader {
      * io.sapl.grammar.sapl.PolicySet's
      *
      * @return List of {@link PolicySetHit}
+     * @throws IOException on IO errors
      */
     List<PolicySetHit> readPolicySetHits() throws IOException;
 
@@ -42,6 +43,7 @@ public interface CoverageHitReader {
      * io.sapl.grammar.sapl.Policy's
      *
      * @return List of {@link PolicySetHit}
+     * @throws IOException on IO errors
      */
     List<PolicyHit> readPolicyHits() throws IOException;
 

@@ -49,7 +49,10 @@ class KeyTestUtility {
     }
 
     /**
+     * @param keyPair the key pair
      * @return a mock web server used for testing public key requests
+     * @throws NoSuchAlgorithmException in case the specified algorithm is unavailable
+     * @throws IOException on IO errors
      */
     static MockWebServer testServer(KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
         Map<String, String> mockServerKeys = Map.of(KeyTestUtility.kid(keyPair),
@@ -60,9 +63,10 @@ class KeyTestUtility {
     }
 
     /**
+     * @param keyPairs key pairs
      * @return a mock web server used for testing public key requests
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
+     * @throws IOException on IO errors
+     * @throws NoSuchAlgorithmException in case the specified algorithm is unavailable
      */
     static MockWebServer testServer(Set<KeyPair> keyPairs) {
         Map<String, String> mockServerKeys = new HashMap<>();
@@ -80,9 +84,10 @@ class KeyTestUtility {
     }
 
     /**
+     * @param keyPair a key pair
      * @return the public key's hash code
-     * @throws NoSuchAlgorithmException
-     * @throws IOException
+     * @throws NoSuchAlgorithmException in case the specified algorithm is unavailable
+     * @throws IOException in IO errors
      */
     static String kid(KeyPair keyPair) throws NoSuchAlgorithmException, IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -93,7 +98,7 @@ class KeyTestUtility {
     }
 
     /**
-     * @param keyPair
+     * @param keyPair a key pair
      * @return a predicate that evaluates to true iff it's input is of type
      * RSAPublicKey and matches the public key of the supplied keyPair
      */
