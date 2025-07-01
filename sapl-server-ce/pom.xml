@@ -365,7 +365,7 @@
 						</tag>
 					</tags>
 				</configuration>
-			</plugin>
+			</plugin>	
 			<!-- Creates SBOM in SPDX format -->
 			<plugin>
 				<groupId>org.spdx</groupId>
