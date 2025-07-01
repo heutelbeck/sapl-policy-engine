@@ -129,13 +129,17 @@ builds, the matching snapshots repository must be added to the projects ```pom.x
 
 ```xml
 <repositories>
-  <repository>
-    <id>ossrh</id>
-    <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-    <snapshots>
-      <enabled>true</enabled>
-    </snapshots>
-  </repository>
+		<repository>
+			<name>Central Portal Snapshots</name>
+			<id>central-portal-snapshots</id>
+			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
 </repositories>
 ```
 
