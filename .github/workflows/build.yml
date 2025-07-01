@@ -279,7 +279,11 @@ jobs:
         MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}	  
 
     - name: Build All for Server and Eclipse Plugin
-      run: mvn -U -B clean install -DskipTests -Psign -Pproduction -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}"
+      run: mvn -U -B clean install -DskipTests -Psign -Pproduction
+       env:
+        MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+        MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
+        MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}	  
 
     - name: Build SAPL Server LT Image
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests 
