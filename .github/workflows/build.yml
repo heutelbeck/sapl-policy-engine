@@ -208,6 +208,7 @@ jobs:
     if: ${{ github.ref == 'refs/heads/master' }} 
     #needs: [build]
     name: Publish Project Assets
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     outputs:
       sapl-server-lt-hashes: ${{ steps.get-server-lt-hash.outputs.hashes }}
