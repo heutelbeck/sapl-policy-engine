@@ -280,7 +280,7 @@ jobs:
 
     - name: Build All for Server and Eclipse Plugin
       run: mvn -U -B clean install -DskipTests -Psign -Pproduction
-       env:
+      env:
         MAVEN_USERNAME: ${{ secrets.NEXUS_USERNAME }}
         MAVEN_CENTRAL_TOKEN: ${{ secrets.NEXUS_PASSWORD }}
         MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}	  
