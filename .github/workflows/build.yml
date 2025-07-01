@@ -206,7 +206,7 @@ jobs:
 
   deploy:
     if: ${{ github.ref == 'refs/heads/master' }} 
-    needs: [build]
+    #needs: [build]
     name: Publish Project Assets
     runs-on: ubuntu-latest
     outputs:
@@ -240,6 +240,26 @@ jobs:
         server-password: NEXUS_PASSWORD
         gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
         gpg-passphrase: GPG_PASSPHRASE
+		
+    - name: Configure Servers
+      uses: s4u/maven-settings-action@7802f6aec16c9098b4798ad1f1d8ac75198194bd # v3.0.0
+      with:
+        githubServer: false
+        servers: |
+          [{
+            "id": "central",
+            "username": "${{ secrets.NEXUS_USERNAME }}",
+            "password": "${{ secrets.NEXUS_PASSWORD }}"
+          }, {
+            "id": "github",
+            "username": "${{ secrets.GHUB_USERNAME }}",
+            "password": "${{ secrets.GHUB_ACCESS_TOKEN }}"
+          }]
+
+    - name: Install GPG Code Signing Key
+      run: |
+        cat <(echo -e "${{ secrets.GPG_PRIVATE_KEY }}") | gpg --batch --import
+        gpg --list-secret-keys --keyid-format LONG
 
     - name: Setup Maven
       uses: stCarolas/setup-maven@d6af6abeda15e98926a57b5aa970a96bb37f97d1 # v5
@@ -259,7 +279,7 @@ jobs:
         MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}	  
 
     - name: Build All for Server and Eclipse Plugin
-      run: mvn -U -B clean install -DskipTests -Psign -Pproduction -Dgpg.passphrase="${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}"
+      run: mvn -U -B clean install -DskipTests -Psign -Pproduction -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}"
 
     - name: Build SAPL Server LT Image
       run: mvn -B spring-boot:build-image -pl sapl-server-lt -DskipTests 
