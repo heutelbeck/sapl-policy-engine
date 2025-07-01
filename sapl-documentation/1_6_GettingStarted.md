@@ -31,13 +31,17 @@ In addition, SAPL provides an embedded PDP, including an embedded PRP with a fil
 
   ```xml
   <repositories>
-      <repository>
-          <id>ossrh</id>
-          <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-          <snapshots>
-              <enabled>true</enabled>
-          </snapshots>
-      </repository>
+  		<repository>
+  			<name>Central Portal Snapshots</name>
+  			<id>central-portal-snapshots</id>
+  			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
+  			<releases>
+  				<enabled>false</enabled>
+  			</releases>
+  			<snapshots>
+  				<enabled>true</enabled>
+  			</snapshots>
+  		</repository>
   </repositories>
   ```
 
