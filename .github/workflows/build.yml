@@ -208,7 +208,6 @@ jobs:
     if: ${{ github.ref == 'refs/heads/master' }} 
     #needs: [build]
     name: Publish Project Assets
-    timeout-minutes: 60
     runs-on: ubuntu-latest
     outputs:
       sapl-server-lt-hashes: ${{ steps.get-server-lt-hash.outputs.hashes }}
@@ -216,7 +215,7 @@ jobs:
       sapl-server-lt-docker-digest: ${{ steps.get-server-lt-hash.outputs.IMAGE_DIGEST }} 
     permissions:
       actions: write # for Mattraks/delete-workflow-runs
-    timeout-minutes: 35
+    timeout-minutes: 60
     
     steps:
     - name: Harden Runner
