@@ -24,7 +24,6 @@ import java.util.function.Function;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;

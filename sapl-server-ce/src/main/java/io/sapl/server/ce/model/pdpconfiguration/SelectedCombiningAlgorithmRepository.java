@@ -22,7 +22,6 @@ import java.util.Collection;
 
 import org.springframework.data.repository.CrudRepository;
 
-import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import lombok.NonNull;
 
 /**

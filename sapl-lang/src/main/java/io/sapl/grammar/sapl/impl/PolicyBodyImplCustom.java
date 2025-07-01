@@ -22,8 +22,6 @@ import java.util.function.Function;
 
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.ValueDefinition;

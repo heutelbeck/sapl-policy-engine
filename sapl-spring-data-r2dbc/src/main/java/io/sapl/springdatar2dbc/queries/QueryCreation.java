@@ -23,7 +23,6 @@ import org.springframework.data.domain.Sort;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.sapl.api.pdp.Decision;
 import io.sapl.springdatacommon.queries.QueryAnnotationParameterResolver;
 import lombok.experimental.UtilityClass;
 

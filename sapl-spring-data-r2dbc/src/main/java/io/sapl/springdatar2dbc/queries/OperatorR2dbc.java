@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang3.NotImplementedException;
-import org.springframework.data.repository.query.parser.Part;
 
 import lombok.Getter;
 
