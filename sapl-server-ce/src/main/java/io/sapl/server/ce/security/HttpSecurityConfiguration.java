@@ -52,7 +52,7 @@ import org.springframework.security.oauth2.server.resource.web.DefaultBearerToke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.HeaderWriterFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 import com.vaadin.flow.spring.security.VaadinWebSecurity;
 
@@ -188,15 +188,15 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(
-                requests -> requests.requestMatchers(new AntPathRequestMatcher("/images/*.png")).permitAll());
+        PathPatternRequestMatcher.Builder match = PathPatternRequestMatcher.withDefaults();
+        http.authorizeHttpRequests(authorize -> authorize.requestMatchers(match.matcher("/images/*.png")).permitAll());
 
         // Icons from the line-awesome addon
         http.authorizeHttpRequests(
-                requests -> requests.requestMatchers(new AntPathRequestMatcher("/line-awesome/**/*.svg")).permitAll());
+                authorize -> authorize.requestMatchers(match.matcher("/line-awesome/**/*.svg")).permitAll());
 
         // Xtext services
-        http.csrf(csrf -> csrf.ignoringRequestMatchers(new AntPathRequestMatcher("/xtext-service/**")));
+        http.csrf(csrf -> csrf.ignoringRequestMatchers(match.matcher(("/xtext-service/**"))));
 
         super.configure(http);
 

@@ -27,7 +27,6 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
-import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
@@ -44,10 +43,10 @@ import lombok.RequiredArgsConstructor;
 import reactor.core.Exceptions;
 
 /**
- * An {@link AuthorizationManager} which can determine if an
- * {@link Authentication} may invoke the {@link MethodInvocation} by calling a
- * Policy Decision Point based on the expressions from the {@link PreEnforce}
- * annotation.
+ * An {@link org.springframework.security.authorization.AuthorizationManager}
+ * which can determine if an {@link Authentication} may invoke the
+ * {@link MethodInvocation} by calling a Policy Decision Point based on the
+ * expressions from the {@link PreEnforce} annotation.
  *
  * @since 3.0.0
  */

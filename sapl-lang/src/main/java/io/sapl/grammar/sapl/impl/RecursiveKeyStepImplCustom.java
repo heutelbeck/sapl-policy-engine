@@ -70,7 +70,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
             if (node.has(id)) {
                 results.add(node.get(id));
             }
-            final var iter = node.fields();
+            final var iter = node.properties().iterator();
             while (iter.hasNext()) {
                 final var item = iter.next().getValue();
                 collect(item, results);
@@ -104,7 +104,7 @@ public class RecursiveKeyStepImplCustom extends RecursiveKeyStepImpl {
             FilterStatement statement) {
         final var object      = unfilteredValue.getObjectNode();
         final var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
-        final var fields      = object.fields();
+        final var fields      = object.properties().iterator();
 
         while (fields.hasNext()) {
             final var field = fields.next();

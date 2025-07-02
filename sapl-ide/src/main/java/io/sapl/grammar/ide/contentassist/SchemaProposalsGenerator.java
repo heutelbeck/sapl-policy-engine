@@ -162,7 +162,7 @@ public class SchemaProposalsGenerator {
         final var anchorField = objectNode.get(ANCHOR);
         if (null != anchorField && anchorField.asText().equals(anchor))
             return objectNode;
-        final var fieldsIterator = objectNode.fields();
+        final var fieldsIterator = objectNode.properties().iterator();
         while (fieldsIterator.hasNext()) {
             final var schema = lookupAnchorReference(fieldsIterator.next().getValue(), anchor);
             if (null != schema)
@@ -257,7 +257,7 @@ public class SchemaProposalsGenerator {
         if (!properties.isObject())
             return;
 
-        final var fieldsIterator = properties.fields();
+        final var fieldsIterator = properties.properties().iterator();
         while (fieldsIterator.hasNext()) {
             final var field   = fieldsIterator.next();
             final var newPath = prefix + '.' + escaped(field.getKey());

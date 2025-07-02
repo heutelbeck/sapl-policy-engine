@@ -23,7 +23,6 @@ import org.springframework.data.domain.Sort;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
-import io.sapl.api.pdp.Decision;
 import io.sapl.springdatacommon.queries.QueryAnnotationParameterResolver;
 import lombok.experimental.UtilityClass;
 
@@ -37,7 +36,8 @@ public class QueryCreation {
      *
      * @param basicQuery is the original value from the
      * {@link org.springframework.data.r2dbc.repository.Query} annotation.
-     * @param conditions are the query conditions from the {@link Decision}.
+     * @param conditions are the query conditions from the
+     * {@link io.sapl.api.pdp.Decision}.
      * @return the manipulated query.
      */
     public static <T> String manipulateQuery(String basicQuery, ArrayNode conditions, ArrayNode selections,
@@ -120,8 +120,9 @@ public class QueryCreation {
      * it. This condition is appended to the end of the sql query. The base query is
      * converted from the method name.
      *
-     * @param conditions are the conditions from the {@link Decision}.
-     * @param selection is the selection from the {@link Decision}.
+     * @param conditions are the conditions from the
+     * {@link io.sapl.api.pdp.Decision}.
+     * @param selection is the selection from the {@link io.sapl.api.pdp.Decision}.
      * @return created sql query.
      */
     public <T> String createSqlQuery(ArrayNode conditions, ArrayNode selection, ArrayNode transformations,

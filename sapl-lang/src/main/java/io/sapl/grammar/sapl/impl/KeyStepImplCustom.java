@@ -95,7 +95,7 @@ public class KeyStepImplCustom extends KeyStepImpl {
             FilterStatement statement) {
         final var object      = unfilteredValue.getObjectNode();
         final var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
-        final var fields      = object.fields();
+        final var fields      = object.properties().iterator();
         while (fields.hasNext()) {
             final var field = fields.next();
             final var key   = field.getKey();

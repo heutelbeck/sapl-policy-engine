@@ -45,7 +45,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.hivemq.client.mqtt.MqttClient;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.exceptions.MqttClientStateException;
@@ -135,12 +134,13 @@ public class SaplMqttClient {
      * @param qos A {@link Flux} of the quality of service level of the mqtt
      * subscription to the broker. Possible values: 0, 1, 2. This variable can be
      * null.
-     * @param mqttPipConfig An {@link ArrayNode} of {@link ObjectNode}s or only a
-     * single {@link ObjectNode} containing configurations for the pip as a mqtt
-     * client. Each {@link ObjectNode} specifies the configuration of a single mqtt
-     * client. Therefore, it is possible for the pip to build multiple mqtt clients,
-     * that is the pip can subscribe to topics by different brokers. This variable
-     * may be null.
+     * @param mqttPipConfig An {@link com.fasterxml.jackson.databind.node.ArrayNode}
+     * of {@link com.fasterxml.jackson.databind.node.ObjectNode}s or only a single
+     * {@link ObjectNode} containing configurations for the pip as a mqtt client.
+     * Each {@link ObjectNode} specifies the configuration of a single mqtt client.
+     * Therefore, it is possible for the pip to build multiple mqtt clients, that is
+     * the pip can subscribe to topics by different brokers. This variable may be
+     * null.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
     protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables, Val qos, Val mqttPipConfig) {

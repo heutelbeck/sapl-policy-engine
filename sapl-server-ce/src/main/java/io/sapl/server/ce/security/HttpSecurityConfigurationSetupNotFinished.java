@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 import com.vaadin.flow.spring.security.VaadinWebSecurity;
 
@@ -36,20 +36,18 @@ public class HttpSecurityConfigurationSetupNotFinished extends VaadinWebSecurity
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(
-                requests -> requests.requestMatchers(new AntPathRequestMatcher("/images/*.png")).permitAll());
+        PathPatternRequestMatcher.Builder match = PathPatternRequestMatcher.withDefaults();
+        http.authorizeHttpRequests(requests -> requests.requestMatchers(match.matcher("/images/*.png")).permitAll());
 
         // Icons from the line-awesome addon
         http.authorizeHttpRequests(
-                requests -> requests.requestMatchers(new AntPathRequestMatcher("/line-awesome/**/*.svg")).permitAll());
+                requests -> requests.requestMatchers(match.matcher("/line-awesome/**/*.svg")).permitAll());
 
         // Deny API
-        http.authorizeHttpRequests(
-                requests -> requests.requestMatchers(new AntPathRequestMatcher("/api/**")).denyAll());
+        http.authorizeHttpRequests(requests -> requests.requestMatchers(match.matcher("/api/**")).denyAll());
 
         // Deny Xtext-Service
-        http.authorizeHttpRequests(
-                requests -> requests.requestMatchers(new AntPathRequestMatcher("/xtext-service/**")).denyAll());
+        http.authorizeHttpRequests(requests -> requests.requestMatchers(match.matcher("/xtext-service/**")).denyAll());
 
         super.configure(http);
     }

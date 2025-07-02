@@ -691,7 +691,7 @@ public final class Val implements Traced, Serializable {
     }
 
     private static int hashCodeOfObjectNode(ObjectNode objectNode) {
-        final var fieldIterator = objectNode.fields();
+        final var fieldIterator = objectNode.properties().iterator();
         var       hash          = 0;
 
         Map.Entry<String, JsonNode> entry;
@@ -787,7 +787,7 @@ public final class Val implements Traced, Serializable {
      * @return a Val with the given value.
      */
     public static Val of(Boolean bool) {
-        if (bool) {
+        if (Boolean.TRUE.equals(bool)) {
             return TRUE;
         } else {
             return FALSE;

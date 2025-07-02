@@ -128,7 +128,7 @@ public class QueryManipulationConstraintHandlerService {
             if (constraintDataRecord.obligation().has(TRANSFORMATIONS)
                     && constraintDataRecord.obligation().get(TRANSFORMATIONS).isObject()) {
 
-                constraintDataRecord.obligation().get(TRANSFORMATIONS).fields().forEachRemaining(entry -> {
+                constraintDataRecord.obligation().get(TRANSFORMATIONS).properties().forEach(entry -> {
                     final var keyValuePair = JsonNodeFactory.instance.objectNode();
                     keyValuePair.put(entry.getKey(), entry.getValue().asText());
                     transformations.add(keyValuePair);

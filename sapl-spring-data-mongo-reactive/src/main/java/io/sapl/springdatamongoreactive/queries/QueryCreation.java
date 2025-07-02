@@ -25,7 +25,6 @@ import org.bson.Document;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.query.BasicQuery;
-import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.repository.query.parser.PartTree;
@@ -117,8 +116,9 @@ public class QueryCreation {
      * are several steps necessary until a query is created as a result in the end.
      * The parameters of the method must be put into a structured form. Also, the
      * conditions from the {@link io.sapl.api.pdp.Decision} are first packed into a
-     * suitable form. The method name can then be adapted and a {@link Criteria} can
-     * be built from all the information obtained.
+     * suitable form. The method name can then be adapted and a
+     * {@link org.springframework.data.mongodb.core.query.Criteria} can be built
+     * from all the information obtained.
      *
      * @param conditions are the query condition from the
      * {@link io.sapl.api.pdp.Decision}

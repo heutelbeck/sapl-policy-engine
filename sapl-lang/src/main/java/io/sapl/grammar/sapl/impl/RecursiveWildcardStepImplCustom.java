@@ -70,7 +70,7 @@ public class RecursiveWildcardStepImplCustom extends RecursiveWildcardStepImpl {
                 collect(item, results);
             }
         } else if (node.isObject()) {
-            final var iter = node.fields();
+            final var iter = node.properties().iterator();
             while (iter.hasNext()) {
                 final var item = iter.next().getValue();
                 if (item.isObject() || item.isArray()) {

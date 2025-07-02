@@ -70,7 +70,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
                 collect(index, item, results);
             }
         } else if (node.isObject()) {
-            final var iter = node.fields();
+            final var iter = node.properties().iterator();
             while (iter.hasNext()) {
                 final var item = iter.next().getValue();
                 collect(index, item, results);
@@ -133,7 +133,7 @@ public class RecursiveIndexStepImplCustom extends RecursiveIndexStepImpl {
             FilterStatement statement) {
         final var object      = parentValue.getObjectNode();
         final var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
-        final var fields      = object.fields();
+        final var fields      = object.properties().iterator();
         while (fields.hasNext()) {
             final var field      = fields.next();
             final var key        = field.getKey();

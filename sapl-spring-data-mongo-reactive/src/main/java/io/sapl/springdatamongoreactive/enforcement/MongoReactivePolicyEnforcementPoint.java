@@ -29,9 +29,7 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.data.relational.core.query.Query;
 
-import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.springdatacommon.services.QueryEnforceAuthorizationSubscriptionService;
 import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
@@ -44,12 +42,12 @@ import lombok.extern.slf4j.Slf4j;
  * This service is the gathering point of all SaplEnforcementPoints for the
  * MongoDb database type. A {@link MethodInterceptor} is needed to manipulate
  * the database method query. At the beginning the corresponding
- * {@link AuthorizationSubscription} is searched for and built together if
- * necessary. Afterwards between 4 scenarios is differentiated and acted
- * accordingly.
+ * {@link io.sapl.api.pdp.AuthorizationSubscription} is searched for and built
+ * together if necessary. Afterwards between 4 scenarios is differentiated and
+ * acted accordingly.
  * <p>
  * Scenario 1: The method of the repository, which is to be executed, has a
- * {@link Query} annotation.
+ * {@link org.springframework.data.relational.core.query.Query} annotation.
  * <p>
  * 2nd scenario: The method of the repository, which should be executed, is a
  * Spring Data JPA query method.

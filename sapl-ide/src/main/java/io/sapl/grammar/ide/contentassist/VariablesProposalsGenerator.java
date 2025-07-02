@@ -209,7 +209,7 @@ public class VariablesProposalsGenerator {
 
     private List<String> generatePathProposalsForObjectNode(ObjectNode objectNode) {
         final var proposals = new ArrayList<String>();
-        objectNode.fields().forEachRemaining(entry -> {
+        objectNode.properties().forEach(entry -> {
             final var key = entry.getKey();
             proposals.add(key);
             generatePathProposalsForJsonNode(entry.getValue()).forEach(suffix -> proposals.add(key + "." + suffix));

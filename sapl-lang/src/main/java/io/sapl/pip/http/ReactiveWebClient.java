@@ -154,7 +154,7 @@ public class ReactiveWebClient {
     }
 
     private void setHeaders(HttpHeaders headers, JsonNode requestHeaders) {
-        requestHeaders.fields().forEachRemaining(field -> {
+        requestHeaders.properties().forEach(field -> {
             final var key   = field.getKey();
             final var value = field.getValue();
             if (value.isArray()) {

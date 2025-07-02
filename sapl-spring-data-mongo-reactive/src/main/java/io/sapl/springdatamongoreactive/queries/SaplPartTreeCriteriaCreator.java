@@ -20,7 +20,6 @@ package io.sapl.springdatamongoreactive.queries;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.data.repository.query.parser.Part;
@@ -31,8 +30,9 @@ import lombok.experimental.UtilityClass;
 /**
  * This class builds a query and is supported by the {@link PartTree} class,
  * among others. The query itself is created with the class {@link Criteria} at
- * the end. With the help of the {@link ReactiveMongoTemplate} it is possible to
- * communicate with the database in different ways.
+ * the end. With the help of the
+ * {@link org.springframework.data.mongodb.core.ReactiveMongoTemplate} it is
+ * possible to communicate with the database in different ways.
  */
 @UtilityClass
 public class SaplPartTreeCriteriaCreator {

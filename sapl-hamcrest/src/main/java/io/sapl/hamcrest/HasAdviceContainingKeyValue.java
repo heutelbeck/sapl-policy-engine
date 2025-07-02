@@ -79,7 +79,7 @@ public class HasAdviceContainingKeyValue extends TypeSafeDiagnosingMatcher<Autho
 
         var containsAdvice = false;
         for (JsonNode advice : optionalAdvice.get()) {
-            final var iterator = advice.fields();
+            final var iterator = advice.properties().iterator();
             while (iterator.hasNext()) {
                 final var entry = iterator.next();
                 if (entry.getKey().equals(this.key)

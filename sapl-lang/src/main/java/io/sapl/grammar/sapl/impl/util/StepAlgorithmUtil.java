@@ -98,7 +98,7 @@ public class StepAlgorithmUtil {
 
         final var object  = parentValue.getObjectNode();
         final var results = new ArrayList<Flux<Val>>(object.size());
-        final var fields  = object.fields();
+        final var fields  = object.properties().iterator();
         while (fields.hasNext()) {
             final var field     = fields.next();
             final var key       = field.getKey();

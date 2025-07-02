@@ -46,7 +46,7 @@ For an explanation, overview, and documentation about the SAPL project look up o
 
 To get started with integrating SAPL into your Java application, add the following reference to your build tool project definition.
 
-**We recommend using the [SNAPSHOT](#snapshots) version as the latest stable version is outdated.**
+**We recommend using the SNAPSHOT version as the latest stable version is outdated.**
 
 **Maven**
 
@@ -68,11 +68,11 @@ dependencies {
 
 This enables you to use the interface `PolicyDecisionPoint` to decide about requests.
 
-Want to integrate and understand the full scale of capabilities of SAPL? Visit our [website][website-url].
+Want to integrate and understand the full scale of capabilities of SAPL? Visit our [website](https://sapl.io).
 
-Want to see integration examples? View our dedicated [demos](#want-to-integrate-sapl).
+Want to see integration examples? View our dedicated [demos](https://github.com/heutelbeck/sapl-demos).
 
-Feeling experimental? Use our [snapshots](#snapshots) for the newest development state!
+Feeling experimental? Use our snapshots for the newest development state!
 
 ## IDE-Support
 

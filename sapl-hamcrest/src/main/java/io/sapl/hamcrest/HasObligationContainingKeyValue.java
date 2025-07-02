@@ -82,7 +82,7 @@ public class HasObligationContainingKeyValue extends TypeSafeDiagnosingMatcher<A
 
         // iterate over all obligations
         for (JsonNode obligation : obligations.get()) {
-            final var iterator = obligation.fields();
+            final var iterator = obligation.properties().iterator();
             // iterate over fields in this obligation
             while (iterator.hasNext()) {
                 final var entry = iterator.next();

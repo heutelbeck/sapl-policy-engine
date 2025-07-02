@@ -101,7 +101,7 @@ public class FilterAlgorithmUtil {
                     unfilteredValue.withTrace(ConditionStep.class, true, Map.of(UNFILTERED_VALUE, unfilteredValue)));
         }
         final var fieldFluxes = new ArrayList<Flux<Tuple2<String, Val>>>(object.size());
-        final var iter        = object.fields();
+        final var iter        = object.properties().iterator();
         while (iter.hasNext()) {
             final var field          = iter.next();
             final var key            = field.getKey();

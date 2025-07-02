@@ -22,8 +22,6 @@ import java.util.function.Function;
 
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 import io.sapl.grammar.sapl.Condition;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.ValueDefinition;
@@ -38,9 +36,11 @@ public class PolicyBodyImplCustom extends PolicyBodyImpl {
 
     /**
      * Evaluates all statements of this policy body within the given evaluation
-     * context and returns a {@link Flux} of {@link Decision} objects.
+     * context and returns a {@link Flux} of {@link io.sapl.api.pdp.Decision}
+     * objects.
      *
-     * @return A {@link Flux} of {@link AuthorizationDecision} objects.
+     * @return A {@link Flux} of {@link io.sapl.api.pdp.AuthorizationDecision}
+     * objects.
      */
     @Override
     public Flux<Val> evaluate() {
