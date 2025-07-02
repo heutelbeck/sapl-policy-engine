@@ -24,21 +24,28 @@ import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.test.autoconfigure.data.mongo.AutoConfigureDataMongo;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.annotation.DirtiesContext;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
 
-import io.sapl.springdatamongoreactive.integration.config.TestConfig;
 import io.sapl.springdatamongoreactive.sapl.database.TestUser;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-@Import(TestConfig.class)
-@SpringBootTest(classes = { TestApplication.class })
+@AutoConfigureDataMongo
+@SpringBootTest(properties = "de.flapdoodle.mongodb.embedded.version=5.0.5")
+@EnableAutoConfiguration()
+@DirtiesContext
+@EntityScan(basePackages = "io.sapl.springdatamongoreactive.sapl.database")
+@EnableReactiveMongoRepositories(basePackages = "io.sapl.springdatamongoreactive.integration")
 class UserRepositoryIT {
 
     @Autowired
@@ -49,21 +56,21 @@ class UserRepositoryIT {
             .constructCollectionType(List.class, TestUser.class);
     private static final String         USERS_AS_JSON_STRING = """
             [
-              {"id": "64de3bd9fbf82799677ed336", "firstname": "Rowat", "age": 82, "admin": false},
-              {"id": "64de3bd9fbf82799677ed338", "firstname": "Woodings", "age": 96, "admin": true},
-              {"id": "64de3bd9fbf82799677ed339", "firstname": "Bartolijn", "age": 33, "admin": false},
-              {"id": "64de3bd9fbf82799677ed33a", "firstname": "Hampton", "age": 96, "admin": true},
-              {"id": "64de3bd9fbf82799677ed33c", "firstname": "Streeton", "age": 46, "admin": true},
-              {"id": "64de3bd9fbf82799677ed33d", "firstname": "Tomaskov", "age": 64, "admin": true},
-              {"id": "64de3bd9fbf82799677ed342", "firstname": "Albinson", "age": 54, "admin": false},
-              {"id": "64de3bd9fbf82799677ed344", "firstname": "Morfell", "age": 35, "admin": true},
+              {"id": "64de3bd9fbf82799677ed336", "firstname": "Rowat",        "age": 82, "admin": false},
+              {"id": "64de3bd9fbf82799677ed338", "firstname": "Woodings",     "age": 96, "admin": true},
+              {"id": "64de3bd9fbf82799677ed339", "firstname": "Bartolijn",    "age": 33, "admin": false},
+              {"id": "64de3bd9fbf82799677ed33a", "firstname": "Hampton",      "age": 96, "admin": true},
+              {"id": "64de3bd9fbf82799677ed33c", "firstname": "Streeton",     "age": 46, "admin": true},
+              {"id": "64de3bd9fbf82799677ed33d", "firstname": "Tomaskov",     "age": 64, "admin": true},
+              {"id": "64de3bd9fbf82799677ed342", "firstname": "Albinson",     "age": 54, "admin": false},
+              {"id": "64de3bd9fbf82799677ed344", "firstname": "Morfell",      "age": 35, "admin": true},
               {"id": "64de3bd9fbf82799677ed345", "firstname": "Bickerstasse", "age": 66, "admin": true},
-              {"id": "64de3bd9fbf82799677ed346", "firstname": "Angell", "age": 94, "admin": false}
+              {"id": "64de3bd9fbf82799677ed346", "firstname": "Angell",       "age": 94, "admin": false}
             ]
             """;
 
     @BeforeEach
-    public void setup() throws IOException {
+    void setup() throws IOException {
         List<TestUser> testUsers = MAPPER.readValue(USERS_AS_JSON_STRING, LIST_TYPE);
         repository.deleteAll().thenMany(Flux.fromIterable(testUsers)).flatMap(repository::save).blockLast();
     }
