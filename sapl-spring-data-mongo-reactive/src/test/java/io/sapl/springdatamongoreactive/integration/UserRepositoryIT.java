@@ -41,7 +41,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 @AutoConfigureDataMongo
-@SpringBootTest(properties = "de.flapdoodle.mongodb.embedded.version=5.0.5")
+@SpringBootTest(properties = "de.flapdoodle.mongodb.embedded.version=8.0.5")
 @EnableAutoConfiguration()
 @DirtiesContext
 @EntityScan(basePackages = "io.sapl.springdatamongoreactive.sapl.database")
