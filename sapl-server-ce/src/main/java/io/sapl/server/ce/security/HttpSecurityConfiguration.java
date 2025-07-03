@@ -193,7 +193,7 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
 
         // Icons from the line-awesome addon
         http.authorizeHttpRequests(
-                authorize -> authorize.requestMatchers(match.matcher("/line-awesome/**/*.svg")).permitAll());
+                authorize -> authorize.requestMatchers(match.matcher("/line-awesome/**")).permitAll());
 
         // Xtext services
         http.csrf(csrf -> csrf.ignoringRequestMatchers(match.matcher(("/xtext-service/**"))));
