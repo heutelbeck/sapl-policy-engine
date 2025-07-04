@@ -19,8 +19,6 @@ package io.sapl.spring.method.blocking;
 
 import java.lang.annotation.Annotation;
 
-import javax.annotation.Nonnull;
-
 import org.aopalliance.aop.Advice;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -38,6 +36,7 @@ import io.sapl.spring.method.metadata.EnforceTillDenied;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.PreEnforce;
 import lombok.Getter;
+import lombok.NonNull;
 
 public class PolicyEnforcementPointAroundMethodInterceptor
         implements Ordered, MethodInterceptor, PointcutAdvisor, AopInfrastructureBean {
@@ -95,7 +94,7 @@ public class PolicyEnforcementPointAroundMethodInterceptor
     }
 
     @Override
-    public @Nonnull Advice getAdvice() {
+    public @NonNull Advice getAdvice() {
         return this;
     }
 
@@ -105,7 +104,7 @@ public class PolicyEnforcementPointAroundMethodInterceptor
     }
 
     @Override
-    public Object invoke(@Nonnull MethodInvocation invocation) throws Throwable {
+    public Object invoke(@NonNull MethodInvocation invocation) throws Throwable {
         return policyEnforcementPoint.invoke(invocation);
     }
 }

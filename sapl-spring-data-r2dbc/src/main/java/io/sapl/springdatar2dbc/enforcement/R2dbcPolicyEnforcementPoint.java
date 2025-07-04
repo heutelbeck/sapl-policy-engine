@@ -23,8 +23,6 @@ import static io.sapl.springdatacommon.utils.Utilities.convertReturnTypeIfNecess
 
 import java.util.Objects;
 
-import javax.annotation.Nonnull;
-
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
@@ -34,6 +32,7 @@ import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.springdatacommon.services.QueryEnforceAuthorizationSubscriptionService;
 import io.sapl.springdatacommon.services.RepositoryInformationCollectorService;
 import io.sapl.springdatacommon.utils.Utilities;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +68,7 @@ public class R2dbcPolicyEnforcementPoint<T> implements MethodInterceptor {
     private final RepositoryInformationCollectorService                               repositoryInformationCollectorService;
 
     @SneakyThrows // proceeding invocation
-    public Object invoke(@Nonnull MethodInvocation invocation) {
+    public Object invoke(@NonNull MethodInvocation invocation) {
 
         final var repositoryMethod = invocation.getMethod();
 

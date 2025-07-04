@@ -21,11 +21,10 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 
-import javax.annotation.Nonnull;
-
 import org.aopalliance.intercept.MethodInvocation;
 
 import lombok.AllArgsConstructor;
+import lombok.NonNull;
 
 @AllArgsConstructor
 public class R2dbcMethodInvocation implements MethodInvocation {
@@ -35,7 +34,7 @@ public class R2dbcMethodInvocation implements MethodInvocation {
     ArrayList<Object>   argumentValues;
     Object              proceedObject;
 
-    @Nonnull
+    @NonNull
     @Override
     public Method getMethod() {
         try {
@@ -46,7 +45,7 @@ public class R2dbcMethodInvocation implements MethodInvocation {
         }
     }
 
-    @Nonnull
+    @NonNull
     @Override
     public Object[] getArguments() {
         return argumentValues.toArray(new Object[argumentValues.size()]);
@@ -62,7 +61,7 @@ public class R2dbcMethodInvocation implements MethodInvocation {
         return this;
     }
 
-    @Nonnull
+    @NonNull
     @Override
     public AccessibleObject getStaticPart() {
         throw new InternalError();

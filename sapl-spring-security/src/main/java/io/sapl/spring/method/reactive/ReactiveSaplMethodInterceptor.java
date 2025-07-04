@@ -23,8 +23,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.reactivestreams.Publisher;
@@ -77,7 +75,7 @@ public final class ReactiveSaplMethodInterceptor implements MethodInterceptor {
     private final PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint;
 
     @Override
-    public Object invoke(final @Nonnull MethodInvocation invocation) {
+    public Object invoke(final @NonNull MethodInvocation invocation) {
         final var method         = invocation.getMethod();
         final var saplAttributes = source.getAllSaplAttributes(invocation);
 

@@ -19,8 +19,6 @@ package io.sapl.spring.method.reactive;
 
 import java.util.NoSuchElementException;
 
-import javax.annotation.Nonnull;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -91,7 +89,7 @@ class ProtectedPayload<P> {
     /**
      * @return the wrapped exception, or NoSuchElementException
      */
-    @Nonnull
+    @NonNull
     public Throwable getError() {
         if (error == null)
             throw new NoSuchElementException("Protected payload does not wrap an exception.");

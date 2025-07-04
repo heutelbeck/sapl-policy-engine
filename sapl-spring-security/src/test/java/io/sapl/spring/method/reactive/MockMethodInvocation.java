@@ -21,8 +21,6 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Method;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-
 import org.aopalliance.intercept.MethodInvocation;
 
 import lombok.NonNull;
@@ -59,17 +57,17 @@ class MockMethodInvocation implements MethodInvocation {
     }
 
     @Override
-    public @Nonnull Object @NonNull [] getArguments() {
+    public @NonNull Object @NonNull [] getArguments() {
         return this.arguments;
     }
 
     @Override
-    public @NonNull @Nonnull Method getMethod() {
+    public @NonNull Method getMethod() {
         return this.method;
     }
 
     @Override
-    public @NonNull @Nonnull AccessibleObject getStaticPart() {
+    public @NonNull AccessibleObject getStaticPart() {
         throw new UnsupportedOperationException("mock method not implemented");
     }
 
