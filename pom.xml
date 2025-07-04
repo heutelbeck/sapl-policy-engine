@@ -85,7 +85,7 @@
 		<!-- Dependencies -->
 		<guice.version>5.1.0</guice.version>
 		<junit.version>1.11.3</junit.version>
-		<xtext.version>2.35.0</xtext.version>
+		<xtext.version>2.37.0</xtext.version>
 		<jacoco.version>0.8.12</jacoco.version>
 		<vaadin.version>24.6.12</vaadin.version>
 		<okhttp.version>4.12.0</okhttp.version>
