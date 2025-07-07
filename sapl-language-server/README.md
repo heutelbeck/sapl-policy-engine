@@ -6,7 +6,7 @@ It provides features like content assist and highlighting of syntax errors.
 The Is available under `target/sapl-language-server-${version}.jar` after compiling this project.
 It is provided as a fat jar which can be started with java:
 ```shell
-java -jar sapl-language-server-3.0.0-SNAPSHOT.jar
+java -jar sapl-language-server-3.0.0.jar
 ```
 
 Please consult the documentation of your favored development environment to find out how the SAPL Language server can
@@ -43,7 +43,7 @@ configuration in
 {
   "servers": {
     "sapl": {
-      "command": ["java", "-jar", "/path/to/your/downloaded/sapl-language-server-3.0.0-SNAPSHOT.jar"],
+      "command": ["java", "-jar", "/path/to/your/downloaded/sapl-language-server-3.0.0.jar"],
       "url": "https://github.com/heutelbeck/sapl-policy-engine"
     }
   }

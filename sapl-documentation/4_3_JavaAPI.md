@@ -15,7 +15,7 @@ The Java API is based on the reactive libraries of Project Reactor (<https://pro
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-pdp-api</artifactId>
-      <version>3.0.0-SNAPSHOT</version>
+      <version>3.0.0</version>
    </dependency>
 ```
 
@@ -96,7 +96,7 @@ To use a PDP two implementations of the API are supplied. First, a completely em
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-pdp-embedded</artifactId>
-      <version>3.0.0-SNAPSHOT</version>
+      <version>3.0.0</version>
    </dependency>
 ```
 
@@ -106,7 +106,7 @@ The library with Spring auto configuration support:
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-spring-pdp-embedded</artifactId>
-      <version>3.0.0-SNAPSHOT</version>
+      <version>3.0.0</version>
    </dependency>
 ```
 
@@ -118,7 +118,7 @@ Alternatively, a remote PDP server can be used via the same interface by using t
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-pdp-remote</artifactId>
-      <version>3.0.0-SNAPSHOT</version>
+      <version>3.0.0</version>
    </dependency>
 ```
 
@@ -128,7 +128,7 @@ The library with Spring auto configuration support:
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-spring-pdp-remote</artifactId>
-      <version>3.0.0-SNAPSHOT</version>
+      <version>3.0.0</version>
    </dependency>
 ```
 
@@ -140,6 +140,6 @@ For Spring Security (<https://spring.io/projects/spring-security>), a full PEP i
    <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-spring-security</artifactId>
-      <version>3.0.0-SNAPSHOT</version>
+      <version>3.0.0</version>
    </dependency>
 ```

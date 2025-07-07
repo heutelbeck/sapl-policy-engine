@@ -24,7 +24,7 @@ In addition, SAPL provides an embedded PDP, including an embedded PRP with a fil
 - Add a SAPL dependency to the application. When using Maven one can add the following dependencies to the project’s `pom.xml`:
 
   ```xml
-  <dependency> <groupId>io.sapl</groupId> <artifactId>sapl-pdp-embedded</artifactId> <version>3.0.0-SNAPSHOT</version> </dependency>
+  <dependency> <groupId>io.sapl</groupId> <artifactId>sapl-pdp-embedded</artifactId> <version>3.0.0</version> </dependency>
   ```
 
 - Add the Maven Central snapshot repository to the `pom.xml`:
@@ -48,7 +48,7 @@ In addition, SAPL provides an embedded PDP, including an embedded PRP with a fil
 - If more SAPL dependencies are expected to be used, a useful bill of materials POM is offered, centralizing the dependency management for SAPL artifacts:
 
   ```xml
-  <dependencyManagement> <dependencies> <dependency> <groupId>io.sapl</groupId> <artifactId>sapl-bom</artifactId> <version>3.0.0-SNAPSHOT</version> <type>pom</type> <scope>import</scope> </dependency> </dependencies> </dependencyManagement>
+  <dependencyManagement> <dependencies> <dependency> <groupId>io.sapl</groupId> <artifactId>sapl-bom</artifactId> <version>3.0.0</version> <type>pom</type> <scope>import</scope> </dependency> </dependencies> </dependencyManagement>
   ```
 
 ### Coding
