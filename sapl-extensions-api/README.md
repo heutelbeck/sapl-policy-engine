@@ -248,7 +248,7 @@ Example POM for a SAPL extension:
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-		</dependencies>			
+		</dependencies>
 	</dependencyManagement>
 
 	<dependencies>
