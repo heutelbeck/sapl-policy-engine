@@ -25,7 +25,7 @@
     <parent>
         <groupId>io.sapl</groupId>
         <artifactId>sapl-policy-engine</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <version>3.0.0</version>
     </parent>
 
     <artifactId>sapl-vaadin-editor</artifactId>
@@ -109,7 +109,7 @@
                                 <artifactItem>
                                     <groupId>io.sapl</groupId>
                                     <artifactId>sapl-web</artifactId>
-                                    <version>3.0.0-SNAPSHOT</version>
+                                    <version>3.0.0</version>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/sapl</outputDirectory>
                                     <includes>static/**/*</includes>
@@ -117,7 +117,7 @@
                                 <artifactItem>
                                     <groupId>io.sapl</groupId>
                                     <artifactId>sapl-test-web</artifactId>
-                                    <version>3.0.0-SNAPSHOT</version>
+                                    <version>3.0.0</version>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/sapl-test</outputDirectory>
                                     <includes>static/**/*</includes>

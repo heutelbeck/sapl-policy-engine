@@ -47,7 +47,7 @@ import reactor.test.StepVerifier;
 @ActiveProfiles(profiles = "quiet")
 class RemoteHttpDecisionPointServerIT {
     private static final int    SAPL_SERVER_PORT = 8443;
-    private static final String SAPL_SERVER_LT   = "ghcr.io/heutelbeck/sapl-server-lt:3.0.0-SNAPSHOT";
+    private static final String SAPL_SERVER_LT   = "ghcr.io/heutelbeck/sapl-server-lt:3.0.0";
 
     final AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of("Willi", "eat", "apple");
 

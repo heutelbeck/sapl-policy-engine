@@ -3,7 +3,8 @@ Automatic-Module-Name: sapl-eclipse-ui
 Bundle-ManifestVersion: 2
 Bundle-Name: sapl-ui
 Bundle-Vendor: Dominic Heutelbeck
-Bundle-Version: 3.0.0.qualifier
+Bundle-Version: 3.0.0
+Comment: Add '.qualifier' to Bundle-Version for -SNAPSHOT ! -->
 Bundle-SymbolicName: sapl-eclipse-ui; singleton:=true
 Bundle-ActivationPolicy: lazy
 Require-Bundle: sapl-lang,
