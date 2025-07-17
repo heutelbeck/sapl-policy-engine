@@ -18,7 +18,6 @@
 package io.sapl.server.ce.ui.views;
 
 import org.springframework.context.annotation.Conditional;
-import org.vaadin.lineawesome.LineAwesomeIcon;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -29,6 +28,7 @@ import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Header;
 import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
@@ -105,18 +105,18 @@ public class SetupLayout extends AppLayout {
 
     private SideNav createNavigation() {
         final var nav = new SideNav();
-        addItem(nav, "Welcome", SetupView.class, LineAwesomeIcon.FILE_SOLID);
-        addItem(nav, "DBMS Setup", DbmsSetupView.class, LineAwesomeIcon.DATABASE_SOLID);
-        addItem(nav, "Admin User Setup", AdminUserSetupView.class, LineAwesomeIcon.USER_SOLID);
-        addItem(nav, "HTTP Endpoint Setup", HttpEndpointSetupView.class, LineAwesomeIcon.SERVER_SOLID);
-        addItem(nav, "RSocket Endpoint Setup", RSocketEndpointSetupView.class, LineAwesomeIcon.SERVER_SOLID);
-        addItem(nav, "API Authentication Setup", ApiAuthenticationSetupView.class, LineAwesomeIcon.NETWORK_WIRED_SOLID);
-        addItem(nav, "Logging Setup", LoggingSetupView.class, LineAwesomeIcon.FILE_ALT_SOLID);
-        addItem(nav, "Finish Setup", FinishSetupView.class, LineAwesomeIcon.CHECK_SQUARE_SOLID);
+        addItem(nav, "Welcome", SetupView.class, VaadinIcon.FILE);
+        addItem(nav, "DBMS Setup", DbmsSetupView.class, VaadinIcon.DATABASE);
+        addItem(nav, "Admin User Setup", AdminUserSetupView.class, VaadinIcon.USER);
+        addItem(nav, "HTTP Endpoint Setup", HttpEndpointSetupView.class, VaadinIcon.SERVER);
+        addItem(nav, "RSocket Endpoint Setup", RSocketEndpointSetupView.class, VaadinIcon.SERVER);
+        addItem(nav, "API Authentication Setup", ApiAuthenticationSetupView.class, VaadinIcon.LOCK);
+        addItem(nav, "Logging Setup", LoggingSetupView.class, VaadinIcon.TERMINAL);
+        addItem(nav, "Finish Setup", FinishSetupView.class, VaadinIcon.CHECK_SQUARE);
         return nav;
     }
 
-    private void addItem(SideNav nav, String label, Class<? extends Component> view, LineAwesomeIcon icon) {
+    private void addItem(SideNav nav, String label, Class<? extends Component> view, VaadinIcon icon) {
         if (accessChecker.hasAccess(view)) {
             nav.addItem(new SideNavItem(label, view, icon.create()));
         }

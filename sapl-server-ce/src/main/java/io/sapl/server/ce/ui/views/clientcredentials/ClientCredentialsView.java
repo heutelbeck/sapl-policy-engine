@@ -22,7 +22,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.springframework.context.annotation.Conditional;
-import org.vaadin.lineawesome.LineAwesomeIcon;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -30,6 +29,7 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -109,7 +109,7 @@ public class ClientCredentialsView extends VerticalLayout {
         clientCredentialsGrid.addColumn(ClientCredentials::getAuthType).setHeader("Auth Type").setSortable(true);
 
         clientCredentialsGrid.addComponentColumn(currentClientCredential -> {
-            Button deleteButton = new Button("Delete", LineAwesomeIcon.TRASH_SOLID.create());
+            Button deleteButton = new Button("Delete", VaadinIcon.TRASH.create());
             deleteButton.setThemeName("primary");
             deleteButton.addClickListener(clickEvent -> deleteClient(currentClientCredential));
 

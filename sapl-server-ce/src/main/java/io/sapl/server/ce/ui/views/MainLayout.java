@@ -18,7 +18,6 @@
 package io.sapl.server.ce.ui.views;
 
 import org.springframework.context.annotation.Conditional;
-import org.vaadin.lineawesome.LineAwesomeIcon;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -32,6 +31,7 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Header;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -104,15 +104,15 @@ public class MainLayout extends AppLayout {
 
     private SideNav createNavigation() {
         final var nav = new SideNav();
-        addItem(nav, "Digital Policies", DigitalPoliciesView.class, LineAwesomeIcon.FILE_SOLID);
-        addItem(nav, "Published Policies", PublishedPoliciesView.class, LineAwesomeIcon.FILE_ALT);
-        addItem(nav, "PDP Config", PDPConfigView.class, LineAwesomeIcon.COG_SOLID);
-        addItem(nav, "Libraries Documentation", LibrariesDocumentationView.class, LineAwesomeIcon.BOOK_SOLID);
-        addItem(nav, "Client Credentials", ClientCredentialsView.class, LineAwesomeIcon.KEY_SOLID);
+        addItem(nav, "Digital Policies", DigitalPoliciesView.class, VaadinIcon.FILE);
+        addItem(nav, "Published Policies", PublishedPoliciesView.class, VaadinIcon.FILE_O);
+        addItem(nav, "PDP Config", PDPConfigView.class, VaadinIcon.COG);
+        addItem(nav, "Libraries Documentation", LibrariesDocumentationView.class, VaadinIcon.BOOK);
+        addItem(nav, "Client Credentials", ClientCredentialsView.class, VaadinIcon.KEY);
         return nav;
     }
 
-    private void addItem(SideNav nav, String label, Class<? extends Component> view, LineAwesomeIcon icon) {
+    private void addItem(SideNav nav, String label, Class<? extends Component> view, VaadinIcon icon) {
         if (accessChecker.hasAccess(view)) {
             nav.addItem(new SideNavItem(label, view, icon.create()));
         }
