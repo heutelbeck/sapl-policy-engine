@@ -17,6 +17,7 @@ spring:
       - buckets
     caffeine:
       spec: maximumSize=1000000,expireAfterAccess=3600s
+
 bucket4j:
   enabled: false
   filters:
@@ -40,3 +41,6 @@ vaadin:
 logging.level:
   "[org.atmosphere]": WARN
   web: INFO
+#  org:
+#    springframework:
+#      security: DEBUG

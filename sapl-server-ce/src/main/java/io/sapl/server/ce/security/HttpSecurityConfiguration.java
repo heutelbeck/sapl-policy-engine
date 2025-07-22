@@ -32,11 +32,13 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -50,6 +52,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.HttpStatusAccessDeniedHandler;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.HeaderWriterFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
@@ -120,12 +124,22 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
      * @throws Exception if error occurs during HTTP security configuration
      */
     @Bean
-    @Order(Ordered.HIGHEST_PRECEDENCE + 5)
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     SecurityFilterChain apiAuthnFilterChain(HttpSecurity http) throws Exception {
+        
+        final var forbidden = new HttpStatusEntryPoint(HttpStatus.FORBIDDEN);
+        
         // @formatter:off
-		http.securityMatcher("/api/**") // API path
-		    .csrf(AbstractHttpConfigurer::disable)    // api is not to be browser, disable CSRF token
-			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)); // no session required
+		http = http.securityMatcher("/api/**") // API path
+    		       .requestCache(RequestCacheConfigurer::disable)
+    		       .formLogin(AbstractHttpConfigurer::disable)
+    		       .oauth2Login(AbstractHttpConfigurer::disable)
+    		       .logout(AbstractHttpConfigurer::disable)
+        	       .csrf(AbstractHttpConfigurer::disable)
+        		   .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        		   .exceptionHandling(ex -> ex.authenticationEntryPoint(forbidden) // return 403
+        		                              .accessDeniedHandler(new HttpStatusAccessDeniedHandler(HttpStatus.FORBIDDEN)))
+                   .httpBasic(b -> b.authenticationEntryPoint(forbidden));
 
 		if (allowApiKeyAuth) {
 			log.info("configuring ApiKey for Http authentication");
@@ -134,7 +148,7 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
 		}
 
         // fix sporadic spring-security issue 9175: https://github.com/spring-projects/spring-security/issues/9175#issuecomment-661879599
-        http.headers(headers -> headers
+        http = http.headers(headers -> headers
                 .withObjectPostProcessor(new ObjectPostProcessor<HeaderWriterFilter>() {
                     @Override
                     public <O extends HeaderWriterFilter> O postProcess(O headerWriterFilter) {
@@ -146,7 +160,7 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
 
 		if (allowOauth2Auth) {
 			log.info("configuring Oauth2 authentication with jwtIssuerURI: " + jwtIssuerURI);
-			http.oauth2ResourceServer(
+			http = http.oauth2ResourceServer(
                     oauth2 -> oauth2
                             .jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                             .bearerTokenResolver(new BearerTokenResolver() {
@@ -164,12 +178,12 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
 		}
 
         if (allowBasicAuth){
-            http.httpBasic(withDefaults()); // offer basic authentication
+            http = http.httpBasic(withDefaults()); // offer basic authentication
         }
 
         // Enable OAuth2 Login with default setting and change the session creation policy to always for a proper login handling
         if (allowOAuth2Login){
-            http
+            http = http
                     .oauth2Login(withDefaults())
                     .logout(logout -> logout
                             .logoutUrl("/logout")
@@ -180,7 +194,7 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
         }
 
         // all requests to this end point require the CLIENT role
-        http.authorizeHttpRequests(authz -> authz.anyRequest().hasAnyAuthority(ClientDetailsService.CLIENT));
+        http = http.authorizeHttpRequests(authz -> authz.anyRequest().hasAnyAuthority(ClientDetailsService.CLIENT));
 
 		// @formatter:on
         return http.build();
@@ -189,7 +203,7 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         PathPatternRequestMatcher.Builder match = PathPatternRequestMatcher.withDefaults();
-        http.authorizeHttpRequests(authorize -> authorize.requestMatchers(match.matcher("/images/*.png")).permitAll());
+        http = http.authorizeHttpRequests(authorize -> authorize.requestMatchers(match.matcher("/images/*.png")).permitAll());
 
         // Xtext services
         http.csrf(csrf -> csrf.ignoringRequestMatchers(match.matcher(("/xtext-service/**"))));
