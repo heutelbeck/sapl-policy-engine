@@ -231,7 +231,7 @@ The server application is available as an OCI image. This OCI image is created u
 In order to run the server locally, you can run the current image as follows. To start the container for the SAPL Server CE based on the Docker image, follow these steps: If the image is not available locally, download it from [GitHub](https://github.com/users/heutelbeck/packages/container/package/sapl-server-ce). If image-pull-on-run is enabled, as is the case with Docker Desktop, the image does not need to be downloaded beforehand.
 
 ```shell
-docker pull ghcr.io/heutelbeck/sapl-server-ce:3.0.0
+docker pull ghcr.io/heutelbeck/sapl-server-ce:3.1.0-SNAPSHOT
 ```
 
 To maintain the [required configurations](#configuration), add them to the `application.yml` and store it in either a Docker volume or a local path. Then, attach the Docker volume or local path as a volume under `/sapl/config`. The [Setup-Wizard](#using-setup-wizard) can be used to configure the SAPL Server CE instead of manually entering configurations in an `application.yml`. If you use the Setup-Wizard for configuration, there is no need to store an `application.yml` in the Docker volume or the local path linked under `/sapl/config`. Therefore, the Docker volume or local path should remain empty.
@@ -241,7 +241,7 @@ To maintain the [required configurations](#configuration), add them to the `appl
 In this example, the Docker container is executed and the local path `C:\sapl\ce` is connected as a volume under `/sapl/config`. Ports 8080, 8443, and 7000 are published. Port 8080 is required to access the Setup-Wizard, while ports 8443 and 7000 are commonly used for TLS and RSocket connections, respectively. The specific ports used may vary depending on your configuration.
 
 ```shell
-docker run -d --name sapl-server-ce -p 8080:8080 -p 8443:8443 -p 7000:7000 -v C:\sapl\ce:/sapl/config ghcr.io/heutelbeck/sapl-server-ce:3.0.0
+docker run -d --name sapl-server-ce -p 8080:8080 -p 8443:8443 -p 7000:7000 -v C:\sapl\ce:/sapl/config ghcr.io/heutelbeck/sapl-server-ce:3.1.0-SNAPSHOT
 ```
 
 To access the application, open a browser and enter the URL and port specified in the `application.yml`. If no configuration is present, the Setup-Wizard will launch at <http://localhost:8080>. If you use the [example configuration](https://github.com/heutelbeck/sapl-server/blob/main/sapl-server-ce/config/application.yml), both the username and password are `demo`. Otherwise, the username and password correspond to the data configured in the `application.yml` or those configured via the Setup-Wizard.
