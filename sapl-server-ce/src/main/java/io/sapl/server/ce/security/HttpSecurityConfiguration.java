@@ -126,9 +126,9 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
     SecurityFilterChain apiAuthnFilterChain(HttpSecurity http) throws Exception {
-        
+
         final var forbidden = new HttpStatusEntryPoint(HttpStatus.FORBIDDEN);
-        
+
         // @formatter:off
 		http = http.securityMatcher("/api/**") // API path
     		       .requestCache(RequestCacheConfigurer::disable)
@@ -203,7 +203,8 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         PathPatternRequestMatcher.Builder match = PathPatternRequestMatcher.withDefaults();
-        http = http.authorizeHttpRequests(authorize -> authorize.requestMatchers(match.matcher("/images/*.png")).permitAll());
+        http = http.authorizeHttpRequests(
+                authorize -> authorize.requestMatchers(match.matcher("/images/*.png")).permitAll());
 
         // Xtext services
         http.csrf(csrf -> csrf.ignoringRequestMatchers(match.matcher(("/xtext-service/**"))));

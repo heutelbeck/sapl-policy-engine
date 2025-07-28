@@ -54,7 +54,7 @@ To get started with integrating SAPL into your Java application, add the followi
 <dependency>
   <groupId>io.sapl</groupId>
   <artifactId>sapl-pdp-embedded</artifactId>
-  <version>2.0.1</version>
+  <version>3.0.0</version>
 </dependency>
 ```
 
@@ -62,7 +62,7 @@ To get started with integrating SAPL into your Java application, add the followi
 
 ```gradle
 dependencies {
-  implementation 'io.sapl:sapl-pdp-embedded:2.0.1'
+  implementation 'io.sapl:sapl-pdp-embedded:3.0.0'
 }
 ```
 
