@@ -58,7 +58,7 @@ spec:
           claimName: sapl-server-lt-pv-claim
       containers:
         - name: sapl-server-lt
-          image: ghcr.io/heutelbeck/sapl-server-lt:3.0.0
+          image: ghcr.io/heutelbeck/sapl-server-lt:3.0.1-SNAPSHOT
           volumeMounts:
             - name: sapl-server-lt-pv-storage
               mountPath: /pdp/data

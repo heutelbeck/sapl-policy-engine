@@ -54,7 +54,7 @@ spec:
     spec:
       containers:
         - name: sapl-server-lt
-          image: ghcr.io/heutelbeck/sapl-server-lt:3.0.0
+          image: ghcr.io/heutelbeck/sapl-server-lt:3.0.1-SNAPSHOT
           imagePullPolicy: Always
           ports:
             - containerPort: 8443
