@@ -36,7 +36,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.sapl</groupId>
 	<artifactId>sapl-policy-engine</artifactId>
-	<version>3.0.0</version>
+	<version>3.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>Streaming Attribute Policy Language (SAPL) Engine</name>
 	<description>Authorization Engine for Attribute Stream-Based Access Control
