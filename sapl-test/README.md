@@ -496,7 +496,7 @@ To make the possible syntax combinations easier to understand they are presented
 * keywords are required by the language itself (e.g. `using`, `with`)
 * [Placeholder]() indicates that an expression of a specific type is required here
 * in some places JSON is used for value definitions, the Definition is identical to
-  the [SAPL Value Definition](https://sapl.io/docs/3.0.0-SNAPSHOT/sapl-reference.html#json-data-types).
+  the [SAPL Value Definition](https://sapl.io/docs/3.0.0/sapl-reference.html#json-data-types).
   The names defined in the documentation will be used here to indicate that a JSON Value is
   required: [Number], [String], [Boolean], [Null], [Object], [Array] (if [Value] is specified any can be used)
 * expressions enclosed in braces are grouped, and they symbol behind the closing brace is applied to the group

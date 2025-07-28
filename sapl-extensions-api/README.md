@@ -234,7 +234,7 @@ Example POM for a SAPL extension:
 	<name>A SAPL Extension</name>
 
 	<properties>
-		<java.version>11</java.version>
+		<java.version>17</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 	</properties>
@@ -244,11 +244,11 @@ Example POM for a SAPL extension:
 			<dependency>
 				<groupId>io.sapl</groupId>
 				<artifactId>sapl-bom</artifactId>
-				<version>2.1.0-SNAPSHOT</version>
+				<version>3.0.0</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-		</dependencies>			
+		</dependencies>
 	</dependencyManagement>
 
 	<dependencies>

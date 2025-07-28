@@ -11,7 +11,7 @@ has_toc: false
 
 # SAPL - Streaming Attribute Policy Language
 
-Dominic Heutelbeck Version 3.0.0-SNAPSHOT
+Dominic Heutelbeck Version 3.0.0
 
 ## Introduction
 

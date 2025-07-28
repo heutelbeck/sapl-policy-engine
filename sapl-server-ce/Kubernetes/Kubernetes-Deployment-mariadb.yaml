@@ -54,7 +54,7 @@ spec:
             claimName: sapl-server-ce-pv-claim
       containers:
         - name: sapl-server-ce
-          image: 'ghcr.io/heutelbeck/sapl-server-ce:3.0.0-SNAPSHOT'
+          image: 'ghcr.io/heutelbeck/sapl-server-ce:3.0.0'
           ports:
             - name: http
               containerPort: 8080

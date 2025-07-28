@@ -65,7 +65,7 @@ class TraccarPolicyInformationPointIT {
     @Container
     @SuppressWarnings("resource") // Common test pattern
     private static final GenericContainer<?> traccarContainer = new GenericContainer<>(
-            DockerImageName.parse("traccar/traccar:latest")).withExposedPorts(8082, 5055).withReuse(false)
+            DockerImageName.parse("traccar/traccar:6.7")).withExposedPorts(8082, 5055).withReuse(false)
             .waitingFor(Wait.forHttp("/").forPort(8082).forStatusCode(200).withStartupTimeout(Duration.ofMinutes(2L)));
 
     @SneakyThrows

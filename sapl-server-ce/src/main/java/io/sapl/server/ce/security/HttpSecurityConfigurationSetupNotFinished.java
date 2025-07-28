@@ -39,10 +39,6 @@ public class HttpSecurityConfigurationSetupNotFinished extends VaadinWebSecurity
         PathPatternRequestMatcher.Builder match = PathPatternRequestMatcher.withDefaults();
         http.authorizeHttpRequests(requests -> requests.requestMatchers(match.matcher("/images/*.png")).permitAll());
 
-        // Icons from the line-awesome addon
-        http.authorizeHttpRequests(
-                requests -> requests.requestMatchers(match.matcher("/line-awesome/**/*.svg")).permitAll());
-
         // Deny API
         http.authorizeHttpRequests(requests -> requests.requestMatchers(match.matcher("/api/**")).denyAll());
 

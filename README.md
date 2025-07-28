@@ -150,7 +150,7 @@ After doing so, the projects now has access to the SAPL snapshot builds which ca
   <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-{package}</artifactId>
-    <version>3.0.0-SNAPSHOT</version>
+    <version>3.0.0</version>
   </dependency>
 </dependencies>
 ```
@@ -163,12 +163,12 @@ builds, the matching snapshots repository must be added to the project configura
 ```gradle
 repositories {
   maven {
-    url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots")
+    url = uri("https://central.sonatype.com/repository/maven-snapshots")
   }
 }
 
 dependencies {
-  implementation 'io.sapl:sapl-{package}3.0.0-SNAPSHOT'
+  implementation 'io.sapl:{package}3.0.0'
 }
 ```
 
