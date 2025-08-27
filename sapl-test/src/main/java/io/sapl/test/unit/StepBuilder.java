@@ -25,7 +25,6 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
