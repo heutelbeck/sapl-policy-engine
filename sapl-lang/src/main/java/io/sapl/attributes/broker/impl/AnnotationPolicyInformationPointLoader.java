@@ -136,7 +136,7 @@ public class AnnotationPolicyInformationPointLoader {
      */
     public void loadPolicyInformationPoints(StaticPolicyInformationPointSupplier staticPipSupplier) {
         for (final var pip : staticPipSupplier.get()) {
-            loadPolicyInformationPoint(pip);
+            loadStaticPolicyInformationPoint(pip);
         }
     }
 
