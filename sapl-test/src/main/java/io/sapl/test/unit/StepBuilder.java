@@ -25,7 +25,6 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.grammar.sapl.SAPL;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
@@ -36,20 +35,22 @@ import io.sapl.test.steps.AttributeMockReturnValues;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.StepsDefaultImpl;
 import io.sapl.test.steps.WhenStep;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
 /**
  * Implementing a Step Builder Pattern to construct test cases.
- *
  */
+@UtilityClass
 class StepBuilder {
 
     /**
      * Create Builder starting at the Given-Step. Only for internal usage.
      *
-     * @param document containing the {@link SAPL} policy to evaluate
+     * @param document containing the {@link io.sapl.grammar.sapl.SAPL} policy to
+     * evaluate
      * @return {@link GivenStep} to start constructing the test case.
      */
     static GivenStep newBuilderAtGivenStep(Document document, AttributeStreamBroker attrCtx, FunctionContext funcCtx,
@@ -60,16 +61,13 @@ class StepBuilder {
     /**
      * Create Builder starting at the When-Step. Only for internal usage.
      *
-     * @param document containing the {@link SAPL} policy to evaluate
+     * @param document containing the {@link io.sapl.grammar.sapl.SAPL} policy to
+     * evaluate
      * @return {@link WhenStep} to start constructing the test case.
      */
     static WhenStep newBuilderAtWhenStep(Document document, AttributeStreamBroker attrCtx, FunctionContext funcCtx,
             Map<String, Val> variables) {
         return new Steps(document, attrCtx, funcCtx, variables);
-    }
-
-    // disable default constructor
-    private StepBuilder() {
     }
 
     /**
