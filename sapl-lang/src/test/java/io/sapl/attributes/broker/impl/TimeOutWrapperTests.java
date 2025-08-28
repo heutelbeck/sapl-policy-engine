@@ -19,6 +19,7 @@ package io.sapl.attributes.broker.impl;
 
 import java.time.Duration;
 
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
@@ -34,38 +35,35 @@ class TimeOutWrapperTests {
     void whenEmptyFluxThenEmpty() {
         final var source  = Flux.<Val>empty();
         final var wrapped = TimeOutWrapper.wrap(source, Duration.ofMillis(2500L), TIME_OUT, EMPTY);
-        StepVerifier.<Val>withVirtualTime(() -> wrapped).thenAwait(Duration.ofMillis(10L)).expectNext(EMPTY)
-                .verifyComplete();
+        StepVerifier.create(wrapped).thenAwait(Duration.ofMillis(100L)).expectNext(EMPTY).verifyComplete();
     }
 
     @Test
     void whenFirstElementsAfterTimeOutThenSendTimeOutAndThenTheRestOfTheFlux() {
-        var source  = Flux.just(Val.of(1), Val.of(2), Val.of(3)).delayElements(Duration.ofMillis(5L));
+        var source  = Flux.just(Val.of(1), Val.of(2), Val.of(3)).delayElements(Duration.ofMillis(20L));
         var wrapped = TimeOutWrapper.wrap(source, Duration.ofMillis(1L), TIME_OUT, EMPTY);
-        StepVerifier.<Val>withVirtualTime(() -> wrapped).expectNext(TIME_OUT, Val.of(1), Val.of(2), Val.of(3))
-                .verifyComplete();
+        StepVerifier.create(wrapped).expectNext(TIME_OUT, Val.of(1), Val.of(2), Val.of(3)).verifyComplete();
     }
 
     @Test
     void whenEmptyAfterTimeoutThenSendTimeOutAndEmpty() {
-        var source  = Flux.just(Val.of(1)).delayElements(Duration.ofMillis(5L)).filter(v -> false);
-        var wrapped = TimeOutWrapper.wrap(source, Duration.ofMillis(1L), TIME_OUT, EMPTY);
-        StepVerifier.<Val>withVirtualTime(() -> wrapped).expectNext(TIME_OUT, EMPTY).verifyComplete();
+        var source  = Flux.just(Val.of(1)).delayElements(Duration.ofMillis(300L)).filter(v -> false);
+        var wrapped = TimeOutWrapper.wrap(source, Duration.ofMillis(100L), TIME_OUT, EMPTY).log();
+        StepVerifier.create(wrapped).expectNext(TIME_OUT, EMPTY).verifyComplete();
     }
 
     @Test
     void whenElementAndClosedThenNoDelayTillWrappedClosed() {
         var source  = Flux.just(Val.of(0));
         var wrapped = TimeOutWrapper.wrap(source, Duration.ofMinutes(1L), TIME_OUT, EMPTY);
-        StepVerifier.<Val>withVirtualTime(() -> wrapped).expectNext(Val.of(0)).expectComplete()
-                .verify(Duration.ofMillis(10L));
+        StepVerifier.create(wrapped).expectNext(Val.of(0)).expectComplete().verify(Duration.ofMillis(20L));
     }
 
     @Test
     void whenErrorThenNoDelayTillWrappedClosed() {
         var source  = Flux.<Val>error(new IllegalStateException("testing"));
         var wrapped = TimeOutWrapper.wrap(source, Duration.ofMinutes(1L), TIME_OUT, EMPTY);
-        StepVerifier.<Val>withVirtualTime(() -> wrapped).expectError().verify(Duration.ofMillis(10L));
+        StepVerifier.create(wrapped).expectError().verify(Duration.ofMillis(20L));
     }
 
 }

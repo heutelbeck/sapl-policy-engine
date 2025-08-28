@@ -87,11 +87,18 @@ class TimeOutWrapper {
         final var   valuesSubscription  = new AtomicReference<Disposable>(null);
 
         final var timeout = Mono.just(Event.TIMEOUT).delayElement(timeOut).doOnNext(mergedSink::tryEmitNext);
-        final var values  = flux.defaultIfEmpty(emptyFluxValue).map(Event::new)
-                .doOnNext(v -> dispose(timeoutSubscription)).doOnNext(mergedSink::tryEmitNext)
-                .doOnError(mergedSink::tryEmitError).doOnError(e -> dispose(timeoutSubscription))
-                .doOnComplete(mergedSink::tryEmitComplete).doOnComplete(() -> dispose(timeoutSubscription))
-                .doOnTerminate(() -> dispose(timeoutSubscription)).onErrorComplete();
+        // @formatter:off
+        final var values  = flux.defaultIfEmpty(emptyFluxValue)
+                                .doOnNext(v -> dispose(timeoutSubscription))
+                                .doOnError(e -> dispose(timeoutSubscription))
+                                .doOnComplete(() -> dispose(timeoutSubscription))
+                                .doOnTerminate(() -> dispose(timeoutSubscription))
+                                .map(Event::new)
+                                .doOnNext(mergedSink::tryEmitNext)
+                                .doOnError(mergedSink::tryEmitError)
+                                .doOnComplete(mergedSink::tryEmitComplete)
+                                .onErrorComplete();
+        // @formatter:on
 
         // Do not use Flux.merge. If doing so, one cannot cancel the time out if the
         // original Flux ends before the time out happens. This way the disposable is
