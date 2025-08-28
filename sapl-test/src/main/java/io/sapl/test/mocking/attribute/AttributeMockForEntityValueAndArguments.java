@@ -126,7 +126,7 @@ public class AttributeMockForEntityValueAndArguments implements AttributeMock {
     }
 
     private void checkAttributeArgumentsCountEqualsNumberOfArgumentMatcher(Matcher<Val>[] argumentMatchers,
-            List<Val> latestPublishedEventsPerArgument) {
+            Collection<Val> latestPublishedEventsPerArgument) {
         if (latestPublishedEventsPerArgument.size() != argumentMatchers.length) {
             throw new SaplTestException(String.format(ERROR_INVALID_NUMBER_PARAMETERS, this.fullName,
                     argumentMatchers.length, latestPublishedEventsPerArgument.size()));

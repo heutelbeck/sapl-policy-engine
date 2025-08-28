@@ -46,8 +46,8 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
 import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.pip.http.HttpPolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.dsl.interfaces.IntegrationTestPolicyResolver;
 import io.sapl.test.dsl.interfaces.SaplTestInterpreter;

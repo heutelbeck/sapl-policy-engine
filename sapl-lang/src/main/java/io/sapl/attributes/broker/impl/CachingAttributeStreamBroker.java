@@ -78,7 +78,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      * was found for the invocation.
      */
     private AttributeStream newAttributeStream(final AttributeFinderInvocation invocation,
-            List<SpecificationAndFinder> pipsWithNameOfInvocation) {
+            Iterable<SpecificationAndFinder> pipsWithNameOfInvocation) {
         final var attributeStream             = new AttributeStream(invocation, this::removeAttributeStreamFromIndex,
                 DEFAULT_GRACE_PERIOD);
         final var uniquePipMatchingInvocation = searchForMatchingPip(invocation, pipsWithNameOfInvocation);

@@ -41,9 +41,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.pip.time.TimePolicyInformationPoint;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.SaplTestFixture;
 import io.sapl.test.dsl.ParserUtil;

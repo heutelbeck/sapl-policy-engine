@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
 import io.sapl.api.pip.PolicyInformationPointSupplier;
-import io.sapl.pip.time.TimePolicyInformationPoint;
+import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
 
 @AutoConfiguration
 public class PolicyInformationPointsAutoConfiguration {

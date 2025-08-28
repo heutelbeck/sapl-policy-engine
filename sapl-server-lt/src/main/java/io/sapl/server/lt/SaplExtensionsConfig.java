@@ -30,14 +30,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
+import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
+import io.sapl.attributes.pips.http.ReactiveWebClient;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.functions.sanitization.SanitizationFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
-import io.sapl.pip.http.HttpPolicyInformationPoint;
-import io.sapl.pip.http.ReactiveWebClient;
 
 @Configuration
 @EnableAutoConfiguration(exclude = { R2dbcAutoConfiguration.class })

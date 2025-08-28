@@ -23,9 +23,13 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.HashMap;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -53,101 +57,92 @@ class DefaultSAPLInterpreterPolicySetTests {
         functionCtx.loadLibrary(FilterFunctionLibrary.class);
     }
 
-    @Test
-    void setPermit() {
-        final var policySet = """
+    static Stream<Arguments> provideTestCasesForValidateSet() {
+        return Stream.of(Arguments.of("setPermit", """
                 set "tests"
                 deny-overrides
                 policy "testp" permit
-                """;
-        final var expected  = AuthorizationDecision.PERMIT;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void setDeny() {
-        final var policySet = """
+                """, AuthorizationDecision.PERMIT), Arguments.of("setDeny", """
                 set "tests"
                 deny-overrides
                 policy "testp" deny
-                """;
-        final var expected  = AuthorizationDecision.DENY;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void setNotApplicable() {
-        final var policySet = """
+                """, AuthorizationDecision.DENY), Arguments.of("setNotApplicable", """
                 set "tests"
                 deny-overrides
                 for true == false
                 policy "testp" deny
-                """;
-        final var expected  = AuthorizationDecision.NOT_APPLICABLE;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void noApplicablePolicies() {
-        final var policySet = """
+                """, AuthorizationDecision.NOT_APPLICABLE), Arguments.of("noApplicablePolicies", """
                 set "tests"
                 deny-overrides
                 for true
                 policy "testp" deny true == false
-                """;
-        final var expected  = AuthorizationDecision.NOT_APPLICABLE;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void setIndeterminate() {
-        final var policySet = """
+                """, AuthorizationDecision.NOT_APPLICABLE), Arguments.of("setIndeterminate", """
                 set "tests"
                 deny-overrides
                 for "a" > 4
                 policy "testp" permit
-                """;
-        final var expected  = AuthorizationDecision.INDETERMINATE;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void denyOverridesPermitAndDeny() {
-        final var policySet = """
+                """, AuthorizationDecision.INDETERMINATE), Arguments.of("denyOverridesPermitAndDeny", """
                 set "tests"
                 deny-overrides
                 policy "testp1" permit
                 policy "testp2" deny
-                """;
-        final var expected  = AuthorizationDecision.DENY;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void denyOverridesPermitAndNotApplicableAndDeny() {
-        final var policySet = """
+                """, AuthorizationDecision.DENY), Arguments.of("denyOverridesPermitAndNotApplicableAndDeny", """
                 set "tests"
                 deny-overrides
                 policy "testp1"
                 permit policy "testp2"
                 permit true == false
                 policy "testp3" deny
-                """;
-        final var expected  = AuthorizationDecision.DENY;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void denyOverridesPermitAndIndeterminateAndDeny() {
-        final var policySet = """
+                """, AuthorizationDecision.DENY), Arguments.of("denyOverridesPermitAndIndeterminateAndDeny", """
                 set "tests"
                 deny-overrides
                 policy "testp1" permit
                 policy "testp2" permit "a" < 5
                 policy "testp3" deny
-                """;
-        final var expected  = AuthorizationDecision.DENY;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
+                """, AuthorizationDecision.DENY), Arguments.of("importsDuplicatesByPolicySetIgnored", """
+                import filter.replace
+                import filter.replace
+                set "tests"
+                deny-overrides
+                policy "testp1" permit
+                where true;
+                """, AuthorizationDecision.PERMIT), Arguments.of("variablesOnSetLevel", """
+                set "tests" deny-overrides
+                var var1 = true;
+                policy "testp1" permit var1 == true
+                """, AuthorizationDecision.PERMIT), Arguments.of("variablesOnSetLevelError", """
+                set "tests" deny-overrides
+                var var1 = true / null;
+                policy "testp1" permit
+                """, AuthorizationDecision.INDETERMINATE), Arguments.of("variablesOverwriteInPolicy", """
+                set "tests" deny-overrides
+                var var1 = true;
+                policy "testp1" permit where var var1 = 10; var1 == 10;
+                policy "testp2" deny where !(var1 == true);
+                """, AuthorizationDecision.PERMIT), Arguments.of("subjectAsVariable", """
+                set "test" deny-overrides
+                var subject = null;
+                policy "test" permit
+                """, AuthorizationDecision.INDETERMINATE),
+                Arguments.of("variablesInPolicyMustNotLeakIntoNextPolicy", """
+                        set "test" deny-overrides
+                        var ps1 = true;
+
+                        policy "pol1" permit
+                        where
+                          var p1 = 10;
+                          p1 == 10;
+
+                        policy "pol2" deny
+                        where p1 == undefined;
+                        """, AuthorizationDecision.DENY));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideTestCasesForValidateSet")
+    void validateSet_ShouldReturnGivenDecision(String caseName, String policySet,
+            AuthorizationDecision expectedDecision) {
+        assertThatDocumentEvaluationReturnsExpected(policySet, expectedDecision);
     }
 
     @Test
@@ -164,83 +159,6 @@ class DefaultSAPLInterpreterPolicySetTests {
                         new HashMap<>()).log())
                 .assertNext(decision -> assertThat(decision.getResource(), is(optionalWithValue(jsonBoolean(false)))))
                 .verifyComplete();
-    }
-
-    @Test
-    void importsDuplicatesByPolicySetIgnored() {
-        final var policySet = """
-                import filter.replace
-                import filter.replace
-                set "tests"
-                deny-overrides
-                policy "testp1" permit
-                where true;
-                """;
-        final var expected  = AuthorizationDecision.PERMIT;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void variablesOnSetLevel() {
-        final var policySet = """
-                set "tests" deny-overrides
-                var var1 = true;
-                policy "testp1" permit var1 == true
-                """;
-        final var expected  = AuthorizationDecision.PERMIT;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void variablesOnSetLevelError() {
-        final var policySet = """
-                set "tests" deny-overrides
-                var var1 = true / null;
-                policy "testp1" permit
-                """;
-        final var expected  = AuthorizationDecision.INDETERMINATE;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void variablesOverwriteInPolicy() {
-        final var policySet = """
-                set "tests" deny-overrides
-                var var1 = true;
-                policy "testp1" permit where var var1 = 10; var1 == 10;
-                policy "testp2" deny where !(var1 == true);
-                """;
-        final var expected  = AuthorizationDecision.PERMIT;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void subjectAsVariable() {
-        final var policySet = """
-                set "test" deny-overrides
-                var subject = null;
-                policy "test" permit
-                """;
-        final var expected  = AuthorizationDecision.INDETERMINATE;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
-    }
-
-    @Test
-    void variablesInPolicyMustNotLeakIntoNextPolicy() {
-        final var policySet = """
-                set "test" deny-overrides
-                var ps1 = true;
-
-                policy "pol1" permit
-                where
-                  var p1 = 10;
-                  p1 == 10;
-
-                policy "pol2" deny
-                where p1 == undefined;
-                """;
-        final var expected  = AuthorizationDecision.DENY;
-        assertThatDocumentEvaluationReturnsExpected(policySet, expected);
     }
 
     private void assertThatDocumentEvaluationReturnsExpected(String document, AuthorizationDecision expected) {

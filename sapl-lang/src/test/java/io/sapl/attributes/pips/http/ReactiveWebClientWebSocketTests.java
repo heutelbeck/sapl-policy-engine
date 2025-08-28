@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pip.http;
+package io.sapl.attributes.pips.http;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -39,7 +39,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.Val;
-import io.sapl.pip.http.ReactiveWebClientWebSocketTests.WebSocketConfig;
+import io.sapl.attributes.pips.http.ReactiveWebClientWebSocketTests.WebSocketConfig;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
