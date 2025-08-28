@@ -42,8 +42,8 @@ public class AttributeFactory {
     private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR = "Attribute resolution error. Attributes not allowed in target.";
     private static final String UNDEFINED_VALUE_ERROR              = "Undefined value handed over as left-hand parameter to policy information point";
 
-    public static AttributeFinderInvocation attributeFinderInvocationFor(ContextView ctx, EObject source,
-            String attributeNameReference, Val entity, List<Val> arguments) {
+    public static AttributeFinderInvocation attributeFinderInvocationFor(ContextView ctx, String attributeNameReference,
+            Val entity, List<Val> arguments) {
         // TODO: Introduce meaningful default values to context and make them
         // configurable
         var pdpConfigurationId = "none";
@@ -63,7 +63,7 @@ public class AttributeFactory {
                 initialTimeOut, pollIntervall, backoff, retries, fresh);
     }
 
-    public static AttributeFinderInvocation environmentAttributeFinderInvocationFor(ContextView ctx, EObject source,
+    public static AttributeFinderInvocation environmentAttributeFinderInvocationFor(ContextView ctx,
             String attributeNameReference, List<Val> arguments) {
         // TODO: Introduce meaningful default values to context and make them
         // configurable
@@ -91,10 +91,10 @@ public class AttributeFactory {
             if (null != arguments && !arguments.getArgs().isEmpty()) {
                 final var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments).map(List::of);
                 return argumentFluxes.switchMap(argumentsList -> attributeStreamBroker.attributeStream(
-                        environmentAttributeFinderInvocationFor(ctx, source, resolvedAttributeName, argumentsList)));
+                        environmentAttributeFinderInvocationFor(ctx, resolvedAttributeName, argumentsList)));
             } else {
                 return attributeStreamBroker.attributeStream(
-                        environmentAttributeFinderInvocationFor(ctx, source, resolvedAttributeName, List.of()));
+                        environmentAttributeFinderInvocationFor(ctx, resolvedAttributeName, List.of()));
             }
         });
     }
@@ -120,10 +120,9 @@ public class AttributeFactory {
             if (null != arguments && !arguments.getArgs().isEmpty()) {
                 final var argumentFluxes = FunctionUtil.combineArgumentFluxes(arguments).map(List::of);
                 return argumentFluxes.switchMap(argumentsList -> attributeStreamBroker.attributeStream(
-                        attributeFinderInvocationFor(ctx, source, resolvedAttributeName, entity, argumentsList)));
+                        attributeFinderInvocationFor(ctx, resolvedAttributeName, entity, argumentsList)));
             } else {
-                final var invocation = attributeFinderInvocationFor(ctx, source, resolvedAttributeName, entity,
-                        List.of());
+                final var invocation = attributeFinderInvocationFor(ctx, resolvedAttributeName, entity, List.of());
                 return attributeStreamBroker.attributeStream(invocation);
             }
         });
