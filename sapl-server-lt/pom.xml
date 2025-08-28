@@ -131,7 +131,7 @@
 			<!-- required for Argon2 -->
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk15on</artifactId>
-			<version>1.70</version>
+			<version>1.81</version>
 		</dependency>
 		<dependency>
 			<groupId>com.giffing.bucket4j.spring.boot.starter</groupId>
