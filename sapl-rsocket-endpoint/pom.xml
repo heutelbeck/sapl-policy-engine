@@ -34,6 +34,10 @@
 	<name>SAPL RSocket PDP Endpoint</name>
 	<description>SAPL RSocket Endpoint module.</description>
 
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

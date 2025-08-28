@@ -32,7 +32,11 @@
 	<artifactId>sapl-spring-data-mongo-reactive</artifactId>
 	<name>SAPL Spring Data Mongo Reactive</name>
 	<packaging>jar</packaging>
-
+	
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<!-- Spring boot -->
 		<dependency>

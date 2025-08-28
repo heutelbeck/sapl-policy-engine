@@ -32,6 +32,10 @@
     <name>SAPL Test JUnit</name>
     <description>Provides an Adapter to run DSL defined tests with JUnit</description>
 
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
     <dependencies>
         <dependency>
             <groupId>io.sapl</groupId>

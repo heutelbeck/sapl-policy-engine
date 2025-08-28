@@ -34,6 +34,10 @@
 
     <description>SAPL and JSON Editor Components for Vaadin</description>
 
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
     <dependencies>
         <dependency>
             <groupId>com.vaadin</groupId>

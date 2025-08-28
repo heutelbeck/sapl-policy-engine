@@ -33,6 +33,10 @@
 	<packaging>jar</packaging>
 
 	<name>SAPL Spring Embedded PDP</name>
+	
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
 
 	<dependencies>
 		<!-- Spring Auto Configuration -->

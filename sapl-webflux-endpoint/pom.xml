@@ -33,7 +33,11 @@
 	<packaging>jar</packaging>
 
 	<name>SAPL Webflux PDP Endpoint</name>
-
+	
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework</groupId>

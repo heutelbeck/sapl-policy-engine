@@ -29,6 +29,11 @@
 	<name>SAPL Test Language</name>
 	<artifactId>sapl-test-lang</artifactId>
 	<packaging>jar</packaging>
+	
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>

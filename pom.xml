@@ -114,6 +114,9 @@
 
 		<!-- Base argLine for JDK21+ profiles -->
 		<argLine />
+		
+		<!-- Path to project/module with the license file -->
+		<main.basedir>${project.basedir}</main.basedir>
 	</properties>
 
 	<modules>
@@ -512,7 +515,7 @@
 					<licenseSets>
 						<licenseSet>
 							<header>
-								${maven.multiModuleProjectDirectory}/APACHE-2.txt</header>
+								${main.basedir}/APACHE-2.txt</header>
 							<excludes>
 								<exclude>**/*.xtendbin</exclude>
 								<exclude>**/*._trace</exclude>

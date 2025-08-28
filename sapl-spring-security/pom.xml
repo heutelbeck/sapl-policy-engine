@@ -34,6 +34,10 @@
 
 	<name>SAPL Spring Security Integration</name>
 
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>

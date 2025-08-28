@@ -35,6 +35,10 @@
 
 	<name>SAPL MQTT Wildcard Matching Functions</name>
 
+	<properties>
+		<main.basedir>${project.basedir}/../../</main.basedir>
+	</properties>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>

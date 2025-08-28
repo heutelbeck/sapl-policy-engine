@@ -33,6 +33,10 @@
 	<artifactId>jwt</artifactId>
 	<name>SAPL JWT Policy Information Point and functions</name>
 	
+	<properties>
+		<main.basedir>${project.basedir}/../../</main.basedir>
+	</properties>
+
 	<dependencies>
 		<!-- SAPL APIs -->
 		<dependency>

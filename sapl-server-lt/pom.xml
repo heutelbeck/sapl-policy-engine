@@ -42,8 +42,9 @@
 
 	<properties>
 		<maven.javadoc.skip>true</maven.javadoc.skip>
+		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
-
+	
 	<dependencyManagement>
 		<dependencies>
 			<dependency>

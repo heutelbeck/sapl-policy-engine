@@ -32,7 +32,11 @@
 	<description>Hamcrest matchers for writing tests.</description>
 
 	<packaging>jar</packaging>
-
+	
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>

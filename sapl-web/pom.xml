@@ -31,7 +31,11 @@
 	<name>SAPL Web integration</name>
 	<artifactId>sapl-web</artifactId>
 	<packaging>jar</packaging>
-
+	
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>

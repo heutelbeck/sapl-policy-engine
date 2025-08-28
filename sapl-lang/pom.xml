@@ -30,6 +30,11 @@
 	<name>SAPL Language</name>
 	<artifactId>sapl-lang</artifactId>
 	<packaging>jar</packaging>
+	
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<!-- SAPL APIs implemented or used by the SAPL language core -->
 		<dependency>

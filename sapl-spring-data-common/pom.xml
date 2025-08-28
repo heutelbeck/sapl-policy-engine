@@ -32,7 +32,11 @@
 	<artifactId>sapl-spring-data-common</artifactId>
 	<name>Sapl Spring Data Common</name>
 	<packaging>jar</packaging>
-
+	
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<!-- MongoDB -->
 		<dependency>
