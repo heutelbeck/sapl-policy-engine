@@ -103,7 +103,7 @@
 		<!-- Maven Plug-Ins -->
 		<tycho.version>4.0.10</tycho.version>
 		<sb-contrib.version>7.6.8</sb-contrib.version>
-		<spdx-maven-plugin.version>0.7.4</spdx-maven-plugin.version>
+		<spdx-maven-plugin.version>1.0.3</spdx-maven-plugin.version>
 		<license-maven-plugin.version>4.6</license-maven-plugin.version>
 		<sonar-maven-plugin.version>5.0.0.4389</sonar-maven-plugin.version>
 		<maven-failsafe-plugin.version>3.5.2</maven-failsafe-plugin.version>
@@ -420,6 +420,30 @@
 					<groupId>org.spdx</groupId>
 					<artifactId>spdx-maven-plugin</artifactId>
 					<version>${spdx-maven-plugin.version}</version>
+			        <configuration>
+				        <includeProvidedScope>false</includeProvidedScope>
+				        <includeTestScope>false</includeTestScope>
+				        <licenseOverwrites>
+	          				<licenseOverwrite>
+            						<target>declared</target>
+            						<groupId>jakarta.transaction</groupId>
+            						<artifactId>jakarta.transaction-api</artifactId>
+            						<licenseString>GPL-2.0-only WITH Classpath-exception-2.0</licenseString>
+          					</licenseOverwrite>
+        		  				<licenseOverwrite>
+	    		        				<target>declared</target>
+    		    		    				<groupId>jakarta.annotation</groupId>
+	    		        				<artifactId>jakarta.annotation-api</artifactId>
+            						<licenseString>GPL-2.0-only WITH Classpath-exception-2.0</licenseString>
+          					</licenseOverwrite>
+        		  				<licenseOverwrite>
+	    		        				<target>declared</target>
+    		    		    				<groupId>jakarta.servlet</groupId>
+	    		        				<artifactId>jakarta.servlet-api</artifactId>
+            						<licenseString>GPL-2.0-only WITH Classpath-exception-2.0</licenseString>
+          					</licenseOverwrite>          					
+			      		</licenseOverwrites>
+      				</configuration>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
