@@ -52,12 +52,10 @@ import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.testutil.ParserUtil;
 import io.sapl.validation.ValidatorFactory;
 import jakarta.validation.constraints.NotNull;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
-@Slf4j
 class LegacyAnnotationPolicyInformationPointLoaderTests {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -947,13 +945,11 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var expectedEnvironmentTemplates = new String[] { "<test.a(a1,a2)>", "<test.a(varArgsParams...)>",
                 "<test.a2(a1,a2)>", "<test.a2>" };
         final var actualEnvironmentTemplates   = sut.getEnvironmentAttributeCodeTemplates();
-        log.error("-->\n{}", actualEnvironmentTemplates);
         assertThat(actualEnvironmentTemplates, containsInAnyOrder(expectedEnvironmentTemplates));
 
         final var expectedNonEnvironmentTemplates = new String[] { "<test.x2(a1,a2)>", "<test.x(varArgsParams...)>",
                 "<test.x(a1,a2)>" };
         final var actualNonEnvironmentTemplates   = sut.getAttributeCodeTemplates();
-        log.error("+->\n{}", actualNonEnvironmentTemplates);
 
         assertThat(actualNonEnvironmentTemplates, containsInAnyOrder(expectedNonEnvironmentTemplates));
 
@@ -997,15 +993,12 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
 
     @Test
     void addsDocumentedAttributeCodeTemplates() throws AttributeBrokerException {
+        final String documentation = "docs";
 
-        final String pipName        = "test";
-        final String pipDescription = "description";
-        final String docs           = "docs";
-
-        @PolicyInformationPoint(name = pipName, description = pipDescription)
+        @PolicyInformationPoint(name = "test", description = "description")
         class PIP {
 
-            @EnvironmentAttribute(docs = docs)
+            @EnvironmentAttribute(docs = documentation)
             public Flux<Val> empty() {
                 return Flux.empty();
             }
@@ -1014,7 +1007,7 @@ class LegacyAnnotationPolicyInformationPointLoaderTests {
         final var pip             = new PIP();
         final var docsProvider    = docsProviderWithPip(pip);
         final var actualTemplates = docsProvider.getDocumentedAttributeCodeTemplates();
-        assertThat(actualTemplates, hasEntry("<test.empty>", docs));
+        assertThat(actualTemplates, hasEntry("<test.empty>", documentation));
     }
 
     @Test
