@@ -406,13 +406,6 @@ public final class Val implements Traced, Serializable {
     }
 
     /**
-     * @return true, iff value is a Float number.
-     */
-    public boolean isFloat() {
-        return isDefined() && value.isFloat();
-    }
-
-    /**
      * @return true, iff value represents a non-integral numeric JSON value
      */
     public boolean isFloatingPointNumber() {
@@ -710,7 +703,7 @@ public final class Val implements Traced, Serializable {
             return "SECRET";
         }
         if (isError()) {
-            return ERROR_LITERAL + '[' + error.message() + "] Trace: " + getTrace();
+            return ERROR_LITERAL + '[' + error.message() + ']';
         }
         return null != value ? value.toString() : UNDEFINED_LITERAL;
     }
