@@ -269,11 +269,22 @@ public class AnnotationPolicyInformationPointLoader {
                 }
             } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
                     | ValidationException e) {
-                final var cause = e.getCause();
+                final var cause          = e.getCause();
+                final var traceArguments = new HashMap<String, Val>();
+                traceArguments.put("attributeName", Val.of(invocation.attributeName()));
+                if (!specification.isEnvironmentAttribute()) {
+                    traceArguments.put("entity", invocation.entity());
+                }
+                final var callArguments = Val.JSON.arrayNode();
+                for (var argument : invocation.arguments()) {
+                    callArguments.add(argument.getJsonNode());
+                }
+                traceArguments.put("arguments", Val.of(callArguments));
                 if (cause == null) {
-                    return Flux.just(Val.error(e.getMessage()));
+                    return Flux.just(Val.error(e.getMessage()).withTrace(AttributeFinder.class, true, traceArguments));
                 } else {
-                    return Flux.just(Val.error(cause.getMessage()));
+                    return Flux
+                            .just(Val.error(cause.getMessage()).withTrace(AttributeFinder.class, true, traceArguments));
                 }
             }
         };

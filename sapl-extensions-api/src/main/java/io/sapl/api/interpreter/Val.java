@@ -423,14 +423,14 @@ public final class Val implements Traced, Serializable {
      * @return true, iff value is a Integer number.
      */
     public boolean isInt() {
-        return isDefined() && value.isInt();
+        return isDefined() && value.canConvertToInt();
     }
 
     /**
      * @return true, iff value is a Long number.
      */
     public boolean isLong() {
-        return isDefined() && value.isLong();
+        return isDefined() && value.canConvertToLong();
     }
 
     /**
@@ -710,7 +710,7 @@ public final class Val implements Traced, Serializable {
             return "SECRET";
         }
         if (isError()) {
-            return ERROR_LITERAL + '[' + error.message() + ']';
+            return ERROR_LITERAL + '[' + error.message() + "] Trace: " + getTrace();
         }
         return null != value ? value.toString() : UNDEFINED_LITERAL;
     }

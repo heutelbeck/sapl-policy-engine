@@ -19,7 +19,6 @@ package io.sapl.attributes.broker.impl;
 
 import java.time.Duration;
 
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.interpreter.Val;
@@ -48,7 +47,7 @@ class TimeOutWrapperTests {
     @Test
     void whenEmptyAfterTimeoutThenSendTimeOutAndEmpty() {
         var source  = Flux.just(Val.of(1)).delayElements(Duration.ofMillis(300L)).filter(v -> false);
-        var wrapped = TimeOutWrapper.wrap(source, Duration.ofMillis(100L), TIME_OUT, EMPTY).log();
+        var wrapped = TimeOutWrapper.wrap(source, Duration.ofMillis(100L), TIME_OUT, EMPTY);
         StepVerifier.create(wrapped).expectNext(TIME_OUT, EMPTY).verifyComplete();
     }
 

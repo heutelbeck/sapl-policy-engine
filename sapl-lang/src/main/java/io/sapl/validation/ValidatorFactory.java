@@ -126,14 +126,13 @@ public class ValidatorFactory {
                 validator = validator.or(newValidator);
             }
         }
-
         return validator;
     }
 
     private static Validator validate(Predicate<Val> validationPredicate, String errorMessage) {
         return v -> {
             if (!validationPredicate.test(v))
-                throw new IllegalArgumentException(String.format(errorMessage, v));
+                throw new ValidationException(String.format(errorMessage, v));
         };
     }
 

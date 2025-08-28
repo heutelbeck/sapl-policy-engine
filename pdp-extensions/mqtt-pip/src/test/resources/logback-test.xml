@@ -9,6 +9,7 @@
   
     <logger name="com.hivemq" level="OFF" />
     <logger name="reactor.core" level="OFF" />
+    <logger name="io.sapl" level="OFF" />
 
     <root level="OFF">
         <appender-ref ref="CONSOLE"/>

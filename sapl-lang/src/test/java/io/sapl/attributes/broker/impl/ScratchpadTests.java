@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -73,8 +75,8 @@ class ScratchpadTests {
 
     }
 
-//    @Test
-//    @Timeout(60)
+    @Test
+    @Timeout(60)
     void foo() throws InterruptedException {
         var broker = new CachingAttributeStreamBroker();
 
