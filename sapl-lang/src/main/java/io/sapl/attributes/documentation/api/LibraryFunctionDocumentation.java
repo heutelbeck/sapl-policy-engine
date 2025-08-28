@@ -18,12 +18,12 @@
 package io.sapl.attributes.documentation.api;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Function;
 
 import lombok.NonNull;
 
@@ -31,7 +31,7 @@ public record LibraryFunctionDocumentation(@NonNull String namespace, @NonNull S
         @NonNull FunctionType type, @NonNull String documentationMarkdown, ParameterDocumentation entityDocumentation,
         @NonNull List<ParameterDocumentation> parameterDocumentations, JsonNode returnTypeSchema) {
 
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public LibraryFunctionDocumentation {
         if (type == FunctionType.FUNCTION && entityDocumentation != null) {
@@ -74,9 +74,8 @@ public record LibraryFunctionDocumentation(@NonNull String namespace, @NonNull S
         sb.append(namingStrategy.apply(this));
         if (!parameterDocumentations.isEmpty()) {
             sb.append('(');
-            sb.append(parameterDocumentations.stream().map(parameterDocumentationStrategy).map(s -> {
-                return s;
-            }).collect(Collectors.joining(",")));
+            sb.append(parameterDocumentations.stream().map(parameterDocumentationStrategy)
+                    .collect(Collectors.joining(",")));
             sb.append(')');
         }
         if (type != FunctionType.FUNCTION) {

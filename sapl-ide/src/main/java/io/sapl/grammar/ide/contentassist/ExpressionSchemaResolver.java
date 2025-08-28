@@ -69,14 +69,12 @@ public class ExpressionSchemaResolver {
         } else if (expression instanceof final BasicEnvironmentAttribute basicEnvironmentAttribute) {
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(
-                    basicEnvironmentAttribute.getIdentifier().getNameFragments(), context, pdpConfiguration,
-                    docsProvider);
+                    basicEnvironmentAttribute.getIdentifier().getNameFragments(), context, docsProvider);
             steps       = basicEnvironmentAttribute.getSteps();
         } else if (expression instanceof final BasicEnvironmentHeadAttribute basicEnvironmentHeadAttribute) {
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(
-                    basicEnvironmentHeadAttribute.getIdentifier().getNameFragments(), context, pdpConfiguration,
-                    docsProvider);
+                    basicEnvironmentHeadAttribute.getIdentifier().getNameFragments(), context, docsProvider);
             steps       = basicEnvironmentHeadAttribute.getSteps();
         } else if (expression instanceof final BasicIdentifier basicIdentifier) {
             // an identifier may be an authorization subscription element with schema, or
@@ -124,11 +122,10 @@ public class ExpressionSchemaResolver {
 
         if (head instanceof final AttributeFinderStep attributeFinderStep) {
             newSchemas = inferPotentialSchemasFromAttributeFinder(
-                    attributeFinderStep.getIdentifier().getNameFragments(), context, pdpConfiguration, docsProvider);
+                    attributeFinderStep.getIdentifier().getNameFragments(), context, docsProvider);
         } else if (head instanceof final HeadAttributeFinderStep headAttributeFinderStep) {
             newSchemas = inferPotentialSchemasFromAttributeFinder(
-                    headAttributeFinderStep.getIdentifier().getNameFragments(), context, pdpConfiguration,
-                    docsProvider);
+                    headAttributeFinderStep.getIdentifier().getNameFragments(), context, docsProvider);
         }
 
         return inferPotentialSchemasStepsAfterExpression(newSchemas, tail(steps), context, pdpConfiguration,
@@ -143,8 +140,7 @@ public class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> inferPotentialSchemasFromAttributeFinder(Iterable<String> idSteps,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration,
-            PolicyInformationPointDocumentationProvider docsProvider) {
+            ContentAssistContext context, PolicyInformationPointDocumentationProvider docsProvider) {
         final var nameInUse    = joinStepsToName(idSteps);
         final var resolvedName = resolveImport(nameInUse, context);
         return lookupSchemasByName(resolvedName, docsProvider.getAttributeSchemas());

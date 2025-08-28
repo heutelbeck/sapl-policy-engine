@@ -98,7 +98,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
      * @return a PIP whose specification is matching the invocation, or null.
      */
     private AttributeFinder searchForMatchingPip(AttributeFinderInvocation invocation,
-            List<SpecificationAndFinder> pipsWithNameOfInvocation) {
+            Iterable<SpecificationAndFinder> pipsWithNameOfInvocation) {
         if (null == pipsWithNameOfInvocation) {
             return null;
         }
@@ -193,7 +193,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         }
     }
 
-    private boolean doesExactlyMatchingPipExtist(List<SpecificationAndFinder> pipsForName,
+    private boolean doesExactlyMatchingPipExtist(Iterable<SpecificationAndFinder> pipsForName,
             final AttributeFinderInvocation invocation) {
         for (var pip : pipsForName) {
             final var existingPipMatch = pip.specification().matches(invocation);
@@ -204,7 +204,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         return false;
     }
 
-    private void connectStreamsToPip(AttributeFinder policyInformationPoint, final List<AttributeStream> streams) {
+    private void connectStreamsToPip(AttributeFinder policyInformationPoint, final Iterable<AttributeStream> streams) {
         for (var attributeStream : streams) {
             attributeStream.connectToPolicyInformationPoint(policyInformationPoint);
         }
@@ -274,7 +274,7 @@ public class CachingAttributeStreamBroker implements AttributeStreamBroker {
         }
     }
 
-    private void disconnectStreams(final List<AttributeStream> streams) {
+    private void disconnectStreams(final Iterable<AttributeStream> streams) {
         for (var attributeStream : streams) {
             attributeStream.disconnectFromPolicyInformationPoint();
         }

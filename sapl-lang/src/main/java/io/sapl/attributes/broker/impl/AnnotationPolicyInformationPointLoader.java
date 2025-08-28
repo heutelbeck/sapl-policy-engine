@@ -134,7 +134,7 @@ public class AnnotationPolicyInformationPointLoader {
      * @param staticPipSupplier supplies libraries contained in utility classes with
      * static methods as functions
      */
-    public void loadPolicyInformationPoints(StaticPolicyInformationPointSupplier staticPipSupplier) {
+    public final void loadPolicyInformationPoints(StaticPolicyInformationPointSupplier staticPipSupplier) {
         for (final var pip : staticPipSupplier.get()) {
             loadStaticPolicyInformationPoint(pip);
         }
@@ -145,7 +145,7 @@ public class AnnotationPolicyInformationPointLoader {
      *
      * @param pipSupplier supplies instantiated libraries.
      */
-    public void loadPolicyInformationPoints(PolicyInformationPointSupplier pipSupplier) {
+    public final void loadPolicyInformationPoints(PolicyInformationPointSupplier pipSupplier) {
         for (final var pip : pipSupplier.get()) {
             loadPolicyInformationPoint(pip);
         }
@@ -154,7 +154,7 @@ public class AnnotationPolicyInformationPointLoader {
     /**
      * @param policyInformationPoint an instance of a Policy Information Point.
      */
-    public void loadPolicyInformationPoint(Object policyInformationPoint) {
+    public final void loadPolicyInformationPoint(Object policyInformationPoint) {
         loadPolicyInformationPoint(policyInformationPoint, policyInformationPoint.getClass());
     }
 
@@ -162,11 +162,11 @@ public class AnnotationPolicyInformationPointLoader {
      * @param policyInformationPointClass the Class of a Policy information Point
      * supplying static method Attribute finder methods only.
      */
-    public void loadStaticPolicyInformationPoint(Class<?> policyInformationPointClass) {
+    public final void loadStaticPolicyInformationPoint(Class<?> policyInformationPointClass) {
         loadPolicyInformationPoint(null, policyInformationPointClass);
     }
 
-    private void loadPolicyInformationPoint(Object policyInformationPoint, Class<?> pipClass) {
+    private final void loadPolicyInformationPoint(Object policyInformationPoint, Class<?> pipClass) {
         final var impAndDoc = createImplementation(policyInformationPoint, pipClass);
         broker.loadPolicyInformationPoint(impAndDoc.implementation());
         documentationProvider.loadPolicyInformationPoint(impAndDoc.documentation());

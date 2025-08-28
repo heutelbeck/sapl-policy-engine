@@ -148,14 +148,13 @@ public class InMemoryAttributeRepository implements AttributeRepository {
         }
     }
 
-    private void unsubscribeFromAttribute(String fullyQualifiedName) {
+    void unsubscribeFromAttribute(String fullyQualifiedName) {
         subscriptions.remove(fullyQualifiedName);
     }
 
     @Override
     public Flux<Val> subscribeToAttribute() {
-        // TODO Auto-generated method stub
-        return null;
+        return Flux.empty();
     }
 
 }

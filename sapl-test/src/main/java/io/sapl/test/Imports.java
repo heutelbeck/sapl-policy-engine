@@ -82,11 +82,6 @@ public class Imports {
             public void describeTo(Description description) {
                 description.appendText("a nullpointer Val");
             }
-
-            @Override
-            public void describeMismatch(Object item, Description mismatchDescription) {
-                mismatchDescription.appendText("was ").appendValue(item);
-            }
         };
     }
 

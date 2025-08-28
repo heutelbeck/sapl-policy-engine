@@ -27,7 +27,7 @@ import lombok.NonNull;
 
 public record ParameterDocumentation(@NonNull String name, @NonNull List<TypeOption> allowedTypes, boolean isVarArgs) {
 
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public String parameterDescription() {
         final var sb = new StringBuilder();
@@ -47,7 +47,7 @@ public record ParameterDocumentation(@NonNull String name, @NonNull List<TypeOpt
         } else {
             sb.append(allowedTypes.stream().map(TypeOption::type).collect(Collectors.joining("|")));
         }
-        sb.append("]");
+        sb.append(']');
         return sb.toString();
     }
 
@@ -55,7 +55,7 @@ public record ParameterDocumentation(@NonNull String name, @NonNull List<TypeOpt
         final var sb = new StringBuilder();
         sb.append("Name: ");
         sb.append(typedParameterDescription());
-        sb.append("\n");
+        sb.append('\n');
         sb.append(allowedSchemaMarkdown());
         return sb.toString();
     }
