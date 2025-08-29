@@ -114,17 +114,17 @@ public final class AnnotationFunctionContext implements FunctionContext {
     }
 
     @Override
-    public Val evaluate(EObject location, String function, Val... parameters) {
+    public Val evaluate(EObject location, String functionReference, Val... parameters) {
         final var functionTrace = new ExpressionArgument[parameters.length + 1];
-        functionTrace[0] = new ExpressionArgument("functionName", Val.of(function));
+        functionTrace[0] = new ExpressionArgument("functionName", Val.of(functionReference));
         for (var parameter = 0; parameter < parameters.length; parameter++) {
             functionTrace[parameter + 1] = new ExpressionArgument("parameter[" + parameter + "]",
                     parameters[parameter]);
         }
-        final var metadata = functions.get(function);
+        final var metadata = functions.get(functionReference);
         if (metadata == null)
-            return ErrorFactory.error(location, UNKNOWN_FUNCTION_ERROR, function).withTrace(FunctionContext.class,
-                    false, functionTrace);
+            return ErrorFactory.error(location, UNKNOWN_FUNCTION_ERROR, functionReference)
+                    .withTrace(FunctionContext.class, false, functionTrace);
 
         final var funParams = metadata.getFunction().getParameters();
 

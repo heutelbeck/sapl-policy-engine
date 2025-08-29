@@ -25,7 +25,6 @@ import java.util.Map;
 import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.PolicySet;
-import io.sapl.grammar.sapl.impl.util.ImportsUtil;
 import io.sapl.interpreter.CombinedDecision;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.PolicySetDecision;
@@ -47,15 +46,9 @@ public class PolicySetImplCustom extends PolicySetImpl {
         if (!policyNamesAreUnique()) {
             return Flux.just(PolicySetDecision.error(getSaplName(), NAMES_NOT_UNIQUE_ERROR));
         }
-        final var combinedDecisions = evaluateValueDefinitionsAndPolicies(0)
-                .contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(this, ctx));
+        final var combinedDecisions = evaluateValueDefinitionsAndPolicies(0);
         return combinedDecisions
-                .map(combined -> (DocumentEvaluationResult) PolicySetDecision.of(combined, getSaplName()))
-                .onErrorResume(this::importFailure);
-    }
-
-    private Flux<DocumentEvaluationResult> importFailure(Throwable error) {
-        return Flux.just(importError(error.getMessage()));
+                .map(combined -> (DocumentEvaluationResult) PolicySetDecision.of(combined, getSaplName()));
     }
 
     /**
@@ -92,10 +85,17 @@ public class PolicySetImplCustom extends PolicySetImpl {
 
         final var valueDefinition           = valueDefinitions.get(valueDefinitionId);
         final var evaluatedValueDefinitions = valueDefinition.getEval().evaluate();
-        return evaluatedValueDefinitions.switchMap(value -> evaluateValueDefinitionsAndPolicies(valueDefinitionId + 1)
-                .contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(),
-                        value.withTrace(PolicySet.class, true, Map.of(Trace.POLICY_SET, Val.of(saplName),
-                                Trace.VARIABLE_NAME, Val.of(valueDefinition.getName()), Trace.VALUE, value)))));
+        return evaluatedValueDefinitions.switchMap(value -> {
+            if (value.isError()) {
+                return Flux.just(CombinedDecision.error(value.getError().message()));
+            } else {
+                return evaluateValueDefinitionsAndPolicies(valueDefinitionId + 1)
+                        .contextWrite(ctx -> AuthorizationContext.setVariable(ctx, valueDefinition.getName(),
+                                value.withTrace(PolicySet.class, true, Map.of(Trace.POLICY_SET, Val.of(saplName),
+                                        Trace.VARIABLE_NAME, Val.of(valueDefinition.getName()), Trace.VALUE, value))));
+            }
+        });
+
     }
 
 }

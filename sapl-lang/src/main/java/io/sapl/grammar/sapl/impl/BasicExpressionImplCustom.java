@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.function.Function;
 
 import org.eclipse.emf.common.util.EList;
-import org.reactivestreams.Publisher;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.BasicExpression;
@@ -47,11 +46,11 @@ import reactor.core.publisher.Flux;
  */
 public class BasicExpressionImplCustom extends BasicExpressionImpl {
 
-    protected Function<Val, Publisher<Val>> resolveStepsFiltersAndSubTemplates(EList<Step> steps) {
+    protected Function<Val, Flux<Val>> resolveStepsFiltersAndSubTemplates(EList<Step> steps) {
         return resolveSteps(steps, 0);
     }
 
-    private Function<Val, Publisher<Val>> resolveSteps(EList<Step> steps, int stepId) {
+    private Function<Val, Flux<Val>> resolveSteps(EList<Step> steps, int stepId) {
         if (steps == null || stepId == steps.size()) {
             return this::resolveFilterOrSubTemplate;
         }

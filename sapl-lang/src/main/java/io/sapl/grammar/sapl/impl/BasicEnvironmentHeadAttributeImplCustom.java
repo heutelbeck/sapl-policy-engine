@@ -17,15 +17,8 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import java.util.Map;
-
-import io.sapl.api.interpreter.Trace;
 import io.sapl.api.interpreter.Val;
-import io.sapl.grammar.sapl.AttributeFinderStep;
-import io.sapl.grammar.sapl.impl.util.ErrorFactory;
-import io.sapl.grammar.sapl.impl.util.FunctionUtil;
-import io.sapl.grammar.sapl.impl.util.TargetExpressionUtil;
-import io.sapl.interpreter.context.AuthorizationContext;
+import io.sapl.grammar.sapl.impl.util.AttributeFactory;
 import reactor.core.publisher.Flux;
 
 /**
@@ -33,22 +26,9 @@ import reactor.core.publisher.Flux;
  */
 public class BasicEnvironmentHeadAttributeImplCustom extends BasicEnvironmentHeadAttributeImpl {
 
-    private static final String EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR = "Attribute resolution error. Attribute '%s' is not allowed in target.";
-
     @Override
     public Flux<Val> evaluate() {
-        return Flux.deferContextual(ctx -> {
-            final var fullyQualifiedName = FunctionUtil.resolveAbsoluteFunctionName(getIdentifier(),
-                    AuthorizationContext.getImports(ctx));
-
-            if (TargetExpressionUtil.isInTargetExpression(this))
-                return Flux.just(
-                        ErrorFactory.error(this, EXTERNAL_ATTRIBUTE_IN_TARGET_ERROR, fullyQualifiedName).withTrace(
-                                AttributeFinderStep.class, false, Map.of(Trace.ATTRIBUTE, Val.of(fullyQualifiedName))));
-
-            return AuthorizationContext.getAttributeContext(ctx).evaluateEnvironmentAttribute(this, fullyQualifiedName,
-                    getArguments(), AuthorizationContext.getVariables(ctx)).next();
-        });
+        return Flux.from(AttributeFactory.evaluateEnvironmentAttibute(this, getIdentifier(), arguments).next());
     }
 
 }

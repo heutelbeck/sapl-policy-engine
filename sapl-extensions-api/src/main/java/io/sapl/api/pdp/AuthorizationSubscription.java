@@ -126,7 +126,7 @@ public class AuthorizationSubscription implements Serializable {
      * describes attributes that are not directly describing the subject, action, or
      * resource, e.g., IP addresses, time, emergency state etc.
      *
-     * @return
+     * @return the environment as a JsonNode
      */
     public JsonNode getEnvironment() {
         return environment;

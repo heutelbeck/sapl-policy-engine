@@ -41,6 +41,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
 
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ProposalType;
 import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
@@ -71,6 +72,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
 
     private PDPConfigurationProvider pdpConfigurationProvider;
 
+    private PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider;
+
     private SAPLGrammarAccess saplAccess;
 
     @Inject
@@ -82,10 +85,18 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         if (null == pdpConfigurationProvider) {
             pdpConfigurationProvider = getPDPConfigurationProvider();
         }
+        if (null == policyInformationPointDocumentationProvider) {
+            policyInformationPointDocumentationProvider = getPolicyInformationPointDocumentationProvider();
+        }
+
     }
 
     protected PDPConfigurationProvider getPDPConfigurationProvider() {
         return SpringContext.getBean(PDPConfigurationProvider.class);
+    }
+
+    protected PolicyInformationPointDocumentationProvider getPolicyInformationPointDocumentationProvider() {
+        return SpringContext.getBean(PolicyInformationPointDocumentationProvider.class);
     }
 
     /**
@@ -217,26 +228,23 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             return;
         }
         if (isAttributeIdentifierAssignment(assignment, analysis)) {
-            this.addProposals(LibraryProposalsGenerator.allAttributeFinders(analysis, context, pdpConfiguration),
-                    context, acceptor);
+            this.addProposals(LibraryProposalsGenerator.allAttributeFinders(analysis, context,
+                    policyInformationPointDocumentationProvider), context, acceptor);
         } else if (isEnvironmentAttributeIdentifierAssignment(assignment, analysis)) {
-            this.addProposals(
-                    LibraryProposalsGenerator.allEnvironmentAttributeFinders(analysis, context, pdpConfiguration),
-                    context, acceptor);
+            this.addProposals(LibraryProposalsGenerator.allEnvironmentAttributeFinders(analysis, context,
+                    policyInformationPointDocumentationProvider), context, acceptor);
         } else if (isAttributeSchemaExtension(analysis)) {
-            this.addProposals(
-                    LibraryProposalsGenerator.allAttributeSchemaExtensions(analysis, context, pdpConfiguration),
-                    context, acceptor);
+            this.addProposals(LibraryProposalsGenerator.allAttributeSchemaExtensions(analysis, context,
+                    pdpConfiguration, policyInformationPointDocumentationProvider), context, acceptor);
         } else if (isEnvironmentAttributeSchemaExtension(analysis)) {
             this.addProposals(LibraryProposalsGenerator.allEnvironmentAttributeSchemaExtensions(analysis, context,
-                    pdpConfiguration), context, acceptor);
+                    pdpConfiguration, policyInformationPointDocumentationProvider), context, acceptor);
         } else if (isFunctionIdentifierAssignment(assignment, analysis)) {
             this.addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), context,
                     acceptor);
         } else if (isVariableAssignment(assignment, analysis)) {
-            this.addProposals(
-                    VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration),
-                    context, acceptor);
+            this.addProposals(VariablesProposalsGenerator.variableProposalsForContext(analysis, context,
+                    pdpConfiguration, policyInformationPointDocumentationProvider), context, acceptor);
             this.createPolicyBodyInScopeVariableProposals(analysis, pdpConfiguration, context, acceptor);
         } else if (analysis.type() == ProposalType.FUNCTION) {
             this.addProposals(
@@ -252,8 +260,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
         } else if ("schema".equals(parserRule) && "schemaExpression".equals(feature)) {
             addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), context,
                     acceptor);
-            addProposals(VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration),
-                    context, acceptor);
+            addProposals(VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration,
+                    policyInformationPointDocumentationProvider), context, acceptor);
         }
     }
 
@@ -269,8 +277,8 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
                 || isInsideOf(context.getCurrentNode(), PolicySet.class)) {
             addProposals(LibraryProposalsGenerator.allFunctions(analysis, context, pdpConfiguration), context,
                     acceptor);
-            addProposals(VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration),
-                    context, acceptor);
+            addProposals(VariablesProposalsGenerator.variableProposalsForContext(analysis, context, pdpConfiguration,
+                    policyInformationPointDocumentationProvider), context, acceptor);
         }
     }
 
@@ -311,7 +319,7 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
             return;
         }
         final var schemas = ExpressionSchemaResolver.inferValueDefinitionSchemas(valueDefinition, context,
-                pdpConfiguration);
+                pdpConfiguration, policyInformationPointDocumentationProvider);
         for (final var schema : schemas) {
             final var proposals = SchemaProposalsGenerator.getCodeTemplates(variableName, schema,
                     pdpConfiguration.variables());
@@ -328,15 +336,15 @@ public class SAPLContentProposalProvider extends IdeContentProposalProvider {
      */
     private void createImportProposals(ContextAnalysisResult analysis, ContentAssistContext context,
             IIdeContentProposalAcceptor acceptor, PDPConfiguration pdpConfiguration) {
-        final var attributeContext = pdpConfiguration.attributeContext();
-        final var proposals        = new ArrayList<>(attributeContext.getAllFullyQualifiedFunctions());
-        proposals.addAll(attributeContext.getAvailableLibraries());
-        final var functionContext = pdpConfiguration.functionContext();
-        proposals.addAll(functionContext.getAllFullyQualifiedFunctions());
-        proposals.addAll(functionContext.getAvailableLibraries());
-        if (analysis.prefix().endsWith(".")) {
-            proposals.add(analysis.prefix() + "*");
-        }
+        final var proposals   = new ArrayList<>(
+                policyInformationPointDocumentationProvider.getAllFullyQualifiedFunctions());
+        final var functionCtx = pdpConfiguration.functionContext();
+        proposals.addAll(policyInformationPointDocumentationProvider.getAvailableLibraries());
+        proposals.addAll(policyInformationPointDocumentationProvider.getAllFullyQualifiedFunctions());
+        proposals.addAll(policyInformationPointDocumentationProvider.getAvailableLibraries());
+        proposals.addAll(functionCtx.getAvailableLibraries());
+        proposals.addAll(functionCtx.getAllFullyQualifiedFunctions());
+        proposals.addAll(functionCtx.getAvailableLibraries());
         proposals.forEach(pText -> ProposalCreator.createNormalizedEntry(pText, analysis.prefix(), analysis.ctxPrefix())
                 .ifPresent(p -> addProposal(p, context, acceptor)));
     }

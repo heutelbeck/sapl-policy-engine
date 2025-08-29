@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
 import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
 import io.sapl.grammar.sapl.PolicyBody;
@@ -59,7 +60,8 @@ public class VariablesProposalsGenerator {
      * @return a List of proposals.
      */
     public static List<Proposal> variableProposalsForContext(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider) {
         /* first add environment variables and their expansions */
         final var proposals = createEnvironmentVariableProposals(pdpConfiguration);
         /*
@@ -73,8 +75,10 @@ public class VariablesProposalsGenerator {
              */
             proposals.addAll(AUTHORIZATION_SUBSCRIPTION_VARIABLES);
             proposals.addAll(createSubscriptionElementSchemaExpansionProposals(context, pdpConfiguration));
-            proposals.addAll(createPolicySetHeaderVariablesProposals(context, pdpConfiguration));
-            proposals.addAll(createPolicyBodyInScopeVariableProposals(context, pdpConfiguration));
+            proposals.addAll(createPolicySetHeaderVariablesProposals(context, pdpConfiguration,
+                    policyInformationPointDocumentationProvider));
+            proposals.addAll(createPolicyBodyInScopeVariableProposals(context, pdpConfiguration,
+                    policyInformationPointDocumentationProvider));
             /*
              * Potential extension here: evaluate all variables and values excluding
              * attribute access (or maybe include resulting schema if available) and add
@@ -116,13 +120,14 @@ public class VariablesProposalsGenerator {
      * variable names as well as schema expansions.
      */
     private ArrayList<String> createPolicySetHeaderVariablesProposals(ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+            PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider) {
         final var proposals = new ArrayList<String>();
         if (context.getRootModel() instanceof final SAPL sapl
                 && sapl.getPolicyElement() instanceof final PolicySet policySet) {
             for (final var valueDefinition : policySet.getValueDefinitions()) {
-                proposals.addAll(
-                        createValueDefinitionProposalsWithSchemaExtensions(valueDefinition, pdpConfiguration, context));
+                proposals.addAll(createValueDefinitionProposalsWithSchemaExtensions(valueDefinition, pdpConfiguration,
+                        policyInformationPointDocumentationProvider, context));
             }
         }
         return proposals;
@@ -134,7 +139,8 @@ public class VariablesProposalsGenerator {
      * variable names on the way are returned.
      */
     private static List<String> createPolicyBodyInScopeVariableProposals(ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+            PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider) {
         final var currentModel  = context.getCurrentModel();
         final var currentOffset = context.getOffset();
         final var policyBody    = TreeNavigationUtil.goToFirstParent(currentModel, PolicyBody.class);
@@ -149,8 +155,8 @@ public class VariablesProposalsGenerator {
                 break;
             }
             if (statement instanceof final ValueDefinition valueDefinition) {
-                proposals.addAll(
-                        createValueDefinitionProposalsWithSchemaExtensions(valueDefinition, pdpConfiguration, context));
+                proposals.addAll(createValueDefinitionProposalsWithSchemaExtensions(valueDefinition, pdpConfiguration,
+                        policyInformationPointDocumentationProvider, context));
             }
         }
         return proposals;
@@ -161,7 +167,9 @@ public class VariablesProposalsGenerator {
      * has an explicit schema declaration, the matching schema extensions are added.
      */
     private static List<String> createValueDefinitionProposalsWithSchemaExtensions(ValueDefinition valueDefinition,
-            PDPConfiguration pdpConfiguration, ContentAssistContext context) {
+            PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider,
+            ContentAssistContext context) {
 
         final var proposals    = new ArrayList<String>();
         final var variableName = valueDefinition.getName();
@@ -170,7 +178,7 @@ public class VariablesProposalsGenerator {
         }
         proposals.add(variableName);
         final var schemas = ExpressionSchemaResolver.inferValueDefinitionSchemas(valueDefinition, context,
-                pdpConfiguration);
+                pdpConfiguration, policyInformationPointDocumentationProvider);
         for (final var schema : schemas) {
             proposals.addAll(
                     SchemaProposalsGenerator.getCodeTemplates(variableName, schema, pdpConfiguration.variables()));

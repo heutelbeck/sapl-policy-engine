@@ -20,7 +20,7 @@ package io.sapl.test.steps;
 import static io.sapl.hamcrest.Matchers.anyVal;
 import static io.sapl.hamcrest.Matchers.val;
 import static io.sapl.test.Imports.arguments;
-import static io.sapl.test.Imports.parentValue;
+import static io.sapl.test.Imports.entityValue;
 import static io.sapl.test.Imports.thenReturn;
 import static io.sapl.test.Imports.times;
 import static io.sapl.test.Imports.whenAttributeParams;
@@ -43,17 +43,16 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.attribute.MockingAttributeContext;
+import io.sapl.test.mocking.attribute.MockingAttributeStreamBroker;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 
 class StepsDefaultImplTests {
 
-    private AttributeContext attrCtx;
+    private AttributeStreamBroker attrCtx;
 
     private FunctionContext funcCtx;
 
@@ -83,7 +82,7 @@ class StepsDefaultImplTests {
 
     @BeforeEach
     void setUp() {
-        this.attrCtx   = new MockingAttributeContext(Mockito.mock(AnnotationAttributeContext.class));
+        this.attrCtx   = new MockingAttributeStreamBroker(Mockito.mock(AttributeStreamBroker.class));
         this.funcCtx   = new MockingFunctionContext(Mockito.mock(AnnotationFunctionContext.class));
         this.variables = new HashMap<>();
     }
@@ -113,8 +112,8 @@ class StepsDefaultImplTests {
         final var steps                                     = new StepsDefaultImplTestsImpl(
                 policyAttributeWithAttributeAsParentValue, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1", Val.of(true), Val.of(false))
-                .givenAttribute("pip.attribute2", parentValue(val(true)), thenReturn(Val.of(0)))
-                .givenAttribute("pip.attribute2", parentValue(val(false)), thenReturn(Val.of(99)))
+                .givenAttribute("pip.attribute2", entityValue(val(true)), thenReturn(Val.of(0)))
+                .givenAttribute("pip.attribute2", entityValue(val(false)), thenReturn(Val.of(99)))
                 .when(AuthorizationSubscription.of("willi", "read", "something")).expectNextPermit()
                 .expectNextNotApplicable().verify();
     }
@@ -131,13 +130,13 @@ class StepsDefaultImplTests {
                 policyAttributeWithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
         steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
                 .givenAttribute("pip.attributeWithParams",
-                        whenAttributeParams(parentValue(val(true)), arguments(val(2), val(2))),
+                        whenAttributeParams(entityValue(val(true)), arguments(val(2), val(2))),
                         thenReturn(Val.of(true)))
                 .givenAttribute("pip.attributeWithParams",
-                        whenAttributeParams(parentValue(val(true)), arguments(val(2), val(1))),
+                        whenAttributeParams(entityValue(val(true)), arguments(val(2), val(1))),
                         thenReturn(Val.of(false)))
                 .givenAttribute("pip.attributeWithParams",
-                        whenAttributeParams(parentValue(val(true)), arguments(val(1), val(2))),
+                        whenAttributeParams(entityValue(val(true)), arguments(val(1), val(2))),
                         thenReturn(Val.of(false)))
                 .when(AuthorizationSubscription.of("willi", "read", "something"))
                 .thenAttribute("pip.attribute1", Val.of(1)).thenAttribute("pip.attribute2", Val.of(2))
@@ -153,19 +152,26 @@ class StepsDefaultImplTests {
                 where
                   var parentValue = true;
                   <pip.attributeWithParams(<pip.attribute1>, <pip.attribute2>)> == true;""";
-        final var steps                                                            = new StepsDefaultImplTestsImpl(
+
+        final var steps = new StepsDefaultImplTestsImpl(
                 policyEnvironmentAttributeWithAttributeAsParentValueAndArguments, attrCtx, funcCtx, variables);
-        steps.givenAttribute("pip.attribute1").givenAttribute("pip.attribute2")
-                .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(2))),
-                        thenReturn(Val.of(true)))
-                .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(1))),
-                        thenReturn(Val.of(false)))
-                .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(1), val(2))),
-                        thenReturn(Val.of(false)))
-                .when(AuthorizationSubscription.of("willi", "read", "something"))
-                .thenAttribute("pip.attribute1", Val.of(1)).thenAttribute("pip.attribute2", Val.of(2))
-                .expectNextNotApplicable().thenAttribute("pip.attribute1", Val.of(2)).expectNextPermit()
-                .thenAttribute("pip.attribute2", Val.of(1)).expectNextNotApplicable().verify();
+
+        // @formatter:off
+        steps.givenAttribute("pip.attribute1")
+             .givenAttribute("pip.attribute2")
+             .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(2))), thenReturn(Val.of(true)))
+             .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(2), val(1))), thenReturn(Val.of(false)))
+             .givenAttribute("pip.attributeWithParams", whenEnvironmentAttributeParams(arguments(val(1), val(2))), thenReturn(Val.of(false)))
+             .when(AuthorizationSubscription.of("willi", "read", "something"))
+             .thenAttribute("pip.attribute1", Val.of(1))
+             .thenAttribute("pip.attribute2", Val.of(2))
+             .expectNextNotApplicable()
+             .thenAttribute("pip.attribute1", Val.of(2))
+             .expectNextPermit()
+             .thenAttribute("pip.attribute2", Val.of(1))
+             .expectNextNotApplicable()
+             .verify();
+        // @formatter:off
     }
 
     @Test

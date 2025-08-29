@@ -27,12 +27,18 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.validation.ValidatorFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,6 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 @AutoConfigureAfter(PolicyInformationPointsAutoConfiguration.class)
 public class AttributeContextAutoConfiguration {
 
+    private final ObjectMapper                                     mapper;
     private final Collection<PolicyInformationPointSupplier>       pipSuppliers;
     private final Collection<StaticPolicyInformationPointSupplier> staticPipSuppliers;
     private final ConfigurableApplicationContext                   applicationContext;
@@ -49,26 +56,43 @@ public class AttributeContextAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AttributeContext attributeContext() throws InitializationException {
-        final var ctx = new AnnotationAttributeContext();
+    AttributeStreamBroker attributestreamBroker() {
+        return new CachingAttributeStreamBroker();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    PolicyInformationPointDocumentationProvider policyInformationPointDocumentationProvider() {
+        return new InMemoryPolicyInformationPointDocumentationProvider();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    AnnotationPolicyInformationPointLoader annotationPolicyInformationPointLoader(
+            AttributeStreamBroker attributeStreamBroker, PolicyInformationPointDocumentationProvider docsProvider)
+            throws InitializationException {
+        final var loader = new AnnotationPolicyInformationPointLoader(attributeStreamBroker, docsProvider,
+                new ValidatorFactory(mapper));
         for (var supplier : pipSuppliers) {
             for (var pip : supplier.get()) {
                 log.trace("loading Policy Information Point: {}", pip.getClass().getSimpleName());
-                ctx.loadPolicyInformationPoint(pip);
+                loader.loadPolicyInformationPoint(pip);
             }
         }
         for (var supplier : staticPipSuppliers) {
             for (var pip : supplier.get()) {
                 log.trace("loading static Policy Information Point: {}", pip.getSimpleName());
-                ctx.loadPolicyInformationPoint(pip);
+                loader.loadStaticPolicyInformationPoint(pip);
             }
         }
         Collection<Object> beanPips = applicationContext.getBeansWithAnnotation(PolicyInformationPoint.class).values();
         for (var pip : beanPips) {
             log.trace("loading Spring bean Policy Information Point: {}", pip.getClass().getSimpleName());
-            ctx.loadPolicyInformationPoint(pip);
+            loader.loadPolicyInformationPoint(pip);
         }
-        return ctx;
+        return loader;
     }
 
 }

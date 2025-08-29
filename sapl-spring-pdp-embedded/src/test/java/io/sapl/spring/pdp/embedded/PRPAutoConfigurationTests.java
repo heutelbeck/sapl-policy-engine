@@ -25,8 +25,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
 import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.prp.PrpUpdateEventSource;
@@ -40,7 +40,7 @@ class PRPAutoConfigurationTests {
                 when(mock.getUpdates()).thenReturn(Flux.empty());
                 return mock;
             }).withBean(FunctionContext.class, () -> mock(FunctionContext.class))
-            .withBean(AttributeContext.class, () -> mock(AttributeContext.class))
+            .withBean(AttributeStreamBroker.class, () -> mock(AttributeStreamBroker.class))
             .withConfiguration(AutoConfigurations.of(PRPAutoConfiguration.class));
 
     @Test

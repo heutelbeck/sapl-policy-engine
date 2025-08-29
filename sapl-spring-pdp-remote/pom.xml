@@ -34,6 +34,10 @@
 
 	<name>SAPL Spring Remote PDP</name>
 
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 
 		<!-- Spring Auto Configuration -->

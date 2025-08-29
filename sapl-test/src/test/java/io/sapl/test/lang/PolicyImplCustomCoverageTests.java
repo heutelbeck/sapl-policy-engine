@@ -30,10 +30,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.test.coverage.api.CoverageHitRecorder;
 import io.sapl.test.coverage.api.model.PolicyHit;
 
@@ -54,7 +54,7 @@ class PolicyImplCustomCoverageTests {
         final var policy   = interpreter.parse("policy \"p\" permit action == \"read\"");
         final var authzSub = AuthorizationSubscription.of("willi", "read", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
@@ -68,7 +68,7 @@ class PolicyImplCustomCoverageTests {
         final var policy   = interpreter.parse("policy \"p\" permit action == \"read\"");
         final var authzSub = AuthorizationSubscription.of("willi", "write", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);
@@ -82,7 +82,7 @@ class PolicyImplCustomCoverageTests {
         final var policy   = interpreter.parse("policy \"p\" permit 1/0 == \"test\"");
         final var authzSub = AuthorizationSubscription.of("willi", "write", "something");
         assertThat(policy.matches().contextWrite(ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
             ctx = AuthorizationContext.setVariables(ctx, new HashMap<>());
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);

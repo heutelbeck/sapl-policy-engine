@@ -33,6 +33,10 @@
 	<name>SAPL Spring Data R2DBC</name>
 	<packaging>jar</packaging>
 
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.data</groupId>

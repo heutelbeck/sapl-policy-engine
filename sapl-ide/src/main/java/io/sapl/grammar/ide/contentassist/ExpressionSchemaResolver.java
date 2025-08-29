@@ -18,7 +18,6 @@
 package io.sapl.grammar.ide.contentassist;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,6 +29,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.grammar.sapl.AttributeFinderStep;
 import io.sapl.grammar.sapl.BasicEnvironmentAttribute;
 import io.sapl.grammar.sapl.BasicEnvironmentHeadAttribute;
@@ -39,14 +39,12 @@ import io.sapl.grammar.sapl.BasicIdentifier;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.HeadAttributeFinderStep;
 import io.sapl.grammar.sapl.Import;
-import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.PolicyBody;
 import io.sapl.grammar.sapl.PolicySet;
 import io.sapl.grammar.sapl.SAPL;
 import io.sapl.grammar.sapl.Schema;
 import io.sapl.grammar.sapl.Step;
 import io.sapl.grammar.sapl.ValueDefinition;
-import io.sapl.grammar.sapl.WildcardImport;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
@@ -55,12 +53,13 @@ import lombok.experimental.UtilityClass;
 public class ExpressionSchemaResolver {
 
     public List<JsonNode> inferPotentialSchemasOfExpression(Expression expression, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+            PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
         List<Step>     steps;
         List<JsonNode> baseSchemas;
         if (expression instanceof final BasicGroup basicGroup) {
             // a BasicGroup may contain an expression with implicit schemas
-            baseSchemas = inferPotentialSchemasOfExpression(basicGroup.getExpression(), context, pdpConfiguration);
+            baseSchemas = inferPotentialSchemasOfExpression(basicGroup.getExpression(), context, pdpConfiguration,
+                    docsProvider);
             steps       = basicGroup.getSteps();
         } else if (expression instanceof final BasicFunction basicFunction) {
             // function implementations may have schemas associated
@@ -70,19 +69,19 @@ public class ExpressionSchemaResolver {
         } else if (expression instanceof final BasicEnvironmentAttribute basicEnvironmentAttribute) {
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(
-                    basicEnvironmentAttribute.getIdentifier().getNameFragments(), context, pdpConfiguration);
+                    basicEnvironmentAttribute.getIdentifier().getNameFragments(), context, docsProvider);
             steps       = basicEnvironmentAttribute.getSteps();
         } else if (expression instanceof final BasicEnvironmentHeadAttribute basicEnvironmentHeadAttribute) {
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(
-                    basicEnvironmentHeadAttribute.getIdentifier().getNameFragments(), context, pdpConfiguration);
+                    basicEnvironmentHeadAttribute.getIdentifier().getNameFragments(), context, docsProvider);
             steps       = basicEnvironmentHeadAttribute.getSteps();
         } else if (expression instanceof final BasicIdentifier basicIdentifier) {
             // an identifier may be an authorization subscription element with schema, or
             // the result of a value definition with an expression with explicit or implicit
             // schemas
             baseSchemas = inferPotentialSchemasFromIdentifier(basicIdentifier.getIdentifier(), context,
-                    pdpConfiguration);
+                    pdpConfiguration, docsProvider);
             steps       = basicIdentifier.getSteps();
         } else {
             // BasicValue -> no schema possible
@@ -91,12 +90,13 @@ public class ExpressionSchemaResolver {
             // All other expressions are operations that will remove schema association.
             return new ArrayList<>();
         }
-        return inferPotentialSchemasStepsAfterExpression(baseSchemas, steps, context, pdpConfiguration);
+        return inferPotentialSchemasStepsAfterExpression(baseSchemas, steps, context, pdpConfiguration, docsProvider);
     }
 
     public List<JsonNode> inferValueDefinitionSchemas(ValueDefinition valueDefinition, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
-        final var schemas = inferPotentialSchemasOfExpression(valueDefinition.getEval(), context, pdpConfiguration);
+            PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
+        final var schemas = inferPotentialSchemasOfExpression(valueDefinition.getEval(), context, pdpConfiguration,
+                docsProvider);
         for (final var schemaExpression : valueDefinition.getSchemaVarExpression()) {
             evaluateExpressionToSchema(schemaExpression, pdpConfiguration).ifPresent(schemas::add);
         }
@@ -104,7 +104,8 @@ public class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> inferPotentialSchemasStepsAfterExpression(List<JsonNode> baseSchemas, List<Step> steps,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         if (steps.isEmpty()) {
             return baseSchemas;
         }
@@ -121,13 +122,14 @@ public class ExpressionSchemaResolver {
 
         if (head instanceof final AttributeFinderStep attributeFinderStep) {
             newSchemas = inferPotentialSchemasFromAttributeFinder(
-                    attributeFinderStep.getIdentifier().getNameFragments(), context, pdpConfiguration);
+                    attributeFinderStep.getIdentifier().getNameFragments(), context, docsProvider);
         } else if (head instanceof final HeadAttributeFinderStep headAttributeFinderStep) {
             newSchemas = inferPotentialSchemasFromAttributeFinder(
-                    headAttributeFinderStep.getIdentifier().getNameFragments(), context, pdpConfiguration);
+                    headAttributeFinderStep.getIdentifier().getNameFragments(), context, docsProvider);
         }
 
-        return inferPotentialSchemasStepsAfterExpression(newSchemas, tail(steps), context, pdpConfiguration);
+        return inferPotentialSchemasStepsAfterExpression(newSchemas, tail(steps), context, pdpConfiguration,
+                docsProvider);
     }
 
     private <T> List<T> tail(List<T> list) {
@@ -138,20 +140,22 @@ public class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> inferPotentialSchemasFromAttributeFinder(Iterable<String> idSteps,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
-        final var attributeContext = pdpConfiguration.attributeContext();
-        final var nameInUse        = joinStepsToName(idSteps);
-        final var resolvedName     = resolveImport(nameInUse, context,
-                attributeContext.getAllFullyQualifiedFunctions());
-        return lookupSchemasByName(resolvedName, attributeContext.getAttributeSchemas());
+            ContentAssistContext context, PolicyInformationPointDocumentationProvider docsProvider) {
+        final var nameInUse    = joinStepsToName(idSteps);
+        final var resolvedName = resolveImport(nameInUse, context);
+        return lookupSchemasByName(resolvedName, docsProvider.getAttributeSchemas());
     }
 
     private List<JsonNode> inferPotentialSchemasFromFunction(Iterable<String> idSteps, ContentAssistContext context,
             PDPConfiguration pdpConfiguration) {
         final var functionContext = pdpConfiguration.functionContext();
         final var nameInUse       = joinStepsToName(idSteps);
-        final var resolvedName    = resolveImport(nameInUse, context, functionContext.getAllFullyQualifiedFunctions());
+        final var resolvedName    = resolveImport(nameInUse, context);
         return lookupSchemasByName(resolvedName, functionContext.getFunctionSchemas());
+    }
+
+    private String joinStepsToName(Iterable<String> steps) {
+        return String.join(".", steps);
     }
 
     private List<JsonNode> lookupSchemasByName(String resolvedFunctionName,
@@ -166,24 +170,27 @@ public class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> inferPotentialSchemasFromIdentifier(String identifier, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+            PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
         if (VariablesProposalsGenerator.AUTHORIZATION_SUBSCRIPTION_VARIABLES.contains(identifier)) {
             return inferSubscriptionElementSchema(identifier, context, pdpConfiguration);
         }
-        final var schemas = new ArrayList<>(
-                lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(identifier, context, pdpConfiguration));
-        schemas.addAll(lookupSchemasOfMatchingValueDefinitionsInPolicyBody(identifier, context, pdpConfiguration));
+        final var schemas = new ArrayList<>(lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(identifier,
+                context, pdpConfiguration, docsProvider));
+        schemas.addAll(lookupSchemasOfMatchingValueDefinitionsInPolicyBody(identifier, context, pdpConfiguration,
+                docsProvider));
         return schemas;
     }
 
     private List<JsonNode> lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(String identifier,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var schemas = new ArrayList<JsonNode>();
         if (context.getRootModel() instanceof final SAPL sapl
                 && sapl.getPolicyElement() instanceof final PolicySet policySet) {
             for (final var valueDefinition : ((List<ValueDefinition>) policySet.getValueDefinitions())) {
                 if (nameMatchesAndIsInScope(identifier, valueDefinition, context)) {
-                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, context, pdpConfiguration));
+                    schemas.addAll(
+                            inferValueDefinitionSchemas(valueDefinition, context, pdpConfiguration, docsProvider));
                 }
             }
         }
@@ -191,7 +198,8 @@ public class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> lookupSchemasOfMatchingValueDefinitionsInPolicyBody(String identifier,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var schemas    = new ArrayList<JsonNode>();
         final var policyBody = TreeNavigationUtil.goToFirstParent(context.getCurrentModel(), PolicyBody.class);
 
@@ -202,7 +210,7 @@ public class ExpressionSchemaResolver {
         for (final var statement : policyBody.getStatements()) {
             if (statement instanceof final ValueDefinition valueDefinition
                     && nameMatchesAndIsInScope(identifier, valueDefinition, context)) {
-                schemas.addAll(inferValueDefinitionSchemas(valueDefinition, context, pdpConfiguration));
+                schemas.addAll(inferValueDefinitionSchemas(valueDefinition, context, pdpConfiguration, docsProvider));
             }
         }
         return schemas;
@@ -246,53 +254,32 @@ public class ExpressionSchemaResolver {
         return NodeModelUtils.getNode(statement).getOffset();
     }
 
-    private String joinStepsToPrefix(Iterable<String> steps) {
-        return joinStepsToName(steps) + '.';
-    }
+    private String resolveImport(String nameReference, ContentAssistContext context) {
+        if (nameReference.contains(".")) {
+            return nameReference;
+        }
 
-    private String joinStepsToName(Iterable<String> steps) {
-        return String.join(".", steps);
-    }
-
-    private String resolveImport(String nameInUse, ContentAssistContext context, Collection<String> allFunctions) {
         final var rootModel = context.getRootModel();
         if (rootModel instanceof final SAPL sapl) {
-            final var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
-            for (final var anImport : imports) {
-                final var importResolution = resolveIndividualImport(nameInUse, anImport, allFunctions);
-                if (importResolution.isPresent()) {
-                    return importResolution.get();
+            final var imports = sapl.getImports();
+            if (null == imports) {
+                return nameReference;
+            }
+
+            for (var currentImport : imports) {
+                final var importedFunction = fullyQualifiedFunctionName(currentImport);
+                if (nameReference.equals(currentImport.getFunctionAlias())
+                        || importedFunction.endsWith(nameReference)) {
+                    return importedFunction;
                 }
             }
         }
-        return nameInUse;
+        return nameReference;
     }
 
-    private Optional<String> resolveIndividualImport(String nameInUse, Import anImport,
-            Collection<String> allFunctions) {
-        if (anImport instanceof final WildcardImport wildcardImport) {
-            final var resolutionCandidate = joinStepsToPrefix(wildcardImport.getLibSteps()) + nameInUse;
-            if (allFunctions.contains(resolutionCandidate)) {
-                return Optional.of(resolutionCandidate);
-            }
-        } else if (anImport instanceof final LibraryImport libraryImport) {
-            final var alias = libraryImport.getLibAlias();
-            if (nameInUse.startsWith(alias)) {
-                final var prefix              = joinStepsToPrefix(libraryImport.getLibSteps());
-                final var suffix              = nameInUse.substring(alias.length() + 1);
-                final var resolutionCandidate = prefix + suffix;
-                if (allFunctions.contains(resolutionCandidate)) {
-                    return Optional.of(resolutionCandidate);
-                }
-            }
-        } else {
-            // Basic Import
-            final var importedName = joinStepsToName(anImport.getLibSteps());
-            if (importedName.endsWith(nameInUse) && allFunctions.contains(importedName)) {
-                return Optional.of(importedName);
-            }
-        }
-        return Optional.empty();
+    private String fullyQualifiedFunctionName(Import anImport) {
+        final var library = String.join(".", anImport.getLibSteps());
+        return library + "." + anImport.getFunctionName();
     }
 
 }

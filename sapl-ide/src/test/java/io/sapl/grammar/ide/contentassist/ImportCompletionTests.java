@@ -42,14 +42,14 @@ class ImportCompletionTests extends CompletionTests {
     void testCompletion_WithPartialLibrary_ReturnsLibrary() {
         final var document = "import ti§";
         final var expected = List.of("time");
-        final var unwanted = List.of("time.after(t1, t2)");
+        final var unwanted = List.of("time.after(t1,t2)");
         assertProposalsContainWantedAndDoNotContainUnwanted(document, expected, unwanted);
     }
 
     @Test
     void testCompletion_WithFullLibrary_ReturnsFunction() {
         final var document = "import time.§";
-        final var expected = List.of("*", "after", "before", "between");
+        final var expected = List.of("after", "before", "between");
         assertProposalsContain(document, expected);
     }
 

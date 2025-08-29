@@ -26,10 +26,10 @@ import java.util.Objects;
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import reactor.util.context.Context;
@@ -40,17 +40,17 @@ public class AuthorizationContext {
 
     static final String CANNOT_OVERWRITE_REQUEST_VARIABLE_S_ERROR = "Cannot overwrite request variable: %s";
 
-    private static final String INDEX         = "index";
-    private static final String KEY           = "key";
-    private static final String ATTRIBUTE_CTX = "attributeCtx";
-    private static final String FUNCTION_CTX  = "functionCtx";
-    private static final String VARIABLES     = "variables";
-    private static final String IMPORTS       = "imports";
-    private static final String SUBJECT       = "subject";
-    private static final String ACTION        = "action";
-    private static final String RESOURCE      = "resource";
-    private static final String ENVIRONMENT   = "environment";
-    private static final String RELATIVE_NODE = "relativeNode";
+    private static final String INDEX            = "index";
+    private static final String KEY              = "key";
+    private static final String ATTRIBUTE_BROKER = "attributeBroker";
+    private static final String FUNCTION_CTX     = "functionCtx";
+    private static final String VARIABLES        = "variables";
+    private static final String IMPORTS          = "imports";
+    private static final String SUBJECT          = "subject";
+    private static final String ACTION           = "action";
+    private static final String RESOURCE         = "resource";
+    private static final String ENVIRONMENT      = "environment";
+    private static final String RELATIVE_NODE    = "relativeNode";
 
     public static Map<String, String> getImports(ContextView ctx) {
         return ctx.getOrDefault(IMPORTS, Collections.emptyMap());
@@ -80,15 +80,15 @@ public class AuthorizationContext {
         return ctx.put(RELATIVE_NODE, relativeNode).put(KEY, key);
     }
 
-    public static AttributeContext getAttributeContext(ContextView ctx) {
-        if (ctx.hasKey(ATTRIBUTE_CTX)) {
-            return ctx.get(ATTRIBUTE_CTX);
+    public static AttributeStreamBroker getAttributeStreamBroker(ContextView ctx) {
+        if (ctx.hasKey(ATTRIBUTE_BROKER)) {
+            return ctx.get(ATTRIBUTE_BROKER);
         }
-        return new AnnotationAttributeContext();
+        return new CachingAttributeStreamBroker();
     }
 
-    public Context setAttributeContext(Context ctx, AttributeContext attributeContext) {
-        return ctx.put(ATTRIBUTE_CTX, attributeContext);
+    public Context setAttributeStreamBroker(Context ctx, AttributeStreamBroker attributeStreamBroker) {
+        return ctx.put(ATTRIBUTE_BROKER, attributeStreamBroker);
     }
 
     public static Context setVariables(@NonNull Context ctx, Map<String, Val> environmentVariables) {

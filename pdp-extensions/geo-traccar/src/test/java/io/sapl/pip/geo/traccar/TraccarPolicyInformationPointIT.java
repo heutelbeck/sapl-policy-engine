@@ -39,8 +39,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.pips.http.ReactiveWebClient;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
-import io.sapl.pip.http.ReactiveWebClient;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -216,14 +216,14 @@ class TraccarPolicyInformationPointIT {
     @Test
     void traccarPositionTest() {
         final var attributestream = TRACCAR_PIP
-                .traccarPosition(deviceId, Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, settings)).log().next();
+                .traccarPosition(deviceId, Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, settings)).next();
         StepVerifier.create(attributestream).expectNextMatches(a -> a.get().has(TraccarSchemata.LONGITUDE))
                 .verifyComplete();
     }
 
     @Test
     void traccarPositionTest_withConfig() {
-        final var attributestream = TRACCAR_PIP.traccarPosition(deviceId, settings).log().next();
+        final var attributestream = TRACCAR_PIP.traccarPosition(deviceId, settings).next();
         StepVerifier.create(attributestream).expectNextMatches(a -> a.get().has(TraccarSchemata.LONGITUDE))
                 .verifyComplete();
     }
@@ -232,7 +232,7 @@ class TraccarPolicyInformationPointIT {
     void traccarPositionTest_invalidInput() {
         final var attributestream = TRACCAR_PIP
                 .traccarPosition(Val.of("invalid"), Map.of(TraccarPolicyInformationPoint.TRACCAR_CONFIG, settings))
-                .log().next();
+                .next();
         StepVerifier.create(attributestream).expectNextMatches(Val::isError).verifyComplete();
     }
 

@@ -1,4 +1,4 @@
-import test as test2
+import test.upper as uppies
 
 set "testPolicies"
 deny-unless-permit

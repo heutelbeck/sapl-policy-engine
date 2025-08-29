@@ -17,7 +17,6 @@
  */
 package io.sapl.prp.index.canonical;
 
-import java.util.Map;
 import java.util.Objects;
 
 import com.google.common.base.Preconditions;
@@ -25,7 +24,6 @@ import com.google.common.base.Preconditions;
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
 import io.sapl.grammar.sapl.impl.util.ErrorFactory;
-import io.sapl.interpreter.context.AuthorizationContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -41,8 +39,6 @@ public class Bool {
 
     private boolean hasHashCode;
 
-    private Map<String, String> imports;
-
     private boolean isConstantExpression;
 
     public Bool(boolean value) {
@@ -50,9 +46,8 @@ public class Bool {
         constant             = value;
     }
 
-    public Bool(final Expression expression, final Map<String, String> imports) {
+    public Bool(final Expression expression) {
         this.expression = Preconditions.checkNotNull(expression);
-        this.imports    = imports;
     }
 
     public boolean evaluate() {
@@ -63,8 +58,7 @@ public class Bool {
     }
 
     public Mono<Val> evaluateExpression() {
-        Flux<Val> resultFlux = isConstantExpression ? Flux.just(Val.of(constant))
-                : expression.evaluate().contextWrite(ctx -> AuthorizationContext.setImports(ctx, imports));
+        Flux<Val> resultFlux = isConstantExpression ? Flux.just(Val.of(constant)) : expression.evaluate();
         return resultFlux.map(result -> result.isError() || result.isBoolean() ? result
                 : ErrorFactory.error("Canonical Index Lookup: expression not boolean")).next();
     }
@@ -81,7 +75,7 @@ public class Bool {
             if (isConstantExpression) {
                 h = 59 * h + Objects.hashCode(constant);
             } else {
-                h = 59 * h + EquivalenceAndHashUtil.semanticHash(expression, imports);
+                h = 59 * h + EquivalenceAndHashUtil.semanticHash(expression);
             }
             hash        = h;
             hasHashCode = true;
@@ -110,7 +104,7 @@ public class Bool {
         if (isConstantExpression) {
             return Objects.equals(constant, other.constant);
         } else {
-            return EquivalenceAndHashUtil.areEquivalent(expression, imports, other.expression, other.imports);
+            return EquivalenceAndHashUtil.areEquivalent(expression, other.expression);
         }
     }
 

@@ -31,6 +31,10 @@
 	<name>SAPL Coverage API</name>
 	<description>API used in sapl-test and the sapl-maven-plugin to collect coverage information.</description>
 
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>

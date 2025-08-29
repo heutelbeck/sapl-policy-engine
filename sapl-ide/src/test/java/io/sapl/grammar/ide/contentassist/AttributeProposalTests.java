@@ -182,29 +182,29 @@ class AttributeProposalTests extends CompletionTests {
     @Test
     void testCompletion_PolicyBody_attribute_with_alias_import() {
         final var document = """
-                import temperature as abc
+                import temperature.predicted as kredited
                 policy "test" deny where
-                var foo = <ab§""";
-        final var expected = List.of("abc.mean(a1, a2)>", "abc.now>", "abc.predicted(a1)>");
+                var foo = <kr§""";
+        final var expected = List.of("kredited(a1)>");
         assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_attribute_with_alias_import2() {
         final var document = """
-                import temperature as abc
+                import temperature.mean as zzean
                 policy "test" deny where
-                <ab§""";
-        final var expected = List.of("abc.mean(a1, a2)>", "abc.now>", "abc.predicted(a1)>");
+                <z§""";
+        final var expected = List.of("zzean(a1,a2)>");
         assertProposalsContain(document, expected);
     }
 
     @Test
     void testCompletion_PolicyBody_attribute_with_alias_import3() {
         final var document = """
-                import temperature as abc
+                import temperature.now as cow
                 policy "test" deny where
-                <abc.now>.§""";
+                <cow>.§""";
         final var expected = List.of("unit", "value");
         assertProposalsContain(document, expected);
     }
@@ -212,22 +212,11 @@ class AttributeProposalTests extends CompletionTests {
     @Test
     void testCompletion_PolicyBody_attribute_with_library_import_assigned_to_variable() {
         final var document = """
-                import temperature as temp
+                import temperature.now as currenttemp
                 policy "test" deny where
-                var foo = <temp.now()>;
+                var foo = <currenttemp>;
                 foo.§""";
         final var expected = List.of(".unit", ".value");
-        assertProposalsContain(document, expected);
-    }
-
-    @Test
-    void testCompletion_PolicyBody_attribute_with_wildcard_import_assigned_to_variable() {
-        final var document = """
-                import temperature.*
-                policy "test" deny where
-                var foo = <now>;
-                foo.§""";
-        final var expected = List.of("unit");
         assertProposalsContain(document, expected);
     }
 

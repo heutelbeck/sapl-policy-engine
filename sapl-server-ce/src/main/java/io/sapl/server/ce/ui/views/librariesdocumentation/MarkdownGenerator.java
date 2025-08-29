@@ -21,7 +21,6 @@ import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 
 import io.sapl.interpreter.functions.LibraryDocumentation;
-import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -48,16 +47,17 @@ public class MarkdownGenerator {
         return sb.toString();
     }
 
-    public String generateMarkdownForPolicyInformationPoint(PolicyInformationPointDocumentation documentation) {
+    public String generateMarkdownForPolicyInformationPoint(
+            io.sapl.attributes.documentation.api.LibraryDocumentation pip) {
         final var sb = new StringBuilder();
-        sb.append("# ").append(documentation.getName()).append("\n\n");
-        sb.append(documentation.getDescription()).append("\n\n");
-        sb.append(documentation.getPipDocumentation()).append("\n\n");
+        sb.append("# ").append(pip.namespace()).append("\n\n");
+        sb.append(pip.descriptionMarkdown()).append("\n\n");
+        sb.append(pip.documentationMarkdown()).append("\n\n");
         sb.append("---\n\n");
 
-        for (var entry : documentation.getDocumentation().entrySet()) {
-            final var name = entry.getKey();
-            final var docs = entry.getValue();
+        for (var attribute : pip.attributes()) {
+            final var name = attribute.fullyQualifiedName();
+            final var docs = attribute.documentationMarkdown();
             sb.append("## ").append(name).append("\n\n");
             sb.append(docs).append("\n\n---\n\n");
         }

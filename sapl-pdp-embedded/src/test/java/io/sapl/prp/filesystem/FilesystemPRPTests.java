@@ -27,10 +27,10 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
 import io.sapl.prp.PolicyRetrievalResult;
 import io.sapl.prp.PrpUpdateEvent;
@@ -88,7 +88,7 @@ class FilesystemPRPTests {
     }
 
     private static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
-        ctx = AuthorizationContext.setAttributeContext(ctx, new AnnotationAttributeContext());
+        ctx = AuthorizationContext.setAttributeStreamBroker(ctx, new CachingAttributeStreamBroker());
         ctx = AuthorizationContext.setFunctionContext(ctx, new AnnotationFunctionContext());
         ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSubscription);
         return ctx;

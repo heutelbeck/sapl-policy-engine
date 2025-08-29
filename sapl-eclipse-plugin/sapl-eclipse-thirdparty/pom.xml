@@ -31,6 +31,7 @@
 
 	<properties>
 		<maven.deploy.skip>true</maven.deploy.skip>
+		<main.basedir>${project.basedir}/../../</main.basedir>
 	</properties>
 
 	<artifactId>sapl-eclipse-thirdparty</artifactId>

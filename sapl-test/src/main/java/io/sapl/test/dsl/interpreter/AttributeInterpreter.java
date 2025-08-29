@@ -18,9 +18,9 @@
 package io.sapl.test.dsl.interpreter;
 
 import static io.sapl.test.Imports.arguments;
-import static io.sapl.test.Imports.parentValue;
+import static io.sapl.test.Imports.entityValue;
 import static io.sapl.test.Imports.whenAttributeParams;
-import static io.sapl.test.Imports.whenParentValue;
+import static io.sapl.test.Imports.whenEntityValue;
 
 import org.hamcrest.Matcher;
 
@@ -78,10 +78,10 @@ class AttributeInterpreter {
                         .<Matcher<Val>>toArray(Matcher[]::new);
 
                 return givenOrWhenStep.givenAttribute(importName,
-                        whenAttributeParams(parentValue(parentValueMatcher), arguments(arguments)), returnValue);
+                        whenAttributeParams(entityValue(parentValueMatcher), arguments(arguments)), returnValue);
 
             }
         }
-        return givenOrWhenStep.givenAttribute(importName, whenParentValue(parentValueMatcher), returnValue);
+        return givenOrWhenStep.givenAttribute(importName, whenEntityValue(parentValueMatcher), returnValue);
     }
 }

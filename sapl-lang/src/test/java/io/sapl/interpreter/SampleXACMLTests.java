@@ -37,26 +37,31 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
+import io.sapl.validation.ValidatorFactory;
 import lombok.SneakyThrows;
 import lombok.val;
 
-public class SampleXACMLTests {
-    private static final ObjectMapper               MAPPER           = new ObjectMapper()
+class SampleXACMLTests {
+    private static final ObjectMapper                 MAPPER           = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
-    private static final DefaultSAPLInterpreter     INTERPRETER      = new DefaultSAPLInterpreter();
-    private static final AnnotationAttributeContext ATTRIBUTE_CTX    = new AnnotationAttributeContext();
-    private static final AnnotationFunctionContext  FUNCTION_CTX     = new AnnotationFunctionContext();
-    private static final Map<String, Val>           SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
+    private static final DefaultSAPLInterpreter       INTERPRETER      = new DefaultSAPLInterpreter();
+    private static final CachingAttributeStreamBroker ATTRIBUTE_BROKER = new CachingAttributeStreamBroker();
+    private static final AnnotationFunctionContext    FUNCTION_CTX     = new AnnotationFunctionContext();
+    private static final Map<String, Val>             SYSTEM_VARIABLES = Collections.unmodifiableMap(new HashMap<>());
 
     @BeforeAll
-    public static void setUpClass() throws InitializationException {
+    static void setUpClass() throws InitializationException {
         FUNCTION_CTX.loadLibrary(new MockXACMLStringFunctionLibrary());
         FUNCTION_CTX.loadLibrary(new MockXACMLDateFunctionLibrary());
         FUNCTION_CTX.loadLibrary(FilterFunctionLibrary.class);
-        ATTRIBUTE_CTX.loadPolicyInformationPoint(new MockXACMLPatientProfilePIP());
+        final var loader = new AnnotationPolicyInformationPointLoader(ATTRIBUTE_BROKER,
+                new InMemoryPolicyInformationPointDocumentationProvider(), new ValidatorFactory(MAPPER));
+        loader.loadPolicyInformationPoint(new MockXACMLPatientProfilePIP());
     }
 
     @Test
@@ -80,7 +85,7 @@ public class SampleXACMLTests {
         final var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
 
         assertThat(INTERPRETER
-                .evaluate(authzSubscriptionObject, policyExampleOne, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES)
+                .evaluate(authzSubscriptionObject, policyExampleOne, ATTRIBUTE_BROKER, FUNCTION_CTX, SYSTEM_VARIABLES)
                 .blockFirst(), equalTo(expectedAuthzDecision));
     }
 
@@ -104,7 +109,7 @@ public class SampleXACMLTests {
 
         assertThat(
                 "XACML example one not working as expected", INTERPRETER.evaluate(authzSubscriptionObject,
-                        policyExampleOne, ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+                        policyExampleOne, ATTRIBUTE_BROKER, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
                 equalTo(expectedAuthzDecision));
     }
 
@@ -159,7 +164,7 @@ public class SampleXACMLTests {
         final var expectedAuthzDecision = AuthorizationDecision.NOT_APPLICABLE;
         assertThat(
                 "XACML example two rule 1 not working as expected", INTERPRETER.evaluate(authzSubscriptionExampleTwo(),
-                        policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+                        policyExampleTwoRule1(), ATTRIBUTE_BROKER, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
                 equalTo(expectedAuthzDecision));
     }
 
@@ -196,7 +201,7 @@ public class SampleXACMLTests {
 
         assertThat(
                 "XACML example two rule 1 not working as expected", INTERPRETER.evaluate(authzSubscription,
-                        policyExampleTwoRule1(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+                        policyExampleTwoRule1(), ATTRIBUTE_BROKER, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
                 equalTo(expectedAuthzDecision));
     }
 
@@ -225,7 +230,7 @@ public class SampleXACMLTests {
 
         assertThat(
                 "XACML example two rule 2 not working as expected", INTERPRETER.evaluate(authzSubscriptionExampleTwo(),
-                        policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+                        policyExampleTwoRule2(), ATTRIBUTE_BROKER, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
                 equalTo(expectedAuthzDecision));
     }
 
@@ -262,7 +267,7 @@ public class SampleXACMLTests {
 
         assertThat(
                 "XACML example two rule 2 not working as expected", INTERPRETER.evaluate(authzSubscription,
-                        policyExampleTwoRule2(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+                        policyExampleTwoRule2(), ATTRIBUTE_BROKER, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
                 equalTo(expectedAuthzDecision));
     }
 
@@ -294,7 +299,7 @@ public class SampleXACMLTests {
 
         assertThat(
                 "XACML example two rule 3 not working as expected", INTERPRETER.evaluate(authzSubscriptionExampleTwo(),
-                        policyExampleTwoRule3(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+                        policyExampleTwoRule3(), ATTRIBUTE_BROKER, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
                 equalTo(expectedAuthzDecision));
     }
 
@@ -345,7 +350,7 @@ public class SampleXACMLTests {
 
         assertThat(
                 "XACML example two rule 3 not working as expected", INTERPRETER.evaluate(authzSubscription,
-                        policyExampleTwoRule3(), ATTRIBUTE_CTX, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
+                        policyExampleTwoRule3(), ATTRIBUTE_BROKER, FUNCTION_CTX, SYSTEM_VARIABLES).blockFirst(),
                 equalTo(expectedAuthzDecision));
     }
 }

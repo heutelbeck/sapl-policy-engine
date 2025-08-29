@@ -69,7 +69,7 @@ class ErrorReportGeneratorTests {
         final var error1 = errors.iterator().next();
         assertThatVal(error1).isError();
         final var errorReport1 = ErrorReportGenerator.errorReport(error1, true, OutputFormat.HTML);
-        assertThat(errorReport1).contains("&amp;").contains("&lt;").contains("&gt;");
+        assertThat(errorReport1).contains("&quot;").contains("</div>");
     }
 
     @Test

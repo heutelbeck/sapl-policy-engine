@@ -30,11 +30,11 @@ import org.junit.jupiter.api.Timeout;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
 import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
@@ -53,7 +53,7 @@ class IntegrationTests {
     @BeforeEach
     void setUp() {
         interpreter = new DefaultSAPLInterpreter();
-        seedIndex   = new CanonicalImmutableParsedDocumentIndex(new AnnotationAttributeContext(),
+        seedIndex   = new CanonicalImmutableParsedDocumentIndex(new CachingAttributeStreamBroker(),
                 new AnnotationFunctionContext());
     }
 
@@ -143,9 +143,9 @@ class IntegrationTests {
     }
 
     public static Context setUpAuthorizationContext(Context ctx, AuthorizationSubscription authzSubscription) {
-        final var attributeCtx = new AnnotationAttributeContext();
-        final var functionCtx  = new AnnotationFunctionContext();
-        ctx = AuthorizationContext.setAttributeContext(ctx, attributeCtx);
+        final var broker      = new CachingAttributeStreamBroker();
+        final var functionCtx = new AnnotationFunctionContext();
+        ctx = AuthorizationContext.setAttributeStreamBroker(ctx, broker);
         ctx = AuthorizationContext.setFunctionContext(ctx, functionCtx);
         ctx = AuthorizationContext.setVariable(ctx, "nullVariable", Val.NULL);
         ctx = AuthorizationContext.setImports(ctx, new HashMap<>());

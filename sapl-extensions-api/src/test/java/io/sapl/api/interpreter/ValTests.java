@@ -54,7 +54,6 @@ class ValTests {
         sa.assertThat(error.isDefined()).isFalse();
         sa.assertThat(error.isDouble()).isFalse();
         sa.assertThat(error.isEmpty()).isFalse();
-        sa.assertThat(error.isFloat()).isFalse();
         sa.assertThat(error.isLong()).isFalse();
         sa.assertThat(error.isFloatingPointNumber()).isFalse();
         sa.assertThat(error.isNull()).isFalse();
@@ -220,7 +219,7 @@ class ValTests {
     @Test
     void isInt() {
         final var sa = new SoftAssertions();
-        sa.assertThat(Val.of(1L).isInt()).isFalse();
+        sa.assertThat(Val.of(1L).isInt()).isTrue();
         sa.assertThat(Val.of(1).isInt()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isInt()).isFalse();
         sa.assertAll();
@@ -229,18 +228,9 @@ class ValTests {
     @Test
     void isLong() {
         final var sa = new SoftAssertions();
-        sa.assertThat(Val.of(1).isLong()).isFalse();
+        sa.assertThat(Val.of(1).isLong()).isTrue();
         sa.assertThat(Val.of(1L).isLong()).isTrue();
         sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isLong()).isFalse();
-        sa.assertAll();
-    }
-
-    @Test
-    void isFloat() {
-        final var sa = new SoftAssertions();
-        sa.assertThat(Val.of(1).isFloat()).isFalse();
-        sa.assertThat(Val.of(1F).isFloat()).isTrue();
-        sa.assertThat(Val.error(SaplError.UNKNOWN_ERROR).isFloat()).isFalse();
         sa.assertAll();
     }
 

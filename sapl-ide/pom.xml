@@ -29,6 +29,11 @@
 	</parent>
 	<artifactId>sapl-ide</artifactId>
 	<name>SAPL Generic IDE Integration</name>
+	
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>

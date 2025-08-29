@@ -24,8 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
@@ -37,7 +37,7 @@ class PDPConfigurationProviderAutoConfigurationTests {
             .withBean(VariablesAndCombinatorSource.class, () -> mock(VariablesAndCombinatorSource.class))
             .withBean(PolicyRetrievalPointSource.class, () -> mock(PolicyRetrievalPointSource.class))
             .withBean(FunctionContext.class, () -> mock(FunctionContext.class))
-            .withBean(AttributeContext.class, () -> mock(AttributeContext.class))
+            .withBean(AttributeStreamBroker.class, () -> mock(AttributeStreamBroker.class))
             .withConfiguration(AutoConfigurations.of(PDPConfigurationProviderAutoConfiguration.class));
 
     @Test

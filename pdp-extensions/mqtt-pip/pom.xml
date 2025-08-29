@@ -35,6 +35,10 @@
 
 	<name>SAPL MQTT Policy Information Point</name>
 
+	<properties>
+		<main.basedir>${project.basedir}/../../</main.basedir>
+	</properties>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>

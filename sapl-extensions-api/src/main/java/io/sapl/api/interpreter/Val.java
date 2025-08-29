@@ -406,13 +406,6 @@ public final class Val implements Traced, Serializable {
     }
 
     /**
-     * @return true, iff value is a Float number.
-     */
-    public boolean isFloat() {
-        return isDefined() && value.isFloat();
-    }
-
-    /**
      * @return true, iff value represents a non-integral numeric JSON value
      */
     public boolean isFloatingPointNumber() {
@@ -423,14 +416,14 @@ public final class Val implements Traced, Serializable {
      * @return true, iff value is a Integer number.
      */
     public boolean isInt() {
-        return isDefined() && value.isInt();
+        return isDefined() && value.canConvertToInt();
     }
 
     /**
      * @return true, iff value is a Long number.
      */
     public boolean isLong() {
-        return isDefined() && value.isLong();
+        return isDefined() && value.canConvertToLong();
     }
 
     /**
@@ -498,7 +491,8 @@ public final class Val implements Traced, Serializable {
      * @param fieldName the field name
      * @param errorSupplier supplier for error if field not present.
      * @return the field vale if Val is an object with the field. Else throw.
-     * @throws Exception if field is not present supplied Exception is thrown.
+     * @throws RuntimeException if field is not present supplied Exception is
+     * thrown.
      */
     public JsonNode fieldJsonNodeOrElseThrow(String fieldName, Supplier<? extends RuntimeException> errorSupplier) {
         final var isObjectAndFieldIsPresent = isObject() && value.has(fieldName);

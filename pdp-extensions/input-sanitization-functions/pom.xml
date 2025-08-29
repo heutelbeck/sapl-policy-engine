@@ -32,7 +32,9 @@
 	<artifactId>input-sanitization-functions</artifactId>
 	<name>SAPL function library for input sanitization</name>
 
-	<url>http://maven.apache.org</url>
+	<properties>
+		<main.basedir>${project.basedir}/../../</main.basedir>
+	</properties>
 
 	<dependencyManagement>
 		<dependencies>

@@ -151,28 +151,15 @@ class VariableCompletionTests extends CompletionTests {
     }
 
     @Test
-    void testCompletion_SuggestFunctionsFromWildcardImport() {
+    void testCompletion_SuggestFromAliasImport() {
         final var document = """
-                import schemaTest.*
+                import schemaTest.dog as xyz
                 policy "test policy"
                 deny
                 where
                   var foo = 5;
-                  d§""";
-        final var expected = List.of("dog(dogRegistryRecord)");
-        assertProposalsContain(document, expected);
-    }
-
-    @Test
-    void testCompletion_SuggestFunctionsFromLibraryImport() {
-        final var document = """
-                import schemaTest as abc
-                policy "test policy"
-                deny
-                where
-                  var foo = 5;
-                  a§""";
-        final var expected = List.of("abc.dog(dogRegistryRecord)");
+                  x§""";
+        final var expected = List.of("xyz(dogRegistryRecord)");
         assertProposalsContain(document, expected);
     }
 

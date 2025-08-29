@@ -27,10 +27,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import io.sapl.attributes.documentation.api.LibraryDocumentation;
+import io.sapl.attributes.documentation.api.LibraryType;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.functions.LibraryDocumentation;
-import io.sapl.interpreter.pip.AttributeContext;
-import io.sapl.interpreter.pip.PolicyInformationPointDocumentation;
 
 class DocumentationAutoConfigurationTests {
 
@@ -40,17 +40,17 @@ class DocumentationAutoConfigurationTests {
     @Test
     void whenContextLoaded_thenDocumentationBeansArePresent() {
 
-        final var mockAttributeContext = mock(AttributeContext.class);
-        final var mockPipDoc           = new PolicyInformationPointDocumentation("PIP name", "PIP description",
-                "PIP documentation");
-        when(mockAttributeContext.getDocumentation()).thenReturn(List.of(mockPipDoc));
+        final var mockDocsProvider = mock(PolicyInformationPointDocumentationProvider.class);
+        final var mockPipDoc       = new LibraryDocumentation(LibraryType.POLICY_INFORMATION_POINT, "PIPname",
+                "PIPdescription", "PIPdocumentation", List.of());
+        when(mockDocsProvider.getDocumentation()).thenReturn(List.of(mockPipDoc));
 
         final var functionContext = mock(FunctionContext.class);
-        final var mockFunDoc      = new LibraryDocumentation("Library name", "Library description",
-                "Library documentation");
+        final var mockFunDoc      = new io.sapl.interpreter.functions.LibraryDocumentation("Library name",
+                "Library description", "Library documentation");
         when(functionContext.getDocumentation()).thenReturn(List.of(mockFunDoc));
 
-        contextRunner.withBean(AttributeContext.class, () -> mockAttributeContext)
+        contextRunner.withBean(PolicyInformationPointDocumentationProvider.class, () -> mockDocsProvider)
                 .withBean(FunctionContext.class, () -> functionContext).run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(PolicyInformationPointsDocumentation.class);

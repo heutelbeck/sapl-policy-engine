@@ -48,11 +48,14 @@ import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
+import io.sapl.attributes.broker.impl.TestPIP;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.StandardFunctionLibrary;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.TestPIP;
+import io.sapl.validation.ValidatorFactory;
 import reactor.test.StepVerifier;
 
 class DefaultSAPLInterpreterTests {
@@ -101,7 +104,9 @@ class DefaultSAPLInterpreterTests {
 
     private static AuthorizationSubscription authzSubscription;
 
-    private static AnnotationAttributeContext attributeCtx;
+    private static CachingAttributeStreamBroker attributeStreamBroker;
+
+    private static InMemoryPolicyInformationPointDocumentationProvider docsProvider;
 
     private static AnnotationFunctionContext functionCtx;
 
@@ -109,9 +114,13 @@ class DefaultSAPLInterpreterTests {
 
     @BeforeAll
     static void beforeAll() throws JsonProcessingException, InitializationException {
-        authzSubscription = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
-        attributeCtx      = new AnnotationAttributeContext();
-        attributeCtx.loadPolicyInformationPoint(new TestPIP());
+        authzSubscription     = MAPPER.readValue(AUTHZ_SUBSCRIPTION_JSON, AuthorizationSubscription.class);
+        attributeStreamBroker = new CachingAttributeStreamBroker();
+        docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
+
+        final var loader = new AnnotationPolicyInformationPointLoader(attributeStreamBroker, docsProvider,
+                new ValidatorFactory(MAPPER));
+        loader.loadPolicyInformationPoint(new TestPIP());
         functionCtx = new AnnotationFunctionContext();
         functionCtx.loadLibrary(SimpleFunctionLibrary.class);
         functionCtx.loadLibrary(FilterFunctionLibrary.class);
@@ -181,7 +190,8 @@ class DefaultSAPLInterpreterTests {
         final var policyDefinition = "policy \"test\" permit transform null";
         final var expected         = Optional.of(JSON.nullNode());
         StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
+                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeStreamBroker, functionCtx,
+                        variables))
                 .assertNext(actual -> assertThat(actual.getResource(), is(expected))).verifyComplete();
     }
 
@@ -192,7 +202,8 @@ class DefaultSAPLInterpreterTests {
         expectedObligation.add(JSON.nullNode());
         final var expected = Optional.of(expectedObligation);
         StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
+                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeStreamBroker, functionCtx,
+                        variables))
                 .assertNext(actual -> assertThat(actual.getObligations(), is(expected))).verifyComplete();
     }
 
@@ -202,9 +213,9 @@ class DefaultSAPLInterpreterTests {
         final var expectedAdvice   = JSON.arrayNode();
         expectedAdvice.add(JSON.nullNode());
         final var expected = Optional.of(expectedAdvice);
-        StepVerifier
-                .create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeCtx, functionCtx, variables))
-                .assertNext(actual -> assertThat(actual.getAdvice(), is(expected))).verifyComplete();
+        StepVerifier.create(INTERPRETER.evaluate(authzSubscription, policyDefinition, attributeStreamBroker,
+                functionCtx, variables)).assertNext(actual -> assertThat(actual.getAdvice(), is(expected)))
+                .verifyComplete();
     }
 
     private static Stream<Arguments> documentTestCases() {
@@ -355,7 +366,22 @@ class DefaultSAPLInterpreterTests {
 						PERMIT),
 				// functionCallOnEachArrayItemWithRelativeArguments
 				Arguments.of(
-						"import simple.* import filter.* policy \"test\" permit where [{\"name\": \"Hans\", \"origin\": \"Hagen\"}, {\"name\": \"Felix\", \"origin\": \"Zürich\"}] |- { @..name : append(\" aus \", @.origin),  @..origin : remove} == [{\"name\": \"Hans aus Hagen\"}, {\"name\": \"Felix aus Zürich\"}];",
+						"""
+				        import simple.append
+				        import filter.remove
+				        policy "test" permit
+				        where
+				          [
+				            { "name": "Hans", "origin": "Hagen"},
+				            { "name": "Felix", "origin": "Zürich"}
+				          ] |- {
+				                 @..name : append(" aus ", @.origin),
+				                 @..origin : remove
+				               } == [
+				                      { "name": "Hans aus Hagen"},
+				                      { "name": "Felix aus Zürich"}
+				                    ];
+				        """,
 						PERMIT),
 				// filterExtended
 				Arguments.of(
@@ -369,34 +395,33 @@ class DefaultSAPLInterpreterTests {
 				Arguments.of("policy \"test\" permit obligation \"a\" > 5", INDETERMINATE),
 				// adviceError
 				Arguments.of("policy \"test\" permit advice \"a\" > 5", INDETERMINATE),
-				// importWildcard
-				Arguments.of("import simple.* policy \"test\" permit where var a = append(\"a\",\"b\");", PERMIT),
-				// importAttributeFinder
-				Arguments.of("import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;",
-						PERMIT),
-				// importLibrary
+				// import
+				Arguments.of("import simple.append policy \"test\" permit where var a = append(\"a\",\"b\");", PERMIT),
+                // importAttributeFinder
+                Arguments.of("import sapl.pip.test.echo policy \"test\" permit where \"echo\" == \"echo\".<echo>;",
+                        PERMIT),
+                // importAttributeFinder no import
+                Arguments.of("policy \"test\" permit where \"echo\" == \"echo\".<sapl.pip.test.echo>;",
+                        PERMIT),
+    			// import alias
 				Arguments.of(
-						"import simple as simple_lib policy \"test\" permit where var a = simple_lib.append(\"a\",\"b\");",
+						"import simple.append as concat policy \"test\" permit where var a = concat(\"a\",\"b\");",
 						PERMIT),
 				// importMultiple
 				Arguments.of(
 						"import simple.length import simple.append policy \"test\" permit where var a = append(\"a\",\"b\");",
 						PERMIT),
 				// importNonExistingFunction
-				Arguments.of("import simple.non_existing policy \"test\" permit where true;", INDETERMINATE),
+				Arguments.of("import simple.non_existing policy \"test\" permit where true;", PERMIT),
 				// importDuplicateFunction
 				Arguments.of("import simple.append import simple.append policy \"test\" permit where true;",
-						INDETERMINATE),
-				// importDuplicateFunctionMatchingPolicy
-				Arguments.of("import simple.append import simple.append policy \"test\" permit where true;",
-						INDETERMINATE),
-				// importDuplicateWildcard
-				Arguments.of("import simple.append import simple.* policy \"test\" permit where true;", INDETERMINATE),
-				// importDuplicateAlias
-				Arguments.of("import simple as test import simple as test policy \"test\" permit where true;",
-						INDETERMINATE),
+				        PERMIT),
+				// importDuplicateAlias no problem. First one takes precedence
+				Arguments.of("import simple.append as test import simple.length as test policy \"test\" permit where \"ab\" == test(\"a\",\"b\");",
+				        PERMIT),
 				// onErrorMap
-				Arguments.of("import standard.* policy \"errors\" permit where onErrorMap(100/0, true);", PERMIT));
+				Arguments.of("import standard.onErrorMap policy \"errors\" permit where onErrorMap(100/0, true);", PERMIT)
+				);
 		// @formatter:on
     }
 
@@ -407,7 +432,8 @@ class DefaultSAPLInterpreterTests {
     }
 
     private void assertThatPolicyEvaluationReturnsExpected(String document, AuthorizationDecision expected) {
-        StepVerifier.create(INTERPRETER.evaluate(authzSubscription, document, attributeCtx, functionCtx, variables))
+        StepVerifier.create(
+                INTERPRETER.evaluate(authzSubscription, document, attributeStreamBroker, functionCtx, variables).next())
                 .expectNext(expected).verifyComplete();
     }
 

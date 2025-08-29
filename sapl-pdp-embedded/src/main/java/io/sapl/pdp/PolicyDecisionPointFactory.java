@@ -36,6 +36,13 @@ import io.sapl.api.pdp.TracedDecision;
 import io.sapl.api.pdp.TracedDecisionInterceptor;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
+import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
+import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
+import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
+import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
+import io.sapl.attributes.pips.http.ReactiveWebClient;
+import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
 import io.sapl.functions.FilterFunctionLibrary;
 import io.sapl.functions.LoggingFunctionLibrary;
 import io.sapl.functions.SchemaValidationLibrary;
@@ -47,17 +54,12 @@ import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.pdp.config.PDPConfiguration;
 import io.sapl.pdp.config.PDPConfigurationProvider;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import io.sapl.pdp.config.filesystem.FileSystemVariablesAndCombinatorSource;
 import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.pdp.config.resources.ResourcesVariablesAndCombinatorSource;
-import io.sapl.pip.http.HttpPolicyInformationPoint;
-import io.sapl.pip.http.ReactiveWebClient;
-import io.sapl.pip.time.TimePolicyInformationPoint;
 import io.sapl.prp.Document;
 import io.sapl.prp.GenericInMemoryIndexedPolicyRetrievalPointSource;
 import io.sapl.prp.PolicyRetrievalPointSource;
@@ -65,6 +67,7 @@ import io.sapl.prp.filesystem.FileSystemPrpUpdateEventSource;
 import io.sapl.prp.index.UpdateEventDrivenPolicyRetrievalPoint;
 import io.sapl.prp.index.naive.NaiveImmutableParsedDocumentIndex;
 import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
+import io.sapl.validation.ValidatorFactory;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
@@ -86,10 +89,10 @@ public class PolicyDecisionPointFactory {
     public static EmbeddedPolicyDecisionPoint fixedInRamPolicyDecisionPoint(Collection<String> documents,
             PolicyDocumentCombiningAlgorithm documentsCombinator, Map<String, Val> variables)
             throws InitializationException {
-        final var functionContext  = constructFunctionContext(List::of, List::of);
-        final var attributeContext = constructAttributeContext(List::of, List::of);
+        final var functionContext       = constructFunctionContext(List::of, List::of);
+        final var attributeStreamBroker = constructAttributeStreamBroker(List::of, List::of);
         return fixedInRamPolicyDecisionPoint(new DefaultSAPLInterpreter(), documents, documentsCombinator, variables,
-                attributeContext, functionContext, UnaryOperator.identity(), UnaryOperator.identity());
+                attributeStreamBroker, functionContext, UnaryOperator.identity(), UnaryOperator.identity());
     }
 
     public static EmbeddedPolicyDecisionPoint fixedInRamPolicyDecisionPoint(SAPLInterpreter parser,
@@ -98,15 +101,15 @@ public class PolicyDecisionPointFactory {
             StaticFunctionLibrarySupplier staticFunctionLibraries, PolicyInformationPointSupplier pips,
             StaticPolicyInformationPointSupplier staticPips, UnaryOperator<TracedDecision> decisionInterceptorChain,
             UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) throws InitializationException {
-        final var functionContext  = constructFunctionContext(functionLibraries, staticFunctionLibraries);
-        final var attributeContext = constructAttributeContext(pips, staticPips);
-        return fixedInRamPolicyDecisionPoint(parser, documents, documentsCombinator, variables, attributeContext,
+        final var functionContext       = constructFunctionContext(functionLibraries, staticFunctionLibraries);
+        final var attributeStreamBroker = constructAttributeStreamBroker(pips, staticPips);
+        return fixedInRamPolicyDecisionPoint(parser, documents, documentsCombinator, variables, attributeStreamBroker,
                 functionContext, decisionInterceptorChain, subscriptionInterceptorChain);
     }
 
     public static EmbeddedPolicyDecisionPoint fixedInRamPolicyDecisionPoint(SAPLInterpreter parser,
             Collection<String> documents, PolicyDocumentCombiningAlgorithm documentsCombinator,
-            Map<String, Val> variables, AttributeContext attributeContext, FunctionContext functionContext,
+            Map<String, Val> variables, AttributeStreamBroker attributeStreamBroker, FunctionContext functionContext,
             UnaryOperator<TracedDecision> decisionInterceptorChain,
             UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain) {
         final var documentsById = new HashMap<String, Document>();
@@ -126,7 +129,7 @@ public class PolicyDecisionPointFactory {
         }
         final var policyRetrievalPoint = new NaiveImmutableParsedDocumentIndex(documentsById, consistent);
 
-        final var pdpConfiguration = new PDPConfiguration(UUID.randomUUID().toString(), attributeContext,
+        final var pdpConfiguration = new PDPConfiguration(UUID.randomUUID().toString(), attributeStreamBroker,
                 functionContext, variables, documentsCombinator, decisionInterceptorChain, subscriptionInterceptorChain,
                 policyRetrievalPoint);
 
@@ -196,10 +199,10 @@ public class PolicyDecisionPointFactory {
             Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
             Collection<TracedDecisionInterceptor> authorizationSubscriptionInterceptors)
             throws InitializationException {
-        final var                  functionCtx  = constructFunctionContext(functionLibraries, staticFunctionLibraries);
-        final var                  attributeCtx = constructAttributeContext(pips, staticPips);
-        PolicyRetrievalPointSource prpSource    = constructResourcesPolicyRetrievalPointSource(path);
-        return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider,
+        final var                  functionCtx = constructFunctionContext(functionLibraries, staticFunctionLibraries);
+        final var                  broker      = constructAttributeStreamBroker(pips, staticPips);
+        PolicyRetrievalPointSource prpSource   = constructResourcesPolicyRetrievalPointSource(path);
+        return new FixedFunctionsAndAttributesPDPConfigurationProvider(broker, functionCtx, combinatorProvider,
                 subscriptionInterceptors, authorizationSubscriptionInterceptors, prpSource);
     }
 
@@ -210,10 +213,10 @@ public class PolicyDecisionPointFactory {
             Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
             Collection<TracedDecisionInterceptor> authorizationSubscriptionInterceptors)
             throws InitializationException {
-        final var                  functionCtx  = constructFunctionContext(functionLibraries, staticFunctionLibraries);
-        final var                  attributeCtx = constructAttributeContext(pips, staticPips);
-        PolicyRetrievalPointSource prpSource    = constructFilesystemPolicyRetrievalPointSource(path);
-        return new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeCtx, functionCtx, combinatorProvider,
+        final var                  functionCtx = constructFunctionContext(functionLibraries, staticFunctionLibraries);
+        final var                  broker      = constructAttributeStreamBroker(pips, staticPips);
+        PolicyRetrievalPointSource prpSource   = constructFilesystemPolicyRetrievalPointSource(path);
+        return new FixedFunctionsAndAttributesPDPConfigurationProvider(broker, functionCtx, combinatorProvider,
                 subscriptionInterceptors, authorizationSubscriptionInterceptors, prpSource);
     }
 
@@ -228,15 +231,18 @@ public class PolicyDecisionPointFactory {
         return functionCtx;
     }
 
-    private static AttributeContext constructAttributeContext(PolicyInformationPointSupplier pips,
-            StaticPolicyInformationPointSupplier staticPips) throws InitializationException {
-        final var attributeCtx = new AnnotationAttributeContext();
-        attributeCtx.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
-        attributeCtx
-                .loadPolicyInformationPoint(new HttpPolicyInformationPoint(new ReactiveWebClient(new ObjectMapper())));
-        attributeCtx.loadPolicyInformationPoints(pips);
-        attributeCtx.loadPolicyInformationPoints(staticPips);
-        return attributeCtx;
+    private static AttributeStreamBroker constructAttributeStreamBroker(PolicyInformationPointSupplier pips,
+            StaticPolicyInformationPointSupplier staticPips) {
+        final var mapper                = new ObjectMapper();
+        final var attributeStreamBroker = new CachingAttributeStreamBroker();
+        final var docsProvider          = new InMemoryPolicyInformationPointDocumentationProvider();
+        final var loader                = new AnnotationPolicyInformationPointLoader(attributeStreamBroker,
+                docsProvider, new ValidatorFactory(mapper));
+        loader.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
+        loader.loadPolicyInformationPoint(new HttpPolicyInformationPoint(new ReactiveWebClient(mapper)));
+        loader.loadPolicyInformationPoints(pips);
+        loader.loadPolicyInformationPoints(staticPips);
+        return attributeStreamBroker;
     }
 
     private static PolicyRetrievalPointSource constructResourcesPolicyRetrievalPointSource(String resourcePath) {

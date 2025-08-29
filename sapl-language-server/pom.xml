@@ -29,6 +29,11 @@
 	</parent>
 	<artifactId>sapl-language-server</artifactId>
 	<name>SAPL Language server for policy files</name>
+	
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<!-- SAPL -->
 		<dependency>

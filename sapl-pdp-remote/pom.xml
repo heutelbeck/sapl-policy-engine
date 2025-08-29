@@ -36,8 +36,9 @@
 
 	<properties>
 		<version.testcontainers>1.20.4</version.testcontainers>
+		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
-
+	
 	<dependencyManagement>
 		<dependencies>
 			<dependency>

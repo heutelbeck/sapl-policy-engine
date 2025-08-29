@@ -36,9 +36,9 @@ import io.sapl.api.pip.EnvironmentAttribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
+import io.sapl.attributes.pips.http.ReactiveWebClient;
 import io.sapl.functions.geo.GeoJSONSchemata;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
-import io.sapl.pip.http.ReactiveWebClient;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 

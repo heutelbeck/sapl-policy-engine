@@ -26,11 +26,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
 import io.sapl.api.pip.PolicyInformationPointSupplier;
-import io.sapl.interpreter.pip.AnnotationAttributeContext;
-import io.sapl.interpreter.pip.AttributeContext;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 
 class AttributeContextAutoConfigurationTests {
 
@@ -39,28 +41,29 @@ class AttributeContextAutoConfigurationTests {
 
     @Test
     void whenContextLoaded_thenAFunctionContextIsPresent() {
-        contextRunner.run(context -> {
+        contextRunner.withBean(ObjectMapper.class, new ObjectMapper()).run(context -> {
             assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(AttributeContext.class);
+            assertThat(context).hasSingleBean(AttributeStreamBroker.class);
         });
     }
 
     @Test
     void whenAttributeContextIsPresent_thenDoNotLoadANewOne() {
-        contextRunner.withBean(AttributeContext.class, () -> mock(AttributeContext.class)).run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(context).hasSingleBean(AttributeContext.class);
-            assertThat(context).doesNotHaveBean(AnnotationAttributeContext.class);
-        });
+        contextRunner.withBean(ObjectMapper.class, new ObjectMapper())
+                .withBean(AttributeStreamBroker.class, () -> mock(AttributeStreamBroker.class)).run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(AttributeStreamBroker.class);
+                });
     }
 
     @Test
     void whenDefaultLibrariesArePresent_thenAFunctionContextIsPresentAndLoadedThem() {
         contextRunner.withConfiguration(AutoConfigurations.of(PolicyInformationPointsAutoConfiguration.class))
-                .run(context -> {
+                .withBean(ObjectMapper.class, new ObjectMapper()).run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(AttributeContext.class);
-                    assertThat(context.getBean(AttributeContext.class).isProvidedFunction("time.now")).isTrue();
+                    assertThat(context).hasSingleBean(AttributeStreamBroker.class);
+                    assertThat(context.getBean(PolicyInformationPointDocumentationProvider.class)
+                            .isProvidedFunction("time.now")).isTrue();
                 });
     }
 

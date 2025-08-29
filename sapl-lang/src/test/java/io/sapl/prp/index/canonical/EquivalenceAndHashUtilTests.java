@@ -29,24 +29,40 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Map;
 
 import org.eclipse.emf.common.util.EList;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.interpreter.DefaultSAPLInterpreter;
+
 class EquivalenceAndHashUtilTests {
-    private static final Map<String, String> EMPTY_MAP = Map.of();
+    private static final DefaultSAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
     @Test
     void testSemanticHash() throws Exception {
-        final var imports = Map.of("mock", "io.sapl.mock");
+        final var sapl1 = INTERPRETER.parse("""
+                policy "p1"
+                permit io.sapl.mock()
+                """);
 
-        final var expA = expression("io.sapl.mock()");
-        final var expB = expression("mock()");
+        final var sapl2 = INTERPRETER.parse("""
+                import io.sapl.mock
+                policy "p1"
+                permit mock()
+                """);
 
-        final var hashA = EquivalenceAndHashUtil.semanticHash(expA, imports);
-        final var hashB = EquivalenceAndHashUtil.semanticHash(expB, imports);
-        final var hashC = EquivalenceAndHashUtil.semanticHash(expB, EMPTY_MAP);
+        final var sapl3 = INTERPRETER.parse("""
+                policy "p1"
+                permit mock()
+                """);
+
+        final var expA = sapl1.getPolicyElement().getTargetExpression();
+        final var expB = sapl2.getPolicyElement().getTargetExpression();
+        final var expC = sapl3.getPolicyElement().getTargetExpression();
+
+        final var hashA = EquivalenceAndHashUtil.semanticHash(expA);
+        final var hashB = EquivalenceAndHashUtil.semanticHash(expB);
+        final var hashC = EquivalenceAndHashUtil.semanticHash(expC);
 
         assertThat(hashA, is(hashB));
         assertThat(hashA, not(is(hashC)));
@@ -56,10 +72,10 @@ class EquivalenceAndHashUtilTests {
         final var ent1 = entitlement("permit");
         final var ent2 = entitlement("deny");
 
-        final var hash1 = EquivalenceAndHashUtil.semanticHash(exp1, EMPTY_MAP);
-        final var hash2 = EquivalenceAndHashUtil.semanticHash(exp2, EMPTY_MAP);
-        final var hash3 = EquivalenceAndHashUtil.semanticHash(ent1, EMPTY_MAP);
-        final var hash4 = EquivalenceAndHashUtil.semanticHash(ent2, EMPTY_MAP);
+        final var hash1 = EquivalenceAndHashUtil.semanticHash(exp1);
+        final var hash2 = EquivalenceAndHashUtil.semanticHash(exp2);
+        final var hash3 = EquivalenceAndHashUtil.semanticHash(ent1);
+        final var hash4 = EquivalenceAndHashUtil.semanticHash(ent2);
 
         assertThat(hash1, is(hash2));
         assertThat(hash1, not(is(hash3)));
@@ -69,12 +85,21 @@ class EquivalenceAndHashUtilTests {
 
     @Test
     void testAreEquivalent() throws Exception {
-        final var imports = Map.of("mock", "io.sapl.mock");
+        final var sapl1 = INTERPRETER.parse("""
+                policy "p1"
+                permit io.sapl.mock()
+                """);
 
-        final var expA = expression("io.sapl.mock()");
-        final var expB = expression("mock()");
-        assertThat(EquivalenceAndHashUtil.areEquivalent(expA, imports, expB, imports), is(true));
-        assertThat(EquivalenceAndHashUtil.areEquivalent(expB, imports, expB, imports), is(true));
+        final var sapl2 = INTERPRETER.parse("""
+                import io.sapl.mock
+                policy "p1"
+                permit mock()
+                """);
+
+        final var expA = sapl1.getPolicyElement().getTargetExpression();
+        final var expB = sapl2.getPolicyElement().getTargetExpression();
+        assertThat(EquivalenceAndHashUtil.areEquivalent(expA, expB), is(true));
+        assertThat(EquivalenceAndHashUtil.areEquivalent(expB, expB), is(true));
 
         final var exp1 = expression("exp1");
         final var exp2 = expression("exp1");
@@ -82,20 +107,14 @@ class EquivalenceAndHashUtilTests {
         final var ent1 = entitlement("permit");
         final var ent2 = entitlement("deny");
 
-        assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, EMPTY_MAP, exp2, EMPTY_MAP), is(true));
-        assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, EMPTY_MAP, exp3, EMPTY_MAP), is(false));
-        assertThat(EquivalenceAndHashUtil.areEquivalent(ent1, EMPTY_MAP, ent1, EMPTY_MAP), is(true));
-        assertThat(EquivalenceAndHashUtil.areEquivalent(ent1, EMPTY_MAP, ent2, EMPTY_MAP), is(false));
-        assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, EMPTY_MAP, ent1, EMPTY_MAP), is(false));
+        assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, exp2), is(true));
+        assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, exp3), is(false));
+        assertThat(EquivalenceAndHashUtil.areEquivalent(ent1, ent1), is(true));
+        assertThat(EquivalenceAndHashUtil.areEquivalent(ent1, ent2), is(false));
+        assertThat(EquivalenceAndHashUtil.areEquivalent(exp1, ent1), is(false));
 
-        assertThrows(NullPointerException.class,
-                () -> EquivalenceAndHashUtil.areEquivalent(exp1, EMPTY_MAP, null, EMPTY_MAP));
-        assertThrows(NullPointerException.class,
-                () -> EquivalenceAndHashUtil.areEquivalent(null, EMPTY_MAP, exp2, EMPTY_MAP));
-        assertThrows(NullPointerException.class,
-                () -> EquivalenceAndHashUtil.areEquivalent(exp1, null, exp2, EMPTY_MAP));
-        assertThrows(NullPointerException.class,
-                () -> EquivalenceAndHashUtil.areEquivalent(exp1, EMPTY_MAP, exp2, null));
+        assertThrows(NullPointerException.class, () -> EquivalenceAndHashUtil.areEquivalent(exp1, null));
+        assertThrows(NullPointerException.class, () -> EquivalenceAndHashUtil.areEquivalent(null, exp2));
 
         assertThrows(NullPointerException.class, () -> new Literal((Bool) null));
 
@@ -107,17 +126,16 @@ class EquivalenceAndHashUtilTests {
         final var exp5   = expression("{\"a\":\"b\"}['a']");
         final var eList2 = mock(EList.class, RETURNS_DEEP_STUBS);
         when(eList2.size()).thenReturn(2);
-        assertThat(EquivalenceAndHashUtil.areEquivalent(exp4, EMPTY_MAP, exp5, EMPTY_MAP), is(true));
-        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(exp4, EMPTY_MAP, eList2, EMPTY_MAP), is(false));
+        assertThat(EquivalenceAndHashUtil.areEquivalent(exp4, exp5), is(true));
+        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(exp4, eList2), is(false));
     }
 
     @Test
     void testFeaturesAreEquivalent() throws IOException {
         final var objectMock = mock(Object.class);
-        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(objectMock, EMPTY_MAP, objectMock, EMPTY_MAP),
-                is(true));
+        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(objectMock, objectMock), is(true));
 
-        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(objectMock, EMPTY_MAP, null, EMPTY_MAP), is(false));
+        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(objectMock, null), is(false));
 
         final var eList1 = mock(EList.class, RETURNS_DEEP_STUBS);
         when(eList1.size()).thenReturn(1);
@@ -125,7 +143,7 @@ class EquivalenceAndHashUtilTests {
         final var eList2 = mock(EList.class, RETURNS_DEEP_STUBS);
         when(eList2.size()).thenReturn(2);
 
-        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, EMPTY_MAP, eList2, EMPTY_MAP), is(false));
+        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, eList2), is(false));
 
         final var iter1 = mock(Iterator.class);
         when(eList1.size()).thenReturn(2);
@@ -139,10 +157,10 @@ class EquivalenceAndHashUtilTests {
         when(iter2.hasNext()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(iter2.next()).thenReturn(objectMock, null, objectMock);
 
-        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, EMPTY_MAP, eList2, EMPTY_MAP), is(false));
+        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, eList2), is(false));
 
         final var expB = expression("mock()");
-        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, EMPTY_MAP, expB, EMPTY_MAP), is(false));
+        assertThat(EquivalenceAndHashUtil.featuresAreEquivalent(eList1, expB), is(false));
 
     }
 

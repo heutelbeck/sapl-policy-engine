@@ -69,7 +69,7 @@ public class EmbeddedPolicyDecisionPoint implements PolicyDecisionPoint {
     private Function<Context, Context> buildSubscriptionScopedContext(PDPConfiguration pdpConfiguration,
             AuthorizationSubscription authorizationSubscription) {
         return ctx -> {
-            ctx = AuthorizationContext.setAttributeContext(ctx, pdpConfiguration.attributeContext());
+            ctx = AuthorizationContext.setAttributeStreamBroker(ctx, pdpConfiguration.attributeStreamBroker());
             ctx = AuthorizationContext.setFunctionContext(ctx, pdpConfiguration.functionContext());
             ctx = AuthorizationContext.setVariables(ctx, pdpConfiguration.variables());
             ctx = AuthorizationContext.setSubscriptionVariables(ctx, authorizationSubscription);

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.test.SaplTestException;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
@@ -60,9 +61,7 @@ public class AttributeMockTiming implements AttributeMock {
     }
 
     @Override
-    public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, Val> variables, List<Flux<Val>> args) {
-        // ignore arguments
-
+    public Flux<Val> evaluate(AttributeFinderInvocation invocation) {
         this.mockRunInformation.saveCall(new MockCall());
 
         if (this.returnValues == null || this.timing == null) {
@@ -71,7 +70,7 @@ public class AttributeMockTiming implements AttributeMock {
 
         return Flux.interval(this.timing).map(number -> this.returnValues[number.intValue()])
                 .take(this.returnValues.length).map(val -> val.withTrace(AttributeMockTiming.class, true,
-                        Map.of("attributeName", Val.of(attributeName))));
+                        Map.of("attributeName", Val.of(invocation.attributeName()))));
     }
 
     @Override

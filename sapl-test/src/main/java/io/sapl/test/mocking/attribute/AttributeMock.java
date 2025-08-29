@@ -17,15 +17,13 @@
  */
 package io.sapl.test.mocking.attribute;
 
-import java.util.List;
-import java.util.Map;
-
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import reactor.core.publisher.Flux;
 
 public interface AttributeMock {
 
-    Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, Val> variables, List<Flux<Val>> args);
+    Flux<Val> evaluate(AttributeFinderInvocation invocation);
 
     void assertVerifications();
 

@@ -29,13 +29,13 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.ide.editor.contentassist.ContentAssistContext;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.documentation.api.FunctionType;
+import io.sapl.attributes.documentation.api.LibraryFunctionDocumentation;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.grammar.ide.contentassist.ContextAnalyzer.ContextAnalysisResult;
 import io.sapl.grammar.ide.contentassist.ProposalCreator.Proposal;
 import io.sapl.grammar.sapl.Import;
-import io.sapl.grammar.sapl.LibraryImport;
 import io.sapl.grammar.sapl.SAPL;
-import io.sapl.grammar.sapl.WildcardImport;
-import io.sapl.interpreter.pip.AttributeFinderMetadata;
 import io.sapl.interpreter.pip.LibraryEntryMetadata;
 import io.sapl.pdp.config.PDPConfiguration;
 import lombok.experimental.UtilityClass;
@@ -46,11 +46,12 @@ public class LibraryProposalsGenerator {
     public record DocumentedProposal(String proposal, String label, String documentation) {}
 
     public static Collection<Proposal> allEnvironmentAttributeSchemaExtensions(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new HashSet<Proposal>();
-        final var attributes = pdpConfiguration.attributeContext().getAttributeMetatata();
+        final var attributes = docsProvider.getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
-        attributes.stream().filter(AttributeFinderMetadata::isEnvironmentAttribute)
+        attributes.stream().filter(d -> d.type() == FunctionType.ENVIRONMENT_ATTRIBUTE)
                 .filter(function -> aliasNamesOfFunctionFromImports(function.fullyQualifiedName(), context)
                         .contains(analysis.functionName()))
                 .forEach(attribute -> proposals.addAll(entryForMetadata(analysis, attribute, variables)));
@@ -58,11 +59,12 @@ public class LibraryProposalsGenerator {
     }
 
     public static Collection<Proposal> allAttributeSchemaExtensions(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PDPConfiguration pdpConfiguration,
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new HashSet<Proposal>();
-        final var attributes = pdpConfiguration.attributeContext().getAttributeMetatata();
+        final var attributes = docsProvider.getAttributeMetatata();
         final var variables  = pdpConfiguration.variables();
-        attributes.stream().filter(attribute -> !attribute.isEnvironmentAttribute())
+        attributes.stream().filter(d -> d.type() == FunctionType.ATTRIBUTE)
                 .filter(function -> aliasNamesOfFunctionFromImports(function.fullyQualifiedName(), context)
                         .contains(analysis.functionName()))
                 .forEach(attribute -> proposals.addAll(entryForMetadata(analysis, attribute, variables)));
@@ -94,6 +96,19 @@ public class LibraryProposalsGenerator {
         return proposals;
     }
 
+    private List<Proposal> entryForMetadata(ContextAnalysisResult analysis, LibraryFunctionDocumentation metadata,
+            Map<String, Val> variables) {
+        final var proposals = new ArrayList<Proposal>();
+        final var schema    = metadata.returnTypeSchema();
+        if (null != schema) {
+            SchemaProposalsGenerator.getCodeTemplates("", schema, variables)
+                    .forEach(proposal -> ProposalCreator
+                            .createNormalizedEntry(proposal, analysis.prefix(), analysis.ctxPrefix())
+                            .ifPresent(proposals::add));
+        }
+        return proposals;
+    }
+
     /**
      * Generates documented proposals for all PDP deployed attribute (step) finders
      * including aliased alternatives based on potential imports.
@@ -101,17 +116,16 @@ public class LibraryProposalsGenerator {
      * @param analysis analysis of recommendation context
      * @param context The current ContentAssistContext context is needed to inspect
      * potentially defined imports in the document to resolve names correctly.
-     * @param pdpConfiguration The PDPConfiguration pdpConfiguration supplies the
-     * PIPs deployed in the PDP which supply the functions that can be used as
-     * proposals.
+     * @param docsProvider documentation provider PIPs deployed in the PDP which
+     * supply the functions that can be used as proposals.
      * @return a List of all attribute finder proposals with their aliased
      * alternatives based on imports.
      */
     public static Collection<Proposal> allAttributeFinders(ContextAnalysisResult analysis, ContentAssistContext context,
-            PDPConfiguration pdpConfiguration) {
+            PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new ArrayList<Proposal>();
-        final var attributes = pdpConfiguration.attributeContext().getAttributeMetatata();
-        attributes.stream().filter(a -> !a.isEnvironmentAttribute()).forEach(attribute -> proposals.addAll(
+        final var attributes = docsProvider.getAttributeMetatata();
+        attributes.stream().filter(d -> d.type() == FunctionType.ATTRIBUTE).forEach(attribute -> proposals.addAll(
                 documentedProposalsForLibraryEntry(analysis.prefix(), analysis.ctxPrefix(), attribute, context)));
         return proposals;
     }
@@ -123,17 +137,16 @@ public class LibraryProposalsGenerator {
      * @param analysis analysis of recommendation context
      * @param context The current ContentAssistContext context is needed to inspect
      * potentially defined imports in the document to resolve names correctly.
-     * @param pdpConfiguration The PDPConfiguration pdpConfiguration supplies the
-     * PIPs deployed in the PDP which supply the functions that can be used as
-     * proposals.
+     * @param docsProvider the documentation provider PIPs deployed in the PDP which
+     * supply the functions that can be used as proposals.
      * @return a List of all attribute finder proposals with their aliased
      * alternatives based on imports.
      */
     public static Collection<Proposal> allEnvironmentAttributeFinders(ContextAnalysisResult analysis,
-            ContentAssistContext context, PDPConfiguration pdpConfiguration) {
+            ContentAssistContext context, PolicyInformationPointDocumentationProvider docsProvider) {
         final var proposals  = new ArrayList<Proposal>();
-        final var attributes = pdpConfiguration.attributeContext().getAttributeMetatata();
-        attributes.stream().filter(AttributeFinderMetadata::isEnvironmentAttribute)
+        final var attributes = docsProvider.getAttributeMetatata();
+        attributes.stream().filter(d -> d.type() == FunctionType.ENVIRONMENT_ATTRIBUTE)
                 .forEach(attribute -> proposals.addAll(documentedProposalsForLibraryEntry(analysis.prefix(),
                         analysis.ctxPrefix(), attribute, context)));
         return proposals;
@@ -183,6 +196,15 @@ public class LibraryProposalsGenerator {
         return proposals;
     }
 
+    private static Collection<Proposal> documentedProposalsForLibraryEntry(String prefix, String ctxPrefix,
+            LibraryFunctionDocumentation function, ContentAssistContext context) {
+        final var proposals = new ArrayList<Proposal>();
+        final var aliases   = aliasNamesOfFunctionFromImports(function.fullyQualifiedName(), context);
+        aliases.forEach(alias -> ProposalCreator
+                .createNormalizedEntry(function.aliasCodeTemplate(alias), prefix, ctxPrefix).ifPresent(proposals::add));
+        return proposals;
+    }
+
     /**
      * Creates all aliases, including the original, names for a function or
      * attribute finder.
@@ -201,13 +223,7 @@ public class LibraryProposalsGenerator {
         if (context.getRootModel() instanceof final SAPL sapl) {
             final var imports = Objects.requireNonNullElse(sapl.getImports(), List.<Import>of());
             for (final var anImport : imports) {
-                if (anImport instanceof final WildcardImport wildcardImport) {
-                    wildcardAlias(wildcardImport, fullyQualifiedName).ifPresent(aliases::add);
-                } else if (anImport instanceof final LibraryImport libraryImport) {
-                    libraryImportAlias(libraryImport, fullyQualifiedName).ifPresent(aliases::add);
-                } else {
-                    importAlias(anImport, fullyQualifiedName).ifPresent(aliases::add);
-                }
+                resolveImport(anImport, fullyQualifiedName).ifPresent(aliases::add);
             }
         }
         return aliases;
@@ -221,50 +237,17 @@ public class LibraryProposalsGenerator {
      * @return an Optional containing an alias for the function, if the import was
      * applicable. Else returns empty Optional.
      */
-    private static Optional<String> importAlias(Import anImport, String fullyQualifiedName) {
-        final var steps        = anImport.getLibSteps();
-        final var functionName = anImport.getFunctionName();
-        final var prefix       = joinStepsToPrefix(steps) + functionName;
-        if (fullyQualifiedName.startsWith(prefix)) {
-            return Optional.of(fullyQualifiedName.replaceFirst(prefix, functionName));
-        } else {
-            return Optional.empty();
+    private static Optional<String> resolveImport(Import anImport, String fullyQualifiedName) {
+        final var steps                      = joinStepsToPrefix(anImport.getLibSteps());
+        final var functionName               = anImport.getFunctionName();
+        final var fullyQualifiedNameInImport = steps + functionName;
+        final var alias                      = anImport.getFunctionAlias();
+        if (null == alias && fullyQualifiedName.startsWith(steps) && functionName != null) {
+            return Optional.of(functionName);
+        } else if (fullyQualifiedName.equals(fullyQualifiedNameInImport)) {
+            return Optional.of(alias);
         }
-    }
-
-    /**
-     * Generates an alias for a fully qualified name if the import is applicable.
-     *
-     * @param anImport a library import statement
-     * @param fullyQualifiedName the original fully qualified name of the function
-     * @return an Optional containing an alias for the function, if the import was
-     * applicable. Else returns empty Optional.
-     */
-    private static Optional<String> libraryImportAlias(LibraryImport libraryImport, String fullyQualifiedName) {
-        final var shortPrefix = String.join(".", libraryImport.getLibSteps());
-        final var prefix      = shortPrefix + '.';
-        if (fullyQualifiedName.startsWith(prefix)) {
-            return Optional.of(fullyQualifiedName.replaceFirst(shortPrefix, libraryImport.getLibAlias()));
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Generates an alias for a fully qualified name if the import is applicable.
-     *
-     * @param anImport a wild-card import statement
-     * @param fullyQualifiedName the original fully qualified name of the function
-     * @return an Optional containing an alias for the function, if the import was
-     * applicable. Else returns empty Optional.
-     */
-    private static Optional<String> wildcardAlias(WildcardImport wildcardImport, String fullyQualifiedName) {
-        final var prefix = joinStepsToPrefix(wildcardImport.getLibSteps());
-        if (fullyQualifiedName.startsWith(prefix)) {
-            return Optional.of(fullyQualifiedName.replaceFirst(prefix, ""));
-        } else {
-            return Optional.empty();
-        }
+        return Optional.empty();
     }
 
     /**

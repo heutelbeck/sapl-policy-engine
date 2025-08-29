@@ -94,7 +94,7 @@
 		<jupiter.version>5.11.3</jupiter.version>
 		<assertj.version>3.26.3</assertj.version>
 		<flexmark.version>0.64.8</flexmark.version>
-		<springboot.version>3.5.3</springboot.version>
+		<springboot.version>3.5.5</springboot.version>
 		<reactor-netty.version>1.2.0</reactor-netty.version>
 		<spotify.hamcrest.version>1.3.2</spotify.hamcrest.version>
 		<json-unit-assertj.version>4.1.0</json-unit-assertj.version>
@@ -103,7 +103,7 @@
 		<!-- Maven Plug-Ins -->
 		<tycho.version>4.0.10</tycho.version>
 		<sb-contrib.version>7.6.8</sb-contrib.version>
-		<spdx-maven-plugin.version>0.7.4</spdx-maven-plugin.version>
+		<spdx-maven-plugin.version>1.0.3</spdx-maven-plugin.version>
 		<license-maven-plugin.version>4.6</license-maven-plugin.version>
 		<sonar-maven-plugin.version>5.0.0.4389</sonar-maven-plugin.version>
 		<maven-failsafe-plugin.version>3.5.2</maven-failsafe-plugin.version>
@@ -114,6 +114,9 @@
 
 		<!-- Base argLine for JDK21+ profiles -->
 		<argLine />
+		
+		<!-- Path to project/module with the license file -->
+		<main.basedir>${project.basedir}</main.basedir>
 	</properties>
 
 	<modules>
@@ -337,6 +340,13 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-dependency-plugin</artifactId>
 					<version>3.7.1</version>
+					<executions>
+				       <execution>
+				          <goals>
+				             <goal>properties</goal>
+				          </goals>
+				       </execution>
+				    </executions>
 				</plugin>
 				<plugin>
 					<groupId>org.springframework.boot</groupId>
@@ -410,6 +420,30 @@
 					<groupId>org.spdx</groupId>
 					<artifactId>spdx-maven-plugin</artifactId>
 					<version>${spdx-maven-plugin.version}</version>
+			        <configuration>
+				        <includeProvidedScope>false</includeProvidedScope>
+				        <includeTestScope>false</includeTestScope>
+				        <licenseOverwrites>
+	          				<licenseOverwrite>
+            						<target>declared</target>
+            						<groupId>jakarta.transaction</groupId>
+            						<artifactId>jakarta.transaction-api</artifactId>
+            						<licenseString>GPL-2.0-only WITH Classpath-exception-2.0</licenseString>
+          					</licenseOverwrite>
+        		  				<licenseOverwrite>
+	    		        				<target>declared</target>
+    		    		    				<groupId>jakarta.annotation</groupId>
+	    		        				<artifactId>jakarta.annotation-api</artifactId>
+            						<licenseString>GPL-2.0-only WITH Classpath-exception-2.0</licenseString>
+          					</licenseOverwrite>
+        		  				<licenseOverwrite>
+	    		        				<target>declared</target>
+    		    		    				<groupId>jakarta.servlet</groupId>
+	    		        				<artifactId>jakarta.servlet-api</artifactId>
+            						<licenseString>GPL-2.0-only WITH Classpath-exception-2.0</licenseString>
+          					</licenseOverwrite>          					
+			      		</licenseOverwrites>
+      				</configuration>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
@@ -504,7 +538,7 @@
 					<licenseSets>
 						<licenseSet>
 							<header>
-								${maven.multiModuleProjectDirectory}/APACHE-2.txt</header>
+								${main.basedir}/APACHE-2.txt</header>
 							<excludes>
 								<exclude>**/*.xtendbin</exclude>
 								<exclude>**/*._trace</exclude>

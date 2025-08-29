@@ -29,6 +29,10 @@
 	<name>SAPL Test</name>
 	<description>Contains all necessary tools for testing your SAPL policies</description>
 
+	<properties>
+		<main.basedir>${project.basedir}/../</main.basedir>
+	</properties>
+	
 	<dependencies>
 		<dependency>
 			<groupId>io.sapl</groupId>

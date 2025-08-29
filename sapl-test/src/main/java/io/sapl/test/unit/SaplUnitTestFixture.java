@@ -64,13 +64,13 @@ public class SaplUnitTestFixture extends SaplTestFixtureTemplate {
 
     @Override
     public GivenStep constructTestCaseWithMocks() {
-        return StepBuilder.newBuilderAtGivenStep(documentRetriever.get(), this.attributeCtx, this.functionCtx,
+        return StepBuilder.newBuilderAtGivenStep(documentRetriever.get(), this.attributeStreamBroker, this.functionCtx,
                 this.variables);
     }
 
     @Override
     public WhenStep constructTestCase() {
-        return StepBuilder.newBuilderAtWhenStep(documentRetriever.get(), this.attributeCtx, this.functionCtx,
+        return StepBuilder.newBuilderAtWhenStep(documentRetriever.get(), this.attributeStreamBroker, this.functionCtx,
                 this.variables);
     }
 

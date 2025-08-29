@@ -102,16 +102,15 @@ public class TimesParameterCalledVerification implements MockingVerification {
                 .allMatch(Boolean::booleanValue);
     }
 
-    private List<Boolean> listCombiner(List<Matcher<Val>> list1, List<Val> list2,
-            BiPredicate<Matcher<Val>, Val> combiner) {
-        if (list1.size() != list2.size()) {
+    private List<Boolean> listCombiner(List<Matcher<Val>> list1, Val[] list2, BiPredicate<Matcher<Val>, Val> combiner) {
+        if (list1.size() != list2.length) {
             throw new SaplTestException(
                     "Number of parameters in the mock call is not equals the number of provided parameter matcher!");
         }
 
         List<Boolean> result = new ArrayList<>(list1.size());
         for (int i = 0; i < list1.size(); i++) {
-            result.add(combiner.test(list1.get(i), list2.get(i)));
+            result.add(combiner.test(list1.get(i), list2[i]));
         }
         return result;
     }

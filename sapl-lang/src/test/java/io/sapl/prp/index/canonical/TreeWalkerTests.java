@@ -23,8 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
-
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -102,27 +100,27 @@ class TreeWalkerTests {
 
     private void verifyTraverseCalledWalk(BasicGroup group) {
         try (MockedStatic<TreeWalker> mock = mockStatic(TreeWalker.class)) {
-            mock.when(() -> TreeWalker.walk(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
-            mock.when(() -> TreeWalker.traverse(any(), any())).thenCallRealMethod();
-            mock.when(() -> TreeWalker.endRecursion(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
+            mock.when(() -> TreeWalker.walk(any())).thenReturn(mock(DisjunctiveFormula.class));
+            mock.when(() -> TreeWalker.traverse(any())).thenCallRealMethod();
+            mock.when(() -> TreeWalker.endRecursion(any())).thenReturn(mock(DisjunctiveFormula.class));
 
-            TreeWalker.traverse(group, Collections.emptyMap());
+            TreeWalker.traverse(group);
 
-            mock.verify(() -> TreeWalker.traverse(any(), any()));
-            mock.verify(() -> TreeWalker.walk(any(), any()));
+            mock.verify(() -> TreeWalker.traverse(any()));
+            mock.verify(() -> TreeWalker.walk(any()));
         }
     }
 
     private void verifyTraverseCalledEndRecursion(BasicGroup group) {
         try (MockedStatic<TreeWalker> mock = mockStatic(TreeWalker.class)) {
-            mock.when(() -> TreeWalker.walk(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
-            mock.when(() -> TreeWalker.traverse(any(), any())).thenCallRealMethod();
-            mock.when(() -> TreeWalker.endRecursion(any(), any())).thenReturn(mock(DisjunctiveFormula.class));
+            mock.when(() -> TreeWalker.walk(any())).thenReturn(mock(DisjunctiveFormula.class));
+            mock.when(() -> TreeWalker.traverse(any())).thenCallRealMethod();
+            mock.when(() -> TreeWalker.endRecursion(any())).thenReturn(mock(DisjunctiveFormula.class));
 
-            TreeWalker.traverse(group, Collections.emptyMap());
+            TreeWalker.traverse(group);
 
-            mock.verify(() -> TreeWalker.traverse(any(), any()));
-            mock.verify(() -> TreeWalker.endRecursion(any(), any()));
+            mock.verify(() -> TreeWalker.traverse(any()));
+            mock.verify(() -> TreeWalker.endRecursion(any()));
         }
     }
 

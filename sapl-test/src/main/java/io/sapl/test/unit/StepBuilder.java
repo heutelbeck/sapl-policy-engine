@@ -24,34 +24,36 @@ import java.util.function.Function;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.DocumentEvaluationResult;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.interpreter.pip.AttributeContext;
 import io.sapl.prp.Document;
-import io.sapl.test.mocking.attribute.MockingAttributeContext;
+import io.sapl.test.mocking.attribute.MockingAttributeStreamBroker;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.steps.AttributeMockReturnValues;
 import io.sapl.test.steps.GivenStep;
 import io.sapl.test.steps.StepsDefaultImpl;
 import io.sapl.test.steps.WhenStep;
+import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
 /**
  * Implementing a Step Builder Pattern to construct test cases.
- *
  */
+@UtilityClass
 class StepBuilder {
 
     /**
      * Create Builder starting at the Given-Step. Only for internal usage.
      *
-     * @param document containing the {@link SAPL} policy to evaluate
+     * @param document containing the {@link io.sapl.grammar.sapl.SAPL} policy to
+     * evaluate
      * @return {@link GivenStep} to start constructing the test case.
      */
-    static GivenStep newBuilderAtGivenStep(Document document, AttributeContext attrCtx, FunctionContext funcCtx,
+    static GivenStep newBuilderAtGivenStep(Document document, AttributeStreamBroker attrCtx, FunctionContext funcCtx,
             Map<String, Val> variables) {
         return new Steps(document, attrCtx, funcCtx, variables);
     }
@@ -59,16 +61,13 @@ class StepBuilder {
     /**
      * Create Builder starting at the When-Step. Only for internal usage.
      *
-     * @param document containing the {@link SAPL} policy to evaluate
+     * @param document containing the {@link io.sapl.grammar.sapl.SAPL} policy to
+     * evaluate
      * @return {@link WhenStep} to start constructing the test case.
      */
-    static WhenStep newBuilderAtWhenStep(Document document, AttributeContext attrCtx, FunctionContext funcCtx,
+    static WhenStep newBuilderAtWhenStep(Document document, AttributeStreamBroker attrCtx, FunctionContext funcCtx,
             Map<String, Val> variables) {
         return new Steps(document, attrCtx, funcCtx, variables);
-    }
-
-    // disable default constructor
-    private StepBuilder() {
     }
 
     /**
@@ -79,12 +78,12 @@ class StepBuilder {
 
         final Document document;
 
-        Steps(Document document, AttributeContext attrCtx, FunctionContext funcCtx, Map<String, Val> variables) {
-            this.document                = document;
-            this.mockingFunctionContext  = new MockingFunctionContext(funcCtx);
-            this.mockingAttributeContext = new MockingAttributeContext(attrCtx);
-            this.variables               = variables;
-            this.mockedAttributeValues   = new LinkedList<>();
+        Steps(Document document, AttributeStreamBroker attrCtx, FunctionContext funcCtx, Map<String, Val> variables) {
+            this.document                     = document;
+            this.mockingFunctionContext       = new MockingFunctionContext(funcCtx);
+            this.mockingAttributeStreamBroker = new MockingAttributeStreamBroker(attrCtx);
+            this.variables                    = variables;
+            this.mockedAttributeValues        = new LinkedList<>();
         }
 
         @Override
@@ -104,7 +103,7 @@ class StepBuilder {
                 for (AttributeMockReturnValues mock : this.mockedAttributeValues) {
                     String fullName = mock.getFullName();
                     for (Val val : mock.getMockReturnValues()) {
-                        this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(fullName, val));
+                        this.steps = this.steps.then(() -> this.mockingAttributeStreamBroker.mockEmit(fullName, val));
                     }
                 }
             } else {
@@ -114,7 +113,7 @@ class StepBuilder {
 
         private Function<Context, Context> setUpContext(AuthorizationSubscription authzSub) {
             return ctx -> {
-                ctx = AuthorizationContext.setAttributeContext(ctx, this.mockingAttributeContext);
+                ctx = AuthorizationContext.setAttributeStreamBroker(ctx, this.mockingAttributeStreamBroker);
                 ctx = AuthorizationContext.setFunctionContext(ctx, this.mockingFunctionContext);
                 ctx = AuthorizationContext.setVariables(ctx, this.variables);
                 ctx = AuthorizationContext.setSubscriptionVariables(ctx, authzSub);

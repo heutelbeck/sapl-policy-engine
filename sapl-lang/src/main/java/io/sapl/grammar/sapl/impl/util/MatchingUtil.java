@@ -21,7 +21,6 @@ import org.eclipse.emf.ecore.EObject;
 
 import io.sapl.api.interpreter.Val;
 import io.sapl.grammar.sapl.Expression;
-import io.sapl.grammar.sapl.PolicyElement;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Mono;
 
@@ -42,14 +41,15 @@ public class MatchingUtil {
             return Mono.just(Val.TRUE);
         }
 
-        return targetExpression.evaluate().contextWrite(ctx -> ImportsUtil.loadImportsIntoContext(startObject, ctx))
-                .onErrorResume(error -> Mono.just(ErrorFactory.error(targetExpression, error))).next()
-                .defaultIfEmpty(Val.FALSE).flatMap(result -> {
+        return targetExpression.evaluate()
+                .onErrorResume(error -> Mono
+                        .just(ErrorFactory.error(targetExpression, error).withTrace(startObject.getClass())))
+                .next().defaultIfEmpty(Val.FALSE).flatMap(result -> {
                     if (result.isError() || !result.isBoolean()) {
                         return Mono.just(ErrorFactory.error(targetExpression, CONDITION_NOT_BOOLEAN_ERROR, result)
-                                .withTrace(PolicyElement.class, false, result));
+                                .withTrace(startObject.getClass(), true, result));
                     }
-                    return Mono.just(result);
+                    return Mono.just(result.withTrace(startObject.getClass(), true, result));
                 });
     }
 }

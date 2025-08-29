@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.sapl.api.interpreter.Val;
+import io.sapl.attributes.broker.api.AttributeFinderInvocation;
 import io.sapl.test.mocking.MockCall;
 import io.sapl.test.verification.MockRunInformation;
 import io.sapl.test.verification.MockingVerification;
@@ -61,10 +62,10 @@ public class AttributeMockPublisher implements AttributeMock {
     }
 
     @Override
-    public Flux<Val> evaluate(String attributeName, Val parentValue, Map<String, Val> variables, List<Flux<Val>> args) {
+    public Flux<Val> evaluate(AttributeFinderInvocation invocation) {
         this.mockRunInformation.saveCall(new MockCall());
         return this.returnFlux.map(val -> val.withTrace(AttributeMockPublisher.class, true,
-                Map.of("attributeName", Val.of(attributeName))));
+                Map.of("attributeName", Val.of(invocation.attributeName()))));
     }
 
     @Override

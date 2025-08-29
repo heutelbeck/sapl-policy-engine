@@ -97,15 +97,7 @@ class SAPLSyntaxErrorMessageProviderTests {
         String testPolicy = "import ";
         SAPL   policy     = this.parseHelper.parse(testPolicy);
         this.validator.assertError(policy, SaplPackage.eINSTANCE.getSAPL(), Diagnostic.SYNTAX_DIAGNOSTIC,
-                SAPLSyntaxErrorMessageProvider.INCOMPLETE_IMPORT_ERROR);
-    }
-
-    @Test
-    void incompleteImport_LibraryImportReturnsHintToProvideAliasSetOrPolicy() throws Exception {
-        String testPolicy = "import clock as abc";
-        SAPL   policy     = this.parseHelper.parse(testPolicy);
-        this.validator.assertError(policy, SaplPackage.eINSTANCE.getLibraryImport(), Diagnostic.SYNTAX_DIAGNOSTIC,
-                SAPLSyntaxErrorMessageProvider.INCOMPLETE_IMPORT_ALIAS_SET_POLICY_ERROR);
+                SAPLSyntaxErrorMessageProvider.INCOMPLETE_DOCUMENT_ERROR);
     }
 
     @Test

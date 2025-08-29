@@ -39,9 +39,9 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.test.SaplTestException;
-import io.sapl.test.mocking.attribute.MockingAttributeContext;
+import io.sapl.test.mocking.attribute.MockingAttributeStreamBroker;
+import io.sapl.test.mocking.attribute.models.AttributeEntityValueMatcher;
 import io.sapl.test.mocking.attribute.models.AttributeParameters;
-import io.sapl.test.mocking.attribute.models.AttributeParentValueMatcher;
 import io.sapl.test.mocking.function.MockingFunctionContext;
 import io.sapl.test.mocking.function.models.FunctionParameters;
 import io.sapl.test.verification.TimesCalledVerification;
@@ -58,7 +58,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
     protected static final String ERROR_EXPECT_VIRTUAL_TIME_REGISTRATION_BEFORE_TIMING_ATTRIBUTE_MOCK = "Error expecting to register the Virtual-Time-Mode before mocking an attribute emitting timed values. Did you forget to call \".withVirtualTime()\" first?";
 
-    protected MockingAttributeContext mockingAttributeContext;
+    protected MockingAttributeStreamBroker mockingAttributeStreamBroker;
 
     protected MockingFunctionContext mockingFunctionContext;
 
@@ -129,7 +129,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
     @Override
     public GivenOrWhenStep givenAttribute(String importName, Val... returns) {
-        this.mockingAttributeContext.markAttributeMock(importName);
+        this.mockingAttributeStreamBroker.markAttributeMock(importName);
         this.mockedAttributeValues.add(AttributeMockReturnValues.of(importName, List.of(returns)));
         return this;
     }
@@ -139,26 +139,26 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
         if (!this.withVirtualTime) {
             throw new SaplTestException(ERROR_EXPECT_VIRTUAL_TIME_REGISTRATION_BEFORE_TIMING_ATTRIBUTE_MOCK);
         }
-        this.mockingAttributeContext.loadAttributeMock(importName, timing, returns);
+        this.mockingAttributeStreamBroker.loadAttributeMock(importName, timing, returns);
         return this;
     }
 
     @Override
     public GivenOrWhenStep givenAttribute(String importName) {
-        this.mockingAttributeContext.markAttributeMock(importName);
+        this.mockingAttributeStreamBroker.markAttributeMock(importName);
         return this;
     }
 
     @Override
-    public GivenOrWhenStep givenAttribute(String importName, AttributeParentValueMatcher parentValueMatcher,
+    public GivenOrWhenStep givenAttribute(String importName, AttributeEntityValueMatcher parentValueMatcher,
             Val returns) {
-        this.mockingAttributeContext.loadAttributeMockForParentValue(importName, parentValueMatcher, returns);
+        this.mockingAttributeStreamBroker.loadAttributeMockForEntityValue(importName, parentValueMatcher, returns);
         return this;
     }
 
     @Override
     public GivenOrWhenStep givenAttribute(String importName, AttributeParameters parameters, Val returns) {
-        this.mockingAttributeContext.loadAttributeMockForParentValueAndArguments(importName, parameters, returns);
+        this.mockingAttributeStreamBroker.loadAttributeMockForParentValueAndArguments(importName, parameters, returns);
         return this;
 
     }
@@ -328,7 +328,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
 
     @Override
     public ExpectOrVerifyStep thenAttribute(String importName, Val returns) {
-        this.steps = this.steps.then(() -> this.mockingAttributeContext.mockEmit(importName, returns));
+        this.steps = this.steps.then(() -> this.mockingAttributeStreamBroker.mockEmit(importName, returns));
         return this;
     }
 
@@ -347,7 +347,7 @@ public abstract class StepsDefaultImpl implements GivenStep, WhenStep, GivenOrWh
     @Override
     public void verify() {
         this.steps.thenCancel().verify(Duration.ofSeconds(10));
-        this.mockingAttributeContext.assertVerifications();
+        this.mockingAttributeStreamBroker.assertVerifications();
         this.mockingFunctionContext.assertVerifications();
 
     }
