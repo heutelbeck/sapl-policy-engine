@@ -3,7 +3,7 @@
  * by means of json web tokens (JWT) through the Spring Security 
  * webflux filter chain.
  */
-import filter.*
+import filter.blacken
 
 set "api_filter_jwt_set"
 first-applicable
