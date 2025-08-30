@@ -46,7 +46,7 @@ For an explanation, overview, and documentation about the SAPL project look up o
 
 To get started with integrating SAPL into your Java application, add the following reference to your build tool project definition.
 
-**We recommend using the SNAPSHOT version as the latest stable version is outdated.**
+**We recommend using the latest release for stability or the SNAPSHOT version if you want to be up-to-date with the latest new features.**
 
 **Maven**
 
