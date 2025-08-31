@@ -17,10 +17,21 @@
  */
 package io.sapl.attributes.documentation.api;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import lombok.NonNull;
 
 public record LibraryDocumentation(@NonNull LibraryType type, @NonNull String namespace,
         @NonNull String descriptionMarkdown, @NonNull String documentationMarkdown,
-        @NonNull List<LibraryFunctionDocumentation> attributes) {}
+        @NonNull List<LibraryFunctionDocumentation> attributes) {
+
+    public Map<String, String> attributesMap() {
+        final var map = new HashMap<String, String>();
+        for (var attribute : attributes) {
+            map.put(attribute.attributeName(), attribute.documentationMarkdown());
+        }
+        return map;
+    }
+}

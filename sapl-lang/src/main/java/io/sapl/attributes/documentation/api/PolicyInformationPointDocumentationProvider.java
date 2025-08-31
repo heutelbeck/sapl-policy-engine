@@ -17,6 +17,7 @@
  */
 package io.sapl.attributes.documentation.api;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -46,5 +47,5 @@ public interface PolicyInformationPointDocumentationProvider {
 
     Map<String, String> getDocumentedAttributeCodeTemplates();
 
-    List<LibraryDocumentation> getDocumentation();
+    Collection<LibraryDocumentation> getDocumentation();
 }
