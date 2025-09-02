@@ -79,7 +79,8 @@ Feeling experimental? Use our snapshots for the newest development state!
 <!-- Eclipse -->
 ### SAPL Eclipse Plug-in
 
-Get code editing support in Eclipse by installing the SAPL Plug-in: [![Drag to your running Eclipse* workspace. *Requires Eclipse Marketplace Client](https://marketplace.eclipse.org/modules/custom/eclipsefdn/eclipsefdn_marketplace/images/btn-install.svg)](/marketplace-client-intro?mpc_install=5795798"Drag to your running Eclipse* workspace. *Requires Eclipse Marketplace Client")
+Get code editing support in Eclipse by installing the SAPL Plug-in: [![Drag to your running Eclipse* workspace. *Requires Eclipse Marketplace Client](https://marketplace.eclipse.org/modules/custom/eclipsefdn/eclipsefdn_marketplace/images/btn-install.svg)](/marketplace-client-intro?mpc_install=5795798 "Drag to your running Eclipse* workspace. *Requires Eclipse Marketplace Client")
+
 
 ### IntelliJ IDEA Plug-in
 
