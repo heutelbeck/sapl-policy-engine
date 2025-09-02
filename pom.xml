@@ -95,7 +95,9 @@
 		<assertj.version>3.26.3</assertj.version>
 		<flexmark.version>0.64.8</flexmark.version>
 		<springboot.version>3.5.5</springboot.version>
+        <commons-lang.version>3.18.0</commons-lang.version>
 		<reactor-netty.version>1.2.0</reactor-netty.version>
+        <nimbus-jose-jwt.version>9.37.4</nimbus-jose-jwt.version>
 		<spotify.hamcrest.version>1.3.2</spotify.hamcrest.version>
 		<json-unit-assertj.version>4.1.0</json-unit-assertj.version>
 		<json-schema-validator.version>1.5.4</json-schema-validator.version>
@@ -298,6 +300,19 @@
 				<artifactId>flexmark-all</artifactId>
 				<version>${flexmark.version}</version>
 			</dependency>
+			<!-- Utility Libraries -->
+			<dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang.version}</version>
+            </dependency>
+            <!-- JSON Web Token Support -->
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${nimbus-jose-jwt.version}</version>
+            </dependency>
+
 		</dependencies>
 	</dependencyManagement>
 	<build>

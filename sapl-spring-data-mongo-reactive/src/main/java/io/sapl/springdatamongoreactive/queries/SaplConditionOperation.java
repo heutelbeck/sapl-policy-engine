@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.repository.query.parser.Part;
@@ -166,7 +166,7 @@ public class SaplConditionOperation {
      * @return the index at which the keyword occurs.
      */
     private int getIndexIfSourceContainsAnyKeyword(String methodName) {
-        return StringUtils.indexOf(methodName, "OrderBy");
+        return Strings.CS.indexOf(methodName, "OrderBy");
     }
 
     /**

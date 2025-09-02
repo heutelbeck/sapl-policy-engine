@@ -60,7 +60,6 @@
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>nimbus-jose-jwt</artifactId>
-			<version>10.4.2</version>
 		</dependency>
 
 		<!-- XPath-like JSON Parser -->
