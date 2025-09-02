@@ -47,7 +47,7 @@ public class LoginView extends LoginOverlay implements BeforeEnterObserver {
     private final AuthenticatedUser authenticatedUser;
 
     @PostConstruct
-    void init() {
+    void initialize() {
         setAction(RouteUtil.getRoutePath(VaadinService.getCurrent().getContext(), getClass()));
 
         final var i18n = LoginI18n.createDefault();
