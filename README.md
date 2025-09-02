@@ -195,7 +195,7 @@ Distributed under the Apache 2.0 License. See [LICENSE.md](./LICENSE.md) for mor
 [security-rating-url]: https://sonarcloud.io/summary/new_code?id=heutelbeck_sapl-policy-engine
 [maven-central-shield]: https://img.shields.io/maven-central/v/io.sapl/sapl-lang
 [maven-central-url]: https://mvnrepository.com/artifact/io.sapl
-[snapshot-shield]: https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fs01.oss.sonatype.org%2Fcontent%2Frepositories%2Fsnapshots%2Fio%2Fsapl%2Fsapl-policy-engine%2Fmaven-metadata.xml
+[snapshot-shield]: https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fcentral.sonatype.com%2Fcontent%2Frepository%2Fmaven-snapshots%2Fio%2Fsapl%2Fsapl-policy-engine%2Fmaven-metadata.xml
 [snapshot-url]: https://central.sonatype.com/repository/maven-snapshots/io/sapl
 
 [website-url]: https://sapl.io
