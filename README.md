@@ -28,7 +28,10 @@
 [![SonarCloud Status][sonarcloud-status-shield]][sonarcloud-status-url]
 [![Security Rating][security-rating-shield]][security-rating-url]
 [![Maven Central][maven-central-shield]][maven-central-url]
-[![Maven Snapshots][snapshot-shield]][snapshot-url]
+[![Maven Snapshot](https://img.shields.io/badge/dynamic/xml
+  ?url=https%3A%2F%2Fcentral.sonatype.com%2Frepository%2Fmaven-snapshots%2Fio%2Fsapl%2Fsapl-lang%2Fmaven-metadata.xml
+  &query=%2Fmetadata%2Fversioning%2Flatest
+  &label=snapshot)](https://central.sonatype.com/artifact/io.sapl/sapl-lang)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/heutelbeck/sapl-policy-engine/badge)](https://securityscorecards.dev/viewer/?uri=github.com/heutelbeck/sapl-policy-engine)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8298/badge?cache-control=no-cache)](https://www.bestpractices.dev/projects/8298)
 
@@ -195,8 +198,6 @@ Distributed under the Apache 2.0 License. See [LICENSE.md](./LICENSE.md) for mor
 [security-rating-url]: https://sonarcloud.io/summary/new_code?id=heutelbeck_sapl-policy-engine
 [maven-central-shield]: https://img.shields.io/maven-central/v/io.sapl/sapl-lang
 [maven-central-url]: https://mvnrepository.com/artifact/io.sapl
-[snapshot-shield]: https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fcentral.sonatype.com%2Fcontent%2Frepository%2Fmaven-snapshots%2Fio%2Fsapl%2Fsapl-policy-engine%2Fmaven-metadata.xml
-[snapshot-url]: https://central.sonatype.com/repository/maven-snapshots/io/sapl](https://central.sonatype.com/artifact/io.sapl/sapl-lang
 
 [website-url]: https://sapl.io
 [demos-url]: https://github.com/heutelbeck/sapl-demos
