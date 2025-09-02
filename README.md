@@ -30,7 +30,7 @@
 [![Maven Central][maven-central-shield]][maven-central-url]
 [![Maven Snapshots][snapshot-shield]][snapshot-url]
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/heutelbeck/sapl-policy-engine/badge)](https://securityscorecards.dev/viewer/?uri=github.com/heutelbeck/sapl-policy-engine)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8298/badge)](https://www.bestpractices.dev/projects/8298)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8298/badge?cache-control=no-cache)](https://www.bestpractices.dev/projects/8298)
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
