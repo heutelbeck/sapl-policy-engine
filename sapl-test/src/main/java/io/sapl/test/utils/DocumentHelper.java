@@ -19,11 +19,14 @@ package io.sapl.test.utils;
 
 import java.nio.file.Files;
 
+import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.Document;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @UtilityClass
 public class DocumentHelper {
     public static Document readSaplDocument(final String saplDocumentName, final SAPLInterpreter saplInterpreter) {
@@ -39,8 +42,11 @@ public class DocumentHelper {
         if (input == null || input.isEmpty()) {
             return null;
         }
-
-        return saplInterpreter.parseDocument(input);
+        final var document = saplInterpreter.parseDocument(input);
+        if (document.isInvalid()) {
+            throw new PolicyEvaluationException(document.errorMessage());
+        }
+        return document;
     }
 
     private static String constructFileEnding(final String filename) {
