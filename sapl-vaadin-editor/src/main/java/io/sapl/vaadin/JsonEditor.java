@@ -17,17 +17,17 @@
  */
 package io.sapl.vaadin;
 
-import com.vaadin.flow.component.ComponentEvent;
-import com.vaadin.flow.component.ComponentEventListener;
-import com.vaadin.flow.component.DomEvent;
-import com.vaadin.flow.component.EventData;
-import com.vaadin.flow.component.Tag;
-import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.shared.Registration;
 import io.sapl.api.SaplVersion;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * A JSON Editor component with syntax highlighting and linting.
@@ -40,7 +40,6 @@ import io.sapl.api.SaplVersion;
  */
 @Tag("json-editor")
 @JsModule("./json-editor.js")
-@CssImport("codemirror/addon/merge/merge.css")
 @NpmPackage(value = "jsonlint-webpack", version = "1.1.0")
 @NpmPackage(value = "jquery", version = "3.7.1")
 @NpmPackage(value = "codemirror", version = "5.65.16")
@@ -85,30 +84,29 @@ public class JsonEditor extends BaseEditor {
     }
 
     /**
-     * Enables or disables merge mode. The right-hand side shows the content
-     * previously provided
-     * via {@link #setMergeRightContent(String)} (empty if not set).
+     * Enables or disables merge mode. When called before the client side is
+     * attached,
+     * the flag is stored and respected on first render.
+     *
+     * @param enabled whether merge mode should be enabled
      */
     public void setMergeModeEnabled(boolean enabled) {
-        // Set a property so the Lit element sees it before firstUpdated()
         getElement().setProperty("mergeEnabled", enabled);
-        // If already attached, switch immediately
         getElement().callJsFunction("setMergeModeEnabled", enabled);
     }
 
     /**
-     * Enables merge mode. The right-hand side shows the content previously provided
-     * via {@link #setMergeRightContent(String)} (empty if not set).
+     * Enables merge mode.
      */
     public void enableMerge() {
-        setMergeModeEnabled(false);
+        setMergeModeEnabled(true);
     }
 
     /**
-     * Disables merge mode and returns to a single-editor view.
+     * Disables merge mode.
      */
     public void disableMerge() {
-        setMergeModeEnabled(true);
+        setMergeModeEnabled(false);
     }
 
     /**
@@ -153,6 +151,93 @@ public class JsonEditor extends BaseEditor {
     }
 
     /**
+     * Enables or disables additional change markers (gutter and line highlights).
+     *
+     * @param enabled whether change markers are enabled
+     */
+    public void setChangeMarkersEnabled(boolean enabled) {
+        getElement().callJsFunction("enableChangeMarkers", enabled);
+    }
+
+    /**
+     * Navigates to the next change.
+     */
+    public void nextChange() {
+        getElement().callJsFunction("nextChange");
+    }
+
+    /**
+     * Navigates to the previous change.
+     */
+    public void prevChange() {
+        getElement().callJsFunction("prevChange");
+    }
+
+    /**
+     * Navigates to the first change.
+     */
+    public void firstChange() {
+        getElement().callJsFunction("firstChange");
+    }
+
+    /**
+     * Navigates to the last change.
+     */
+    public void lastChange() {
+        getElement().callJsFunction("lastChange");
+    }
+
+    /**
+     * Scrolls to the change at the given index in the current diff chunk list.
+     *
+     * @param index zero-based change index
+     */
+    public void scrollToChange(int index) {
+        getElement().callJsFunction("scrollToChange", index);
+    }
+
+    /**
+     * Allows or disallows editing the original (right) pane.
+     *
+     * @param enabled true to allow editing originals
+     */
+    public void setAllowEditingOriginals(boolean enabled) {
+        getElement().callJsFunction("setMergeOption", "allowEditingOriginals", enabled);
+    }
+
+    /**
+     * Sets the number of context lines to keep when collapsing identical sections.
+     * Use a value less than or equal to zero to disable collapsing.
+     *
+     * @param contextLines number of context lines, or 0/negative to disable
+     */
+    public void setCollapseContext(int contextLines) {
+        if (contextLines <= 0) {
+            getElement().callJsFunction("setMergeOption", "collapseIdentical", false);
+        } else {
+            getElement().callJsFunction("setMergeOption", "collapseIdentical", contextLines);
+        }
+    }
+
+    /**
+     * Enables or disables difference highlighting.
+     *
+     * @param enabled whether differences are highlighted
+     */
+    public void setShowDifferences(boolean enabled) {
+        getElement().callJsFunction("setMergeOption", "showDifferences", enabled);
+    }
+
+    /**
+     * Enables or disables aligned connectors between panes.
+     *
+     * @param align true to use aligned connectors
+     */
+    public void setConnectAlign(boolean align) {
+        getElement().callJsFunction("setMergeOption", "connect", align ? "align" : null);
+    }
+
+    /**
      * Registers a listener that is notified when merge mode is toggled on or off.
      *
      * @param listener listener instance
@@ -163,14 +248,13 @@ public class JsonEditor extends BaseEditor {
     }
 
     /**
-     * Registers a listener that is notified when a changed chunk is copied or
-     * reverted.
+     * Registers a listener that is notified when the set of diff chunks changes.
      *
      * @param listener listener instance
      * @return registration handle
      */
-    public Registration addMergeChunkRevertedListener(ComponentEventListener<MergeChunkRevertedEvent> listener) {
-        return addListener(MergeChunkRevertedEvent.class, listener);
+    public Registration addDiffChunksChangedListener(ComponentEventListener<DiffChunksChangedEvent> listener) {
+        return addListener(DiffChunksChangedEvent.class, listener);
     }
 
     /**
@@ -187,67 +271,51 @@ public class JsonEditor extends BaseEditor {
             this.active = active;
         }
 
+        /**
+         * Indicates whether merge mode is active.
+         *
+         * @return true if active, false otherwise
+         */
         public boolean isActive() {
             return active;
         }
     }
 
     /**
-     * Event fired when a changed chunk is reverted or copied.
+     * Event fired when the diff chunks are recalculated.
      */
-    @DomEvent("sapl-merge-chunk-reverted")
-    public static class MergeChunkRevertedEvent extends ComponentEvent<JsonEditor> {
-        private final int    fromLine;
-        private final int    toLine;
-        private final String direction;
+    /**
+     * Event fired when the diff chunks are recalculated.
+     */
+    @DomEvent("sapl-merge-chunks")
+    public static class DiffChunksChangedEvent extends ComponentEvent<JsonEditor> {
 
-        public MergeChunkRevertedEvent(JsonEditor source,
+        private final ArrayList<Chunk> chunks;
+
+        public DiffChunksChangedEvent(JsonEditor source,
                 boolean fromClient,
-                @EventData("event.detail.fromLine") int fromLine,
-                @EventData("event.detail.toLine") int toLine,
-                @EventData("event.detail.direction") String direction) {
+                @com.vaadin.flow.component.EventData("event.detail.chunks") elemental.json.JsonArray chunksJson) {
             super(source, fromClient);
-            this.fromLine  = fromLine;
-            this.toLine    = toLine;
-            this.direction = direction;
+            final ArrayList<Chunk> list = new ArrayList<>();
+            if (chunksJson != null) {
+                for (int i = 0; i < chunksJson.length(); i++) {
+                    final elemental.json.JsonObject obj  = chunksJson.getObject(i);
+                    final int                       from = obj.hasKey("fromLine") ? (int) obj.getNumber("fromLine") : 0;
+                    final int                       to   = obj.hasKey("toLine") ? (int) obj.getNumber("toLine") : from;
+                    list.add(new Chunk(from, to));
+                }
+            }
+            this.chunks = list;
         }
 
-        public int getFromLine() {
-            return fromLine;
-        }
-
-        public int getToLine() {
-            return toLine;
-        }
-
-        public String getDirection() {
-            return direction;
-        }
-    }
-
-    /**
-     * Legacy combined API retained for compatibility.
-     *
-     * @param active whether merge mode is enabled
-     * @param mergeContent content for the right-hand side
-     */
-    @Deprecated
-    public void setMergeMode(boolean active, String mergeContent) {
-        setMergeRightContent(mergeContent);
-        if (active) {
-            enableMerge();
-        } else {
-            disableMerge();
+        public List<Chunk> getChunks() {
+            return Collections.unmodifiableList(chunks);
         }
     }
 
     /**
-     * Legacy method retained for compatibility.
-     *
-     * @param mergeContent right-hand side content
+     * Data transfer object for a diff chunk.
      */
-    @Deprecated
-    public void updateMergeRightContent(String mergeContent) {
-        setMergeRightContent(mergeContent);
-    }
+    public record Chunk(int fromLine, int toLine) implements Serializable {}
+
 }
