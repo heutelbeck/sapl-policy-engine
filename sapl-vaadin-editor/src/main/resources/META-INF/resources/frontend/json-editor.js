@@ -7,82 +7,52 @@ const MergeHeightFix = css`
 `;
 
 const MergeLayout = css`
-    .CodeMirror-merge {
-        position: relative;
-        height: 100%;
-        white-space: pre;
-    }
+    .CodeMirror-merge { position: relative; height: 100%; white-space: pre; }
     .CodeMirror-merge, .CodeMirror-merge .CodeMirror { height: 100%; }
-
     .CodeMirror-merge-2pane .CodeMirror-merge-pane { width: 47%; }
     .CodeMirror-merge-2pane .CodeMirror-merge-gap  { width: 6%;  }
     .CodeMirror-merge-3pane .CodeMirror-merge-pane { width: 31%; }
     .CodeMirror-merge-3pane .CodeMirror-merge-gap  { width: 3.5%; }
-
-    .CodeMirror-merge-pane {
-        display: inline-block;
-        white-space: normal;
-        vertical-align: top;
-        height: 100%;
-        box-sizing: border-box;
-    }
+    .CodeMirror-merge-pane { display: inline-block; white-space: normal; vertical-align: top; height: 100%; box-sizing: border-box; }
     .CodeMirror-merge-pane-rightmost { position: absolute; right: 0; z-index: 1; }
-
-    .CodeMirror-merge-gap {
-        z-index: 2;
-        display: inline-block;
-        height: 100%;
-        box-sizing: border-box;
-        overflow: hidden;
-        position: relative;
-    }
+    .CodeMirror-merge-gap { z-index: 2; display: inline-block; height: 100%; box-sizing: border-box; overflow: hidden; position: relative; }
 `;
 
 const MergeControls = css`
     .CodeMirror-merge-scrolllock-wrap { position: absolute; bottom: 0; left: 50%; }
-    .CodeMirror-merge-scrolllock { position: relative; left: -50%; cursor: pointer; color: #555; line-height: 1; }
+    .CodeMirror-merge-scrolllock { position: relative; left: -50%; cursor: pointer; color: var(--sapl-merge-arrow, #378b8a); line-height: 1; }
     .CodeMirror-merge-scrolllock:after { content: "\\21db\\00a0\\00a0\\21da"; }
     .CodeMirror-merge-scrolllock.CodeMirror-merge-scrolllock-enabled:after { content: "\\21db\\21da"; }
-
-    .CodeMirror-merge-copybuttons-left,
-    .CodeMirror-merge-copybuttons-right {
-        position: absolute; left: 0; top: 0; right: 0; bottom: 0; line-height: 1;
-    }
-    .CodeMirror-merge-copy,
-    .CodeMirror-merge-copy-reverse {
-        position: absolute; cursor: pointer; color: #44c; z-index: 3;
-    }
+    .CodeMirror-merge-copybuttons-left, .CodeMirror-merge-copybuttons-right { position: absolute; left: 0; top: 0; right: 0; bottom: 0; line-height: 1; }
+    .CodeMirror-merge-copy, .CodeMirror-merge-copy-reverse { position: absolute; cursor: pointer; color: var(--sapl-merge-arrow, #378b8a); z-index: 3; }
     .CodeMirror-merge-copybuttons-left  .CodeMirror-merge-copy { left: 2px; }
     .CodeMirror-merge-copybuttons-right .CodeMirror-merge-copy { right: 2px; }
 `;
 
+const MergeColorOverrides = css`
+    .CodeMirror-merge-l-connect, .CodeMirror-merge-r-connect {
+        fill: var(--sapl-merge-connector, #252a2e);
+        stroke: var(--sapl-merge-connector, #252a2e);
+        stroke-width: 1px;
+        opacity: 1;
+    }
+`;
+
+const MergeArrowStrongOverrides = css`
+  /* Ensure buttons + scroll-lock and its :after use the variable, even if other rules exist */
+  .CodeMirror-merge-gap .CodeMirror-merge-copy,
+  .CodeMirror-merge-gap .CodeMirror-merge-copy-reverse,
+  .CodeMirror-merge-gap .CodeMirror-merge-scrolllock,
+  .CodeMirror-merge-gap .CodeMirror-merge-scrolllock::after {
+    color: var(--sapl-merge-arrow, #378b8a) !important;
+  }
+`;
 const ChangeMarkerStyles = css`
     .cm-merge-chunk-line { background: rgba(255, 200, 0, 0.15); }
     .cm-merge-gutter-marker { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
     .cm-merge-gutter-marker.changed { background: #f39c12; }
 `;
 
-const MergeColorOverrides = css`
-  /* Middle SVG connectors (both sides) */
-  .CodeMirror-merge-l-connect,
-  .CodeMirror-merge-r-connect {
-    fill: #252a2e;
-    stroke: #252a2e;
-    stroke-width: 1px;
-    opacity: 1;
-  }
-
-  /* Copy buttons (← and →) */
-  .CodeMirror-merge-copy,
-  .CodeMirror-merge-copy-reverse {
-    color: #378b8a;
-  }
-
-  /* Scroll-lock double-arrow in the gap */
-  .CodeMirror-merge-scrolllock {
-    color: #378b8a;
-  }
-`;
 import { CodeMirrorStyles, CodeMirrorLintStyles, CodeMirrorHintStyles, HeightFix, ReadOnlyStyle, DarkStyle } from './shared-styles.js';
 import codemirror from 'codemirror';
 import 'codemirror/mode/javascript/javascript';
@@ -98,23 +68,27 @@ const DIFF_INSERT    = DMP.DIFF_INSERT ??  1;
 const DIFF_EQUAL     = DMP.DIFF_EQUAL  ??  0;
 
 class JSONEditor extends LitElement {
-
     constructor() {
         super();
         this.document = "";
         this._editor = undefined;
         this._mergeView = undefined;
+
         this._mergeOptions = {
             revertButtons: true,
             showDifferences: true,
-            connect: null,                  // connectors ON
+            connect: null,
             collapseIdentical: false,
-            allowEditingOriginals: false
+            allowEditingOriginals: false,
+            ignoreWhitespace: false
         };
+
         this._rightMergeText = "";
         this.mergeEnabled = false;
 
-        this._changeMarkersEnabled = false;
+        // Default: highlight diff chunks on both panes
+        this._changeMarkersEnabled = true;
+
         this._chunkList = [];
         this._gutterId = 'merge-changes';
         this._appliedLineClassesLeft = [];
@@ -129,6 +103,13 @@ class JSONEditor extends LitElement {
         this._isDarkTheme = false;
         this.hasLineNumbers = true;
         this.textUpdateDelay = 0;
+
+        this._mainScrollHandler = null;
+        this._rightScrollHandler = null;
+        this._keydownHandler = null;
+
+        this._largeDocThresholdLines = 50000;
+        this._largeDocThresholdBytes = 2 * 1024 * 1024;
     }
 
     static get properties() {
@@ -143,23 +124,15 @@ class JSONEditor extends LitElement {
             isLint: { type: Boolean },
             isDarkTheme: { type: Boolean },
             mergeEnabled: { type: Boolean }
-        }
+        };
     }
 
     static get styles() {
         return [
-            CodeMirrorStyles,
-            CodeMirrorLintStyles,
-            CodeMirrorHintStyles,
-            HeightFix,
-            ReadOnlyStyle,
-            DarkStyle,
-            MergeHeightFix,
-            MergeLayout,
-            MergeControls,
-            ChangeMarkerStyles,
-            MergeColorOverrides
-        ]
+            CodeMirrorStyles, CodeMirrorLintStyles, CodeMirrorHintStyles, HeightFix,
+            ReadOnlyStyle, DarkStyle, MergeHeightFix, MergeLayout, MergeControls,
+            MergeColorOverrides, ChangeMarkerStyles, MergeArrowStrongOverrides
+        ];
     }
 
     set editor(value) { const o=this._editor; this._editor=value; this.requestUpdate('editor',o); this.onEditorChangeCheckOptions(value); }
@@ -168,14 +141,14 @@ class JSONEditor extends LitElement {
     set isReadOnly(v){const o=this._isReadOnly; this._isReadOnly=v; this.requestUpdate('isReadOnly',o); this.setEditorOption('readOnly', v);}
     get isReadOnly(){return this._isReadOnly;}
 
-    set isLint(v){const o=this._isLint; this._isLint=v; this.requestUpdate('isLint',o); this.setLintEditorOption(v);}
+    set isLint(v){const o=this._isLint; this._isLint=v; this.requestUpdate("isLint",o); this.setLintEditorOption(v);}
     get isLint(){return this._isLint;}
 
-    set isDarkTheme(v){const o=this._isDarkTheme; this._isDarkTheme=v; this.requestUpdate('isDarkTheme',o); this.setDarkThemeEditorOption(v);}
+    set isDarkTheme(v){const o=this._isDarkTheme; this._isDarkTheme=v; this.requestUpdate("isDarkTheme",o); this.setDarkThemeEditorOption(v);}
     get isDarkTheme(){return this._isDarkTheme;}
 
     firstUpdated() {
-        window.jsonlint = jsonlint;
+        if (typeof window.jsonlint === 'undefined') window.jsonlint = jsonlint;
         if (typeof window.diff_match_patch === 'undefined') {
             window.diff_match_patch = DiffMatchPatch;
             window.DIFF_DELETE = DIFF_DELETE;
@@ -183,39 +156,68 @@ class JSONEditor extends LitElement {
             window.DIFF_EQUAL  = DIFF_EQUAL;
         }
 
-        if (this.mergeEnabled) {
-            this._createMergeView(this.document, this._rightMergeText ?? "");
-            this._dispatchMergeModeToggled(true);
-        } else {
-            this._createSingleEditor(this.document);
-        }
-
-        const ro = new ResizeObserver(() => this._scheduleRecalcChunks());
-        this._resizeObserver = ro;
+        const start = () => {
+            if (this.mergeEnabled) {
+                this._createMergeView(this.document, this._rightMergeText ?? "");
+                this._dispatchMergeModeToggled(true);
+            } else {
+                this._createSingleEditor(this.document);
+            }
+            const ro = new ResizeObserver(() => this._scheduleRecalcChunks());
+            this._resizeObserver = ro;
+            const container = this._editorContainer();
+            if (container) ro.observe(container);
+        };
         const container = this._editorContainer();
-        if (container) ro.observe(container);
+        if (container && container.clientHeight === 0) requestAnimationFrame(start); else start();
+
+        this._applyThemeVars();
+
+        this._keydownHandler = (e) => {
+            if (e.altKey && e.key === 'ArrowDown') { this.nextChange(); e.preventDefault(); }
+            if (e.altKey && e.key === 'ArrowUp')   { this.prevChange(); e.preventDefault(); }
+        };
+        this.addEventListener('keydown', this._keydownHandler, true);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback?.();
         try { this._resizeObserver?.disconnect(); } catch(_) {}
+        this._detachAllHandlers();
+        this._destroyEditors();
     }
 
     _editorContainer() { return this.shadowRoot.querySelector('#json-editor'); }
 
-    _tearDownEditors() {
-        const container = this._editorContainer();
-        if (container) container.innerHTML = '';
+    _destroyEditors() {
         this._mergeView = undefined;
         this._editor = undefined;
         this._clearChangeMarkers();
         this._chunkList = [];
     }
 
+    _detachAllHandlers() {
+        const main = this._getMainEditor();
+        const right = this._getRightEditor();
+        if (main && this._mainScrollHandler) try { main.getScrollerElement().removeEventListener('scroll', this._mainScrollHandler); } catch(_) {}
+        if (right && this._rightScrollHandler) try { right.getScrollerElement().removeEventListener('scroll', this._rightScrollHandler); } catch(_) {}
+        if (this._keydownHandler) try { this.removeEventListener('keydown', this._keydownHandler, true); } catch(_) {}
+        this._mainScrollHandler = null;
+        this._rightScrollHandler = null;
+        this._keydownHandler = null;
+    }
+
+    _tearDownEditors() {
+        const container = this._editorContainer();
+        if (container) container.innerHTML = '';
+        this._detachAllHandlers();
+        this._destroyEditors();
+    }
+
     _createSingleEditor(value) {
         const container = this._editorContainer();
         this._tearDownEditors();
-        this.editor = codemirror(container, {
+        const opts = {
             value: value ?? "",
             mode: "application/json",
             gutters: ["CodeMirror-lint-markers"],
@@ -223,9 +225,10 @@ class JSONEditor extends LitElement {
             lineNumbers: this.hasLineNumbers,
             showCursorWhenSelecting: true,
             textUpdateDelay: this.textUpdateDelay,
-            lint: { selfContain: true },
+            lint: this._shouldEnableLintFor(value) ? { selfContain: true } : false,
             theme: "default"
-        });
+        };
+        this.editor = codemirror(container, opts);
         this._attachMainEditorListeners(this.editor);
         this.onEditorChangeCheckOptions(this.editor);
         this._scheduleRecalcChunks();
@@ -234,25 +237,27 @@ class JSONEditor extends LitElement {
     _createMergeView(leftValue, rightValue) {
         const container = this._editorContainer();
         this._tearDownEditors();
-        if (!codemirror.MergeView || typeof window.diff_match_patch !== 'function') {
-            this._createSingleEditor(leftValue ?? "");
-            return;
-        }
+        if (!codemirror.MergeView || typeof window.diff_match_patch !== 'function') { this._createSingleEditor(leftValue ?? ""); return; }
+
+        const lintLeft  = this._shouldEnableLintFor(leftValue);
+        const lintRight = this._shouldEnableLintFor(rightValue);
+
         this._mergeView = codemirror.MergeView(container, {
             value: leftValue ?? "",
             origLeft: null,
             origRight: rightValue ?? "",
             lineNumbers: this.hasLineNumbers,
             mode: "application/json",
-            readOnly: this.isReadOnly === true ? true : false,
+            readOnly: this.isReadOnly === true,
             allowEditingOriginals: this._mergeOptions.allowEditingOriginals,
             showDifferences: this._mergeOptions.showDifferences,
             revertButtons: this._mergeOptions.revertButtons,
             connect: this._mergeOptions.connect,
             collapseIdentical: this._mergeOptions.collapseIdentical,
             gutters: ["CodeMirror-lint-markers"],
-            lint: this._lintOptionValue(),
-            theme: this._themeForCurrentState()
+            lint: lintLeft ? { selfContain: true } : false,
+            theme: this._themeForCurrentState(),
+            ignoreWhitespace: this._mergeOptions.ignoreWhitespace
         });
 
         const main = this._mergeView.edit;
@@ -264,8 +269,10 @@ class JSONEditor extends LitElement {
             right.setOption('lineNumbers', this.hasLineNumbers);
             right.setOption('mode', 'application/json');
             right.setOption('theme', this._themeForCurrentState());
+            right.setOption('lint', lintRight ? { selfContain: true } : false);
             right.on("change", () => this._scheduleRecalcChunks());
-            right.getScrollerElement().addEventListener('scroll', () => this._scheduleRecalcChunks());
+            this._rightScrollHandler = () => this._scheduleRecalcChunks();
+            right.getScrollerElement().addEventListener('scroll', this._rightScrollHandler);
         }
 
         this._scheduleRecalcChunks();
@@ -275,17 +282,10 @@ class JSONEditor extends LitElement {
     _getRightEditor() { return this._mergeView && this._mergeView.right ? this._mergeView.right.orig : undefined; }
 
     _attachMainEditorListeners(cm) {
-        cm.on("change", () => {
-            const value = cm.getValue();
-            this.onDocumentChanged(value);
-            this._scheduleRecalcChunks();
-        });
-        cm.on("mousedown", (instance, event) => {
-            const line = instance.lineAtHeight(event.clientY, "client");
-            const content = instance.getLine(line);
-            this.onEditorClicked(line + 1, content);
-        });
-        cm.getScrollerElement().addEventListener('scroll', () => this._scheduleRecalcChunks());
+        cm.on("change", () => { const value = cm.getValue(); this.onDocumentChanged(value); this._scheduleRecalcChunks(); });
+        cm.on("mousedown", (instance, event) => { const line = instance.lineAtHeight(event.clientY, "client"); const content = instance.getLine(line); this.onEditorClicked(line + 1, content); });
+        this._mainScrollHandler = () => this._scheduleRecalcChunks();
+        cm.getScrollerElement().addEventListener('scroll', this._mainScrollHandler);
     }
 
     _themeForCurrentState() {
@@ -294,16 +294,23 @@ class JSONEditor extends LitElement {
     }
     _lintOptionValue() { return this._isLint === true ? { selfContain: true } : false; }
 
+    _shouldEnableLintFor(text) {
+        const t = typeof text === 'string' ? text : (text || '');
+        if (t.length > this._largeDocThresholdBytes) return false;
+        const nl = (t.match(/\n/g) || []).length + 1;
+        return this._isLint && nl <= this._largeDocThresholdLines;
+    }
+
     onDocumentChanged(value) {
         this.document = value;
-        if (this.$server) this.$server.onDocumentChanged(value);
+        if (this.$server && this.$server.onDocumentChanged) { try { this.$server.onDocumentChanged(value); } catch (e) { console.error(e); } }
     }
 
     onEditorClicked(value, content) {
-        if (this.$server) this.$server.onEditorClicked(value, content);
+        if (this.$server && this.$server.onEditorClicked) { try { this.$server.onEditorClicked(value, content); } catch (e) { console.error(e); } }
     }
 
-    setEditorDocument(element, document) {
+    setEditorDocument(_element, document) {
         this.document = document;
         const main = this._getMainEditor();
         if (main) main.doc.setValue(document);
@@ -314,8 +321,7 @@ class JSONEditor extends LitElement {
         const main = this._getMainEditor();
         if (main) {
             if (option === 'readOnly') {
-                main.setOption("theme", value ? (this._isDarkTheme ? 'dracularo' : 'readOnly')
-                    : (this._isDarkTheme ? 'dracula' : 'default'));
+                main.setOption("theme", value ? (this._isDarkTheme ? 'dracularo' : 'readOnly') : (this._isDarkTheme ? 'dracula'  : 'default'));
                 this._scheduleRecalcChunks();
             }
             main.setOption(option, value);
@@ -323,7 +329,6 @@ class JSONEditor extends LitElement {
         const right = this._getRightEditor();
         if (right && (option === 'lineNumbers' || option === 'mode')) right.setOption(option, value);
         if (right && option === 'readOnly') right.setOption('readOnly', !this._mergeOptions.allowEditingOriginals);
-
         if (option === 'lineNumbers') this._scheduleRecalcChunks();
     }
 
@@ -342,48 +347,25 @@ class JSONEditor extends LitElement {
 
     render() { return html`<div id="json-editor"></div>`; }
 
-    scrollToBottom() {
-        const main = this._getMainEditor();
-        if (main) {
-            const scrollInfo = main.getScrollInfo();
-            main.scrollTo(null, scrollInfo.height);
-        }
-    }
-
-    appendText(text) {
-        const main = this._getMainEditor();
-        if (main) {
-            const lines = main.lineCount();
-            main.replaceRange(text + "\n", { line: lines });
-        }
-    }
+    scrollToBottom() { const m = this._getMainEditor(); if (m) { const s = m.getScrollInfo(); m.scrollTo(null, s.height); } }
+    appendText(text) { const m = this._getMainEditor(); if (m) { const lines = m.lineCount(); m.replaceRange(text + "\n", { line: lines }); } }
 
     setDarkThemeEditorOption(value) {
         const main = this._getMainEditor();
-        if (main) {
-            if (value === true) main.setOption("theme", 'dracula');
-            else this.setEditorOption('readOnly', this._isReadOnly);
-        }
+        if (main) { if (value === true) main.setOption("theme", 'dracula'); else this.setEditorOption('readOnly', this._isReadOnly); }
         const right = this._getRightEditor();
         if (right) right.setOption('theme', this._themeForCurrentState());
+        this._applyThemeVars();
         this._scheduleRecalcChunks();
     }
 
-    setLintEditorOption(value) {
-        const main = this._getMainEditor();
-        if (main) main.setOption("lint", value === true ? { selfContain: true } : false);
-    }
+    setLintEditorOption(value) { const m = this._getMainEditor(); if (m) m.setOption("lint", value === true ? { selfContain: true } : false); }
 
     setMergeModeEnabled(enabled) {
         this.mergeEnabled = !!enabled;
         const leftText = this._getMainEditor() ? this._getMainEditor().getValue() : (this.document ?? "");
-        if (this.mergeEnabled) {
-            this._createMergeView(leftText, this._rightMergeText ?? "");
-            this._dispatchMergeModeToggled(true);
-        } else {
-            this._createSingleEditor(leftText);
-            this._dispatchMergeModeToggled(false);
-        }
+        if (this.mergeEnabled) { this._createMergeView(leftText, this._rightMergeText ?? ""); this._dispatchMergeModeToggled(true); }
+        else { this._createSingleEditor(leftText); this._dispatchMergeModeToggled(false); }
     }
     enableMergeView() { this.setMergeModeEnabled(true); }
     disableMergeView() { this.setMergeModeEnabled(false); }
@@ -399,8 +381,9 @@ class JSONEditor extends LitElement {
         if (option === 'revertButtons') this._mergeOptions.revertButtons = !!value;
         else if (option === 'showDifferences') this._mergeOptions.showDifferences = !!value;
         else if (option === 'connect') this._mergeOptions.connect = value;
-        else if (option === 'collapseIdentical') this._mergeOptions.collapseIdentical = value;
+        else if (option === 'collapseIdentical') this._mergeOptions.collapseIdentical = !!value;
         else if (option === 'allowEditingOriginals') this._mergeOptions.allowEditingOriginals = !!value;
+        else if (option === 'ignoreWhitespace') this._mergeOptions.ignoreWhitespace = !!value;
         else return;
 
         if (this._mergeView) {
@@ -420,48 +403,16 @@ class JSONEditor extends LitElement {
     prevChange()  { const m = this._getMainEditor(); if (m) m.execCommand('goPrevDiff'); }
     firstChange() { if (this._chunkList.length) this.scrollToChange(0); }
     lastChange()  { if (this._chunkList.length) this.scrollToChange(this._chunkList.length - 1); }
-    scrollToChange(index) {
-        const m = this._getMainEditor(); if (!m) return;
-        const c = this._chunkList[index]; if (!c) return;
-        m.scrollIntoView({ line: c.left.fromLine, ch: 0 }, 100);
-    }
+    scrollToChange(index) { const m = this._getMainEditor(); if (!m) return; const c = this._chunkList[index]; if (!c) return; m.scrollIntoView({ line: c.left.fromLine, ch: 0 }, 100); }
 
-    _scheduleRecalcChunks() {
-        if (this._recalcChunksDebounced) clearTimeout(this._recalcChunksDebounced);
-        this._recalcChunksDebounced = setTimeout(() => this._recalcChunks(), 30);
-    }
+    _scheduleRecalcChunks() { if (this._recalcChunksDebounced) clearTimeout(this._recalcChunksDebounced); this._recalcChunksDebounced = setTimeout(() => this._recalcChunks(), 30); }
 
-    // NEW: Stable, scroll-independent chunk calculation using addon API
     _recalcChunks() {
-        if (!this._mergeView) {
-            this._chunkList = [];
-            this._emitChunks();
-            this._applyChangeMarkers();
-            return;
-        }
-
-        // Prefer rightChunks() because we use origRight
+        if (!this._mergeView) { this._chunkList = []; this._emitChunks(); this._applyChangeMarkers(); return; }
         let rawChunks = [];
-        try {
-            if (this._mergeView.rightChunks) {
-                rawChunks = this._mergeView.rightChunks() || [];
-            } else if (this._mergeView.leftChunks) {
-                rawChunks = this._mergeView.leftChunks() || [];
-            }
-        } catch (_) {
-            rawChunks = [];
-        }
-
-        // Map addon chunk to left(edit)/right(orig) line ranges.
-        // editFrom/editTo -> left, origFrom/origTo -> right
-        const chunks = rawChunks.map(ch => ({
-            left:  { fromLine: ch.editFrom, toLine: ch.editTo - 1 },
-            right: { fromLine: ch.origFrom, toLine: ch.origTo - 1 }
-        }));
-
-        // Sort by left start for deterministic navigation
-        chunks.sort((a, b) => a.left.fromLine - b.left.fromLine || a.left.toLine - b.left.toLine);
-
+        try { rawChunks = this._mergeView.rightChunks ? (this._mergeView.rightChunks() || []) : (this._mergeView.leftChunks ? (this._mergeView.leftChunks() || []) : []); } catch { rawChunks = []; }
+        const chunks = rawChunks.map(ch => ({ left:{fromLine: ch.editFrom, toLine: ch.editTo - 1}, right:{fromLine: ch.origFrom, toLine: ch.origTo - 1} }));
+        chunks.sort((a,b)=>a.left.fromLine-b.left.fromLine || a.left.toLine-b.left.toLine);
         this._chunkList = chunks;
         this._emitChunks();
         this._applyChangeMarkers();
@@ -476,19 +427,15 @@ class JSONEditor extends LitElement {
         this._clearChangeMarkers();
         if (!this._changeMarkersEnabled || this._chunkList.length === 0) return;
 
-        const left = this._getMainEditor();
-        if (!left) return;
+        const left = this._getMainEditor(); if (!left) return;
         const right = this._getRightEditor();
 
         const ensureGutter = (ed) => {
-            const gs = new Set(ed.getOption('gutters') || []);
-            if (!gs.has(this._gutterId)) {
-                gs.add(this._gutterId);
-                ed.setOption('gutters', Array.from(gs));
-            }
+            const current = ed.getOption('gutters') || [];
+            const set = new Set(current);
+            if (!set.has(this._gutterId)) { set.add(this._gutterId); ed.setOption('gutters', Array.from(set)); }
         };
-        ensureGutter(left);
-        if (right) ensureGutter(right);
+        ensureGutter(left); if (right) ensureGutter(right);
 
         this._chunkList.forEach(chunk => {
             for (let line = chunk.left.fromLine; line <= chunk.left.toLine; line++) {
@@ -533,8 +480,14 @@ class JSONEditor extends LitElement {
     updateMergeRightContent(content) { this.setMergeRightContent(content); }
     enableMergeViewWithContent(content) { this.setMergeRightContent(content); this.setMergeModeEnabled(true); }
 
-    _dispatchMergeModeToggled(active) {
-        this.dispatchEvent(new CustomEvent('sapl-merge-mode-toggled', { bubbles: true, composed: true, detail: { active } }));
+    _dispatchMergeModeToggled(active) { this.dispatchEvent(new CustomEvent('sapl-merge-mode-toggled', { bubbles: true, composed: true, detail: { active } })); }
+
+    _applyThemeVars() {
+        const isDark = this._isDarkTheme === true;
+        const connector = isDark ? '#252a2e' : '#c7d1d6';
+        const arrow     = isDark ? '#5ac8c7' : '#378b8a';
+        this.style.setProperty('--sapl-merge-connector', connector);
+        this.style.setProperty('--sapl-merge-arrow', arrow);
     }
 }
 
