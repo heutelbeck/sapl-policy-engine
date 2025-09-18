@@ -38,7 +38,9 @@ class StepsDefaultImplTestsImpl extends StepsDefaultImpl {
 
     final SAPL document;
 
-    StepsDefaultImplTestsImpl(String document, AttributeStreamBroker attrCtx, FunctionContext funcCtx,
+    StepsDefaultImplTestsImpl(String document,
+            AttributeStreamBroker attrCtx,
+            FunctionContext funcCtx,
             Map<String, Val> variables) {
         this.document                     = new DefaultSAPLInterpreter().parse(document);
         this.mockingFunctionContext       = new MockingFunctionContext(funcCtx);

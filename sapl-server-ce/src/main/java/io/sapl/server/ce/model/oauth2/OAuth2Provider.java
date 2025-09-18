@@ -19,7 +19,9 @@ package io.sapl.server.ce.model.oauth2;
 
 // Used to configure the OAuth2 providers path properly
 public enum OAuth2Provider {
-    KEYCLOAK, GITHUB, GOOGLE;
+    KEYCLOAK,
+    GITHUB,
+    GOOGLE;
 
     // Used to give the right link location for the give OAuth2 provider
     @Override

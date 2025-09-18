@@ -51,8 +51,10 @@ public class CombinedDecision implements Traced {
         MAPPER.registerModule(new Jdk8Module());
     }
 
-    private CombinedDecision(AuthorizationDecision authorizationDecision, String combiningAlgorithm,
-            List<DocumentEvaluationResult> documentEvaluationResults, String errorMessage) {
+    private CombinedDecision(AuthorizationDecision authorizationDecision,
+            String combiningAlgorithm,
+            List<DocumentEvaluationResult> documentEvaluationResults,
+            String errorMessage) {
         this.authorizationDecision = authorizationDecision;
         this.combiningAlgorithm    = combiningAlgorithm;
         this.documentEvaluationResults.addAll(documentEvaluationResults);

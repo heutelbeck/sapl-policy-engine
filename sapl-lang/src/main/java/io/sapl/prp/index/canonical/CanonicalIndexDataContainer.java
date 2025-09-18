@@ -55,9 +55,12 @@ public class CanonicalIndexDataContainer {
     private final int numberOfConjunctions;
 
     public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<Document>> formulaToDocuments,
-            Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas, Collection<Predicate> predicateOrder,
-            List<Set<DisjunctiveFormula>> relatedFormulas, Map<DisjunctiveFormula, Bitmask> relatedCandidates,
-            Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction, int[] numberOfLiteralsInConjunction,
+            Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas,
+            Collection<Predicate> predicateOrder,
+            List<Set<DisjunctiveFormula>> relatedFormulas,
+            Map<DisjunctiveFormula, Bitmask> relatedCandidates,
+            Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction,
+            int[] numberOfLiteralsInConjunction,
             int[] numberOfFormulasWithConjunction) {
 
         this(formulaToDocuments, clauseToFormulas, ImmutableList.copyOf(predicateOrder), relatedFormulas,
@@ -66,10 +69,14 @@ public class CanonicalIndexDataContainer {
     }
 
     public CanonicalIndexDataContainer(Map<DisjunctiveFormula, Set<Document>> formulaToDocuments,
-            Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas, ImmutableList<Predicate> predicateOrder,
-            List<Set<DisjunctiveFormula>> relatedFormulas, Map<DisjunctiveFormula, Bitmask> relatedCandidates,
-            Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction, int[] numberOfLiteralsInConjunction,
-            int[] numberOfFormulasWithConjunction, int numberOfConjunctions) {
+            Map<ConjunctiveClause, Set<DisjunctiveFormula>> clauseToFormulas,
+            ImmutableList<Predicate> predicateOrder,
+            List<Set<DisjunctiveFormula>> relatedFormulas,
+            Map<DisjunctiveFormula, Bitmask> relatedCandidates,
+            Map<Integer, Set<CTuple>> conjunctionsInFormulasReferencingConjunction,
+            int[] numberOfLiteralsInConjunction,
+            int[] numberOfFormulasWithConjunction,
+            int numberOfConjunctions) {
         this.formulaToDocuments                           = formulaToDocuments;
         this.clauseToFormulas                             = clauseToFormulas;
         this.predicateOrder                               = predicateOrder;

@@ -18,5 +18,7 @@
 package io.sapl.attributes.documentation.api;
 
 public enum FunctionType {
-    ATTRIBUTE, ENVIRONMENT_ATTRIBUTE, FUNCTION
+    ATTRIBUTE,
+    ENVIRONMENT_ATTRIBUTE,
+    FUNCTION
 }

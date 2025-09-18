@@ -23,8 +23,11 @@ import java.util.Map;
 
 import lombok.NonNull;
 
-public record LibraryDocumentation(@NonNull LibraryType type, @NonNull String namespace,
-        @NonNull String descriptionMarkdown, @NonNull String documentationMarkdown,
+public record LibraryDocumentation(
+        @NonNull LibraryType type,
+        @NonNull String namespace,
+        @NonNull String descriptionMarkdown,
+        @NonNull String documentationMarkdown,
         @NonNull List<LibraryFunctionDocumentation> attributes) {
 
     public Map<String, String> attributesMap() {

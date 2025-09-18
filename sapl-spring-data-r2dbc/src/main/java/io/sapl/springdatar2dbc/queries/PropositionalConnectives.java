@@ -18,5 +18,6 @@
 package io.sapl.springdatar2dbc.queries;
 
 public enum PropositionalConnectives {
-    AND, OR
+    AND,
+    OR
 }

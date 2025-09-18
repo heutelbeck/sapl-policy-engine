@@ -78,7 +78,9 @@ public class EnforceDropWhileDeniedPolicyEnforcementPoint<T> extends Flux<T> {
     final AtomicBoolean stopped = new AtomicBoolean(false);
 
     private EnforceDropWhileDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions,
-            Flux<T> resourceAccessPoint, ConstraintEnforcementService constraintsService, Class<T> clazz) {
+            Flux<T> resourceAccessPoint,
+            ConstraintEnforcementService constraintsService,
+            Class<T> clazz) {
         this.decisions           = decisions;
         this.resourceAccessPoint = resourceAccessPoint;
         this.constraintsService  = constraintsService;

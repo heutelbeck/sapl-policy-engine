@@ -38,7 +38,8 @@ import reactor.core.publisher.Flux;
 public final class InputStringVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
     private final PolicyDecisionPointConfiguration config;
 
-    public InputStringVariablesAndCombinatorSource(@NonNull String input, @NonNull ObjectMapper mapper,
+    public InputStringVariablesAndCombinatorSource(@NonNull String input,
+            @NonNull ObjectMapper mapper,
             PolicyDocumentCombiningAlgorithm testInternalConfiguredCombiningAlg,
             Map<String, Val> testInternalConfiguredVariables) {
         log.info("Loading the PDP configuration from input string");

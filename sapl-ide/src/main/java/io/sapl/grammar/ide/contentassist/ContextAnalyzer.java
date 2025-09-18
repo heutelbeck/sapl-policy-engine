@@ -42,10 +42,18 @@ public class ContextAnalyzer {
     private static final Set<String> SKIPPABLE_KEYWORDS = Set.of(".", "subject", "action", "resource", "environment");
 
     public enum ProposalType {
-        ATTRIBUTE, ENVIRONMENT_ATTRIBUTE, FUNCTION, VARIABLE_OR_FUNCTION_NAME, INDETERMINATE
+        ATTRIBUTE,
+        ENVIRONMENT_ATTRIBUTE,
+        FUNCTION,
+        VARIABLE_OR_FUNCTION_NAME,
+        INDETERMINATE
     }
 
-    public record ContextAnalysisResult(String prefix, String ctxPrefix, String functionName, ProposalType type,
+    public record ContextAnalysisResult(
+            String prefix,
+            String ctxPrefix,
+            String functionName,
+            ProposalType type,
             INode startNode) {}
 
     public static ContextAnalysisResult analyze(final ContentAssistContext context) {

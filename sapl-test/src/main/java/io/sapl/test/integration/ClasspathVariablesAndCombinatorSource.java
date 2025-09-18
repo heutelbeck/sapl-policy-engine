@@ -42,7 +42,8 @@ public class ClasspathVariablesAndCombinatorSource implements VariablesAndCombin
     private final PolicyDecisionPointConfiguration config;
 
     @SneakyThrows
-    public ClasspathVariablesAndCombinatorSource(@NonNull String configPath, @NonNull ObjectMapper mapper,
+    public ClasspathVariablesAndCombinatorSource(@NonNull String configPath,
+            @NonNull ObjectMapper mapper,
             PolicyDocumentCombiningAlgorithm testInternalConfiguredCombiningAlg,
             Map<String, Val> testInternalConfiguredVariables) {
         log.info("Loading the PDP configuration from bundled resources: '{}'", configPath);

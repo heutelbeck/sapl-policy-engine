@@ -50,7 +50,9 @@ public final class MqttClientValues {
      * broker
      * @param clientConnection the mqtt client connection
      */
-    public MqttClientValues(String clientId, Mqtt5ReactorClient mqttReactorClient, ObjectNode mqttBrokerConfig,
+    public MqttClientValues(String clientId,
+            Mqtt5ReactorClient mqttReactorClient,
+            ObjectNode mqttBrokerConfig,
             Mono<Mqtt5ConnAck> clientConnection) {
         this.clientId                   = clientId;
         this.mqttReactorClient          = mqttReactorClient;

@@ -92,8 +92,10 @@ public class AuthorizationDecision implements Serializable {
      * @param maybeObligations Optional Obligations
      * @param maybeAdvice Optional Advice
      */
-    public AuthorizationDecision(@NonNull Decision decision, @NonNull Optional<JsonNode> maybeResource,
-            @NonNull Optional<ArrayNode> maybeObligations, @NonNull Optional<ArrayNode> maybeAdvice) {
+    public AuthorizationDecision(@NonNull Decision decision,
+            @NonNull Optional<JsonNode> maybeResource,
+            @NonNull Optional<ArrayNode> maybeObligations,
+            @NonNull Optional<ArrayNode> maybeAdvice) {
         this.decision = decision;
         maybeResource.ifPresent(aResource -> this.resource = (BaseJsonNode) aResource);
         maybeObligations

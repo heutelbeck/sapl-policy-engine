@@ -94,7 +94,8 @@ public abstract class EndpointSetupView extends VerticalLayout {
     private Span                                           addressInputValidText;
     private Span                                           portInputValidText;
 
-    protected EndpointSetupView(ApplicationConfigService applicationConfigService, EndpointConfig endpointConfig,
+    protected EndpointSetupView(ApplicationConfigService applicationConfigService,
+            EndpointConfig endpointConfig,
             HttpServletRequest httpServletRequest) {
         this.applicationConfigService = applicationConfigService;
         this.endpointConfig           = endpointConfig;

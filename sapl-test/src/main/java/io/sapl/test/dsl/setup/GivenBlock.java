@@ -25,5 +25,9 @@ import io.sapl.test.grammar.sapltest.GivenStep;
 import io.sapl.test.grammar.sapltest.PdpCombiningAlgorithm;
 import io.sapl.test.grammar.sapltest.PdpVariables;
 
-record GivenBlock(Document document, PdpVariables pdpVariables, PdpCombiningAlgorithm pdpConfiguration,
-        Environment environment, List<GivenStep> givenSteps) {}
+record GivenBlock(
+        Document document,
+        PdpVariables pdpVariables,
+        PdpCombiningAlgorithm pdpConfiguration,
+        Environment environment,
+        List<GivenStep> givenSteps) {}

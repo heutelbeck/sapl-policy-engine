@@ -75,7 +75,9 @@ public class EnforceRecoverableIfDeniedPolicyEnforcementPoint<T> extends Flux<Pr
     final AtomicBoolean stopped = new AtomicBoolean(false);
 
     private EnforceRecoverableIfDeniedPolicyEnforcementPoint(Flux<AuthorizationDecision> decisions,
-            Flux<T> resourceAccessPoint, ConstraintEnforcementService constraintsService, Class<T> clazz) {
+            Flux<T> resourceAccessPoint,
+            ConstraintEnforcementService constraintsService,
+            Class<T> clazz) {
         this.decisions           = decisions;
         this.resourceAccessPoint = resourceAccessPoint;
         this.constraintsService  = constraintsService;

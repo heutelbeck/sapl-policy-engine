@@ -58,8 +58,11 @@ public class PDPDecision implements TracedDecision {
 
     private record Modification(AuthorizationDecision authorizationDecision, String explanation) {}
 
-    private PDPDecision(AuthorizationSubscription authorizationSubscription, PolicyRetrievalResult prpResult,
-            CombinedDecision combinedDecision, Instant timestamp, List<Modification> modifications,
+    private PDPDecision(AuthorizationSubscription authorizationSubscription,
+            PolicyRetrievalResult prpResult,
+            CombinedDecision combinedDecision,
+            Instant timestamp,
+            List<Modification> modifications,
             BaseJsonNode metadata) {
         this.authorizationSubscription = authorizationSubscription;
         this.combinedDecision          = combinedDecision;

@@ -41,7 +41,9 @@ public class PolicySetDecision implements DocumentEvaluationResult {
     final Optional<Val>    targetResult;
     final Optional<String> errorMessage;
 
-    private PolicySetDecision(CombinedDecision combinedDecision, String documentName, Optional<Val> matches,
+    private PolicySetDecision(CombinedDecision combinedDecision,
+            String documentName,
+            Optional<Val> matches,
             Optional<String> errorMessage) {
         this.combinedDecision = combinedDecision;
         this.documentName     = documentName;

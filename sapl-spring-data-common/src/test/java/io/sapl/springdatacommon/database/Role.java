@@ -18,5 +18,6 @@
 package io.sapl.springdatacommon.database;
 
 public enum Role {
-    ADMIN, USER
+    ADMIN,
+    USER
 }

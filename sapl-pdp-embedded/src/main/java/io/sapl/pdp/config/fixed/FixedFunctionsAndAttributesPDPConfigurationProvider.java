@@ -52,9 +52,11 @@ public class FixedFunctionsAndAttributesPDPConfigurationProvider implements PDPC
     private final List<TracedDecisionInterceptor> decisionInterceptors;
 
     public FixedFunctionsAndAttributesPDPConfigurationProvider(AttributeStreamBroker attributeStreamBroker,
-            FunctionContext functionCtx, VariablesAndCombinatorSource variablesAndCombinatorSource,
+            FunctionContext functionCtx,
+            VariablesAndCombinatorSource variablesAndCombinatorSource,
             Collection<AuthorizationSubscriptionInterceptor> subscriptionInterceptors,
-            Collection<TracedDecisionInterceptor> decisionInterceptors, PolicyRetrievalPointSource prpSource) {
+            Collection<TracedDecisionInterceptor> decisionInterceptors,
+            PolicyRetrievalPointSource prpSource) {
         this.attributeStreamBroker        = attributeStreamBroker;
         this.functionCtx                  = functionCtx;
         this.variablesAndCombinatorSource = variablesAndCombinatorSource;

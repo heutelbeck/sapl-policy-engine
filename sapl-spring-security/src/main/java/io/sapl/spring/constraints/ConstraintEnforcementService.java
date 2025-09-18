@@ -106,7 +106,8 @@ public class ConstraintEnforcementService {
             List<ErrorMappingConstraintHandlerProvider> globalErrorMappingHandlerProviders,
             List<ErrorHandlerProvider> globalErrorHandlerProviders,
             List<FilterPredicateConstraintHandlerProvider> filterPredicateProviders,
-            List<MethodInvocationConstraintHandlerProvider> methodInvocationHandlerProviders, ObjectMapper mapper) {
+            List<MethodInvocationConstraintHandlerProvider> methodInvocationHandlerProviders,
+            ObjectMapper mapper) {
 
         this.globalConsumerProviders            = globalConsumerProviders;
         this.globalSubscriptionHandlerProviders = globalSubscriptionHandlerProviders;

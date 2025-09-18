@@ -28,14 +28,28 @@ import org.eclipse.emf.ecore.EObject;
 import io.sapl.api.interpreter.Val;
 import lombok.NonNull;
 
-public record AttributeSubscription(@NonNull String pdpConfigurationId, EObject source,
-        @NonNull String attributeNameReference, Val entity, @NonNull List<Val> arguments,
-        @NonNull Map<String, Val> variables, @NonNull Duration initialTimeOut, @NonNull Duration pollIntervall,
-        @NonNull Duration backoff, long retries, boolean fresh) {
+public record AttributeSubscription(
+        @NonNull String pdpConfigurationId,
+        EObject source,
+        @NonNull String attributeNameReference,
+        Val entity,
+        @NonNull List<Val> arguments,
+        @NonNull Map<String, Val> variables,
+        @NonNull Duration initialTimeOut,
+        @NonNull Duration pollIntervall,
+        @NonNull Duration backoff,
+        long retries,
+        boolean fresh) {
 
-    public AttributeSubscription(@NonNull String pdpConfigurationId, EObject source,
-            @NonNull String attributeNameReference, @NonNull List<Val> arguments, @NonNull Map<String, Val> variables,
-            @NonNull Duration initialTimeOut, @NonNull Duration pollIntervall, @NonNull Duration backoff, long retries,
+    public AttributeSubscription(@NonNull String pdpConfigurationId,
+            EObject source,
+            @NonNull String attributeNameReference,
+            @NonNull List<Val> arguments,
+            @NonNull Map<String, Val> variables,
+            @NonNull Duration initialTimeOut,
+            @NonNull Duration pollIntervall,
+            @NonNull Duration backoff,
+            long retries,
             boolean fresh) {
         this(pdpConfigurationId, source, attributeNameReference, null, arguments, variables, initialTimeOut,
                 pollIntervall, backoff, retries, fresh);

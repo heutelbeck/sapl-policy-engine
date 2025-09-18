@@ -27,9 +27,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.NonNull;
 
-public record LibraryFunctionDocumentation(@NonNull String namespace, @NonNull String attributeName,
-        @NonNull FunctionType type, @NonNull String documentationMarkdown, ParameterDocumentation entityDocumentation,
-        @NonNull List<ParameterDocumentation> parameterDocumentations, JsonNode returnTypeSchema) {
+public record LibraryFunctionDocumentation(
+        @NonNull String namespace,
+        @NonNull String attributeName,
+        @NonNull FunctionType type,
+        @NonNull String documentationMarkdown,
+        ParameterDocumentation entityDocumentation,
+        @NonNull List<ParameterDocumentation> parameterDocumentations,
+        JsonNode returnTypeSchema) {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

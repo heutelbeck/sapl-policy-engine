@@ -68,7 +68,10 @@ public class PrpUpdateEvent {
     }
 
     public enum Type {
-        PUBLISH, WITHDRAW, INCONSISTENT, CONSISTENT
+        PUBLISH,
+        WITHDRAW,
+        INCONSISTENT,
+        CONSISTENT
     }
 
 }

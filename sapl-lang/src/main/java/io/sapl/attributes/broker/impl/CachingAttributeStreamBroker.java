@@ -39,7 +39,8 @@ import reactor.core.publisher.Flux;
 public class CachingAttributeStreamBroker implements AttributeStreamBroker {
     static final Duration DEFAULT_GRACE_PERIOD = Duration.ofMillis(3000L);
 
-    private record SpecificationAndFinder(AttributeFinderSpecification specification,
+    private record SpecificationAndFinder(
+            AttributeFinderSpecification specification,
             AttributeFinder policyInformationPoint) {}
 
     private final Map<AttributeFinderInvocation, List<AttributeStream>> activeStreamIndex    = new HashMap<>();

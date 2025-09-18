@@ -77,7 +77,8 @@ public class AttributeStream {
      * once all subscribers cancelled their subscription.
      */
     public AttributeStream(@NonNull AttributeFinderInvocation invocation,
-            @NonNull Consumer<AttributeStream> cleanupAction, @NonNull Duration gracePeriod) {
+            @NonNull Consumer<AttributeStream> cleanupAction,
+            @NonNull Duration gracePeriod) {
         this.invocation    = invocation;
         this.cleanupAction = cleanupAction;
         // @formatter:off

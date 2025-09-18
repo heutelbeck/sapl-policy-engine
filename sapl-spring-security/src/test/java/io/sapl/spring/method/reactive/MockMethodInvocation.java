@@ -45,7 +45,9 @@ class MockMethodInvocation implements MethodInvocation {
         }
     }
 
-    public MockMethodInvocation(Object targetObject, Method method, Supplier<Object> proceedSupplier,
+    public MockMethodInvocation(Object targetObject,
+            Method method,
+            Supplier<Object> proceedSupplier,
             Object... arguments) {
         this.targetObject    = targetObject;
         this.method          = method;

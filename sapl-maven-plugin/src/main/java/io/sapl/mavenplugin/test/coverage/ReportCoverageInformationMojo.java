@@ -103,9 +103,13 @@ public class ReportCoverageInformationMojo extends AbstractMojo {
     private final HtmlLineCoverageReportGenerator htmlReporter;
 
     @Inject
-    public ReportCoverageInformationMojo(SaplDocumentReader reader, CoverageTargetHelper coverageTargetHelper,
-            CoverageAPIHelper coverageAPIHelper, CoverageRatioCalculator calc, GenericCoverageReporter reporter,
-            SonarLineCoverageReportGenerator sonarReporter, HtmlLineCoverageReportGenerator htmlReporter) {
+    public ReportCoverageInformationMojo(SaplDocumentReader reader,
+            CoverageTargetHelper coverageTargetHelper,
+            CoverageAPIHelper coverageAPIHelper,
+            CoverageRatioCalculator calc,
+            GenericCoverageReporter reporter,
+            SonarLineCoverageReportGenerator sonarReporter,
+            HtmlLineCoverageReportGenerator htmlReporter) {
         this.saplDocumentReader   = reader;
         this.coverageTargetHelper = coverageTargetHelper;
         this.coverageAPIHelper    = coverageAPIHelper;

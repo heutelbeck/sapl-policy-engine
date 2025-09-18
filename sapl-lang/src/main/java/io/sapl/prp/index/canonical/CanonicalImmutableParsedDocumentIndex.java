@@ -52,7 +52,8 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
     private final FunctionContext functionCtx;
 
     public CanonicalImmutableParsedDocumentIndex(PredicateOrderStrategy predicateOrderStrategy,
-            AttributeStreamBroker attributeStreamBroker, FunctionContext functionCtx) {
+            AttributeStreamBroker attributeStreamBroker,
+            FunctionContext functionCtx) {
         this(Collections.emptyMap(), predicateOrderStrategy, true, attributeStreamBroker, functionCtx);
     }
 
@@ -62,8 +63,10 @@ public class CanonicalImmutableParsedDocumentIndex implements UpdateEventDrivenP
     }
 
     private CanonicalImmutableParsedDocumentIndex(Map<String, Document> updatedDocuments,
-            PredicateOrderStrategy predicateOrderStrategy, boolean consistent,
-            AttributeStreamBroker attributeStreamBroker, FunctionContext functionCtx) {
+            PredicateOrderStrategy predicateOrderStrategy,
+            boolean consistent,
+            AttributeStreamBroker attributeStreamBroker,
+            FunctionContext functionCtx) {
         this.documents              = updatedDocuments;
         this.predicateOrderStrategy = predicateOrderStrategy;
         this.consistent             = consistent;

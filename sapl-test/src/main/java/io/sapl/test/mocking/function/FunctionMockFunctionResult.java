@@ -36,7 +36,8 @@ public class FunctionMockFunctionResult implements FunctionMock {
 
     private final MockRunInformation mockRunInformation;
 
-    public FunctionMockFunctionResult(String fullName, Function<Val[], Val> returns,
+    public FunctionMockFunctionResult(String fullName,
+            Function<Val[], Val> returns,
             TimesCalledVerification verification) {
         this.fullName                = fullName;
         this.returnValue             = returns;

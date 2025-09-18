@@ -30,5 +30,6 @@ import lombok.NonNull;
  * @see AuthorizationSubscription
  * @see IdentifiableAuthorizationDecision
  */
-public record IdentifiableAuthorizationSubscription(@NonNull String authorizationSubscriptionId,
+public record IdentifiableAuthorizationSubscription(
+        @NonNull String authorizationSubscriptionId,
         @NonNull AuthorizationSubscription authorizationSubscription) implements Serializable {}

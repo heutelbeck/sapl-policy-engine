@@ -23,6 +23,10 @@ package io.sapl.interpreter.combinators;
  */
 public enum PolicyDocumentCombiningAlgorithm {
 
-    DENY_OVERRIDES, PERMIT_OVERRIDES, ONLY_ONE_APPLICABLE, DENY_UNLESS_PERMIT, PERMIT_UNLESS_DENY
+    DENY_OVERRIDES,
+    PERMIT_OVERRIDES,
+    ONLY_ONE_APPLICABLE,
+    DENY_UNLESS_PERMIT,
+    PERMIT_UNLESS_DENY
 
 }

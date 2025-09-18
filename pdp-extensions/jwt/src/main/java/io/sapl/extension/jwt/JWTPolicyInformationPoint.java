@@ -92,32 +92,39 @@ public class JWTPolicyInformationPoint {
         VALID
 
         // the JWT has expired
-        , EXPIRED
+        ,
+        EXPIRED
 
         // the JWT expires before it becomes valid, so it is never valid
-        , NEVER_VALID
+        ,
+        NEVER_VALID
 
         // the JWT will become valid in future
-        , IMMATURE
+        ,
+        IMMATURE
 
         /*
          * the JWT's signature does not match <p> either the payload has been tampered
          * with, the public key could not be obtained, or the public key does not match
          * the signature
          */
-        , UNTRUSTED
+        ,
+        UNTRUSTED
 
         /*
          * the JWT is incompatible <p> either an incompatible hashing algorithm has been
          * used or required fields do not have the correct format
          */
-        , INCOMPATIBLE
+        ,
+        INCOMPATIBLE
 
         // the JWT is missing required fields
-        , INCOMPLETE
+        ,
+        INCOMPLETE
 
         // the token is not a JWT
-        , MALFORMED
+        ,
+        MALFORMED
 
     }
 

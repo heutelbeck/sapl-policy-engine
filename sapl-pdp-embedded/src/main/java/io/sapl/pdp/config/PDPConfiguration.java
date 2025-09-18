@@ -29,8 +29,11 @@ import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.prp.PolicyRetrievalPoint;
 import lombok.NonNull;
 
-public record PDPConfiguration(@NonNull String configurationId, @NonNull AttributeStreamBroker attributeStreamBroker,
-        @NonNull FunctionContext functionContext, Map<String, Val> variables,
+public record PDPConfiguration(
+        @NonNull String configurationId,
+        @NonNull AttributeStreamBroker attributeStreamBroker,
+        @NonNull FunctionContext functionContext,
+        Map<String, Val> variables,
         PolicyDocumentCombiningAlgorithm documentsCombinator,
         @NonNull UnaryOperator<TracedDecision> decisionInterceptorChain,
         @NonNull UnaryOperator<AuthorizationSubscription> subscriptionInterceptorChain,

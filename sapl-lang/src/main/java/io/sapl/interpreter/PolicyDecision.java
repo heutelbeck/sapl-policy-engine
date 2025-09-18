@@ -55,8 +55,13 @@ public class PolicyDecision implements DocumentEvaluationResult {
     final Optional<Val>    resource;
     final Optional<String> errorMessage;
 
-    private PolicyDecision(String documentName, Decision entitlement, Optional<Val> targetResult,
-            Optional<Val> whereResult, List<Val> obligations, List<Val> advice, Optional<Val> resource,
+    private PolicyDecision(String documentName,
+            Decision entitlement,
+            Optional<Val> targetResult,
+            Optional<Val> whereResult,
+            List<Val> obligations,
+            List<Val> advice,
+            Optional<Val> resource,
             Optional<String> errorMessage) {
         this.documentName = documentName;
         this.targetResult = targetResult;

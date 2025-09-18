@@ -80,7 +80,9 @@ public class AuthorizationSubscription implements Serializable {
      * @param resource the resource
      * @param environment the environment
      */
-    public AuthorizationSubscription(@NotNull JsonNode subject, @NotNull JsonNode action, @NotNull JsonNode resource,
+    public AuthorizationSubscription(@NotNull JsonNode subject,
+            @NotNull JsonNode action,
+            @NotNull JsonNode resource,
             JsonNode environment) {
         this.subject     = (BaseJsonNode) subject;
         this.action      = (BaseJsonNode) action;

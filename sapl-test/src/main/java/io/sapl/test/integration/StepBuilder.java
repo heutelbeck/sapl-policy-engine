@@ -75,8 +75,11 @@ public class StepBuilder {
 
         private final VariablesAndCombinatorSource pdpConfig;
 
-        Steps(PolicyRetrievalPoint prp, VariablesAndCombinatorSource pdpConfig,
-                AttributeStreamBroker attributeStreamBroker, FunctionContext funcCtx, Map<String, Val> variables) {
+        Steps(PolicyRetrievalPoint prp,
+                VariablesAndCombinatorSource pdpConfig,
+                AttributeStreamBroker attributeStreamBroker,
+                FunctionContext funcCtx,
+                Map<String, Val> variables) {
             this.prp                          = prp;
             this.pdpConfig                    = pdpConfig;
             this.mockingFunctionContext       = new MockingFunctionContext(funcCtx);

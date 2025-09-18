@@ -24,12 +24,19 @@ import java.util.List;
 import io.sapl.validation.Validator;
 import lombok.NonNull;
 
-public record AttributeFinderSpecification(@NonNull String namespace, @NonNull String attributeName,
-        boolean isEnvironmentAttribute, int numberOfArguments, boolean takesVariables,
-        @NonNull Validator entityValidator, @NonNull List<Validator> parameterValidators) {
+public record AttributeFinderSpecification(
+        @NonNull String namespace,
+        @NonNull String attributeName,
+        boolean isEnvironmentAttribute,
+        int numberOfArguments,
+        boolean takesVariables,
+        @NonNull Validator entityValidator,
+        @NonNull List<Validator> parameterValidators) {
 
     public enum Match {
-        NO_MATCH, EXACT_MATCH, VARARGS_MATCH
+        NO_MATCH,
+        EXACT_MATCH,
+        VARARGS_MATCH
     }
 
     public static final int HAS_VARIABLE_NUMBER_OF_ARGUMENTS = -1;

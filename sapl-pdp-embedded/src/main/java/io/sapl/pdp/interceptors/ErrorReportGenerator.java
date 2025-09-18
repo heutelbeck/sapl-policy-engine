@@ -32,7 +32,9 @@ public class ErrorReportGenerator {
     private static final String HTML_ERROR_OFF = "</span>";
 
     public enum OutputFormat {
-        PLAIN_TEXT, ANSI_TEXT, HTML
+        PLAIN_TEXT,
+        ANSI_TEXT,
+        HTML
     }
 
     public String errorReport(Val value, boolean enumerateLines, OutputFormat format) {

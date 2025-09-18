@@ -68,7 +68,8 @@ public class PolicyEnforcementPointAroundMethodInterceptor
         this.policyEnforcementPoint = policyEnforcementPoint;
     }
 
-    PolicyEnforcementPointAroundMethodInterceptor(Class<? extends Annotation> annotation, int order,
+    PolicyEnforcementPointAroundMethodInterceptor(Class<? extends Annotation> annotation,
+            int order,
             MethodInterceptor policyEnforcementPoint) {
         this.pointcut               = pointcutForAnnotation(annotation);
         this.order                  = order;

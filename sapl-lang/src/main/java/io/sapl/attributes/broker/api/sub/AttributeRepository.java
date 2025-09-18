@@ -25,7 +25,8 @@ import reactor.core.publisher.Mono;
 
 public interface AttributeRepository {
     public enum TimeOutStrategy {
-        REMOVE, BECOME_UNDEFINED
+        REMOVE,
+        BECOME_UNDEFINED
     }
 
     Mono<Void> publishAttribute(String fullyQualifiedName, Val value, Duration ttl, TimeOutStrategy timeOutStrategy);

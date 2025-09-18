@@ -18,7 +18,9 @@
 package io.sapl.server.ce.model.setup;
 
 public enum SupportedKeystoreTypes {
-    PKCS12, JCEKS, JKS;
+    PKCS12,
+    JCEKS,
+    JKS;
 
     public static SupportedKeystoreTypes getByName(String name) {
         for (SupportedKeystoreTypes keystore : SupportedKeystoreTypes.values()) {

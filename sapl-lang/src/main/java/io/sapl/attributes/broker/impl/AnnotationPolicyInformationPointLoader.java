@@ -119,7 +119,8 @@ public class AnnotationPolicyInformationPointLoader {
      */
     public AnnotationPolicyInformationPointLoader(AttributeStreamBroker broker,
             PolicyInformationPointDocumentationProvider documentationProvider,
-            PolicyInformationPointSupplier pipSupplier, StaticPolicyInformationPointSupplier staticPipSupplier,
+            PolicyInformationPointSupplier pipSupplier,
+            StaticPolicyInformationPointSupplier staticPipSupplier,
             ValidatorFactory validatorFactory) {
         this.broker                = broker;
         this.documentationProvider = documentationProvider;
@@ -172,7 +173,8 @@ public class AnnotationPolicyInformationPointLoader {
         documentationProvider.loadPolicyInformationPoint(impAndDoc.documentation());
     }
 
-    private record ImplementationAndDocumentation(PolicyInformationPointImplementation implementation,
+    private record ImplementationAndDocumentation(
+            PolicyInformationPointImplementation implementation,
             LibraryDocumentation documentation) {}
 
     private ImplementationAndDocumentation createImplementation(Object policyInformationPoint, Class<?> pipClass) {

@@ -59,7 +59,10 @@ public class WebDependencyFactory {
         return dependencies;
     }
 
-    public record WebDependency(@NonNull String name, @NonNull String fileName, @NonNull String sourcePath,
+    public record WebDependency(
+            @NonNull String name,
+            @NonNull String fileName,
+            @NonNull String sourcePath,
             @NonNull String targetPath) {}
 
 }

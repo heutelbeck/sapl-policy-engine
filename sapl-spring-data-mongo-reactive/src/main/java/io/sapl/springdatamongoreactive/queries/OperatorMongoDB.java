@@ -38,14 +38,17 @@ public enum OperatorMongoDB {
     GREATER_THAN_EQUAL(List.of("IsGreaterThanEqual", "GreaterThanEqual"), List.of("$gte", "gte")),
     BEFORE(List.of("IsBefore", "Before"), List.of("$lt", "lt")),
     AFTER(List.of("IsAfter", "After"), List.of("$gt", "gt")),
-    NOT_IN(List.of("IsNotIn", "NotIn"), List.of("$nin", "nin")), IN(List.of("IsIn", "In"), List.of("$in", "in")),
+    NOT_IN(List.of("IsNotIn", "NotIn"), List.of("$nin", "nin")),
+    IN(List.of("IsIn", "In"), List.of("$in", "in")),
     NEAR(List.of("IsNear", "Near"), List.of("$near", "near")),
-    REGEX(List.of("MatchesRegex", "Matches", "Regex", "IsStartingWith", "StartingWith", "StartsWith", "IsEndingWith",
-            "EndingWith", "EndsWith", "IsLike", "Like", "IsContaining", "Containing", "Contains"),
+    REGEX(
+            List.of("MatchesRegex", "Matches", "Regex", "IsStartingWith", "StartingWith", "StartsWith", "IsEndingWith",
+                    "EndingWith", "EndsWith", "IsLike", "Like", "IsContaining", "Containing", "Contains"),
             List.of("$regex", "regex")),
     EXISTS(List.of("Exists"), List.of("$exists", "exists")),
     NEGATING_SIMPLE_PROPERTY(List.of("IsNot", "Not"), List.of("$ne", "ne")),
-    SIMPLE_PROPERTY(List.of("Is", "Equals"), List.of("$eq", "eq")), SORT(List.of(), List.of());
+    SIMPLE_PROPERTY(List.of("Is", "Equals"), List.of("$eq", "eq")),
+    SORT(List.of(), List.of());
 
     final List<String> methodNameBasedKeywords;
     final List<String> mongoBasedKeywords;

@@ -21,7 +21,8 @@ import lombok.Getter;
 
 @Getter
 public enum SupportedSslVersions {
-    TLSV1_2("TLSv1.2"), TLSV1_3("TLSv1.3");
+    TLSV1_2("TLSv1.2"),
+    TLSV1_3("TLSv1.3");
 
     private final String displayName;
 

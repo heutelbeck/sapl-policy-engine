@@ -19,8 +19,13 @@ package io.sapl.spring.method.metadata;
 
 import org.springframework.expression.Expression;
 
-public record SaplAttribute(Class<?> annotationType, Expression subjectExpression, Expression actionExpression,
-        Expression resourceExpression, Expression environmentExpression, Class<?> genericsType) {
+public record SaplAttribute(
+        Class<?> annotationType,
+        Expression subjectExpression,
+        Expression actionExpression,
+        Expression resourceExpression,
+        Expression environmentExpression,
+        Class<?> genericsType) {
 
     public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null);
 
