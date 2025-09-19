@@ -17,12 +17,11 @@
  */
 package io.sapl.vaadin;
 
-import org.eclipse.xtext.diagnostics.Severity;
-
 import elemental.json.JsonObject;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.eclipse.xtext.diagnostics.Severity;
 
 /**
  * Describes a code issue identified by the linting process in the editor.

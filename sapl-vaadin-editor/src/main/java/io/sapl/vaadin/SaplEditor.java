@@ -17,36 +17,35 @@
  */
 package io.sapl.vaadin;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import com.vaadin.flow.component.ClientCallable;
-import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
-import com.vaadin.flow.dom.Element;
-
 import elemental.json.JsonArray;
 import io.sapl.api.SaplVersion;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
- * An editor component for SAPL documents supporting code-completion,
- * syntax-highlighting, and linting.
+ * SAPL editor with Xtext integration and optional two-pane merge view.
  */
 @Tag("sapl-editor")
 @JsModule("./sapl-editor.js")
 @NpmPackage(value = "jquery", version = "3.7.1")
 @NpmPackage(value = "codemirror", version = "5.65.16")
-public class SaplEditor extends BaseEditor {
+@NpmPackage(value = "diff-match-patch", version = "1.0.5")
+public class SaplEditor extends BaseEditor implements HasSize {
 
     private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
     private final List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
 
     /**
-     * Creates an editor component.
+     * Creates the editor.
      *
-     * @param config the editor settings-
+     * @param config editor configuration
      */
     public SaplEditor(SaplEditorConfiguration config) {
         final var element = getElement();
@@ -55,47 +54,119 @@ public class SaplEditor extends BaseEditor {
 
     @ClientCallable
     protected void onValidation(JsonArray jsonIssues) {
-
-        ArrayList<Object> issues = new ArrayList<>();
+        final ArrayList<Object> issues = new ArrayList<>();
         for (int i = 0; jsonIssues != null && i < jsonIssues.length(); i++) {
             final var jsonIssue = jsonIssues.getObject(i);
             final var issue     = new Issue(jsonIssue);
             issues.add(issue);
         }
-
+        final var issueArray = issues.toArray(new Issue[0]);
         for (ValidationFinishedListener listener : validationFinishedListeners) {
-            final var issueArray = issues.toArray(new Issue[0]);
             listener.onValidationFinished(new ValidationFinishedEvent(issueArray));
         }
     }
 
-    /**
-     * Registers a validation finished listener. The validation changed event will
-     * be raised after the document was changed and the validation took place. The
-     * event object contains a list with all validation issues of the document.
-     *
-     * @param listener the event listener
-     */
     public void addValidationFinishedListener(ValidationFinishedListener listener) {
         this.validationFinishedListeners.add(listener);
     }
 
-    /**
-     * Removes a registered validation finished listener.
-     *
-     * @param listener The registered listener that should be removed.
-     */
     public void removeValidationFinishedListener(ValidationFinishedListener listener) {
         this.validationFinishedListeners.remove(listener);
     }
 
     /**
-     * Sets the configurationId for code completion.
+     * Sets the configuration id for code completion/validation context.
      *
-     * @param configurationId a configurationId
+     * @param configurationId configuration id
      */
     public void setConfigurationId(String configurationId) {
-        Element element = getElement();
-        element.setProperty("configurationId", configurationId);
+        getElement().setProperty("configurationId", configurationId);
     }
+
+    // ---------- Merge API parity with JsonEditor ----------
+
+    /**
+     * Enable or disable the two-pane merge view. When disabled, Xtext services are
+     * active.
+     *
+     * @param enabled true to enable merge mode
+     */
+    public void setMergeModeEnabled(boolean enabled) {
+        getElement().callJsFunction("setMergeModeEnabled", enabled);
+    }
+
+    /**
+     * Provide the right-hand document for the merge view.
+     *
+     * @param content right-side text
+     */
+    public void setMergeRightContent(String content) {
+        getElement().callJsFunction("setMergeRightContent", content);
+    }
+
+    /**
+     * Toggle visual markers for changed blocks in both panes.
+     *
+     * @param enabled true to enable markers
+     */
+    public void setChangeMarkersEnabled(boolean enabled) {
+        getElement().callJsFunction("enableChangeMarkers", enabled);
+    }
+
+    /**
+     * Set a merge option. Supported keys:
+     * "revertButtons" (Boolean), "showDifferences" (Boolean),
+     * "connect" (null or "align"), "collapseIdentical" (Boolean),
+     * "allowEditingOriginals" (Boolean), "ignoreWhitespace" (Boolean)
+     *
+     * @param option key
+     * @param value value
+     */
+    public void setMergeOption(String option, Serializable value) {
+        getElement().callJsFunction("setMergeOption", option, value);
+    }
+
+    /**
+     * Jump to next diff chunk.
+     */
+    public void goToNextChange() {
+        getElement().callJsFunction("nextChange");
+    }
+
+    /**
+     * Jump to previous diff chunk.
+     */
+    public void goToPreviousChange() {
+        getElement().callJsFunction("prevChange");
+    }
+
+    // ----- Optional: expose chunk ranges to server (parity with JSON) -----
+
+    @DomEvent("sapl-merge-chunks")
+    public static class DiffChunksChangedEvent extends ComponentEvent<SaplEditor> {
+
+        private final ArrayList<Chunk> chunks;
+
+        public DiffChunksChangedEvent(SaplEditor source,
+                boolean fromClient,
+                @EventData("event.detail.chunks") elemental.json.JsonArray chunksJson) {
+            super(source, fromClient);
+            final ArrayList<Chunk> list = new ArrayList<>();
+            if (chunksJson != null) {
+                for (int i = 0; i < chunksJson.length(); i++) {
+                    final var obj  = chunksJson.getObject(i);
+                    final int from = obj.hasKey("fromLine") ? (int) obj.getNumber("fromLine") : 0;
+                    final int to   = obj.hasKey("toLine") ? (int) obj.getNumber("toLine") : from;
+                    list.add(new Chunk(from, to));
+                }
+            }
+            this.chunks = list;
+        }
+
+        public List<Chunk> getChunks() {
+            return Collections.unmodifiableList(chunks);
+        }
+    }
+
+    public record Chunk(int fromLine, int toLine) implements Serializable {}
 }

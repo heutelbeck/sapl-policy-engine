@@ -17,16 +17,15 @@
  */
 package io.sapl.vaadin;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.vaadin.flow.component.ClientCallable;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.dom.ElementConstants;
-
 import io.sapl.api.SaplVersion;
 import lombok.Getter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Base class for SAPL and JSON editors.
