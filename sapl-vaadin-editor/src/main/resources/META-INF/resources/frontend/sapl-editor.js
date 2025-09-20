@@ -1,83 +1,111 @@
 import { LitElement, html, css } from 'lit';
-import {
-    CodeMirrorStyles,
-    CodeMirrorLintStyles,
-    CodeMirrorHintStyles,
-    XTextAnnotationsStyles,
-    AutocompleteWidgetStyle,
-    ReadOnlyStyle,
-    HeightFix,
-    DarkStyle
-} from './shared-styles.js';
-
-import { exports as XtextExports } from './xtext-codemirror-patched.js';
+import { CodeMirrorStyles, CodeMirrorLintStyles, CodeMirrorHintStyles, XTextAnnotationsStyles, AutocompleteWidgetStyle, ReadOnlyStyle, HeightFix, DarkStyle } from './shared-styles.js';
 import './sapl-mode';
+import { exports as xtext } from './xtext-codemirror-patched.js';
 
-import codemirror from 'codemirror';
-import 'codemirror/addon/merge/merge';
-import 'codemirror/addon/hint/show-hint';
+import CodeMirror from 'codemirror';
 import 'codemirror/mode/javascript/javascript';
-
-// diff-match-patch for MergeView
+import 'codemirror/addon/lint/lint';
+import 'codemirror/addon/merge/merge';
 import * as DMP from 'diff-match-patch';
-const DiffMatchPatch = DMP.default || DMP.diff_match_patch || DMP;
-if (typeof window !== 'undefined' && !window.diff_match_patch) {
-    window.diff_match_patch = DiffMatchPatch;
-    window.DIFF_DELETE = DMP.DIFF_DELETE ?? -1;
-    window.DIFF_INSERT = DMP.DIFF_INSERT ?? 1;
-    window.DIFF_EQUAL  = DMP.DIFF_EQUAL  ?? 0;
-}
 
-// ---- exported configuration id (used by the patched Xtext client) ----
-let saplPdpConfigurationId = null;
+// Keep this export – xtext-codemirror-patched.js imports it.
 export { saplPdpConfigurationId };
+let saplPdpConfigurationId = null;
 
-// ---- component styles (lightweight, uses your shared styles) ----
-const HostFix = css`
-  :host { display:block; height:100%; }
-  #xtext-editor, .CodeMirror, .CodeMirror-merge { height:100%; }
+// ------- Merge CSS scoped to shadow DOM (mirrors the JSON editor approach) -------
+const MergeHeightFix = css`
+    :host { display:block; height:100%; }
+    #sapl-editor { height:100%; }
+    .CodeMirror-merge, .CodeMirror { height:100%; }
 `;
 
-export class SAPLEditor extends LitElement {
+const MergeLayout = css`
+  .CodeMirror-merge { position:relative; height:100%; white-space:pre; }
+  .CodeMirror-merge, .CodeMirror-merge .CodeMirror { height:100%; }
+  .CodeMirror-merge-2pane .CodeMirror-merge-pane { width:47%; }
+  .CodeMirror-merge-2pane .CodeMirror-merge-gap  { width:6%;  }
+  .CodeMirror-merge-3pane .CodeMirror-merge-pane { width:31%; }
+  .CodeMirror-merge-3pane .CodeMirror-merge-gap  { width:3.5%; }
+  .CodeMirror-merge-pane { display:inline-block; white-space:normal; vertical-align:top; height:100%; box-sizing:border-box; }
+  .CodeMirror-merge-pane-rightmost { position:absolute; right:0; z-index:1; top:0; bottom:0; }
+  .CodeMirror-merge-gap { z-index:2; display:inline-block; height:100%; box-sizing:border-box; overflow:hidden; position:relative; }
+`;
+
+const MergeControls = css`
+  .CodeMirror-merge-scrolllock-wrap { position:absolute; bottom:0; left:50%; }
+  .CodeMirror-merge-scrolllock { position:relative; left:-50%; cursor:pointer; color:var(--sapl-merge-arrow, #378b8a); line-height:1; }
+  .CodeMirror-merge-scrolllock:after { content:"\\21db\\00a0\\00a0\\21da"; }
+  .CodeMirror-merge-scrolllock.CodeMirror-merge-scrolllock-enabled:after { content:"\\21db\\21da"; }
+  .CodeMirror-merge-copybuttons-left, .CodeMirror-merge-copybuttons-right { position:absolute; left:0; top:0; right:0; bottom:0; line-height:1; }
+  .CodeMirror-merge-copy, .CodeMirror-merge-copy-reverse { position:absolute; cursor:pointer; color:var(--sapl-merge-arrow, #378b8a); z-index:3; }
+  .CodeMirror-merge-copybuttons-left  .CodeMirror-merge-copy { left:2px; }
+  .CodeMirror-merge-copybuttons-right .CodeMirror-merge-copy { right:2px; }
+`;
+
+const MergeColorOverrides = css`
+  .CodeMirror-merge-l-connect, .CodeMirror-merge-r-connect {
+    fill: var(--sapl-merge-connector, #252a2e);
+    stroke: var(--sapl-merge-connector, #252a2e);
+    stroke-width: 1px;
+    opacity: 1;
+  }
+`;
+
+const MergeArrowStrongOverrides = css`
+  .CodeMirror-merge-gap .CodeMirror-merge-copy,
+  .CodeMirror-merge-gap .CodeMirror-merge-copy-reverse,
+  .CodeMirror-merge-gap .CodeMirror-merge-scrolllock,
+  .CodeMirror-merge-gap .CodeMirror-merge-scrolllock::after {
+    color: var(--sapl-merge-arrow, #378b8a) !important;
+  }
+`;
+
+class SAPLEditor extends LitElement {
     constructor() {
         super();
         this.document = '';
         this.xtextLang = 'sapl';
 
-        // runtime state
-        this._editor = undefined;         // current active left editor (CM instance)
-        this._mergeView = undefined;      // MergeView instance (when enabled)
-        this._rightText = '';             // right content
+        this.mergeEnabled = false;
+
+        this._isReadOnly = false;
+        this._isLint = true;
+        this._isDarkTheme = false;
+        this.hasLineNumbers = true;
+        this.textUpdateDelay = 400;
+
         this._mergeOptions = {
             revertButtons: true,
             showDifferences: true,
-            connect: null,                  // or "align"
+            connect: null,
             collapseIdentical: false,
             allowEditingOriginals: false,
             ignoreWhitespace: false
         };
+        this._rightMergeText = '';
 
-        // public defaults
-        this._isReadOnly = false;
-        this._isLint = true;              // Xtext validate
-        this._isDarkTheme = false;
+        this._editor = undefined;
+        this._mergeView = undefined;
+        this._shadowHintContainer = null;
+        this._resizeObserver = null;
 
-        // behavior
-        this.hasLineNumbers = true;
-        this.textUpdateDelay = 500;
-        this.mergeEnabled = false;        // OFF by default in the component
+        this._keydownHandler = null;
+        this._showHintPatched = false;
     }
 
     static get properties() {
         return {
             document: { type: String },
-            isReadOnly: { type: Boolean, attribute: 'is-read-only' },
-            hasLineNumbers: { type: Boolean, attribute: 'has-line-numbers' },
-            textUpdateDelay: { type: Number, attribute: 'text-update-delay' },
-            isLint: { type: Boolean, attribute: 'is-lint' },
-            xtextLang: { type: String, attribute: 'xtext-lang' },
-            isDarkTheme: { type: Boolean, attribute: 'is-dark-theme' },
-            mergeEnabled: { type: Boolean, attribute: 'merge-enabled' }
+            isReadOnly: { type: Boolean },
+            hasLineNumbers: { type: Boolean },
+            textUpdateDelay: { type: Number },
+            editor: { type: Object },
+            xtextLang: { type: String },
+            isLint: { type: Boolean },
+            configurationId: { type: String },
+            isDarkTheme: { type: Boolean },
+            mergeEnabled: { type: Boolean }
         };
     }
 
@@ -91,276 +119,375 @@ export class SAPLEditor extends LitElement {
             ReadOnlyStyle,
             HeightFix,
             DarkStyle,
-            HostFix
+            MergeHeightFix,
+            MergeLayout,
+            MergeControls,
+            MergeColorOverrides,
+            MergeArrowStrongOverrides
         ];
     }
 
-    // ----- setters/getters forwarders to keep options in sync -----
     set editor(v) {
         const old = this._editor;
         this._editor = v;
         this.requestUpdate('editor', old);
+        this._applyBasicOptionsToCurrentEditor();
     }
     get editor() { return this._editor; }
 
     set isReadOnly(v) {
         const old = this._isReadOnly;
-        this._isReadOnly = !!v;
+        this._isReadOnly = v;
         this.requestUpdate('isReadOnly', old);
-        this._applyReadOnlyTheme();
-        const ed = this._leftEditor();
-        if (ed) ed.setOption('readOnly', this._isReadOnly);
+        this._setEditorOption('readOnly', v);
     }
-    get isReadOnly() { return this._isReadOnly; }
+    get isReadOnly(){ return this._isReadOnly; }
 
     set isLint(v) {
         const old = this._isLint;
-        this._isLint = !!v;
+        this._isLint = v;
         this.requestUpdate('isLint', old);
-        // handled by Xtext services; will be applied on (re)create
+        this._setLintOption(v);
     }
-    get isLint() { return this._isLint; }
+    get isLint(){ return this._isLint; }
 
     set isDarkTheme(v) {
         const old = this._isDarkTheme;
-        this._isDarkTheme = !!v;
+        this._isDarkTheme = v;
         this.requestUpdate('isDarkTheme', old);
-        this._applyTheme();
+        this._setDarkTheme(v);
     }
-    get isDarkTheme() { return this._isDarkTheme; }
+    get isDarkTheme(){ return this._isDarkTheme; }
 
-    // ---------- lifecycle ----------
+    set configurationId(v) {
+        const old = this._configurationId;
+        this._configurationId = v;
+        this.requestUpdate('configurationId', old);
+        saplPdpConfigurationId = v;
+    }
+    get configurationId(){ return this._configurationId; }
+
     firstUpdated() {
-        // start in single-editor mode by default
-        this._createSingleEditor(this.document ?? '');
+        // Make DMP available globally for merge addon
+        const DiffMatchPatch = DMP.default || DMP.diff_match_patch || DMP;
+        if (typeof window.diff_match_patch === 'undefined') {
+            window.diff_match_patch = DiffMatchPatch;
+            window.DIFF_DELETE = DMP.DIFF_DELETE ?? -1;
+            window.DIFF_INSERT = DMP.DIFF_INSERT ??  1;
+            window.DIFF_EQUAL  = DMP.DIFF_EQUAL  ??  0;
+        }
+
+        // Hint container for single-pane mode
+        const widget = document.createElement('div');
+        widget.id = 'widgetContainer';
+        this._shadowHintContainer = widget;
+        this.shadowRoot.appendChild(widget);
+
+        // PATCH showHint ONCE so Xtext's internal calls inherit our safe defaults
+        this._patchShowHintOnce();
+
+        // Ensure hint CSS exists in top document for body-mounted popups
+        this._ensureGlobalHintCSS();
+
+        const start = () => {
+            if (this.mergeEnabled) this._createMergeView(this.document, this._rightMergeText ?? '');
+            else this._createSingleEditor(this.document);
+        };
+        const host = this._container();
+        if (host && host.clientHeight === 0) requestAnimationFrame(start); else start();
+
+        // Optional keyboard nav
+        this._keydownHandler = (e) => {
+            if (e.altKey && e.key === 'ArrowDown') { try { this.editor?.execCommand('goNextDiff'); } catch{} e.preventDefault(); }
+            if (e.altKey && e.key === 'ArrowUp')   { try { this.editor?.execCommand('goPrevDiff'); } catch{} e.preventDefault(); }
+        };
+        this.addEventListener('keydown', this._keydownHandler, true);
+
+        this._resizeObserver = new ResizeObserver(() => this._refresh());
+        this._resizeObserver.observe(this._container());
+
+        this._applyThemeVars();
     }
 
     disconnectedCallback() {
         super.disconnectedCallback?.();
-        this._destroyEditors();
+        try { this._resizeObserver?.disconnect(); } catch {}
+        if (this._keydownHandler) this.removeEventListener('keydown', this._keydownHandler, true);
     }
 
-    render() {
-        return html`<div id="xtext-editor"></div>`;
+    render() { return html`<div id="sapl-editor"></div>`; }
+    _container(){ return this.shadowRoot.getElementById('sapl-editor'); }
+
+    _teardown() {
+        const c = this._container();
+        if (c) c.innerHTML = '';
+        this._mergeView = undefined;
+        this._editor = undefined;
     }
 
-    // ---------- public API called from Java wrapper ----------
-    setConfigurationId(id) {
-        saplPdpConfigurationId = id ?? null;
-    }
+    _createSingleEditor(value) {
+        this._teardown();
 
-    setDocument(text) {
-        this.document = text ?? '';
-        const ed = this._leftEditor();
-        if (ed) ed.doc.setValue(this.document);
-    }
-
-    setMergeModeEnabled(enabled) {
-        const want = !!enabled;
-        if (want === !!this._mergeView) return;
-        const leftText = this._leftEditor()?.getValue?.() ?? this.document ?? '';
-        if (want) {
-            this._createMergeView(leftText, this._rightText ?? '');
-        } else {
-            this._createSingleEditor(leftText);
-        }
-    }
-
-    setMergeRightContent(text) {
-        this._rightText = text ?? '';
-        const right = this._rightEditor();
-        if (right) right.setValue(this._rightText);
-    }
-
-    setMergeOption(option, value) {
-        if (Object.prototype.hasOwnProperty.call(this._mergeOptions, option)) {
-            this._mergeOptions[option] = value;
-            if (this._mergeView) {
-                // rebuild safest
-                const leftText = this._leftEditor()?.getValue?.() ?? this.document ?? '';
-                const rightText = this._rightEditor()?.getValue?.() ?? this._rightText ?? '';
-                this._createMergeView(leftText, rightText);
+        const cm = CodeMirror(this._container(), {
+            value: value ?? '',
+            mode: 'xtext/sapl',
+            readOnly: this.isReadOnly === true,
+            lineNumbers: this.hasLineNumbers,
+            showCursorWhenSelecting: true,
+            gutters: ['annotations-gutter'],
+            theme: this._themeName(),
+            extraKeys: { 'Ctrl-Space': 'autocomplete' },
+            // in single-pane we can keep the popup inside the shadow
+            hintOptions: {
+                container: this._shadowHintContainer,
+                updateOnCursorActivity: false,
+                completeSingle: false
             }
+        });
+
+        xtext.createServices(cm, {
+            document: this.shadowRoot,
+            xtextLang: this.xtextLang,
+            sendFullText: true,
+            syntaxDefinition: 'xtext/sapl',
+            enableValidationService: this._isLint === true,
+            textUpdateDelay: this.textUpdateDelay,
+            showErrorDialogs: false
+        });
+
+        cm.getDoc().on('change', () => {
+            const valueNow = cm.getValue();
+            this._onDocumentChanged(valueNow);
+        });
+
+        this._hookValidation(cm);
+
+        this.editor = cm;
+        this._applyBasicOptionsToCurrentEditor();
+    }
+
+    _createMergeView(left, right) {
+        this._teardown();
+
+        const mount = this._container();
+        if ((mount.clientHeight || 0) < 50) mount.style.height = '400px';
+
+        this._mergeView = CodeMirror.MergeView(mount, {
+            value: left ?? '',
+            origLeft: null,
+            origRight: right ?? '',
+            mode: 'xtext/sapl',
+            readOnly: this.isReadOnly === true,
+            allowEditingOriginals: this._mergeOptions.allowEditingOriginals,
+            showDifferences: this._mergeOptions.showDifferences,
+            revertButtons: this._mergeOptions.revertButtons,
+            connect: this._mergeOptions.connect,
+            collapseIdentical: this._mergeOptions.collapseIdentical,
+            theme: this._themeName()
+        });
+
+        const main = this._mergeView.edit;
+        const origRight = this._mergeView.right && this._mergeView.right.orig;
+
+        // Attach Xtext services to center editor
+        xtext.createServices(main, {
+            document: this.shadowRoot,
+            xtextLang: this.xtextLang,
+            sendFullText: true,
+            syntaxDefinition: 'xtext/sapl',
+            enableValidationService: this._isLint === true,
+            textUpdateDelay: this.textUpdateDelay,
+            showErrorDialogs: false
+        });
+
+        // DO NOT override Ctrl-Space here – let Xtext trigger showHint.
+        // Just ensure the popup renders into body and always shows.
+        main.setOption('hintOptions', {
+            container: document.body,
+            updateOnCursorActivity: false,
+            completeSingle: false,
+            closeOnUnfocus: false
+        });
+
+        if (origRight) {
+            origRight.setOption('readOnly', !this._mergeOptions.allowEditingOriginals);
+            origRight.setOption('mode', 'xtext/sapl');
+            origRight.setOption('lineNumbers', this.hasLineNumbers);
+            origRight.setOption('theme', this._themeName());
         }
+
+        main.getDoc().on('change', () => {
+            const v = main.getValue();
+            this._onDocumentChanged(v);
+            requestAnimationFrame(() => this._refresh());
+        });
+
+        this._hookValidation(main);
+
+        this.editor = main;
+
+        requestAnimationFrame(() => this._refresh());
     }
 
-    nextChange()  { this._leftEditor()?.execCommand?.('goNextDiff'); }
-    prevChange()  { this._leftEditor()?.execCommand?.('goPrevDiff'); }
+    _hookValidation(cm) {
+        const xs = cm.xtextServices;
+        if (!xs || xs._wrappedValidate) return;
+        xs._wrappedValidate = true;
 
-    enableChangeMarkers(_enabled) {
-        // no-op here; Xtext markers are already shown; merge chunks stay default
-    }
-
-    setDarkTheme(value) { this.isDarkTheme = !!value; }
-    setReadOnly(value)  { this.isReadOnly = !!value; }
-
-    // ---------- private helpers ----------
-    _container() { return this.shadowRoot.getElementById('xtext-editor'); }
-
-    _leftEditor() {
-        if (this._mergeView) return this._mergeView.edit;
-        return this.editor;
-    }
-    _rightEditor() {
-        return this._mergeView && this._mergeView.right ? this._mergeView.right.orig : undefined;
-    }
-
-    _themeForState() {
-        if (this._isReadOnly) return this._isDarkTheme ? 'dracularo' : 'readOnly';
-        return this._isDarkTheme ? 'dracula' : 'default';
-    }
-    _applyReadOnlyTheme() {
-        const ed = this._leftEditor();
-        if (!ed) return;
-        ed.setOption('theme', this._themeForState());
-        const right = this._rightEditor();
-        if (right) right.setOption('theme', this._themeForState());
-    }
-    _applyTheme() {
-        const ed = this._leftEditor();
-        if (ed) ed.setOption('theme', this._themeForState());
-        const right = this._rightEditor();
-        if (right) right.setOption('theme', this._themeForState());
-    }
-
-    _emitChange(value) {
-        this.document = value;
-        if (this.$server && this.$server.onDocumentChanged) {
-            try { this.$server.onDocumentChanged(value); } catch (e) { /* ignore */ }
-        }
-    }
-    _wireValidationCallback(cm) {
-        // hook into Xtext validation to forward to server
-        const xs = cm?.xtextServices;
-        if (!xs || !xs.validationService) return;
-        const originalValidate = xs.validate.bind(xs);
+        const original = xs.validate;
         xs.validate = (addParam) => {
-            return originalValidate(addParam).done((result) => {
+            return original.call(xs, addParam).done((result) => {
                 if (this.$server && this.$server.onValidation) {
-                    try { this.$server.onValidation(result.issues); } catch (_) {}
+                    try { this.$server.onValidation(result.issues); } catch(e) { console.error(e); }
                 }
             });
         };
     }
 
-    _destroyEditors() {
-        // remove Xtext services if present
-        try {
-            const ed = this._leftEditor();
-            if (ed?.xtextServices) XtextExports.removeServices(ed);
-        } catch (_) {}
-        // clear DOM
-        const c = this._container();
-        if (c) c.innerHTML = '';
-        this._mergeView = undefined;
-        this.editor = undefined;
+    _themeName() {
+        if (this._isReadOnly) return this._isDarkTheme ? 'dracularo' : 'readOnly';
+        return this._isDarkTheme ? 'dracula' : 'default';
     }
 
-    _createSingleEditor(text) {
-        this._destroyEditors();
-        const mount = this._container();
-        if (!mount) return;
-
-        // Create a plain CodeMirror, then add Xtext services on it
-        const cm = codemirror((el) => mount.appendChild(el), {
-            value: text ?? '',
-            mode: 'xtext/' + (this.xtextLang || 'sapl'),
-            readOnly: !!this._isReadOnly,
-            lineNumbers: !!this.hasLineNumbers,
-            theme: this._themeForState(),
-            gutters: ['annotations-gutter'],
-            showCursorWhenSelecting: true
-        });
-
-        // Attach Xtext services
-        XtextExports.createServices(cm, {
-            document: this.shadowRoot,
-            xtextLang: this.xtextLang || 'sapl',
-            sendFullText: true,
-            syntaxDefinition: 'xtext/sapl',
-            readOnly: !!this._isReadOnly,
-            lineNumbers: !!this.hasLineNumbers,
-            showCursorWhenSelecting: true,
-            enableValidationService: !!this._isLint,
-            textUpdateDelay: this.textUpdateDelay ?? 500,
-            gutters: ['annotations-gutter'],
-            extraKeys: { 'Ctrl-Space': 'autocomplete' },
-            // IMPORTANT: render hint popup outside merge/gap clipping
-            hintOptions: { container: document.body, updateOnCursorActivity: false },
-            theme: this._themeForState()
-        });
-
-        // ensure hint options on CM side too (CM reads from its own option)
-        cm.setOption('hintOptions', { container: document.body, updateOnCursorActivity: false });
-
-        cm.on('changes', () => this._emitChange(cm.getValue()));
-        this.editor = cm;
-
-        // wire server validation callback
-        this._wireValidationCallback(cm);
+    _applyBasicOptionsToCurrentEditor() {
+        const cm = this.editor;
+        if (!cm) return;
+        cm.setOption('theme', this._themeName());
+        cm.setOption('lineNumbers', this.hasLineNumbers);
+        cm.setOption('readOnly', this._isReadOnly === true);
     }
 
-    _createMergeView(leftText, rightText) {
-        this._destroyEditors();
-        const mount = this._container();
-        if (!mount) return;
-
-        // Build MergeView (lets it create BOTH editors)
-        this._mergeView = codemirror.MergeView(mount, {
-            value: leftText ?? '',
-            origLeft: null,
-            origRight: rightText ?? '',
-            lineNumbers: !!this.hasLineNumbers,
-            mode: 'xtext/' + (this.xtextLang || 'sapl'), // CM mode (Xtext does semantics)
-            readOnly: !!this._isReadOnly,
-            allowEditingOriginals: !!this._mergeOptions.allowEditingOriginals,
-            showDifferences: !!this._mergeOptions.showDifferences,
-            revertButtons: !!this._mergeOptions.revertButtons,
-            connect: this._mergeOptions.connect,                 // null | "align"
-            collapseIdentical: !!this._mergeOptions.collapseIdentical,
-            theme: this._themeForState(),
-            ignoreWhitespace: !!this._mergeOptions.ignoreWhitespace
-        });
-
-        const left = this._mergeView.edit;
-        // Attach Xtext services to LEFT editor (no DOM swap)
-        XtextExports.createServices(left, {
-            document: this.shadowRoot,
-            xtextLang: this.xtextLang || 'sapl',
-            sendFullText: true,
-            syntaxDefinition: 'xtext/sapl',
-            readOnly: !!this._isReadOnly,
-            lineNumbers: !!this.hasLineNumbers,
-            showCursorWhenSelecting: true,
-            enableValidationService: !!this._isLint,
-            textUpdateDelay: this.textUpdateDelay ?? 500,
-            gutters: ['annotations-gutter'],
-            extraKeys: { 'Ctrl-Space': 'autocomplete' },
-            hintOptions: { container: document.body, updateOnCursorActivity: false },
-            theme: this._themeForState()
-        });
-        left.setOption('hintOptions', { container: document.body, updateOnCursorActivity: false });
-        left.on('changes', () => this._emitChange(left.getValue()));
-        this.editor = left;
-
-        // Right editor just mirrors options
-        const right = this._rightEditor();
-        if (right) {
-            right.setOption('readOnly', !this._mergeOptions.allowEditingOriginals);
-            right.setOption('lineNumbers', !!this.hasLineNumbers);
-            right.setOption('theme', this._themeForState());
-            right.setOption('lineWrapping', false);
-            right.setValue(rightText ?? '');
+    _setEditorOption(option, value) {
+        const cm = this.editor;
+        if (cm) {
+            if (option === 'readOnly') cm.setOption('theme', this._themeName());
+            cm.setOption(option, value);
         }
+        const right = this._mergeView?.right?.orig;
+        if (right && option === 'readOnly')
+            right.setOption('readOnly', !this._mergeOptions.allowEditingOriginals);
+        if (right && option === 'lineNumbers')
+            right.setOption('lineNumbers', value);
+        this._refresh();
+    }
 
-        // validation forwarding
-        this._wireValidationCallback(left);
+    _setDarkTheme(v) {
+        const cm = this.editor;
+        if (cm) cm.setOption('theme', this._themeName());
+        const right = this._mergeView?.right?.orig;
+        if (right) right.setOption('theme', this._themeName());
+        this._applyThemeVars();
+        this._refresh();
+    }
 
-        // Give MergeView a tick to measure and lay out connectors
-        setTimeout(() => {
-            try { left.refresh(); } catch (_) {}
-            try { right?.refresh?.(); } catch (_) {}
-        }, 0);
+    _setLintOption(v) {
+        const cm = this.editor;
+        if (!cm) return;
+        xtext.createServices(cm, {
+            document: this.shadowRoot,
+            xtextLang: this.xtextLang,
+            sendFullText: true,
+            syntaxDefinition: 'xtext/sapl',
+            enableValidationService: v === true,
+            textUpdateDelay: this.textUpdateDelay,
+            showErrorDialogs: false
+        });
+        this._hookValidation(cm);
+    }
+
+    setEditorDocument(_el, doc) {
+        this.document = doc;
+        if (this.editor) this.editor.getDoc().setValue(doc ?? '');
+    }
+
+    setMergeModeEnabled(enabled) {
+        this.mergeEnabled = !!enabled;
+        const leftText = this.editor ? this.editor.getValue() : (this.document ?? '');
+        if (this.mergeEnabled) this._createMergeView(leftText, this._rightMergeText ?? '');
+        else this._createSingleEditor(leftText);
+    }
+    enableMergeView(){ this.setMergeModeEnabled(true); }
+    disableMergeView(){ this.setMergeModeEnabled(false); }
+
+    setMergeRightContent(content) {
+        this._rightMergeText = content ?? '';
+        const right = this._mergeView?.right?.orig;
+        if (right) right.setValue(this._rightMergeText);
+        this._refresh();
+    }
+
+    setMergeOption(option, value) {
+        if (option === 'revertButtons') this._mergeOptions.revertButtons = !!value;
+        else if (option === 'showDifferences') this._mergeOptions.showDifferences = !!value;
+        else if (option === 'connect') this._mergeOptions.connect = value;
+        else if (option === 'collapseIdentical') this._mergeOptions.collapseIdentical = !!value;
+        else if (option === 'allowEditingOriginals') this._mergeOptions.allowEditingOriginals = !!value;
+        else if (option === 'ignoreWhitespace') this._mergeOptions.ignoreWhitespace = !!value;
+        else return;
+
+        if (this._mergeView) {
+            const left = this.editor?.getValue() ?? this.document ?? '';
+            const right = this._mergeView?.right?.orig?.getValue() ?? this._rightMergeText ?? '';
+            this._createMergeView(left, right);
+        }
+    }
+
+    _onDocumentChanged(v) {
+        this.document = v;
+        if (this.$server && this.$server.onDocumentChanged) {
+            try { this.$server.onDocumentChanged(v); } catch (e) { console.error(e); }
+        }
+    }
+
+    _applyThemeVars() {
+        const isDark = this._isDarkTheme === true;
+        const connector = isDark ? '#252a2e' : '#c7d1d6';
+        const arrow     = isDark ? '#5ac8c7' : '#378b8a';
+        this.style.setProperty('--sapl-merge-connector', connector);
+        this.style.setProperty('--sapl-merge-arrow', arrow);
+    }
+
+    _refresh() {
+        try { this.editor?.refresh(); } catch {}
+        try {
+            const l = this._mergeView?.left;  const r = this._mergeView?.right;
+            l?.forceUpdate?.('full'); r?.forceUpdate?.('full');
+        } catch {}
+    }
+
+    _patchShowHintOnce() {
+        if (this._showHintPatched || !CodeMirror || !CodeMirror.showHint) return;
+        this._showHintPatched = true;
+        const orig = CodeMirror.showHint;
+        CodeMirror.showHint = function(cm, getHints, options) {
+            const patched = Object.assign(
+                {
+                    // keep Xtext behavior but force visibility
+                    container: document.body,
+                    completeSingle: false,
+                    closeOnUnfocus: false
+                },
+                options || {}
+            );
+            return orig.call(this, cm, getHints, patched);
+        };
+    }
+
+    _ensureGlobalHintCSS() {
+        if (document.getElementById('cm-hint-global-style')) return;
+        const s = document.createElement('style');
+        s.id = 'cm-hint-global-style';
+        s.textContent = `
+          .CodeMirror-hints {
+            position: absolute; z-index: 2147483647; list-style: none; margin: 0; padding: 2px;
+            font-family: monospace; font-size: 12px; max-height: 20em; overflow-y: auto;
+            background: #fff; color: #000;
+            border: 1px solid rgba(0,0,0,.2); box-shadow: 0 2px 6px rgba(0,0,0,.15);
+          }
+          .CodeMirror-hint { margin: 0; padding: 2px 6px; white-space: pre; cursor: pointer; }
+          .CodeMirror-hint-active { background: #08f; color: #fff; }
+        `;
+        document.head.appendChild(s);
     }
 }
 
