@@ -140,6 +140,27 @@ public class SaplEditor extends BaseEditor implements HasSize {
         getElement().callJsFunction("prevChange");
     }
 
+    // --- Coverage API ------------------------------------------------------------
+
+    /** Push a new set of coverage highlights (replaces previous). */
+    public void setCoverageData(CoverageData data) {
+        getElement().callJsFunction("setCoverageData", data);
+    }
+
+    /** Remove all current coverage highlights. */
+    public void clearCoverage() {
+        getElement().callJsFunction("clearCoverage");
+    }
+
+    /** Auto-clear highlights when the document changes (default: true). */
+    public void setCoverageAutoClear(boolean enabled) {
+        getElement().callJsFunction("setCoverageAutoClear", enabled);
+    }
+
+    /** Show or hide IGNORED lines (default: false = hidden). */
+    public void setCoverageShowIgnored(boolean show) {
+        getElement().callJsFunction("setCoverageShowIgnored", show);
+    }
     // ----- Optional: expose chunk ranges to server (parity with JSON) -----
 
     @DomEvent("sapl-merge-chunks")

@@ -1,5 +1,14 @@
 import { LitElement, html, css } from 'lit';
-import { CodeMirrorStyles, CodeMirrorLintStyles, CodeMirrorHintStyles, XTextAnnotationsStyles, AutocompleteWidgetStyle, ReadOnlyStyle, HeightFix, DarkStyle } from './shared-styles.js';
+import {
+    CodeMirrorStyles,
+    CodeMirrorLintStyles,
+    CodeMirrorHintStyles,
+    XTextAnnotationsStyles,
+    AutocompleteWidgetStyle,
+    ReadOnlyStyle,
+    HeightFix,
+    DarkStyle
+} from './shared-styles.js';
 import './sapl-mode';
 import { exports as xtext } from './xtext-codemirror-patched.js';
 
@@ -13,7 +22,7 @@ import * as DMP from 'diff-match-patch';
 export { saplPdpConfigurationId };
 let saplPdpConfigurationId = null;
 
-// ------- Merge CSS scoped to shadow DOM (mirrors the JSON editor approach) -------
+// ------- Merge CSS scoped to shadow DOM -------
 const MergeHeightFix = css`
     :host { display:block; height:100%; }
     #sapl-editor { height:100%; }
@@ -21,44 +30,67 @@ const MergeHeightFix = css`
 `;
 
 const MergeLayout = css`
-  .CodeMirror-merge { position:relative; height:100%; white-space:pre; }
-  .CodeMirror-merge, .CodeMirror-merge .CodeMirror { height:100%; }
-  .CodeMirror-merge-2pane .CodeMirror-merge-pane { width:47%; }
-  .CodeMirror-merge-2pane .CodeMirror-merge-gap  { width:6%;  }
-  .CodeMirror-merge-3pane .CodeMirror-merge-pane { width:31%; }
-  .CodeMirror-merge-3pane .CodeMirror-merge-gap  { width:3.5%; }
-  .CodeMirror-merge-pane { display:inline-block; white-space:normal; vertical-align:top; height:100%; box-sizing:border-box; }
-  .CodeMirror-merge-pane-rightmost { position:absolute; right:0; z-index:1; top:0; bottom:0; }
-  .CodeMirror-merge-gap { z-index:2; display:inline-block; height:100%; box-sizing:border-box; overflow:hidden; position:relative; }
+    .CodeMirror-merge { position:relative; height:100%; white-space:pre; }
+    .CodeMirror-merge, .CodeMirror-merge .CodeMirror { height:100%; }
+    .CodeMirror-merge-2pane .CodeMirror-merge-pane { width:47%; }
+    .CodeMirror-merge-2pane .CodeMirror-merge-gap  { width:6%;  }
+    .CodeMirror-merge-3pane .CodeMirror-merge-pane { width:31%; }
+    .CodeMirror-merge-3pane .CodeMirror-merge-gap  { width:3.5%; }
+    .CodeMirror-merge-pane { display:inline-block; white-space:normal; vertical-align:top; height:100%; box-sizing:border-box; }
+    .CodeMirror-merge-pane-rightmost { position:absolute; right:0; z-index:1; top:0; bottom:0; }
+    .CodeMirror-merge-gap { z-index:2; display:inline-block; height:100%; box-sizing:border-box; overflow:hidden; position:relative; }
 `;
 
 const MergeControls = css`
-  .CodeMirror-merge-scrolllock-wrap { position:absolute; bottom:0; left:50%; }
-  .CodeMirror-merge-scrolllock { position:relative; left:-50%; cursor:pointer; color:var(--sapl-merge-arrow, #378b8a); line-height:1; }
-  .CodeMirror-merge-scrolllock:after { content:"\\21db\\00a0\\00a0\\21da"; }
-  .CodeMirror-merge-scrolllock.CodeMirror-merge-scrolllock-enabled:after { content:"\\21db\\21da"; }
-  .CodeMirror-merge-copybuttons-left, .CodeMirror-merge-copybuttons-right { position:absolute; left:0; top:0; right:0; bottom:0; line-height:1; }
-  .CodeMirror-merge-copy, .CodeMirror-merge-copy-reverse { position:absolute; cursor:pointer; color:var(--sapl-merge-arrow, #378b8a); z-index:3; }
-  .CodeMirror-merge-copybuttons-left  .CodeMirror-merge-copy { left:2px; }
-  .CodeMirror-merge-copybuttons-right .CodeMirror-merge-copy { right:2px; }
+    .CodeMirror-merge-scrolllock-wrap { position:absolute; bottom:0; left:50%; }
+    .CodeMirror-merge-scrolllock { position:relative; left:-50%; cursor:pointer; color:var(--sapl-merge-arrow, #378b8a); line-height:1; }
+    .CodeMirror-merge-scrolllock:after { content:"\\21db\\00a0\\00a0\\21da"; }
+    .CodeMirror-merge-scrolllock.CodeMirror-merge-scrolllock-enabled:after { content:"\\21db\\21da"; }
+    .CodeMirror-merge-copybuttons-left, .CodeMirror-merge-copybuttons-right { position:absolute; left:0; top:0; right:0; bottom:0; line-height:1; }
+    .CodeMirror-merge-copy, .CodeMirror-merge-copy-reverse { position:absolute; cursor:pointer; color:var(--sapl-merge-arrow, #378b8a); z-index:3; }
+    .CodeMirror-merge-copybuttons-left  .CodeMirror-merge-copy { left:2px; }
+    .CodeMirror-merge-copybuttons-right .CodeMirror-merge-copy { right:2px; }
 `;
 
 const MergeColorOverrides = css`
-  .CodeMirror-merge-l-connect, .CodeMirror-merge-r-connect {
-    fill: var(--sapl-merge-connector, #252a2e);
-    stroke: var(--sapl-merge-connector, #252a2e);
-    stroke-width: 1px;
-    opacity: 1;
-  }
+    .CodeMirror-merge-l-connect, .CodeMirror-merge-r-connect {
+        fill: var(--sapl-merge-connector, #252a2e);
+        stroke: var(--sapl-merge-connector, #252a2e);
+        stroke-width: 1px;
+        opacity: 1;
+    }
 `;
 
 const MergeArrowStrongOverrides = css`
-  .CodeMirror-merge-gap .CodeMirror-merge-copy,
-  .CodeMirror-merge-gap .CodeMirror-merge-copy-reverse,
-  .CodeMirror-merge-gap .CodeMirror-merge-scrolllock,
-  .CodeMirror-merge-gap .CodeMirror-merge-scrolllock::after {
-    color: var(--sapl-merge-arrow, #378b8a) !important;
-  }
+    .CodeMirror-merge-gap .CodeMirror-merge-copy,
+    .CodeMirror-merge-gap .CodeMirror-merge-copy-reverse,
+    .CodeMirror-merge-gap .CodeMirror-merge-scrolllock,
+    .CodeMirror-merge-gap .CodeMirror-merge-scrolllock::after {
+        color: var(--sapl-merge-arrow, #378b8a) !important;
+    }
+`;
+
+// ------- Coverage styles (line background shading) -------
+const CoverageStyles = css`
+    /* base colors; override via vars if you like */
+    :host {
+        --sapl-cov-covered:  rgba(46, 204, 113, 0.18);  /* green */
+        --sapl-cov-partial:  rgba(241, 196, 15, 0.20);  /* yellow */
+        --sapl-cov-uncovered:rgba(231, 76, 60,  0.18);  /* red */
+        --sapl-cov-ignored:  rgba(127, 140, 141,0.14);  /* grey */
+    }
+
+    /* You’re currently adding classes to the TEXT node (.CodeMirror-line) */
+    .CodeMirror-line.coverage-covered   { background: var(--sapl-cov-covered) !important; }
+    .CodeMirror-line.coverage-partial   { background: var(--sapl-cov-partial) !important; }
+    .CodeMirror-line.coverage-uncovered { background: var(--sapl-cov-uncovered) !important; }
+    .CodeMirror-line.coverage-ignored   { background: var(--sapl-cov-ignored) !important; }
+
+    /* If you later switch to type='background', these will kick in automatically */
+    .CodeMirror-linebackground.coverage-covered   { background: var(--sapl-cov-covered) !important; }
+    .CodeMirror-linebackground.coverage-partial   { background: var(--sapl-cov-partial) !important; }
+    .CodeMirror-linebackground.coverage-uncovered { background: var(--sapl-cov-uncovered) !important; }
+    .CodeMirror-linebackground.coverage-ignored   { background: var(--sapl-cov-ignored) !important; }
 `;
 
 class SAPLEditor extends LitElement {
@@ -92,6 +124,13 @@ class SAPLEditor extends LitElement {
 
         this._keydownHandler = null;
         this._showHintPatched = false;
+
+        // ---- coverage state ----
+        this._coverageAutoClear = true;     // default ON
+        this._coverageShowIgnored = false;  // default OFF
+        this._coverageMarks = [];           // CodeMirror TextMarks
+        this._coverageClasses = [];         // {line, where, cls}
+        this._lastCoveragePayload = null;   // reapply on toggle showIgnored
     }
 
     static get properties() {
@@ -123,7 +162,8 @@ class SAPLEditor extends LitElement {
             MergeLayout,
             MergeControls,
             MergeColorOverrides,
-            MergeArrowStrongOverrides
+            MergeArrowStrongOverrides,
+            CoverageStyles
         ];
     }
 
@@ -223,6 +263,8 @@ class SAPLEditor extends LitElement {
         if (c) c.innerHTML = '';
         this._mergeView = undefined;
         this._editor = undefined;
+        // also clear any lingering coverage state
+        this._clearCoverageInternal();
     }
 
     _createSingleEditor(value) {
@@ -255,15 +297,20 @@ class SAPLEditor extends LitElement {
             showErrorDialogs: false
         });
 
+        // server bridge + auto-clear coverage on edit
         cm.getDoc().on('change', () => {
             const valueNow = cm.getValue();
             this._onDocumentChanged(valueNow);
+            if (this._coverageAutoClear) this._clearCoverageInternal();
         });
 
         this._hookValidation(cm);
 
         this.editor = cm;
         this._applyBasicOptionsToCurrentEditor();
+
+        // re-apply last coverage (if any was set before remount)
+        if (this._lastCoveragePayload) this._applyCoverage(this._lastCoveragePayload);
     }
 
     _createMergeView(left, right) {
@@ -319,12 +366,16 @@ class SAPLEditor extends LitElement {
         main.getDoc().on('change', () => {
             const v = main.getValue();
             this._onDocumentChanged(v);
+            if (this._coverageAutoClear) this._clearCoverageInternal();
             requestAnimationFrame(() => this._refresh());
         });
 
         this._hookValidation(main);
 
         this.editor = main;
+
+        // coverage applies to main only; reapply if present
+        if (this._lastCoveragePayload) this._applyCoverage(this._lastCoveragePayload);
 
         requestAnimationFrame(() => this._refresh());
     }
@@ -402,6 +453,10 @@ class SAPLEditor extends LitElement {
 
     setMergeModeEnabled(enabled) {
         this.mergeEnabled = !!enabled;
+
+        // clear coverage when switching modes
+        this._clearCoverageInternal();
+
         const leftText = this.editor ? this.editor.getValue() : (this.document ?? '');
         if (this.mergeEnabled) this._createMergeView(leftText, this._rightMergeText ?? '');
         else this._createSingleEditor(leftText);
@@ -462,7 +517,6 @@ class SAPLEditor extends LitElement {
         CodeMirror.showHint = function(cm, getHints, options) {
             const patched = Object.assign(
                 {
-                    // keep Xtext behavior but force visibility
                     container: document.body,
                     completeSingle: false,
                     closeOnUnfocus: false
@@ -478,16 +532,106 @@ class SAPLEditor extends LitElement {
         const s = document.createElement('style');
         s.id = 'cm-hint-global-style';
         s.textContent = `
-          .CodeMirror-hints {
-            position: absolute; z-index: 2147483647; list-style: none; margin: 0; padding: 2px;
-            font-family: monospace; font-size: 12px; max-height: 20em; overflow-y: auto;
-            background: #fff; color: #000;
-            border: 1px solid rgba(0,0,0,.2); box-shadow: 0 2px 6px rgba(0,0,0,.15);
-          }
-          .CodeMirror-hint { margin: 0; padding: 2px 6px; white-space: pre; cursor: pointer; }
-          .CodeMirror-hint-active { background: #08f; color: #fff; }
-        `;
+      .CodeMirror-hints {
+        position: absolute; z-index: 2147483647; list-style: none; margin: 0; padding: 2px;
+        font-family: monospace; font-size: 12px; max-height: 20em; overflow-y: auto;
+        background: #fff; color: #000;
+        border: 1px solid rgba(0,0,0,.2); box-shadow: 0 2px 6px rgba(0,0,0,.15);
+      }
+      .CodeMirror-hint { margin: 0; padding: 2px 6px; white-space: pre; cursor: pointer; }
+      .CodeMirror-hint-active { background: #08f; color: #fff; }
+    `;
         document.head.appendChild(s);
+    }
+
+    // ===================== Coverage implementation =====================
+
+    /** Java -> JS: enable/disable auto-clear on edits. */
+    setCoverageAutoClear(enabled) {
+        this._coverageAutoClear = !!enabled;
+    }
+
+    /** Java -> JS: show/hide IGNORED lines. */
+    setCoverageShowIgnored(show) {
+        this._coverageShowIgnored = !!show;
+        if (this._lastCoveragePayload) this._applyCoverage(this._lastCoveragePayload);
+    }
+
+    /** Java -> JS: set new coverage (replaces previous). */
+    setCoverageData(data) {
+        this._lastCoveragePayload = data;
+        this._applyCoverage(data);
+    }
+
+    /** Java -> JS: clear everything. */
+    clearCoverage() {
+        this._clearCoverageInternal();
+        this._lastCoveragePayload = null;
+    }
+
+    _clearCoverageInternal() {
+        const cm = this.editor;
+        if (!cm) return;
+
+        // remove line classes
+        this._coverageClasses.forEach(e => {
+            try { cm.removeLineClass(e.line, e.where, e.cls); } catch {}
+        });
+        this._coverageClasses = [];
+
+        // clear marks (tooltips)
+        this._coverageMarks.forEach(m => { try { m.clear(); } catch {} });
+        this._coverageMarks = [];
+    }
+
+    _applyCoverage(payload) {
+        const cm = this.editor;
+        if (!cm || !payload || !Array.isArray(payload.lines)) return;
+
+        // reset first
+        this._clearCoverageInternal();
+
+        const clsMap = {
+            'COVERED':   'coverage-covered',
+            'PARTIAL':   'coverage-partial',
+            'UNCOVERED': 'coverage-uncovered',
+            'IGNORED':   'coverage-ignored'
+        };
+
+        const lineCount = cm.lineCount();
+
+        payload.lines.forEach(item => {
+            if (!item || typeof item.line !== 'number' || !item.status) return;
+
+            // 1-based -> 0-based
+            const zeroBased = item.line - 1;
+            if (zeroBased < 0 || zeroBased >= lineCount) return;
+
+            const status = String(item.status).toUpperCase();
+            if (status === 'IGNORED' && !this._coverageShowIgnored) return;
+
+            const cls = clsMap[status];
+            if (!cls) return;
+
+            // line background via 'text' layer (doesn't shift layout)
+            try {
+                cm.addLineClass(zeroBased, 'text', cls);
+                this._coverageClasses.push({ line: zeroBased, where: 'text', cls });
+            } catch {}
+
+            // native tooltip over the full line if provided
+            if (item.info) {
+                try {
+                    const len = cm.getLine(zeroBased)?.length ?? 0;
+                    const mark = cm.markText(
+                        { line: zeroBased, ch: 0 },
+                        { line: zeroBased, ch: len },
+                        { attributes: { title: String(item.info), 'data-cov':'1' } }
+                    );
+                    this._coverageMarks.push(mark);
+                } catch {}
+            }
+        });
     }
 }
 
