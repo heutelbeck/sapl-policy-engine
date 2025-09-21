@@ -79,7 +79,7 @@ public class AttributeMockForEntityValueAndArguments implements AttributeMock {
         checkAtLeastOneMatchingMockReturnValueExists(matchingParameterSpecificMockReturnValues, invocation);
 
         final var arguments = invocation.arguments();
-        final var trace     = new HashMap<String, Val>(arguments.size() + 1);
+        final var trace     = HashMap.<String, Val>newHashMap(arguments.size() + 1);
         trace.put("attributeName", Val.of(invocation.attributeName()));
         for (int i = 0; i < arguments.size(); i++) {
             trace.put("argument[" + i + "]", arguments.get(i));

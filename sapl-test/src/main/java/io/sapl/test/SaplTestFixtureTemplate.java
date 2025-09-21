@@ -33,7 +33,7 @@ import io.sapl.validation.ValidatorFactory;
 
 public abstract class SaplTestFixtureTemplate implements SaplTestFixture {
 
-    protected final Map<String, Val> variables = new HashMap<>(1);
+    protected final Map<String, Val> variables = HashMap.newHashMap(1);
 
     protected final AnnotationFunctionContext                   functionCtx           = new AnnotationFunctionContext();
     protected final CachingAttributeStreamBroker                attributeStreamBroker = new CachingAttributeStreamBroker();

@@ -108,12 +108,10 @@ class ExpectationInterpreter {
         checkForExpectOrAdjustmentBlockChainValidity(expectOrAdjustBlocks);
 
         for (var expectOrAdjustmentBlock : expectOrAdjustBlocks) {
-            if (expectOrAdjustmentBlock instanceof ExpectBlock expectBlock) {
-                expectStep = handleExpectBlock(expectBlock, expectStep);
-            } else if (expectOrAdjustmentBlock instanceof AdjustBlock adjustBlock) {
-                expectStep = handleAdjustBlock(adjustBlock, expectStep);
-            } else {
-                throw new SaplTestException("Unknown type of ExpectOrAdjustBlock");
+            switch (expectOrAdjustmentBlock) {
+            case ExpectBlock expectBlock -> expectStep = handleExpectBlock(expectBlock, expectStep);
+            case AdjustBlock adjustBlock -> expectStep = handleAdjustBlock(adjustBlock, expectStep);
+            default                      -> throw new SaplTestException("Unknown type of ExpectOrAdjustBlock");
             }
         }
 
@@ -128,21 +126,19 @@ class ExpectationInterpreter {
         }
 
         for (var step : expectSteps) {
-            if (step instanceof Next nextExpect) {
-                expectStep = constructNext(expectStep, nextExpect);
-
-            } else if (step instanceof NextWithDecision nextWithDecision) {
+            switch (step) {
+            case Next nextExpect                   -> expectStep = constructNext(expectStep, nextExpect);
+            case NextWithDecision nextWithDecision -> {
                 final var authorizationDecision = nextWithDecision.getExpectedDecision();
                 expectStep = constructNextWithDecision(expectStep, authorizationDecision);
-
-            } else if (step instanceof NextWithMatcher nextWithMatcher) {
+            }
+            case NextWithMatcher nextWithMatcher   ->
                 expectStep = constructNextWithMatcher(expectStep, nextWithMatcher);
-
-            } else if (step instanceof NoEvent noEvent) {
+            case NoEvent noEvent                   -> {
                 final var duration = durationInterpreter.getJavaDurationFromDuration(noEvent.getDuration());
                 expectStep = expectStep.expectNoEvent(duration);
-            } else {
-                throw new SaplTestException("Unknown type of ExpectStep");
+            }
+            default                                -> throw new SaplTestException("Unknown type of ExpectStep");
             }
         }
         return expectStep;
@@ -156,14 +152,16 @@ class ExpectationInterpreter {
         }
 
         for (var step : adjustSteps) {
-            if (step instanceof AttributeAdjustment attributeAdjustment) {
+            switch (step) {
+            case AttributeAdjustment attributeAdjustment -> {
                 final var returnValue = valueInterpreter.getValFromValue(attributeAdjustment.getReturnValue());
                 expectStep = expectStep.thenAttribute(attributeAdjustment.getAttribute(), returnValue);
-            } else if (step instanceof Await await) {
+            }
+            case Await await                             -> {
                 final var duration = durationInterpreter.getJavaDurationFromDuration(await.getDuration());
                 expectStep = expectStep.thenAwait(duration);
-            } else {
-                throw new SaplTestException("Unknown type of AdjustStep");
+            }
+            default                                      -> throw new SaplTestException("Unknown type of AdjustStep");
             }
         }
         return expectStep;

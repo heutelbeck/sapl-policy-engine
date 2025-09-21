@@ -17,13 +17,13 @@
  */
 package io.sapl.languageserver;
 
-import java.util.concurrent.Executors;
-
 import org.eclipse.xtext.ide.server.ServerLauncher;
 import org.eclipse.xtext.ide.server.ServerModule;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+
+import static java.util.concurrent.Executors.*;
 
 /**
  * Spring boot CLI application which starts a language server for sapl policy
@@ -36,8 +36,9 @@ import org.springframework.context.annotation.ComponentScan;
 public class SAPLLanguageServer {
     public static void main(String[] args) {
         SpringApplication.run(SAPLLanguageServer.class, args);
-        final var executorService = Executors.newSingleThreadExecutor();
+        final var executorService = newSingleThreadExecutor();
         executorService.submit(
                 () -> ServerLauncher.launch(SAPLLanguageServer.class.getName(), new String[] {}, new ServerModule()));
+
     }
 }

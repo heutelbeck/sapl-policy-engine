@@ -72,14 +72,18 @@ public class EquivalenceAndHashUtil {
             return 0;
         }
         int hash = HASH_SEED_PRIME;
-        if (featureInstance instanceof EList<?> eListFeatureInstance) {
+        switch (featureInstance) {
+        case EList<?> eListFeatureInstance  -> {
             for (Object element : eListFeatureInstance) {
                 hash = PRIME * hash + hash(element);
             }
-        } else if (featureInstance instanceof EObject eObjectFeatureInstance) {
+        }
+        case EObject eObjectFeatureInstance -> {
             hash = PRIME * hash + semanticHash(eObjectFeatureInstance);
-        } else {
+        }
+        default                             -> {
             hash = PRIME * hash + featureInstance.hashCode();
+        }
         }
         return hash;
     }

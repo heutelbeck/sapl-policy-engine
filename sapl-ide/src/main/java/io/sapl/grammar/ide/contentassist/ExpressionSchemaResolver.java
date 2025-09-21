@@ -56,39 +56,46 @@ public class ExpressionSchemaResolver {
             PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
         List<Step>     steps;
         List<JsonNode> baseSchemas;
-        if (expression instanceof final BasicGroup basicGroup) {
+        switch (expression) {
+        case BasicGroup basicGroup                                       -> {
             // a BasicGroup may contain an expression with implicit schemas
             baseSchemas = inferPotentialSchemasOfExpression(basicGroup.getExpression(), context, pdpConfiguration,
                     docsProvider);
             steps       = basicGroup.getSteps();
-        } else if (expression instanceof final BasicFunction basicFunction) {
+        }
+        case BasicFunction basicFunction                                 -> {
             // function implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromFunction(basicFunction.getIdentifier().getNameFragments(), context,
                     pdpConfiguration);
             steps       = basicFunction.getSteps();
-        } else if (expression instanceof final BasicEnvironmentAttribute basicEnvironmentAttribute) {
+        }
+        case BasicEnvironmentAttribute basicEnvironmentAttribute         -> {
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(
                     basicEnvironmentAttribute.getIdentifier().getNameFragments(), context, docsProvider);
             steps       = basicEnvironmentAttribute.getSteps();
-        } else if (expression instanceof final BasicEnvironmentHeadAttribute basicEnvironmentHeadAttribute) {
+        }
+        case BasicEnvironmentHeadAttribute basicEnvironmentHeadAttribute -> {
             // PIP implementations may have schemas associated
             baseSchemas = inferPotentialSchemasFromAttributeFinder(
                     basicEnvironmentHeadAttribute.getIdentifier().getNameFragments(), context, docsProvider);
             steps       = basicEnvironmentHeadAttribute.getSteps();
-        } else if (expression instanceof final BasicIdentifier basicIdentifier) {
+        }
+        case BasicIdentifier basicIdentifier                             -> {
             // an identifier may be an authorization subscription element with schema, or
             // the result of a value definition with an expression with explicit or implicit
             // schemas
             baseSchemas = inferPotentialSchemasFromIdentifier(basicIdentifier.getIdentifier(), context,
                     pdpConfiguration, docsProvider);
             steps       = basicIdentifier.getSteps();
-        } else {
+        }
+        default                                                          -> {
             // BasicValue -> no schema possible
             // BasicRelative traversing relative @ nodes -> unclear how this could be
             // resolved
             // All other expressions are operations that will remove schema association.
             return new ArrayList<>();
+        }
         }
         return inferPotentialSchemasStepsAfterExpression(baseSchemas, steps, context, pdpConfiguration, docsProvider);
     }
@@ -109,7 +116,7 @@ public class ExpressionSchemaResolver {
         if (steps.isEmpty()) {
             return baseSchemas;
         }
-        final var head       = steps.get(0);
+        final var head       = steps.getFirst();
         var       newSchemas = List.<JsonNode>of();
 
         // each step after one which has schemas associated with it will lose schema

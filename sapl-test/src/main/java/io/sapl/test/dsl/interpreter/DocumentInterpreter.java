@@ -62,11 +62,12 @@ class DocumentInterpreter {
     private SaplTestFixture getIntegrationTestFixtureFromSetOfDocuments(final Document document) {
         SaplIntegrationTestFixture integrationTestFixture;
 
-        if (document instanceof DocumentSetWithSingleIdentifier documentSetWithSingleIdentifier) {
+        switch (document) {
+        case DocumentSetWithSingleIdentifier documentSetWithSingleIdentifier ->
             integrationTestFixture = handleDocumentSetWithSingleIdentifier(documentSetWithSingleIdentifier);
-        } else if (document instanceof DocumentSet documentSet) {
+        case DocumentSet documentSet                                         ->
             integrationTestFixture = handleDocumentSet(documentSet);
-        } else {
+        default                                                              ->
             throw new SaplTestException("Unknown type of Document");
         }
 

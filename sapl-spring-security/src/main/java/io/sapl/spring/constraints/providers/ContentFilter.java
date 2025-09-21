@@ -89,17 +89,23 @@ public class ContentFilter {
         final var transformation = getTransformationHandler(constraint, objectMapper);
 
         return payload -> {
-            if (payload == null)
+            switch (payload) {
+            case null                   -> {
                 return null;
-            if (payload instanceof Optional<?> optional)
+            }
+            case Optional<?> optional   -> {
                 return optional.map(x -> mapElement(x, transformation, predicate));
-            if (payload instanceof List<?> list)
+            }
+            case List<?> list           -> {
                 return mapListContents(list, transformation, predicate);
-            if (payload instanceof Set<?> set)
+            }
+            case Set<?> set             -> {
                 return mapSetContents(set, transformation, predicate);
-            if (payload instanceof Publisher<?> publisher)
+            }
+            case Publisher<?> publisher -> {
                 return mapPublisherContents(publisher, transformation, predicate);
-            if (payload instanceof Object[] array) {
+            }
+            case Object[] array         -> {
                 final var filteredAsList = mapListContents(Arrays.asList(array), transformation, predicate);
                 final var resultArray    = Array.newInstance(payload.getClass().getComponentType(),
                         filteredAsList.size());
@@ -109,6 +115,8 @@ public class ContentFilter {
                     Array.set(resultArray, i++, x);
                 }
                 return resultArray;
+            }
+            default                     -> {}
             }
 
             return mapElement(payload, transformation, predicate);
@@ -393,19 +401,20 @@ public class ContentFilter {
                     e);
         }
 
-        if (DELETE.equals(actionType)) {
+        switch (actionType) {
+        case DELETE  -> {
             jsonContext.delete(path);
             return;
         }
-
-        if (BLACKEN.equals(actionType)) {
+        case BLACKEN -> {
             blacken(jsonContext, path, action);
             return;
         }
-
-        if (REPLACE.equals(actionType)) {
+        case REPLACE -> {
             replace(jsonContext, path, action);
             return;
+        }
+        default      -> { /* no-op */ }
         }
 
         throw new AccessConstraintViolationException(String.format(UNKNOWN_ACTION_S, actionType));
@@ -434,12 +443,10 @@ public class ContentFilter {
 
             String originalString;
 
-            if (original instanceof String stringValue) {
-                originalString = stringValue;
-            } else if (original instanceof JsonNode json && json.isTextual()) {
-                originalString = json.textValue();
-            } else {
-                throw new AccessConstraintViolationException(PATH_NOT_TEXTUAL);
+            switch (original) {
+            case String stringValue                  -> originalString = stringValue;
+            case JsonNode json when json.isTextual() -> originalString = json.textValue();
+            default                                  -> throw new AccessConstraintViolationException(PATH_NOT_TEXTUAL);
             }
 
             final var replacementString = determineReplacementString(action);

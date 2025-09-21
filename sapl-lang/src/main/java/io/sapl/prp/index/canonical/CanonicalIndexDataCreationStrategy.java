@@ -127,7 +127,7 @@ public class CanonicalIndexDataCreationStrategy {
                     formulaContainingClause -> clausesInSameFormulas.or(formulaToClauses.get(formulaContainingClause)));
             clausesInSameFormulas.clear(clauseIndex);
 
-            Set<CTuple> cTupleSet = new HashSet<>(clausesInSameFormulas.numberOfBitsSet());
+            Set<CTuple> cTupleSet = HashSet.newHashSet(clausesInSameFormulas.numberOfBitsSet());
             clausesInSameFormulas.forEachSetBit(relatedClauseIndex -> {
                 long numberOfSharedFormulas = formulasContainingClause.stream().map(formulaToClauses::get)
                         .filter(bitmask -> bitmask.isSet(relatedClauseIndex)).count();
