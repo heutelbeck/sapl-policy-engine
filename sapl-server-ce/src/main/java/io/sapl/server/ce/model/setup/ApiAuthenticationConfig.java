@@ -17,9 +17,7 @@
  */
 package io.sapl.server.ce.model.setup;
 
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.net.URI;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -57,12 +55,8 @@ public class ApiAuthenticationConfig {
     }
 
     public boolean isValidOAuth2RessourceServerUrl() {
-        try {
-            new URL(this.oAuth2RessourceServer).toURI();
-            return true;
-        } catch (MalformedURLException | URISyntaxException e) {
-            return false;
-        }
+        URI.create(this.oAuth2RessourceServer);
+        return true;
     }
 
 }

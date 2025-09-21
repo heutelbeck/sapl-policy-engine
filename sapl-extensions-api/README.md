@@ -234,7 +234,7 @@ Example POM for a SAPL extension:
 	<name>A SAPL Extension</name>
 
 	<properties>
-		<java.version>17</java.version>
+		<java.version>21</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 	</properties>

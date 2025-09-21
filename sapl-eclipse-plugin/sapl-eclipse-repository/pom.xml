@@ -52,9 +52,12 @@
 					<artifactId>tycho-p2-repository-plugin</artifactId>
 					<configuration>
 						<includeAllDependencies>true</includeAllDependencies>
+						<pomDependencies>ignore</pomDependencies>
+				        <includeSources>false</includeSources>
 						<filterProvided>true</filterProvided>
 						<addPomRepositoryReferences>true</addPomRepositoryReferences>
 						<addIUTargetRepositoryReferences>true</addIUTargetRepositoryReferences>
+				        <compress>true</compress>
 					</configuration>
 				</plugin>
 				<plugin>

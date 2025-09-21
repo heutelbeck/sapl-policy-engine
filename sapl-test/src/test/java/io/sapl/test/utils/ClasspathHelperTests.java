@@ -22,10 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLClassLoader;
+import java.net.*;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -66,7 +63,7 @@ class ClasspathHelperTests {
     void test_NothingFound_WithClasspathURLs() throws MalformedURLException {
         final var classLoader = Mockito.mock(URLClassLoader.class);
         Mockito.when(classLoader.getResource(Mockito.any())).thenReturn(null);
-        Mockito.when(classLoader.getURLs()).thenReturn(new URL[] { new URL("file://test") });
+        Mockito.when(classLoader.getURLs()).thenReturn(new URL[] { URI.create("file://test").toURL() });
 
         assertThatExceptionOfType(SaplTestException.class)
                 .isThrownBy(() -> ClasspathHelper.findPathOnClasspath(classLoader, "test.sapl"))
@@ -78,7 +75,7 @@ class ClasspathHelperTests {
     @Test
     void test_FoundInJar() throws MalformedURLException {
         final var classLoader = Mockito.mock(URLClassLoader.class);
-        final var url         = new URL("jar:file:///C:/test.jar!/test");
+        final var url         = URI.create("jar:file:///C:/test.jar!/test").toURL();
         Mockito.when(classLoader.getResource(Mockito.any())).thenReturn(url);
 
         assertThatExceptionOfType(SaplTestException.class)

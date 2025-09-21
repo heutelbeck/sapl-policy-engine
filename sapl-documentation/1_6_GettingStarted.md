@@ -15,11 +15,11 @@ In addition, SAPL provides an embedded PDP, including an embedded PRP with a fil
 
 ### Maven Dependencies
 
-- SAPL requires Java 17 or newer and is compatible with Java 21.
+- SAPL requires Java 21 or newer and is compatible with Java 25.
 
   ```xml
   <properties>
-    <java.version>17</java.version>
+    <java.version>21</java.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
   </properties>
