@@ -62,7 +62,7 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.eclipse.xtend</groupId>
+			<groupId>org.eclipse.xtext</groupId>
 			<artifactId>org.eclipse.xtend.lib</artifactId>
 			<version>${xtext.version}</version>
 		</dependency>

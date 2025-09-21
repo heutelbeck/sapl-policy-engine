@@ -18,6 +18,7 @@
 package io.sapl.vaadin;
 
 import com.vaadin.flow.component.ClientCallable;
+import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
@@ -27,34 +28,73 @@ import elemental.json.JsonObject;
 import io.sapl.api.SaplVersion;
 
 import java.io.Serial;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * An editor component for SAPLTest documents supporting code-completion,
- * syntax-highlighting, and linting.
+ * syntax-highlighting, linting, and an optional merge view.
  */
 @Tag("sapl-test-editor")
 @JsModule("./sapl-test-editor.js")
 @NpmPackage(value = "jquery", version = "3.7.1")
 @NpmPackage(value = "codemirror", version = "5.65.16")
-public class SaplTestEditor extends BaseEditor {
+public class SaplTestEditor extends BaseEditor implements HasSize {
 
     @Serial
-    private static final long                      serialVersionUID = SaplVersion.VERISION_UID;
-    private final List<ValidationFinishedListener> validationFinishedListeners;
+    private static final long serialVersionUID = SaplVersion.VERISION_UID;
 
-    /**
-     * Creates an editor component.
-     *
-     * @param config the editor settings-
-     */
+    private final List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
+
     public SaplTestEditor(SaplTestEditorConfiguration config) {
-        this.validationFinishedListeners = new ArrayList<>();
-
         Element element = getElement();
         applyBaseConfiguration(element, config);
     }
+
+    // ---------------- Server -> Client API (forwarders to JS) ----------------
+
+    public void setMergeModeEnabled(boolean enabled) {
+        getElement().callJsFunction("setMergeModeEnabled", enabled);
+    }
+
+    public void enableMergeView() {
+        setMergeModeEnabled(true);
+    }
+
+    public void disableMergeView() {
+        setMergeModeEnabled(false);
+    }
+
+    /**
+     * Set the right side content (origRight) in merge view.
+     */
+    public void setMergeRightContent(String content) {
+        getElement().callJsFunction("setMergeRightContent", content);
+    }
+
+    /**
+     * Generic merge option setter. Supported keys:
+     * revertButtons (boolean),
+     * showDifferences (boolean),
+     * connect (null | "align"),
+     * collapseIdentical (boolean),
+     * allowEditingOriginals (boolean),
+     * ignoreWhitespace (boolean)
+     */
+    public void setMergeOption(String key, Serializable value) {
+        getElement().callJsFunction("setMergeOption", key, value);
+    }
+
+    public void goToNextChange() {
+        getElement().callJsFunction("goToNextChange");
+    }
+
+    public void goToPreviousChange() {
+        getElement().callJsFunction("goToPreviousChange");
+    }
+
+    // ---------------- Validation bridge ----------------
 
     @ClientCallable
     protected void onValidation(JsonArray jsonIssues) {
@@ -62,32 +102,18 @@ public class SaplTestEditor extends BaseEditor {
         List<Issue> issues = new ArrayList<>(length);
         for (int i = 0; i < length; i++) {
             JsonObject jsonIssue = jsonIssues.getObject(i);
-            Issue      issue     = new Issue(jsonIssue);
-            issues.add(issue);
+            issues.add(new Issue(jsonIssue));
         }
 
         for (ValidationFinishedListener listener : validationFinishedListeners) {
-            Issue[] issueArray = issues.toArray(new Issue[0]);
-            listener.onValidationFinished(new ValidationFinishedEvent(issueArray));
+            listener.onValidationFinished(new ValidationFinishedEvent(issues.toArray(new Issue[0])));
         }
     }
 
-    /**
-     * Registers a validation finished listener. The validation changed event will
-     * be raised after the document was changed and the validation took place. The
-     * event object contains a list with all validation issues of the document.
-     *
-     * @param listener
-     */
     public void addValidationFinishedListener(ValidationFinishedListener listener) {
         this.validationFinishedListeners.add(listener);
     }
 
-    /**
-     * Removes a registered validation finished listener.
-     *
-     * @param listener The registered listener that should be removed.
-     */
     public void removeValidationFinishedListener(ValidationFinishedListener listener) {
         this.validationFinishedListeners.remove(listener);
     }
