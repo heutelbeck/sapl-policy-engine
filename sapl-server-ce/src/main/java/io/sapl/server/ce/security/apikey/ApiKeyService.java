@@ -21,6 +21,7 @@ import io.sapl.server.ce.model.clients.AuthType;
 import io.sapl.server.ce.model.clients.ClientCredentialsRepository;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.security.ClientDetailsService;
+import io.sapl.server.ce.security.Roles;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -61,8 +62,8 @@ public class ApiKeyService {
             // check type and encoded password of the token entry
             if (credentials.getAuthType().equals(AuthType.APIKEY)
                     && passwordEncoder.matches(apiKey, credentials.getEncodedSecret())) {
-                final var authorities = List.of(new SimpleGrantedAuthority(ClientDetailsService.CLIENT));
-                return new ApiKeyAuthenticationToken(key, key, authorities);
+                final var authorities = List.of(new SimpleGrantedAuthority(Roles.CLIENT));
+                return new ApiKeyAuthenticationToken(credentials.getId().toString(), key, authorities);
             } else {
                 throw new ApiKeyAuthenticationException("ApiKey not authorized");
             }

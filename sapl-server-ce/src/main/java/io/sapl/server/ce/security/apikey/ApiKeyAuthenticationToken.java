@@ -34,26 +34,26 @@ import java.util.Collection;
 @EqualsAndHashCode(callSuper = true)
 public final class ApiKeyAuthenticationToken extends AbstractAuthenticationToken {
 
-    private final transient Object principal;
-    private Object                 credentials;
+    private String credentials;
+    private String principal;
 
     /** Creates an unauthenticated token (before API key validation). */
-    public ApiKeyAuthenticationToken(Object principal, Object credentials) {
+    public ApiKeyAuthenticationToken(String clientCredentialsId, String key) {
         super(null);
-        this.principal   = principal;
-        this.credentials = credentials;
+        this.principal   = clientCredentialsId;
+        this.credentials = key;
         setAuthenticated(false);
     }
 
     /**
      * Creates an authenticated token (after API key validation) with authorities.
      */
-    public ApiKeyAuthenticationToken(Object principal,
-            Object credentials,
+    public ApiKeyAuthenticationToken(String clientCredentialsId,
+            String key,
             Collection<? extends GrantedAuthority> authorities) {
         super(authorities);
-        this.principal   = principal;
-        this.credentials = credentials;
+        this.principal   = clientCredentialsId;
+        this.credentials = key;
         super.setAuthenticated(true);
     }
 

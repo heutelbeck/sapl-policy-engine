@@ -117,8 +117,7 @@ public class HttpSecurityConfiguration {
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
         val converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(
-                jwt -> List.of(new SimpleGrantedAuthority(ClientDetailsService.CLIENT)));
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> List.of(new SimpleGrantedAuthority(Roles.CLIENT)));
         return converter;
     }
 
@@ -180,7 +179,7 @@ public class HttpSecurityConfiguration {
 
         // *** Single 'anyRequest' definition to avoid "Can't configure anyRequest after
         // itself" ***
-        http.authorizeHttpRequests(authz -> authz.anyRequest().hasAuthority(ClientDetailsService.CLIENT));
+        http.authorizeHttpRequests(authz -> authz.anyRequest().hasAuthority(Roles.CLIENT));
 
         return http.build();
     }
@@ -260,16 +259,14 @@ public class HttpSecurityConfiguration {
                     mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
                 }
             } else {
-                val oAuth2UserAuthority = (OAuth2UserAuthority) authority;
-                val userAttributes      = oAuth2UserAuthority.getAttributes();
-                val realmAccess         = convertAttributeToMapIfPossible(userAttributes.get(REALM_ACCESS_CLAIM));
-                if (realmAccess != null) {
-                    Object rawRoles = realmAccess.get(ROLES_CLAIM);
-                    if (rawRoles instanceof Collection<?> rawRolesCollection) {
-                        Collection<String> roles = rawRolesCollection.stream().filter(String.class::isInstance)
-                                .map(String.class::cast).toList();
-                        mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
-                    }
+                val    oAuth2UserAuthority = (OAuth2UserAuthority) authority;
+                val    userAttributes      = oAuth2UserAuthority.getAttributes();
+                val    realmAccess         = convertAttributeToMapIfPossible(userAttributes.get(REALM_ACCESS_CLAIM));
+                Object rawRoles            = realmAccess.get(ROLES_CLAIM);
+                if (rawRoles instanceof Collection<?> rawRolesCollection) {
+                    Collection<String> roles = rawRolesCollection.stream().filter(String.class::isInstance)
+                            .map(String.class::cast).toList();
+                    mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
                 }
             }
             return mappedAuthorities;

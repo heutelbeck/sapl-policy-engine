@@ -46,8 +46,6 @@ import java.util.Collection;
 @Conditional(SetupFinishedCondition.class)
 public class ClientDetailsService implements UserDetailsService {
 
-    public static final String  CLIENT = "SAPL_CLIENT";
-    public static final String  ADMIN  = "ADMIN";
     private final ApiKeyService apiKeyService;
 
     @Value("${io.sapl.server.accesscontrol.admin-username:#{null}}")
@@ -76,7 +74,7 @@ public class ClientDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         if (adminUsername.equals(username)) {
             return org.springframework.security.core.userdetails.User.withUsername(adminUsername)
-                    .password(encodedAdminPassword).roles(ADMIN).build();
+                    .password(encodedAdminPassword).roles(Roles.ADMIN).build();
         }
 
         final var clientCredentials = clientCredentialsRepository.findByKey(username)
@@ -84,7 +82,7 @@ public class ClientDetailsService implements UserDetailsService {
                         String.format("client credentials with key \"%s\" not found", username)));
 
         return org.springframework.security.core.userdetails.User.withUsername(clientCredentials.getKey())
-                .password(clientCredentials.getEncodedSecret()).authorities(CLIENT).build();
+                .password(clientCredentials.getEncodedSecret()).authorities(Roles.CLIENT).build();
     }
 
     public Collection<ClientCredentials> getAll() {
