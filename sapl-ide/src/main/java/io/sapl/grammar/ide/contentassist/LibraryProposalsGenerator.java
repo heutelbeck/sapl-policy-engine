@@ -196,7 +196,7 @@ public class LibraryProposalsGenerator {
         return proposals;
     }
 
-    private static Collection<Proposal> documentedProposalsForLibraryEntry(String prefix, String ctxPrefix,
+    private static List<Proposal> documentedProposalsForLibraryEntry(String prefix, String ctxPrefix,
             LibraryFunctionDocumentation function, ContentAssistContext context) {
         final var proposals = new ArrayList<Proposal>();
         final var aliases   = aliasNamesOfFunctionFromImports(function.fullyQualifiedName(), context);

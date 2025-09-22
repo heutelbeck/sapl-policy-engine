@@ -68,24 +68,20 @@ public class EquivalenceAndHashUtil {
     }
 
     private static int hash(Object featureInstance) {
-        if (null == featureInstance) {
+        if (featureInstance == null) {
             return 0;
         }
-        int hash = HASH_SEED_PRIME;
-        switch (featureInstance) {
-        case EList<?> eListFeatureInstance  -> {
-            for (Object element : eListFeatureInstance) {
-                hash = PRIME * hash + hash(element);
+        return switch (featureInstance) {
+            case EList<?> list -> {
+                var h = HASH_SEED_PRIME;
+                for (var element : list) {
+                    h = PRIME * h + hash(element);
+                }
+                yield h;
             }
-        }
-        case EObject eObjectFeatureInstance -> {
-            hash = PRIME * hash + semanticHash(eObjectFeatureInstance);
-        }
-        default                             -> {
-            hash = PRIME * hash + featureInstance.hashCode();
-        }
-        }
-        return hash;
+            case EObject eo -> PRIME * HASH_SEED_PRIME + semanticHash(eo);
+            default -> PRIME * HASH_SEED_PRIME + featureInstance.hashCode();
+        };
     }
 
     public boolean areEquivalent(@NonNull EObject thiz, @NonNull EObject that) {

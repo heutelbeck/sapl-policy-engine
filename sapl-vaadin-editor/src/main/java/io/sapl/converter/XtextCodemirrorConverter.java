@@ -17,11 +17,11 @@
  */
 package io.sapl.converter;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.regex.Pattern;
-
-import lombok.experimental.UtilityClass;
 
 /**
  * Converts XTextCodemirror to ESM

@@ -116,7 +116,7 @@ public class ContentFilter {
                 }
                 return resultArray;
             }
-            default                     -> {}
+            default                     -> { /* no-op */ }
             }
 
             return mapElement(payload, transformation, predicate);

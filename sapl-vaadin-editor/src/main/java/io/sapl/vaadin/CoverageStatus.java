@@ -17,10 +17,6 @@
  */
 package io.sapl.vaadin;
 
-import java.io.Serializable;
-import java.util.List;
-import java.util.Objects;
-
 /** Which visual status to show on a line. */
 public enum CoverageStatus {
     COVERED,

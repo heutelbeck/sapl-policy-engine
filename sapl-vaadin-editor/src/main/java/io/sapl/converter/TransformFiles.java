@@ -17,6 +17,8 @@
  */
 package io.sapl.converter;
 
+import lombok.experimental.UtilityClass;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -26,8 +28,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
-
-import lombok.experimental.UtilityClass;
 
 /**
  * Tool to convert JS files from AMD to ESM format during build. It also injects
