@@ -17,13 +17,13 @@
  */
 package io.sapl.server.ce.ui.views.pdpconfig;
 
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.stream.Stream;
-
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Utilities for encoding a {@link PolicyDocumentCombiningAlgorithm} to a

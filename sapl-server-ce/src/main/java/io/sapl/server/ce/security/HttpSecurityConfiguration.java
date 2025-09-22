@@ -17,21 +17,13 @@
  */
 package io.sapl.server.ce.security;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.vaadin.flow.spring.security.VaadinAwareSecurityContextHolderStrategyConfiguration;
-import jakarta.servlet.http.HttpServletRequest;
-
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.security.apikey.ApiKeyHeaderAuthFilterService;
 import io.sapl.server.ce.security.apikey.ApiKeyService;
 import io.sapl.server.ce.ui.views.login.LoginView;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -45,8 +37,8 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -65,6 +57,8 @@ import org.springframework.security.web.access.HttpStatusAccessDeniedHandler;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+
+import java.util.*;
 
 /**
  * Security configuration for SAPL Server CE.
@@ -157,7 +151,7 @@ public class HttpSecurityConfiguration {
 
         if (allowApiKeyAuth) {
             log.info("Enabling API key authentication for API chain.");
-            http.addFilterAt(apiKeyAuthenticationFilterService, UsernamePasswordAuthenticationFilter.class);
+            http.addFilterBefore(apiKeyAuthenticationFilterService, UsernamePasswordAuthenticationFilter.class);
         }
 
         if (allowOauth2Auth) {

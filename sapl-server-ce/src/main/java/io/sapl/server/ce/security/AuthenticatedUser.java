@@ -17,10 +17,11 @@
  */
 package io.sapl.server.ce.security;
 
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.Optional;
-
+import com.vaadin.flow.server.VaadinServletRequest;
+import io.sapl.api.SaplVersion;
+import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.http.RequestEntity;
@@ -34,12 +35,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.vaadin.flow.server.VaadinServletRequest;
-
-import io.sapl.api.SaplVersion;
-import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.Optional;
 
 @Slf4j
 @Component

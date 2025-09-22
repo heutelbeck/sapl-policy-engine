@@ -17,14 +17,13 @@
  */
 package io.sapl.server.ce.config;
 
+import io.sapl.grammar.web.SAPLServlet;
+import io.sapl.vaadin.JsonEditorConfiguration;
+import io.sapl.vaadin.SaplEditorConfiguration;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-
-import io.sapl.grammar.web.SAPLServlet;
-import io.sapl.vaadin.JsonEditorConfiguration;
-import io.sapl.vaadin.SaplEditorConfiguration;
 
 /**
  * Collection of initialization methods for Spring beans for editors.

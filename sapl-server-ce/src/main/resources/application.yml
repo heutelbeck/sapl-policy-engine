@@ -32,11 +32,7 @@ bucket4j:
   cache-to-use: none # supported values: none, jcache
 
 vaadin:
-  allowed-packages:
-    - com.vaadin
-    - org.vaadin
-    - dev.hilla
-    - io.sapl
+  allowed-packages: io/sapl
 
 logging.level:
   "[org.atmosphere]": WARN

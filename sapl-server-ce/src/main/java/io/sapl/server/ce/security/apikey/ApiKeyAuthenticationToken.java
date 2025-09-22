@@ -17,58 +17,70 @@
  */
 package io.sapl.server.ce.security.apikey;
 
-import java.util.Collection;
-import java.util.List;
-
-import org.springframework.security.core.Authentication;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
+import java.util.Collection;
+
 /**
- * Represents an authentication token within the example application.
+ * Authentication token for SAPL API keys.
+ * The unauthenticated constructor is used before validation.
+ * The authenticated constructor is used after validation and carries
+ * authorities.
  */
-public class ApiKeyAuthenticationToken implements Authentication {
+@ToString
+@EqualsAndHashCode(callSuper = true)
+public final class ApiKeyAuthenticationToken extends AbstractAuthenticationToken {
 
-    private static final long serialVersionUID = 6833321566051922105L;
+    private final transient Object principal;
+    private Object                 credentials;
 
-    private final String encodedApiKey;
-    private boolean      authenticated = true;
-
-    public ApiKeyAuthenticationToken(final String encodedApiKey) {
-        this.encodedApiKey = encodedApiKey;
+    /** Creates an unauthenticated token (before API key validation). */
+    public ApiKeyAuthenticationToken(Object principal, Object credentials) {
+        super(null);
+        this.principal   = principal;
+        this.credentials = credentials;
+        setAuthenticated(false);
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+    /**
+     * Creates an authenticated token (after API key validation) with authorities.
+     */
+    public ApiKeyAuthenticationToken(Object principal,
+            Object credentials,
+            Collection<? extends GrantedAuthority> authorities) {
+        super(authorities);
+        this.principal   = principal;
+        this.credentials = credentials;
+        super.setAuthenticated(true);
     }
 
     @Override
     public Object getCredentials() {
-        return this.encodedApiKey;
-    }
-
-    @Override
-    public Object getDetails() {
-        return null;
+        return credentials;
     }
 
     @Override
     public Object getPrincipal() {
-        return encodedApiKey;
+        return principal;
     }
 
-    @Override
-    public boolean isAuthenticated() {
-        return authenticated;
-    }
-
+    /**
+     * Disallow setting authenticated to true after construction.
+     */
     @Override
     public void setAuthenticated(boolean isAuthenticated) {
-        this.authenticated = isAuthenticated;
+        if (isAuthenticated) {
+            throw new IllegalArgumentException("Use the authenticated constructor with authorities.");
+        }
+        super.setAuthenticated(false);
     }
 
     @Override
-    public String getName() {
-        return getPrincipal().toString();
+    public void eraseCredentials() {
+        super.eraseCredentials();
+        this.credentials = null;
     }
 }

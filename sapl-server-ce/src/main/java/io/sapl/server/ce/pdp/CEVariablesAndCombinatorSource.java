@@ -17,15 +17,8 @@
  */
 package io.sapl.server.ce.pdp;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-
-import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Maps;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
@@ -33,10 +26,15 @@ import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.EmitFailureHandler;
 import reactor.core.publisher.Sinks.Many;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Component

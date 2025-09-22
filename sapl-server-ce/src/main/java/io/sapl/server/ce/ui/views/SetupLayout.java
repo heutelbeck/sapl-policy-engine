@@ -17,17 +17,10 @@
  */
 package io.sapl.server.ce.ui.views;
 
-import org.springframework.context.annotation.Conditional;
-
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.Footer;
-import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Header;
-import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -37,19 +30,12 @@ import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.server.auth.AccessAnnotationChecker;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-
 import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.setup.condition.SetupNotFinishedCondition;
-import io.sapl.server.ce.ui.views.setup.AdminUserSetupView;
-import io.sapl.server.ce.ui.views.setup.ApiAuthenticationSetupView;
-import io.sapl.server.ce.ui.views.setup.DbmsSetupView;
-import io.sapl.server.ce.ui.views.setup.FinishSetupView;
-import io.sapl.server.ce.ui.views.setup.HttpEndpointSetupView;
-import io.sapl.server.ce.ui.views.setup.LoggingSetupView;
-import io.sapl.server.ce.ui.views.setup.RSocketEndpointSetupView;
-import io.sapl.server.ce.ui.views.setup.SetupView;
+import io.sapl.server.ce.ui.views.setup.*;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Conditional;
 
 /**
  * The main view is a top-level placeholder for other views for the setup

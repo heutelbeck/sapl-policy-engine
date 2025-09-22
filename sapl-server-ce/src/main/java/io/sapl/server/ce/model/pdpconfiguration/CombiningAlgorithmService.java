@@ -17,13 +17,7 @@
  */
 package io.sapl.server.ce.model.pdpconfiguration;
 
-import java.util.Collection;
-
-import org.springframework.context.annotation.Conditional;
-import org.springframework.stereotype.Service;
-
 import com.google.common.collect.Iterables;
-
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.pdp.PDPConfigurationPublisher;
@@ -31,6 +25,10 @@ import jakarta.annotation.PostConstruct;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.stereotype.Service;
+
+import java.util.Collection;
 
 /**
  * Service for managing the combining algorithm.

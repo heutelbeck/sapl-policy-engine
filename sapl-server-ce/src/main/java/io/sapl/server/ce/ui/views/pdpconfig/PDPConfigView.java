@@ -17,8 +17,6 @@
  */
 package io.sapl.server.ce.ui.views.pdpconfig;
 
-import org.springframework.context.annotation.Conditional;
-
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -30,20 +28,16 @@ import com.vaadin.flow.data.provider.CallbackDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-
 import io.sapl.api.SaplVersion;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.server.ce.model.pdpconfiguration.CombiningAlgorithmService;
-import io.sapl.server.ce.model.pdpconfiguration.DuplicatedVariableNameException;
-import io.sapl.server.ce.model.pdpconfiguration.InvalidVariableNameException;
-import io.sapl.server.ce.model.pdpconfiguration.Variable;
-import io.sapl.server.ce.model.pdpconfiguration.VariablesService;
+import io.sapl.server.ce.model.pdpconfiguration.*;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.utils.ConfirmUtils;
 import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
 import io.sapl.server.ce.ui.views.MainLayout;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Conditional;
 
 @Slf4j
 @RolesAllowed("ADMIN")

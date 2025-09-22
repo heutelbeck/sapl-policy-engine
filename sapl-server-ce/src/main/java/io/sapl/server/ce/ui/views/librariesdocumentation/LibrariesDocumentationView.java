@@ -17,17 +17,12 @@
  */
 package io.sapl.server.ce.ui.views.librariesdocumentation;
 
-import java.util.Collection;
-
-import org.springframework.context.annotation.Conditional;
-
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-
 import io.sapl.api.SaplVersion;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
@@ -35,6 +30,9 @@ import io.sapl.server.ce.ui.views.MainLayout;
 import io.sapl.spring.pdp.embedded.FunctionLibrariesDocumentation;
 import io.sapl.spring.pdp.embedded.PolicyInformationPointsDocumentation;
 import jakarta.annotation.security.RolesAllowed;
+import org.springframework.context.annotation.Conditional;
+
+import java.util.Collection;
 
 @RolesAllowed("ADMIN")
 @PageTitle("Libraries Documentation")

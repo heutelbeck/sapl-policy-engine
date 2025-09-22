@@ -17,16 +17,6 @@
  */
 package io.sapl.server.ce.ui.views.setup;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableEntryException;
-import java.security.cert.CertificateException;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.stream.Collectors;
-
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
@@ -42,13 +32,8 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
-
 import io.sapl.api.SaplVersion;
-import io.sapl.server.ce.model.setup.ApplicationConfigService;
-import io.sapl.server.ce.model.setup.EndpointConfig;
-import io.sapl.server.ce.model.setup.SupportedCiphers;
-import io.sapl.server.ce.model.setup.SupportedKeystoreTypes;
-import io.sapl.server.ce.model.setup.SupportedSslVersions;
+import io.sapl.server.ce.model.setup.*;
 import io.sapl.server.ce.ui.utils.ConfirmUtils;
 import io.sapl.server.ce.ui.utils.ErrorComponentUtils;
 import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
@@ -56,6 +41,16 @@ import io.sapl.server.ce.ui.views.SetupLayout;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableEntryException;
+import java.security.cert.CertificateException;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public abstract class EndpointSetupView extends VerticalLayout {

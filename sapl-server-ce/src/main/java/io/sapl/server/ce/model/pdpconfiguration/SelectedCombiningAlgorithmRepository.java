@@ -17,12 +17,11 @@
  */
 package io.sapl.server.ce.model.pdpconfiguration;
 
-import java.io.Serializable;
-import java.util.Collection;
-
+import lombok.NonNull;
 import org.springframework.data.repository.CrudRepository;
 
-import lombok.NonNull;
+import java.io.Serializable;
+import java.util.Collection;
 
 /**
  * Interface for a repository for accessing the selected

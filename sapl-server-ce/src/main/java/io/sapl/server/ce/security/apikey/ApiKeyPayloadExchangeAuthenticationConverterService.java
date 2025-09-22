@@ -17,22 +17,21 @@
  */
 package io.sapl.server.ce.security.apikey;
 
-import static io.sapl.server.ce.security.apikey.ApiKeyService.RSOCKET_METADATA_MIME_TPYE;
-
-import java.nio.charset.StandardCharsets;
-
+import io.netty.buffer.ByteBuf;
+import io.rsocket.metadata.CompositeMetadata;
+import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.rsocket.api.PayloadExchange;
 import org.springframework.security.rsocket.authentication.PayloadExchangeAuthenticationConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeType;
-
-import io.netty.buffer.ByteBuf;
-import io.rsocket.metadata.CompositeMetadata;
-import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
-import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
+
+import java.nio.charset.StandardCharsets;
+
+import static io.sapl.server.ce.security.apikey.ApiKeyService.RSOCKET_METADATA_MIME_TPYE;
 
 @Component
 @RequiredArgsConstructor

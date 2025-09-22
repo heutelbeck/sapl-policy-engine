@@ -17,11 +17,6 @@
  */
 package io.sapl.server.ce.ui.views.setup;
 
-import java.io.IOException;
-import java.util.EnumSet;
-
-import org.springframework.context.annotation.Conditional;
-
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
@@ -36,7 +31,6 @@ import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-
 import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.setup.ApplicationConfigService;
 import io.sapl.server.ce.model.setup.LoggingLevel;
@@ -46,6 +40,10 @@ import io.sapl.server.ce.ui.utils.ErrorComponentUtils;
 import io.sapl.server.ce.ui.views.SetupLayout;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.annotation.Conditional;
+
+import java.io.IOException;
+import java.util.EnumSet;
 
 @AnonymousAllowed
 @PageTitle("Logging Setup")

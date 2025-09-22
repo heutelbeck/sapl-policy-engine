@@ -17,11 +17,11 @@
  */
 package io.sapl.server.ce.pdp;
 
-import java.util.Collection;
-
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.server.ce.model.pdpconfiguration.Variable;
 import lombok.NonNull;
+
+import java.util.Collection;
 
 /**
  * Publisher for changed configuration of the PDP.

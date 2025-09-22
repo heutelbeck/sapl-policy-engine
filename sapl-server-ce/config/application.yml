@@ -86,10 +86,10 @@ server:
     key-password: changeme
     key-alias: netty
   # Improve protection against CSRF attacks (CWE-1275)
-  servlet:
-    session:
-      cookie:
-        same-site: strict
+#  servlet:
+#    session:
+#      cookie:
+#        same-site: strict
 
 # Set the time between keep-alive frames in seconds. These messages are required to avoid that an inactive tcp connection
 # is dropped by a firewall or other network components. The default value 0 disables keep-alive messages.
@@ -109,8 +109,10 @@ spring.rsocket.server:
 
 logging.level:
   #"root": DEBUG
-  "[io.sapl]": DEBUG
-  "[io.sapl.server.ce]": DEBUG
+  io.sapl: DEBUG
+  io.sapl.server.ce: DEBUG
+  io.sapl.attributes: INFO
+#  org.springframework.security: DEBUG
 
 
 # If Keycloak Login is enabled, then configure the following settings and comment them out

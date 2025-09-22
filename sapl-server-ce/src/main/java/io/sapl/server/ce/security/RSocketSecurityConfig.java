@@ -17,6 +17,11 @@
  */
 package io.sapl.server.ce.security;
 
+import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
+import io.sapl.server.ce.security.apikey.ApiKeyPayloadExchangeAuthenticationConverterService;
+import io.sapl.server.ce.security.apikey.ApiKeyReactiveAuthenticationManager;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
@@ -35,12 +40,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtRea
 import org.springframework.security.rsocket.authentication.AuthenticationPayloadExchangeConverter;
 import org.springframework.security.rsocket.authentication.AuthenticationPayloadInterceptor;
 import org.springframework.security.rsocket.core.PayloadSocketAcceptorInterceptor;
-
-import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
-import io.sapl.server.ce.security.apikey.ApiKeyPayloadExchangeAuthenticationConverterService;
-import io.sapl.server.ce.security.apikey.ApiKeyReactiveAuthenticationManager;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 @Slf4j

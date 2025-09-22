@@ -17,20 +17,18 @@
  */
 package io.sapl.server;
 
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.server.VaadinSession;
+import com.vaadin.flow.theme.Theme;
+import com.vaadin.flow.theme.lumo.Lumo;
+import io.sapl.api.SaplVersion;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.ConfigurableApplicationContext;
-
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.page.AppShellConfigurator;
-import com.vaadin.flow.server.VaadinSession;
-import com.vaadin.flow.theme.Theme;
-import com.vaadin.flow.theme.lumo.Lumo;
-
-import io.sapl.api.SaplVersion;
 
 @EnableCaching
 @Theme(value = "sapl", variant = Lumo.DARK)

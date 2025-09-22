@@ -17,8 +17,12 @@
  */
 package io.sapl.server.ce.security.apikey;
 
-import java.util.Map;
-
+import io.sapl.server.ce.model.clients.AuthType;
+import io.sapl.server.ce.model.clients.ClientCredentialsRepository;
+import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
+import io.sapl.server.ce.security.ClientDetailsService;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
@@ -26,18 +30,14 @@ import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import io.sapl.server.ce.model.clients.AuthType;
-import io.sapl.server.ce.model.clients.ClientCredentialsRepository;
-import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Map;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Conditional(SetupFinishedCondition.class)
@@ -55,11 +55,14 @@ public class ApiKeyService {
         if (apiKey.startsWith(SAPL_TOKEN_PREFIX)) {
             final var key = apiKey.split("_")[1];
             // get record matching key part of the apikey token
-            final var c = clientCredentialsRepository.findByKey(key)
+            final var maybeCredentials = clientCredentialsRepository.findByKey(key);
+            final var credentials      = maybeCredentials
                     .orElseThrow(() -> new UsernameNotFoundException("Provided apiKey client credentials not found"));
-            // check type and encoded passwortd of the token entry
-            if (c.getAuthType().equals(AuthType.APIKEY) && passwordEncoder.matches(apiKey, c.getEncodedSecret())) {
-                return new ApiKeyAuthenticationToken(key);
+            // check type and encoded password of the token entry
+            if (credentials.getAuthType().equals(AuthType.APIKEY)
+                    && passwordEncoder.matches(apiKey, credentials.getEncodedSecret())) {
+                final var authorities = List.of(new SimpleGrantedAuthority(ClientDetailsService.CLIENT));
+                return new ApiKeyAuthenticationToken(key, key, authorities);
             } else {
                 throw new ApiKeyAuthenticationException("ApiKey not authorized");
             }
@@ -82,9 +85,7 @@ public class ApiKeyService {
             final var nativeCache = apiKeyCache.getNativeCache();
             for (Map.Entry<Object, Object> entry : nativeCache.asMap().entrySet()) {
                 final var cacheEntry = entry.getKey();
-                log.info("checking entry: " + cacheEntry);
                 if (cacheEntry.toString().startsWith(cacheKey + ".")) {
-                    log.info("removing entry: " + cacheEntry);
                     apiKeyCache.evict(cacheEntry);
                 }
             }

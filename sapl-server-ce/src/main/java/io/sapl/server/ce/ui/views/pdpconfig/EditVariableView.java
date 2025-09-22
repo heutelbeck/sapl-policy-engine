@@ -17,10 +17,6 @@
  */
 package io.sapl.server.ce.ui.views.pdpconfig;
 
-import java.util.Optional;
-
-import org.springframework.context.annotation.Conditional;
-
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -29,13 +25,8 @@ import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.router.HasUrlParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-
 import io.sapl.api.SaplVersion;
-import io.sapl.server.ce.model.pdpconfiguration.DuplicatedVariableNameException;
-import io.sapl.server.ce.model.pdpconfiguration.InvalidJsonException;
-import io.sapl.server.ce.model.pdpconfiguration.InvalidVariableNameException;
-import io.sapl.server.ce.model.pdpconfiguration.Variable;
-import io.sapl.server.ce.model.pdpconfiguration.VariablesService;
+import io.sapl.server.ce.model.pdpconfiguration.*;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.utils.ErrorNotificationUtils;
 import io.sapl.server.ce.ui.views.MainLayout;
@@ -43,6 +34,9 @@ import io.sapl.vaadin.JsonEditor;
 import io.sapl.vaadin.JsonEditorConfiguration;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Conditional;
+
+import java.util.Optional;
 
 @Slf4j
 @RolesAllowed("ADMIN")

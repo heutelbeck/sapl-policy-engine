@@ -19,7 +19,6 @@ package io.sapl.server.ce.ui.views.librariesdocumentation;
 
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
-
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;

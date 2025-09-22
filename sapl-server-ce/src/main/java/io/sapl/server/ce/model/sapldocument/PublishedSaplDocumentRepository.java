@@ -17,14 +17,13 @@
  */
 package io.sapl.server.ce.model.sapldocument;
 
-import java.io.Serializable;
-import java.util.Collection;
-
+import lombok.NonNull;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
-import lombok.NonNull;
+import java.io.Serializable;
+import java.util.Collection;
 
 /**
  * Interface for a repository for accessing persisted

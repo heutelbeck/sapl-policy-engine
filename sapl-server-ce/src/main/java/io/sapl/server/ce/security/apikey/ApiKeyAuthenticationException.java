@@ -17,10 +17,9 @@
  */
 package io.sapl.server.ce.security.apikey;
 
-import org.springframework.security.core.AuthenticationException;
-
 import io.sapl.api.SaplVersion;
 import lombok.experimental.StandardException;
+import org.springframework.security.core.AuthenticationException;
 
 @StandardException
 public class ApiKeyAuthenticationException extends AuthenticationException {

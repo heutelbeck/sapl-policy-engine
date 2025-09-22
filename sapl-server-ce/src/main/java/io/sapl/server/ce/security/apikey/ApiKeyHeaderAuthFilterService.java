@@ -17,14 +17,6 @@
  */
 package io.sapl.server.ce.security.apikey;
 
-import java.io.IOException;
-
-import org.springframework.context.annotation.Conditional;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.GenericFilterBean;
-
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -33,6 +25,13 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.GenericFilterBean;
+
+import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
@@ -56,7 +55,8 @@ public class ApiKeyHeaderAuthFilterService extends GenericFilterBean {
             // if header token is not valid, send un-authorized error
             if (apikeyToken != null) {
                 try {
-                    SecurityContextHolder.getContext().setAuthentication(apiKeyService.checkApiKey(apikeyToken));
+                    final var authentication = apiKeyService.checkApiKey(apikeyToken);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 } catch (AuthenticationException ex) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN);
                     return;

@@ -17,8 +17,6 @@
  */
 package io.sapl.server.ce.ui.views.digitalpolicies;
 
-import org.springframework.context.annotation.Conditional;
-
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -28,13 +26,13 @@ import com.vaadin.flow.data.provider.CallbackDataProvider;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-
 import io.sapl.api.SaplVersion;
 import io.sapl.server.ce.model.sapldocument.SaplDocument;
 import io.sapl.server.ce.model.sapldocument.SaplDocumentService;
 import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
 import io.sapl.server.ce.ui.views.MainLayout;
 import jakarta.annotation.security.RolesAllowed;
+import org.springframework.context.annotation.Conditional;
 
 /**
  * View for listening and managing SAPL documents. A Designer generated

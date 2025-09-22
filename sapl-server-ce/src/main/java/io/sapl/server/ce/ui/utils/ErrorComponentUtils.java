@@ -21,7 +21,6 @@ import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 

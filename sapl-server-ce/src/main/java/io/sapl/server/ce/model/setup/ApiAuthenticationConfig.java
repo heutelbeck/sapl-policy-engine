@@ -17,10 +17,10 @@
  */
 package io.sapl.server.ce.model.setup;
 
-import java.net.URI;
-
 import lombok.Getter;
 import lombok.Setter;
+
+import java.net.URI;
 
 @Getter
 @Setter

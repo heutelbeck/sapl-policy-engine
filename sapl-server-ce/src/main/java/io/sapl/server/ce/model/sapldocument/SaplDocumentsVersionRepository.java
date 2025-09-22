@@ -17,9 +17,9 @@
  */
 package io.sapl.server.ce.model.sapldocument;
 
-import java.io.Serializable;
-
 import org.springframework.data.repository.CrudRepository;
+
+import java.io.Serializable;
 
 /**
  * Interface for a repository for accessing persisted

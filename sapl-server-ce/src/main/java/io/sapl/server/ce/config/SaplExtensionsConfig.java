@@ -17,17 +17,7 @@
  */
 package io.sapl.server.ce.config;
 
-import java.util.List;
-
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Role;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.pip.StaticPolicyInformationPointSupplier;
 import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
@@ -38,6 +28,14 @@ import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.functions.sanitization.SanitizationFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Role;
+
+import java.util.List;
 
 @Configuration
 @EnableAutoConfiguration(exclude = { R2dbcAutoConfiguration.class })

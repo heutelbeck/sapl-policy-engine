@@ -17,12 +17,11 @@
  */
 package io.sapl.server.ce.model.pdpconfiguration;
 
-import java.io.Serializable;
-import java.util.Collection;
-
+import lombok.NonNull;
 import org.springframework.data.repository.CrudRepository;
 
-import lombok.NonNull;
+import java.io.Serializable;
+import java.util.Collection;
 
 public interface VariablesRepository extends CrudRepository<Variable, Long>, Serializable {
     /**

@@ -18,7 +18,6 @@
 package io.sapl.server.ce.ui.utils;
 
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
-
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
