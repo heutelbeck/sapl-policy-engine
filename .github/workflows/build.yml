@@ -42,7 +42,7 @@ jobs:
   build:
     strategy:
       matrix:
-        java: [ '21' ] # , '25' ] add back in
+        java: [ '21', '25-ea' ]
         os: [ubuntu-latest, windows-latest ] #, macos-latest]
       fail-fast: false
     name: Build (JDK ${{ matrix.java }} on ${{ matrix.os }})
