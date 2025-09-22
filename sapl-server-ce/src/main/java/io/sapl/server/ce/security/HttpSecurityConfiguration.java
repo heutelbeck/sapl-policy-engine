@@ -17,8 +17,6 @@
  */
 package io.sapl.server.ce.security;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,24 +24,35 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.vaadin.flow.spring.security.VaadinAwareSecurityContextHolderStrategyConfiguration;
+import jakarta.servlet.http.HttpServletRequest;
+
+import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
+import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
+import io.sapl.server.ce.security.apikey.ApiKeyHeaderAuthFilterService;
+import io.sapl.server.ce.security.apikey.ApiKeyService;
+import io.sapl.server.ce.ui.views.login.LoginView;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.ObjectPostProcessor;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.RequestCacheConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
-import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -55,25 +64,19 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.HttpStatusAccessDeniedHandler;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.header.HeaderWriterFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
-import com.vaadin.flow.spring.security.VaadinWebSecurity;
-
-import io.sapl.server.ce.model.setup.condition.SetupFinishedCondition;
-import io.sapl.server.ce.security.apikey.ApiKeyHeaderAuthFilterService;
-import io.sapl.server.ce.security.apikey.ApiKeyService;
-import io.sapl.server.ce.ui.views.login.LoginView;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
+/**
+ * Security configuration for SAPL Server CE.
+ */
 @Slf4j
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 @Conditional(SetupFinishedCondition.class)
-public class HttpSecurityConfiguration extends VaadinWebSecurity {
+@Import(VaadinAwareSecurityContextHolderStrategyConfiguration.class)
+public class HttpSecurityConfiguration {
+
     @Value("${io.sapl.server.allowBasicAuth:#{false}}")
     private boolean allowBasicAuth;
 
@@ -96,131 +99,151 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
     private static final String ROLES_CLAIM        = "roles";
 
     /**
-     * Decodes JSON Web Token (JWT) according to the configuration that was
-     * initialized by the OpenID Provider specified in the jwtIssuerURI.
+     * Conditionally decodes JWTs based on issuer metadata when the issuer property
+     * is set.
+     * <p>
+     * Property: {@code spring.security.oauth2.resourceserver.jwt.issuer-uri}
+     *
+     * @return a configured JwtDecoder.
      */
     @Bean
+    @ConditionalOnProperty("spring.security.oauth2.resourceserver.jwt.issuer-uri")
     JwtDecoder jwtDecoder() {
-        if (allowOauth2Auth) {
-            return JwtDecoders.fromIssuerLocation(jwtIssuerURI);
-        } else {
-            return null;
-        }
+        log.info("Initializing JwtDecoder from issuer: {}", jwtIssuerURI);
+        return JwtDecoders.fromIssuerLocation(jwtIssuerURI);
     }
 
+    /**
+     * Converts a validated JWT into a single client authority used for API
+     * authorization.
+     *
+     * @return the JwtAuthenticationConverter assigning
+     * {@code ClientDetailsService.CLIENT}.
+     */
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        val converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(
                 jwt -> List.of(new SimpleGrantedAuthority(ClientDetailsService.CLIENT)));
         return converter;
     }
 
     /**
-     * This filter chain is offering Basic Authn for the API.
+     * API filter chain for {@code /api/**}.
+     * <p>
+     * Stateless, CSRF disabled, strict 403 on unauthenticated/denied even when
+     * Basic is enabled.
+     * API key auth filter is integrated; OAuth2 Resource Server (JWT) is optional.
+     * All API requests require {@code ClientDetailsService.CLIENT} authority.
      *
-     * @param http the HttpSecurity.
-     * @return configured HttpSecurity
-     * @throws Exception if error occurs during HTTP security configuration
+     * @param http the HttpSecurity to configure.
+     * @return configured SecurityFilterChain for API endpoints.
+     * @throws Exception if configuration fails.
      */
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
     SecurityFilterChain apiAuthnFilterChain(HttpSecurity http) throws Exception {
+        val forbidden = new HttpStatusEntryPoint(HttpStatus.FORBIDDEN);
 
-        final var forbidden = new HttpStatusEntryPoint(HttpStatus.FORBIDDEN);
+        log.info("Configuring API chain for '/api/**': stateless={}, apiKey={}, basicAuth={}, oauth2ResourceServer={}",
+                true, allowApiKeyAuth, allowBasicAuth, allowOauth2Auth);
 
-        // @formatter:off
-		http = http.securityMatcher("/api/**") // API path
-    		       .requestCache(RequestCacheConfigurer::disable)
-    		       .formLogin(AbstractHttpConfigurer::disable)
-    		       .oauth2Login(AbstractHttpConfigurer::disable)
-    		       .logout(AbstractHttpConfigurer::disable)
-        	       .csrf(AbstractHttpConfigurer::disable)
-        		   .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        		   .exceptionHandling(ex -> ex.authenticationEntryPoint(forbidden) // return 403
-        		                              .accessDeniedHandler(new HttpStatusAccessDeniedHandler(HttpStatus.FORBIDDEN)))
-                   .httpBasic(b -> b.authenticationEntryPoint(forbidden));
+        http.securityMatcher("/api/**").requestCache(RequestCacheConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable).oauth2Login(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable).csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(forbidden)
+                        .accessDeniedHandler(new HttpStatusAccessDeniedHandler(HttpStatus.FORBIDDEN)));
 
-		if (allowApiKeyAuth) {
-			log.info("configuring ApiKey for Http authentication");
-			http = http.addFilterAt(apiKeyAuthenticationFilterService, UsernamePasswordAuthenticationFilter.class);
+        if (allowApiKeyAuth) {
+            log.info("Enabling API key authentication for API chain.");
+            http.addFilterAt(apiKeyAuthenticationFilterService, UsernamePasswordAuthenticationFilter.class);
+        }
 
-		}
-
-        // fix sporadic spring-security issue 9175: https://github.com/spring-projects/spring-security/issues/9175#issuecomment-661879599
-        http = http.headers(headers -> headers
-                .withObjectPostProcessor(new ObjectPostProcessor<HeaderWriterFilter>() {
-                    @Override
-                    public <O extends HeaderWriterFilter> O postProcess(O headerWriterFilter) {
-                        headerWriterFilter.setShouldWriteHeadersEagerly(true);
-                        return headerWriterFilter;
-                    }
-                })
-        );
-
-		if (allowOauth2Auth) {
-			log.info("configuring Oauth2 authentication with jwtIssuerURI: " + jwtIssuerURI);
-			http = http.oauth2ResourceServer(
-                    oauth2 -> oauth2
-                            .jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+        if (allowOauth2Auth) {
+            log.info("Enabling OAuth2 Resource Server (JWT) for API chain with issuer '{}'.", jwtIssuerURI);
+            http.oauth2ResourceServer(
+                    oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                             .bearerTokenResolver(new BearerTokenResolver() {
                                 final BearerTokenResolver defaultResolver = new DefaultBearerTokenResolver();
+
                                 @Override
                                 public String resolve(HttpServletRequest request) {
-                                    if (ApiKeyService.getApiKeyToken(request) != null) {
-                                        // This Bearer token is used for sapl api key authentication
-                                        return null;
-                                    } else {
-                                        return defaultResolver.resolve(request);
-                                    }
+                                    // API key takes precedence; suppress JWT if API key token is present.
+                                    return ApiKeyService.getApiKeyToken(request) != null ? null
+                                            : defaultResolver.resolve(request);
                                 }
-                    }).jwt(Customizer.withDefaults()));
-		}
-
-        if (allowBasicAuth){
-            http = http.httpBasic(withDefaults()); // offer basic authentication
+                            }).jwt(Customizer.withDefaults()));
         }
 
-        // Enable OAuth2 Login with default setting and change the session creation policy to always for a proper login handling
-        if (allowOAuth2Login){
-            http = http
-                    .oauth2Login(withDefaults())
-                    .logout(logout -> logout
-                            .logoutUrl("/logout")
-                            .invalidateHttpSession(true)
-                            .deleteCookies("JSESSIONID")
-                            .logoutSuccessUrl("/oauth2"))
-                    .authorizeHttpRequests(authorize -> authorize.requestMatchers("/unauthenticated", "/oauth2/**", "/login/**", "/VAADIN/push/**").permitAll());
+        if (allowBasicAuth) {
+            log.info("Enabling HTTP Basic authentication with strict 403 entry point for API chain.");
+            // Enforce 403 even with Basic enabled; prevents 401 challenge headers.
+            http.httpBasic(basic -> basic.authenticationEntryPoint(forbidden));
+        } else {
+            log.info("HTTP Basic authentication is disabled for API chain.");
         }
 
-        // all requests to this end point require the CLIENT role
-        http = http.authorizeHttpRequests(authz -> authz.anyRequest().hasAnyAuthority(ClientDetailsService.CLIENT));
+        // *** Single 'anyRequest' definition to avoid "Can't configure anyRequest after
+        // itself" ***
+        http.authorizeHttpRequests(authz -> authz.anyRequest().hasAuthority(ClientDetailsService.CLIENT));
 
-		// @formatter:on
         return http.build();
     }
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        PathPatternRequestMatcher.Builder match = PathPatternRequestMatcher.withDefaults();
-        http = http.authorizeHttpRequests(
-                authorize -> authorize.requestMatchers(match.matcher("/images/*.png")).permitAll());
+    /**
+     * UI filter chain for Vaadin Flow application and remaining endpoints.
+     * <p>
+     * Permits {@code /images/*.png}, ignores CSRF for {@code /xtext-service/**},
+     * applies Vaadin integration, and configures form login or OAuth2 login.
+     *
+     * @param http the HttpSecurity to configure.
+     * @param authoritiesMapper the mapper applied explicitly to the OAuth2 login
+     * user info endpoint.
+     * @return configured SecurityFilterChain for UI.
+     * @throws Exception if configuration fails.
+     */
+    @Bean
+    SecurityFilterChain uiFilterChain(HttpSecurity http, GrantedAuthoritiesMapper authoritiesMapper) throws Exception {
+        val mvc = PathPatternRequestMatcher.withDefaults();
 
-        // Xtext services
-        http.csrf(csrf -> csrf.ignoringRequestMatchers(match.matcher(("/xtext-service/**"))));
+        log.info("Configuring UI chain: oauth2LoginEnabled={}", allowOAuth2Login);
 
-        super.configure(http);
+        // Apply Vaadin integration first so it can register its request matchers before
+        // anyRequest().
+        http.with(VaadinSecurityConfigurer.vaadin(), vaadin -> {
+            if (!allowOAuth2Login) {
+                vaadin.loginView(LoginView.class);
+            }
+        });
 
-        // Set another LoginPage if OAuth2 is enabled
+        // Permit public images and ignore CSRF for Xtext services; remaining
+        // authorization rules are
+        // handled by Vaadin's integration and the login configuration below.
+        http.authorizeHttpRequests(authz -> authz.requestMatchers(mvc.matcher("/images/*.png")).permitAll())
+                .csrf(csrf -> csrf.ignoringRequestMatchers(mvc.matcher("/xtext-service/**")));
+
         if (allowOAuth2Login) {
-            setOAuth2LoginPage(http, "/oauth2 ");
+            log.info("Enabling OAuth2 Login for UI chain with explicit authorities mapper.");
+            http.oauth2Login(
+                    oauth2 -> oauth2.userInfoEndpoint(userInfo -> userInfo.userAuthoritiesMapper(authoritiesMapper)))
+                    .logout(logout -> logout.logoutUrl("/logout").invalidateHttpSession(true)
+                            .deleteCookies("JSESSIONID").logoutSuccessUrl("/oauth2"))
+                    .authorizeHttpRequests(authz -> authz
+                            .requestMatchers("/unauthenticated", "/oauth2/**", "/login/**", "/VAADIN/push/**")
+                            .permitAll());
         } else {
-            setLoginView(http, LoginView.class);
+            log.info("Enabling form login for UI chain; login view is set via Vaadin configurer.");
         }
+
+        return http.build();
     }
 
-    // Important to extract the OAuth2 roles so that the Role admin is identified
-    // correctly
+    /**
+     * Maps OIDC/OAuth2 user claims into Spring Security ROLE_* authorities.
+     * Extracts roles from Keycloak-compatible {@code realm_access.roles} or from
+     * {@code groups}.
+     */
     @Bean
     GrantedAuthoritiesMapper userAuthoritiesMapperForKeycloak2() {
         return authorities -> {
@@ -229,39 +252,28 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
             boolean               isOidc            = authority instanceof OidcUserAuthority;
 
             if (isOidc) {
-                OidcUserAuthority oidcUserAuthority = (OidcUserAuthority) authority;
-                OidcUserInfo      userInfo          = oidcUserAuthority.getUserInfo();
+                val oidcUserAuthority = (OidcUserAuthority) authority;
+                val userInfo          = oidcUserAuthority.getUserInfo();
 
-                // Check if the roles are contained in the REALM_ACCESS_CLAIM or the groups
-                // claim from Keycloak
                 if (userInfo.hasClaim(REALM_ACCESS_CLAIM)) {
-                    // Extract the roles from the REALM_ACCESS_CLAIM
                     Map<String, Object> realmAccess = userInfo.getClaimAsMap(REALM_ACCESS_CLAIM);
                     Collection<?>       rawRoles    = (Collection<?>) realmAccess.get(ROLES_CLAIM);
                     Collection<String>  roles       = rawRoles.stream().filter(String.class::isInstance)
                             .map(String.class::cast).toList();
-
                     mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
                 } else if (userInfo.hasClaim(GROUPS)) {
-                    // Get the roles from the GROUPS claim
                     Collection<String> roles = userInfo.getClaimAsStringList(GROUPS);
-
-                    // Add the roles to SpringSecurity
                     mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
                 }
             } else {
-                OAuth2UserAuthority oAuth2UserAuthority = (OAuth2UserAuthority) authority;
-                Map<String, Object> userAttributes      = oAuth2UserAuthority.getAttributes();
-                Map<String, Object> realmAccess         = convertAttributeToMapIfPossible(
-                        userAttributes.get(REALM_ACCESS_CLAIM));
-
+                val oAuth2UserAuthority = (OAuth2UserAuthority) authority;
+                val userAttributes      = oAuth2UserAuthority.getAttributes();
+                val realmAccess         = convertAttributeToMapIfPossible(userAttributes.get(REALM_ACCESS_CLAIM));
                 if (realmAccess != null) {
                     Object rawRoles = realmAccess.get(ROLES_CLAIM);
-
                     if (rawRoles instanceof Collection<?> rawRolesCollection) {
                         Collection<String> roles = rawRolesCollection.stream().filter(String.class::isInstance)
                                 .map(String.class::cast).toList();
-
                         mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
                     }
                 }
@@ -283,7 +295,6 @@ public class HttpSecurityConfiguration extends VaadinWebSecurity {
     }
 
     Collection<SimpleGrantedAuthority> generateAuthoritiesFromClaim(Collection<String> roles) {
-        // Returns the roles from OAuth2 and add the prefix ROLE_
         return roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)).toList();
     }
 }

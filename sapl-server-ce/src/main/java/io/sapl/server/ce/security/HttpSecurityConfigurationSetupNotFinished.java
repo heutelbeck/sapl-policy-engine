@@ -17,35 +17,50 @@
  */
 package io.sapl.server.ce.security;
 
+import com.vaadin.flow.spring.security.VaadinAwareSecurityContextHolderStrategyConfiguration;
+import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
+import lombok.val;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
-import com.vaadin.flow.spring.security.VaadinWebSecurity;
-
 import io.sapl.server.ce.model.setup.condition.SetupNotFinishedCondition;
-import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 @Conditional(SetupNotFinishedCondition.class)
-public class HttpSecurityConfigurationSetupNotFinished extends VaadinWebSecurity {
+@Import(VaadinAwareSecurityContextHolderStrategyConfiguration.class)
+public class HttpSecurityConfigurationSetupNotFinished {
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        PathPatternRequestMatcher.Builder match = PathPatternRequestMatcher.withDefaults();
-        http.authorizeHttpRequests(requests -> requests.requestMatchers(match.matcher("/images/*.png")).permitAll());
+    /**
+     * Configures HTTP security for the setup-not-finished phase.
+     * Denies access to REST and Xtext endpoints, permits PNG images under /images/,
+     * requires authentication for any remaining request, and applies Vaadin’s
+     * integration.
+     *
+     * @param http the HttpSecurity to configure.
+     * @return the configured SecurityFilterChain.
+     * @throws Exception if building the filter chain fails.
+     */
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        val mvc = PathPatternRequestMatcher.withDefaults();
 
-        // Deny API
-        http.authorizeHttpRequests(requests -> requests.requestMatchers(match.matcher("/api/**")).denyAll());
+        // Apply Vaadin first so it can register its own request matchers before
+        // anyRequest().
+        http.with(VaadinSecurityConfigurer.vaadin(), configurer -> { /* defaults */ });
 
-        // Deny Xtext-Service
-        http.authorizeHttpRequests(requests -> requests.requestMatchers(match.matcher("/xtext-service/**")).denyAll());
+        // Add only specific matchers here; do not call anyRequest() to avoid conflicts.
+        http.authorizeHttpRequests(authz -> authz.requestMatchers(mvc.matcher("/images/*.png")).permitAll()
+                .requestMatchers(mvc.matcher("/api/**")).denyAll().requestMatchers(mvc.matcher("/xtext-service/**"))
+                .denyAll());
 
-        super.configure(http);
+        return http.build();
     }
 
 }

@@ -64,8 +64,8 @@ io.sapl:
       pretty-print-reports: false
 
 # Configures Oauth2 JWT Issuer-Uri required when io.sapl.server.allowOauth2Auth is true
-spring.security.oauth2.resourceserver.jwt:
-  issuer-uri: http://auth-host:32868/default
+#spring.security.oauth2.resourceserver.jwt:
+#  issuer-uri: http://auth-host:32868/default
 
 spring:
   datasource:

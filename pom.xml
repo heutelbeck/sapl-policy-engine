@@ -87,10 +87,10 @@
 		<junit.version>1.11.3</junit.version>
 		<xtext.version>2.40.0</xtext.version>
 		<jacoco.version>0.8.12</jacoco.version>
-		<vaadin.version>24.8.8</vaadin.version>
+		<vaadin.version>24.9.0</vaadin.version>
 		<okhttp.version>4.12.0</okhttp.version>
 		<rsocket.version>1.1.4</rsocket.version>
-		<lombok.version>1.18.40</lombok.version>
+		<lombok.version>1.18.42</lombok.version>
 		<jupiter.version>5.11.3</jupiter.version>
 		<assertj.version>3.26.3</assertj.version>
 		<flexmark.version>0.64.8</flexmark.version>
@@ -104,14 +104,14 @@
 
 		<!-- Maven Plug-Ins -->
 		<tycho.version>5.0.0</tycho.version>
-		<sb-contrib.version>7.6.8</sb-contrib.version>
+		<sb-contrib.version>7.6.14</sb-contrib.version>
 		<spdx-maven-plugin.version>1.0.3</spdx-maven-plugin.version>
-		<license-maven-plugin.version>4.6</license-maven-plugin.version>
-		<sonar-maven-plugin.version>5.0.0.4389</sonar-maven-plugin.version>
-		<maven-failsafe-plugin.version>3.5.2</maven-failsafe-plugin.version>
-		<maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
+		<license-maven-plugin.version>5.0.0</license-maven-plugin.version>
+		<sonar-maven-plugin.version>5.2.0.4988</sonar-maven-plugin.version>
+		<maven-failsafe-plugin.version>3.5.4</maven-failsafe-plugin.version>
+		<maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
 		<maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-		<spotbugs-maven-plugin.version>4.8.6.6</spotbugs-maven-plugin.version>
+		<spotbugs-maven-plugin.version>4.9.6.0</spotbugs-maven-plugin.version>
 		<sonar.exclusions>**/xtext-gen/**/*,**/xtend-gen/**/*,**/emf-gen/**/*</sonar.exclusions>
 
 		<!-- Base argLine for JDK21+ profiles -->
