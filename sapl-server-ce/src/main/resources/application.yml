@@ -3,7 +3,8 @@ server:
 
 spring:
   mustache.check-template-location: false
-  output.ansi.enabled: DETECT
+  banner.charset: UTF-8
+  output.ansi.enabled: ALWAYS
   profiles.active: @spring.profile.from.maven@
   h2:
     console.enabled: false
@@ -17,7 +18,7 @@ spring:
       - buckets
     caffeine:
       spec: maximumSize=1000000,expireAfterAccess=3600s
-
+  
 bucket4j:
   enabled: false
   filters:

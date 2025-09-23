@@ -68,7 +68,13 @@
 		<dependency>
 			<groupId>org.keycloak</groupId>
 			<artifactId>keycloak-spring-security-adapter</artifactId>
-			<version>24.0.3</version>
+			<version>25.0.3</version>
+			<exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
 		</dependency>
 		<!-- SAPL -->
 		<dependency>
@@ -168,6 +174,12 @@
         <dependency>
             <groupId>com.vladsch.flexmark</groupId>
             <artifactId>flexmark-all</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>            
         </dependency>
 		<!-- DB Drivers -->
 		<dependency>
@@ -266,9 +278,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-					<jvmArguments>
-						-Xdebug
-						-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5251</jvmArguments>
+					<jvmArguments>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5251</jvmArguments>
 					<wait>500</wait>
 					<maxAttempts>240</maxAttempts>
 					<mainClass>io.sapl.server.SaplServerCeApplication</mainClass>
@@ -402,9 +412,7 @@
 						<groupId>org.springframework.boot</groupId>
 						<artifactId>spring-boot-maven-plugin</artifactId>
 						<configuration>
-							<jvmArguments>
-								-Xdebug
-								-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5251</jvmArguments>
+							<jvmArguments>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5251</jvmArguments>
 							<wait>500</wait>
 							<maxAttempts>240</maxAttempts>
 							<mainClass>io.sapl.server.SaplServerCeApplication</mainClass>

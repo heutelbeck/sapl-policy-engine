@@ -1,9 +1,9 @@
-${AnsiColor.BRIGHT_BLUE}   ____${AnsiColor.CYAN}___   ${AnsiColor.GREEN}___  ${AnsiColor.YELLOW}__     ${AnsiColor.BRIGHT_MAGENTA}____                       ${AnsiColor.MAGENTA}____ ____${AnsiColor.DEFAULT}
-${AnsiColor.BRIGHT_BLUE}  / __${AnsiColor.CYAN}/ _ | ${AnsiColor.GREEN}/ _ \${AnsiColor.YELLOW}/ /    ${AnsiColor.BRIGHT_MAGENTA}/ __/__ _____  _____ ____  ${AnsiColor.MAGENTA}/ __// __/${AnsiColor.DEFAULT}
-${AnsiColor.BRIGHT_BLUE} _\ \${AnsiColor.CYAN}/ __ |${AnsiColor.GREEN}/ ___${AnsiColor.YELLOW}/ /__  ${AnsiColor.BRIGHT_MAGENTA}_\ \/ -_) __/ |/ / -_) __/ ${AnsiColor.MAGENTA}/ /_ / _/  ${AnsiColor.DEFAULT}
-${AnsiColor.BRIGHT_BLUE}/___${AnsiColor.CYAN}/_/ |_${AnsiColor.GREEN}/_/  ${AnsiColor.YELLOW}/____/ ${AnsiColor.BRIGHT_MAGENTA}/___/\__/_/  |___/\__/_/   ${AnsiColor.MAGENTA} \__//___/  ${AnsiColor.DEFAULT}
-                                                                                                                    
- Version:     ${AnsiColor.BRIGHT_GREEN}${application.version}${AnsiColor.DEFAULT}   
- Spring-Boot: ${AnsiColor.BRIGHT_GREEN}${spring-boot.version}${AnsiColor.DEFAULT}
- Java:        ${AnsiColor.BRIGHT_GREEN}${java.version} ${java.vendor} ${AnsiColor.DEFAULT}
- OS:          ${AnsiColor.BRIGHT_GREEN}${os.name} ${os.version} ${os.arch}${AnsiColor.DEFAULT}
+[94m   ____[36m___   [32m___  [33m__     [95m____                       [35m____ ____[0m
+[94m  / __[36m/ _ | [32m/ _ \[33m/ /    [95m/ __/__ _____  _____ ____  [35m/ __// __/[0m
+[94m _\ \[36m/ __ |[32m/ ___[33m/ /__  [95m_\ \/ -_) __/ |/ / -_) __/ [35m/ /_ / _/ [0m
+[94m/___[36m/_/ |_[32m/_/  [33m/____/ [95m/___/\__/_/  |___/\__/_/   [35m \__//___/ [0m
+
+ Version:     [92m${application.version}[0m
+ Spring-Boot: [92m${spring-boot.version}[0m
+ Java:        [92m${java.version} ${java.vendor}[0m
+ OS:          [92m${os.name} ${os.version} ${os.arch}[0m
