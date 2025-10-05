@@ -72,15 +72,15 @@ public class EquivalenceAndHashUtil {
             return 0;
         }
         return switch (featureInstance) {
-            case EList<?> list -> {
-                var h = HASH_SEED_PRIME;
-                for (var element : list) {
-                    h = PRIME * h + hash(element);
-                }
-                yield h;
+        case EList<?> list -> {
+            var h = HASH_SEED_PRIME;
+            for (var element : list) {
+                h = PRIME * h + hash(element);
             }
-            case EObject eo -> PRIME * HASH_SEED_PRIME + semanticHash(eo);
-            default -> PRIME * HASH_SEED_PRIME + featureInstance.hashCode();
+            yield h;
+        }
+        case EObject eo    -> PRIME * HASH_SEED_PRIME + semanticHash(eo);
+        default            -> PRIME * HASH_SEED_PRIME + featureInstance.hashCode();
         };
     }
 
