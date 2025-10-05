@@ -14,5 +14,5 @@ A decision value (`NOT_APPLICABLE`, `INDETERMINATE`, `PERMIT` or `DENY`) can als
 | **Target Expression** | **Policy Values** | **Policy Set Value** | 
 |:------------------|:--------------|:-----------------|
 | `false` (not matching) | don’t care | `NOT_APPLICABLE` |  
-| `true` (matching) | don’t care | Result of the **Combining Algorithm** applied to the Policies |  
+| `true` (matching) | care | Result of the **Combining Algorithm** applied to the Policies |  
 | *Error* | don’t care | `INDETERMINATE` | 
