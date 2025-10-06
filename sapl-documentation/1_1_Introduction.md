@@ -34,6 +34,8 @@ where
 
 **In plain English:** *"Permit doctors to read patient records, but only from their own department."*
 
+**Note:** In this policy, `subject.role`, `resource.type`, and `subject.department` are all attributes checked dynamically - no values are hardcoded. The comparison `resource.department == subject.department` works for any department without modification. This is an advantage of ABAC over RBAC: instead of creating separate roles like "cardiologyDoctor", "radiologyDoctor", "neurologyDoctor" (and updating them with every new department), one policy handles all departments by comparing attributes. Add ten new departments - the policy needs no changes.
+
 **Why SAPL?**
 - **Readable:** Looks like structured natural language
 - **Declarative:** Says WHAT to permit, not HOW to enforce it
@@ -75,7 +77,8 @@ A typical scenario for the application of SAPL would be a subject (e.g., a user 
 In practice, the PEP and RAP are components of the system the user is currently interacting with. For example, some interaction by the user triggers a call to a domain-specific method or function which would then on behalf of the user access some resource and deliver the result. In this case the function is the RAP, and the code wrapping the function which is performing the access control logic is the PEP.
 
 ```javascript
-estimateRiskForCustomer(customerId) {
+estimateRiskForCustomer(customerId)
+{
     // Here the policy enforcement point code starts
     const subject = { // Determined from application context 
         "userId": "johnDoe",
