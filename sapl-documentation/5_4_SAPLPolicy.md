@@ -1,131 +1,116 @@
 ---
 layout: default
-title: Structure of a SAPL Policy
-#permalink: /reference/Structure-of-a-SAPL-Policy/
-parent: Introduction
+title: SAPL Policy
+#permalink: /reference/SAPL-Policy/
+parent: The SAPL Policy Language
 grand_parent: SAPL Reference
-nav_order: 3
+nav_order: 5
 ---
 
-> **Introduction Series:** [1. Overview](../1_1_Introduction/) • [2. Subscriptions](../1_2_AuthorizationSubscriptions/) • **3. Policy Structure** • [4. Decisions](../1_4_AuthorizationDecisions/) • [5. Attributes](../1_5_AccessingAttributes/) • [6. Getting Started](../1_6_GettingStarted/)
+## SAPL Policy
 
-## Structure of a SAPL Policy
+This section describes the elements of a SAPL policy in more detail. A policy contains an entitlement (`permit` or `deny`) and can be evaluated against an authorization subscription. If the conditions in the target expression and in the body are fulfilled, the policy evaluates to its entitlement. Otherwise, it evaluates to `NOT_APPLICABLE` (if one of the conditions is not satisfied) or `INDETERMINATE` (if an error occurred).
 
-A SAPL policy document generally consists of:
+A SAPL policy starts with the keyword `policy`.
 
-- the keyword `policy`, declaring that the document contains a policy (opposed to a policy set; see [Policy Sets](../5_5_SAPLPolicySet/) for more details)
-- a unique (for the PDP) policy name
-- the entitlement, which is the decision result to be returned upon successful evaluation of the policy, i.e., `permit` or `deny`
-- an optional target expression for indexing and policy selection
-- an optional `where` clause containing the conditions under which the entitlement (`permit` or `deny` as defined above) applies
-- optional `advice` and `obligation` clauses to inform the PEP about optional and mandatory requirements for granting access to the resource
-- an optional `transformation` clause for defining a transformed resource to be used instead of the original resource
+### Name
 
-A SAPL policy that permits reading patient records based on department membership would look as follows:
+The keyword `policy` is followed by the policy name. The name is a string *identifying* the policy. Therefore, it must be unique. Accordingly, in systems with many policy sets and policies, it is recommended to use a schema to create names (e.g., `"policy:patientdata:permit-doctors-read"`).
 
----
+### Entitlement
 
-*Introduction - Sample Policy 1*
+SAPL expects an entitlement specification. This can either be `permit` or `deny`. The entitlement is the value to which the policy evaluates if the policy is applicable to the authorization subscription, i.e., if both the conditions in the policy’s target expression and in the policy’s body are satisfied.
 
-```python
-policy "compartmentalize read access by department" (1)
-permit
-    resource.type == "patient_record" & action == "read" (2)
-where (3)
-    subject.role == "doctor"; (4)
-    resource.department == subject.department; (5)
+{: .note }
+> Since multiple policies can be applicable and the combining algorithm can be chosen, it might make a difference whether there is an explicit `deny`\-policy or whether there is just no permitting policy for a certain situation.
+
+### Target Expression
+
+After the entitlement, an **optional** target expression can be specified. This is a condition for applying the policy, hence an expression that must evaluate to either `true` or `false`. Which elements are allowed in SAPL expressions is described [below](#expressions).
+
+If the target expression evaluates to `true` for a certain authorization subscription, the policy *matches* this subscription. A missing target expression makes the policy match any subscription.
+
+A matching policy whose conditions in the body evaluate to `true` is called *applicable* to an authorization subscription and returns its entitlement. Both target expression and body define conditions that must be satisfied for the policy to be applicable. Although they seem to serve a similar purpose, there is an important difference: For an authorization subscription, the target expression of each top-level document is checked to select policies matching the subscription from a possibly large set of policy documents. Indexing mechanisms may be used to fulfill this task efficiently.
+
+Accordingly, there are two limitations regarding the elements allowed in the target:
+
+- As lazy evaluation deviates from Boolean logic and prevents effective indexing, the logical operators `&&` and `||` may not be used. Instead, the target needs to use the operators `&` and `|`, for which eager evaluation is applied.
+- [Attribute finder steps](#attribute-finders) that have access to environment variables and may contact external PIPs are not allowed in the target. Functions may be used because their output only depends on the arguments passed.
+
+### Body
+
+The policy body is **optional** and starts with the keyword `where`. It contains one or more statements, each of which must evaluate to `true` for the policy to apply to a certain authorization subscription. Accordingly, the body extends the condition in the target expression and further limits the policy’s applicability.
+
+A statement within the body can either be a variable assignment which makes a variable available under a certain name (and always evaluates to `true`)
+
+Sample Variable Assignment
+
+```java
+var a_name = expression;
 ```
 
-**(1)**
-This statement declares the policy with the name `"compartmentalize read access by department"`. Policy names should describe what the policy does, not who it applies to. This is supposed to clearly communicate scope and intent of the policy from a business perspective to all involved stakeholders. Further it must be unique to make decisions attributable to individual policies. The JSON values of the authorization subscription object are bound to the variables `subject`, `action`, `resource`, and `environment` that are directly accessible in the policy.
+or a condition, i.e., an expression that evaluates to `true` or `false`.
 
-**(2)**
-This is the target expression. It filters by resource type and action using the eager evaluation operator `&`. The target expression enables fast policy selection: the PDP uses it to quickly identify which policies might apply to a given authorization subscription. Only if the target expression evaluates to `true` does the PDP evaluate the `where` clause.
+Sample Condition
 
-> **Note:** Target expressions are optimized for fast policy lookup. To maintain performance, they must use eager Boolean operators (`&`, `|` instead of `&&`, `||`) and cannot access external attributes via the `<>` operator (see [Accessing Attributes](../1_5_AccessingAttributes/)). This enables the PDP to quickly identify relevant policies from large policy stores.
-
-**(3)**
-This statement starts the `where` clause (policy body) consisting of a list of statements. Each statement must evaluate to a Boolean value (`true` or `false`). If a statement evaluates to any other type or produces an error, the entire policy evaluation fails. The policy body evaluates to `true` if and only if **all** statements evaluate to `true`. When the policy body evaluates to `true`, the policy applies and emits its entitlement, in this case `permit`.
-
-**(4)**
-This statement checks that the subject has the role "doctor". While we could put this in the target expression, placing it in the body keeps the target focused on resource/action filtering.
-
-**(5)**
-This attribute comparison demonstrates attribute-based access control in action: the policy works for any department without hardcoding specific values. The same rule applies to cardiology, radiology, neurology, and all other departments automatically, eliminating role explosion and policy duplication.
-
----
-
-### Deny Policies
-
-While the example above uses `permit` to grant access, policies can also use `deny` to explicitly prohibit access:
-
-```python
-policy "deny access outside business hours"
-deny
-    resource.type == "patient_record" & action == "read"
-where
-    !<time.localTimeIsBetween("08:00:00", "18:00:00")>;
+```java
+a_name == "a_string";
 ```
 
-This deny policy explicitly prohibits access outside business hours. The `<time.localTimeIsBetween(...)>` syntax accesses a streaming time attribute that continuously checks whether the current time falls within the specified window (covered in detail in [Accessing Attributes](../1_5_AccessingAttributes/)). The `!` operator negates the result, making the condition true when the current time is **outside** business hours.
+Each statement is concluded with a semicolon `;`.
 
-Deny policies are useful for:
-- Implementing explicit prohibitions (blacklists, time restrictions)
-- Overriding broader permit policies in specific scenarios
-- Documenting security boundaries clearly
+There are no restrictions on the syntax elements allowed in the policy body. Lazy evaluation is used for the conjunction of the statements - i.e., if one statement evaluates to `false`, the policy returns the decision `NOT_APPLICABLE`, even if future statements would cause an error.
 
-When multiple policies apply (some permit, some deny), a **combining algorithm** determines the final decision. See [Multiple Policies and Policy Sets](#multiple-policies-and-policy-sets) below.
+If the body is missing (or does not contain any condition statement), the policy is applicable to any authorization subscription which the policy matches (i.e., for which the target expression evaluates to `true`).
 
----
+#### Variable Assignment
 
-### Obligations, Advice, and Transformations
+A variable assignment starts with the keyword `var`, followed by an identifier under which the assigned value should be available, followed by `=` and an expression. The assignment can be followed by the optional keyword `schema` and one or more schema expressions separated by `,`. The schema expression(s) must evaluate to a valid JSON schema. The schema will only be used by the code completion while editing polices with a dedicated editor.
 
-The policies shown above demonstrate the core decision logic (permit/deny with conditions), but SAPL policies can include additional clauses that extend their capabilities:
+After a variable assignment, the result of evaluating the expression can be used in later conditions within the same policy under the specified name. This is useful because it allows to execute time-consuming calculations or requests to external attribute stores only once, and the result can be used in multiple expressions. Additionally, it can make policies shorter and improve readability.
 
-**Obligations** specify mandatory actions the PEP must perform in conjunction with the authorization decision. Common use cases include audit logging, notification requirements, or session initialization. If the PEP cannot fulfill an obligation, access must not be granted even with a PERMIT decision.
+The expression can use any element of the SAPL expression language, especially of attribute finder steps that are not allowed in the target expression.
 
-**Advice** provides optional recommendations to the PEP without affecting the authorization outcome. Use advice for user notifications, administrative alerts, or suggesting alternative actions.
+The value assignment statement always evaluates to `true`.
 
-**Transformations** enable resource filtering and data redaction. A policy might permit access to a patient record while transforming it to hide sensitive fields (e.g., social security numbers, billing information) based on the subject's clearance level. Transformations ensure that the PEP delivers appropriately filtered data rather than requiring application-level filtering logic.
+#### Condition
 
-These advanced features are detailed in [SAPL Policy](../5_4_SAPLPolicy/), with examples showing how to implement audit trails, data filtering, and conditional notifications.
+A condition statement simply consists of an expression that must evaluate to `true` or `false`.
 
----
+The expression can use any element of the SAPL expression language, especially of attribute finder steps that are not allowed in the target expression. Conditions in the policy body are used to further limit the applicability of a policy.
 
-### Key Concepts
+### Obligation
 
-**Target Expression vs. Body:**
-- The **target expression** (after `permit`/`deny`) is used for fast policy indexing and pre-filtering. It should contain conditions that can be evaluated quickly - typically checks on resource type and action. The eager evaluation operator `&` must be used here instead of the lazy `&&`.
-- The **body** (after `where`) contains detailed conditions. This is where you include complex logic, cross-entity attribute comparisons, and external attribute lookups (PIPs). The body is only evaluated if the target expression matches.
+An **optional** obligation expression contains a task which the PEP must fulfill before granting or denying access. It consists of the keyword `obligation` followed by an expression.
 
-**Entitlement:**
-- `permit` policies grant access when their conditions are met
-- `deny` policies explicitly deny access when their conditions are met
+A common situation in which obligations are useful is *Break the Glass Scenarios*. Assuming in case of an emergency, a doctor should also have access to medical records that she normally cannot read. However, this emergency access must be logged to prevent abuse. In this situation, logging is a requirement for granting access and therefore must be commanded in an obligation.
 
-The separation of target expression and body allows the PDP to efficiently select relevant policies from a large policy store before evaluating detailed conditions.
+Obligations are only returned in the authorization decision if the decision is `PERMIT` or `DENY`. The PDP simply collects all obligations from policies evaluating to one of these entitlements. Depending on the final decision, the obligations and advice which belong to this decision are included in the authorization decision object. It does not matter if the obligation is described with a string (like `"create_emergency_access_log"`) or an object (like `{ "task" : "create_log", "content" : "emergency_access" }`) or another JSON value - only the PEP must be implemented in a way that it knows how to process these obligations.
 
-**Domain-Driven Policy Language:**
-Notice how this policy uses business domain concepts (`action == "read"`, `resource.type == "patient_record"`) rather than technical infrastructure details (HTTP verbs, URLs). This makes the policy readable by non-technical stakeholders and independent of technology choices.
+In any policy an arbitrary number of obligation expressions, all introduced with the **obligation** keyword may be present. All obligation expressions must be written down before any **advice**.
 
-### Multiple Policies and Policy Sets
+### Advice
 
-In production systems, many policies work together to determine access. When the PDP receives an authorization subscription, it follows this process:
+An **optional** advice expression is treated similarly to an obligation expression. Unlike obligations, fulfilling the described tasks in the advice is not a requirement for granting or denying access. The advice expression consists of the keyword `advice` followed by any expression.
 
-1. **Policy Selection**: Finds all policies whose target expressions match the subscription
-2. **Policy Evaluation**: Evaluates the `where` clause of matching policies
-3. **Combining Results**: When multiple policies apply, uses a **combining algorithm** to determine the final decision
+If the final decision is `PERMIT` or `DENY`, advice from all policies evaluating to this decision is included in the authorization decision object by the PDP.
 
-For example, one policy might `permit` based on role, while another `deny` based on time restrictions. The combining algorithm resolves such conflicts into a single authorization decision.
+In any policy an arbitrary number of advice expressions, all introduced with the **advice** keyword may be present. All advice expressions must be written down after any **obligation**.
 
-Policies are organized into **policy sets** that define combining algorithms and can share common target expressions and variable definitions. Common combining algorithms include:
+### Transformation
 
-- **deny-unless-permit**: Deny access unless at least one policy permits (safe default)
-- **permit-unless-deny**: Permit access unless at least one policy denies
-- **deny-overrides**: If any policy denies, the final decision is DENY
-- **permit-overrides**: If any policy permits, the final decision is PERMIT
+An **optional** transformation statement starts with the keyword `transform` and followed by an expression. If a transformation statement is supplied and the policy evaluates to `permit`, the result of evaluating the expression will be returned as the `resource` in the authorization decision object.
 
-The details of policy evaluation, policy sets, and combining algorithms are covered in [Authorization Subscription Evaluation](../6_0_AuthorizationSubscriptionEvaluation/) and [Policy Sets](../5_5_SAPLPolicySet/).
+Accordingly, a transformation statement might be used to hide certain information (e.g., *a doctor can access patient data but should not see bank account details*). This can be reached by applying a filter to the original resource, which removes or blackens certain attributes. Thus, SAPL allows for **fine-grained** or **field-level** access control without the need to treat each attribute as a resource and write a specific policy for it.
 
----
+The original resource is accessible via the identifier `resource` and can be filtered as follows:
 
-**Continue to:** [Authorization Decisions](../1_4_AuthorizationDecisions/) to understand how the PDP responds after evaluating policies.
+Transformation Example
+
+transform resource |- { @.someValue : remove, @.anotherValue : filter.blacken }
+
+The example would remove the attribute `someValue` and blacken the value of the attribute `anotherValue`. The filtering functions are described in more detail [below](#filtering).
+
+It is not possible to combine multiple transformation statements through multiple policies. Each combining algorithm in SAPL will not return the decision `PERMIT` if there is more than one policy evaluating to `PERMIT`, and at least one of them contains a transformation statement (this is called *transformation uncertainty*). For more details, [see below](#combining-algorithms).
+
+Transformation statements can be interpreted as a special case of obligation, requiring the PEP to replace the resource accordingly.
