@@ -54,7 +54,7 @@ A basic value expression is the simplest type. The value is denoted in the corre
 
 For denoting objects, the keys need to be strings, and the values can be any expression, e.g.
 
-```python
+```sapl
 {
     "id" : (3+5),
     "name" : functions.generate_name()
@@ -63,7 +63,7 @@ For denoting objects, the keys need to be strings, and the values can be any exp
 
 For arrays, the items can be any expression, e.g.
 
-```python
+```sapl
 [
     (3+5),
     subject.name
@@ -258,7 +258,7 @@ A wildcard step can be applied to an object or an array. When applied to an obje
 
 
 > Applied to an object
->```python
+>```sapl
 > {
 >   "key1":"value1",
 >   "key2":"value2"
@@ -276,7 +276,7 @@ As attributes of an object are not sorted, the order of items in the result arra
 
 > Applied to an `object`
 >
->```python
+>```sapl
 > {
 >   "key" : "value1",
 >   "anotherkey" : {
@@ -333,7 +333,7 @@ Although arrays do not have attributes (they have items), a key step can be appl
 
 > Applied to an object
 >
->```python
+>```sapl
 > {
 >   "array":[
 >       {"key":"value1"},
@@ -403,29 +403,30 @@ Replaces each char of an attribute or item (which must be a string) by `replacem
 > `filter.replace` and `filter.blacken` are part of the library `filter`. Importing this library through `import filter` makes the functions available under their simple names.
 
 
-```python
-Example
+Example:
+
 We take the following object:
 
 Object Structure
 
+```sapl
 {
     "value" : "aValue",
     "id" : 5
 }
-
-If value is removed, the resulting object is { "id" : 5 }.
-
-If instead filter.replace is applied to value with the Expression null, the resulting object is { "value" : null, "id" : 5 }.
-
-If the function filter.blacken is applied to value without specifying any arguments, the result would be { "value" : "XXXXXX", "id" : 5 }.
 ```
+
+If value is removed, the resulting object is ```{ "id" : 5 }```.
+
+If instead ```filter.replace``` is applied to value with the Expression null, the resulting object is ```{ "value" : null, "id" : 5 }```.
+
+If the function ```filter.blacken``` is applied to value without specifying any arguments, the result would be ```{ "value" : "XXXXXX", "id" : 5 }```.
 
 ### Simple Filtering
 
 A simple filter component applies a **filter function** to the preceding value. The syntax is:
 
-```python
+```
 BasicExpression |- Function
 ```
 
@@ -433,15 +434,15 @@ BasicExpression |- Function
 
 In case `BasicExpression` evaluates to an array, the whole array is passed to the filter function. The **keyword** `each` before `Function` can be used to apply the function to each array item instead:
 
-```python
+```
 Expression |- each Function
 ```
 
-```python
-Example
+Example:
 
 Let us assume our resource contains an array of credit card numbers:
 
+```sapl
 {
     "numbers": [
         "1234123412341234",
@@ -449,17 +450,18 @@ Let us assume our resource contains an array of credit card numbers:
         "3456345634563456"
     ]
 }
+```
 
-The function blacken(1) without any additional parameters takes a string and replaces everything by X except the first char. We can receive the blackened numbers through the basic expression resource.numbers |- each blacken(1):
+The function ```blacken(1)``` without any additional parameters takes a string and replaces everything by ```X``` except the first character. We can receive the blackened numbers through the basic expression ```resource.numbers |- each blacken(1)```:
 
+```sapl
 [
     "1XXXXXXXXXXXXXXX",
     "2XXXXXXXXXXXXXXX",
     "3XXXXXXXXXXXXXXX"
 ]
-
-Without the keyword each, the function blacken would be applied to the array itself, resulting in an error, as stated above, blacken can only be applied to a String.
 ```
+Without the keyword each, the function blacken would be applied to the array itself, resulting in an error, as stated above, blacken can only be applied to a String.
 
 ### Extended Filtering
 
@@ -467,7 +469,7 @@ Extended filtering can be used to state more precisely how a value should be alt
 
 E.g., the expression
 
-```python
+```sapl
 resource |- { @.credit_card : blacken }
 ```
 
@@ -475,7 +477,7 @@ would return the original resource except for the value of the attribute `credit
 
 Extended filtering components consist of one or more **filter statements**. Each filter statement has a target expression and specifies a filter function that shall be applied to the attribute value (or to each of its items if the keyword `each` is used). The basic syntax is:
 
-```python
+```sapl
 Expression |- { 
 				FilterStatement, 
 				FilterStatement, 
@@ -485,7 +487,7 @@ Expression |- {
 
 The syntax of a filter statement is:
 
-```python
+```sapl
 each TargetRelativeExpression : Function
 ```
 
@@ -495,7 +497,6 @@ each TargetRelativeExpression : Function
 
 The filter statements are applied successively from top to bottom.
 
-{: .warning }
 > Some filter functions can be applied to both arrays and other types (e.g., `remove`). Yet, there are selection steps resulting in a "helper array" that cannot be modified. If, for instance, `.*` is applied to the object `{"key1" : "value1", "key2" : "value2"}`, the result would be `["value1", "value2"]`. It is not possible to apply a filter function directly to this array because changing the array itself would not have any effect. The array has been constructed merely to hold multiple values for further processing. In this case, the policy would **have to** use the keyword `each` and apply the function to each item. The attempt to alter a helper array will result in an error.
 
 
@@ -515,7 +516,7 @@ It is possible to define a subtemplate for an array to replace each item of the 
 
 E.g., the basic expression:
 
-```python
+```
 resource.patients :: { "name" : @.name }
 ```
 
@@ -523,30 +524,34 @@ This expression would return the `patients` array from the resource but with eac
 
 The subtemplate is denoted after a double colon:
 
-```python
+```
 Array :: Expression
 ```
 
 This `Expression` represents the replacement template. In this expression, basic relative expressions (starting with `@`) can be used to access the attributes of the current array item. `@` references the array item, which is currently being replaced. `Array` must evaluate to an array. For each item of `Array`, `Expression` is evaluated, and the item is replaced by the result.
 
-```python
 Example
 Given the variable array contains the following array:
 
+```json
 [
     { "id" : 1 },
     { "id" : 2 }
 ]
+```
 
 The basic expression
 
+```sapl
 array :: {
     "aKey" : "aValue"
     "identifier" : @.id
 }
+```
 
 would evaluate to:
 
+```json
 [
     {"aKey" : "aValue", "identifier" : 1 },
     {"aKey" : "aValue", "identifier" : 2 }

@@ -23,10 +23,9 @@ The schemas for the individual elements of the authorization subscription are de
 
 A SAPL document defines a schema by stating the keyword of the subscription element (`subject`, `action`, `resource`, `environment`). Then, `schema` and an optional `enforced` keyword follow. After these keywords, a SAPL expression evaluating to a JSON object defines the schema itself. This expression must not contain any lazy boolean operators (`&&`, `||` use the eager versions `&` and `|`) or references to PIPs (i.e., attribute finder expressions `<attribute.name>`). Instead of repeating schemas in all policies, users can store schemas in environment variables and reference them via variables in the schema assignment. If the schema expression contains references to external schemas, the engine expects these schemas to be present in the environment variable `SCHEMAS`, an array containing the individual schemas. 
 
-Example schema definition:
+Example schema definition for a subject enforced schema:
 
-```python
-subject enforced schema 
+```json 
 {
     "$id": "https://example.com/person.schema.json",
     "$schema": "https://json-schema.org/draft/2020-12/schema",

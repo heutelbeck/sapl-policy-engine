@@ -77,12 +77,12 @@ While you can use **technical subscriptions** (`action: "HTTP:GET"`, `resource: 
 **Example: Policy Evolution**
 
 Technical subscription → Technical policy:
-```python
+```sapl
 permit action =~ "^GET" & resource =~ "^https://medical\.org/api/patients/.*"
 ```
 
 Domain subscription → Domain policy:
-```python
+```sapl
 permit action == "read" & resource.type == "patient_record"
 ```
 
