@@ -25,7 +25,7 @@ A SAPL policy that permits reading patient records based on department membershi
 
 *Introduction - Sample Policy 1*
 
-```python
+```sapl
 policy "compartmentalize read access by department"  // (1)
 permit
     resource.type == "patient_record" & action == "read" // (2)
