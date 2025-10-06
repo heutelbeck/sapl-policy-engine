@@ -141,7 +141,7 @@ asks for a decision, the PDP provides an answer, and the interaction ends.
 
 > Traditional access control: PEP asks → PDP answers once → done.
 
-SAPL takes a fundamentally different approach through its publish/subscribe model. When a PEP subscribes
+Wile SAPL also supports this authorization mode, SAPL also supports a fundamentally different approach through its publish/subscribe model. When a PEP subscribes
 to an authorization decision, the PDP sends an initial decision and then continues to monitor
 policy-relevant data. Whenever conditions change that affect the authorization decision, the
 PDP automatically pushes a new decision to the PEP, which can then update its enforcement
