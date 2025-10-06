@@ -248,7 +248,7 @@ SAPL supports querying for specific parts of a JSON structure. Except for an **e
 
 An expression step returns the value of an attribute with a key or an array item with an index specified by an expression. `Expression` must evaluate to a string or a number. If `Expression` evaluates to a string, the selection can only be applied to an object. If `Expression` evaluates to a number, the selection can only be applied to an array.
 
-{: .note }
+
 > The expression step can be used to refer to custom variables (`object.array[(anIndex+2)]`) or apply custom functions (`object.array[(max_value(object.array))]`.
 
 
@@ -256,7 +256,7 @@ An expression step returns the value of an attribute with a key or an array item
 
 A wildcard step can be applied to an object or an array. When applied to an object, it returns an array containing all attribute values. As attributes of an object have no order, the sorting of the result is not defined. When applied to an array, the step just leaves the array untouched.
 
-{: .note }
+
 > Applied to an object
 >```python
 > {
@@ -273,7 +273,7 @@ Looks for the specified key or array index in the current object or array and, r
 
 As attributes of an object are not sorted, the order of items in the result array may vary.
 
-{: .note }
+
 > Applied to an `object`
 >
 >```python
@@ -296,7 +296,7 @@ Condition steps return an array containing all attribute values or array items f
 
 As attributes have no order, the sorting of the result array of a condition step applied to an object is not specified.
 
-{: .note }
+
 > Applied to the array `[1, 2, 3, 4, 5]`, the selection step `[?(@ > 2)]` returns the array `[3, 4, 5]` (containing all values that are greater than 2).
 
 
@@ -306,11 +306,11 @@ The slice contains the items with indices between `Start` and `Stop`, with `Star
 
 In case `Step` is positive, `Start` defaults to 0 and `Stop` defaults to the length of the array. If `Step` is negative, `Start` defaults to the length of the array minus 1 (i.e., the last element’s index) and `Stop` defaults to -1. A `Step` of 0 leads to an error.
 
-{: .note }
+
 > Applied to the Array `[1, 2, 3, 4, 5]`, the selection step `[-2:]` returns the Array `[4, 5]` (the last two elements).
 
 
-{: .note }
+
 > If Start and Stop are to be left empty, the two colons must be separated by a whitespace to avoid confusion with the sub-template operator. So write `[: :-2]` instead of `[::-2]`.
 
 
@@ -318,7 +318,7 @@ In case `Step` is positive, `Start` defaults to 0 and `Stop` defaults to the len
 
 By using the bracket notation, a set of multiple array indices (numbers) can be denoted separated by commas. This returns an array containing the items of the original array if the item’s index is contained in the specified indices. Since a **set** of indices is specified, the indices' order is ignored, and duplicate elements are removed. The result array contains the specified elements in their original order. Indices that do not exist in the original array are ignored.
 
-{: .note }
+
 > Both `[3, 2, 2]` and `[2, 3]` return the same result.
 
 
@@ -330,7 +330,7 @@ By using the bracket notation, a set of multiple attribute keys (strings) can be
 
 Although arrays do not have attributes (they have items), a key step can be applied to an array (e.g., `array.value`). This will loop through each item of the array and look for the specified attribute in this item. An array containing all values of the attributes found is returned. In other words, the selection step is not applied to the result of the previous step (the array) but to each item of the result, and the (sub-)results are concatenated. In case an array item is no object or does not contain the specified attribute, it is skipped.
 
-{: .note }
+
 > Applied to an object
 >
 >```python
@@ -365,7 +365,7 @@ All attribute finders may be followed by arbitrary selection steps.
 
 In some scenarios, it may not be the right thing to subscribe to attributes, but to just retrieve the data once on subscription time. For this, SAPL offers the head operator for both standard and environment attributes. Prepending the pipe symbol `|` in front of an attribute finder step will only return the first value returned by the attribute finder. E.g.: `subject.id.|<geo.location>`. However, such an attribute may still return a stream if used with nested attributes which do not employ the head operator.
 
-{: .note }
+
 > Assuming a doctor should only be allowed to access patient data from patients on her unit. The following expression retrieves the unit (attribute finder `pip.hospital_units.by_patientid`) by the requested patient id (`action.patientid`) and selects the id of the supervising doctor (`.doctorid`):
 >
 > action.patientid.<pip.hospital_units.by_patientid>.doctorid
@@ -395,11 +395,11 @@ filter.blacken(disclose\\\_left=0,disclose\\\_right=0,replacement="X")
 
 Replaces each char of an attribute or item (which must be a string) by `replacement`, leaving `show\_left` chars from the beginning and `show\_right` chars from the end unchanged. By default, no chars are visible, and each char is replaced by `X`.
 
-{: .note }
+
 > `filter.blacken` could be used to reveal only the first digit of the credit card number and replace the other digits by `X`.
 
 
-{: .note }
+
 > `filter.replace` and `filter.blacken` are part of the library `filter`. Importing this library through `import filter` makes the functions available under their simple names.
 
 
@@ -505,7 +505,7 @@ Any function available in SAPL can be used in a filter statement. Hence it is ea
 
 When used in a filter statement, the value to filter is passed to the function as its first argument. Consequently, the arguments specified in the function call are passed as second, third, etc., arguments.
 
-{: .note }
+
 > Assuming a filter function `roundto` should round a value to the closest multiple of a given number, e.g., `207 |- roundto(100)` should return `200`. In its definition, the function needs two formal parameters. The first parameter is reserved for the original value and the second one for the number to round to.
 
 

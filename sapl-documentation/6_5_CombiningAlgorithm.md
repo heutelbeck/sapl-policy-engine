@@ -58,7 +58,6 @@ It works as follows:
    1. If there is no matching policy document, the decision is `NOT_APPLICABLE`.
    2. Otherwise (i.e., there is exactly one matching policy document), the decision is the result of evaluating this policy document.
 
-{: .note }
 > Transformation uncertainty cannot occur using the `only-one-applicable` combining algorithm.
 
 ### `deny-overrides`

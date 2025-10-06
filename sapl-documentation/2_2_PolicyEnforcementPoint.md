@@ -13,6 +13,5 @@ The PEP is a software entity that intercepts actions taken by users within an ap
 
 The PEP must let the application process the action if the decision is `PERMIT`. If the authorization decision object also contains an `obligation`, the PEP must fulfill this obligation. Proper fulfillment is an additional requirement for granting access. If the decision is not `PERMIT` or the obligation cannot be fulfilled, the PEP must deny access. Policies may contain instructions to alter the resource (like blackening certain information, e.g., credit card numbers). If present, the PEP should ensure that the application only reveals the resource contained in the authorization decision object.
 
-{: .note }
 > A PEP strongly depends on the application domain. SAPL comes with a default PEP implementation using a passed in constraint handler service to handle obligations and advice contained in an authorization decision. Developers should integrate PEPs with the platforms and frameworks they are using. SAPL ships with a set of modules for deep integration with Spring Security and Spring Boot.
 

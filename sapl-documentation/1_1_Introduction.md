@@ -24,23 +24,33 @@ Policies expressed in SAPL describe conditions for access control in application
 Before diving into architecture, here's what a SAPL policy looks like:
 
 ```python
-policy "doctors_read_patient_records"
+policy "compartmentalize read access by department"
 permit
-    subject.role == "doctor"
+    resource.type == "patient_record" & action == "read"
 where
-    resource.type == "patient_record";
+    subject.role == "doctor";    
     resource.department == subject.department;
 ```
 
-**In plain English:** *"Permit doctors to read patient records, but only from their own department."*
+**In plain English:** *"Permit reading patient records if the reader is a doctor from the same department as the record."*
 
-**Note:** In this policy, `subject.role`, `resource.type`, and `subject.department` are all attributes checked dynamically - no values are hardcoded. The comparison `resource.department == subject.department` works for any department without modification. This is an advantage of ABAC over RBAC: instead of creating separate roles like "cardiologyDoctor", "radiologyDoctor", "neurologyDoctor" (and updating them with every new department), one policy handles all departments by comparing attributes. Add ten new departments - the policy needs no changes.
+> **Attributes** 
+> 
+> In this policy, `subject.role`, `resource.type`, and `subject.department` are all so-called attributes. 
+> The comparison `resource.department == subject.department` works for any department without modification. 
+> This is an advantage of ABAC over RBAC: instead of creating separate roles like "cardiologyDoctor", 
+> "radiologyDoctor", "neurologyDoctor" (and updating them with every new department), one policy handles all 
+> departments by comparing attributes. Add ten new departments - the policy needs no changes. 
+> Attributes are wither sent with the authorization question, or looked up dynamically. 
+> In this example they come from the authorization question only.
 
 **Why SAPL?**
 - **Readable:** Looks like structured natural language
 - **Declarative:** Says WHAT to permit, not HOW to enforce it
 - **Separated:** Authorization logic lives outside application code
 - **Flexible:** Update policies without redeploying applications
+
+> **Experiment hands-on:** Try modifying a policy in the [SAPL Playground](https://playground.sapl.io/) - no installation required.
 
 Now let's see how SAPL policies work in practice.
 
@@ -72,7 +82,7 @@ graph LR
 
 A typical scenario for the application of SAPL would be a subject (e.g., a user or system) attempting to take action (e.g., read or cancel an order) on a protected resource (e.g., a domain object of an application or a file). The subject makes a subscription request to the system (e.g., an application) to execute the action with the resource. The system implements a **policy enforcement point (PEP)** protecting its resources. The PEP collects information about the subject, action, resource, and potential other relevant data in an authorization subscription request and sends it to a policy decision point (PDP) that checks SAPL policies to decide if it grants access to the resource. This decision is packed in an authorization decision object and sent back to the PEP, which either grants access or denies access to the resource depending on the decision. The PDP subscribes to all data sources for the decision, and new decisions are sent to the PEP whenever indicated by the policies and data sources.
 
-### What is a Policy Enforcement Point
+### Policy Enforcement Points
 
 In practice, the PEP and RAP are components of the system the user is currently interacting with. For example, some interaction by the user triggers a call to a domain-specific method or function which would then on behalf of the user access some resource and deliver the result. In this case the function is the RAP, and the code wrapping the function which is performing the access control logic is the PEP.
 
@@ -134,20 +144,30 @@ public RiskAssessment estimateRiskForCustomer(UUID customerId) {
 
 The `@PreEnforce` annotation tells the framework to automatically wrap this method with PEP logic. The authorization decision is made before the method executes, and access is only granted if the decision is `PERMIT`.
 
-### The "Streaming" in SAPL
 
+### The "Streaming" in SAPL
 Traditional access control systems follow a simple request-response pattern where the PEP
 asks for a decision, the PDP provides an answer, and the interaction ends.
 
 > Traditional access control: PEP asks → PDP answers once → done.
 
-Wile SAPL also supports this authorization mode, SAPL also supports a fundamentally different approach through its publish/subscribe model. When a PEP subscribes
+SAPL takes a fundamentally different approach through its publish/subscribe model. When a PEP subscribes
 to an authorization decision, the PDP sends an initial decision and then continues to monitor
-policy-relevant data. Whenever conditions change that affect the authorization decision, the
+policy-relevant conditions. Whenever conditions change that affect the authorization decision, the
 PDP automatically pushes a new decision to the PEP, which can then update its enforcement
 accordingly.
 
-> SAPL's approach: PEP subscribes → PDP sends initial decision → **PDP pushes new decisions when policy-relevant data changes** → PEP updates enforcement accordingly.
+> SAPL's approach: PEP subscribes → PDP sends initial decision → PDP pushes new decisions when conditions change → PEP updates enforcement accordingly.
+
+Decisions can change for multiple reasons:
+
+**Attribute changes**: Policy Information Points (PIPs) return new values. Time passes (crossing business hours boundaries), user roles change (promotion to different department), resource status updates (document marked confidential), or external system data changes (quota exhausted).
+
+**Policy changes**: Administrators update, add, or remove policies in the policy store. For example, adding a new time restriction or updating department access rules takes effect immediately for all active subscriptions without requiring application redeployment or users to log out and back in.
+
+**Configuration changes**: Changes to how the PDP resolves conflicts between multiple policies or updates to shared policy variables trigger re-evaluation.
+
+The PEP doesn't need to know WHY a decision changed, only that it should update enforcement accordingly. This enables continuous authorization that adapts to changing conditions in real-time and allows policy updates without application restarts or redeployment.
 
 This streaming model enables continuous authorization for long-running operations
 and allows policies to respond in real-time to changing conditions.
@@ -167,12 +187,3 @@ There exist several proprietary platform-dependent or standardized languages, su
 - SAPL supports **Multi-Subscriptions**. SAPL allows bundling multiple authorization subscriptions into one multi-subscription, thus further reducing connection time and latency.
 
 The following sections explain the basic concepts of SAPL policies and show how to integrate SAPL into a Java application easily. Afterward, this document explains the different parts of SAPL in more detail.
-
----
-
-**Next Steps:**
-- [Authorization Subscriptions](../1_2_AuthorizationSubscriptions/) - How to formulate an authorization question
-- [Structure of a SAPL Policy](../1_3_Structure_of_a_SAPL-Policy/) - See how to write your first policy
-- [Authorization Decisions](../1_4_AuthorizationDecisions/) - Understand PDP responses
-- [Accessing External Attributes](../1_5_AccessingAttributes/) - How the PDP gets dynamic external data (streams)
-- [Getting Started](../1_6_GettingStarted/) - Integrate SAPL into your Java application
