@@ -35,7 +35,7 @@ PIPs enable both:
 
 Consider a basic policy that checks attributes from the authorization subscription:
 
-```python
+```sapl
 policy "compartmentalize read access by department"
 permit
     resource.type == "patient_record" & action == "read"
@@ -54,7 +54,7 @@ In natural language, a suitable policy could be *"Permit doctors to read data fr
 
 *Introduction - Sample Policy 2*
 
-```python
+```sapl
  policy "doctors read patient data"
  permit
    action == "read" &
@@ -73,7 +73,7 @@ In many scenarios, authorization decisions should update automatically when data
 
 Consider access control based on work shifts:
 
-```python
+```sapl
 policy "read patient records during business hours"
 permit
     resource.type == "patient_record" & action == "read"
@@ -91,7 +91,7 @@ This is **Attribute Stream-based Access Control (ASBAC)** - policies respond to 
 
 PIPs can be composed for more sophisticated scenarios:
 
-```python
+```sapl
 policy "doctors read records during assigned shift"
 permit
     resource.type == "patient_record" & action == "read"

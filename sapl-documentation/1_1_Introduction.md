@@ -23,7 +23,7 @@ Policies expressed in SAPL describe conditions for access control in application
 
 First, here's what a SAPL policy looks like:
 
-```python
+```sapl
 policy "compartmentalize read access by department"
 permit
     resource.type == "patient_record" & action == "read"

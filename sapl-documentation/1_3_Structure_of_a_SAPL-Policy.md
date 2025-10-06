@@ -55,7 +55,7 @@ This attribute comparison demonstrates attribute-based access control in action:
 
 While the example above uses `permit` to grant access, policies can also use `deny` to explicitly prohibit access:
 
-```python
+```sapl
 policy "deny access outside business hours"
 deny
     resource.type == "patient_record" & action == "read"
