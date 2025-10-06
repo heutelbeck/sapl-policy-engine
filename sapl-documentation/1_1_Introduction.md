@@ -21,7 +21,7 @@ Policies expressed in SAPL describe conditions for access control in application
 
 ### SAPL at a Glance
 
-Before diving into architecture, here's what a SAPL policy looks like:
+First, here's what a SAPL policy looks like:
 
 ```python
 policy "compartmentalize read access by department"
