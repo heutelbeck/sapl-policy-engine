@@ -41,12 +41,7 @@
     <dependencies>
         <dependency>
             <groupId>com.vaadin</groupId>
-            <!-- Try to keep transitive dependencies in add-ons to minimum.
-                 Usually flow-server is enough, but if you extend an existing
-                 component, add that directly as well or change to
-                 vaadin/vaadin-core (worse option)
-            -->
-            <artifactId>flow-server</artifactId>
+            <artifactId>vaadin-core</artifactId>
         </dependency>
         <!-- Shouldn't be needed, probably a bug the flow-client is not brought in via flow-server-->
         <dependency>

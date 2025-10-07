@@ -28,7 +28,7 @@ policy "compartmentalize read access by department"
 permit
     resource.type == "patient_record" & action == "read"
 where
-    subject.role == "doctor";    
+    subject.role == "doctor";
     resource.department == subject.department;
 ```
 
