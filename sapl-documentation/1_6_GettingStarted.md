@@ -9,97 +9,199 @@ nav_order: 6
 
 ## Getting Started
 
-To learn the SAPL policy language and check out some example policies, the [SAPL-Playground](https://playground.sapl.io/) offers a tool for safe experimentation.
+This guide presents three approaches to working with SAPL, each suited to different goals and technical environments. Start with the playground to learn policy syntax, use Docker for local experimentation with a running PDP, or integrate SAPL directly into applications using the embedded PDP or HTTP API.
 
-In addition, SAPL provides an embedded PDP, including an embedded PRP with a file system policy store that seamlessly integrates into Java applications. Besides this guide, the quickest way to start is to build upon the demo projects hosted on [GitHub](https://github.com/heutelbeck/sapl-demos). Some good demos to start with are the simple no-framework [Embedded PDP Demo](https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-embedded) or the full-stack [Spring MVC Project](https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-mvc-app) or the [Fully reactive Webflux Application](https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-webflux).
+### Learning Policy Syntax
 
-### Maven Dependencies
+The [SAPL Playground](https://playground.sapl.io/) runs entirely in your browser and requires no installation. Open the playground, write policies, create authorization subscriptions, and observe how the PDP evaluates them. The playground includes example policies demonstrating common authorization patterns.
 
-- SAPL requires Java 21 or newer and is compatible with Java 25.
+The playground is primarily useful for learning the policy syntax and testing of basic policy logic, the playground cannot connect to external attribute sources or demonstrate the streaming authorization protocol. For those capabilities, run a local SAPL server.
 
-  ```xml
-  <properties>
-    <java.version>21</java.version>
-    <maven.compiler.source>${java.version}</maven.compiler.source>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
-  </properties>
-  ```
+### Running a Local PDP Server
 
-- Add a SAPL dependency to the application. When using Maven one can add the following dependencies to the project’s `pom.xml`:
+There are currently three SAPL Server implementations available. One very lightweight and headless implementation, SAPL Server LT, which manages the policies and configuration directly on the hosts' filesystem. The second version, SAPl Server CE, ships with a web-based administration UI and persists its data in a database. 
+The third version, SAPL Server EE, provides an advanced administration model supporting atomic multi-policy updates, advanced authoring, testing and debugging tools and implements a more fine-grained model for different stakeholder roles and the possibility for multi-tenant, multi-PDP deployments. SAPL Server LT and CE are available in the SAPL GitHub repository. The SAPL Server EE is currently in closed beta. PLease inquire with the developers to get access.
 
-  ```xml
-  <dependency>
-    <groupId>io.sapl</groupId>
-    <artifactId>sapl-pdp-embedded</artifactId>
-    <version>3.0.0</version>
-  </dependency>
-  ```
+To get up and running quickly, SAPL Server LT has the least amount of dependencies, i.e., no database needed, and is the easiest to set up as a docker container. It has some limitations on consistency enforcement based on the limitations of operating on the filesystem directly though.
 
-- Add the Maven Central snapshot repository to the `pom.xml`:
+The SAPL Server strictly follow a secure by default philosophy. This means that the application comes with secure default setting, and it intentionally makes it difficult to set it up unsecured. Any SAPL Server by default expects to be set up with TLS enabled for transport level encryption of access tokens, authorization subscription, and authorization decision. 
 
-  ```xml
-  <repositories>
-  		<repository>
-  			<name>Central Portal Snapshots</name>
-  			<id>central-portal-snapshots</id>
-  			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
-  			<releases>
-  				<enabled>false</enabled>
-  			</releases>
-  			<snapshots>
-  				<enabled>true</enabled>
-  			</snapshots>
-  		</repository>
-  </repositories>
-  ```
+For a quickstart, we provide a simple pre-configuration to use which can be dropped into the volume of the docker container.
 
-- If more SAPL dependencies are expected to be used, a useful bill of materials POM is offered, centralizing the dependency management for SAPL artifacts:
+1. Have docker installed locally as a runtime environment for the SAPL Server LT
+2. Install curl to test the server
+3. Select a local folder to be used as a volume for the docker container where the configuration files and policies will be located. For this tutorial, lets assume it is `C:\sapl`. Change this in the following steps to your local environment.
+4. Download the two files `application.yml` and `keystore.p12` to `C:\sapl`. [Download here](https://github.com/heutelbeck/sapl-policy-engine/tree/master/sapl-documentation/configs) You can inspect the `.yml` file for the documentation of the different configuration parameters.
+5. Start the SAPL Server LT container, mounting `C:\sapl` to the 
+```powershell
+docker run -d --name sapl-server-lt -e SERVER_ADDRESS=0.0.0.0 -p 8443:8443 --expose=7000 -v C:\sapl:/pdp/data ghcr.io/heutelbeck/sapl-server-lt:3.1.0-SNAPSHOT
+```
+If everything worked as expected you should now see a line like `Started SAPLServerLTApplication in 4.729 seconds (process running for 5.227)` in the container logs.
+6. Send the following authorization request to the server:
+```powershell
+curl -v -k -H 'Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==' -H 'Content-Type: application/json' -d '{"subject":"housemd","action":"use","resource":"MRT"}' https://localhost:8443/api/pdp/decide-once
+```
 
-  ```xml
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>io.sapl</groupId>
-        <artifactId>sapl-bom</artifactId>
-        <version>3.0.0</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-  ```
+The server should return `{"decision":"NOT_APPLICABLE"}`. As discussed in the introduction, `NOT_APPLICABLE` means the PDP has no policy that is applicable to the subscription. However, the reply shows, that the PDP is set up properly and is answering authorization subscriptions and requests. 
 
-### Coding
+7. Define the PDP combining algorithm. Create a file `pdp.json` in the defined data folger, e.g., `C:\sapl`. Set its content to:
+```json
+{
+	"algorithm": "DENY_UNLESS_PERMIT",
+	"variables": {}
+}
+```
+This instructs the server to always return `DENY` unless there was a policy explicitly issuing a `PERMIT` decision. Also, it sets up an empty object to store environment variables in the future.
 
-1. In the application, create a new `EmbeddedPolicyDecisionPoint`. The argument `"~/sapl"` specifies the directory that contains the configuration file `pdp.json` and all policies (i.e., files ending with `.sapl`).
+8. Send the same request as before to the server:
+```powershell
+curl -v -k -H 'Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==' -H 'Content-Type: application/json' -d '{"subject":"housemd","action":"use","resource":"MRT"}' https://localhost:8443/api/pdp/decide-once
+```
 
-   ```java
-   EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("~/sapl");
-   ```
+The request should now return `{"decision":"DENY"}`, as expected.
 
-2. Add a `pdp.json` with the following content to the directory "~/sapl":
+9. Now define a first policy. You can add arbitrary policies to the same folder as the `pdp.json` has been stored in. Files with SAPL policies and policy set, i.e., SAPL documents, must end with the file extension `.sapl` the SAPL Server LT monitors the folder for changes to files and automatically loads, changes, and unloads the respective `pdp.json` or `*.sapl` files. Create the file `housemd_mrt.sapl`:
 
-   ```json
-   {
-       "algorithm": "DENY_UNLESS_PERMIT",
-       "variables": {}
-   }
-   ```
+```sapl
+policy "Dr. House is allowed to use the MRT!"
+permit subject=="housemd" & action=="use" & resource=="MRT"
+```
 
-3. Add some policy sets or policies to `"~/sapl"`. Both policy sets and policies are files with the extension `.sapl`. For example, add the following policy:
+If you now send the same authorization request again to the PDP, it should return `{"decision":"PERMIT"}`.
 
-   ```
-   policy "test_policy"
-   permit subject == "admin"
-   ```
-4. Obtain a decision using the PDP’s `decide` method.
+10. So far we have just used a simple request-response pattern for answering authorization questions. Now lets move to a simple time-based publish-subscribe scenario.
 
-   ```java
-   var authzSubscription = AuthorizationSubscription.of("admin", "an_action", "a_resource");
-   Flux<AuthorizationDecision> authzDecisions = pdp.decide(authzSubscription);
-   authzDecisions.subscribe(authzDecision -> System.out.println(authzDecision.getDecision()));
-   ```
+Issue the following request to the PDP. Note: here the API endpoint changed and we are no longer connecting to `https://localhost:8443/api/pdp/decide-once` but to `https://localhost:8443/api/pdp/decide` this new endpoint return server-sent-events and the client stays subscribed to updates:
+```powershell
+curl -v -k -H 'Authorization: Basic eHd1VWFSRDY1Rzozal9QSzcxYmp5IWhOMyp4cS54WnF2ZVUpdDVoS0xSXw==' -H 'Content-Type: application/json' -d '{"subject":"housemd","action":"use","resource":"MRT"}' https://localhost:8443/api/pdp/decide
+```
 
-The console output should be `PERMIT`. With subject set to `"alice"` instead of `"admin"`, the output should be `DENY`.
+The server should now again return a `{"decision":"PERMIT"}`. however, note that the command does not immediately drop you back into your command line and curl stays connected. Keep it this way and do not interrupt the command.
 
-Note at runtime the policies can be modified. Adding or removing polices can immediately trigger a change in the decisions.
+11. Edit your policy file. For example change the `subject=="housemd"` to `subject=="cuddy"` and save the file. Immediately, you should see `{"decision":"DENY"}` in the command line. Feel free to experiment with the authorization subscription in the curl command, or the polices. While you are connected, the curl command will always receive an updated decision representing the latest state of the polices.
+
+12. In the last step you could observe how decisions change dynamically based on changes of the polices. Now, create a new policy which changes dynamically based on attributes changing. We will use a simple time-based environment attribute for this, i.e., `<time.now>` which is a one-second time ticker. Delete the original policy file (now you should get a `DENY` if your subscription is still going) and create a new policy `time_based.sapl`:
+```sapl
+policy "time demo"
+permit subject=="housemd" & action=="use" & resource ="MRT"
+where
+  time.secondOf(<time.now>) % 10 < 5;
+```
+
+**Note:** the string in double quotes behind `policy` is the policy name. For each policy file this name must be unique!
+
+Now, with the same subscription as before the decision will change from `PERMIT` to `DENY` and back every five seconds. What happens here is, that the `<time.now>` turns into a subscription to the clock. The function `time.secondOf` calculates the current second of the time emitted from `<time.now>` then the policy applies a modulo `10` operator, resulting in a stream of the numbers `0` ... `9` and this number is compared to `5`. So for `0` to `4` the expression evaluates to `true` and therefore the `where` block is also `true` and the policy is applicable and it emits a `PERMIT` and for the rest of the time it emits a `NOT_APPLICABLE`which is turned into a `DENY` by the combining algorithm `DENY_UNLESS_PERMIT` as defined in the `pdp.json` file. 
+
+**Next Steps**
+
+You now have a working test setup there are a few experiments you can make now:
+* Change the combining algorithm in the `pdp.json`.
+* Experiment with different authorization subscriptions and policies.
+* Add more rules to the `where` block.
+* Start reading about the language features and experiment. 
+* Try to model your own business rules.
+* Create more than one policy at a time.
+* Inspect the log files of the docker container. It is set up to verbose logging and it will more provide information about how it calculated each individual decision.
+
+The HTTP API works from any programming language that can make HTTP requests. See the [HTTP Server-Sent Events API](../4_2_HTTPServer-SentEventsAPI/) documentation for the complete API specification including streaming authorization decisions.
+
+### Integrating SAPL into Applications
+
+Applications can integrate SAPL authorization either through an embedded PDP or by connecting to a remote SAPL server via HTTP. The embedded approach works well for single-instance applications or microservices, while the remote approach supports centralized policy management across multiple applications.
+
+#### Embedded PDP for Java Applications
+
+SAPL requires Java 21 or newer and is compatible with Java 25.
+
+Configure Java version in your project:
+
+```xml
+<properties>
+  <java.version>21</java.version>
+  <maven.compiler.source>${java.version}</maven.compiler.source>
+  <maven.compiler.target>${java.version}</maven.compiler.target>
+</properties>
+```
+
+Add the SAPL embedded PDP dependency:
+
+```xml
+<dependency>
+  <groupId>io.sapl</groupId>
+  <artifactId>sapl-pdp-embedded</artifactId>
+  <version>3.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Add the Maven Central snapshot repository:
+
+```xml
+<repositories>
+  <repository>
+    <name>Central Portal Snapshots</name>
+    <id>central-portal-snapshots</id>
+    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+    <releases>
+      <enabled>false</enabled>
+    </releases>
+    <snapshots>
+      <enabled>true</enabled>
+    </snapshots>
+  </repository>
+</repositories>
+```
+
+For projects using multiple SAPL dependencies, use the bill of materials POM:
+
+```xml
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>io.sapl</groupId>
+      <artifactId>sapl-bom</artifactId>
+      <version>3.1.0-SNAPSHOT</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+```
+
+Create an embedded PDP in your application. The path argument specifies the directory containing `pdp.json` and policy files:
+
+```java
+EmbeddedPolicyDecisionPoint pdp = PolicyDecisionPointFactory
+    .filesystemPolicyDecisionPoint("~/sapl");
+```
+
+Create the configuration file `~/sapl/pdp.json`:
+
+```json
+{
+  "algorithm": "DENY_UNLESS_PERMIT",
+  "variables": {}
+}
+```
+
+Add a policy file `~/sapl/test_policy.sapl`:
+
+```
+policy "time demo"
+permit subject=="housemd" & action=="use" & resource ="MRT"
+where
+  time.secondOf(<time.now>) % 10 < 5;
+```
+
+Request authorization decisions using the PDP's decide method:
+
+```java
+var authzSubscription = AuthorizationSubscription.of("housemd", "use", "MRT");
+var authzDecisions = pdp.decide(authzSubscription);
+authzDecisions.subscribe(authzDecision -> 
+    System.out.println(authzDecision.getDecision())
+);
+```
+
+This is the same test-scenario as discussed above in the docker tutorial. It will toggle between `PERMIT` and `DENY` every five seconds.
+
+The [Java API](../4_3_JavaAPI/) documentation covers the complete PDP interface including streaming decisions, multi-subscriptions, and Spring Security integration. Example applications demonstrating different integration patterns are available in the [SAPL demos repository](https://github.com/heutelbeck/sapl-demos). Start with the [Embedded PDP Demo](https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-embedded) for basic usage, or explore the [Spring MVC Project](https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-mvc-app) and [Webflux Application](https://github.com/heutelbeck/sapl-demos/tree/master/sapl-demo-webflux) for framework integration.

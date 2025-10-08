@@ -188,7 +188,7 @@ public class AnnotationPolicyInformationPointLoader {
         if (pipName.isBlank()) {
             pipName = pipClass.getSimpleName();
         }
-        log.debug("Analyzing PIP {}...", pipName);
+        log.trace("Analyzing PIP {}...", pipName);
         var       foundAtLeastOneSuppliedAttributeInPip = false;
         final var implementations                       = new HashMap<AttributeFinderSpecification, AttributeFinder>();
         final var functions                             = new ArrayList<LibraryFunctionDocumentation>();
@@ -222,7 +222,7 @@ public class AnnotationPolicyInformationPointLoader {
                         attributeName, method, isEnvironmentAttribute, attributeSchema, pathToSchema, documentation);
                 requireNoSpecCollision(implementations.keySet(), specAndDoc.spec());
                 final var attributeFinder = createAttributeFinder(policyInformationPoint, method, specAndDoc.spec());
-                log.debug("Found attribute finder: {}", specAndDoc);
+                log.trace("Found attribute finder: {}", specAndDoc);
                 implementations.put(specAndDoc.spec(), attributeFinder);
                 functions.add(specAndDoc.doc());
             }
