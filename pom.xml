@@ -176,7 +176,8 @@
 		<module>sapl-vaadin-editor</module>
 
 		<module>sapl-server-lt</module>
-		<module>sapl-server-ce</module>
+        <module>sapl-server-ce</module>
+        <module>sapl-playground</module>
 	</modules>
 	<dependencyManagement>
 		<dependencies>

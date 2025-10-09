@@ -48,6 +48,12 @@ public class JsonEditor extends BaseEditor implements HasSize {
     private boolean mergeModeEnabled;
     private String  mergeRightContent;
 
+    public JsonEditor() {
+        final var element       = getElement();
+        final var defaultConfig = new JsonEditorConfiguration();
+        applyBaseConfiguration(element, defaultConfig);
+    }
+
     /**
      * Creates the editor component.
      *

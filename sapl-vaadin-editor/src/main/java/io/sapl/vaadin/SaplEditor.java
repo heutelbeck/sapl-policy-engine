@@ -42,6 +42,12 @@ public class SaplEditor extends BaseEditor implements HasSize {
 
     private final List<ValidationFinishedListener> validationFinishedListeners = new ArrayList<>();
 
+    public SaplEditor() {
+        final var element       = getElement();
+        final var defaultConfig = new SaplEditorConfiguration();
+        applyBaseConfiguration(element, defaultConfig);
+    }
+
     /**
      * Creates the editor.
      *
