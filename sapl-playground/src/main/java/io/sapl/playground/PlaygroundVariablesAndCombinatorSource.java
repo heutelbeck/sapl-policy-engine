@@ -13,17 +13,17 @@ import java.util.Optional;
 public class PlaygroundVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
     private final Sinks.Many<Optional<PolicyDocumentCombiningAlgorithm>> combiningAlgorithmSink;
-    private final Sinks.Many<Optional<Map<String, Val>>> variablesSink;
+    private final Sinks.Many<Optional<Map<String, Val>>>                 variablesSink;
 
     private final Flux<Optional<PolicyDocumentCombiningAlgorithm>> combiningAlgorithmFlux;
-    private final Flux<Optional<Map<String, Val>>> variablesFlux;
+    private final Flux<Optional<Map<String, Val>>>                 variablesFlux;
 
     public PlaygroundVariablesAndCombinatorSource() {
         combiningAlgorithmSink = Sinks.many().replay().latest();
-        variablesSink = Sinks.many().replay().latest();
+        variablesSink          = Sinks.many().replay().latest();
 
         combiningAlgorithmFlux = combiningAlgorithmSink.asFlux();
-        variablesFlux = variablesSink.asFlux();
+        variablesFlux          = variablesSink.asFlux();
     }
 
     public void setCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {

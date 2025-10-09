@@ -20,9 +20,9 @@ import reactor.core.publisher.Mono;
 public class PlaygroundPolicyRetrievalPoint implements PolicyRetrievalPoint {
 
     private final Map<String, Document> documentsByName = new HashMap<>();
-    private final Set<String>           names         = new HashSet<>();
+    private final Set<String>           names           = new HashSet<>();
     @Getter
-    private boolean                     consistent    = true;
+    private boolean                     consistent      = true;
     SAPLInterpreter                     parser;
 
     public PlaygroundPolicyRetrievalPoint(List<String> documents, SAPLInterpreter parser) {

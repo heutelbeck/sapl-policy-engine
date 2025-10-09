@@ -17,7 +17,7 @@ public class PlaygroundPolicyRetrievalPointSource implements PolicyRetrievalPoin
     private final SAPLInterpreter parser;
 
     private final Sinks.Many<PolicyRetrievalPoint> prpSink = Sinks.many().replay().latest();
-    private final Flux<PolicyRetrievalPoint> prpFlux = prpSink.asFlux();
+    private final Flux<PolicyRetrievalPoint>       prpFlux = prpSink.asFlux();
 
     public void updatePrp(List<String> documents) {
         val prp = new PlaygroundPolicyRetrievalPoint(documents, parser);
