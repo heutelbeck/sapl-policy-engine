@@ -155,7 +155,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private final Map<Tab, PolicyTabContext> policyTabs    = new HashMap<>();
     private final AtomicInteger              policyCounter = new AtomicInteger(1);
 
-    // Context holder for policy tab components and state.
+    /**
+     * Context holder for policy tab components and state.
+     */
     private static class PolicyTabContext {
         SaplEditor editor;
         TextField  validationField;
@@ -173,9 +175,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     public PlaygroundView(ObjectMapper mapper,
-            AttributeStreamBroker attributeStreamBroker,
-            FunctionContext functionContext,
-            PolicyInformationPointDocumentationProvider pipDocumentationProvider) {
+                          AttributeStreamBroker attributeStreamBroker,
+                          FunctionContext functionContext,
+                          PolicyInformationPointDocumentationProvider pipDocumentationProvider) {
         this.mapper                   = mapper;
         this.prpSource                = new PlaygroundPolicyRetrievalPointSource(INTERPRETER);
         this.pdpConfigurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeStreamBroker,
@@ -192,7 +194,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         variablesEditor.setDocument("{}");
     }
 
-    // Builds and adds all components to the main layout.
+    /**
+     * Builds and adds all components to the main layout.
+     */
     private void buildAndAddComponents() {
         val header = buildHeader();
         val main   = buildMain();
@@ -205,10 +209,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         deactivateScrollLock();
     }
 
-    // Intercepts authorization decisions for display in the grid.
-    //
-    // @param tracedDecision the decision to intercept
-    // @return the same decision (pass-through interceptor)
+    /**
+     * Intercepts authorization decisions for display in the grid.
+     *
+     * @param tracedDecision the decision to intercept
+     * @return the same decision (pass-through interceptor)
+     */
     private TracedDecision interceptDecision(TracedDecision tracedDecision) {
         handleNewDecision(tracedDecision);
         return tracedDecision;
@@ -307,9 +313,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return editor;
     }
 
-    // Handles changes to the subscription document and triggers validation.
-    //
-    // @param event the document changed event
+    /**
+     * Handles changes to the subscription document and triggers validation.
+     *
+     * @param event the document changed event
+     */
     private void handleSubscriptionDocumentChanged(DocumentChangedEvent event) {
         validateJsonSubscription(event.getNewValue(), subscriptionValidationField);
 
@@ -319,11 +327,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
-    // Validates a JSON document and updates the validation field accordingly.
-    //
-    // @param jsonContent the JSON string to validate
-    // @param validationField the field to update with validation status
-    // @param errorMessage the message to display on validation failure
+    /**
+     * Validates variables JSON document and updates the validation field accordingly.
+     *
+     * @param jsonContent the JSON string to validate
+     * @param validationField the field to update with validation status
+     * @return true if validation succeeded, false otherwise
+     */
     private boolean validateJsonVariables(String jsonContent, TextField validationField) {
         try {
             val jsonNode = mapper.readTree(jsonContent);
@@ -339,6 +349,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /**
+     * Validates subscription JSON document and updates the validation field accordingly.
+     *
+     * @param jsonContent the JSON string to validate
+     * @param validationField the field to update with validation status
+     * @return true if validation succeeded, false otherwise
+     */
     private boolean validateJsonSubscription(String jsonContent, TextField validationField) {
         try {
             val jsonNode = mapper.readTree(jsonContent);
@@ -371,20 +388,23 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
-    // Updates a validation field with status icon and message.
-    // This is the single point of truth for updating validation field states.
-    //
-    // @param field the validation field to update
-    // @param icon the icon to display (validIcon, invalidIcon, or collisionIcon)
-    // @param message the message to display
+    /**
+     * Updates a validation field with status icon and message.
+     *
+     * @param field the validation field to update
+     * @param icon the icon to display (validIcon, invalidIcon, or collisionIcon)
+     * @param message the message to display
+     */
     private void updateValidationField(TextField field, Icon icon, String message) {
         field.setPrefixComponent(icon);
         field.setValue(message);
     }
 
-    // Formats JSON content in an editor with pretty-printing.
-    //
-    // @param editor the JSON editor to format
+    /**
+     * Formats JSON content in an editor with pretty-printing.
+     *
+     * @param editor the JSON editor to format
+     */
     private void formatJsonEditor(JsonEditor editor) {
         val jsonString = editor.getDocument();
         try {
@@ -440,7 +460,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     private void togglePlayStop() {
-        // Placeholder for play/stop logic
+        /** Placeholder for play/stop logic */
     }
 
     private void updateBufferSize(Integer size) {
@@ -516,11 +536,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         errorReport = plainText;
     }
 
-    // Builds an aggregated error report from a collection of errors.
-    //
-    // @param errors the errors to aggregate
-    // @param format the output format (HTML or PLAIN_TEXT)
-    // @return the formatted error report
+    /**
+     * Builds an aggregated error report from a collection of errors.
+     *
+     * @param errors the errors to aggregate
+     * @param format the output format (HTML or PLAIN_TEXT)
+     * @return the formatted error report
+     */
     private String buildAggregatedErrorReport(Collection<Val> errors, OutputFormat format) {
         if (errors.isEmpty()) {
             return "No Errors";
@@ -608,11 +630,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return createHorizontalLayoutWithClipboard(errorsArea, () -> errorReport);
     }
 
-    // Creates a horizontal layout with a component and a clipboard button.
-    //
-    // @param component the main component to display
-    // @param contentSupplier supplies the content to copy to clipboard
-    // @return the layout containing both components
+    /**
+     * Creates a horizontal layout with a component and a clipboard button.
+     *
+     * @param component the main component to display
+     * @param contentSupplier supplies the content to copy to clipboard
+     * @return the layout containing both components
+     */
     private Component createHorizontalLayoutWithClipboard(Component component, Supplier<String> contentSupplier) {
         val layout = new HorizontalLayout();
         layout.setSizeFull();
@@ -621,10 +645,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return layout;
     }
 
-    // Creates a clipboard button that copies content when clicked.
-    //
-    // @param contentSupplier supplies the content to copy
-    // @return the configured button
+    /**
+     * Creates a clipboard button that copies content when clicked.
+     *
+     * @param contentSupplier supplies the content to copy
+     * @return the configured button
+     */
     private Button createClipboardButton(Supplier<String> contentSupplier) {
         val button = new Button(VaadinIcon.CLIPBOARD.create());
         button.getStyle().set("position", "absolute").set("top", "15px").set("right", "25px").set("z-index", "100");
@@ -687,9 +713,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return layout;
     }
 
-    // Handles changes to the variables document and triggers validation.
-    //
-    // @param event the document changed event
+    /**
+     * Handles changes to the variables document and triggers validation.
+     *
+     * @param event the document changed event
+     */
     private void handleVariablesDocumentChanged(DocumentChangedEvent event) {
         if (validateJsonVariables(event.getNewValue(), variablesValidationField)) {
             this.variablesAndCombinatorSource.setVariables(toVariables(event.getNewValue()));
@@ -763,11 +791,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         editor.setDocument(DEFAULT_POLICY);
     }
 
-    // Handles validation updates for policy documents.
-    //
-    // @param tab the tab containing the policy
-    // @param context the policy tab context
-    // @param event the validation finished event
+    /**
+     * Handles validation updates for policy documents.
+     *
+     * @param context the policy tab context
+     * @param event the validation finished event
+     */
     private void handlePolicyValidation(PolicyTabContext context, ValidationFinishedEvent event) {
         val issues    = event.getIssues();
         val hasErrors = Arrays.stream(issues).anyMatch(issue -> Severity.ERROR == issue.getSeverity());
@@ -780,10 +809,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         checkForNameCollisions();
     }
 
-    // Updates the document name for a policy tab based on parsing results.
-    //
-    // @param context the policy tab context
-    // @param parsedDocument the parsed SAPL document
+    /**
+     * Updates the document name for a policy tab based on parsing results.
+     *
+     * @param context the policy tab context
+     * @param parsedDocument the parsed SAPL document
+     */
     private void updatePolicyDocumentName(PolicyTabContext context, io.sapl.prp.Document parsedDocument) {
         if (!parsedDocument.isInvalid()) {
             context.documentName = parsedDocument.name();
@@ -793,13 +824,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         context.label.setText(truncateTitle(context.documentName));
     }
 
-    // Updates the validation state for a policy tab.
-    //
-    // @param context the policy tab context
-    // @param hasErrors whether the policy has errors
-    // @param issues the validation issues
+    /**
+     * Updates the validation state for a policy tab.
+     *
+     * @param context the policy tab context
+     * @param hasErrors whether the policy has errors
+     * @param issues the validation issues
+     */
     private void updatePolicyValidationState(PolicyTabContext context, boolean hasErrors,
-            io.sapl.vaadin.Issue[] issues) {
+                                             io.sapl.vaadin.Issue[] issues) {
         if (hasErrors) {
             context.icon.setIcon(VaadinIcon.CLOSE_CIRCLE);
             context.icon.setColor(RED);
@@ -812,9 +845,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
-    // Checks all policy tabs for name collisions and updates their visual
-    // indicators accordingly.
-    // Tabs with duplicate names receive a warning icon and collision message.
+    /**
+     * Checks all policy tabs for name collisions and updates their visual indicators accordingly.
+     * Tabs with duplicate names receive a warning icon and collision message.
+     */
     private void checkForNameCollisions() {
         val nameToTabs = new HashMap<String, List<Tab>>();
 
@@ -839,9 +873,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
-    // Applies collision warning state to a policy tab.
-    //
-    // @param context the policy tab context
+    /**
+     * Applies collision warning state to a policy tab.
+     *
+     * @param context the policy tab context
+     */
     private void applyCollisionState(PolicyTabContext context) {
         context.icon.setIcon(VaadinIcon.WARNING);
         context.icon.setColor(ORANGE);
@@ -849,15 +885,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 "Name collision: '" + context.documentName + "'");
     }
 
-    // Restores normal validation state after a collision is resolved.
-    // Re-parses the document to check for errors. Xtext validation (client-side)
-    // and SAPL
-    // parsing (server-side) serve different purposes: Xtext validates for IDE
-    // features,
-    // while parsing extracts structural information like document validity for UI
-    // state management.
-    //
-    // @param context the policy tab context
+    /**
+     * Restores normal validation state after a collision is resolved.
+     * Re-parses the document to check for errors. Xtext validation (client-side)
+     * and SAPL parsing (server-side) serve different purposes: Xtext validates for IDE
+     * features, while parsing extracts structural information like document validity for UI
+     * state management.
+     *
+     * @param context the policy tab context
+     */
     private void restoreNormalValidationState(PolicyTabContext context) {
         val document       = context.editor.getDocument();
         val parsedDocument = INTERPRETER.parseDocument(document);
@@ -874,12 +910,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
-    // Truncates a title to MAX_TITLE_LENGTH characters, adding ellipsis if
-    // necessary.
-    //
-    // @param title the title to truncate
-    // @return the truncated title with "..." appended if it exceeds the maximum
-    // length
+    /**
+     * Truncates a title to MAX_TITLE_LENGTH characters, adding ellipsis if necessary.
+     *
+     * @param title the title to truncate
+     * @return the truncated title with "..." appended if it exceeds the maximum length
+     */
     private String truncateTitle(String title) {
         if (title == null) {
             return "";
