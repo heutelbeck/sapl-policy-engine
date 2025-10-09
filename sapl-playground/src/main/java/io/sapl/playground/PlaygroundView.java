@@ -54,6 +54,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility.Gap;
 import io.sapl.api.interpreter.Val;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.TracedDecision;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
@@ -75,6 +76,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.xtext.diagnostics.Severity;
+import reactor.core.Disposable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -93,9 +95,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String UNKNOWN_POLICY_NAME  = "unknown";
     private static final String DEFAULT_SUBSCRIPTION = """
             {
-               "subject"     : "",
-               "action"      : "",
-               "resource"    : "",
+               "subject"     : { "role": "doctor", "department": "cardiology"},
+               "action"      : "read",
+               "resource"    : { "type": "patient_record", "department": "cardiology" },
                "environment" : null
             }
             """;
@@ -109,11 +111,19 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 resource.department == subject.department;
             """;
 
+    private static final String DEFAULT_VARIABLES = """
+            {
+              "variable1" : "value1",
+              "variable2" : 123,
+              "systemMode" : "staging"
+            }
+            """;
+
     private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
-    public static final String GREEN = "green";
-    public static final String RED = "red";
-    public static final String ORANGE = "orange";
-    public static final String HALF_EM = "0.5em";
+    public static final String           GREEN       = "green";
+    public static final String           RED         = "red";
+    public static final String           ORANGE      = "orange";
+    public static final String           HALF_EM     = "0.5em";
 
     private final PlaygroundVariablesAndCombinatorSource variablesAndCombinatorSource = new PlaygroundVariablesAndCombinatorSource();
 
@@ -149,8 +159,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Checkbox                                   showOnlyDistinctDecisionsCheckBox;
     private final DocumentationDrawer                  documentationDrawer;
 
-    private boolean scrollLock;
-    private String  errorReport;
+    private boolean    scrollLock;
+    private String     errorReport;
+    private boolean    subscribed = false;
+    private Disposable subscription;
 
     private final Map<Tab, PolicyTabContext> policyTabs    = new HashMap<>();
     private final AtomicInteger              policyCounter = new AtomicInteger(1);
@@ -175,9 +187,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     public PlaygroundView(ObjectMapper mapper,
-                          AttributeStreamBroker attributeStreamBroker,
-                          FunctionContext functionContext,
-                          PolicyInformationPointDocumentationProvider pipDocumentationProvider) {
+            AttributeStreamBroker attributeStreamBroker,
+            FunctionContext functionContext,
+            PolicyInformationPointDocumentationProvider pipDocumentationProvider) {
         this.mapper                   = mapper;
         this.prpSource                = new PlaygroundPolicyRetrievalPointSource(INTERPRETER);
         this.pdpConfigurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeStreamBroker,
@@ -191,7 +203,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private void initializeValues() {
         subscriptionEditor.setDocument(DEFAULT_SUBSCRIPTION);
-        variablesEditor.setDocument("{}");
+        variablesEditor.setDocument(DEFAULT_VARIABLES);
     }
 
     /**
@@ -325,10 +337,16 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             decisions.clear();
             decisionsView.refreshAll();
         }
+
+        // If subscribed, resubscribe with new subscription
+        if (subscribed) {
+            subscribe();
+        }
     }
 
     /**
-     * Validates variables JSON document and updates the validation field accordingly.
+     * Validates variables JSON document and updates the validation field
+     * accordingly.
      *
      * @param jsonContent the JSON string to validate
      * @param validationField the field to update with validation status
@@ -350,7 +368,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     /**
-     * Validates subscription JSON document and updates the validation field accordingly.
+     * Validates subscription JSON document and updates the validation field
+     * accordingly.
      *
      * @param jsonContent the JSON string to validate
      * @param validationField the field to update with validation status
@@ -424,10 +443,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val layout = new HorizontalLayout();
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        playStopButton = new Button(VaadinIcon.STOP.create());
+        playStopButton = new Button(VaadinIcon.PLAY.create());
         playStopButton.addThemeVariants(ButtonVariant.LUMO_ICON);
-        playStopButton.setAriaLabel("Unsubscribe");
-        playStopButton.setTooltipText("Stop Subscribing.");
+        playStopButton.setAriaLabel("Subscribe");
+        playStopButton.setTooltipText("Start subscribing with authorization subscription.");
         playStopButton.addClickListener(e -> togglePlayStop());
 
         scrollLockButton = new Button(VaadinIcon.UNLOCK.create());
@@ -460,7 +479,97 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     private void togglePlayStop() {
-        /** Placeholder for play/stop logic */
+        if (subscribed) {
+            stopSubscription();
+        } else {
+            startSubscription();
+        }
+    }
+
+    /**
+     * Starts the PDP subscription with the current authorization subscription.
+     */
+    private void startSubscription() {
+        subscribed = true;
+        updateButtonForSubscribedState();
+
+        if (Boolean.TRUE.equals(clearOnNewSubscriptionCheckBox.getValue())) {
+            decisions.clear();
+            decisionsView.refreshAll();
+        }
+
+        subscribe();
+    }
+
+    /**
+     * Stops the active PDP subscription and cleans up resources.
+     */
+    private void stopSubscription() {
+        if (subscription != null && !subscription.isDisposed()) {
+            subscription.dispose();
+        }
+        subscription = null;
+
+        subscribed = false;
+        updateButtonForSubscribedState();
+    }
+
+    /**
+     * Subscribes to the PDP with the current authorization subscription.
+     * Disposes of any existing subscription first.
+     */
+    private void subscribe() {
+        if (subscription != null && !subscription.isDisposed()) {
+            subscription.dispose();
+        }
+
+        val authorizationSubscription = parseAuthorizationSubscription();
+        if (authorizationSubscription == null) {
+            Notification.show("Invalid authorization subscription");
+            return;
+        }
+
+        subscription = policyDecisionPoint.decide(authorizationSubscription).log().subscribe(decision -> {},
+                error -> log.error("Error in PDP subscription", error));
+    }
+
+    /**
+     * Parses the authorization subscription from the editor.
+     *
+     * @return the parsed AuthorizationSubscription, or null if parsing fails
+     */
+    private AuthorizationSubscription parseAuthorizationSubscription() {
+        val subscriptionJson = subscriptionEditor.getDocument();
+        try {
+            return mapper.readValue(subscriptionJson, AuthorizationSubscription.class);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse authorization subscription", e);
+            return null;
+        }
+    }
+
+    /**
+     * Updates the play/stop button appearance based on subscription state.
+     */
+    private void updateButtonForSubscribedState() {
+        if (subscribed) {
+            playStopButton.setIcon(VaadinIcon.STOP.create());
+            playStopButton.setAriaLabel("Unsubscribe");
+            playStopButton.setTooltipText("Stop Subscribing.");
+        } else {
+            playStopButton.setIcon(VaadinIcon.PLAY.create());
+            playStopButton.setAriaLabel("Subscribe");
+            playStopButton.setTooltipText("Start subscribing with authorization subscription.");
+        }
+    }
+
+    /**
+     * Checks if currently subscribed to the PDP.
+     *
+     * @return true if subscribed, false otherwise
+     */
+    private boolean isSubscribed() {
+        return subscribed;
     }
 
     private void updateBufferSize(Integer size) {
@@ -832,7 +941,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * @param issues the validation issues
      */
     private void updatePolicyValidationState(PolicyTabContext context, boolean hasErrors,
-                                             io.sapl.vaadin.Issue[] issues) {
+            io.sapl.vaadin.Issue[] issues) {
         if (hasErrors) {
             context.icon.setIcon(VaadinIcon.CLOSE_CIRCLE);
             context.icon.setColor(RED);
@@ -846,7 +955,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     /**
-     * Checks all policy tabs for name collisions and updates their visual indicators accordingly.
+     * Checks all policy tabs for name collisions and updates their visual
+     * indicators accordingly.
      * Tabs with duplicate names receive a warning icon and collision message.
      */
     private void checkForNameCollisions() {
@@ -888,8 +998,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /**
      * Restores normal validation state after a collision is resolved.
      * Re-parses the document to check for errors. Xtext validation (client-side)
-     * and SAPL parsing (server-side) serve different purposes: Xtext validates for IDE
-     * features, while parsing extracts structural information like document validity for UI
+     * and SAPL parsing (server-side) serve different purposes: Xtext validates for
+     * IDE
+     * features, while parsing extracts structural information like document
+     * validity for UI
      * state management.
      *
      * @param context the policy tab context
@@ -911,10 +1023,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     /**
-     * Truncates a title to MAX_TITLE_LENGTH characters, adding ellipsis if necessary.
+     * Truncates a title to MAX_TITLE_LENGTH characters, adding ellipsis if
+     * necessary.
      *
      * @param title the title to truncate
-     * @return the truncated title with "..." appended if it exceeds the maximum length
+     * @return the truncated title with "..." appended if it exceeds the maximum
+     * length
      */
     private String truncateTitle(String title) {
         if (title == null) {

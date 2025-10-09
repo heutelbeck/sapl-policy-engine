@@ -28,13 +28,17 @@ import reactor.core.publisher.Sinks;
 
 import java.util.List;
 
-@RequiredArgsConstructor
 public class PlaygroundPolicyRetrievalPointSource implements PolicyRetrievalPointSource {
 
     private final SAPLInterpreter parser;
 
     private final Sinks.Many<PolicyRetrievalPoint> prpSink = Sinks.many().replay().latest();
-    private final Flux<PolicyRetrievalPoint>       prpFlux = prpSink.asFlux();
+    private final Flux<PolicyRetrievalPoint>       prpFlux = prpSink.asFlux().log();
+
+    public PlaygroundPolicyRetrievalPointSource(SAPLInterpreter parser) {
+        this.parser = parser;
+        updatePrp(List.of());
+    }
 
     public void updatePrp(List<String> documents) {
         val prp = new PlaygroundPolicyRetrievalPoint(documents, parser);

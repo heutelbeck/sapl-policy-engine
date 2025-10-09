@@ -41,6 +41,8 @@ public class PlaygroundVariablesAndCombinatorSource implements VariablesAndCombi
 
         combiningAlgorithmFlux = combiningAlgorithmSink.asFlux();
         variablesFlux          = variablesSink.asFlux();
+        setCombiningAlgorithm(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES);
+        setVariables(Map.of());
     }
 
     public void setCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {

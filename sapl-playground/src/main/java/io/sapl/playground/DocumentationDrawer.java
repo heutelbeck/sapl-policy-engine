@@ -40,7 +40,7 @@ import java.util.Collection;
  */
 public class DocumentationDrawer implements Serializable {
 
-    private final Dialog                                      drawer;
+    private final Dialog drawer;
     /*
      * Gets the floating action button that toggles the drawer.
      *
