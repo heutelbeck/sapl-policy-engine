@@ -72,7 +72,7 @@ public class BaseEditor extends Component {
     protected void onDocumentChanged(String newValue) {
         document = newValue;
         for (DocumentChangedListener listener : documentChangedListeners) {
-            listener.onDocumentChanged(new DocumentChangedEvent(newValue));
+            listener.onDocumentChanged(new DocumentChangedEvent(newValue, true));
         }
     }
 
@@ -91,6 +91,9 @@ public class BaseEditor extends Component {
         this.document = document;
         Element element = getElement();
         element.callJsFunction("setEditorDocument", element, document);
+        for (DocumentChangedListener listener : documentChangedListeners) {
+            listener.onDocumentChanged(new DocumentChangedEvent(document, false));
+        }
     }
 
     /**

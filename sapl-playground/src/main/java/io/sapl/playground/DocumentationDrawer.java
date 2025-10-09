@@ -11,17 +11,25 @@ import com.vaadin.flow.component.tabs.TabSheet;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
+import lombok.Getter;
 import lombok.val;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 /*
  * Provides a slide-in drawer for displaying documentation about
  * function libraries and policy information points.
  */
-public class DocumentationDrawer {
+public class DocumentationDrawer implements Serializable {
 
     private final Dialog                                      drawer;
+    /*
+     * Gets the floating action button that toggles the drawer.
+     *
+     * @return the toggle button component
+     */
+    @Getter
     private final Button                                      toggleButton;
     private final PolicyInformationPointDocumentationProvider pipDocumentationProvider;
     private final FunctionContext                             functionContext;
@@ -32,15 +40,6 @@ public class DocumentationDrawer {
         this.functionContext          = functionContext;
         this.drawer                   = createDrawer();
         this.toggleButton             = createToggleButton();
-    }
-
-    /*
-     * Gets the floating action button that toggles the drawer.
-     *
-     * @return the toggle button component
-     */
-    public Button getToggleButton() {
-        return toggleButton;
     }
 
     private Button createToggleButton() {

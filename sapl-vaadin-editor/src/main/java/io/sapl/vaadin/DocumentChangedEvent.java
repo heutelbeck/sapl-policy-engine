@@ -24,5 +24,6 @@ import lombok.Value;
  */
 @Value
 public class DocumentChangedEvent {
-    String newValue;
+    String  newValue;
+    Boolean fromClient;
 }
