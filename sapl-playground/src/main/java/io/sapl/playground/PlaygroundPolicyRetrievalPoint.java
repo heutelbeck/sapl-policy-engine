@@ -17,8 +17,6 @@
  */
 package io.sapl.playground;
 
-import java.util.*;
-
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.Document;
 import io.sapl.prp.DocumentMatch;
@@ -28,6 +26,8 @@ import lombok.Getter;
 import lombok.ToString;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.*;
 
 /**
  * The Index Object has to be immutable to avoid race conditions. SAPL Objects

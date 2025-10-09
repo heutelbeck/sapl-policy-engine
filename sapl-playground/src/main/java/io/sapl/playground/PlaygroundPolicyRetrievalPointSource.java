@@ -21,19 +21,20 @@ import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalPointSource;
 import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import java.util.List;
 
+@Slf4j
 public class PlaygroundPolicyRetrievalPointSource implements PolicyRetrievalPointSource {
 
     private final SAPLInterpreter parser;
 
     private final Sinks.Many<PolicyRetrievalPoint> prpSink = Sinks.many().replay().latest();
-    private final Flux<PolicyRetrievalPoint>       prpFlux = prpSink.asFlux().log();
+    private final Flux<PolicyRetrievalPoint>       prpFlux = prpSink.asFlux();
 
     public PlaygroundPolicyRetrievalPointSource(SAPLInterpreter parser) {
         this.parser = parser;

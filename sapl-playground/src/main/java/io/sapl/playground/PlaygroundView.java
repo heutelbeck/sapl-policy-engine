@@ -69,7 +69,6 @@ import io.sapl.pdp.interceptors.ErrorReportGenerator;
 import io.sapl.pdp.interceptors.ErrorReportGenerator.OutputFormat;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
-import io.sapl.prp.PolicyRetrievalPointSource;
 import io.sapl.vaadin.*;
 import io.sapl.vaadin.graph.JsonGraphVisualization;
 import lombok.extern.slf4j.Slf4j;
@@ -127,9 +126,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private final PlaygroundVariablesAndCombinatorSource variablesAndCombinatorSource = new PlaygroundVariablesAndCombinatorSource();
 
-    private final ObjectMapper               mapper;
-    private final PolicyRetrievalPointSource prpSource;
-    private final PolicyDecisionPoint        policyDecisionPoint;
+    private final ObjectMapper                         mapper;
+    private final PlaygroundPolicyRetrievalPointSource prpSource;
+    private final PolicyDecisionPoint                  policyDecisionPoint;
 
     private FixedFunctionsAndAttributesPDPConfigurationProvider pdpConfigurationProvider;
 
@@ -199,6 +198,16 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         buildAndAddComponents();
         initializeValues();
+
+        addDetachListener(event -> cleanup());
+    }
+
+    /**
+     * Cleans up resources when the view is detached.
+     * Disposes of active subscriptions to prevent memory leaks.
+     */
+    private void cleanup() {
+        stopSubscription();
     }
 
     private void initializeValues() {
@@ -227,8 +236,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * @param tracedDecision the decision to intercept
      * @return the same decision (pass-through interceptor)
      */
-    private TracedDecision interceptDecision(TracedDecision tracedDecision) {
-        handleNewDecision(tracedDecision);
+    private TracedDecision interceptDecision(final TracedDecision tracedDecision) {
+        getUI().ifPresent(ui -> ui.access(() -> handleNewDecision(tracedDecision)));
         return tracedDecision;
     }
 
@@ -320,7 +329,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val editor = new JsonEditor(config);
         editor.setWidthFull();
         editor.setHeight("200px");
-        log.error("Wire subscription changed listener");
         editor.addDocumentChangedListener(this::handleSubscriptionDocumentChanged);
         return editor;
     }
@@ -529,8 +537,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             return;
         }
 
-        subscription = policyDecisionPoint.decide(authorizationSubscription).log().subscribe(decision -> {},
-                error -> log.error("Error in PDP subscription", error));
+        subscription = policyDecisionPoint.decide(authorizationSubscription).subscribe(decision -> {},
+                error -> log.debug("Error in PDP subscription", error));
     }
 
     /**
@@ -840,7 +848,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             variablesObject.forEachEntry((name, value) -> variables.put(name, Val.of(value)));
             return variables;
         } catch (JsonProcessingException e) {
-            log.error("Unexpected invalid JSON in variables after validation.", e);
+            log.debug("Unexpected invalid JSON in variables after validation.", e);
             return Map.of();
         }
     }
@@ -891,6 +899,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             policyTabs.remove(tab);
             leftTabSheet.remove(tab);
             checkForNameCollisions();
+            updatePolicyRetrievalPoint();
         });
 
         leftTabSheet.add(tab, layout);
@@ -916,6 +925,31 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         updatePolicyDocumentName(context, parsedDocument);
         updatePolicyValidationState(context, hasErrors, issues);
         checkForNameCollisions();
+
+        // Update PRP with all current policy documents
+        updatePolicyRetrievalPoint();
+    }
+
+    /**
+     * Collects all valid policy documents from the policy tabs.
+     *
+     * @return list of parsed and valid policy documents
+     */
+    private List<String> collectPolicyDocuments() {
+        val documents = new ArrayList<String>();
+        for (var context : policyTabs.values()) {
+            documents.add(context.editor.getDocument());
+        }
+        return documents;
+    }
+
+    /**
+     * Updates the Policy Retrieval Point with the current set of policy documents.
+     * If currently subscribed, triggers a resubscription to apply changes.
+     */
+    private void updatePolicyRetrievalPoint() {
+        val documents = collectPolicyDocuments();
+        prpSource.updatePrp(documents);
     }
 
     /**
