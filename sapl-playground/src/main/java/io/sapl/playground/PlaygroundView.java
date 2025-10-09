@@ -1,21 +1,29 @@
 package io.sapl.playground;
 
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
+import org.apache.commons.lang3.StringUtils;
+import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Composite;
+import com.vaadin.flow.component.HasValue.ValueChangeEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.NativeLabel;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -40,6 +48,7 @@ import io.sapl.api.pdp.TracedDecision;
 import io.sapl.attributes.broker.api.AttributeStreamBroker;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
+import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
@@ -55,8 +64,10 @@ import io.sapl.vaadin.JsonEditorConfiguration;
 import io.sapl.vaadin.SaplEditor;
 import io.sapl.vaadin.SaplEditorConfiguration;
 import io.sapl.vaadin.ValidationFinishedEvent;
+import io.sapl.vaadin.graph.JsonGraphVisualization;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.xtext.diagnostics.Severity;
 
 import java.util.*;
@@ -92,7 +103,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-    private final VariablesAndCombinatorSource variablesAndCombinatorSource = new PlaygroundVariablesAndCombinatorSource();
+    private final PlaygroundVariablesAndCombinatorSource variablesAndCombinatorSource = new PlaygroundVariablesAndCombinatorSource();
 
     private final ObjectMapper               mapper;
     private final AttributeStreamBroker      attributeStreamBroker;
@@ -115,28 +126,33 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private final Icon validIcon   = VaadinIcon.CHECK.create();
     private final Icon invalidIcon = VaadinIcon.CLOSE_CIRCLE.create();
 
-    private Button                           playStopButton;
-    private Button                           scrollLockButton;
-    private IntegerField                     bufferSizeField;
-    private DecisionsGrid                    decisionsGrid;
-    private GridListDataView<TracedDecision> decisionsView;
-    private JsonEditor                       decisionsArea;
-    private JsonEditor                       decisionsJsonReportArea;
-    private JsonEditor                       decisionsJsonTraceArea;
-    private Div                              errorsArea;
-    private TextArea                         reportArea;
-    private Checkbox                         clearOnNewSubscriptionCheckBox;
-    private Checkbox                         showOnlyDistinctDecisionsCheckBox;
+    private ComboBox<PolicyDocumentCombiningAlgorithm> algorithmBox;
+    private Button                                     playStopButton;
+    private Button                                     scrollLockButton;
+    private IntegerField                               bufferSizeField;
+    private DecisionsGrid                              decisionsGrid;
+    private GridListDataView<TracedDecision>           decisionsView;
+    private JsonEditor                                 decisionsArea;
+    private JsonEditor                                 decisionsJsonReportArea;
+    private JsonEditor                                 decisionsJsonTraceArea;
+    private JsonGraphVisualization                     traceGraphVisualization;
+    private Div                                        errorsArea;
+    private TextArea                                   reportArea;
+    private Checkbox                                   clearOnNewSubscriptionCheckBox;
+    private Checkbox                                   showOnlyDistinctDecisionsCheckBox;
+    private DocumentationDrawer                        documentationDrawer;
 
     private boolean scrollLock;
     private String  errorReport;
 
-    private final Map<Tab, SaplEditor>  saplEditorsByTab       = new HashMap<>();
-    private final Map<Tab, TextField>   validationFieldsByTab  = new HashMap<>();
-    private final AtomicInteger         policyCounter          = new AtomicInteger(1);
+    private final Map<Tab, SaplEditor> saplEditorsByTab      = new HashMap<>();
+    private final Map<Tab, TextField>  validationFieldsByTab = new HashMap<>();
+    private final AtomicInteger        policyCounter         = new AtomicInteger(1);
 
-    public PlaygroundView(ObjectMapper mapper, AttributeStreamBroker attributeStreamBroker,
-                          FunctionContext functionContext) {
+    public PlaygroundView(ObjectMapper mapper,
+            AttributeStreamBroker attributeStreamBroker,
+            FunctionContext functionContext,
+            PolicyInformationPointDocumentationProvider pipDocumentationProvider) {
         this.mapper                   = mapper;
         this.attributeStreamBroker    = attributeStreamBroker;
         this.functionContext          = functionContext;
@@ -145,14 +161,19 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 functionContext, variablesAndCombinatorSource, List.of(), List.of(this::interceptDecision), prpSource);
         this.policyDecisionPoint      = new EmbeddedPolicyDecisionPoint(pdpConfigurationProvider);
 
+        // Create the documentation drawer
+        this.documentationDrawer = new DocumentationDrawer(pipDocumentationProvider, functionContext);
+
         val header = buildHeader();
         val main   = buildMain();
         val footer = buildFooter();
         getContent().setSizeFull();
         getContent().getStyle().set("flex-grow", "1");
+
         getContent().add(header);
         getContent().add(main);
         getContent().add(footer);
+        getContent().add(documentationDrawer.getToggleButton());
 
         validIcon.setColor("green");
         invalidIcon.setColor("red");
@@ -204,7 +225,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         layout.setSpacing(false);
 
         val subscriptionHeader = new H3("Authorization Subscription");
-        subscriptionEditor     = createSubscriptionEditor();
+        subscriptionEditor = createSubscriptionEditor();
 
         val bottomLayout = new HorizontalLayout();
         bottomLayout.setWidthFull();
@@ -221,8 +242,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         bottomLayout.add(prettyPrintButton, subscriptionValidationField);
 
         val decisionsHeader = new H3("Decisions");
-        decisionsGrid       = new DecisionsGrid();
-        decisionsView       = decisionsGrid.setItems(decisions);
+        decisionsGrid = new DecisionsGrid();
+        decisionsView = decisionsGrid.setItems(decisions);
 
         decisionsGrid.addSelectionListener(this::decisionSelected);
 
@@ -389,6 +410,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             val report = ReportBuilderUtil.reduceTraceToReport(trace);
             decisionsJsonReportArea.setDocument(report.toPrettyString());
             reportArea.setValue(ReportTextRenderUtil.textReport(report, false, mapper));
+            traceGraphVisualization.setJsonData(trace.toPrettyString());
 
             setErrorAreaContentFromErrors(tracedDecision.getErrorsFromTrace());
         }
@@ -400,6 +422,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         decisionsJsonTraceArea.setDocument("");
         decisionsJsonReportArea.setDocument("");
         reportArea.setValue("");
+        traceGraphVisualization.setJsonData("{}");
     }
 
     private void setErrorAreaContentFromErrors(Collection<Val> errors) {
@@ -454,6 +477,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         tabSheet.add("Report", textReport());
         tabSheet.add("JSON Report", decisionJsonReport());
         tabSheet.add("JSON Trace", decisionJsonTrace());
+        tabSheet.add("Trace Graph", traceGraph());
         return tabSheet;
     }
 
@@ -500,6 +524,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val clipboardButton = clipboardButton(decisionsJsonTraceArea::getDocument);
         layout.add(decisionsJsonTraceArea, clipboardButton);
         return layout;
+    }
+
+    private Component traceGraph() {
+        traceGraphVisualization = new JsonGraphVisualization();
+        traceGraphVisualization.setSizeFull();
+        traceGraphVisualization.setJsonData("{}");
+        return traceGraphVisualization;
     }
 
     private Component textReport() {
@@ -658,7 +689,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             leftTabSheet.remove(tab);
         });
 
-        editor.addValidationFinishedListener(event -> updatePolicyTabValidation(event, icon, label, editor, validationField));
+        editor.addValidationFinishedListener(
+                event -> updatePolicyTabValidation(event, icon, label, editor, validationField));
 
         saplEditorsByTab.put(tab, editor);
         validationFieldsByTab.put(tab, validationField);
@@ -668,7 +700,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         editor.setDocument(DEFAULT_POLICY);
     }
 
-    private void updatePolicyTabValidation(ValidationFinishedEvent event, Icon icon, Span label, SaplEditor editor, TextField validationField) {
+    private void updatePolicyTabValidation(ValidationFinishedEvent event, Icon icon, Span label, SaplEditor editor,
+            TextField validationField) {
         val issues    = event.getIssues();
         val hasErrors = Arrays.stream(issues).anyMatch(issue -> Severity.ERROR == issue.getSeverity());
 
@@ -692,10 +725,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
-    /// Truncates a title to MAX_TITLE_LENGTH characters, adding ellipsis if necessary.
-    ///
-    /// @param title the title to truncate
-    /// @return the truncated title with "..." appended if it exceeds the maximum length
+    /*
+     * Truncates a title to MAX_TITLE_LENGTH characters, adding ellipsis if
+     * necessary.
+     *
+     * @param title the title to truncate
+     *
+     * @return the truncated title with "..." appended if it exceeds the maximum
+     * length
+     */
     private String truncateTitle(String title) {
         if (title == null) {
             return "";
@@ -711,9 +749,30 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         header.addClassName(Gap.MEDIUM);
         header.setWidth("100%");
         header.setHeight("min-content");
+        header.setAlignItems(HorizontalLayout.Alignment.CENTER);
+
         val title = new Span("SAPL Playground");
-        header.add(title);
+        title.getStyle().set("font-size", "var(--lumo-font-size-xl)").set("font-weight", "bold");
+
+        algorithmBox = new ComboBox<>("Combining Algorithm");
+        algorithmBox.setItems(PolicyDocumentCombiningAlgorithm.values());
+        algorithmBox.setItemLabelGenerator(PlaygroundView::algorithmName);
+        algorithmBox.setValue(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES);
+        algorithmBox.addValueChangeListener(this::onAlgorithmChange);
+        algorithmBox.setWidth("20em");
+
+        header.add(title, algorithmBox);
         return header;
+    }
+
+    private void onAlgorithmChange(ValueChangeEvent<PolicyDocumentCombiningAlgorithm> valueChangedEvent) {
+        if (!valueChangedEvent.isFromClient())
+            return;
+        variablesAndCombinatorSource.setCombiningAlgorithm(valueChangedEvent.getValue());
+    }
+
+    private static String algorithmName(PolicyDocumentCombiningAlgorithm algorithm) {
+        return StringUtils.capitalize(algorithm.toString().replace('_', ' ').toLowerCase());
     }
 
     private HorizontalLayout buildFooter() {
