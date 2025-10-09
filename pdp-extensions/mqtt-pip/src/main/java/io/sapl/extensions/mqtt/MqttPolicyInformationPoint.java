@@ -17,8 +17,6 @@
  */
 package io.sapl.extensions.mqtt;
 
-import java.util.Map;
-
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pip.Attribute;
 import io.sapl.api.pip.PolicyInformationPoint;
@@ -26,21 +24,23 @@ import io.sapl.api.validation.Array;
 import io.sapl.api.validation.Int;
 import io.sapl.api.validation.JsonObject;
 import io.sapl.api.validation.Text;
-import lombok.experimental.UtilityClass;
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
 
 /**
  * This policy information point allows the user to receive mqtt messages of
  * subscribed topics from a mqtt broker.
  */
-@UtilityClass
+@RequiredArgsConstructor
 @PolicyInformationPoint(name = MqttPolicyInformationPoint.NAME, description = MqttPolicyInformationPoint.DESCRIPTION)
 public class MqttPolicyInformationPoint {
 
     static final String NAME        = "mqtt";
     static final String DESCRIPTION = "PIP for subscribing to mqtt topics.";
 
-    private static final SaplMqttClient saplMqttClient = new SaplMqttClient();
+    private final SaplMqttClient saplMqttClient;
 
     /**
      * This method returns a reactive stream of mqtt messages of one or many

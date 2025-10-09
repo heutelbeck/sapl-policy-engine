@@ -102,8 +102,8 @@ class MqttPolicyInformationPointIT {
     }
 
     private static EmbeddedPolicyDecisionPoint buildPdp() throws InitializationException {
-        return PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/pipPolicies", List::of,
-                () -> List.of(MqttPolicyInformationPoint.class), List::of, List::of);
+        return PolicyDecisionPointFactory.filesystemPolicyDecisionPoint("src/test/resources/pipPolicies",
+                () -> List.of(new MqttPolicyInformationPoint(new SaplMqttClient())), List::of, List::of, List::of);
     }
 
     private static Mqtt5Publish buildMqttPublishMessage() {

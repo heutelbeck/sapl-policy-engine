@@ -19,6 +19,7 @@ package io.sapl.server.lt;
 
 import java.util.List;
 
+import io.sapl.extensions.mqtt.SaplMqttClient;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
@@ -59,8 +60,8 @@ public class SaplExtensionsConfig {
     }
 
     @Bean
-    StaticPolicyInformationPointSupplier mqttPolicyInformationPoint() {
-        return () -> List.of(MqttPolicyInformationPoint.class);
+    MqttPolicyInformationPoint mqttPolicyInformationPoint() {
+        return new MqttPolicyInformationPoint(new SaplMqttClient());
     }
 
     @Bean

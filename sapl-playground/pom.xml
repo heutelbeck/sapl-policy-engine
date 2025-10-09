@@ -53,6 +53,30 @@
     <dependencies>
         <dependency>
             <groupId>io.sapl</groupId>
+            <artifactId>jwt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>mqtt-functions</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>mqtt-pip</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>input-sanitization-functions</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>geo-traccar</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
+            <artifactId>geo-functions</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.sapl</groupId>
             <artifactId>sapl-pdp-embedded</artifactId>
         </dependency>
         <dependency>
@@ -122,6 +146,7 @@
                     </exclusions>
                 </dependency>
             </dependencies>
+
             <build>
                 <plugins>
                     <plugin>
@@ -137,8 +162,57 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <configuration>
+                            <mainClass>
+                                io.sapl.playground.SAPLPlaygroundApplication</mainClass>
+                            <layout>JAR</layout>
+                            <jvmArguments>
+                                -Xdebug
+                                -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5262</jvmArguments>
+                            <wait>500</wait>
+                            <maxAttempts>240</maxAttempts>
+                            <layers>
+                                <enabled>true</enabled>
+                            </layers>
+                            <excludes>
+                                <exclude>
+                                    <groupId>org.springframework.boot</groupId>
+                                    <artifactId>
+                                        spring-boot-configuration-processor</artifactId>
+                                </exclude>
+                                <exclude>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                </exclude>
+                            </excludes>
+                            <image>
+                                <builder>paketobuildpacks/builder-jammy-tiny</builder>
+                                <name>
+                                    ${docker-registry-url}/${project.artifactId}:${project.version}</name>
+                                <createdDate>now</createdDate>
+                                <tags>
+                                    <tag>
+                                        ${docker-registry-url}/${project.artifactId}:${project.version}</tag>
+                                </tags>
+                                <buildCache>
+                                    <volume>
+                                        <name>cache-${project.artifactId}.build</name>
+                                    </volume>
+                                </buildCache>
+                                <launchCache>
+                                    <volume>
+                                        <name>cache-${project.artifactId}.launch</name>
+                                    </volume>
+                                </launchCache>
+                            </image>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
+
         </profile>
     </profiles>
 </project>

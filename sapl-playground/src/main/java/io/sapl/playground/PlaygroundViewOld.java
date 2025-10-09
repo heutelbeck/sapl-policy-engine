@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.playground.views;
+package io.sapl.playground;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,15 +45,12 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.selection.SelectionEvent;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.TracedDecision;
 import io.sapl.pdp.interceptors.ErrorReportGenerator;
 import io.sapl.pdp.interceptors.ErrorReportGenerator.OutputFormat;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
-import io.sapl.playground.views.playground.DecisionsGrid;
 import io.sapl.vaadin.*;
 import lombok.val;
 
@@ -65,7 +62,7 @@ import java.util.function.Supplier;
 @JsModule("./copytoclipboard.js")
 //@PageTitle("SAPL Playground")
 //@Route(value = "", layout = MainLayout.class)
-public class PlaygroundView2 extends VerticalLayout {
+public class PlaygroundViewOld extends VerticalLayout {
 
     private static final int    MAX_BUFFER_SIZE      = 50;
     private static final int    DEFAULT_BUFFER_SIZE  = 10;
@@ -111,7 +108,7 @@ public class PlaygroundView2 extends VerticalLayout {
     private boolean                             scrollLock;
     private String                              errorReport;
 
-    public PlaygroundView2(ObjectMapper mapper) {
+    public PlaygroundViewOld(ObjectMapper mapper) {
         this.mapper = mapper;
         decisions   = new ArrayList<>();
         buildLayout();

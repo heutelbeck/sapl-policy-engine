@@ -106,7 +106,7 @@ public class SaplMqttClient {
      * @param variables The configuration specified in the PDP configuration file.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
-    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables) {
+    public Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables) {
         return buildSaplMqttMessageFlux(topic, variables, null, Val.UNDEFINED);
     }
 
@@ -121,7 +121,7 @@ public class SaplMqttClient {
      * null.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
-    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables, Val qos) {
+    public Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables, Val qos) {
         return buildSaplMqttMessageFlux(topic, variables, qos, Val.UNDEFINED);
     }
 
@@ -143,7 +143,7 @@ public class SaplMqttClient {
      * null.
      * @return A {@link Flux} of messages of the subscribed topic(s).
      */
-    protected Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables, Val qos, Val mqttPipConfig) {
+    public Flux<Val> buildSaplMqttMessageFlux(Val topic, Map<String, Val> variables, Val qos, Val mqttPipConfig) {
         // building mqtt message flux
         try {
             JsonNode pipMqttClientConfig = null;

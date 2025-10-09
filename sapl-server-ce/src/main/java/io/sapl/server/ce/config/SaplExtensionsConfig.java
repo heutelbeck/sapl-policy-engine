@@ -24,6 +24,7 @@ import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
 import io.sapl.attributes.pips.http.ReactiveWebClient;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
+import io.sapl.extensions.mqtt.SaplMqttClient;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.functions.sanitization.SanitizationFunctionLibrary;
@@ -57,8 +58,13 @@ public class SaplExtensionsConfig {
     }
 
     @Bean
-    StaticPolicyInformationPointSupplier mqttPolicyInformationPoint() {
-        return () -> List.of(MqttPolicyInformationPoint.class);
+    MqttPolicyInformationPoint mqttPolicyInformationPoint() {
+        return new MqttPolicyInformationPoint(new SaplMqttClient());
+    }
+
+    @Bean
+    StaticPolicyInformationPointSupplier staticPips() {
+        return List::of;
     }
 
     @Bean
