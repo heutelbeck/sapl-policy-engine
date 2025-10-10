@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.playground;
+package io.sapl.playground.ui.components;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Html;
@@ -25,9 +25,12 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.spring.annotation.SpringComponent;
+import com.vaadin.flow.spring.annotation.UIScope;
 import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.functions.FunctionContext;
 import io.sapl.interpreter.functions.LibraryDocumentation;
+import io.sapl.playground.domain.MarkdownGenerator;
 import lombok.Getter;
 import lombok.val;
 
@@ -38,6 +41,8 @@ import java.util.Collection;
  * Provides a slide-in drawer for displaying documentation about
  * function libraries and policy information points.
  */
+@UIScope
+@SpringComponent
 public class DocumentationDrawer implements Serializable {
 
     private final Dialog drawer;

@@ -27,8 +27,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @Push
 @SpringBootApplication
 @Theme(value = "sapl", variant = Lumo.DARK)
-public class SAPLPlaygroundApplication implements AppShellConfigurator {
+public class PlaygroundApplication implements AppShellConfigurator {
     public static void main(String[] args) {
-        SpringApplication.run(SAPLPlaygroundApplication.class, args);
+        SpringApplication.run(PlaygroundApplication.class, args);
     }
 }

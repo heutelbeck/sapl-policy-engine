@@ -15,13 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.playground;
+package io.sapl.playground.domain;
 
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 import io.sapl.interpreter.functions.LibraryDocumentation;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 @UtilityClass
 public class MarkdownGenerator {
@@ -36,15 +37,15 @@ public class MarkdownGenerator {
      * @return markdown-formatted documentation string
      */
     public String generateMarkdownForLibrary(LibraryDocumentation documentation) {
-        final var sb = new StringBuilder();
+        val sb = new StringBuilder();
         sb.append("# ").append(documentation.getName()).append("\n\n");
         sb.append(documentation.getDescription()).append("\n\n");
         sb.append(documentation.getLibraryDocumentation()).append("\n\n");
         sb.append("---\n\n");
 
         for (var entry : documentation.getDocumentation().entrySet()) {
-            final var name = entry.getKey();
-            final var docs = entry.getValue();
+            val name = entry.getKey();
+            val docs = entry.getValue();
             sb.append("## ").append(name).append("\n\n");
             sb.append(docs).append("\n\n---\n\n");
         }
@@ -60,15 +61,15 @@ public class MarkdownGenerator {
      */
     public String generateMarkdownForPolicyInformationPoint(
             io.sapl.attributes.documentation.api.LibraryDocumentation documentation) {
-        final var sb = new StringBuilder();
+        val sb = new StringBuilder();
         sb.append("# ").append(documentation.namespace()).append("\n\n");
         sb.append(documentation.descriptionMarkdown()).append("\n\n");
         sb.append(documentation.documentationMarkdown()).append("\n\n");
         sb.append("---\n\n");
 
         for (var entry : documentation.attributesMap().entrySet()) {
-            final var name = entry.getKey();
-            final var docs = entry.getValue();
+            val name = entry.getKey();
+            val docs = entry.getValue();
             sb.append("## ").append(name).append("\n\n");
             sb.append(docs).append("\n\n---\n\n");
         }
@@ -83,7 +84,7 @@ public class MarkdownGenerator {
      * @return HTML string
      */
     public String markdownToHtml(@NonNull String markdown) {
-        final var document = PARSER.parse(markdown);
+        val document = PARSER.parse(markdown);
         return RENDERER.render(document);
     }
 

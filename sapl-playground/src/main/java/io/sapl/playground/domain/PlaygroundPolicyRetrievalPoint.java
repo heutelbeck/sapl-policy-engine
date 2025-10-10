@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.playground;
+package io.sapl.playground.domain;
 
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.Document;

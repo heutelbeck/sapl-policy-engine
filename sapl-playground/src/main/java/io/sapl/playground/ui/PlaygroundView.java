@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.playground;
+package io.sapl.playground.ui;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,20 +52,19 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility.Gap;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.TracedDecision;
-import io.sapl.attributes.broker.api.AttributeStreamBroker;
-import io.sapl.attributes.documentation.api.PolicyInformationPointDocumentationProvider;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
-import io.sapl.interpreter.functions.FunctionContext;
-import io.sapl.pdp.EmbeddedPolicyDecisionPoint;
-import io.sapl.pdp.config.fixed.FixedFunctionsAndAttributesPDPConfigurationProvider;
 import io.sapl.pdp.interceptors.ErrorReportGenerator;
 import io.sapl.pdp.interceptors.ErrorReportGenerator.OutputFormat;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
+import io.sapl.playground.domain.PlaygroundPolicyDecisionPoint;
+import io.sapl.playground.domain.PlaygroundValidator;
+import io.sapl.playground.domain.ValidationResult;
+import io.sapl.playground.ui.components.DecisionsGrid;
+import io.sapl.playground.ui.components.DocumentationDrawer;
 import io.sapl.vaadin.*;
 import io.sapl.vaadin.graph.JsonGraphVisualization;
 import lombok.extern.slf4j.Slf4j;
@@ -77,7 +76,6 @@ import reactor.core.Disposable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -91,42 +89,28 @@ import java.util.stream.Collectors;
 @JsModule("./copytoclipboard.js")
 public class PlaygroundView extends Composite<VerticalLayout> {
 
-    // Buffer configuration
     private static final int MAX_BUFFER_SIZE     = 50;
     private static final int DEFAULT_BUFFER_SIZE = 10;
 
-    // Resource limits
     private static final int MAX_POLICY_TABS         = 20;
-    private static final int MAX_DOCUMENT_SIZE_BYTES = 1_000_000; // 1MB
-    private static final int MAX_CLIPBOARD_SIZE      = 10_000_000; // 10MB
+    private static final int MAX_DOCUMENT_SIZE_BYTES = 1_000_000;
+    private static final int MAX_CLIPBOARD_SIZE      = 10_000_000;
 
-    // Variable validation
-    private static final int     MAX_VARIABLE_NAME_LENGTH = 100;
-    private static final Pattern VALID_VARIABLE_NAME      = Pattern.compile("[a-zA-Z_]\\w*");
-
-    // UI configuration
     private static final int    MAX_TITLE_LENGTH        = 15;
     private static final String UNKNOWN_POLICY_NAME     = "unknown";
     private static final String EDITOR_CONFIGURATION_ID = "playground";
     private static final double LEFT_PANEL_WIDTH        = 30.0D;
     private static final double DECISIONS_PANEL_HEIGHT  = 40.0D;
 
-    // Color constants
     private static final String COLOR_GREEN  = "green";
     private static final String COLOR_RED    = "red";
     private static final String COLOR_ORANGE = "orange";
 
-    // Spacing constants
     private static final String SPACING_HALF_EM = "0.5em";
 
-    // CSS property names
     private static final String CSS_MARGIN_RIGHT = "margin-right";
     private static final String CSS_MARGIN_LEFT  = "margin-left";
 
-    // Mandatory subscription fields
-    private static final List<String> MANDATORY_SUBSCRIPTION_FIELDS = List.of("subject", "action", "resource");
-
-    // Default content templates
     private static final String DEFAULT_SUBSCRIPTION = """
             {
                "subject"     : { "role": "doctor", "department": "cardiology"},
@@ -159,26 +143,21 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      */
     private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-    // Core services
-    private final transient ObjectMapper                           mapper;
-    private final transient PlaygroundVariablesAndCombinatorSource variablesAndCombinatorSource = new PlaygroundVariablesAndCombinatorSource();
-    private final transient PlaygroundPolicyRetrievalPointSource   policyRetrievalPointSource;
-    private final transient PolicyDecisionPoint                    policyDecisionPoint;
+    private final transient ObjectMapper                  mapper;
+    private final transient PlaygroundValidator           validator;
+    private final transient DocumentationDrawer           documentationDrawer;
+    private final transient PlaygroundPolicyDecisionPoint policyDecisionPoint;
 
-    // Decision buffer - transient to prevent serialization issues
     private final transient ArrayList<TracedDecision> decisionBuffer = new ArrayList<>(MAX_BUFFER_SIZE);
 
-    // Left panel components
     private TabSheet   leftTabSheet;
     private Tab        variablesTab;
     private JsonEditor variablesEditor;
     private TextField  variablesValidationField;
 
-    // Right panel - subscription components
     private JsonEditor subscriptionEditor;
     private TextField  subscriptionValidationField;
 
-    // Right panel - decisions components
     private Button                           playStopButton;
     private Button                           scrollLockButton;
     private IntegerField                     bufferSizeField;
@@ -186,7 +165,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private GridListDataView<TracedDecision> decisionsGridView;
     private Checkbox                         clearOnNewSubscriptionCheckBox;
 
-    // Decision details components
     private JsonEditor             decisionJsonEditor;
     private JsonEditor             decisionJsonReportEditor;
     private JsonEditor             decisionJsonTraceEditor;
@@ -194,16 +172,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Div                    errorsDisplayArea;
     private TextArea               reportTextArea;
 
-    // Documentation drawer
-    private final transient DocumentationDrawer documentationDrawer;
-
-    // State - volatile for thread visibility
     private boolean              isScrollLockActive;
     private String               currentErrorReportText;
     private volatile boolean     isSubscriptionActive = false;
     private transient Disposable activeSubscription;
 
-    // Policy tab management
     private final Map<Tab, PolicyTabContext> policyTabContexts = new HashMap<>();
     private final AtomicInteger              policyTabCounter  = new AtomicInteger(1);
 
@@ -252,16 +225,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     public PlaygroundView(ObjectMapper mapper,
-            AttributeStreamBroker attributeStreamBroker,
-            FunctionContext functionContext,
-            PolicyInformationPointDocumentationProvider pipDocumentationProvider) {
-        this.mapper                     = mapper;
-        this.policyRetrievalPointSource = new PlaygroundPolicyRetrievalPointSource(INTERPRETER);
-        val pdpConfigurationProvider = new FixedFunctionsAndAttributesPDPConfigurationProvider(attributeStreamBroker,
-                functionContext, variablesAndCombinatorSource, List.of(), List.of(this::interceptDecision),
-                policyRetrievalPointSource);
-        this.policyDecisionPoint = new EmbeddedPolicyDecisionPoint(pdpConfigurationProvider);
-        this.documentationDrawer = new DocumentationDrawer(pipDocumentationProvider, functionContext);
+            PlaygroundPolicyDecisionPoint policyDecisionPoint,
+            PlaygroundValidator validator,
+            DocumentationDrawer documentationDrawer) {
+        this.mapper              = mapper;
+        this.validator           = validator;
+        this.policyDecisionPoint = policyDecisionPoint;
+        this.documentationDrawer = documentationDrawer;
 
         buildAndAddComponents();
         initializeDefaultValues();
@@ -275,8 +245,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      */
     private void cleanup() {
         stopSubscription();
-        this.variablesAndCombinatorSource.destroy();
-        this.policyRetrievalPointSource.dispose();
     }
 
     /**
@@ -308,11 +276,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Rate limiting is handled by PIP layer (max 1 update/second).
      *
      * @param tracedDecision the decision to intercept
-     * @return the same decision (pass-through interceptor)
      */
-    private TracedDecision interceptDecision(final TracedDecision tracedDecision) {
+    private void interceptDecision(final TracedDecision tracedDecision) {
         getUI().ifPresent(ui -> ui.access(() -> handleNewDecision(tracedDecision)));
-        return tracedDecision;
     }
 
     /**
@@ -489,7 +455,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             return;
         }
 
-        validateAuthorizationSubscription(event.getNewValue(), subscriptionValidationField);
+        val validationResult = validator.validateAuthorizationSubscription(event.getNewValue());
+        updateValidationField(subscriptionValidationField, validationResult);
 
         if (shouldClearDecisionsOnChange()) {
             clearDecisionBuffer();
@@ -545,102 +512,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         if (isSubscriptionActive) {
             subscribe();
         }
-    }
-
-    /**
-     * Validates variables JSON document and updates the validation field.
-     * Checks JSON structure, variable name validity, and name length.
-     *
-     * @param jsonContent the JSON string to validate
-     * @param validationField the field to update with validation status
-     * @return true if validation succeeded, false otherwise
-     */
-    private boolean validateVariablesJson(String jsonContent, TextField validationField) {
-        try {
-            val jsonNode = mapper.readTree(jsonContent);
-            if (!jsonNode.isObject()) {
-                updateValidationField(validationField, createInvalidIcon(), "Must be a JSON Object");
-                return false;
-            }
-
-            // Validate variable names
-            val invalidNameCount = new AtomicInteger(0);
-            jsonNode.fieldNames().forEachRemaining(name -> {
-                if (name.length() > MAX_VARIABLE_NAME_LENGTH) {
-                    invalidNameCount.incrementAndGet();
-                } else if (!VALID_VARIABLE_NAME.matcher(name).matches()) {
-                    invalidNameCount.incrementAndGet();
-                }
-            });
-
-            if (invalidNameCount.get() > 0) {
-                val message = "Invalid variable names found: " + invalidNameCount.get() + " error(s)";
-                updateValidationField(validationField, createInvalidIcon(), message);
-                return false;
-            }
-
-            updateValidationField(validationField, createValidIcon(), "OK");
-            return true;
-        } catch (JsonProcessingException exception) {
-            updateValidationField(validationField, createInvalidIcon(), "Invalid JSON. Last valid will be used.");
-            return false;
-        }
-    }
-
-    /**
-     * Validates authorization subscription JSON and checks for mandatory fields.
-     *
-     * @param jsonContent the JSON string to validate
-     * @param validationField the field to update with validation status
-     */
-    private void validateAuthorizationSubscription(String jsonContent, TextField validationField) {
-        try {
-            val jsonNode = mapper.readTree(jsonContent);
-
-            if (!jsonNode.isObject()) {
-                updateValidationField(validationField, createInvalidIcon(), "Must be a JSON Object");
-                return;
-            }
-
-            val missingFields = findMissingMandatoryFields(jsonNode);
-            if (!missingFields.isEmpty()) {
-                val message = "Missing mandatory fields: " + String.join(", ", missingFields);
-                updateValidationField(validationField, createInvalidIcon(), message);
-                return;
-            }
-
-            updateValidationField(validationField, createValidIcon(), "OK");
-        } catch (Exception exception) {
-            updateValidationField(validationField, createInvalidIcon(), "Invalid Authorization Subscription.");
-        }
-    }
-
-    /**
-     * Finds missing mandatory fields in a subscription JSON node.
-     *
-     * @param jsonNode the JSON node to check
-     * @return list of missing field names
-     */
-    private List<String> findMissingMandatoryFields(com.fasterxml.jackson.databind.JsonNode jsonNode) {
-        val missingFields = new ArrayList<String>();
-        for (val mandatoryField : MANDATORY_SUBSCRIPTION_FIELDS) {
-            if (jsonNode.get(mandatoryField) == null) {
-                missingFields.add(mandatoryField);
-            }
-        }
-        return missingFields;
-    }
-
-    /**
-     * Updates a validation field with status icon and message.
-     *
-     * @param field the validation field to update
-     * @param icon the icon to display
-     * @param message the message to display
-     */
-    private void updateValidationField(TextField field, Icon icon, String message) {
-        field.setPrefixComponent(icon);
-        field.setValue(message);
     }
 
     /**
@@ -802,18 +673,17 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 return;
             }
 
-            activeSubscription = policyDecisionPoint.decide(authorizationSubscription).subscribe(decision -> {
-                // Decisions are processed via interceptor
-            }, error -> {
-                log.error("Error in PDP subscription", error);
-                getUI().ifPresent(ui -> ui.access(() -> {
-                    stopSubscription();
-                    showNotification("Subscription error: " + error.getMessage());
-                }));
-            }, () -> {
-                log.debug("PDP subscription completed");
-                activeSubscription = null;
-            });
+            activeSubscription = policyDecisionPoint.decide(authorizationSubscription)
+                    .subscribe(this::interceptDecision, error -> {
+                        log.error("Error in PDP subscription", error);
+                        getUI().ifPresent(ui -> ui.access(() -> {
+                            stopSubscription();
+                            showNotification("Subscription error: " + error.getMessage());
+                        }));
+                    }, () -> {
+                        log.debug("PDP subscription completed");
+                        activeSubscription = null;
+                    });
         } catch (Exception exception) {
             log.error("Failed to create subscription", exception);
             stopSubscription();
@@ -1253,8 +1123,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             return;
         }
 
-        if (validateVariablesJson(event.getNewValue(), variablesValidationField)) {
-            variablesAndCombinatorSource.setVariables(parseVariablesFromJson(event.getNewValue()));
+        val validationResult = validator.validateVariablesJson(event.getNewValue());
+        updateValidationField(variablesValidationField, validationResult);
+
+        if (validationResult.isValid()) {
+            this.policyDecisionPoint.setVariables(parseVariablesFromJson(event.getNewValue()));
         }
     }
 
@@ -1271,12 +1144,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             val variables       = new HashMap<String, Val>(variablesObject.size());
 
             variablesObject.forEachEntry((name, value) -> {
-                if (name.length() > MAX_VARIABLE_NAME_LENGTH) {
-                    log.warn("Variable name exceeds maximum length, skipping: {}", name.substring(0, 50));
-                    return;
-                }
-                if (!VALID_VARIABLE_NAME.matcher(name).matches()) {
-                    log.warn("Invalid variable name format, skipping: {}", name);
+                if (!PlaygroundValidator.isValidVariableName(name)) {
+                    log.warn("Invalid variable name, skipping: {}", name);
                     return;
                 }
                 variables.put(name, Val.of(value));
@@ -1382,7 +1251,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         val tab = new Tab(tabContent);
 
-        // Store context before adding close listener - use safe component extraction
         val editor          = getComponentSafely(editorLayout, 0, SaplEditor.class);
         val validationField = getComponentSafely(editorLayout, 1, TextField.class);
         val context         = new PolicyTabContext(editor, validationField, statusIcon, titleLabel);
@@ -1436,7 +1304,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private void handlePolicyValidation(PolicyTabContext context, ValidationFinishedEvent event) {
         val document = context.editor.getDocument();
 
-        // Validate document size before parsing to prevent memory/CPU exhaustion
         if (hasInvalidDocumentSize(document, "Policy")) {
             setErrorValidationState(context, 1);
             updateValidationField(context.validationField, createInvalidIcon(), "Document too large");
@@ -1482,7 +1349,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      */
     private void updatePolicyRetrievalPoint() {
         val documents = collectAllPolicyDocuments();
-        policyRetrievalPointSource.updatePrp(documents);
+        this.policyDecisionPoint.updatePrp(documents);
     }
 
     /**
@@ -1495,7 +1362,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         if (!parsedDocument.isInvalid()) {
             context.documentName = parsedDocument.name();
         }
-        // Keep existing name if parsing fails
         context.titleLabel.setText(truncateTitle(context.documentName));
     }
 
@@ -1693,7 +1559,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * @param event the value change event
      */
     private void handleAlgorithmChange(ValueChangeEvent<PolicyDocumentCombiningAlgorithm> event) {
-        variablesAndCombinatorSource.setCombiningAlgorithm(event.getValue());
+        this.policyDecisionPoint.setCombiningAlgorithm(event.getValue());
     }
 
     /**
@@ -1744,8 +1610,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         config.setHasLineNumbers(hasLineNumbers);
         config.setTextUpdateDelay(textUpdateDelay);
         config.setDarkTheme(true);
-        config.setReadOnly(!hasLineNumbers); // Editable only if it has line numbers
-        config.setLint(hasLineNumbers); // Lint only for editable editors
+        config.setReadOnly(!hasLineNumbers);
+        config.setLint(hasLineNumbers);
         return new JsonEditor(config);
     }
 
@@ -1780,6 +1646,34 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val icon = VaadinIcon.WARNING.create();
         icon.setColor(COLOR_ORANGE);
         return icon;
+    }
+
+    /**
+     * Updates a validation field with a validation result.
+     *
+     * @param field the validation field to update
+     * @param result the validation result
+     */
+    private void updateValidationField(TextField field, ValidationResult result) {
+        val icon = switch (result.severity()) {
+        case SUCCESS -> createValidIcon();
+        case ERROR   -> createInvalidIcon();
+        case WARNING -> createCollisionIcon();
+        };
+        field.setPrefixComponent(icon);
+        field.setValue(result.message());
+    }
+
+    /**
+     * Updates a validation field with status icon and message.
+     *
+     * @param field the validation field to update
+     * @param icon the icon to display
+     * @param message the message to display
+     */
+    private void updateValidationField(TextField field, Icon icon, String message) {
+        field.setPrefixComponent(icon);
+        field.setValue(message);
     }
 
 }
