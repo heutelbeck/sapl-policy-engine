@@ -20,14 +20,8 @@ package io.sapl.playground.ui;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
-import com.vaadin.flow.component.AttachEvent;
-import com.vaadin.flow.component.ClientCallable;
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.Composite;
-import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.HasValue.ValueChangeEvent;
-import com.vaadin.flow.component.Text;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -58,10 +52,8 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.selection.SelectionEvent;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility.Gap;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.TracedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -70,14 +62,8 @@ import io.sapl.pdp.interceptors.ErrorReportGenerator;
 import io.sapl.pdp.interceptors.ErrorReportGenerator.OutputFormat;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
-import io.sapl.playground.domain.Example;
-import io.sapl.playground.domain.ExampleCategory;
-import io.sapl.playground.domain.PermalinkService;
 import io.sapl.playground.config.PermalinkConfiguration;
-import io.sapl.playground.domain.PlaygroundExamples;
-import io.sapl.playground.domain.PlaygroundPolicyDecisionPoint;
-import io.sapl.playground.domain.PlaygroundValidator;
-import io.sapl.playground.domain.ValidationResult;
+import io.sapl.playground.domain.*;
 import io.sapl.playground.ui.components.DecisionsGrid;
 import io.sapl.playground.ui.components.DocumentationDrawer;
 import io.sapl.vaadin.*;
@@ -105,11 +91,14 @@ import java.util.stream.Collectors;
 public class PlaygroundView extends Composite<VerticalLayout> {
 
     private static final int DEFAULT_BUFFER_SIZE     = 10;
+    private static final int EXAMPLE_PREFIX_LENGTH   = 8;
     private static final int MAX_BUFFER_SIZE         = 50;
     private static final int MAX_CLIPBOARD_SIZE      = 10_000_000;
     private static final int MAX_DOCUMENT_SIZE_BYTES = 1_000_000;
+    private static final int MAX_FRAGMENT_LENGTH     = 64_000;
     private static final int MAX_POLICY_TABS         = 20;
     private static final int MAX_TITLE_LENGTH        = 15;
+    private static final int PERMALINK_PREFIX_LENGTH = 10;
 
     private static final double DECISIONS_PANEL_HEIGHT = 40.0D;
     private static final double LEFT_PANEL_WIDTH       = 66.67D;
@@ -156,16 +145,17 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String CSS_VALUE_MONOSPACE           = "monospace";
     private static final String CSS_VALUE_ONE                 = "1";
     private static final String CSS_VALUE_ONE_EM              = "1em";
+    private static final String CSS_VALUE_PADDING_BOTTOM_XS   = "0 0 var(--lumo-space-xs) 0";
     private static final String CSS_VALUE_PRE_WRAP            = "pre-wrap";
     private static final String CSS_VALUE_SIZE_0_25EM         = "0.25em";
     private static final String CSS_VALUE_SIZE_0_875EM        = "0.875em";
     private static final String CSS_VALUE_SIZE_100            = "100";
     private static final String CSS_VALUE_SIZE_100PCT         = "100%";
     private static final String CSS_VALUE_SIZE_15PX           = "15px";
+    private static final String CSS_VALUE_SIZE_16EM           = "16em";
     private static final String CSS_VALUE_SIZE_200PX          = "200px";
     private static final String CSS_VALUE_SIZE_25PX           = "25px";
     private static final String CSS_VALUE_SIZE_2_5EM          = "2.5em";
-    private static final String CSS_VALUE_SIZE_600            = "600";
     private static final String CSS_VALUE_SIZE_600PX          = "600px";
     private static final String CSS_VALUE_SPACE_M             = "var(--lumo-space-m)";
     private static final String CSS_VALUE_SPACE_S             = "var(--lumo-space-s)";
@@ -200,7 +190,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String LABEL_COMBINING_ALGORITHM        = "Combining Algorithm";
     private static final String LABEL_COPY_TO_CLIPBOARD          = "Copy to Clipboard";
     private static final String LABEL_DECISIONS                  = "Decisions";
-    private static final String LABEL_DOCUMENTATION              = "Documentation";
     private static final String LABEL_ERRORS                     = "Errors";
     private static final String LABEL_EXAMPLES                   = "Examples";
     private static final String LABEL_FORMAT_JSON                = "Format JSON";
@@ -258,7 +247,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String TOOLTIP_COPY_TO_CLIPBOARD     = "Copy to clipboard.";
     private static final String TOOLTIP_CREATE_SHAREABLE_LINK = "Create shareable link";
     private static final String TOOLTIP_FORMAT_JSON           = "Format JSON.";
-    private static final String TOOLTIP_OPEN_DOCUMENTATION    = "Open Documentation (Ctrl+/)";
     private static final String TOOLTIP_SCROLL_LOCK_ACTIVE    = "Scroll Lock active. Click to start automatically scrolling to last decision made.";
     private static final String TOOLTIP_SCROLL_LOCK_INACTIVE  = "Scroll Lock inactive. Click to stop automatically scrolling to last decision made.";
     private static final String TOOLTIP_START_SUBSCRIBING     = "Start subscribing with authorization subscription.";
@@ -267,26 +255,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String URL_SAPL_HOMEPAGE = "https://sapl.io";
     private static final String URL_HASH_PREFIX   = "#permalink/";
 
-    private static final String DEFAULT_SUBSCRIPTION = """
-            {
-               "subject"     : { "role": "doctor", "department": "cardiology"},
-               "action"      : "read",
-               "resource"    : { "type": "patient_record", "department": "cardiology" },
-               "environment" : null
-            }
-            """;
-
     private static final String DEFAULT_POLICY = """
             policy "new policy %d"
             permit false
-            """;
-
-    private static final String DEFAULT_VARIABLES = """
-            {
-              "variable1" : "value1",
-              "variable2" : 123,
-              "systemMode" : "staging"
-            }
             """;
 
     private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
@@ -335,14 +306,31 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     /**
      * Container for policy tab components and state.
+     * Maintains references to UI components and document metadata for each policy
+     * tab.
+     * Used to coordinate updates between the editor, validation display, and tab
+     * title.
      */
     private static class PolicyTabContext {
+        /** SAPL policy editor component */
         SaplEditor editor;
+        /** Validation feedback text field */
         TextField  validationField;
+        /** Visual status indicator icon (check/error/warning) */
         Icon       statusIcon;
+        /** Tab title label displaying policy name */
         Span       titleLabel;
+        /** Parsed policy document name from SAPL content */
         String     documentName;
 
+        /**
+         * Creates a new policy tab context with the specified components.
+         *
+         * @param editor the SAPL editor component
+         * @param validationField the validation feedback field
+         * @param statusIcon the status indicator icon
+         * @param titleLabel the tab title label
+         */
         PolicyTabContext(SaplEditor editor, TextField validationField, Icon statusIcon, Span titleLabel) {
             this.editor          = editor;
             this.validationField = validationField;
@@ -416,6 +404,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     /**
      * Builds the main component structure and adds to the view.
+     * Creates header, main content area, and documentation drawer toggle.
+     * Initializes scroll lock state.
      */
     private void buildAndAddComponents() {
         val header = buildHeader();
@@ -536,7 +526,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         subscriptionValidationField.setWidthFull();
 
         val header = new H5(LABEL_AUTHORIZATION_SUBSCRIPTION);
-        header.getStyle().set(CSS_MARGIN, CSS_VALUE_ONE).set(CSS_PADDING, "0 0 " + CSS_VALUE_SPACE_XS + " 0")
+        header.getStyle().set(CSS_MARGIN, CSS_VALUE_ONE).set(CSS_PADDING, CSS_VALUE_PADDING_BOTTOM_XS)
                 .set(CSS_BORDER_BOTTOM, CSS_VALUE_CONTRAST_10PCT_LINE);
 
         subscriptionEditor = createSubscriptionEditor();
@@ -577,7 +567,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         container.getStyle().set(CSS_PADDING, CSS_VALUE_SPACE_M);
 
         val header = new H5(LABEL_DECISIONS);
-        header.getStyle().set(CSS_MARGIN, CSS_VALUE_ONE).set(CSS_PADDING, "0 0 " + CSS_VALUE_SPACE_XS + " 0")
+        header.getStyle().set(CSS_MARGIN, CSS_VALUE_ONE).set(CSS_PADDING, CSS_VALUE_PADDING_BOTTOM_XS)
                 .set(CSS_BORDER_BOTTOM, CSS_VALUE_CONTRAST_10PCT_LINE);
 
         decisionsGrid     = new DecisionsGrid();
@@ -825,36 +815,59 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     /**
      * Subscribes to PDP for authorization decisions.
+     * Creates a new subscription to the policy decision point with the current
+     * authorization subscription. Handles errors and completion gracefully.
      */
     private void subscribe() {
+        disposeExistingSubscription();
+
+        val authorizationSubscription = parseAuthorizationSubscriptionFromEditor();
+        if (authorizationSubscription == null) {
+            showNotification(MESSAGE_INVALID_SUBSCRIPTION);
+            stopSubscription();
+            return;
+        }
+
         try {
-            if (activeSubscription != null && !activeSubscription.isDisposed()) {
-                activeSubscription.dispose();
-            }
-
-            val authorizationSubscription = parseAuthorizationSubscriptionFromEditor();
-            if (authorizationSubscription == null) {
-                showNotification(MESSAGE_INVALID_SUBSCRIPTION);
-                stopSubscription();
-                return;
-            }
-
-            activeSubscription = policyDecisionPoint.decide(authorizationSubscription)
-                    .subscribe(this::interceptDecision, error -> {
-                        log.error("Error in PDP subscription", error);
-                        getUI().ifPresent(ui -> ui.access(() -> {
-                            stopSubscription();
-                            showNotification(MESSAGE_SUBSCRIPTION_ERROR + error.getMessage());
-                        }));
-                    }, () -> {
-                        log.debug("PDP subscription completed");
-                        activeSubscription = null;
-                    });
-        } catch (Exception exception) {
+            activeSubscription = policyDecisionPoint.decide(authorizationSubscription).subscribe(
+                    this::interceptDecision, this::handleSubscriptionError, this::handleSubscriptionComplete);
+        } catch (IllegalStateException | IllegalArgumentException exception) {
             log.error("Failed to create subscription", exception);
             stopSubscription();
             showNotification(MESSAGE_FAILED_SUBSCRIBE + exception.getMessage());
         }
+    }
+
+    /**
+     * Disposes of existing subscription if present.
+     */
+    private void disposeExistingSubscription() {
+        if (activeSubscription != null && !activeSubscription.isDisposed()) {
+            activeSubscription.dispose();
+        }
+    }
+
+    /**
+     * Handles subscription errors from the PDP.
+     * Logs error and updates UI to inform user.
+     *
+     * @param error the subscription error
+     */
+    private void handleSubscriptionError(Throwable error) {
+        log.error("Error in PDP subscription", error);
+        getUI().ifPresent(userInterface -> userInterface.access(() -> {
+            stopSubscription();
+            showNotification(MESSAGE_SUBSCRIPTION_ERROR + error.getMessage());
+        }));
+    }
+
+    /**
+     * Handles subscription completion from the PDP.
+     * Cleans up subscription reference.
+     */
+    private void handleSubscriptionComplete() {
+        log.debug("PDP subscription completed");
+        activeSubscription = null;
     }
 
     /**
@@ -1284,7 +1297,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * @param event the document change event
      */
     private void handleVariablesDocumentChanged(DocumentChangedEvent event) {
-        if (hasInvalidDocumentSize(event.getNewValue(), "Variables")) {
+        if (hasInvalidDocumentSize(event.getNewValue(), LABEL_VARIABLES)) {
             return;
         }
 
@@ -1512,6 +1525,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     /**
      * Updates the policy retrieval point with current policies.
+     * Collects all policy documents from tabs and updates the PDP's policy store.
+     * Called whenever policies change (added, removed, or edited).
      */
     private void updatePolicyRetrievalPoint() {
         val documents = collectAllPolicyDocuments();
@@ -1556,6 +1571,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     /**
      * Checks for and displays policy name collisions.
+     * Groups policies by document name and identifies duplicates.
+     * Updates validation state for all tabs - showing warnings for collisions
+     * and restoring normal state for unique names.
+     * Name collisions can cause ambiguity in policy evaluation.
      */
     private void checkForPolicyNameCollisions() {
         val documentNamesToTabs = groupTabsByDocumentName();
@@ -1826,7 +1845,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         comboBox.setItems(PolicyDocumentCombiningAlgorithm.values());
         comboBox.setItemLabelGenerator(PlaygroundView::formatAlgorithmName);
         comboBox.addValueChangeListener(this::handleAlgorithmChange);
-        comboBox.setWidth("16em");
+        comboBox.setWidth(CSS_VALUE_SIZE_16EM);
         comboBox.setValue(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES);
         return comboBox;
     }
@@ -1884,12 +1903,43 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /**
      * Handles hash change events from the browser.
      * Called via JavaScript when the URL fragment changes.
+     * Validates input to prevent XSS/injection attacks.
+     * Modern browsers support hash fragments up to 64KB safely.
      *
      * @param fragment the new URL fragment without the # prefix
      */
     @ClientCallable
     public void handleHashChange(String fragment) {
+        if (!isValidFragment(fragment)) {
+            return;
+        }
+
         processFragment(fragment);
+    }
+
+    /**
+     * Validates a URL fragment for security and length constraints.
+     * Checks for null, empty, excessive length, and invalid characters.
+     *
+     * @param fragment the fragment to validate
+     * @return true if valid, false otherwise
+     */
+    private boolean isValidFragment(String fragment) {
+        if (fragment == null || fragment.isEmpty()) {
+            return false;
+        }
+
+        if (fragment.length() > MAX_FRAGMENT_LENGTH) {
+            log.warn("Fragment exceeds maximum length: {}", fragment.length());
+            return false;
+        }
+
+        if (!fragment.matches("^[a-zA-Z0-9/_-]*$")) {
+            log.warn("Fragment contains invalid characters");
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -1900,10 +1950,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private void processFragment(String fragment) {
         if (fragment != null && !fragment.isEmpty()) {
             if (fragment.startsWith(FRAGMENT_PREFIX_EXAMPLE)) {
-                val slug = fragment.substring(8);
+                val slug = fragment.substring(EXAMPLE_PREFIX_LENGTH);
                 loadExampleBySlugWithoutConfirmation(slug);
             } else if (fragment.startsWith(FRAGMENT_PREFIX_PERMALINK)) {
-                val encoded = fragment.substring(10);
+                val encoded = fragment.substring(PERMALINK_PREFIX_LENGTH);
                 loadPermalinkState(encoded);
             }
         }
@@ -1969,7 +2019,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         if (selectedPolicyIndex != null && selectedPolicyIndex >= 0 && selectedPolicyIndex < createdTabs.size()) {
             tabToSelect = createdTabs.get(selectedPolicyIndex);
         } else {
-            tabToSelect = createdTabs.get(0);
+            tabToSelect = createdTabs.getFirst();
         }
 
         leftTabSheet.setSelectedTab(tabToSelect);
@@ -2027,7 +2077,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
 
         if (!createdTabs.isEmpty()) {
-            leftTabSheet.setSelectedTab(createdTabs.get(0));
+            leftTabSheet.setSelectedTab(createdTabs.getFirst());
         }
 
         setCombiningAlgorithmQuietly(example.combiningAlgorithm());
