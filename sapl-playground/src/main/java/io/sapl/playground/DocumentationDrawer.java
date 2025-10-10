@@ -47,9 +47,9 @@ public class DocumentationDrawer implements Serializable {
      * @return the toggle button component
      */
     @Getter
-    private final Button                                      toggleButton;
-    private final PolicyInformationPointDocumentationProvider pipDocumentationProvider;
-    private final FunctionContext                             functionContext;
+    private final Button                                                toggleButton;
+    private final transient PolicyInformationPointDocumentationProvider pipDocumentationProvider;
+    private final transient FunctionContext                             functionContext;
 
     public DocumentationDrawer(PolicyInformationPointDocumentationProvider pipDocumentationProvider,
             FunctionContext functionContext) {

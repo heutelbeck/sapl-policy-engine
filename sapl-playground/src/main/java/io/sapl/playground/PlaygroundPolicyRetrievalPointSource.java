@@ -21,14 +21,12 @@ import io.sapl.interpreter.SAPLInterpreter;
 import io.sapl.prp.PolicyRetrievalPoint;
 import io.sapl.prp.PolicyRetrievalPointSource;
 import jakarta.annotation.PreDestroy;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import java.util.List;
 
-@Slf4j
 public class PlaygroundPolicyRetrievalPointSource implements PolicyRetrievalPointSource {
 
     private final SAPLInterpreter parser;

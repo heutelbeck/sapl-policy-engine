@@ -21,14 +21,12 @@ import io.sapl.api.interpreter.Val;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
 import io.sapl.pdp.config.VariablesAndCombinatorSource;
 import jakarta.annotation.PreDestroy;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import java.util.Map;
 import java.util.Optional;
 
-@Slf4j
 public class PlaygroundVariablesAndCombinatorSource implements VariablesAndCombinatorSource {
 
     private final Sinks.Many<Optional<PolicyDocumentCombiningAlgorithm>> combiningAlgorithmSink;
@@ -48,12 +46,10 @@ public class PlaygroundVariablesAndCombinatorSource implements VariablesAndCombi
     }
 
     public void setCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {
-        log.error("A - update algorithm");
         combiningAlgorithmSink.tryEmitNext(Optional.ofNullable(algorithm));
     }
 
     public void setVariables(Map<String, Val> variables) {
-        log.error("A - update variables");
         variablesSink.tryEmitNext(Optional.ofNullable(variables));
     }
 
