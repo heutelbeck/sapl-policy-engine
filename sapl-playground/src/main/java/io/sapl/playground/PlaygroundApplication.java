@@ -19,6 +19,7 @@ package io.sapl.playground;
 
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.page.Push;
+import com.vaadin.flow.server.AppShellSettings;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
 import org.springframework.boot.SpringApplication;
@@ -28,6 +29,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 @Theme(value = "sapl", variant = Lumo.DARK)
 public class PlaygroundApplication implements AppShellConfigurator {
+
+    @Override
+    public void configurePage(AppShellSettings settings) {
+        settings.addFavIcon("icon", "icon.png", "image/png");
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(PlaygroundApplication.class, args);
     }

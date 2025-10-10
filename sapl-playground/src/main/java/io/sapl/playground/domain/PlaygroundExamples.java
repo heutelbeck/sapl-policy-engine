@@ -66,6 +66,31 @@ public class PlaygroundExamples {
                                        "resource"    : { "type": "patient_record", "department": "cardiology" },
                                        "environment" : null
                                     }
+                                    """, """
+                                    {
+                                      "some": "value"
+                                    }
+                                    """),
+                    new Example("deny-overrides-demo", "Deny Overrides Algorithm",
+                            "Multiple policies where a single DENY blocks access despite PERMIT policies", List.of("""
+                                    policy "permit authenticated users"
+                                    permit
+                                        subject.authenticated == true
+                                    """, """
+                                    policy "deny suspended users"
+                                    deny
+                                        subject.status == "suspended"
+                                    """, """
+                                    policy "permit regular users"
+                                    permit
+                                        subject.role == "user"
+                                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                                    {
+                                       "subject"     : { "authenticated": true, "role": "user", "status": "suspended" },
+                                       "action"      : "access",
+                                       "resource"    : "system",
+                                       "environment" : null
+                                    }
                                     """, DEFAULT_VARIABLES)));
 
     private static final ExampleCategory MEDICAL = new ExampleCategory("Medical", VaadinIcon.HEART, 2,
@@ -83,7 +108,34 @@ public class PlaygroundExamples {
                                "resource"    : { "type": "patient_record", "department": "cardiology" },
                                "environment" : null
                             }
-                            """, DEFAULT_VARIABLES)));
+                            """, DEFAULT_VARIABLES),
+                    new Example("medical-access-layers", "Layered Medical Access Control",
+                            "Multiple policies controlling access to patient records with permit overrides", List.of("""
+                                    policy "deny non-medical staff"
+                                    deny
+                                        resource.type == "patient_record"
+                                    where
+                                        !(subject.role in ["doctor", "nurse", "emergency_doctor"]);
+                                    """, """
+                                    policy "permit department access"
+                                    permit
+                                        resource.type == "patient_record" & action == "read"
+                                    where
+                                        subject.department == resource.department;
+                                    """, """
+                                    policy "permit emergency access"
+                                    permit
+                                        resource.type == "patient_record"
+                                    where
+                                        subject.role == "emergency_doctor";
+                                    """), PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES, """
+                                    {
+                                       "subject"     : { "role": "emergency_doctor", "department": "emergency" },
+                                       "action"      : "read",
+                                       "resource"    : { "type": "patient_record", "department": "cardiology" },
+                                       "environment" : null
+                                    }
+                                    """, DEFAULT_VARIABLES)));
 
     private static final ExampleCategory AI = new ExampleCategory("AI", VaadinIcon.AUTOMATION, 3,
             List.of(new Example("model-access-control", "AI Model Access Control",
@@ -100,7 +152,37 @@ public class PlaygroundExamples {
                                "resource"    : { "type": "ai_model", "name": "gpt-medical", "data_classification": 2 },
                                "environment" : null
                             }
-                            """, DEFAULT_VARIABLES)));
+                            """, DEFAULT_VARIABLES),
+                    new Example("ai-governance-policies", "AI Governance with Multiple Policies",
+                            "Demonstrates first-applicable algorithm where policy order determines outcome", List.of("""
+                                    policy "block unverified models"
+                                    deny
+                                        action == "deploy" & resource.type == "ai_model"
+                                    where
+                                        !resource.verified;
+                                    """, """
+                                    policy "allow admin deployment"
+                                    permit
+                                        action == "deploy"
+                                    where
+                                        subject.role == "ml_admin";
+                                    """, """
+                                    policy "allow researcher deployment of small models"
+                                    permit
+                                        action == "deploy" & resource.type == "ai_model"
+                                    where
+                                        subject.role == "researcher";
+                                        resource.size < 1000;
+                                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES,
+                            """
+                                    {
+                                       "subject"     : { "role": "researcher", "username": "alice" },
+                                       "action"      : "deploy",
+                                       "resource"    : { "type": "ai_model", "name": "small-classifier", "size": 500, "verified": false },
+                                       "environment" : null
+                                    }
+                                    """,
+                            DEFAULT_VARIABLES)));
 
     private static final ExampleCategory GEOGRAPHIC = new ExampleCategory("Geographic", VaadinIcon.GLOBE, 4,
             List.of(new Example("location-based-access", "Location-Based Access",
@@ -117,7 +199,34 @@ public class PlaygroundExamples {
                                "resource"    : "application",
                                "environment" : null
                             }
-                            """, DEFAULT_VARIABLES)));
+                            """, DEFAULT_VARIABLES),
+                    new Example("geo-compliance-policies", "Geographic Compliance Layers",
+                            "Multiple policies enforcing regional data residency and access rules", List.of("""
+                                    policy "deny sanctioned countries"
+                                    deny
+                                        action == "access_data"
+                                    where
+                                        subject.country in ["XX", "YY"];
+                                    """, """
+                                    policy "permit EU data access from EU"
+                                    permit
+                                        action == "access_data" & resource.region == "EU"
+                                    where
+                                        subject.country in ["DE", "FR", "IT", "ES", "NL"];
+                                    """, """
+                                    policy "permit US data access from US"
+                                    permit
+                                        action == "access_data" & resource.region == "US"
+                                    where
+                                        subject.country == "US";
+                                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                                    {
+                                       "subject"     : { "username": "user1", "country": "DE" },
+                                       "action"      : "access_data",
+                                       "resource"    : { "type": "database", "region": "EU" },
+                                       "environment" : null
+                                    }
+                                    """, DEFAULT_VARIABLES)));
 
     private static final List<ExampleCategory> ALL_CATEGORIES = List.of(DOCUMENTATION, MEDICAL, AI, GEOGRAPHIC);
 

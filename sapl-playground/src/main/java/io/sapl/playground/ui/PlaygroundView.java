@@ -39,6 +39,7 @@ import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -129,12 +130,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
             """;
 
     private static final String DEFAULT_POLICY = """
-            policy "compartmentalize read access by department"
-            permit
-                resource.type == "patient_record" & action == "read"
-            where
-                subject.role == "doctor";
-                resource.department == subject.department;
+            policy "new policy %d"
+            permit false
             """;
 
     private static final String DEFAULT_VARIABLES = """
@@ -185,6 +182,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private final Map<Tab, PolicyTabContext> policyTabContexts = new HashMap<>();
     private final AtomicInteger              policyTabCounter  = new AtomicInteger(1);
+    private final AtomicInteger              newPolicyCounter  = new AtomicInteger(1);
 
     private static class PolicyTabContext {
         SaplEditor editor;
@@ -235,11 +233,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private void buildAndAddComponents() {
         val header = buildHeader();
         val main   = buildMainContent();
-        val footer = buildFooter();
 
         getContent().setSizeFull();
         getContent().getStyle().set("flex-grow", "1");
-        getContent().add(header, main, footer, documentationDrawer.getToggleButton());
+        getContent().add(header, main, documentationDrawer.getToggleButton());
 
         deactivateScrollLock();
     }
@@ -306,14 +303,17 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private Component buildSubscriptionSection() {
         val container = new VerticalLayout();
-        container.setPadding(false);
+        container.setPadding(true);
         container.setSpacing(true);
 
         subscriptionValidationField = new TextField();
         subscriptionValidationField.setReadOnly(true);
         subscriptionValidationField.setWidthFull();
 
-        val header = new H3("Authorization Subscription");
+        val header = new Span("Authorization Subscription");
+        header.getStyle().set("font-size", "var(--lumo-font-size-l)").set("font-weight", "600")
+                .set("color", "var(--lumo-contrast-70pct)").set("margin", "0").set("padding", "0 0 0.25em 0");
+
         subscriptionEditor = createSubscriptionEditor();
         val controlsLayout = createSubscriptionControlsLayout();
 
@@ -334,10 +334,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Component buildDecisionsSection() {
         val container = new VerticalLayout();
         container.setSizeFull();
-        container.setPadding(false);
-        container.setSpacing(false);
+        container.setPadding(true);
+        container.setSpacing(true);
 
-        val header = new H3("Decisions");
+        val header = new Span("Decisions");
+        header.getStyle().set("font-size", "var(--lumo-font-size-l)").set("font-weight", "600")
+                .set("color", "var(--lumo-contrast-70pct)").set("margin", "0").set("padding", "0 0 0.25em 0");
+
         decisionsGrid     = new DecisionsGrid();
         decisionsGridView = decisionsGrid.setItems(decisionBuffer);
         decisionsGrid.addSelectionListener(this::handleDecisionSelected);
@@ -346,7 +349,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         inspectorLayout.setSizeFull();
         inspectorLayout.setPadding(false);
         inspectorLayout.setSpacing(false);
-        inspectorLayout.add(buildControlButtons(), buildDecisionDetailsView());
+
+        val controlButtons = buildControlButtons();
+        val detailsView    = buildDecisionDetailsView();
+
+        inspectorLayout.add(controlButtons, detailsView);
+        inspectorLayout.setFlexGrow(0, controlButtons);
+        inspectorLayout.setFlexGrow(1, detailsView);
 
         val splitLayout = new SplitLayout(decisionsGrid, inspectorLayout);
         splitLayout.setSizeFull();
@@ -427,6 +436,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private Component buildControlButtons() {
         val layout = new HorizontalLayout();
+        layout.setPadding(true);
+        layout.setSpacing(true);
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
 
         playStopButton   = createPlayStopButton();
@@ -462,7 +473,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         field.setMin(1);
         field.setMax(MAX_BUFFER_SIZE);
         field.setValue(DEFAULT_BUFFER_SIZE);
-        field.setWidth("6.5em");
+        field.setWidthFull();
+        field.setMaxWidth("5em");
         field.setStepButtonsVisible(true);
         field.addValueChangeListener(event -> updateBufferSize(event.getValue()));
         return field;
@@ -685,6 +697,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Component buildDecisionDetailsView() {
         val tabSheet = new TabSheet();
         tabSheet.setSizeFull();
+        tabSheet.getStyle().set("overflow", "auto");
         tabSheet.add("JSON", createDecisionJsonTab());
         tabSheet.add("Errors", createDecisionErrorsTab());
         tabSheet.add("Report", createTextReportTab());
@@ -727,7 +740,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Component createDecisionErrorsTab() {
         errorsDisplayArea = new Div();
         errorsDisplayArea.setSizeFull();
-        errorsDisplayArea.getStyle().set("overflow", "auto");
+        errorsDisplayArea.getStyle().set("overflow", "auto").set("min-height", "200px");
         return createLayoutWithClipboard(errorsDisplayArea, () -> currentErrorReportText);
     }
 
@@ -844,23 +857,47 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
-    private void createNewPolicyTab() {
+    /**
+     * Creates and adds a policy tab with the given document content.
+     * Parses the policy name immediately to update the tab title.
+     *
+     * @param policyDocument the initial policy document content
+     * @return the created tab, or null if tab limit reached
+     */
+    private Tab createAndAddPolicyTab(String policyDocument) {
         if (policyTabContexts.size() >= MAX_POLICY_TABS) {
-            showNotification("Maximum number of policy tabs (" + MAX_POLICY_TABS + ") reached");
-            return;
+            return null;
         }
 
-        val policyNumber = policyTabCounter.getAndIncrement();
-        val policyName   = "Policy " + policyNumber;
-
-        val components = createPolicyTabComponents(policyName);
+        val components = createPolicyTabComponents("Policy " + policyTabCounter.getAndIncrement());
 
         leftTabSheet.add(components.tab, components.editorLayout);
-        leftTabSheet.setSelectedTab(components.tab);
 
         components.context.editor
                 .addValidationFinishedListener(event -> handlePolicyValidation(components.context, event));
-        components.context.editor.setDocument(DEFAULT_POLICY);
+        components.context.editor.setDocument(policyDocument);
+
+        val parsedDocument = INTERPRETER.parseDocument(policyDocument);
+        if (!parsedDocument.isInvalid()) {
+            components.context.documentName = parsedDocument.name();
+            components.context.titleLabel.setText(truncateTitle(parsedDocument.name()));
+        }
+
+        return components.tab;
+    }
+
+    /**
+     * Creates a new empty policy tab and selects it.
+     * Shows notification if maximum tab limit is reached.
+     */
+    private void createNewPolicyTab() {
+        val policyContent = String.format(DEFAULT_POLICY, newPolicyCounter.getAndIncrement());
+        val tab           = createAndAddPolicyTab(policyContent);
+        if (tab == null) {
+            showNotification("Maximum number of policy tabs (" + MAX_POLICY_TABS + ") reached");
+            return;
+        }
+        leftTabSheet.setSelectedTab(tab);
     }
 
     private record PolicyTabComponents(Tab tab, PolicyTabContext context, VerticalLayout editorLayout) {}
@@ -876,16 +913,20 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         editorLayout.add(editor, validationField);
 
         val statusIcon = createIcon(VaadinIcon.QUESTION_CIRCLE, COLOR_ORANGE);
-        statusIcon.getStyle().set(CSS_MARGIN_RIGHT, SPACING_HALF_EM);
+        statusIcon.setSize("0.875em");
+        statusIcon.getStyle().set(CSS_MARGIN_RIGHT, "0.25em");
 
         val titleLabel  = new Span(truncateTitle(policyName));
         val closeButton = createTabCloseButton();
 
         val tabContent = new HorizontalLayout(statusIcon, titleLabel, closeButton);
         tabContent.setSpacing(false);
+        tabContent.setPadding(false);
+        tabContent.getStyle().set("gap", "0.25em");
         tabContent.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        val tab     = new Tab(tabContent);
+        val tab = new Tab(tabContent);
+        tab.getStyle().set("padding", "0.5em 0.75em");
         val context = new PolicyTabContext(editor, validationField, statusIcon, titleLabel);
 
         policyTabContexts.put(tab, context);
@@ -1054,38 +1095,68 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private HorizontalLayout buildHeader() {
         val header = new HorizontalLayout();
-        header.addClassName(Gap.MEDIUM);
-        header.setWidth("100%");
-        header.setHeight("min-content");
+        header.setWidthFull();
+        header.setPadding(true);
+        header.setSpacing(true);
         header.setAlignItems(FlexComponent.Alignment.CENTER);
+        header.getStyle().set("background-color", "var(--lumo-contrast-5pct)");
+
+        val logo = new Image("logo-header.png", "SAPL Logo");
+        logo.setHeight("2.5em");
 
         val title = new Span("SAPL Playground");
-        title.getStyle().set("font-size", "var(--lumo-font-size-xl)").set("font-weight", "bold");
+        title.getStyle().set("font-size", "var(--lumo-font-size-xl)").set("font-weight", "600")
+                .set("text-align", "center").set("flex-grow", "1");
 
         combiningAlgorithmComboBox = createCombiningAlgorithmComboBox();
         val examplesMenu = createExamplesMenu();
+        val shareButton  = createShareButton();
+        val homepageLink = createHomepageLink();
 
-        header.add(title, combiningAlgorithmComboBox, examplesMenu);
+        val rightSection = new HorizontalLayout(combiningAlgorithmComboBox, homepageLink, examplesMenu, shareButton);
+        rightSection.setAlignItems(FlexComponent.Alignment.CENTER);
+        rightSection.setSpacing(true);
+
+        header.add(logo, title, rightSection);
+
         return header;
     }
 
+    private Button createHomepageLink() {
+        val button = new Button("SAPL Homepage", VaadinIcon.EXTERNAL_LINK.create());
+        button.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        button.addClickListener(event -> getUI().ifPresent(ui -> ui.getPage().open("https://sapl.io", "_blank")));
+        return button;
+    }
+
+    private Button createShareButton() {
+        val button = new Button("Share", VaadinIcon.LINK.create());
+        button.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        button.setTooltipText("Create shareable link (Coming soon)");
+        button.setEnabled(false);
+        return button;
+    }
+
     private ComboBox<PolicyDocumentCombiningAlgorithm> createCombiningAlgorithmComboBox() {
-        val comboBox = new ComboBox<PolicyDocumentCombiningAlgorithm>("Combining Algorithm");
+        val comboBox = new ComboBox<PolicyDocumentCombiningAlgorithm>();
+        comboBox.setPlaceholder("Combining Algorithm");
         comboBox.setItems(PolicyDocumentCombiningAlgorithm.values());
         comboBox.setItemLabelGenerator(PlaygroundView::formatAlgorithmName);
         comboBox.addValueChangeListener(this::handleAlgorithmChange);
-        comboBox.setWidth("20em");
+        comboBox.setWidth("16em");
         comboBox.setValue(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES);
         return comboBox;
     }
 
     private MenuBar createExamplesMenu() {
-        val menuBar      = new MenuBar();
+        val menuBar = new MenuBar();
+        menuBar.addThemeVariants(MenuBarVariant.LUMO_TERTIARY);
         val examplesItem = menuBar.addItem("Examples");
         val mainSubMenu  = examplesItem.getSubMenu();
 
         for (val category : PlaygroundExamples.getAllCategories()) {
-            val categoryIcon  = category.icon().create();
+            val categoryIcon = category.icon().create();
+            categoryIcon.setSize("1em");
             val categoryLabel = new Span(categoryIcon, new Text(" " + category.name()));
             val categoryItem  = mainSubMenu.addItem(categoryLabel);
             val categoryMenu  = categoryItem.getSubMenu();
@@ -1127,27 +1198,32 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         PlaygroundExamples.findBySlug(slug).ifPresent(this::loadExample);
     }
 
+    /**
+     * Loads an example into the playground.
+     * Stops active subscription, clears state, loads example content, and updates
+     * PDP.
+     *
+     * @param example the example to load
+     */
     private void loadExample(Example example) {
         stopSubscription();
         clearDecisionBuffer();
         removeAllPolicyTabs();
 
-        Tab firstPolicyTab = null;
+        Tab firstTab = null;
         for (val policy : example.policies()) {
-            val components = createPolicyTabComponents("Policy " + policyTabCounter.getAndIncrement());
-            leftTabSheet.add(components.tab, components.editorLayout);
-
-            components.context.editor
-                    .addValidationFinishedListener(event -> handlePolicyValidation(components.context, event));
-            components.context.editor.setDocument(policy);
-
-            if (firstPolicyTab == null) {
-                firstPolicyTab = components.tab;
+            val tab = createAndAddPolicyTab(policy);
+            if (tab == null) {
+                showNotification("Example has too many policies. Maximum: " + MAX_POLICY_TABS);
+                break;
+            }
+            if (firstTab == null) {
+                firstTab = tab;
             }
         }
 
-        if (firstPolicyTab != null) {
-            leftTabSheet.setSelectedTab(firstPolicyTab);
+        if (firstTab != null) {
+            leftTabSheet.setSelectedTab(firstTab);
         }
 
         setCombiningAlgorithmQuietly(example.combiningAlgorithm());
@@ -1180,16 +1256,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private static String formatAlgorithmName(PolicyDocumentCombiningAlgorithm algorithm) {
         return StringUtils.capitalize(algorithm.toString().replace('_', ' ').toLowerCase());
-    }
-
-    private HorizontalLayout buildFooter() {
-        val footer = new HorizontalLayout();
-        footer.addClassName(Gap.MEDIUM);
-        footer.setWidth("100%");
-        footer.setHeight("min-content");
-        val footerText = new Span("The Footer");
-        footer.add(footerText);
-        return footer;
     }
 
     private JsonEditor createReadOnlyJsonEditor() {
