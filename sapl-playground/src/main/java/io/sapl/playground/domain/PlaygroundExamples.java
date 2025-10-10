@@ -37,6 +37,28 @@ public class PlaygroundExamples {
             }
             """;
 
+    /**
+     * Default settings loaded on application startup.
+     * Simple time-based policy demonstrating the time PIP.
+     */
+    public static final Example DEFAULT_SETTINGS = new Example("default", "Default Time-Based Access",
+            "Simple time-based access control using the time policy information point", List.of("""
+                    policy "business_hours_access"
+                    permit
+                        action == "access"
+                    where
+                        var now = <time.now>;
+                        var hour = time.hourOf(now);
+                        hour >= 9 && hour < 17;
+                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    {
+                       "subject"     : { "username": "alice", "role": "employee" },
+                       "action"      : "access",
+                       "resource"    : "system",
+                       "environment" : null
+                    }
+                    """, DEFAULT_VARIABLES);
+
     private static final ExampleCategory DOCUMENTATION = new ExampleCategory("Documentation", VaadinIcon.BOOK, 1,
             List.of(new Example("basic-permit", "Basic Permit Policy",
                     "Simple policy that permits access based on authentication status", List.of("""

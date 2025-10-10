@@ -58,6 +58,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility.Gap;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.TracedDecision;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -108,7 +109,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final int    MAX_TITLE_LENGTH        = 15;
     private static final String UNKNOWN_POLICY_NAME     = "unknown";
     private static final String EDITOR_CONFIGURATION_ID = "playground";
-    private static final double LEFT_PANEL_WIDTH        = 30.0D;
+    private static final double LEFT_PANEL_WIDTH        = 66.67D;
     private static final double DECISIONS_PANEL_HEIGHT  = 40.0D;
 
     private static final String COLOR_GREEN  = "green";
@@ -221,30 +222,72 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         checkInitialFragment();
     }
 
+    /*
+     * Cleans up resources when view is detached.
+     * Stops any active subscriptions to prevent memory leaks.
+     */
     private void cleanup() {
         stopSubscription();
     }
 
+    /*
+     * Sets default values for subscription and variables editors.
+     * Loads the default time-based example on startup.
+     */
     private void initializeDefaultValues() {
-        subscriptionEditor.setDocument(DEFAULT_SUBSCRIPTION);
-        variablesEditor.setDocument(DEFAULT_VARIABLES);
+        val defaultExample = PlaygroundExamples.DEFAULT_SETTINGS;
+
+        subscriptionEditor.setDocument(defaultExample.subscription());
+        variablesEditor.setDocument(defaultExample.variables());
+
+        setCombiningAlgorithmQuietly(defaultExample.combiningAlgorithm());
+
+        Tab firstTab = null;
+        if (!defaultExample.policies().isEmpty()) {
+            for (val policy : defaultExample.policies()) {
+                val tab = createAndAddPolicyTab(policy);
+                if (firstTab == null) {
+                    firstTab = tab;
+                }
+            }
+        }
+
+        if (firstTab != null) {
+            leftTabSheet.setSelectedTab(firstTab);
+        }
     }
 
+    /*
+     * Builds the main component structure and adds to the view.
+     */
     private void buildAndAddComponents() {
         val header = buildHeader();
         val main   = buildMainContent();
 
         getContent().setSizeFull();
-        getContent().getStyle().set("flex-grow", "1");
+        getContent().setPadding(false);
+        getContent().setSpacing(false);
+
         getContent().add(header, main, documentationDrawer.getToggleButton());
 
         deactivateScrollLock();
     }
 
+    /*
+     * Handles new authorization decisions from the PDP.
+     * Ensures UI updates occur on the UI thread.
+     *
+     * @param tracedDecision the decision to process
+     */
     private void interceptDecision(final TracedDecision tracedDecision) {
         getUI().ifPresent(ui -> ui.access(() -> handleNewDecision(tracedDecision)));
     }
 
+    /*
+     * Creates the main content split layout.
+     *
+     * @return the main content component
+     */
     private Component buildMainContent() {
         val mainSplit = new SplitLayout(buildLeftPanel(), buildRightPanel());
         mainSplit.setSizeFull();
@@ -252,6 +295,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return mainSplit;
     }
 
+    /*
+     * Creates the left panel containing policy and variables editors.
+     *
+     * @return the left panel component
+     */
     private Component buildLeftPanel() {
         val layout = new VerticalLayout();
         layout.setSizeFull();
@@ -263,7 +311,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
         variablesTab = createVariablesTab();
         leftTabSheet.add(variablesTab, createVariablesEditorLayout());
-        createNewPolicyTab();
 
         val newPolicyButton = createNewPolicyButton();
         leftTabSheet.setSuffixComponent(newPolicyButton);
@@ -274,6 +321,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return layout;
     }
 
+    /*
+     * Creates button for adding new policy tabs.
+     *
+     * @return the new policy button
+     */
     private Button createNewPolicyButton() {
         val button = new Button("+ New Policy");
         button.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
@@ -281,6 +333,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return button;
     }
 
+    /*
+     * Refreshes the variables editor when its tab is selected.
+     * Ensures the CodeMirror editor properly reflows.
+     *
+     * @param selectedTab the currently selected tab
+     */
     private void refreshVariablesEditorIfSelected(Tab selectedTab) {
         if (selectedTab == variablesTab && variablesEditor != null) {
             variablesEditor.getElement()
@@ -288,6 +346,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Creates the right panel with subscription and decisions sections.
+     *
+     * @return the right panel component
+     */
     private Component buildRightPanel() {
         val layout = new VerticalLayout();
         layout.setSizeFull();
@@ -301,26 +364,40 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return layout;
     }
 
+    /*
+     * Creates the authorization subscription section.
+     *
+     * @return the subscription section component
+     */
     private Component buildSubscriptionSection() {
         val container = new VerticalLayout();
-        container.setPadding(true);
-        container.setSpacing(true);
+        container.setPadding(false);
+        container.setSpacing(false);
+        container.getStyle().set("padding", "var(--lumo-space-m)");
 
         subscriptionValidationField = new TextField();
         subscriptionValidationField.setReadOnly(true);
         subscriptionValidationField.setWidthFull();
 
-        val header = new Span("Authorization Subscription");
-        header.getStyle().set("font-size", "var(--lumo-font-size-l)").set("font-weight", "600")
-                .set("color", "var(--lumo-contrast-70pct)").set("margin", "0").set("padding", "0 0 0.25em 0");
+        val header = new H5("Authorization Subscription");
+        header.getStyle().set("margin", "0").set("padding", "0 0 var(--lumo-space-xs) 0").set("border-bottom",
+                "1px solid var(--lumo-contrast-10pct)");
 
         subscriptionEditor = createSubscriptionEditor();
+        subscriptionEditor.getStyle().set("margin-top", "var(--lumo-space-xs)");
+
         val controlsLayout = createSubscriptionControlsLayout();
+        controlsLayout.getStyle().set("margin-top", "var(--lumo-space-xs)");
 
         container.add(header, subscriptionEditor, controlsLayout);
         return container;
     }
 
+    /*
+     * Creates controls layout for subscription editor.
+     *
+     * @return the controls component
+     */
     private Component createSubscriptionControlsLayout() {
         val layout = new HorizontalLayout();
         layout.setWidthFull();
@@ -331,19 +408,26 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return layout;
     }
 
+    /*
+     * Creates the decisions section with grid and inspector.
+     *
+     * @return the decisions section component
+     */
     private Component buildDecisionsSection() {
         val container = new VerticalLayout();
         container.setSizeFull();
-        container.setPadding(true);
-        container.setSpacing(true);
+        container.setPadding(false);
+        container.setSpacing(false);
+        container.getStyle().set("padding", "var(--lumo-space-m)");
 
-        val header = new Span("Decisions");
-        header.getStyle().set("font-size", "var(--lumo-font-size-l)").set("font-weight", "600")
-                .set("color", "var(--lumo-contrast-70pct)").set("margin", "0").set("padding", "0 0 0.25em 0");
+        val header = new H5("Decisions");
+        header.getStyle().set("margin", "0").set("padding", "0 0 var(--lumo-space-xs) 0").set("border-bottom",
+                "1px solid var(--lumo-contrast-10pct)");
 
         decisionsGrid     = new DecisionsGrid();
         decisionsGridView = decisionsGrid.setItems(decisionBuffer);
         decisionsGrid.addSelectionListener(this::handleDecisionSelected);
+        decisionsGrid.getStyle().set("margin-top", "var(--lumo-space-xs)");
 
         val inspectorLayout = new VerticalLayout();
         inspectorLayout.setSizeFull();
@@ -366,6 +450,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return container;
     }
 
+    /*
+     * Creates the subscription JSON editor.
+     *
+     * @return the subscription editor
+     */
     private JsonEditor createSubscriptionEditor() {
         val editor = createJsonEditor(true, 500);
         editor.setWidthFull();
@@ -374,6 +463,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return editor;
     }
 
+    /*
+     * Handles changes to the subscription document.
+     *
+     * @param event the document change event
+     */
     private void handleSubscriptionDocumentChanged(DocumentChangedEvent event) {
         if (hasInvalidDocumentSize(event.getNewValue(), "Subscription")) {
             return;
@@ -389,6 +483,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         resubscribeIfActive();
     }
 
+    /*
+     * Checks if document size exceeds limits.
+     *
+     * @param document the document to check
+     *
+     * @param documentType the type of document for error messages
+     *
+     * @return true if document size is invalid
+     */
     private boolean hasInvalidDocumentSize(String document, String documentType) {
         if (document == null || document.isEmpty()) {
             showNotification(documentType + " cannot be empty");
@@ -404,17 +507,28 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return false;
     }
 
+    /*
+     * Clears the decision buffer and refreshes the grid.
+     */
     private void clearDecisionBuffer() {
         decisionBuffer.clear();
         decisionsGridView.refreshAll();
     }
 
+    /*
+     * Resubscribes to PDP if subscription is active.
+     */
     private void resubscribeIfActive() {
         if (isSubscriptionActive) {
             subscribe();
         }
     }
 
+    /*
+     * Formats JSON content in an editor.
+     *
+     * @param editor the editor to format
+     */
     private void formatJsonEditor(JsonEditor editor) {
         val jsonString = editor.getDocument();
         try {
@@ -430,15 +544,27 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Shows a notification message to the user.
+     *
+     * @param message the message to display
+     */
     private void showNotification(String message) {
         Notification.show(message);
     }
 
+    /*
+     * Creates control buttons for decision playback.
+     *
+     * @return the control buttons component
+     */
     private Component buildControlButtons() {
         val layout = new HorizontalLayout();
-        layout.setPadding(true);
+        layout.setPadding(false);
         layout.setSpacing(true);
         layout.setAlignItems(FlexComponent.Alignment.CENTER);
+        layout.getStyle().set("padding", "var(--lumo-space-xs)").set("border-bottom",
+                "1px solid var(--lumo-contrast-10pct)");
 
         playStopButton   = createPlayStopButton();
         scrollLockButton = createScrollLockButton();
@@ -453,6 +579,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return layout;
     }
 
+    /*
+     * Creates the play/stop button.
+     *
+     * @return the play/stop button
+     */
     private Button createPlayStopButton() {
         val button = new Button(VaadinIcon.PLAY.create());
         button.addThemeVariants(ButtonVariant.LUMO_ICON);
@@ -462,12 +593,22 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return button;
     }
 
+    /*
+     * Creates the scroll lock button.
+     *
+     * @return the scroll lock button
+     */
     private Button createScrollLockButton() {
         val button = new Button(VaadinIcon.UNLOCK.create());
         button.addClickListener(event -> toggleScrollLock());
         return button;
     }
 
+    /*
+     * Creates the buffer size field.
+     *
+     * @return the buffer size field
+     */
     private IntegerField createBufferSizeField() {
         val field = new IntegerField();
         field.setMin(1);
@@ -480,6 +621,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return field;
     }
 
+    /*
+     * Toggles play/stop state of subscription.
+     */
     private void togglePlayStop() {
         if (isSubscriptionActive) {
             stopSubscription();
@@ -488,6 +632,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Toggles scroll lock state.
+     */
     private void toggleScrollLock() {
         if (isScrollLockActive) {
             deactivateScrollLock();
@@ -496,6 +643,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Starts subscription to PDP decisions.
+     */
     private void startSubscription() {
         isSubscriptionActive = true;
         updatePlayStopButtonForActiveState();
@@ -507,6 +657,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         subscribe();
     }
 
+    /*
+     * Stops active subscription to PDP.
+     */
     private void stopSubscription() {
         if (activeSubscription != null && !activeSubscription.isDisposed()) {
             activeSubscription.dispose();
@@ -517,6 +670,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         updatePlayStopButtonForActiveState();
     }
 
+    /*
+     * Subscribes to PDP for authorization decisions.
+     */
     private void subscribe() {
         try {
             if (activeSubscription != null && !activeSubscription.isDisposed()) {
@@ -548,6 +704,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Parses authorization subscription from editor content.
+     *
+     * @return the parsed subscription or null if invalid
+     */
     private AuthorizationSubscription parseAuthorizationSubscriptionFromEditor() {
         val subscriptionJson = subscriptionEditor.getDocument();
         try {
@@ -558,6 +719,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Updates play/stop button appearance based on subscription state.
+     */
     private void updatePlayStopButtonForActiveState() {
         if (isSubscriptionActive) {
             playStopButton.setIcon(VaadinIcon.STOP.create());
@@ -570,11 +734,21 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Gets the current buffer size from the field.
+     *
+     * @return the buffer size
+     */
     private int getBufferSize() {
         val size = bufferSizeField.getValue();
         return size != null ? size : DEFAULT_BUFFER_SIZE;
     }
 
+    /*
+     * Updates buffer size and trims excess decisions.
+     *
+     * @param size the new buffer size
+     */
     private void updateBufferSize(Integer size) {
         if (size == null) {
             return;
@@ -586,6 +760,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         decisionsGridView.refreshAll();
     }
 
+    /*
+     * Activates scroll lock to prevent auto-scrolling.
+     */
     private void activateScrollLock() {
         isScrollLockActive = true;
         scrollLockButton.setIcon(VaadinIcon.UNLOCK.create());
@@ -594,6 +771,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 .setTooltipText("Scroll Lock inactive. Click to stop automatically scrolling to last decision made.");
     }
 
+    /*
+     * Deactivates scroll lock to enable auto-scrolling.
+     */
     private void deactivateScrollLock() {
         isScrollLockActive = false;
         scrollLockButton.setIcon(VaadinIcon.LOCK.create());
@@ -602,10 +782,20 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 .setTooltipText("Scroll Lock active. Click to start automatically scrolling to last decision made.");
     }
 
+    /*
+     * Handles selection of decision in the grid.
+     *
+     * @param selection the selection event
+     */
     private void handleDecisionSelected(SelectionEvent<Grid<TracedDecision>, TracedDecision> selection) {
         updateDecisionDetailsView(selection.getFirstSelectedItem());
     }
 
+    /*
+     * Updates the decision details view with selected decision.
+     *
+     * @param maybeTracedDecision the optional traced decision
+     */
     private void updateDecisionDetailsView(Optional<TracedDecision> maybeTracedDecision) {
         if (maybeTracedDecision.isEmpty()) {
             clearDecisionDetailsView();
@@ -619,6 +809,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         displayDecisionErrors(tracedDecision);
     }
 
+    /*
+     * Displays decision JSON in the editor.
+     *
+     * @param tracedDecision the decision to display
+     */
     private void displayDecisionJson(TracedDecision tracedDecision) {
         try {
             val prettyJson = mapper.writerWithDefaultPrettyPrinter()
@@ -629,12 +824,22 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Displays decision trace information.
+     *
+     * @param tracedDecision the decision to display
+     */
     private void displayDecisionTrace(TracedDecision tracedDecision) {
         val trace = tracedDecision.getTrace();
         decisionJsonTraceEditor.setDocument(trace.toPrettyString());
         traceGraphVisualization.setJsonData(trace.toPrettyString());
     }
 
+    /*
+     * Displays decision report information.
+     *
+     * @param tracedDecision the decision to display
+     */
     private void displayDecisionReport(TracedDecision tracedDecision) {
         val trace  = tracedDecision.getTrace();
         val report = ReportBuilderUtil.reduceTraceToReport(trace);
@@ -643,6 +848,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         reportTextArea.setValue(ReportTextRenderUtil.textReport(report, false, mapper));
     }
 
+    /*
+     * Displays errors from the decision.
+     *
+     * @param tracedDecision the decision to display
+     */
     private void displayDecisionErrors(TracedDecision tracedDecision) {
         val errors          = tracedDecision.getErrorsFromTrace();
         val plainTextReport = buildAggregatedErrorReport(errors);
@@ -657,6 +867,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         currentErrorReportText = plainTextReport;
     }
 
+    /*
+     * Clears all decision detail displays.
+     */
     private void clearDecisionDetailsView() {
         decisionJsonEditor.setDocument("");
         decisionJsonTraceEditor.setDocument("");
@@ -667,6 +880,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         currentErrorReportText = "";
     }
 
+    /*
+     * Builds aggregated error report from collection of errors.
+     *
+     * @param errors the errors to report
+     *
+     * @return the aggregated report text
+     */
     private String buildAggregatedErrorReport(Collection<Val> errors) {
         if (errors.isEmpty()) {
             return "No Errors";
@@ -679,6 +899,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return reportBuilder.toString();
     }
 
+    /*
+     * Handles new decision by adding to buffer and updating display.
+     *
+     * @param decision the new decision
+     */
     private void handleNewDecision(TracedDecision decision) {
         decisionBuffer.add(decision);
 
@@ -694,6 +919,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Creates the decision details view with multiple tabs.
+     *
+     * @return the details view component
+     */
     private Component buildDecisionDetailsView() {
         val tabSheet = new TabSheet();
         tabSheet.setSizeFull();
@@ -707,21 +937,41 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return tabSheet;
     }
 
+    /*
+     * Creates the decision JSON tab.
+     *
+     * @return the JSON tab component
+     */
     private Component createDecisionJsonTab() {
         decisionJsonEditor = createReadOnlyJsonEditor();
         return createLayoutWithClipboard(decisionJsonEditor, decisionJsonEditor::getDocument);
     }
 
+    /*
+     * Creates the decision JSON report tab.
+     *
+     * @return the JSON report tab component
+     */
     private Component createDecisionJsonReportTab() {
         decisionJsonReportEditor = createReadOnlyJsonEditor();
         return createLayoutWithClipboard(decisionJsonReportEditor, decisionJsonReportEditor::getDocument);
     }
 
+    /*
+     * Creates the decision JSON trace tab.
+     *
+     * @return the JSON trace tab component
+     */
     private Component createDecisionJsonTraceTab() {
         decisionJsonTraceEditor = createReadOnlyJsonEditor();
         return createLayoutWithClipboard(decisionJsonTraceEditor, decisionJsonTraceEditor::getDocument);
     }
 
+    /*
+     * Creates the trace graph visualization tab.
+     *
+     * @return the trace graph tab component
+     */
     private Component createTraceGraphTab() {
         traceGraphVisualization = new JsonGraphVisualization();
         traceGraphVisualization.setSizeFull();
@@ -729,6 +979,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return traceGraphVisualization;
     }
 
+    /*
+     * Creates the text report tab.
+     *
+     * @return the text report tab component
+     */
     private Component createTextReportTab() {
         reportTextArea = new TextArea();
         reportTextArea.setSizeFull();
@@ -737,6 +992,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return createLayoutWithClipboard(reportTextArea, reportTextArea::getValue);
     }
 
+    /*
+     * Creates the errors display tab.
+     *
+     * @return the errors tab component
+     */
     private Component createDecisionErrorsTab() {
         errorsDisplayArea = new Div();
         errorsDisplayArea.setSizeFull();
@@ -744,6 +1004,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return createLayoutWithClipboard(errorsDisplayArea, () -> currentErrorReportText);
     }
 
+    /*
+     * Creates layout with component and clipboard button.
+     *
+     * @param component the main component
+     *
+     * @param contentSupplier supplies content for clipboard
+     *
+     * @return the layout with clipboard button
+     */
     private Component createLayoutWithClipboard(Component component, Supplier<String> contentSupplier) {
         val layout = new HorizontalLayout();
         layout.setSizeFull();
@@ -752,6 +1021,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return layout;
     }
 
+    /*
+     * Creates clipboard copy button.
+     *
+     * @param contentSupplier supplies content to copy
+     *
+     * @return the clipboard button
+     */
     private Button createClipboardButton(Supplier<String> contentSupplier) {
         val button = new Button(VaadinIcon.CLIPBOARD.create());
         button.getStyle().set("position", "absolute").set("top", "15px").set("right", "25px").set("z-index", "100");
@@ -761,6 +1037,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return button;
     }
 
+    /*
+     * Copies content to clipboard using JavaScript.
+     *
+     * @param content the content to copy
+     */
     private void copyToClipboard(String content) {
         if (content == null || content.length() > MAX_CLIPBOARD_SIZE) {
             showNotification("Content too large to copy to clipboard");
@@ -772,9 +1053,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         notification.addThemeVariants(NotificationVariant.LUMO_PRIMARY);
     }
 
+    /*
+     * Creates the variables tab with validation icon.
+     *
+     * @return the variables tab
+     */
     private Tab createVariablesTab() {
         val variablesValidationIcon = createIcon(VaadinIcon.CHECK_CIRCLE, COLOR_GREEN);
-        variablesValidationIcon.getStyle().set(CSS_MARGIN_RIGHT, SPACING_HALF_EM);
+        variablesValidationIcon.setSize("0.875em");
+        variablesValidationIcon.getStyle().set(CSS_MARGIN_RIGHT, "0.25em");
 
         val label      = new Span(truncateTitle("Variables"));
         val tabContent = new HorizontalLayout(variablesValidationIcon, label);
@@ -784,11 +1071,17 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return new Tab(tabContent);
     }
 
+    /*
+     * Creates the variables editor layout.
+     *
+     * @return the variables editor component
+     */
     private Component createVariablesEditorLayout() {
         val layout = new VerticalLayout();
         layout.setSizeFull();
         layout.setPadding(false);
-        layout.setSpacing(true);
+        layout.setSpacing(false);
+        layout.getStyle().set("padding", "var(--lumo-space-s)");
 
         variablesEditor = createJsonEditor(true, 500);
         variablesEditor.setSizeFull();
@@ -796,6 +1089,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         variablesValidationField = new TextField();
         variablesValidationField.setReadOnly(true);
         variablesValidationField.setWidthFull();
+        variablesValidationField.getStyle().set("margin-top", "var(--lumo-space-xs)");
 
         val controlsLayout = createVariablesControlsLayout();
 
@@ -806,6 +1100,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return layout;
     }
 
+    /*
+     * Creates controls layout for variables editor.
+     *
+     * @return the controls component
+     */
     private Component createVariablesControlsLayout() {
         val layout = new HorizontalLayout();
         layout.setWidthFull();
@@ -816,6 +1115,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return layout;
     }
 
+    /*
+     * Creates format JSON button.
+     *
+     * @param formatAction the action to execute on click
+     *
+     * @return the format button
+     */
     private Button createFormatJsonButton(Runnable formatAction) {
         val button = new Button(VaadinIcon.CURLY_BRACKETS.create());
         button.setAriaLabel("Format JSON");
@@ -824,6 +1130,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return button;
     }
 
+    /*
+     * Handles changes to variables document.
+     *
+     * @param event the document change event
+     */
     private void handleVariablesDocumentChanged(DocumentChangedEvent event) {
         if (hasInvalidDocumentSize(event.getNewValue(), "Variables")) {
             return;
@@ -837,6 +1148,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Parses variables from JSON string.
+     *
+     * @param variablesJson the JSON string containing variables
+     *
+     * @return map of variable names to values
+     */
     private Map<String, Val> parseVariablesFromJson(String variablesJson) {
         try {
             val variablesObject = mapper.readTree(variablesJson);
@@ -857,11 +1175,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
-    /**
+    /*
      * Creates and adds a policy tab with the given document content.
      * Parses the policy name immediately to update the tab title.
      *
      * @param policyDocument the initial policy document content
+     *
      * @return the created tab, or null if tab limit reached
      */
     private Tab createAndAddPolicyTab(String policyDocument) {
@@ -881,12 +1200,14 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         if (!parsedDocument.isInvalid()) {
             components.context.documentName = parsedDocument.name();
             components.context.titleLabel.setText(truncateTitle(parsedDocument.name()));
+            components.context.statusIcon.setIcon(VaadinIcon.CHECK_CIRCLE);
+            components.context.statusIcon.setColor(COLOR_GREEN);
         }
 
         return components.tab;
     }
 
-    /**
+    /*
      * Creates a new empty policy tab and selects it.
      * Shows notification if maximum tab limit is reached.
      */
@@ -900,8 +1221,18 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         leftTabSheet.setSelectedTab(tab);
     }
 
+    /*
+     * Container for policy tab components.
+     */
     private record PolicyTabComponents(Tab tab, PolicyTabContext context, VerticalLayout editorLayout) {}
 
+    /*
+     * Creates all components for a policy tab.
+     *
+     * @param policyName the initial name for the policy
+     *
+     * @return the policy tab components
+     */
     private PolicyTabComponents createPolicyTabComponents(String policyName) {
         val editor          = createSaplEditor();
         val validationField = createValidationTextField();
@@ -909,7 +1240,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val editorLayout = new VerticalLayout();
         editorLayout.setSizeFull();
         editorLayout.setPadding(false);
-        editorLayout.setSpacing(true);
+        editorLayout.setSpacing(false);
+        editorLayout.getStyle().set("padding", "var(--lumo-space-s)");
+
+        validationField.getStyle().set("margin-top", "var(--lumo-space-xs)");
         editorLayout.add(editor, validationField);
 
         val statusIcon = createIcon(VaadinIcon.QUESTION_CIRCLE, COLOR_ORANGE);
@@ -935,6 +1269,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return new PolicyTabComponents(tab, context, editorLayout);
     }
 
+    /*
+     * Creates a SAPL policy editor.
+     *
+     * @return the SAPL editor
+     */
     private SaplEditor createSaplEditor() {
         val config = new SaplEditorConfiguration();
         config.setHasLineNumbers(true);
@@ -947,6 +1286,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return editor;
     }
 
+    /*
+     * Creates a validation text field.
+     *
+     * @return the validation field
+     */
     private TextField createValidationTextField() {
         val field = new TextField();
         field.setReadOnly(true);
@@ -954,6 +1298,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return field;
     }
 
+    /*
+     * Creates a close button for policy tabs.
+     *
+     * @return the close button
+     */
     private Button createTabCloseButton() {
         val button = new Button(VaadinIcon.CLOSE_SMALL.create());
         button.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
@@ -961,6 +1310,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return button;
     }
 
+    /*
+     * Handles closing of a policy tab.
+     *
+     * @param tab the tab to close
+     */
     private void handlePolicyTabClose(Tab tab) {
         policyTabContexts.remove(tab);
         leftTabSheet.remove(tab);
@@ -968,6 +1322,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         updatePolicyRetrievalPoint();
     }
 
+    /*
+     * Handles policy validation completion.
+     *
+     * @param context the policy tab context
+     *
+     * @param event the validation event
+     */
     private void handlePolicyValidation(PolicyTabContext context, ValidationFinishedEvent event) {
         val document = context.editor.getDocument();
 
@@ -989,6 +1350,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         updatePolicyRetrievalPoint();
     }
 
+    /*
+     * Collects all policy documents from tabs.
+     *
+     * @return list of policy document strings
+     */
     private List<String> collectAllPolicyDocuments() {
         val documents = new ArrayList<String>();
         for (var context : policyTabContexts.values()) {
@@ -997,11 +1363,21 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return documents;
     }
 
+    /*
+     * Updates the policy retrieval point with current policies.
+     */
     private void updatePolicyRetrievalPoint() {
         val documents = collectAllPolicyDocuments();
         this.policyDecisionPoint.updatePrp(documents);
     }
 
+    /*
+     * Updates policy document name in tab context.
+     *
+     * @param context the tab context
+     *
+     * @param parsedDocument the parsed policy document
+     */
     private void updatePolicyDocumentName(PolicyTabContext context, io.sapl.prp.Document parsedDocument) {
         if (!parsedDocument.isInvalid()) {
             context.documentName = parsedDocument.name();
@@ -1009,6 +1385,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         context.titleLabel.setText(truncateTitle(context.documentName));
     }
 
+    /*
+     * Updates validation state display for policy.
+     *
+     * @param context the tab context
+     *
+     * @param hasErrors whether errors exist
+     *
+     * @param issues the validation issues
+     */
     private void updatePolicyValidationState(PolicyTabContext context, boolean hasErrors,
             io.sapl.vaadin.Issue[] issues) {
         if (hasErrors) {
@@ -1025,6 +1410,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Checks for and displays policy name collisions.
+     */
     private void checkForPolicyNameCollisions() {
         val documentNamesToTabs = groupTabsByDocumentName();
         val duplicateNames      = findDuplicateDocumentNames(documentNamesToTabs);
@@ -1039,6 +1427,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Groups tabs by their document names.
+     *
+     * @return map of document names to tabs
+     */
     private Map<String, List<Tab>> groupTabsByDocumentName() {
         val nameToTabs = new HashMap<String, List<Tab>>();
 
@@ -1053,11 +1446,23 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return nameToTabs;
     }
 
+    /*
+     * Finds duplicate document names.
+     *
+     * @param documentNamesToTabs map of names to tabs
+     *
+     * @return set of duplicate names
+     */
     private Set<String> findDuplicateDocumentNames(Map<String, List<Tab>> documentNamesToTabs) {
         return documentNamesToTabs.entrySet().stream().filter(entry -> entry.getValue().size() > 1)
                 .map(Map.Entry::getKey).collect(Collectors.toSet());
     }
 
+    /*
+     * Sets collision warning state on tab context.
+     *
+     * @param context the tab context
+     */
     private void setCollisionWarningState(PolicyTabContext context) {
         context.statusIcon.setIcon(VaadinIcon.WARNING);
         context.statusIcon.setColor(COLOR_ORANGE);
@@ -1065,6 +1470,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         updateValidationField(context.validationField, result);
     }
 
+    /*
+     * Restores normal validation state after collision cleared.
+     *
+     * @param context the tab context
+     */
     private void restoreNormalValidationState(PolicyTabContext context) {
         val document       = context.editor.getDocument();
         val parsedDocument = INTERPRETER.parseDocument(document);
@@ -1083,6 +1493,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Truncates title text to maximum length.
+     *
+     * @param title the title to truncate
+     *
+     * @return the truncated title
+     */
     private String truncateTitle(String title) {
         if (title == null) {
             return "";
@@ -1093,6 +1510,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return title.substring(0, MAX_TITLE_LENGTH) + "...";
     }
 
+    /*
+     * Builds the application header.
+     *
+     * @return the header component
+     */
     private HorizontalLayout buildHeader() {
         val header = new HorizontalLayout();
         header.setWidthFull();
@@ -1122,6 +1544,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return header;
     }
 
+    /*
+     * Creates homepage link button.
+     *
+     * @return the homepage button
+     */
     private Button createHomepageLink() {
         val button = new Button("SAPL Homepage", VaadinIcon.EXTERNAL_LINK.create());
         button.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
@@ -1129,6 +1556,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return button;
     }
 
+    /*
+     * Creates share button (currently disabled).
+     *
+     * @return the share button
+     */
     private Button createShareButton() {
         val button = new Button("Share", VaadinIcon.LINK.create());
         button.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
@@ -1137,6 +1569,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return button;
     }
 
+    /*
+     * Creates combining algorithm selection combobox.
+     *
+     * @return the combobox
+     */
     private ComboBox<PolicyDocumentCombiningAlgorithm> createCombiningAlgorithmComboBox() {
         val comboBox = new ComboBox<PolicyDocumentCombiningAlgorithm>();
         comboBox.setPlaceholder("Combining Algorithm");
@@ -1148,6 +1585,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return comboBox;
     }
 
+    /*
+     * Creates examples menu with categorized examples.
+     *
+     * @return the examples menu bar
+     */
     private MenuBar createExamplesMenu() {
         val menuBar = new MenuBar();
         menuBar.addThemeVariants(MenuBarVariant.LUMO_TERTIARY);
@@ -1169,6 +1611,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return menuBar;
     }
 
+    /*
+     * Checks for URL fragment on initial page load.
+     */
     private void checkInitialFragment() {
         getUI().ifPresent(
                 ui -> ui.getPage().executeJs("return window.getUrlFragment()").then(String.class, fragment -> {
@@ -1179,6 +1624,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 }));
     }
 
+    /*
+     * Loads example with user confirmation.
+     *
+     * @param example the example to load
+     */
     private void loadExampleWithConfirmation(Example example) {
         val dialog = new ConfirmDialog();
         dialog.setHeader("Load Example: " + example.displayName());
@@ -1194,11 +1644,16 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         dialog.open();
     }
 
+    /*
+     * Loads example by slug without confirmation.
+     *
+     * @param slug the example slug
+     */
     private void loadExampleBySlugWithoutConfirmation(String slug) {
         PlaygroundExamples.findBySlug(slug).ifPresent(this::loadExample);
     }
 
-    /**
+    /*
      * Loads an example into the playground.
      * Stops active subscription, clears state, loads example content, and updates
      * PDP.
@@ -1233,6 +1688,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         showNotification("Loaded example: " + example.displayName());
     }
 
+    /*
+     * Removes all policy tabs from the tab sheet.
+     */
     private void removeAllPolicyTabs() {
         val tabsToRemove = policyTabContexts.keySet().stream().toList();
         for (val tab : tabsToRemove) {
@@ -1241,29 +1699,67 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
     }
 
+    /*
+     * Sets combining algorithm without triggering change event.
+     *
+     * @param algorithm the algorithm to set
+     */
     private void setCombiningAlgorithmQuietly(PolicyDocumentCombiningAlgorithm algorithm) {
-        combiningAlgorithmComboBox.setValue(algorithm);
-        policyDecisionPoint.setCombiningAlgorithm(algorithm);
+        if (combiningAlgorithmComboBox != null) {
+            combiningAlgorithmComboBox.setValue(algorithm);
+            policyDecisionPoint.setCombiningAlgorithm(algorithm);
+        }
     }
 
+    /*
+     * Updates the URL fragment for sharing.
+     *
+     * @param slug the example slug
+     */
     private void updateUrlFragment(String slug) {
         getUI().ifPresent(ui -> ui.getPage().executeJs("window.location.hash = 'example/' + $0", slug));
     }
 
+    /*
+     * Handles combining algorithm change.
+     *
+     * @param event the change event
+     */
     private void handleAlgorithmChange(ValueChangeEvent<PolicyDocumentCombiningAlgorithm> event) {
         this.policyDecisionPoint.setCombiningAlgorithm(event.getValue());
     }
 
+    /*
+     * Formats algorithm name for display.
+     *
+     * @param algorithm the algorithm to format
+     *
+     * @return the formatted name
+     */
     private static String formatAlgorithmName(PolicyDocumentCombiningAlgorithm algorithm) {
         return StringUtils.capitalize(algorithm.toString().replace('_', ' ').toLowerCase());
     }
 
+    /*
+     * Creates read-only JSON editor.
+     *
+     * @return the JSON editor
+     */
     private JsonEditor createReadOnlyJsonEditor() {
         val editor = createJsonEditor(false, 0);
         editor.getElement().getStyle().set("width", "100%");
         return editor;
     }
 
+    /*
+     * Creates JSON editor with specified configuration.
+     *
+     * @param hasLineNumbers whether to show line numbers
+     *
+     * @param textUpdateDelay delay before triggering update events
+     *
+     * @return the configured JSON editor
+     */
     private JsonEditor createJsonEditor(boolean hasLineNumbers, int textUpdateDelay) {
         val config = new JsonEditorConfiguration();
         config.setHasLineNumbers(hasLineNumbers);
@@ -1274,12 +1770,28 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return new JsonEditor(config);
     }
 
+    /*
+     * Creates icon with specified type and color.
+     *
+     * @param iconType the icon type
+     *
+     * @param color the icon color
+     *
+     * @return the configured icon
+     */
     private Icon createIcon(VaadinIcon iconType, String color) {
         val icon = iconType.create();
         icon.setColor(color);
         return icon;
     }
 
+    /*
+     * Updates validation field with result.
+     *
+     * @param field the field to update
+     *
+     * @param result the validation result
+     */
     private void updateValidationField(TextField field, ValidationResult result) {
         val icon = switch (result.severity()) {
         case SUCCESS -> createIcon(VaadinIcon.CHECK, COLOR_GREEN);
