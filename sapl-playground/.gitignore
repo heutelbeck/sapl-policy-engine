@@ -1,0 +1,4 @@
+src/main/bundles/
+src/main/frontend
+tsconfig.json
+types.d.ts
