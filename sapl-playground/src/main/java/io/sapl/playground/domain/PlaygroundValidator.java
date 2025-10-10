@@ -18,12 +18,16 @@
 package io.sapl.playground.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.sapl.vaadin.Issue;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
+import org.eclipse.xtext.diagnostics.Severity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
@@ -110,12 +114,32 @@ public class PlaygroundValidator {
     }
 
     /**
+     * Checks if any issues have ERROR severity.
+     *
+     * @param issues the validation issues
+     * @return true if errors exist
+     */
+    public static boolean hasErrorSeverityIssues(Issue[] issues) {
+        return Arrays.stream(issues).anyMatch(issue -> Severity.ERROR == issue.getSeverity());
+    }
+
+    /**
+     * Counts issues with ERROR severity.
+     *
+     * @param issues the validation issues
+     * @return count of error issues
+     */
+    public static long countErrorSeverityIssues(Issue[] issues) {
+        return Arrays.stream(issues).filter(issue -> Severity.ERROR == issue.getSeverity()).count();
+    }
+
+    /**
      * Finds missing mandatory fields in a subscription JSON node.
      *
      * @param jsonNode the JSON node to check
      * @return list of missing field names
      */
-    private List<String> findMissingMandatoryFields(com.fasterxml.jackson.databind.JsonNode jsonNode) {
+    private List<String> findMissingMandatoryFields(JsonNode jsonNode) {
         val missingFields = new ArrayList<String>();
         for (val mandatoryField : MANDATORY_SUBSCRIPTION_FIELDS) {
             if (jsonNode.get(mandatoryField) == null) {

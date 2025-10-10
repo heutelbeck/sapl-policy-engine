@@ -70,7 +70,6 @@ import io.sapl.vaadin.graph.JsonGraphVisualization;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.xtext.diagnostics.Severity;
 import reactor.core.Disposable;
 
 import java.util.*;
@@ -179,31 +178,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private final Map<Tab, PolicyTabContext> policyTabContexts = new HashMap<>();
     private final AtomicInteger              policyTabCounter  = new AtomicInteger(1);
-
-    /**
-     * Safely extracts a component of the specified type from a layout at the given
-     * index.
-     *
-     * @param layout the layout containing the component
-     * @param index the index of the component
-     * @param expectedType the expected component type
-     * @param <T> the component type
-     * @return the component if found and of correct type
-     * @throws IllegalStateException if component is missing or wrong type
-     */
-    private <T extends Component> T getComponentSafely(VerticalLayout layout, int index, Class<T> expectedType) {
-        if (index >= layout.getComponentCount()) {
-            throw new IllegalStateException("Component at index " + index + " does not exist");
-        }
-
-        val component = layout.getComponentAt(index);
-        if (!expectedType.isInstance(component)) {
-            throw new IllegalStateException(
-                    "Component at index " + index + " is not of type " + expectedType.getSimpleName());
-        }
-
-        return expectedType.cast(component);
-    }
 
     /**
      * Holds the components and state for a single policy editor tab.
@@ -458,7 +432,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val validationResult = validator.validateAuthorizationSubscription(event.getNewValue());
         updateValidationField(subscriptionValidationField, validationResult);
 
-        if (shouldClearDecisionsOnChange()) {
+        if (Boolean.TRUE.equals(clearOnNewSubscriptionCheckBox.getValue())) {
             clearDecisionBuffer();
         }
 
@@ -486,15 +460,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
 
         return false;
-    }
-
-    /**
-     * Checks if decisions should be cleared on subscription change.
-     *
-     * @return true if auto-clear is enabled
-     */
-    private boolean shouldClearDecisionsOnChange() {
-        return Boolean.TRUE.equals(clearOnNewSubscriptionCheckBox.getValue());
     }
 
     /**
@@ -635,7 +600,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         isSubscriptionActive = true;
         updatePlayStopButtonForActiveState();
 
-        if (shouldClearDecisionsOnChange()) {
+        if (Boolean.TRUE.equals(clearOnNewSubscriptionCheckBox.getValue())) {
             clearDecisionBuffer();
         }
 
@@ -701,7 +666,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         try {
             return mapper.readValue(subscriptionJson, AuthorizationSubscription.class);
         } catch (JsonProcessingException exception) {
-            log.warn("Failed to parse authorization subscription", exception);
+            log.debug("Failed to parse authorization subscription: {}", exception.getMessage());
             return null;
         }
     }
@@ -1043,9 +1008,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * @return the tab component
      */
     private Tab createVariablesTab() {
-        Icon variablesValidationIcon;
-        variablesValidationIcon = VaadinIcon.CHECK_CIRCLE.create();
-        variablesValidationIcon.setColor(COLOR_GREEN);
+        val variablesValidationIcon = createIcon(VaadinIcon.CHECK_CIRCLE, COLOR_GREEN);
         variablesValidationIcon.getStyle().set(CSS_MARGIN_RIGHT, SPACING_HALF_EM);
 
         val label      = new Span(truncateTitle("Variables"));
@@ -1171,33 +1134,55 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val policyNumber = policyTabCounter.getAndIncrement();
         val policyName   = "Policy " + policyNumber;
 
-        val editorLayout = createPolicyEditorLayout();
-        val tabHeader    = createPolicyTabHeader(policyName, editorLayout);
-        val context      = extractPolicyContextFromLayout(tabHeader);
+        val components = createPolicyTabComponents(policyName);
 
-        leftTabSheet.add(tabHeader, editorLayout);
-        leftTabSheet.setSelectedTab(tabHeader);
+        leftTabSheet.add(components.tab, components.editorLayout);
+        leftTabSheet.setSelectedTab(components.tab);
 
-        context.editor.addValidationFinishedListener(event -> handlePolicyValidation(context, event));
-        context.editor.setDocument(DEFAULT_POLICY);
+        components.context.editor
+                .addValidationFinishedListener(event -> handlePolicyValidation(components.context, event));
+        components.context.editor.setDocument(DEFAULT_POLICY);
     }
 
     /**
-     * Creates the policy editor layout with editor and validation field.
-     *
-     * @return the editor layout
+     * Holds tab, context, and layout for a newly created policy tab.
      */
-    private VerticalLayout createPolicyEditorLayout() {
-        val layout = new VerticalLayout();
-        layout.setSizeFull();
-        layout.setPadding(false);
-        layout.setSpacing(true);
+    private record PolicyTabComponents(Tab tab, PolicyTabContext context, VerticalLayout editorLayout) {}
 
+    /**
+     * Creates all components for a new policy tab in one coordinated method.
+     * Eliminates brittle component extraction by index.
+     *
+     * @param policyName the name for the policy tab
+     * @return components bundle with tab, context, and layout
+     */
+    private PolicyTabComponents createPolicyTabComponents(String policyName) {
         val editor          = createSaplEditor();
         val validationField = createValidationTextField();
 
-        layout.add(editor, validationField);
-        return layout;
+        val editorLayout = new VerticalLayout();
+        editorLayout.setSizeFull();
+        editorLayout.setPadding(false);
+        editorLayout.setSpacing(true);
+        editorLayout.add(editor, validationField);
+
+        val statusIcon = createIcon(VaadinIcon.QUESTION_CIRCLE, COLOR_ORANGE);
+        statusIcon.getStyle().set(CSS_MARGIN_RIGHT, SPACING_HALF_EM);
+
+        val titleLabel  = new Span(truncateTitle(policyName));
+        val closeButton = createTabCloseButton();
+
+        val tabContent = new HorizontalLayout(statusIcon, titleLabel, closeButton);
+        tabContent.setSpacing(false);
+        tabContent.setAlignItems(FlexComponent.Alignment.CENTER);
+
+        val tab     = new Tab(tabContent);
+        val context = new PolicyTabContext(editor, validationField, statusIcon, titleLabel);
+
+        policyTabContexts.put(tab, context);
+        closeButton.addClickListener(event -> handlePolicyTabClose(tab));
+
+        return new PolicyTabComponents(tab, context, editorLayout);
     }
 
     /**
@@ -1230,38 +1215,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     /**
-     * Creates a policy tab header with title and close button.
-     *
-     * @param policyName the policy name for display
-     * @param editorLayout the layout containing the editor (for context extraction)
-     * @return the tab header component
-     */
-    private Tab createPolicyTabHeader(String policyName, VerticalLayout editorLayout) {
-        val statusIcon = VaadinIcon.QUESTION_CIRCLE.create();
-        statusIcon.setColor(COLOR_ORANGE);
-        statusIcon.getStyle().set(CSS_MARGIN_RIGHT, SPACING_HALF_EM);
-
-        val titleLabel = new Span(truncateTitle(policyName));
-
-        val closeButton = createTabCloseButton();
-
-        val tabContent = new HorizontalLayout(statusIcon, titleLabel, closeButton);
-        tabContent.setSpacing(false);
-        tabContent.setAlignItems(FlexComponent.Alignment.CENTER);
-
-        val tab = new Tab(tabContent);
-
-        val editor          = getComponentSafely(editorLayout, 0, SaplEditor.class);
-        val validationField = getComponentSafely(editorLayout, 1, TextField.class);
-        val context         = new PolicyTabContext(editor, validationField, statusIcon, titleLabel);
-        policyTabContexts.put(tab, context);
-
-        closeButton.addClickListener(event -> handlePolicyTabClose(tab));
-
-        return tab;
-    }
-
-    /**
      * Creates a close button for policy tabs.
      *
      * @return the configured button
@@ -1271,16 +1224,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         button.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_SMALL);
         button.getStyle().set(CSS_MARGIN_LEFT, SPACING_HALF_EM);
         return button;
-    }
-
-    /**
-     * Extracts policy context from the editor layout and tab header.
-     *
-     * @param tabHeader the tab header component
-     * @return the policy tab context
-     */
-    private PolicyTabContext extractPolicyContextFromLayout(Tab tabHeader) {
-        return policyTabContexts.get(tabHeader);
     }
 
     /**
@@ -1305,29 +1248,21 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val document = context.editor.getDocument();
 
         if (hasInvalidDocumentSize(document, "Policy")) {
-            setErrorValidationState(context, 1);
-            updateValidationField(context.validationField, createInvalidIcon(), "Document too large");
+            val result = ValidationResult.error("Document too large");
+            updateValidationField(context.validationField, result);
+            context.statusIcon.setIcon(VaadinIcon.CLOSE_CIRCLE);
+            context.statusIcon.setColor(COLOR_RED);
             return;
         }
 
         val issues         = event.getIssues();
-        val hasErrors      = hasErrorSeverityIssues(issues);
+        val hasErrors      = PlaygroundValidator.hasErrorSeverityIssues(issues);
         val parsedDocument = INTERPRETER.parseDocument(document);
 
         updatePolicyDocumentName(context, parsedDocument);
         updatePolicyValidationState(context, hasErrors, issues);
         checkForPolicyNameCollisions();
         updatePolicyRetrievalPoint();
-    }
-
-    /**
-     * Checks if any issues have ERROR severity.
-     *
-     * @param issues the validation issues
-     * @return true if errors exist
-     */
-    private boolean hasErrorSeverityIssues(io.sapl.vaadin.Issue[] issues) {
-        return Arrays.stream(issues).anyMatch(issue -> Severity.ERROR == issue.getSeverity());
     }
 
     /**
@@ -1375,44 +1310,17 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private void updatePolicyValidationState(PolicyTabContext context, boolean hasErrors,
             io.sapl.vaadin.Issue[] issues) {
         if (hasErrors) {
-            val errorCount = countErrorSeverityIssues(issues);
-            setErrorValidationState(context, errorCount);
+            val errorCount = PlaygroundValidator.countErrorSeverityIssues(issues);
+            val result     = ValidationResult.error(errorCount + " error(s)");
+            context.statusIcon.setIcon(VaadinIcon.CLOSE_CIRCLE);
+            context.statusIcon.setColor(COLOR_RED);
+            updateValidationField(context.validationField, result);
         } else {
-            setValidValidationState(context);
+            val result = ValidationResult.success();
+            context.statusIcon.setIcon(VaadinIcon.CHECK_CIRCLE);
+            context.statusIcon.setColor(COLOR_GREEN);
+            updateValidationField(context.validationField, result);
         }
-    }
-
-    /**
-     * Counts issues with ERROR severity.
-     *
-     * @param issues the validation issues
-     * @return count of error issues
-     */
-    private long countErrorSeverityIssues(io.sapl.vaadin.Issue[] issues) {
-        return Arrays.stream(issues).filter(issue -> Severity.ERROR == issue.getSeverity()).count();
-    }
-
-    /**
-     * Sets error validation state on a policy context.
-     *
-     * @param context the policy context
-     * @param errorCount the number of errors
-     */
-    private void setErrorValidationState(PolicyTabContext context, long errorCount) {
-        context.statusIcon.setIcon(VaadinIcon.CLOSE_CIRCLE);
-        context.statusIcon.setColor(COLOR_RED);
-        updateValidationField(context.validationField, createInvalidIcon(), errorCount + " error(s)");
-    }
-
-    /**
-     * Sets valid validation state on a policy context.
-     *
-     * @param context the policy context
-     */
-    private void setValidValidationState(PolicyTabContext context) {
-        context.statusIcon.setIcon(VaadinIcon.CHECK_CIRCLE);
-        context.statusIcon.setColor(COLOR_GREEN);
-        updateValidationField(context.validationField, createValidIcon(), "OK");
     }
 
     /**
@@ -1472,8 +1380,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private void setCollisionWarningState(PolicyTabContext context) {
         context.statusIcon.setIcon(VaadinIcon.WARNING);
         context.statusIcon.setColor(COLOR_ORANGE);
-        val message = "Name collision: '" + context.documentName + "'";
-        updateValidationField(context.validationField, createCollisionIcon(), message);
+        val result = ValidationResult.warning("Name collision: '" + context.documentName + "'");
+        updateValidationField(context.validationField, result);
     }
 
     /**
@@ -1490,11 +1398,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         if (hasErrors) {
             context.statusIcon.setIcon(VaadinIcon.CLOSE_CIRCLE);
             context.statusIcon.setColor(COLOR_RED);
-            updateValidationField(context.validationField, createInvalidIcon(), "Syntax error");
+            val result = ValidationResult.error("Syntax error");
+            updateValidationField(context.validationField, result);
         } else {
             context.statusIcon.setIcon(VaadinIcon.CHECK_CIRCLE);
             context.statusIcon.setColor(COLOR_GREEN);
-            updateValidationField(context.validationField, createValidIcon(), "OK");
+            val result = ValidationResult.success();
+            updateValidationField(context.validationField, result);
         }
     }
 
@@ -1522,8 +1432,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * @return the header component
      */
     private HorizontalLayout buildHeader() {
-        ComboBox<PolicyDocumentCombiningAlgorithm> combiningAlgorithmComboBox;
-        val                                        header = new HorizontalLayout();
+        val header = new HorizontalLayout();
         header.addClassName(Gap.MEDIUM);
         header.setWidth("100%");
         header.setHeight("min-content");
@@ -1532,7 +1441,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val title = new Span("SAPL Playground");
         title.getStyle().set("font-size", "var(--lumo-font-size-xl)").set("font-weight", "bold");
 
-        combiningAlgorithmComboBox = createCombiningAlgorithmComboBox();
+        val combiningAlgorithmComboBox = createCombiningAlgorithmComboBox();
 
         header.add(title, combiningAlgorithmComboBox);
         return header;
@@ -1616,35 +1525,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     /**
-     * Creates a valid icon (green checkmark).
+     * Creates an icon with specified type and color.
      *
+     * @param iconType the Vaadin icon type
+     * @param color the color for the icon
      * @return the configured icon
      */
-    private Icon createValidIcon() {
-        val icon = VaadinIcon.CHECK.create();
-        icon.setColor(COLOR_GREEN);
-        return icon;
-    }
-
-    /**
-     * Creates an invalid icon (red X).
-     *
-     * @return the configured icon
-     */
-    private Icon createInvalidIcon() {
-        val icon = VaadinIcon.CLOSE_CIRCLE.create();
-        icon.setColor(COLOR_RED);
-        return icon;
-    }
-
-    /**
-     * Creates a collision warning icon (orange warning).
-     *
-     * @return the configured icon
-     */
-    private Icon createCollisionIcon() {
-        val icon = VaadinIcon.WARNING.create();
-        icon.setColor(COLOR_ORANGE);
+    private Icon createIcon(VaadinIcon iconType, String color) {
+        val icon = iconType.create();
+        icon.setColor(color);
         return icon;
     }
 
@@ -1656,24 +1545,12 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      */
     private void updateValidationField(TextField field, ValidationResult result) {
         val icon = switch (result.severity()) {
-        case SUCCESS -> createValidIcon();
-        case ERROR   -> createInvalidIcon();
-        case WARNING -> createCollisionIcon();
+        case SUCCESS -> createIcon(VaadinIcon.CHECK, COLOR_GREEN);
+        case ERROR   -> createIcon(VaadinIcon.CLOSE_CIRCLE, COLOR_RED);
+        case WARNING -> createIcon(VaadinIcon.WARNING, COLOR_ORANGE);
         };
         field.setPrefixComponent(icon);
         field.setValue(result.message());
-    }
-
-    /**
-     * Updates a validation field with status icon and message.
-     *
-     * @param field the validation field to update
-     * @param icon the icon to display
-     * @param message the message to display
-     */
-    private void updateValidationField(TextField field, Icon icon, String message) {
-        field.setPrefixComponent(icon);
-        field.setValue(message);
     }
 
 }
