@@ -13,6 +13,12 @@ interface TreeNode extends d3.HierarchyPointNode<any> {
     };
 }
 
+interface FormattedLabel {
+    lines: string[];
+    needsTruncation: boolean;
+    height: number;
+}
+
 // Layout constants
 const NODE_HEIGHT_SPACING = 60;
 const NODE_WIDTH_SPACING = 180;
@@ -24,9 +30,13 @@ const BOUNDS_PADDING_HEIGHT = 100;
 
 // Node styling constants
 const NODE_WIDTH = 140;
-const NODE_HEIGHT = 44;
+const NODE_HEIGHT_BASE = 44;
+const NODE_HEIGHT_PER_LINE = 18;
 const NODE_RADIUS = 3;
-const TEXT_MAX_LENGTH = 20;
+const TEXT_MAX_LENGTH = 40;
+const LINE_CHAR_LIMIT = 25;
+const MAX_DISPLAY_LINES = 2;
+const LINE_HEIGHT = 16;
 
 // Color scheme matching Vaadin Lumo dark theme
 const COLORS = {
@@ -45,6 +55,7 @@ const COLORS = {
 /**
  * Web component for interactive JSON graph visualization using D3.js.
  * Renders JSON data as a hierarchical tree with pan/zoom capabilities.
+ * Features multi-line text, smart truncation, and click-to-copy functionality.
  */
 @customElement('json-graph-visualization')
 export class JsonGraphComponent extends LitElement {
@@ -67,6 +78,7 @@ export class JsonGraphComponent extends LitElement {
     private zoomBehavior: any = null;
     private resizeObserver: ResizeObserver | null = null;
     private currentTransform: any = null;
+    private tooltip: any = null;
 
     static styles = css`
         :host {
@@ -113,6 +125,64 @@ export class JsonGraphComponent extends LitElement {
 
         .maximize-button:active {
             background: rgba(64, 160, 159, 0.35);
+        }
+
+        .custom-tooltip {
+            position: absolute;
+            visibility: hidden;
+            background: rgba(0, 0, 0, 0.92);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            max-width: 350px;
+            word-wrap: break-word;
+            z-index: 10000;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(64, 160, 159, 0.4);
+            line-height: 1.4;
+        }
+
+        .custom-tooltip.visible {
+            visibility: visible;
+        }
+
+        .tooltip-type {
+            font-weight: 600;
+            color: rgb(64, 160, 159);
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .tooltip-content {
+            margin-top: 6px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .tooltip-hint {
+            margin-top: 8px;
+            font-size: 10px;
+            opacity: 0.7;
+            font-style: italic;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 6px;
+        }
+
+        .tooltip-copied {
+            color: rgb(85, 170, 119);
+            font-weight: 600;
+        }
+
+        .node-text-group text {
+            font-weight: 400;
+            text-rendering: optimizeLegibility;
+            user-select: none;
         }
     `;
 
@@ -197,7 +267,16 @@ export class JsonGraphComponent extends LitElement {
             });
 
         this.svg.call(this.zoomBehavior);
+
+        this.tooltip = this.createTooltip();
+
         this.renderGraph();
+    }
+
+    private createTooltip(): any {
+        return d3.select(this.container)
+            .append('div')
+            .attr('class', 'custom-tooltip');
     }
 
     private renderGraph() {
@@ -282,31 +361,173 @@ export class JsonGraphComponent extends LitElement {
     }
 
     private renderNodeRectangles(nodes: any) {
+        const self = this;
+
         nodes.append('rect')
             .attr('x', -NODE_WIDTH / 2)
-            .attr('y', -NODE_HEIGHT / 2)
+            .attr('y', (d: any) => {
+                const formatted = this.formatNodeLabel(d.data.fullLabel);
+                return -formatted.height / 2;
+            })
             .attr('width', NODE_WIDTH)
-            .attr('height', NODE_HEIGHT)
+            .attr('height', (d: any) => {
+                const formatted = this.formatNodeLabel(d.data.fullLabel);
+                return formatted.height;
+            })
             .attr('rx', NODE_RADIUS)
             .attr('fill', (d: any) => this.getNodeColors(d.data.type).fill)
             .attr('stroke', (d: any) => this.getNodeColors(d.data.type).border)
             .attr('stroke-width', 1.5)
             .style('cursor', 'pointer')
-            .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))');
+            .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))')
+            .on('mouseenter', function(event: MouseEvent, d: any) {
+                self.showTooltip(event, d);
+            })
+            .on('mousemove', function(event: MouseEvent) {
+                self.moveTooltip(event);
+            })
+            .on('mouseleave', function() {
+                self.hideTooltip();
+            })
+            .on('click', function(event: MouseEvent, d: any) {
+                self.copyToClipboard(d.data.fullLabel);
+            });
     }
 
     private renderNodeLabels(nodes: any) {
-        nodes.append('text')
-            .attr('dy', '0.35em')
-            .attr('text-anchor', 'middle')
-            .style('fill', (d: any) => this.getNodeColors(d.data.type).text)
-            .style('font-family', '"Segoe UI", Candara, "Bitstream Vera Sans", "DejaVu Sans", "Trebuchet MS", Verdana, sans-serif')
-            .style('font-size', '12px')
-            .style('font-weight', '400')
-            .style('pointer-events', 'none')
-            .text((d: any) => this.truncateText(d.data.fullLabel, TEXT_MAX_LENGTH))
-            .append('title')
-            .text((d: any) => d.data.fullLabel);
+        nodes.each((d: any, i: number, nodeElements: any) => {
+            const node = d3.select(nodeElements[i]);
+            const formatted = this.formatNodeLabel(d.data.fullLabel);
+
+            const textGroup = node.append('g')
+                .attr('class', 'node-text-group');
+
+            formatted.lines.forEach((line, idx) => {
+                const yOffset = (idx - (formatted.lines.length - 1) / 2) * LINE_HEIGHT;
+
+                textGroup.append('text')
+                    .attr('dy', `${yOffset}px`)
+                    .attr('text-anchor', 'middle')
+                    .style('fill', this.getNodeColors(d.data.type).text)
+                    .style('font-family', '"Segoe UI", Candara, "Bitstream Vera Sans", "DejaVu Sans", "Trebuchet MS", Verdana, sans-serif')
+                    .style('font-size', '11px')
+                    .style('font-weight', '400')
+                    .style('pointer-events', 'none')
+                    .text(line + (idx === formatted.lines.length - 1 && formatted.needsTruncation ? '…' : ''));
+            });
+        });
+    }
+
+    private formatNodeLabel(text: string): FormattedLabel {
+        if (text.length <= LINE_CHAR_LIMIT) {
+            return {
+                lines: [text],
+                needsTruncation: false,
+                height: NODE_HEIGHT_BASE
+            };
+        }
+
+        const lines: string[] = [];
+        let remainingText = text;
+
+        for (let i = 0; i < MAX_DISPLAY_LINES && remainingText.length > 0; i++) {
+            if (remainingText.length <= LINE_CHAR_LIMIT) {
+                lines.push(remainingText);
+                remainingText = '';
+            } else {
+                let breakPoint = LINE_CHAR_LIMIT;
+                const segment = remainingText.substring(0, LINE_CHAR_LIMIT + 1);
+                const lastSpace = segment.lastIndexOf(' ');
+                const lastColon = segment.lastIndexOf(':');
+                const lastComma = segment.lastIndexOf(',');
+                const lastDot = segment.lastIndexOf('.');
+
+                const breakChars = [lastSpace, lastColon, lastComma, lastDot]
+                    .filter(pos => pos > LINE_CHAR_LIMIT * 0.6);
+
+                if (breakChars.length > 0) {
+                    breakPoint = Math.max(...breakChars) + 1;
+                }
+
+                lines.push(remainingText.substring(0, breakPoint).trim());
+                remainingText = remainingText.substring(breakPoint).trim();
+            }
+        }
+
+        const needsTruncation = remainingText.length > 0;
+        const height = NODE_HEIGHT_BASE + (lines.length - 1) * NODE_HEIGHT_PER_LINE;
+
+        return { lines, needsTruncation, height };
+    }
+
+    private showTooltip(event: MouseEvent, d: any) {
+        const formatted = this.formatNodeLabel(d.data.fullLabel);
+
+        if (!formatted.needsTruncation && d.data.fullLabel.length <= LINE_CHAR_LIMIT) {
+            return;
+        }
+
+        this.tooltip
+            .classed('visible', true)
+            .html(`
+                <div class="tooltip-type">${d.data.type}</div>
+                <div class="tooltip-content">${this.escapeHtml(d.data.fullLabel)}</div>
+                <div class="tooltip-hint">Click node to copy</div>
+            `);
+
+        this.moveTooltip(event);
+    }
+
+    private moveTooltip(event: MouseEvent) {
+        const tooltipNode = this.tooltip.node();
+        if (!tooltipNode || !this.tooltip.classed('visible')) return;
+
+        const tooltipWidth = tooltipNode.offsetWidth;
+        const tooltipHeight = tooltipNode.offsetHeight;
+        const containerRect = this.container.getBoundingClientRect();
+
+        let left = event.clientX - containerRect.left + 15;
+        let top = event.clientY - containerRect.top + 15;
+
+        if (left + tooltipWidth > containerRect.width) {
+            left = event.clientX - containerRect.left - tooltipWidth - 15;
+        }
+
+        if (top + tooltipHeight > containerRect.height) {
+            top = event.clientY - containerRect.top - tooltipHeight - 15;
+        }
+
+        this.tooltip
+            .style('top', `${top}px`)
+            .style('left', `${left}px`);
+    }
+
+    private hideTooltip() {
+        this.tooltip.classed('visible', false);
+    }
+
+    private copyToClipboard(text: string) {
+        if (!navigator.clipboard) {
+            return;
+        }
+
+        navigator.clipboard.writeText(text).then(() => {
+            this.tooltip
+                .classed('visible', true)
+                .html('<div class="tooltip-copied">✓ Copied to clipboard!</div>');
+
+            setTimeout(() => {
+                this.tooltip.classed('visible', false);
+            }, 1500);
+        }).catch(() => {
+            // Clipboard write failed - ignore silently
+        });
+    }
+
+    private escapeHtml(text: string): string {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     private centerView(width: number, height: number, bounds: any) {
@@ -370,10 +591,6 @@ export class JsonGraphComponent extends LitElement {
             default:
                 return `${key}: ${value}`;
         }
-    }
-
-    private truncateText(text: string, maxLength: number): string {
-        return text.length <= maxLength ? text : text.substring(0, maxLength - 1) + '…';
     }
 
     private getValueType(value: any): string {

@@ -273,7 +273,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-    private final ObjectMapper                  mapper;
+    private final ObjectMapper                            mapper;
     private final transient PlaygroundValidator           validator;
     private final transient DocumentationDrawer           documentationDrawer;
     private final transient PlaygroundPolicyDecisionPoint policyDecisionPoint;
