@@ -86,7 +86,7 @@ public class PlaygroundVariablesAndCombinatorSource implements VariablesAndCombi
      *
      * @param algorithm the combining algorithm to use, or null for no algorithm
      */
-    public void setCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {
+    public final void setCombiningAlgorithm(PolicyDocumentCombiningAlgorithm algorithm) {
         combiningAlgorithmSink.tryEmitNext(Optional.ofNullable(algorithm));
     }
 
@@ -97,7 +97,7 @@ public class PlaygroundVariablesAndCombinatorSource implements VariablesAndCombi
      *
      * @param variables map of variable names to values, or null for no variables
      */
-    public void setVariables(Map<String, Val> variables) {
+    public final void setVariables(Map<String, Val> variables) {
         variablesSink.tryEmitNext(Optional.ofNullable(variables));
     }
 

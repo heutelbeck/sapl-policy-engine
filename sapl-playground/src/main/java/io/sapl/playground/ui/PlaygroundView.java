@@ -20,6 +20,7 @@ package io.sapl.playground.ui;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
+import com.google.common.collect.Maps;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.HasValue.ValueChangeEvent;
 import com.vaadin.flow.component.button.Button;
@@ -34,6 +35,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.IconFactory;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
@@ -271,7 +273,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();
 
-    private final transient ObjectMapper                  mapper;
+    private final ObjectMapper                  mapper;
     private final transient PlaygroundValidator           validator;
     private final transient DocumentationDrawer           documentationDrawer;
     private final transient PlaygroundPolicyDecisionPoint policyDecisionPoint;
@@ -1213,7 +1215,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private Map<String, Val> parseVariablesFromJson(String variablesJson) {
         try {
             val variablesObject = mapper.readTree(variablesJson);
-            val variables       = new HashMap<String, Val>(variablesObject.size());
+            val variables       = Maps.<String, Val>newHashMapWithExpectedSize(variablesObject.size());
 
             variablesObject.forEachEntry((name, value) -> {
                 if (!PlaygroundValidator.isValidVariableName(name)) {
@@ -1971,7 +1973,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Creates icon with specified type and color.
      */
-    private Icon createIcon(VaadinIcon iconType, String color) {
+    private Icon createIcon(IconFactory iconType, String color) {
         val icon = iconType.create();
         icon.setColor(color);
         return icon;

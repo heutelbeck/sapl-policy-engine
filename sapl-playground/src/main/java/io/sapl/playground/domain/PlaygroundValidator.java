@@ -26,6 +26,7 @@ import lombok.val;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.springframework.stereotype.Service;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -44,7 +45,7 @@ import java.util.stream.StreamSupport;
  */
 @Service
 @RequiredArgsConstructor
-public class PlaygroundValidator {
+public class PlaygroundValidator implements Serializable {
 
     /*
      * Maximum length for variable names.

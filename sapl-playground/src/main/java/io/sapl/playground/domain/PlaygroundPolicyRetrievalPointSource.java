@@ -71,7 +71,7 @@ public class PlaygroundPolicyRetrievalPointSource implements PolicyRetrievalPoin
      *
      * @param documents list of SAPL policy document source strings
      */
-    public void updatePolicyRetrievalPoint(List<String> documents) {
+    public final void updatePolicyRetrievalPoint(List<String> documents) {
         val policyRetrievalPoint = new PlaygroundPolicyRetrievalPoint(documents, interpreter);
         policyRetrievalPointSink.tryEmitNext(policyRetrievalPoint);
     }
