@@ -23,35 +23,62 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import io.sapl.api.pdp.TracedDecision;
 
+/**
+ * Grid component for displaying authorization decisions in the playground.
+ * Shows decision results with columns for the decision itself, obligations,
+ * advice, and resource transformations. Uses badges to visually indicate
+ * presence of optional fields.
+ */
 public class DecisionsGrid extends Grid<TracedDecision> {
 
+    /**
+     * Creates a new decisions grid with configured columns.
+     * Sets up columns for decision, obligations, advice, and resource,
+     * with automatic width adjustment and borderless theme.
+     */
     public DecisionsGrid() {
         super();
         setSizeFull();
-        addColumn(this::provideDecision).setHeader("Decision").setAutoWidth(true);
-        addColumn(renderObligations()).setHeader("Obligations").setAutoWidth(true);
-        addColumn(renderAdvice()).setHeader("Advice").setAutoWidth(true);
-        addColumn(renderResource()).setHeader("Resource").setAutoWidth(true);
+        addColumn(this::extractDecisionString).setHeader("Decision").setAutoWidth(true);
+        addColumn(renderObligationsBadge()).setHeader("Obligations").setAutoWidth(true);
+        addColumn(renderAdviceBadge()).setHeader("Advice").setAutoWidth(true);
+        addColumn(renderResourceBadge()).setHeader("Resource").setAutoWidth(true);
         addThemeVariants(GridVariant.LUMO_NO_BORDER);
     }
 
-    private String provideDecision(TracedDecision decision) {
+    /*
+     * Extracts the decision string from a traced decision.
+     * Converts the decision enum to its string representation.
+     */
+    private String extractDecisionString(TracedDecision decision) {
         return decision.getAuthorizationDecision().getDecision().toString();
     }
 
-    private ComponentRenderer<Span, TracedDecision> renderObligations() {
+    /*
+     * Creates renderer for obligations badge column.
+     * Shows "Obligations" badge if obligations are present, otherwise shows "-/-".
+     */
+    private ComponentRenderer<Span, TracedDecision> renderObligationsBadge() {
         return Badger.badgeRenderer(decision -> decision.getAuthorizationDecision().getObligations().isPresent(),
                 Badger.PRIMARY, Badger.SUCCESS, "Obligations", "-/-");
     }
 
-    private ComponentRenderer<Span, TracedDecision> renderAdvice() {
+    /*
+     * Creates renderer for advice badge column.
+     * Shows "Advice" badge if advice is present, otherwise shows "-/-".
+     */
+    private ComponentRenderer<Span, TracedDecision> renderAdviceBadge() {
         return Badger.badgeRenderer(decision -> decision.getAuthorizationDecision().getAdvice().isPresent(),
                 Badger.PRIMARY, Badger.SUCCESS, "Advice", "-/-");
     }
 
-    private ComponentRenderer<Span, TracedDecision> renderResource() {
+    /*
+     * Creates renderer for resource badge column.
+     * Shows "Resource" badge if resource transformation is present, otherwise shows
+     * "-/-".
+     */
+    private ComponentRenderer<Span, TracedDecision> renderResourceBadge() {
         return Badger.badgeRenderer(decision -> decision.getAuthorizationDecision().getResource().isPresent(),
                 Badger.PRIMARY, Badger.SUCCESS, "Resource", "-/-");
     }
-
 }
