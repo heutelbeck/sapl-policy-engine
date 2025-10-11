@@ -15,7 +15,7 @@ This guide presents three approaches to working with SAPL, each suited to differ
 
 The [SAPL Playground](https://playground.sapl.io/) runs entirely in your browser and requires no installation. Open the playground, write policies, create authorization subscriptions, and observe how the PDP evaluates them. The playground includes example policies demonstrating common authorization patterns.
 
-The playground is primarily useful for learning the policy syntax and testing basic policy logic. The playground cannot connect to external attribute sources or demonstrate the streaming authorization protocol. For those capabilities, run a local SAPL server.
+The playground is primarily useful for learning the policy syntax and testing basic policy logic. The playground cannot connect to external attribute sources and access to PIPs calling out to location tracking, HTTP servers, or MQTT brokers are present but calls are blocked. However, it is a useful tool to learn how a PDP works, how multiple policies and policy sets interact with each other and how the streaming nature of SAPL works. It even allows you to graphically did into traces of individual decisions for learning or debugging of your policies. You can also use it to share authorization scenarios with others.
 
 ### Running a Local PDP Server
 

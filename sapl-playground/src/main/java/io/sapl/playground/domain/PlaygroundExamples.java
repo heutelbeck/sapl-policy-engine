@@ -33,7 +33,6 @@ public class PlaygroundExamples {
 
     private static final String DEFAULT_VARIABLES = """
             {
-              "systemMode" : "production"
             }
             """;
 
@@ -60,41 +59,82 @@ public class PlaygroundExamples {
                     """, DEFAULT_VARIABLES);
 
     private static final ExampleCategory DOCUMENTATION = new ExampleCategory("Documentation", VaadinIcon.BOOK, 1,
-            List.of(new Example("basic-permit", "Basic Permit Policy",
-                    "Simple policy that permits access based on authentication status", List.of("""
-                            policy "basic permit"
+            List.of(new Example("at-a-glance", "Introduction Policy", "Compartmentalize read access by department",
+                    List.of("""
+                            /* Example policy found in Section 1.1 of the SAPL Documentation.
+                             *
+                             * This is a simple Attribute-bases Access Control Policy
+                             */
+                            policy "compartmentalize read access by department"
                             permit
-                                subject.authenticated == true
+                                // This policy is evaluated if this expression evaluates to true.
+                                // I.e., the policy is applicable if the resource is of type "patient_record"
+                                // and a user, i.e., subject, is attempting to read it.
+                                resource.type == "patient_record" & action == "read"
+                            where
+                                // In this case the subject must have the attribute role with value "doctor"
+                                // Note, that "role" is just like any other attribute here.
+                                subject.role == "doctor";
+                                // And the patient record and the subject must both originate from the same department.
+                                resource.department == subject.department;
                             """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
                             {
-                               "subject"     : { "authenticated": true, "username": "alice" },
-                               "action"      : "read",
-                               "resource"    : "document",
-                               "environment" : null
+                              "subject": {
+                                "username": "alice",
+                                "role": "doctor",
+                                "department": "cardiology"
+                              },
+                              "action": "read",
+                              "resource": {
+                                "type": "patient_record",
+                                "patientId": 123,
+                                "department": "cardiology"
+                              },
+                              "environment": {
+                                "timestamp": "2025-10-06T14:30:00Z"
+                              }
                             }
                             """, DEFAULT_VARIABLES),
-                    new Example("role-based-access", "Role-Based Access Control",
-                            "Demonstrates RBAC with department-based compartmentalization", List.of("""
-                                    policy "compartmentalize read access by department"
-                                    permit
+                    new Example("business-hours", "Time-based policy to deny access", "A time-based denying policy.",
+                            List.of("""
+                                    // Time-based deny policy from Section 1.3 of the SAPL Documentation.
+                                    //
+                                    // If this policy demonstrates how access rights can be controlled by
+                                    // dynamic attributes without polling data.
+                                    policy "deny access outside business hours"
+                                    deny // If this policy's expressions evaluate to true, it will emit a DENY
                                         resource.type == "patient_record" & action == "read"
                                     where
-                                        subject.role == "doctor";
-                                        resource.department == subject.department;
-                                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                                        // The <> operator denotes access to external attributes.
+                                        // The following is a Boolean attribute of the current time
+                                        // time.localTimeIsBetween emits a single event when the attribute
+                                        // is subscribed to and then again an event when the next relevant
+                                        // transition of the hour of the local time is reached.
+                                        // ! just negates the Boolean value.
+                                        !<time.localTimeIsBetween("08:00:00", "18:00:00")>;
+
+                                        // Contrast this with this implementation:
+                                        // var currentHour = time.hourOf(<time.now>); // Note this always counts as a line evaluating to true
+                                        // !(currentHour >= 9 && currentHour < 17);
+
+                                        // Comment the first version and uncomment the two lines of
+                                        // the second version to the the effect.
+                                        // <time.now> polls the clock every second and then reevaluates the rule.
+                                        // <tile.localTimeIsBetween> instead schedules an event in the future
+                                        // and does not require any polling. This is an example for a temporal
+                                        // logic policy.
+                                    """),
+                            PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
                                     {
                                        "subject"     : { "role": "doctor", "department": "cardiology"},
                                        "action"      : "read",
                                        "resource"    : { "type": "patient_record", "department": "cardiology" },
                                        "environment" : null
                                     }
-                                    """, """
-                                    {
-                                      "some": "value"
-                                    }
-                                    """),
+                                    """, DEFAULT_VARIABLES),
                     new Example("deny-overrides-demo", "Deny Overrides Algorithm",
-                            "Multiple policies where a single DENY blocks access despite PERMIT policies", List.of("""
+                            "Multiple policies where a single DENY blocks access despite PERMIT decisions being present.",
+                            List.of("""
                                     policy "permit authenticated users"
                                     permit
                                         subject.authenticated == true
@@ -110,54 +150,58 @@ public class PlaygroundExamples {
                                     {
                                        "subject"     : { "authenticated": true, "role": "user", "status": "suspended" },
                                        "action"      : "access",
-                                       "resource"    : "system",
-                                       "environment" : null
+                                       "resource"    : "system"
                                     }
                                     """, DEFAULT_VARIABLES)));
 
     private static final ExampleCategory MEDICAL = new ExampleCategory("Medical", VaadinIcon.HEART, 2,
-            List.of(new Example("emergency-override", "Emergency Access Override",
-                    "Emergency personnel can override normal access restrictions", List.of("""
+            List.of(new Example("emergency-override", "Emergency Access Override (Breaking the Glass)",
+                    "Emergency personnel can override normal access restrictions",
+                    List.of("""
+                            // This example contains two policies.
+                            // This policy grans doctors access to all patient records if they access them
+                            // from the emergency room.
+                            // The other policy only grants access if the patient and the doctor are assigned to
+                            // the same department.
+                            //
+                            // Note: This policy contains an obligation. This clearly communicates to the system
+                            // that it must send an email to the ethical board to review if this policy may have been
+                            // abused outside of its intended use.
                             policy "emergency override"
                             permit
                                 resource.type == "patient_record"
                             where
-                                subject.role == "emergency_doctor";
-                            """), PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES, """
-                            {
-                               "subject"     : { "role": "emergency_doctor", "department": "emergency" },
-                               "action"      : "read",
-                               "resource"    : { "type": "patient_record", "department": "cardiology" },
-                               "environment" : null
-                            }
-                            """, DEFAULT_VARIABLES),
-                    new Example("medical-access-layers", "Layered Medical Access Control",
-                            "Multiple policies controlling access to patient records with permit overrides", List.of("""
-                                    policy "deny non-medical staff"
-                                    deny
-                                        resource.type == "patient_record"
-                                    where
-                                        !(subject.role in ["doctor", "nurse", "emergency_doctor"]);
-                                    """, """
-                                    policy "permit department access"
+                                // ensures that this policy and obligation only triggers if the doctor would otherwise not have access.
+                                resource.department != subject.department;
+                                // check if access happens from the emergency room.
+                                environment.location == "emergency room";
+                            obligation {
+                                         "type": "send email",
+                                         "to": "ethical_board@princeton-plainsboro.med",
+                                         "subject": "Emergency Access Detected",
+                                         "message": "The record of patient " + resource.id +
+                                                    " has been accessed from the emergency room by " +
+                                                    subject.username +". Please review the process!"
+                                       }
+                            """,
+                            """
+                                    policy "compartmentalize read access by department"
                                     permit
                                         resource.type == "patient_record" & action == "read"
                                     where
-                                        subject.department == resource.department;
-                                    """, """
-                                    policy "permit emergency access"
-                                    permit
-                                        resource.type == "patient_record"
-                                    where
-                                        subject.role == "emergency_doctor";
-                                    """), PolicyDocumentCombiningAlgorithm.PERMIT_OVERRIDES, """
-                                    {
-                                       "subject"     : { "role": "emergency_doctor", "department": "emergency" },
-                                       "action"      : "read",
-                                       "resource"    : { "type": "patient_record", "department": "cardiology" },
-                                       "environment" : null
-                                    }
-                                    """, DEFAULT_VARIABLES)));
+                                        subject.role == "doctor";
+                                        resource.department == subject.department;
+                                    """),
+                    PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES,
+                    """
+                            {
+                               "subject"     : { "username": "house", "position": "doctor", "department": "diagnostics" },
+                               "action"      : "read",
+                               "resource"    : { "type": "patient_record", "id": 123, "department": "cardiology" },
+                               "environment" : { "location": "emergency room" }
+                            }
+                            """,
+                    DEFAULT_VARIABLES)));
 
     private static final ExampleCategory AI = new ExampleCategory("AI", VaadinIcon.AUTOMATION, 3,
             List.of(new Example("model-access-control", "AI Model Access Control",
@@ -171,8 +215,7 @@ public class PlaygroundExamples {
                             {
                                "subject"     : { "username": "researcher", "clearance_level": 3 },
                                "action"      : "inference",
-                               "resource"    : { "type": "ai_model", "name": "gpt-medical", "data_classification": 2 },
-                               "environment" : null
+                               "resource"    : { "type": "ai_model", "name": "gpt-medical", "data_classification": 2 }
                             }
                             """, DEFAULT_VARIABLES),
                     new Example("ai-governance-policies", "AI Governance with Multiple Policies",
@@ -200,55 +243,160 @@ public class PlaygroundExamples {
                                     {
                                        "subject"     : { "role": "researcher", "username": "alice" },
                                        "action"      : "deploy",
-                                       "resource"    : { "type": "ai_model", "name": "small-classifier", "size": 500, "verified": false },
-                                       "environment" : null
+                                       "resource"    : { "type": "ai_model", "name": "small-classifier", "size": 500, "verified": false }
                                     }
                                     """,
                             DEFAULT_VARIABLES)));
 
-    private static final ExampleCategory GEOGRAPHIC = new ExampleCategory("Geographic", VaadinIcon.GLOBE, 4,
-            List.of(new Example("location-based-access", "Location-Based Access",
-                    "Access restricted to specific geographic regions", List.of("""
-                            policy "regional access"
+    private static final ExampleCategory GEOGRAPHIC = new ExampleCategory("Geographic", VaadinIcon.GLOBE, 4, List.of(
+            new Example("geo-permit-inside-perimeter", "Geo-fence: inside perimeter",
+                    "Permit if a point is inside a polygon perimeter using GeoJSON.", List.of("""
+                            /* Grants access only when the subject location lies completely within the
+                             * allowed perimeter supplied with the resource as a GeoJSON Polygon.
+                             * Uses topological containment (no projection required).
+                             */
+                            policy "permit-inside-perimeter"
                             permit
-                                action == "access_system"
+                                // Policy is applicable for the 'access' action
+                                action == "access"
                             where
-                                subject.country in ["US", "CA", "MX"];
+                                // Containment check: subject.location ∈ resource.perimeter
+                                geo.within(subject.location, resource.perimeter);
                             """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
                             {
-                               "subject"     : { "username": "user1", "country": "US" },
-                               "action"      : "access_system",
-                               "resource"    : "application",
-                               "environment" : null
+                              "subject"     : { "username": "alice",
+                                                "location": { "type": "Point", "coordinates": [5, 5] } },
+                              "action"      : "access",
+                              "resource"    : { "perimeter": {
+                                                  "type": "Polygon",
+                                                  "coordinates": [[[0,0],[0,10],[10,10],[10,0],[0,0]]]
+                                                } }
                             }
                             """, DEFAULT_VARIABLES),
-                    new Example("geo-compliance-policies", "Geographic Compliance Layers",
-                            "Multiple policies enforcing regional data residency and access rules", List.of("""
-                                    policy "deny sanctioned countries"
-                                    deny
-                                        action == "access_data"
-                                    where
-                                        subject.country in ["XX", "YY"];
-                                    """, """
-                                    policy "permit EU data access from EU"
-                                    permit
-                                        action == "access_data" & resource.region == "EU"
-                                    where
-                                        subject.country in ["DE", "FR", "IT", "ES", "NL"];
-                                    """, """
-                                    policy "permit US data access from US"
-                                    permit
-                                        action == "access_data" & resource.region == "US"
-                                    where
-                                        subject.country == "US";
-                                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
-                                    {
-                                       "subject"     : { "username": "user1", "country": "DE" },
-                                       "action"      : "access_data",
-                                       "resource"    : { "type": "database", "region": "EU" },
-                                       "environment" : null
-                                    }
-                                    """, DEFAULT_VARIABLES)));
+
+            new Example("geo-permit-near-facility", "Proximity: geodesic distance ≤ 200 m",
+                    "Permit when the subject is within 200 meters (WGS84) of the facility.", List.of("""
+                            /* Grants access if the geodesic distance on WGS84 between the subject position and
+                             * the facility location is at most 200 meters. Uses geo.isWithinGeodesicDistance.
+                             */
+                            policy "permit-near-facility"
+                            permit
+                                action == "access"
+                            where
+                                // Geodesic proximity check in meters (WGS84)
+                                geo.isWithinGeodesicDistance(subject.location, resource.facility.location, 200);
+                            """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                            {
+                              "subject"     : { "username": "bob",
+                                                "location": { "type": "Point",
+                                                              "coordinates": [13.4050, 52.5200] } },
+                              "action"      : "access",
+                              "resource"    : { "facility": { "location": { "type": "Point",
+                                                                             "coordinates": [13.4065, 52.5210] } } }
+                            }
+                            """, DEFAULT_VARIABLES),
+
+            new Example("geo-deny-intersects-restricted", "Deny when requested area intersects restricted zone",
+                    "Deny access if a requested area overlaps any restricted area.", List.of("""
+                            /* Denies access when the requested area overlaps a restricted zone. Intersections of any
+                             * dimension trigger a denial. Disjoint regions would pass this test.
+                             */
+                            policy "deny-over-restricted-area"
+                            deny
+                                action.type == "export"
+                            where
+                                // Block if there is any spatial overlap with restricted zones
+                                geo.intersects(action.requestedArea, environment.restrictedArea);
+                            """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES,
+                    """
+                            {
+                              "subject"     : { "username": "carol" },
+                              "action"      : { "type": "export",
+                                               "requestedArea": { "type": "Polygon",
+                                                                     "coordinates": [[[0,0],[0,10],[10,10],[10,0],[0,0]]] } },
+                              "resource"    : { },
+                              "environment" : {
+                                "restrictedArea": { "type": "Polygon",
+                                                    "coordinates": [[[5,5],[5,15],[15,15],[15,5],[5,5]]] }
+                              }
+                            }
+                            """,
+                    DEFAULT_VARIABLES),
+
+            new Example("geo-permit-waypoints-subset", "Waypoints must be subset of authorized set",
+                    "Permit only if all requested waypoints are contained in the authorized set.", List.of("""
+                            /* Ensures every requested waypoint is in the pre-authorized set. Uses subset over
+                             * GeometryCollections of Points. Suitable for corridor/anchor validation.
+                             */
+                            policy "permit-authorized-waypoints"
+                            permit
+                                action.type == "navigate"
+                            where
+                                // All action.waypoints must be elements of subject.authorizedPoints
+                                geo.subset(action.waypoints, subject.authorizedPoints);
+                            """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                            {
+                              "subject"     : { "username": "dave",
+                                                "authorizedPoints": { "type": "GeometryCollection",
+                                                  "geometries": [
+                                                    { "type": "Point", "coordinates": [1,1] },
+                                                    { "type": "Point", "coordinates": [2,2] },
+                                                    { "type": "Point", "coordinates": [3,3] }
+                                                  ] } },
+                              "action"      : { "type": "navigate",
+                                               "waypoints": { "type": "GeometryCollection",
+                                                    "geometries": [
+                                                      { "type": "Point", "coordinates": [1,1] },
+                                                      { "type": "Point", "coordinates": [2,2] }
+                                                    ] } },
+                              "resource"     : "something"
+                            }
+                            """, DEFAULT_VARIABLES),
+
+            new Example("geo-permit-buffer-touch", "Adjacency via buffer-touch",
+                    "Permit when a buffered asset footprint just touches the inspection path.", List.of("""
+                            /* Creates a buffer around the asset footprint and checks whether the buffer boundary
+                             * touches the inspection path. This models strict adjacency without overlap.
+                             */
+                            policy "permit-adjacent-buffer-touch"
+                            permit
+                                action.type == "inspect"
+                            where
+                                // Buffer width is in same units as coordinates; for planar toy data this is fine
+                                geo.touches(geo.buffer(resource.assetFootprint, 10), action.inspectionPath);
+                            """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                            {
+                              "subject"     : { "username": "erin" },
+                              "action"      : { "type": "inspect",
+                                               "inspectionPath": { "type": "LineString",
+                                                         "coordinates": [[10,0],[20,0]] } },
+                              "resource"    : { "assetFootprint": { "type": "Point", "coordinates": [0,0] } },
+                              "environment" : null
+                            }
+                            """, DEFAULT_VARIABLES),
+
+            new Example("geo-permit-wkt-inside-zone", "Normalize WKT then check containment",
+                    "Convert WKT to GeoJSON and check within against an allowed zone.", List.of("""
+                            /* Converts a WKT point to GeoJSON using geo.wktToGeoJSON, then checks containment
+                             * against the allowed zone polygon. Avoids any import statements.
+                             */
+                            policy "permit-wkt-inside-zone"
+                            permit
+                                action.type == "ingest"
+                            where
+                                var geom = geo.wktToGeoJSON(action.geometryWkt);
+                                geo.within(geom, resource.allowedZone);
+                            """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                            {
+                              "subject"     : { "username": "frank" },
+                              "action"      : { "type": "ingest", "geometryWkt": "POINT (5 5)" },
+                              "resource"    : { "allowedZone": {
+                                                  "type": "Polygon",
+                                                  "coordinates": [[[0,0],[0,10],[10,10],[10,0],[0,0]]]
+                                                } },
+                              "environment" : null
+                            }
+                            """, DEFAULT_VARIABLES)));
 
     private static final List<ExampleCategory> ALL_CATEGORIES = List.of(DOCUMENTATION, MEDICAL, AI, GEOGRAPHIC);
 
