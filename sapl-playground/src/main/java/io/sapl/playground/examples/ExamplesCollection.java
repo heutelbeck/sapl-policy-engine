@@ -457,8 +457,16 @@ public class ExamplesCollection {
                                     policy "Hierarchical RBAC"
                                     permit
                                     where
+                                      // take the role graph from the variables and calculate the reachable roles
                                       var effectiveRoles = graph.reachable(rolesHierarchy, subject.roles);
+                                    
+                                      // from the permission filter the assignments whose role name is contained in the
+                                      // list of effective permissions and take the permissions of that assignment
+                                      // then flatten re resulting array of arrays.
                                       var effectivePermissions = array.flatten(permissions[?(@.role in effectiveRoles)]..permissions);
+                                    
+                                      // Finally check if the required permission action is contained in the 
+                                      // effectivePermission of the subject.
                                       { "action" : action, "type" : resource.type } in effectivePermissions;
                                     """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
                                     {

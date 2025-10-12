@@ -36,6 +36,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.interpreter.Val;
+import io.sapl.api.validation.Array;
 import io.sapl.api.validation.JsonObject;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -58,7 +59,7 @@ public class GraphFunctionLibrary {
             a JSON document.
 
             ## Design rationale
-            ----------------
+            
             Graphs are plain JSON objects, so policies can pass them without
             adapters. Missing nodes are treated like leaves. Unknown roots
             still produce a result. Traversal uses breadth first search with
@@ -141,7 +142,8 @@ public class GraphFunctionLibrary {
      * @return array of unique node identifiers in discovery order
      */
     @Function(name = "reachable", docs = """
-            # graph.reachable(graph, initial) -> array
+            ```graph.reachable(OBJECT graph,STRING|ARRAY initial)```: Computes the reachable nodes in a directed
+            graph when starting at the given list of nodes or a single node identifier.
 
             Computes the set of nodes that can be discovered by traversing directed edges
             in `graph` starting from `initial`. The graph is represented as a JSON object
@@ -183,7 +185,7 @@ public class GraphFunctionLibrary {
             ## Behavior and Robustness
 
             - Missing nodes (no key present in `graph`) are treated as leaves and do not expand further.
-            - Unknown roots are returned as reachables; they simply yield single-node results if no adjacency exists.
+            - Unknown roots are returned as reachable; they simply yield single-node results if no adjacency exists.
             - Non-array adjacency values are ignored safely.
             - Time complexity is `O(V + E)` with `V` nodes and `E` edges.
 
@@ -196,12 +198,10 @@ public class GraphFunctionLibrary {
             permit
             where
               var r = graph.reachable(org_roles_graph, ["cso"]);
-              "security-analyst" in r
-              & "site-reliability-engineer" in r
-              & !("payments-engineer" in r);
+              ("security-analyst" in r) && ("site-reliability-engineer" in r) && !("payments-engineer" in r);
             ```
             """, schema = RETURNS_ARRAY)
-    public static Val reachable(@JsonObject Val graph, Val initial) {
+    public static Val reachable(@JsonObject Val graph, @Array Val initial) {
         val graphObject    = graph.getObjectNode();
         val traversalState = newTraversalState(initial);
 
@@ -233,11 +233,9 @@ public class GraphFunctionLibrary {
      * to a node
      */
     @Function(name = "reachable_paths", docs = """
-            # graph.reachable_paths(graph, initial) -> array
-
-            Builds one shortest path per discovered node by performing a breadth-first traversal
-            from the given roots. A root contributes the path `[root]`. Each reachable node yields
-            exactly one path (the first encountered by BFS).
+            ```graph.reachable_paths(graph, initial)```: Builds one shortest path per discovered node by performing
+            a breadth-first traversal from the given roots. A root contributes the path `[root]`.
+            Each reachable node yields exactly one path (the first encountered by BFS).
 
             ## Parameters
 
@@ -296,14 +294,14 @@ public class GraphFunctionLibrary {
      * @return array of pairs where each pair is `[path, value]`
      */
     @Function(name = "walk", docs = """
-            # graph.walk(x) -> array
+            ```graph.walk(OBJECT x)```
 
             Recursively enumerates all leaf values contained in `x`, returning pairs
             `[path, value]` where `path` is an array of keys and indices leading to the leaf.
 
             ## Parameters
 
-            - x: any JSON value (object, array, or primitive).
+            - graph: any JSON value (object, array, or primitive).
 
             ## Returns
 
@@ -326,8 +324,6 @@ public class GraphFunctionLibrary {
         appendWalk(outputPairs, JsonNodeFactory.instance.arrayNode(), input.get());
         return Val.of(outputPairs);
     }
-
-    /* Internals */
 
     private static TraversalState newTraversalState(Val initial) {
         val visited = new LinkedHashSet<String>();
