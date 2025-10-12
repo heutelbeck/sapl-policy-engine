@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import io.sapl.functions.ArrayFunctionLibrary;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -125,6 +126,7 @@ class DefaultSAPLInterpreterTests {
         functionCtx.loadLibrary(SimpleFunctionLibrary.class);
         functionCtx.loadLibrary(FilterFunctionLibrary.class);
         functionCtx.loadLibrary(StandardFunctionLibrary.class);
+        functionCtx.loadLibrary(ArrayFunctionLibrary.class);
         variables = new HashMap<>();
 
     }

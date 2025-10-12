@@ -17,10 +17,7 @@
  */
 package io.sapl.grammar.ui;
 
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.SchemaValidationLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.functions.*;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.pdp.config.PDPConfiguration;
@@ -55,8 +52,10 @@ class SAPLUiModuleTest {
 
         assertThat(pdpConfiguration, is(not(nullValue())));
         assertThat(pdpConfiguration.isValid(), is(true));
-        assertThat(pdpConfiguration.functionContext().getAvailableLibraries(), contains(FilterFunctionLibrary.NAME,
-                StandardFunctionLibrary.NAME, TemporalFunctionLibrary.NAME, SchemaValidationLibrary.NAME));
+        assertThat(pdpConfiguration.functionContext().getAvailableLibraries(),
+                containsInAnyOrder(FilterFunctionLibrary.NAME, StandardFunctionLibrary.NAME,
+                        TemporalFunctionLibrary.NAME, SchemaValidationLibrary.NAME, ArrayFunctionLibrary.NAME,
+                        GraphFunctionLibrary.NAME));
         assertThat(pdpConfiguration.variables(), is(Map.of()));
         assertThat(pdpConfiguration.documentsCombinator(), is(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES));
         assertThat(pdpConfiguration.decisionInterceptorChain(), is(UnaryOperator.identity()));

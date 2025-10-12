@@ -43,11 +43,7 @@ import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentatio
 import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
 import io.sapl.attributes.pips.http.ReactiveWebClient;
 import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.LoggingFunctionLibrary;
-import io.sapl.functions.SchemaValidationLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
+import io.sapl.functions.*;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -225,9 +221,11 @@ public class PolicyDecisionPointFactory {
         final var functionCtx = new AnnotationFunctionContext(functionLibraries, staticFunctionLibraries);
         functionCtx.loadLibrary(FilterFunctionLibrary.class);
         functionCtx.loadLibrary(StandardFunctionLibrary.class);
+        functionCtx.loadLibrary(ArrayFunctionLibrary.class);
         functionCtx.loadLibrary(TemporalFunctionLibrary.class);
         functionCtx.loadLibrary(SchemaValidationLibrary.class);
         functionCtx.loadLibrary(LoggingFunctionLibrary.class);
+        functionCtx.loadLibrary(GraphFunctionLibrary.class);
         return functionCtx;
     }
 

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.playground.domain;
+package io.sapl.playground.examples;
 
 import com.vaadin.flow.component.icon.VaadinIcon;
 

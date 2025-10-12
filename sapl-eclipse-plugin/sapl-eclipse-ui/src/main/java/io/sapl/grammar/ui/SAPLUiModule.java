@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import io.sapl.functions.*;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.xtext.ide.editor.contentassist.IdeContentProposalProvider;
 import org.eclipse.xtext.ui.editor.contentassist.IContentProposalProvider;
@@ -37,10 +38,6 @@ import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.SchemaValidationLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
-import io.sapl.functions.TemporalFunctionLibrary;
 import io.sapl.grammar.ui.contentassist.SAPLUiContentProposalProvider;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
@@ -82,7 +79,9 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
         var functionContext = new AnnotationFunctionContext();
         functionContext.loadLibrary(FilterFunctionLibrary.class);
         functionContext.loadLibrary(StandardFunctionLibrary.class);
+        functionContext.loadLibrary(ArrayFunctionLibrary.class);
         functionContext.loadLibrary(TemporalFunctionLibrary.class);
+        functionContext.loadLibrary(GraphFunctionLibrary.class);
         functionContext.loadLibrary(SchemaValidationLibrary.class);
 
         var dummyPrp = new PolicyRetrievalPoint() {

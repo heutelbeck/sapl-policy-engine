@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
+import io.sapl.functions.ArrayFunctionLibrary;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -55,6 +56,7 @@ class EnforcedSchemaTests {
         functionContext.loadLibrary(SchemaValidationLibrary.class);
         functionContext.loadLibrary(FilterFunctionLibrary.class);
         functionContext.loadLibrary(StandardFunctionLibrary.class);
+        functionContext.loadLibrary(ArrayFunctionLibrary.class);
     }
 
     @Test

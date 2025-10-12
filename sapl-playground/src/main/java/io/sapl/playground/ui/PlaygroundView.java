@@ -66,6 +66,8 @@ import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
 import io.sapl.playground.config.PermalinkConfiguration;
 import io.sapl.playground.domain.*;
+import io.sapl.playground.examples.Example;
+import io.sapl.playground.examples.ExamplesCollection;
 import io.sapl.playground.ui.components.DecisionsGrid;
 import io.sapl.playground.ui.components.DocumentationDrawer;
 import io.sapl.vaadin.*;
@@ -378,7 +380,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Loads the default time-based example on startup.
      */
     private void initializeDefaultValues() {
-        val defaultExample = PlaygroundExamples.DEFAULT_SETTINGS;
+        val defaultExample = ExamplesCollection.DEFAULT_SETTINGS;
 
         subscriptionEditor.setDocument(defaultExample.subscription());
         variablesEditor.setDocument(defaultExample.variables());
@@ -1553,11 +1555,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val shareButton  = createShareButton();
         val homepageLink = createHomepageLink();
 
-        val rightSection = new HorizontalLayout(combiningAlgorithmComboBox, homepageLink, examplesMenu, shareButton);
+        val leftSection = new HorizontalLayout(logo, examplesMenu, combiningAlgorithmComboBox);
+        leftSection.setAlignItems(FlexComponent.Alignment.CENTER);
+        leftSection.setSpacing(true);
+
+        val rightSection = new HorizontalLayout(homepageLink, shareButton);
         rightSection.setAlignItems(FlexComponent.Alignment.CENTER);
         rightSection.setSpacing(true);
 
-        header.add(logo, title, rightSection);
+        header.add(leftSection, title, rightSection);
 
         return header;
     }
@@ -1700,7 +1706,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val examplesItem = menuBar.addItem(LABEL_EXAMPLES);
         val mainSubMenu  = examplesItem.getSubMenu();
 
-        for (val category : PlaygroundExamples.getAllCategories()) {
+        for (val category : ExamplesCollection.getAllCategories()) {
             val categoryIcon = category.icon().create();
             categoryIcon.setSize(CSS_VALUE_ONE_EM);
             val categoryLabel = new Span(categoryIcon, new Text(" " + category.name()));
@@ -1872,7 +1878,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Loads example by slug without confirmation.
      */
     private void loadExampleBySlugWithoutConfirmation(String slug) {
-        PlaygroundExamples.findBySlug(slug).ifPresent(this::loadExample);
+        ExamplesCollection.findBySlug(slug).ifPresent(this::loadExample);
     }
 
     /*

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.playground.domain;
+package io.sapl.playground.examples;
 
 import com.vaadin.flow.component.icon.VaadinIcon;
 import io.sapl.interpreter.combinators.PolicyDocumentCombiningAlgorithm;
@@ -29,7 +29,7 @@ import java.util.Optional;
  * Provides access to predefined policy scenarios for learning and testing.
  */
 @UtilityClass
-public class PlaygroundExamples {
+public class ExamplesCollection {
 
     private static final String DEFAULT_VARIABLES = """
             {
@@ -251,10 +251,10 @@ public class PlaygroundExamples {
     private static final ExampleCategory GEOGRAPHIC = new ExampleCategory("Geographic", VaadinIcon.GLOBE, 4, List.of(
             new Example("geo-permit-inside-perimeter", "Geo-fence: inside perimeter",
                     "Permit if a point is inside a polygon perimeter using GeoJSON.", List.of("""
-                            /* Grants access only when the subject location lies completely within the
-                             * allowed perimeter supplied with the resource as a GeoJSON Polygon.
-                             * Uses topological containment (no projection required).
-                             */
+                            // Grants access only when the subject location lies completely within the
+                            // allowed perimeter supplied with the resource as a GeoJSON Polygon.
+                            // Uses topological containment (no projection required).
+
                             policy "permit-inside-perimeter"
                             permit
                                 // Policy is applicable for the 'access' action
@@ -276,9 +276,9 @@ public class PlaygroundExamples {
 
             new Example("geo-permit-near-facility", "Proximity: geodesic distance ≤ 200 m",
                     "Permit when the subject is within 200 meters (WGS84) of the facility.", List.of("""
-                            /* Grants access if the geodesic distance on WGS84 between the subject position and
-                             * the facility location is at most 200 meters. Uses geo.isWithinGeodesicDistance.
-                             */
+                            // Grants access if the geodesic distance on WGS84 between the subject position and
+                            // the facility location is at most 200 meters. Uses geo.isWithinGeodesicDistance.
+
                             policy "permit-near-facility"
                             permit
                                 action == "access"
@@ -298,9 +298,9 @@ public class PlaygroundExamples {
 
             new Example("geo-deny-intersects-restricted", "Deny when requested area intersects restricted zone",
                     "Deny access if a requested area overlaps any restricted area.", List.of("""
-                            /* Denies access when the requested area overlaps a restricted zone. Intersections of any
-                             * dimension trigger a denial. Disjoint regions would pass this test.
-                             */
+                            // Denies access when the requested area overlaps a restricted zone. Intersections of any
+                            // dimension trigger a denial. Disjoint regions would pass this test.
+
                             policy "deny-over-restricted-area"
                             deny
                                 action.type == "export"
@@ -325,9 +325,9 @@ public class PlaygroundExamples {
 
             new Example("geo-permit-waypoints-subset", "Waypoints must be subset of authorized set",
                     "Permit only if all requested waypoints are contained in the authorized set.", List.of("""
-                            /* Ensures every requested waypoint is in the pre-authorized set. Uses subset over
-                             * GeometryCollections of Points. Suitable for corridor/anchor validation.
-                             */
+                            // Ensures every requested waypoint is in the pre-authorized set. Uses subset over
+                            // GeometryCollections of Points. Suitable for corridor/anchor validation.
+
                             policy "permit-authorized-waypoints"
                             permit
                                 action.type == "navigate"
@@ -355,9 +355,9 @@ public class PlaygroundExamples {
 
             new Example("geo-permit-buffer-touch", "Adjacency via buffer-touch",
                     "Permit when a buffered asset footprint just touches the inspection path.", List.of("""
-                            /* Creates a buffer around the asset footprint and checks whether the buffer boundary
-                             * touches the inspection path. This models strict adjacency without overlap.
-                             */
+                            // Creates a buffer around the asset footprint and checks whether the buffer boundary
+                            // touches the inspection path. This models strict adjacency without overlap.
+
                             policy "permit-adjacent-buffer-touch"
                             permit
                                 action.type == "inspect"
@@ -377,9 +377,9 @@ public class PlaygroundExamples {
 
             new Example("geo-permit-wkt-inside-zone", "Normalize WKT then check containment",
                     "Convert WKT to GeoJSON and check within against an allowed zone.", List.of("""
-                            /* Converts a WKT point to GeoJSON using geo.wktToGeoJSON, then checks containment
-                             * against the allowed zone polygon. Avoids any import statements.
-                             */
+                            // Converts a WKT point to GeoJSON using geo.wktToGeoJSON, then checks containment
+                            // against the allowed zone polygon.
+
                             policy "permit-wkt-inside-zone"
                             permit
                                 action.type == "ingest"
@@ -398,7 +398,170 @@ public class PlaygroundExamples {
                             }
                             """, DEFAULT_VARIABLES)));
 
-    private static final List<ExampleCategory> ALL_CATEGORIES = List.of(DOCUMENTATION, MEDICAL, AI, GEOGRAPHIC);
+    private static final ExampleCategory ACCESS_CONTROL = new ExampleCategory("Access Control", VaadinIcon.LOCK, 3,
+            List.of(new Example("role-based-access-control", "A Role-based Access Control Model",
+                    "Demonstrates implementing RBAC in SAPL", List.of("""
+                            // Implements RBAC in SAPL
+
+                            policy "Simple RBAC"
+                            permit
+                               // Note: The global mapping between roles and permissions is stored the the
+                               // variables of the PDP. In the playground, see the leftmost tab.
+                               //
+                               // All fields in the variables object are automatically bound tho variables with
+                               // the name of the field. Therefore, permissions automatically become a fist-class
+                               // object accessible in all policies.
+                               //
+                               // This RBAC expression can be combined with any other access control model to implement
+                               // hybrid approaches.
+
+                               { "type" : resource.type, "action": action } in permissions[(subject.role)]
+
+                               // Note: if the permissions are only relevant for this one policy, they can also be
+                               // embedded into the policy by defining a constant variable 'permissions':
+                               //
+                               // policy "RBAC"
+                               // permit
+                               // where
+                               //   var permissions = { ... };
+                               //   { "type" : resource.type, "action": action } in permissions[(subject.role)];
+                            """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                            {
+                               "subject"     : { "username": "alice", "role": "customer" },
+                               "action"      : "read",
+                               "resource"    : { "type" : "product availability"}
+                            }
+                            """, """
+                            {
+                              "permissions" : {
+                                "customer" : [
+                                    { "type": "product availability", "action": "read"  },
+                                    { "type": "customer email",       "action": "read"  },
+                                    { "type": "customer email",       "action": "write" },
+                                    { "type": "shopping basked",      "action": "read"  },
+                                    { "type": "shopping basked",      "action": "write" }
+                                  ],
+                                "warehousing" : [
+                                    { "type": "product availability", "action": "read"  },
+                                    { "type": "product availability", "action": "write" }
+                                  ],
+                                "accounting" : [
+                                    { "type": "payroll", "action": "read"  },
+                                    { "type": "payroll", "action": "write" }
+                                ]
+                              }
+                            }
+                            """),
+                    new Example("hierarchical-role-based-access-control", "Hierarchical RBAC",
+                            "Hierarchical Demonstrates implementing RBAC in SAPL", List.of("""
+                                    policy "Hierarchical RBAC"
+                                    permit
+                                    where
+                                      var effectiveRoles = graph.reachable(rolesHierarchy, subject.roles);
+                                      var effectivePermissions = array.flatten(permissions[?(@.role in effectiveRoles)]..permissions);
+                                      { "action" : action, "type" : resource.type } in effectivePermissions;
+                                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                                    {
+                                       "subject"     : { "username": "alice", "roles": [ "cso", "market-analyst" ] },
+                                       "action"      : "read",
+                                       "resource"    : { "type" : "alerts"}
+                                    }
+                                    """, """
+                                    {
+                                      "rolesHierarchy": {
+                                        "cso": ["security-manager", "it-operations-manager", "compliance-manager"],
+                                        "security-manager": ["secops-analyst", "threat-hunter"],
+                                        "it-operations-manager": ["site-reliability-engineer", "platform-admin"],
+                                        "compliance-manager": ["internal-auditor", "risk-analyst"]
+                                      },
+                                      "permissions": [
+                                        {
+                                          "role": "secops-analyst",
+                                          "permissions": [
+                                            { "type": "alerts", "action": "read" },
+                                            { "type": "incidents", "action": "update" },
+                                            { "type": "service logs", "action": "read" }
+                                          ]
+                                        },
+                                        {
+                                          "role": "threat-hunter",
+                                          "permissions": [
+                                            { "type": "service logs", "action": "read" },
+                                            { "type": "alerts", "action": "read" },
+                                            { "type": "hunt reports", "action": "create" }
+                                          ]
+                                        },
+                                        {
+                                          "role": "site-reliability-engineer",
+                                          "permissions": [
+                                            { "type": "service", "action": "deploy" },
+                                            { "type": "service", "action": "rollback" },
+                                            { "type": "service logs", "action": "read" }
+                                          ]
+                                        },
+                                        {
+                                          "role": "platform-admin",
+                                          "permissions": [
+                                            { "type": "service config", "action": "update" },
+                                            { "type": "service", "action": "restart" }
+                                          ]
+                                        },
+                                        {
+                                          "role": "internal-auditor",
+                                          "permissions": [
+                                            { "type": "audit logs", "action": "read" },
+                                            { "type": "audit logs", "action": "export" },
+                                            { "type": "audit reports", "action": "read" }
+                                          ]
+                                        },
+                                        {
+                                          "role": "risk-analyst",
+                                          "permissions": [
+                                            { "type": "risk register", "action": "read" },
+                                            { "type": "risk register", "action": "update" },
+                                            { "type": "policies", "action": "read" }
+                                          ]
+                                        },
+                                        {
+                                          "role": "security-manager",
+                                          "permissions": [
+                                            { "type": "incidents", "action": "close" },
+                                            { "type": "policies", "action": "approve" }
+                                          ]
+                                        },
+                                        {
+                                          "role": "it-operations-manager",
+                                          "permissions": [
+                                            { "type": "service", "action": "approve-deployment" }
+                                          ]
+                                        },
+                                        {
+                                          "role": "compliance-manager",
+                                          "permissions": [
+                                            { "type": "audit reports", "action": "approve" },
+                                            { "type": "exceptions", "action": "approve" }
+                                          ]
+                                        },
+                                        {
+                                          "role": "cso",
+                                          "permissions": [
+                                            { "type": "policies", "action": "approve" },
+                                            { "type": "risk register", "action": "approve" },
+                                            { "type": "audit reports", "action": "approve" }
+                                          ]
+                                        },
+                                        {
+                                          "role": "market-analyst",
+                                          "permissions": [
+                                            { "type": "customer statistics", "action": "read" }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                    """)));
+
+    private static final List<ExampleCategory> ALL_CATEGORIES = List.of(DOCUMENTATION, ACCESS_CONTROL, MEDICAL, AI,
+            GEOGRAPHIC);
 
     /**
      * Gets all example categories in display order.
