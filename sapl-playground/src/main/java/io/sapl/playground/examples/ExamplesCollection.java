@@ -536,199 +536,197 @@ public class ExamplesCollection {
     private static final Example ACCESS_CONTROL_BREWER_NASH_FINANCIAL = new Example("brewer-nash-financial",
             "Brewer-Nash: Financial Conflict of Interest",
             "Chinese Wall model preventing insider trading and conflicts of interest", List.of("""
-                // Brewer-Nash Model (Chinese Wall Policy) - Financial Sector
-                //
-                // The Brewer-Nash model prevents conflicts of interest by dynamically restricting
-                // access based on what information a user has already accessed.
-                //
-                // Key Concepts:
-                // - Conflict of Interest (COI) Classes: Groups of competing entities
-                // - Once accessing entity A, cannot access competing entity B
-                // - CAN access entities in different COI classes
-                // - CAN access the same entity multiple times
-                //
-                // Example: Investment analyst who accesses Bank-A's data cannot subsequently
-                // access Bank-B's data (same COI class), but CAN access Oil-Company-X's data
-                // (different COI class).
-                //
-                // Architecture:
-                // - Generic DENY policy enforces Chinese Wall (applies to ALL actions)
-                // - Domain-specific PERMIT policies grant capabilities
-                // - DENY_OVERRIDES ensures conflicts always block access
-                //
-                // Note: There are two Brewer-Nash examples. They share this exact same policy.
-                //       This demonstrates how we achieved clear separation of concerns between
-                //       Brewer-Nash conflict of interest handling and other domain specific
-                //       capabilities modelling.
+                    // Brewer-Nash Model (Chinese Wall Policy) - Financial Sector
+                    //
+                    // The Brewer-Nash model prevents conflicts of interest by dynamically restricting
+                    // access based on what information a user has already accessed.
+                    //
+                    // Key Concepts:
+                    // - Conflict of Interest (COI) Classes: Groups of competing entities
+                    // - Once accessing entity A, cannot access competing entity B
+                    // - CAN access entities in different COI classes
+                    // - CAN access the same entity multiple times
+                    //
+                    // Example: Investment analyst who accesses Bank-A's data cannot subsequently
+                    // access Bank-B's data (same COI class), but CAN access Oil-Company-X's data
+                    // (different COI class).
+                    //
+                    // Architecture:
+                    // - Generic DENY policy enforces Chinese Wall (applies to ALL actions)
+                    // - Domain-specific PERMIT policies grant capabilities
+                    // - DENY_OVERRIDES ensures conflicts always block access
+                    //
+                    // Note: There are two Brewer-Nash examples. They share this exact same policy.
+                    //       This demonstrates how we achieved clear separation of concerns between
+                    //       Brewer-Nash conflict of interest handling and other domain specific
+                    //       capabilities modelling.
 
-                policy "brewer-nash-guard"
-                deny
-                    // No target expression - applies to ALL requests
-                where
-                    // Determine which COI classes contain the requested entity
-                    var requestedCoiClasses = array.flatten(
-                        coiClasses[?(resource.entity in @.entities)].conflict_class
-                    );
+                    policy "brewer-nash-guard"
+                    deny
+                        // No target expression - applies to ALL requests
+                    where
+                        // Determine which COI classes contain the requested entity
+                        var requestedCoiClasses = array.flatten(
+                            coiClasses[?(resource.entity in @.entities)].conflict_class
+                        );
 
-                    // Get all entities the subject has previously accessed
-                    var previouslyAccessedEntities = subject.access_history[*].entity;
+                        // Get all entities the subject has previously accessed
+                        var previouslyAccessedEntities = subject.access_history[*].entity;
 
-                    // Find which COI classes contain any of the previously accessed entities
-                    var accessedCoiClasses = coiClasses[?(
-                        array.containsAny(@.entities, previouslyAccessedEntities)
-                    )].conflict_class;
+                        // Find which COI classes contain any of the previously accessed entities
+                        var accessedCoiClasses = coiClasses[?(
+                            array.containsAny(@.entities, previouslyAccessedEntities)
+                        )].conflict_class;
 
-                    // Check if there's overlap between requested and accessed COI classes
-                    var conflictExists = array.containsAny(requestedCoiClasses, accessedCoiClasses);
+                        // Check if there's overlap between requested and accessed COI classes
+                        var conflictExists = array.containsAny(requestedCoiClasses, accessedCoiClasses);
 
-                    // DENY if: conflict detected AND attempting to access a different entity
-                    // ALLOW if: no conflict OR accessing the same entity again
-                    conflictExists && !(resource.entity in previouslyAccessedEntities);
-                """, """
-                policy "financial-analysts-read-company-data"
-                permit
-                    action == "read" & resource.type == "financial_report"
-                where
-                    subject.role == "financial_analyst";
-                """),
-            PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
-                {
-                  "subject": {
-                    "username": "analyst_sarah",
-                    "role": "financial_analyst",
-                    "access_history": [
-                      { "entity": "GlobalBank", "timestamp": "2024-10-01T09:00:00Z" },
-                      { "entity": "OilCorpAlpha", "timestamp": "2024-10-05T14:30:00Z" }
-                    ]
-                  },
-                  "action": "read",
-                  "resource": {
-                    "entity": "PetroEnergy",
-                    "type": "financial_report",
-                    "document_id": "FIN-2024-Q3"
-                  }
-                }
-                """, """
-                {
-                  "coiClasses": [
+                        // DENY if: conflict detected AND attempting to access a different entity
+                        // ALLOW if: no conflict OR accessing the same entity again
+                        conflictExists && !(resource.entity in previouslyAccessedEntities);
+                    """, """
+                    policy "financial-analysts-read-company-data"
+                    permit
+                        action == "read" & resource.type == "financial_report"
+                    where
+                        subject.role == "financial_analyst";
+                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
                     {
-                      "conflict_class": "banking",
-                      "entities": ["GlobalBank", "CityFinancial", "NationalBank"]
-                    },
-                    {
-                      "conflict_class": "energy",
-                      "entities": ["OilCorpAlpha", "PetroEnergy", "GasGiant"]
-                    },
-                    {
-                      "conflict_class": "technology",
-                      "entities": ["TechStartupX", "CloudInnovate"]
+                      "subject": {
+                        "username": "analyst_sarah",
+                        "role": "financial_analyst",
+                        "access_history": [
+                          { "entity": "GlobalBank", "timestamp": "2024-10-01T09:00:00Z" },
+                          { "entity": "OilCorpAlpha", "timestamp": "2024-10-05T14:30:00Z" }
+                        ]
+                      },
+                      "action": "read",
+                      "resource": {
+                        "entity": "PetroEnergy",
+                        "type": "financial_report",
+                        "document_id": "FIN-2024-Q3"
+                      }
                     }
-                  ]
-                }
-                """);
+                    """, """
+                    {
+                      "coiClasses": [
+                        {
+                          "conflict_class": "banking",
+                          "entities": ["GlobalBank", "CityFinancial", "NationalBank"]
+                        },
+                        {
+                          "conflict_class": "energy",
+                          "entities": ["OilCorpAlpha", "PetroEnergy", "GasGiant"]
+                        },
+                        {
+                          "conflict_class": "technology",
+                          "entities": ["TechStartupX", "CloudInnovate"]
+                        }
+                      ]
+                    }
+                    """);
 
     private static final Example ACCESS_CONTROL_BREWER_NASH_CONSULTING = new Example("brewer-nash-consulting",
             "Brewer-Nash: Multi-Industry Consulting", "Chinese Wall with multiple conflict classes for consulting firm",
             List.of("""
-                // Brewer-Nash Model - Consulting Firm with Multiple COI Classes
-                //
-                // This demonstrates a consulting firm scenario where consultants can work
-                // with clients across different industries, but face restrictions within
-                // each industry's conflict of interest class.
-                //
-                // Example Conflict Classes:
-                // - Pharmaceutical: PharmaCo, MediGen, HealthDrugs
-                // - Technology: TechCorp, SoftwareInc, CloudSystems
-                // - Automotive: AutoMaker, CarDesign, VehicleTech
-                //
-                // A consultant can work with PharmaCo AND TechCorp simultaneously (different COI),
-                // but cannot work with both PharmaCo and MediGen (same COI).
-                //
-                // Architecture:
-                // - Same generic DENY policy enforces Chinese Wall
-                // - Different PERMIT policy grants consultant capabilities
-                // - Demonstrates reusability of the guard policy across domains
-                //
-                // Note: There are two Brewer-Nash examples. They share this exact same policy.
-                //       This demonstrates how we achieved clear separation of concerns between
-                //       Brewer-Nash conflict of interest handling and other domain specific
-                //       capabilities modelling.
+                    // Brewer-Nash Model - Consulting Firm with Multiple COI Classes
+                    //
+                    // This demonstrates a consulting firm scenario where consultants can work
+                    // with clients across different industries, but face restrictions within
+                    // each industry's conflict of interest class.
+                    //
+                    // Example Conflict Classes:
+                    // - Pharmaceutical: PharmaCo, MediGen, HealthDrugs
+                    // - Technology: TechCorp, SoftwareInc, CloudSystems
+                    // - Automotive: AutoMaker, CarDesign, VehicleTech
+                    //
+                    // A consultant can work with PharmaCo AND TechCorp simultaneously (different COI),
+                    // but cannot work with both PharmaCo and MediGen (same COI).
+                    //
+                    // Architecture:
+                    // - Same generic DENY policy enforces Chinese Wall
+                    // - Different PERMIT policy grants consultant capabilities
+                    // - Demonstrates reusability of the guard policy across domains
+                    //
+                    // Note: There are two Brewer-Nash examples. They share this exact same policy.
+                    //       This demonstrates how we achieved clear separation of concerns between
+                    //       Brewer-Nash conflict of interest handling and other domain specific
+                    //       capabilities modelling.
 
-                policy "brewer-nash-guard"
-                deny
-                    // No target expression - applies to ALL requests
-                where
-                    // Determine which COI classes contain the requested entity
-                    var requestedCoiClasses = array.flatten(
-                        coiClasses[?(resource.entity in @.entities)].conflict_class
-                    );
+                    policy "brewer-nash-guard"
+                    deny
+                        // No target expression - applies to ALL requests
+                    where
+                        // Determine which COI classes contain the requested entity
+                        var requestedCoiClasses = array.flatten(
+                            coiClasses[?(resource.entity in @.entities)].conflict_class
+                        );
 
-                    // Get all entities the subject has previously accessed
-                    var previouslyAccessedEntities = subject.access_history[*].entity;
+                        // Get all entities the subject has previously accessed
+                        var previouslyAccessedEntities = subject.access_history[*].entity;
 
-                    // Find which COI classes contain any of the previously accessed entities
-                    var accessedCoiClasses = coiClasses[?(
-                        array.containsAny(@.entities, previouslyAccessedEntities)
-                    )].conflict_class;
+                        // Find which COI classes contain any of the previously accessed entities
+                        var accessedCoiClasses = coiClasses[?(
+                            array.containsAny(@.entities, previouslyAccessedEntities)
+                        )].conflict_class;
 
-                    // Check if there's overlap between requested and accessed COI classes
-                    var conflictExists = array.containsAny(requestedCoiClasses, accessedCoiClasses);
+                        // Check if there's overlap between requested and accessed COI classes
+                        var conflictExists = array.containsAny(requestedCoiClasses, accessedCoiClasses);
 
-                    // DENY if: conflict detected AND attempting to access a different entity
-                    // ALLOW if: no conflict OR accessing the same entity again
-                    conflictExists && !(resource.entity in previouslyAccessedEntities);
-                """, """
-                policy "consultants-access-client-data"
-                permit
-                    action == "access"
-                where
-                    subject.role == "consultant";
-                obligation
+                        // DENY if: conflict detected AND attempting to access a different entity
+                        // ALLOW if: no conflict OR accessing the same entity again
+                        conflictExists && !(resource.entity in previouslyAccessedEntities);
+                    """, """
+                    policy "consultants-access-client-data"
+                    permit
+                        action == "access"
+                    where
+                        subject.role == "consultant";
+                    obligation
+                        {
+                            "type": "log_access",
+                            "message": "Consultant " + subject.username + " accessed client " + resource.entity,
+                            "audit": true
+                        }
+                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
                     {
-                        "type": "log_access",
-                        "message": "Consultant " + subject.username + " accessed client " + resource.entity,
-                        "audit": true
+                      "subject": {
+                        "username": "consultant_mike",
+                        "role": "consultant",
+                        "access_history": [
+                          { "entity": "PharmaCo", "project": "supply-chain", "date": "2024-09-15" },
+                          { "entity": "TechCorp", "project": "cloud-migration", "date": "2024-10-01" }
+                        ]
+                      },
+                      "action": "access",
+                      "resource": {
+                        "entity": "SoftwareInc",
+                        "type": "strategic_plan",
+                        "project": "market-expansion"
+                      }
                     }
-                """),
-            PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
-                {
-                  "subject": {
-                    "username": "consultant_mike",
-                    "role": "consultant",
-                    "access_history": [
-                      { "entity": "PharmaCo", "project": "supply-chain", "date": "2024-09-15" },
-                      { "entity": "TechCorp", "project": "cloud-migration", "date": "2024-10-01" }
-                    ]
-                  },
-                  "action": "access",
-                  "resource": {
-                    "entity": "SoftwareInc",
-                    "type": "strategic_plan",
-                    "project": "market-expansion"
-                  }
-                }
-                """, """
-                {
-                  "coiClasses": [
+                    """, """
                     {
-                      "conflict_class": "pharmaceutical",
-                      "entities": ["PharmaCo", "MediGen", "HealthDrugs", "BioPharma"]
-                    },
-                    {
-                      "conflict_class": "technology",
-                      "entities": ["TechCorp", "SoftwareInc", "CloudSystems", "DataAnalytics"]
-                    },
-                    {
-                      "conflict_class": "automotive",
-                      "entities": ["AutoMaker", "CarDesign", "VehicleTech", "ElectricMotors"]
-                    },
-                    {
-                      "conflict_class": "retail",
-                      "entities": ["ShopMart", "RetailGiant", "OnlineStore"]
+                      "coiClasses": [
+                        {
+                          "conflict_class": "pharmaceutical",
+                          "entities": ["PharmaCo", "MediGen", "HealthDrugs", "BioPharma"]
+                        },
+                        {
+                          "conflict_class": "technology",
+                          "entities": ["TechCorp", "SoftwareInc", "CloudSystems", "DataAnalytics"]
+                        },
+                        {
+                          "conflict_class": "automotive",
+                          "entities": ["AutoMaker", "CarDesign", "VehicleTech", "ElectricMotors"]
+                        },
+                        {
+                          "conflict_class": "retail",
+                          "entities": ["ShopMart", "RetailGiant", "OnlineStore"]
+                        }
+                      ]
                     }
-                  ]
-                }
-                """);
+                    """);
 
     private static final Example ACCESS_CONTROL_BIBA_INTEGRITY = new Example("biba-integrity", "Biba Integrity Model",
             "Integrity protection with no read down, no write up", List.of("""
@@ -995,8 +993,7 @@ public class ExamplesCollection {
                     ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS, ACCESS_CONTROL_BREWER_NASH_FINANCIAL,
                     ACCESS_CONTROL_BREWER_NASH_CONSULTING, ACCESS_CONTROL_BIBA_INTEGRITY));
 
-    private static final List<ExampleCategory> ALL_CATEGORIES = List.of(DOCUMENTATION, MEDICAL, AI, GEOGRAPHIC,
-            ACCESS_CONTROL);
+    private static final List<ExampleCategory> ALL_CATEGORIES = List.of(ACCESS_CONTROL, DOCUMENTATION, MEDICAL, AI, GEOGRAPHIC);
 
     /**
      * Gets all example categories in display order.
