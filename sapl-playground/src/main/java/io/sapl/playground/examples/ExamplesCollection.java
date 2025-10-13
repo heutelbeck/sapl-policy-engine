@@ -542,50 +542,69 @@ public class ExamplesCollection {
                 // access based on what information a user has already accessed.
                 //
                 // Key Concepts:
-                // - Conflict of Interest (COI) Classes: Groups of competing companies
-                // - Once accessing company A, cannot access competing company B
-                // - CAN access companies in different COI classes
+                // - Conflict of Interest (COI) Classes: Groups of competing entities
+                // - Once accessing entity A, cannot access competing entity B
+                // - CAN access entities in different COI classes
+                // - CAN access the same entity multiple times
                 //
                 // Example: Investment analyst who accesses Bank-A's data cannot subsequently
                 // access Bank-B's data (same COI class), but CAN access Oil-Company-X's data
                 // (different COI class).
+                //
+                // Architecture:
+                // - Generic DENY policy enforces Chinese Wall (applies to ALL actions)
+                // - Domain-specific PERMIT policies grant capabilities
+                // - DENY_OVERRIDES ensures conflicts always block access
+                //
+                // Note: There are two Brewer-Nash examples. They share this exact same policy.
+                //       This demonstrates how we achieved clear separation of concerns between
+                //       Brewer-Nash conflict of interest handling and other domain specific
+                //       capabilities modelling.
 
-                policy "chinese wall read access"
-                permit
-                    action == "read"
+                policy "brewer-nash-guard"
+                deny
+                    // No target expression - applies to ALL requests
                 where
-                    // Get which COI classes contain the requested company
+                    // Determine which COI classes contain the requested entity
                     var requestedCoiClasses = array.flatten(
-                        coiClasses[?(resource.company in @.companies)].conflict_class
+                        coiClasses[?(resource.entity in @.entities)].conflict_class
                     );
 
-                    // Get all companies the subject has previously accessed
-                    var previouslyAccessedCompanies = subject.access_history[*].company;
+                    // Get all entities the subject has previously accessed
+                    var previouslyAccessedEntities = subject.access_history[*].entity;
 
-                    // Find which COI classes contain any of the previously accessed companies
+                    // Find which COI classes contain any of the previously accessed entities
                     var accessedCoiClasses = coiClasses[?(
-                        array.containsAny(@.companies, previouslyAccessedCompanies)
+                        array.containsAny(@.entities, previouslyAccessedEntities)
                     )].conflict_class;
 
-                    // Check if the requested COI class has already been accessed
-                    var potentialConflictExists = array.containsAny(requestedCoiClasses, accessedCoiClasses);
+                    // Check if there's overlap between requested and accessed COI classes
+                    var conflictExists = array.containsAny(requestedCoiClasses, accessedCoiClasses);
 
-                    // ALLOW if: no conflict exists, OR accessing the same company again
-                    !potentialConflictExists || (resource.company in previouslyAccessedCompanies);
-                """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
+                    // DENY if: conflict detected AND attempting to access a different entity
+                    // ALLOW if: no conflict OR accessing the same entity again
+                    conflictExists && !(resource.entity in previouslyAccessedEntities);
+                """, """
+                policy "financial-analysts-read-company-data"
+                permit
+                    action == "read" & resource.type == "financial_report"
+                where
+                    subject.role == "financial_analyst";
+                """),
+            PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
                 {
                   "subject": {
                     "username": "analyst_sarah",
                     "role": "financial_analyst",
                     "access_history": [
-                      { "company": "GlobalBank", "timestamp": "2024-10-01T09:00:00Z" },
-                      { "company": "OilCorpAlpha", "timestamp": "2024-10-05T14:30:00Z" }
+                      { "entity": "GlobalBank", "timestamp": "2024-10-01T09:00:00Z" },
+                      { "entity": "OilCorpAlpha", "timestamp": "2024-10-05T14:30:00Z" }
                     ]
                   },
                   "action": "read",
                   "resource": {
-                    "company": "PetroEnergy",
-                    "document_type": "financial_report",
+                    "entity": "PetroEnergy",
+                    "type": "financial_report",
                     "document_id": "FIN-2024-Q3"
                   }
                 }
@@ -594,15 +613,15 @@ public class ExamplesCollection {
                   "coiClasses": [
                     {
                       "conflict_class": "banking",
-                      "companies": ["GlobalBank", "CityFinancial", "NationalBank"]
+                      "entities": ["GlobalBank", "CityFinancial", "NationalBank"]
                     },
                     {
                       "conflict_class": "energy",
-                      "companies": ["OilCorpAlpha", "PetroEnergy", "GasGiant"]
+                      "entities": ["OilCorpAlpha", "PetroEnergy", "GasGiant"]
                     },
                     {
                       "conflict_class": "technology",
-                      "companies": ["TechStartupX", "CloudInnovate"]
+                      "entities": ["TechStartupX", "CloudInnovate"]
                     }
                   ]
                 }
@@ -624,63 +643,88 @@ public class ExamplesCollection {
                 //
                 // A consultant can work with PharmaCo AND TechCorp simultaneously (different COI),
                 // but cannot work with both PharmaCo and MediGen (same COI).
-            
-                policy "consulting conflict of interest"
+                //
+                // Architecture:
+                // - Same generic DENY policy enforces Chinese Wall
+                // - Different PERMIT policy grants consultant capabilities
+                // - Demonstrates reusability of the guard policy across domains
+                //
+                // Note: There are two Brewer-Nash examples. They share this exact same policy.
+                //       This demonstrates how we achieved clear separation of concerns between
+                //       Brewer-Nash conflict of interest handling and other domain specific
+                //       capabilities modelling.
+
+                policy "brewer-nash-guard"
+                deny
+                    // No target expression - applies to ALL requests
+                where
+                    // Determine which COI classes contain the requested entity
+                    var requestedCoiClasses = array.flatten(
+                        coiClasses[?(resource.entity in @.entities)].conflict_class
+                    );
+
+                    // Get all entities the subject has previously accessed
+                    var previouslyAccessedEntities = subject.access_history[*].entity;
+
+                    // Find which COI classes contain any of the previously accessed entities
+                    var accessedCoiClasses = coiClasses[?(
+                        array.containsAny(@.entities, previouslyAccessedEntities)
+                    )].conflict_class;
+
+                    // Check if there's overlap between requested and accessed COI classes
+                    var conflictExists = array.containsAny(requestedCoiClasses, accessedCoiClasses);
+
+                    // DENY if: conflict detected AND attempting to access a different entity
+                    // ALLOW if: no conflict OR accessing the same entity again
+                    conflictExists && !(resource.entity in previouslyAccessedEntities);
+                """, """
+                policy "consultants-access-client-data"
                 permit
                     action == "access"
                 where
-                    var requestedClient = resource.client_name;
-            
-                    // Look up which COI class this client belongs to using JSONPath filter
-                    var requestedCoiClasses = array.flatten(clientConflictClasses[?(resource.client_name in @.clients)].conflict_class);
-            
-                    // Get all clients this consultant has previously accessed
-                    var previouslyAccessedClients = subject.client_access_history[*].client;
-                
-                    // For each previously accessed client, find their COI classes
-                    var previousCoiClasses = clientConflictClasses[?(array.containsAny(@.clients[*], previouslyAccessedClients))].conflict_class;
-                
-                    // Check if the requested COI class was already accessed
-                    var potentialConflictExists = requestedCoiClass in previousCoiClasses;
-                
-                    // Additional check: if a potential conflict exists, only allow if accessing same client
-                    !potentialConflictExists || (requestedClient in previouslyAccessedClients);
+                    subject.role == "consultant";
+                obligation
+                    {
+                        "type": "log_access",
+                        "message": "Consultant " + subject.username + " accessed client " + resource.entity,
+                        "audit": true
+                    }
                 """),
             PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
                 {
                   "subject": {
                     "username": "consultant_mike",
-                    "role": "senior_consultant",
-                    "client_access_history": [
-                      { "client": "PharmaCo", "project": "supply-chain", "date": "2024-09-15" },
-                      { "client": "TechCorp", "project": "cloud-migration", "date": "2024-10-01" }
+                    "role": "consultant",
+                    "access_history": [
+                      { "entity": "PharmaCo", "project": "supply-chain", "date": "2024-09-15" },
+                      { "entity": "TechCorp", "project": "cloud-migration", "date": "2024-10-01" }
                     ]
                   },
                   "action": "access",
                   "resource": {
-                    "client_name": "SoftwareInc",
-                    "resource_type": "strategic_plan",
+                    "entity": "SoftwareInc",
+                    "type": "strategic_plan",
                     "project": "market-expansion"
                   }
                 }
                 """, """
                 {
-                  "clientConflictClasses": [
+                  "coiClasses": [
                     {
                       "conflict_class": "pharmaceutical",
-                      "clients": ["PharmaCo", "MediGen", "HealthDrugs", "BioPharma"]
+                      "entities": ["PharmaCo", "MediGen", "HealthDrugs", "BioPharma"]
                     },
                     {
                       "conflict_class": "technology",
-                      "clients": ["TechCorp", "SoftwareInc", "CloudSystems", "DataAnalytics"]
+                      "entities": ["TechCorp", "SoftwareInc", "CloudSystems", "DataAnalytics"]
                     },
                     {
                       "conflict_class": "automotive",
-                      "clients": ["AutoMaker", "CarDesign", "VehicleTech", "ElectricMotors"]
+                      "entities": ["AutoMaker", "CarDesign", "VehicleTech", "ElectricMotors"]
                     },
                     {
                       "conflict_class": "retail",
-                      "clients": ["ShopMart", "RetailGiant", "OnlineStore"]
+                      "entities": ["ShopMart", "RetailGiant", "OnlineStore"]
                     }
                   ]
                 }
