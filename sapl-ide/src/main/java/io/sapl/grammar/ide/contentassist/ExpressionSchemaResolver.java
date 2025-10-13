@@ -54,6 +54,9 @@ public class ExpressionSchemaResolver {
 
     public List<JsonNode> inferPotentialSchemasOfExpression(Expression expression, ContentAssistContext context,
             PDPConfiguration pdpConfiguration, PolicyInformationPointDocumentationProvider docsProvider) {
+        if (expression == null) {
+            return new ArrayList<>();
+        }
         List<Step>     steps;
         List<JsonNode> baseSchemas;
         switch (expression) {

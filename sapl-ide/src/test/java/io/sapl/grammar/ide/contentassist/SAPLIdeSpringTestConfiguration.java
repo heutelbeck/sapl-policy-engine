@@ -257,6 +257,11 @@ public class SAPLIdeSpringTestConfiguration {
         public Val between(Val t1, Val t2) {
             return Val.TRUE;
         }
+
+        @Function
+        public Val hourOf(Val t1) {
+            return Val.of(10);
+        }
     }
 
     @UtilityClass

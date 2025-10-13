@@ -466,4 +466,17 @@ class SchemaCompletionTests extends CompletionTests {
         assertProposalsContain(document, expected);
     }
 
+    @Test
+    void regressionCheck_incompleteTokensDoNotTriggerNullPointerException() {
+        final var document = """
+                policy "business_hours_access"
+                permit
+                    action == "access"
+                where
+                    var now = <time.now>;
+                    var hour = ti§ me.hourOf(now);
+                    hour >= 9 && hour < 17;""";
+        final var expected = List.of("time.hourOf(t1)");
+        assertProposalsContain(document, expected);
+    }
 }
