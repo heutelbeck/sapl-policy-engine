@@ -207,54 +207,6 @@ public class ExamplesCollection {
                     }
                     """, DEFAULT_VARIABLES);
 
-    /* AI Examples */
-
-    private static final Example AI_MODEL_ACCESS_CONTROL = new Example("model-access-control",
-            "AI Model Access Control", "Controls access to AI models based on training data classification", List.of("""
-                    policy "ai model access"
-                    permit
-                        action == "inference" & resource.type == "ai_model"
-                    where
-                        subject.clearance_level >= resource.data_classification;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES, """
-                    {
-                       "subject"     : { "username": "researcher", "clearance_level": 3 },
-                       "action"      : "inference",
-                       "resource"    : { "type": "ai_model", "name": "gpt-medical", "data_classification": 2 }
-                    }
-                    """, DEFAULT_VARIABLES);
-
-    private static final Example AI_GOVERNANCE_POLICIES = new Example("ai-governance-policies",
-            "AI Governance with Multiple Policies",
-            "Demonstrates first-applicable algorithm where policy order determines outcome", List.of("""
-                    policy "block unverified models"
-                    deny
-                        action == "deploy" & resource.type == "ai_model"
-                    where
-                        !resource.verified;
-                    """, """
-                    policy "allow admin deployment"
-                    permit
-                        action == "deploy"
-                    where
-                        subject.role == "ml_admin";
-                    """, """
-                    policy "allow researcher deployment of small models"
-                    permit
-                        action == "deploy" & resource.type == "ai_model"
-                    where
-                        subject.role == "researcher";
-                        resource.size < 1000;
-                    """), PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES,
-            """
-                    {
-                       "subject"     : { "role": "researcher", "username": "alice" },
-                       "action"      : "deploy",
-                       "resource"    : { "type": "ai_model", "name": "small-classifier", "size": 500, "verified": false }
-                    }
-                    """,
-            DEFAULT_VARIABLES);
-
     /* Geographic Examples */
 
     private static final Example GEOGRAPHIC_INSIDE_PERIMETER = new Example("geo-permit-inside-perimeter",
@@ -981,9 +933,6 @@ public class ExamplesCollection {
     private static final ExampleCategory MEDICAL = new ExampleCategory("Medical", VaadinIcon.HEART, 2,
             List.of(MEDICAL_EMERGENCY_OVERRIDE));
 
-    private static final ExampleCategory AI = new ExampleCategory("AI", VaadinIcon.AUTOMATION, 3,
-            List.of(AI_MODEL_ACCESS_CONTROL, AI_GOVERNANCE_POLICIES));
-
     private static final ExampleCategory GEOGRAPHIC = new ExampleCategory("Geographic", VaadinIcon.GLOBE, 4,
             List.of(GEOGRAPHIC_INSIDE_PERIMETER, GEOGRAPHIC_NEAR_FACILITY, GEOGRAPHIC_DENY_INTERSECTS_RESTRICTED,
                     GEOGRAPHIC_WAYPOINTS_SUBSET, GEOGRAPHIC_BUFFER_TOUCH, GEOGRAPHIC_WKT_INSIDE_ZONE));
@@ -993,7 +942,7 @@ public class ExamplesCollection {
                     ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS, ACCESS_CONTROL_BREWER_NASH_FINANCIAL,
                     ACCESS_CONTROL_BREWER_NASH_CONSULTING, ACCESS_CONTROL_BIBA_INTEGRITY));
 
-    private static final List<ExampleCategory> ALL_CATEGORIES = List.of(ACCESS_CONTROL, DOCUMENTATION, MEDICAL, AI, GEOGRAPHIC);
+    private static final List<ExampleCategory> ALL_CATEGORIES = List.of(ACCESS_CONTROL, DOCUMENTATION, MEDICAL, GEOGRAPHIC);
 
     /**
      * Gets all example categories in display order.
