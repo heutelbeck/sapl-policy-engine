@@ -320,6 +320,23 @@ jobs:
         run: |
           docker push ghcr.io/heutelbeck/sapl-playground:${{ steps.get-version.outputs.VERSION }}
 
+      - name: Deploy Playground to Server
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
+        with:
+          host: ${{ secrets.PLAYGROUND_SERVER_HOST }}
+          username: ${{ secrets.PLAYGROUND_SERVER_USERNAME }}
+          key: ${{ secrets.PLAYGROUND_SERVER_SSH_KEY }}
+          script: |
+            docker pull ghcr.io/heutelbeck/sapl-playground:${{ steps.get-version.outputs.VERSION }}
+            docker stop sapl-playground || true
+            docker rm sapl-playground || true
+            docker run -d \
+              --name sapl-playground \
+              --restart unless-stopped \
+              -p 9003:8080 \
+              -e SAPL_PLAYGROUND_BASEURL=https://playground.sapl.io \
+              ghcr.io/heutelbeck/sapl-playground:${{ steps.get-version.outputs.VERSION }}
+
       - name: Get hashes of Server LT
         id: get-server-lt-hash
         env:
