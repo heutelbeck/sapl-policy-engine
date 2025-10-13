@@ -30,6 +30,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -212,7 +213,7 @@ public class PermalinkService {
     /*
      * Validates policies list and count.
      */
-    private void validatePolicies(List<String> policies, boolean requireNonEmpty) throws PermalinkException {
+    private void validatePolicies(Collection<String> policies, boolean requireNonEmpty) throws PermalinkException {
         if (policies == null) {
             throw new PermalinkException("Policies list is null");
         }

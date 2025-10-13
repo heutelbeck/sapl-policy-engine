@@ -17,8 +17,10 @@
  */
 package io.sapl.server.lt;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
+import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
+import io.sapl.server.lt.apikey.ApiKeyService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -59,12 +61,9 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.WebFilterChainProxy;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.web.server.ServerWebExchange;
-
-import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
-import io.sapl.server.lt.apikey.ApiKeyService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
+
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Slf4j
 @Configuration

@@ -17,14 +17,14 @@
  */
 package io.sapl.server.lt;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.Unpooled;
+import io.rsocket.metadata.CompositeMetadataCodec;
+import io.rsocket.util.DefaultPayload;
+import io.sapl.server.lt.apikey.ApiKeyAuthenticationException;
+import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
+import io.sapl.server.lt.apikey.ApiKeyService;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -34,14 +34,13 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.rsocket.api.PayloadExchange;
 
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.CompositeByteBuf;
-import io.netty.buffer.Unpooled;
-import io.rsocket.metadata.CompositeMetadataCodec;
-import io.rsocket.util.DefaultPayload;
-import io.sapl.server.lt.apikey.ApiKeyAuthenticationException;
-import io.sapl.server.lt.apikey.ApiKeyReactiveAuthenticationManager;
-import io.sapl.server.lt.apikey.ApiKeyService;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class SaplServerLTAuthenticationTests {
     private static final String   API_KEY         = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";

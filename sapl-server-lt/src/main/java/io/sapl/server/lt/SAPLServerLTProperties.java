@@ -17,14 +17,13 @@
  */
 package io.sapl.server.lt;
 
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
-import lombok.Data;
 
 @Data
 @ConfigurationProperties(prefix = "io.sapl.server-lt")

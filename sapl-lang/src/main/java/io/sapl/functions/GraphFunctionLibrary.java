@@ -59,7 +59,7 @@ public class GraphFunctionLibrary {
             a JSON document.
 
             ## Design rationale
-            
+
             Graphs are plain JSON objects, so policies can pass them without
             adapters. Missing nodes are treated like leaves. Unknown roots
             still produce a result. Traversal uses breadth first search with

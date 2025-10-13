@@ -17,13 +17,12 @@
  */
 package io.sapl.server.lt.apikey;
 
-import java.util.Collection;
-import java.util.List;
-
+import io.sapl.api.SaplVersion;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
-import io.sapl.api.SaplVersion;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Represents an authentication token within the example application.

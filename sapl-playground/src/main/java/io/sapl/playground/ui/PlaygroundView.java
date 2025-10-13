@@ -269,8 +269,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String URL_HASH_PREFIX   = "#permalink/";
 
     private static final String DEFAULT_POLICY = """
-            policy "new policy %d"
-            permit false
+            policy "new policy %d"%n\
+            permit false%n\
             """;
 
     private static final SAPLInterpreter INTERPRETER = new DefaultSAPLInterpreter();

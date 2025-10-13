@@ -108,7 +108,7 @@ class ArrayFunctionLibraryTests {
     }
 
     @Test
-    void when_differenceWithIntersection_then_returnsCorrectDifferecrAsSet() throws JsonProcessingException {
+    void when_differenceWithIntersection_then_returnsCorrectDifferenceAsSet() throws JsonProcessingException {
         final var actual = ArrayFunctionLibrary.difference(Val.ofJson("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"),
                 Val.ofJson("[10,2]"));
         assertThatVal(actual).hasValue().isArray();
@@ -195,5 +195,233 @@ class ArrayFunctionLibraryTests {
         assertThat(actual.getArrayNode().get(2)).isEqualTo(Val.of(true).getJsonNode());
         assertThat(actual.getArrayNode().get(3)).isEqualTo(Val.of("abc").getJsonNode());
         assertThat(actual.getArrayNode().get(4)).isEqualTo(Val.of(1).getJsonNode());
+    }
+
+    @Test
+    void when_containsAnyWithMatchingElement_then_returnsTrue() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAny(Val.ofJson("[1, 2, 3, 4]"), Val.ofJson("[3, 5, 6]"));
+        assertThatVal(actual).isTrue();
+    }
+
+    @Test
+    void when_containsAnyWithNoMatchingElements_then_returnsFalse() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAny(Val.ofJson("[1, 2, 3, 4]"), Val.ofJson("[5, 6, 7]"));
+        assertThatVal(actual).isFalse();
+    }
+
+    @Test
+    void when_containsAnyWithEmptyElementsArray_then_returnsFalse() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAny(Val.ofJson("[1, 2, 3, 4]"), Val.ofJson("[]"));
+        assertThatVal(actual).isFalse();
+    }
+
+    @Test
+    void when_containsAnyWithEmptySourceArray_then_returnsFalse() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAny(Val.ofJson("[]"), Val.ofJson("[1, 2, 3]"));
+        assertThatVal(actual).isFalse();
+    }
+
+    @Test
+    void when_containsAnyWithMultipleMatches_then_returnsTrue() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAny(Val.ofJson("[1, 2, 3, 4]"), Val.ofJson("[2, 3, 4]"));
+        assertThatVal(actual).isTrue();
+    }
+
+    @Test
+    void when_containsAnyWithStrings_then_worksCorrectly() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAny(Val.ofJson("[\"apple\", \"banana\", \"cherry\"]"),
+                Val.ofJson("[\"banana\", \"date\"]"));
+        assertThatVal(actual).isTrue();
+    }
+
+    @Test
+    void when_containsAllWithAllElementsPresent_then_returnsTrue() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAll(Val.ofJson("[1, 2, 3, 4, 5]"), Val.ofJson("[3, 1, 5]"));
+        assertThatVal(actual).isTrue();
+    }
+
+    @Test
+    void when_containsAllWithMissingElements_then_returnsFalse() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAll(Val.ofJson("[1, 2, 3, 4]"), Val.ofJson("[3, 5, 6]"));
+        assertThatVal(actual).isFalse();
+    }
+
+    @Test
+    void when_containsAllWithEmptyElementsArray_then_returnsTrue() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAll(Val.ofJson("[1, 2, 3, 4]"), Val.ofJson("[]"));
+        assertThatVal(actual).isTrue();
+    }
+
+    @Test
+    void when_containsAllWithIdenticalArrays_then_returnsTrue() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAll(Val.ofJson("[1, 2, 3]"), Val.ofJson("[1, 2, 3]"));
+        assertThatVal(actual).isTrue();
+    }
+
+    @Test
+    void when_containsAllWithStrings_then_worksCorrectly() throws JsonProcessingException {
+        val actualTrue = ArrayFunctionLibrary.containsAll(Val.ofJson("[\"apple\", \"banana\", \"cherry\", \"date\"]"),
+                Val.ofJson("[\"banana\", \"apple\"]"));
+        assertThatVal(actualTrue).isTrue();
+
+        val actualFalse = ArrayFunctionLibrary.containsAll(Val.ofJson("[\"apple\", \"banana\"]"),
+                Val.ofJson("[\"banana\", \"cherry\"]"));
+        assertThatVal(actualFalse).isFalse();
+    }
+
+    @Test
+    void when_containsAllInOrderWithCorrectOrder_then_returnsTrue() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAllInOrder(Val.ofJson("[1, 2, 3, 4, 5]"), Val.ofJson("[2, 4, 5]"));
+        assertThatVal(actual).isTrue();
+    }
+
+    @Test
+    void when_containsAllInOrderWithWrongOrder_then_returnsFalse() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAllInOrder(Val.ofJson("[1, 2, 3, 4, 5]"), Val.ofJson("[2, 5, 4]"));
+        assertThatVal(actual).isFalse();
+    }
+
+    @Test
+    void when_containsAllInOrderWithEmptyElementsArray_then_returnsTrue() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAllInOrder(Val.ofJson("[1, 2, 3, 4]"), Val.ofJson("[]"));
+        assertThatVal(actual).isTrue();
+    }
+
+    @Test
+    void when_containsAllInOrderWithMissingElements_then_returnsFalse() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAllInOrder(Val.ofJson("[1, 2, 3, 4, 5]"), Val.ofJson("[2, 6]"));
+        assertThatVal(actual).isFalse();
+    }
+
+    @Test
+    void when_containsAllInOrderWithDuplicatesRequired_then_returnsFalseIfNotEnough() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAllInOrder(Val.ofJson("[1, 2, 3, 4, 5]"), Val.ofJson("[1, 1, 2]"));
+        assertThatVal(actual).isFalse();
+    }
+
+    @Test
+    void when_containsAllInOrderWithDuplicatesPresent_then_returnsTrue() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.containsAllInOrder(Val.ofJson("[1, 1, 2, 3, 4, 5]"), Val.ofJson("[1, 1, 2]"));
+        assertThatVal(actual).isTrue();
+    }
+
+    @Test
+    void when_containsAllInOrderWithStrings_then_worksCorrectly() throws JsonProcessingException {
+        val actualTrue = ArrayFunctionLibrary.containsAllInOrder(
+                Val.ofJson("[\"apple\", \"banana\", \"cherry\", \"date\"]"), Val.ofJson("[\"banana\", \"date\"]"));
+        assertThatVal(actualTrue).isTrue();
+
+        val actualFalse = ArrayFunctionLibrary.containsAllInOrder(
+                Val.ofJson("[\"apple\", \"banana\", \"cherry\", \"date\"]"), Val.ofJson("[\"cherry\", \"banana\"]"));
+        assertThatVal(actualFalse).isFalse();
+    }
+
+    @Test
+    void when_sortNumericArray_then_returnsSortedArray() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[3, 1, 4, 1, 5, 9, 2, 6]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).containsExactly(Val.of(1).getJsonNode(), Val.of(1).getJsonNode(),
+                Val.of(2).getJsonNode(), Val.of(3).getJsonNode(), Val.of(4).getJsonNode(), Val.of(5).getJsonNode(),
+                Val.of(6).getJsonNode(), Val.of(9).getJsonNode());
+    }
+
+    @Test
+    void when_sortNumericArrayWithDecimals_then_returnsSortedArray() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[3.14, 1.5, 2.71, 1.0]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).hasSize(4);
+        assertThat(actual.getArrayNode().get(0).asDouble()).isEqualTo(1.0);
+        assertThat(actual.getArrayNode().get(1).asDouble()).isEqualTo(1.5);
+        assertThat(actual.getArrayNode().get(2).asDouble()).isEqualTo(2.71);
+        assertThat(actual.getArrayNode().get(3).asDouble()).isEqualTo(3.14);
+    }
+
+    @Test
+    void when_sortTextArray_then_returnsSortedArray() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[\"dog\", \"cat\", \"bird\", \"ant\"]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).containsExactly(Val.of("ant").getJsonNode(), Val.of("bird").getJsonNode(),
+                Val.of("cat").getJsonNode(), Val.of("dog").getJsonNode());
+    }
+
+    @Test
+    void when_sortTextArrayWithNumbers_then_sortsByString() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[\"10\", \"2\", \"20\", \"1\"]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).containsExactly(Val.of("1").getJsonNode(), Val.of("10").getJsonNode(),
+                Val.of("2").getJsonNode(), Val.of("20").getJsonNode());
+    }
+
+    @Test
+    void when_sortEmptyArray_then_returnsError() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[]"));
+        assertThatVal(actual).isError();
+        assertThat(actual.getMessage()).contains("Cannot sort an empty array");
+    }
+
+    @Test
+    void when_sortMixedTypesArray_then_returnsError() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[1, \"two\", 3]"));
+        assertThatVal(actual).isError();
+        assertThat(actual.getMessage()).contains("All array elements must be numeric");
+    }
+
+    @Test
+    void when_sortBooleanArray_then_returnsError() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[true, false, true]"));
+        assertThatVal(actual).isError();
+        assertThat(actual.getMessage()).contains("Array elements must be numeric or text");
+    }
+
+    @Test
+    void when_sortArrayWithNullFirstElement_then_returnsError() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[null, 1, 2]"));
+        assertThatVal(actual).isError();
+        assertThat(actual.getMessage()).contains("Array elements must be numeric or text");
+    }
+
+    @Test
+    void when_sortNumericArrayWithNonNumericElement_then_returnsError() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[1, 2, \"three\", 4]"));
+        assertThatVal(actual).isError();
+        assertThat(actual.getMessage()).contains("All array elements must be numeric");
+    }
+
+    @Test
+    void when_sortTextArrayWithNonTextElement_then_returnsError() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[\"apple\", \"banana\", 3, \"cherry\"]"));
+        assertThatVal(actual).isError();
+        assertThat(actual.getMessage()).contains("All array elements must be text");
+    }
+
+    @Test
+    void when_sortAlreadySortedArray_then_returnsIdenticalArray() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[1, 2, 3, 4, 5]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).containsExactly(Val.of(1).getJsonNode(), Val.of(2).getJsonNode(),
+                Val.of(3).getJsonNode(), Val.of(4).getJsonNode(), Val.of(5).getJsonNode());
+    }
+
+    @Test
+    void when_sortReverseSortedArray_then_returnsCorrectOrder() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[5, 4, 3, 2, 1]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).containsExactly(Val.of(1).getJsonNode(), Val.of(2).getJsonNode(),
+                Val.of(3).getJsonNode(), Val.of(4).getJsonNode(), Val.of(5).getJsonNode());
+    }
+
+    @Test
+    void when_sortSingleElementArray_then_returnsSameArray() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[42]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).containsExactly(Val.of(42).getJsonNode());
+    }
+
+    @Test
+    void when_sortNumericArrayWithNegativeNumbers_then_returnsSortedArray() throws JsonProcessingException {
+        val actual = ArrayFunctionLibrary.sort(Val.ofJson("[3, -1, 4, -5, 2]"));
+        assertThatVal(actual).hasValue().isArray();
+        assertThat(actual.getArrayNode()).containsExactly(Val.of(-5).getJsonNode(), Val.of(-1).getJsonNode(),
+                Val.of(2).getJsonNode(), Val.of(3).getJsonNode(), Val.of(4).getJsonNode());
     }
 }
