@@ -65,7 +65,10 @@ import io.sapl.pdp.interceptors.ErrorReportGenerator.OutputFormat;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
 import io.sapl.playground.config.PermalinkConfiguration;
-import io.sapl.playground.domain.*;
+import io.sapl.playground.domain.PermalinkService;
+import io.sapl.playground.domain.PlaygroundPolicyDecisionPoint;
+import io.sapl.playground.domain.PlaygroundValidator;
+import io.sapl.playground.domain.ValidationResult;
 import io.sapl.playground.examples.Example;
 import io.sapl.playground.examples.ExamplesCollection;
 import io.sapl.playground.ui.components.DecisionsGrid;
@@ -113,8 +116,9 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final int MAX_TITLE_LENGTH        = 15;
     private static final int PERMALINK_PREFIX_LENGTH = 10;
 
-    private static final double DECISIONS_PANEL_HEIGHT = 40.0D;
-    private static final double LEFT_PANEL_WIDTH       = 66.67D;
+    private static final double DECISIONS_PANEL_HEIGHT      = 40.0D;
+    private static final double LEFT_PANEL_WIDTH            = 66.67D;
+    private static final double SUBSCRIPTION_SECTION_HEIGHT = 35.0D;
 
     private static final String EDITOR_CONFIGURATION_ID = "playground";
 
@@ -205,6 +209,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String LABEL_DECISIONS                  = "Decisions";
     private static final String LABEL_ERRORS                     = "Errors";
     private static final String LABEL_EXAMPLES                   = "Examples";
+    private static final String LABEL_FOLLOW_LATEST_DECISION     = "Follow Latest";
     private static final String LABEL_FORMAT_JSON                = "Format JSON";
     private static final String LABEL_JSON                       = "JSON";
     private static final String LABEL_JSON_REPORT                = "JSON Report";
@@ -257,13 +262,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     private static final String TARGET_BLANK = "_blank";
 
-    private static final String TOOLTIP_COPY_TO_CLIPBOARD     = "Copy to clipboard.";
-    private static final String TOOLTIP_CREATE_SHAREABLE_LINK = "Create shareable link";
-    private static final String TOOLTIP_FORMAT_JSON           = "Format JSON.";
-    private static final String TOOLTIP_SCROLL_LOCK_ACTIVE    = "Scroll Lock active. Click to start automatically scrolling to last decision made.";
-    private static final String TOOLTIP_SCROLL_LOCK_INACTIVE  = "Scroll Lock inactive. Click to stop automatically scrolling to last decision made.";
-    private static final String TOOLTIP_START_SUBSCRIBING     = "Start subscribing with authorization subscription.";
-    private static final String TOOLTIP_STOP_SUBSCRIBING      = "Stop Subscribing.";
+    private static final String TOOLTIP_COPY_TO_CLIPBOARD      = "Copy to clipboard.";
+    private static final String TOOLTIP_CREATE_SHAREABLE_LINK  = "Create shareable link";
+    private static final String TOOLTIP_FOLLOW_LATEST_ACTIVE   = "Follow Latest active. New decisions are automatically selected and displayed.";
+    private static final String TOOLTIP_FOLLOW_LATEST_INACTIVE = "Follow Latest inactive. Selection remains on manually selected decision.";
+    private static final String TOOLTIP_FORMAT_JSON            = "Format JSON.";
+    private static final String TOOLTIP_SCROLL_LOCK_ACTIVE     = "Scroll Lock active. Click to start automatically scrolling to last decision made.";
+    private static final String TOOLTIP_SCROLL_LOCK_INACTIVE   = "Scroll Lock inactive. Click to stop automatically scrolling to last decision made.";
+    private static final String TOOLTIP_START_SUBSCRIBING      = "Start subscribing with authorization subscription.";
+    private static final String TOOLTIP_STOP_SUBSCRIBING       = "Stop Subscribing.";
 
     private static final String URL_SAPL_HOMEPAGE = "https://sapl.io";
     private static final String URL_HASH_PREFIX   = "#permalink/";
@@ -298,6 +305,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private DecisionsGrid                    decisionsGrid;
     private GridListDataView<TracedDecision> decisionsGridView;
     private Checkbox                         clearOnNewSubscriptionCheckBox;
+    private Checkbox                         followLatestDecisionCheckbox;
 
     private JsonEditor             decisionJsonEditor;
     private JsonEditor             decisionJsonReportEditor;
@@ -309,6 +317,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private ComboBox<PolicyDocumentCombiningAlgorithm> combiningAlgorithmComboBox;
 
     private boolean              isScrollLockActive;
+    private boolean              isFollowLatestDecisionActive;
     private String               currentErrorReportText;
     private volatile boolean     isSubscriptionActive = false;
     private transient Disposable activeSubscription;
@@ -405,7 +414,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Builds the main component structure and adds to the view.
      * Creates header, main content area, and documentation drawer toggle.
-     * Initializes scroll lock state.
+     * Initializes scroll lock and follow latest decision states.
      */
     private void buildAndAddComponents() {
         val header = buildHeader();
@@ -418,6 +427,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         getContent().add(header, main, documentationDrawer.getToggleButton());
 
         deactivateScrollLock();
+        activateFollowLatestDecision();
     }
 
     /*
@@ -484,18 +494,18 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     /*
      * Creates the right panel with subscription and decisions sections.
+     * Uses a vertical split layout to allow resizing the subscription section.
      */
     private Component buildRightPanel() {
-        val layout = new VerticalLayout();
-        layout.setSizeFull();
-        layout.setPadding(false);
-        layout.setSpacing(false);
-
         val subscriptionSection = buildSubscriptionSection();
         val decisionsSection    = buildDecisionsSection();
 
-        layout.add(subscriptionSection, decisionsSection);
-        return layout;
+        val rightSplitLayout = new SplitLayout(subscriptionSection, decisionsSection);
+        rightSplitLayout.setSizeFull();
+        rightSplitLayout.setOrientation(Orientation.VERTICAL);
+        rightSplitLayout.setSplitterPosition(SUBSCRIPTION_SECTION_HEIGHT);
+
+        return rightSplitLayout;
     }
 
     /*
@@ -503,6 +513,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      */
     private Component buildSubscriptionSection() {
         val container = new VerticalLayout();
+        container.setSizeFull();
         container.setPadding(false);
         container.setSpacing(false);
         container.getStyle().set(CSS_PADDING, CSS_VALUE_SPACE_M);
@@ -522,6 +533,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         controlsLayout.getStyle().set(CSS_MARGIN_TOP, CSS_VALUE_SPACE_XS);
 
         container.add(header, subscriptionEditor, controlsLayout);
+        container.setFlexGrow(1, subscriptionEditor);
+
         return container;
     }
 
@@ -668,7 +681,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     }
 
     /*
-     * Creates control buttons for decision playback.
+     * Creates control buttons for decision playback and behavior.
      */
     private Component buildControlButtons() {
         val layout = new HorizontalLayout();
@@ -682,11 +695,14 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         bufferSizeField  = createBufferSizeField();
 
         clearOnNewSubscriptionCheckBox = new Checkbox(LABEL_AUTO_CLEAR);
-        clearOnNewSubscriptionCheckBox.setValue(true);
+        clearOnNewSubscriptionCheckBox.setValue(false);
+
+        followLatestDecisionCheckbox = createFollowLatestDecisionCheckbox();
 
         val bufferLabel = new NativeLabel(LABEL_BUFFER);
 
-        layout.add(playStopButton, scrollLockButton, bufferLabel, bufferSizeField, clearOnNewSubscriptionCheckBox);
+        layout.add(playStopButton, scrollLockButton, bufferLabel, bufferSizeField, clearOnNewSubscriptionCheckBox,
+                followLatestDecisionCheckbox);
         return layout;
     }
 
@@ -709,6 +725,47 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val button = new Button(VaadinIcon.UNLOCK.create());
         button.addClickListener(event -> toggleScrollLock());
         return button;
+    }
+
+    /*
+     * Creates the follow latest decision checkbox.
+     * When checked, new decisions are automatically selected and displayed.
+     */
+    private Checkbox createFollowLatestDecisionCheckbox() {
+        val checkbox = new Checkbox(LABEL_FOLLOW_LATEST_DECISION);
+        checkbox.setValue(true);
+        checkbox.addValueChangeListener(event -> handleFollowLatestDecisionChange(event.getValue()));
+        return checkbox;
+    }
+
+    /*
+     * Handles changes to the follow latest decision checkbox state.
+     * Updates internal state and button tooltip.
+     */
+    private void handleFollowLatestDecisionChange(Boolean followLatest) {
+        if (Boolean.TRUE.equals(followLatest)) {
+            activateFollowLatestDecision();
+        } else {
+            deactivateFollowLatestDecision();
+        }
+    }
+
+    /*
+     * Activates follow latest decision mode.
+     * New decisions will be automatically selected and displayed.
+     */
+    private void activateFollowLatestDecision() {
+        isFollowLatestDecisionActive = true;
+        followLatestDecisionCheckbox.setTooltipText(TOOLTIP_FOLLOW_LATEST_ACTIVE);
+    }
+
+    /*
+     * Deactivates follow latest decision mode.
+     * Selection will remain on manually selected decision.
+     */
+    private void deactivateFollowLatestDecision() {
+        isFollowLatestDecisionActive = false;
+        followLatestDecisionCheckbox.setTooltipText(TOOLTIP_FOLLOW_LATEST_INACTIVE);
     }
 
     /*
@@ -1003,6 +1060,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
 
     /*
      * Handles new decision by adding to buffer and updating display.
+     * If follow latest decision is active, automatically selects the new decision.
      */
     private void handleNewDecision(TracedDecision decision) {
         decisionBuffer.add(decision);
@@ -1013,6 +1071,10 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         }
 
         decisionsGridView.refreshAll();
+
+        if (isFollowLatestDecisionActive) {
+            decisionsGrid.select(decision);
+        }
 
         if (isScrollLockActive) {
             decisionsGrid.scrollToEnd();

@@ -942,7 +942,8 @@ public class ExamplesCollection {
                     ACCESS_CONTROL_BELL_LAPADULA_COMPARTMENTS, ACCESS_CONTROL_BREWER_NASH_FINANCIAL,
                     ACCESS_CONTROL_BREWER_NASH_CONSULTING, ACCESS_CONTROL_BIBA_INTEGRITY));
 
-    private static final List<ExampleCategory> ALL_CATEGORIES = List.of(ACCESS_CONTROL, DOCUMENTATION, MEDICAL, GEOGRAPHIC);
+    private static final List<ExampleCategory> ALL_CATEGORIES = List.of(ACCESS_CONTROL, DOCUMENTATION, MEDICAL,
+            GEOGRAPHIC);
 
     /**
      * Gets all example categories in display order.
