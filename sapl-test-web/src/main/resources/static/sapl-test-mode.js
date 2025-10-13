@@ -1,5 +1,4 @@
 define("sapl-test-mode", ["codemirror", "codemirror/addon/mode/simple"], function(CodeMirror, SimpleMode) {
-	var keywords = "with|whitespace|where|when|wait|virtual-time|variables|value|undefined|true|to|timing|times|then|text|subject|stream|static-pip|static-function-library|starting|set|scenario|resource|requirement|regex|policy|policies|pip|permit-unless-deny|permit-overrides|permit|pdp|order|only-one-applicable|once|on|of|obligations|obligation|object|number|null-or-empty|null-or-blank|null|notApplicable|no-event|matching|maps|length|key|is|indeterminate|in|given|function-library|function|for|false|expect|error|equals|equal|environment|ending|empty|emits|deny-unless-permit|deny-overrides|deny|decision|containing|configuration|compressed|combining-algorithm|case-insensitive|called|boolean|blank|attribute|attempts|array|any|and|advice|action";
 	CodeMirror.defineSimpleMode("xtext/sapltest", {
 		start: [
 			{token: "comment", regex: "\\/\\/.*$"},
@@ -7,7 +6,8 @@ define("sapl-test-mode", ["codemirror", "codemirror/addon/mode/simple"], functio
 			{token: "string", regex: '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'},
 			{token: "string", regex: "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"},
 			{token: "constant.numeric", regex: "[+-]?\\d+(?:(?:\\.\\d*)?(?:[eE][+-]?\\d+)?)?\\b"},
-			{token: "keyword", regex: "\\b(?:" + keywords + ")\\b"}
+			{token: "keyword", regex: "\\b(?:with|whitespace|where|when|wait|virtual-time|variables|value|undefined|true|to|timing|times|then|text|subject|stream|static-pip|static-function-library|starting|set|scenario|resource|requirement|regex|policy|policies|pip|permit-unless-deny|permit-overrides|permit|pdp|order|only-one-applicable|once|on|of|obligations|obligation|object|number|null-or-empty|null-or-blank|null|notApplicable|no-event|matching|maps|length|key|is|indeterminate|in|given|function-library|function|for|false|expect|error|equals|equal|environment|ending|empty|emits|deny-unless-permit|deny-overrides|deny|decision|containing|configuration|compressed|combining-algorithm|case-insensitive|called|boolean|blank|attribute|attempts|array|any|and|advice|action)\\b"},
+			{token: "variable", regex: "\\b[a-zA-Z_$][a-zA-Z0-9_$]*\\b"}
 		],
 		comment: [
 			{token: "comment", regex: ".*?\\*\\/", next : "start"},

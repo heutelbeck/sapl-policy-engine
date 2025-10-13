@@ -71,7 +71,6 @@ class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 	}
 
 	def getWordKeywords() {
-
 		return new ArrayList(wordKeywords);
 	}
 
@@ -138,13 +137,22 @@ class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 
 			val patterns = createCodeMirrorPatterns(langId, allKeywords)
 
-			if (!wordKeywords.empty)
-				patterns.put('start', '''{token: "keyword", regex: «generateKeywordsRegExp»}''')
-			if (!nonWordKeywords.empty)
-				patterns.put('start', '''{token: "keyword", regex: «generateExtraKeywordsRegExp»}''')
+			// CRITICAL: Add keyword rules FIRST, then identifier rule
+			// This ensures keywords are matched before being consumed by the identifier rule
+			if (!wordKeywords.empty) {
+				val keywordsJoined = wordKeywords.join('|')
+				patterns.put('start', '''{token: "keyword", regex: "\\b(?:«keywordsJoined»)\\b"}''')
+			}
+			if (!nonWordKeywords.empty) {
+				val nonWordJoined = nonWordKeywords.join('|')
+				patterns.put('start', '''{token: "keyword", regex: "(?:«nonWordJoined»)"}''')
+			}
+
+			// Add identifier rule AFTER keywords to catch non-keyword identifiers
+			patterns.put('start', '''{token: "variable", regex: "\\b[a-zA-Z_$][a-zA-Z0-9_$]*\\b"}''')
+
 			jsFile.content = '''
 				define(«IF !highlightingModuleName.nullOrEmpty»"«highlightingModuleName»", «ENDIF»["codemirror", "codemirror/addon/mode/simple"], function(CodeMirror, SimpleMode) {
-					«generateKeywords(wordKeywords, nonWordKeywords)»
 					CodeMirror.defineSimpleMode("xtext/«langId»", {
 						«FOR state : patterns.keySet SEPARATOR ','»
 							«state»: «IF state == 'meta'»{«ELSE»[«ENDIF»
@@ -178,7 +186,6 @@ class SAPLWebIntegrationFragment extends WebIntegrationFragment {
 		}
 
 		super.generate()
-
 	}
 
 }

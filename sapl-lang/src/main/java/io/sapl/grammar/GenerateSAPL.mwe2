@@ -97,7 +97,7 @@ Workflow {
 				framework = "CodeMirror" // Orion, CodeMirror, Ace
 				generateJettyLauncher = false
 				generateJsHighlighting = true // overwrites file on every run
-				keywordsFilter = "[a-zA-Z0-9_-]+"
+				keywordsFilter = "\\b[a-zA-Z0-9_-]+\\b"
 				generateServlet = false
 				generateWebXml = false
 				highlightingModuleName ="sapl-mode"

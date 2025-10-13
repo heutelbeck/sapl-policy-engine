@@ -1,5 +1,4 @@
 define("sapl-mode", ["codemirror", "codemirror/addon/mode/simple"], function(CodeMirror, SimpleMode) {
-	var keywords = "where|var|undefined|true|transform|subject|set|schema|resource|policy|permit-unless-deny|permit-overrides|permit|only-one-applicable|obligation|null|in|import|for|first-applicable|false|environment|enforced|each|deny-unless-permit|deny-overrides|deny|as|advice|action";
 	CodeMirror.defineSimpleMode("xtext/sapl", {
 		start: [
 			{token: "comment", regex: "\\/\\/.*$"},
@@ -7,7 +6,8 @@ define("sapl-mode", ["codemirror", "codemirror/addon/mode/simple"], function(Cod
 			{token: "string", regex: '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'},
 			{token: "string", regex: "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"},
 			{token: "constant.numeric", regex: "[+-]?\\d+(?:(?:\\.\\d*)?(?:[eE][+-]?\\d+)?)?\\b"},
-			{token: "keyword", regex: "\\b(?:" + keywords + ")\\b"}
+			{token: "keyword", regex: "\\b(?:where|var|undefined|true|transform|subject|set|schema|resource|policy|permit-unless-deny|permit-overrides|permit|only-one-applicable|obligation|null|in|import|for|first-applicable|false|environment|enforced|each|deny-unless-permit|deny-overrides|deny|as|advice|action)\\b"},
+			{token: "variable", regex: "\\b[a-zA-Z_$][a-zA-Z0-9_$]*\\b"}
 		],
 		comment: [
 			{token: "comment", regex: ".*?\\*\\/", next : "start"},
