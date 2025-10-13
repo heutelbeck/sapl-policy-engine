@@ -18,11 +18,9 @@ import 'codemirror/addon/lint/lint';
 import 'codemirror/addon/merge/merge';
 import * as DMP from 'diff-match-patch';
 
-// Keep this export – xtext-codemirror-patched.js imports it.
 export { saplPdpConfigurationId };
 let saplPdpConfigurationId = null;
 
-// ------- Merge CSS scoped to shadow DOM -------
 const MergeHeightFix = css`
     :host { display:block; height:100%; }
     #sapl-editor { height:100%; }
@@ -70,23 +68,19 @@ const MergeArrowStrongOverrides = css`
     }
 `;
 
-// ------- Coverage styles (line background shading) -------
 const CoverageStyles = css`
-    /* base colors; override via vars if you like */
     :host {
-        --sapl-cov-covered:  rgba(46, 204, 113, 0.18);  /* green */
-        --sapl-cov-partial:  rgba(241, 196, 15, 0.20);  /* yellow */
-        --sapl-cov-uncovered:rgba(231, 76, 60,  0.18);  /* red */
-        --sapl-cov-ignored:  rgba(127, 140, 141,0.14);  /* grey */
+        --sapl-cov-covered:  rgba(46, 204, 113, 0.18);
+        --sapl-cov-partial:  rgba(241, 196, 15, 0.20);
+        --sapl-cov-uncovered:rgba(231, 76, 60,  0.18);
+        --sapl-cov-ignored:  rgba(127, 140, 141,0.14);
     }
 
-    /* You’re currently adding classes to the TEXT node (.CodeMirror-line) */
     .CodeMirror-line.coverage-covered   { background: var(--sapl-cov-covered) !important; }
     .CodeMirror-line.coverage-partial   { background: var(--sapl-cov-partial) !important; }
     .CodeMirror-line.coverage-uncovered { background: var(--sapl-cov-uncovered) !important; }
     .CodeMirror-line.coverage-ignored   { background: var(--sapl-cov-ignored) !important; }
 
-    /* If you later switch to type='background', these will kick in automatically */
     .CodeMirror-linebackground.coverage-covered   { background: var(--sapl-cov-covered) !important; }
     .CodeMirror-linebackground.coverage-partial   { background: var(--sapl-cov-partial) !important; }
     .CodeMirror-linebackground.coverage-uncovered { background: var(--sapl-cov-uncovered) !important; }
@@ -98,15 +92,12 @@ class SAPLEditor extends LitElement {
         super();
         this.document = '';
         this.xtextLang = 'sapl';
-
         this.mergeEnabled = false;
-
         this._isReadOnly = false;
         this._isLint = true;
         this._isDarkTheme = false;
         this.hasLineNumbers = true;
         this.textUpdateDelay = 400;
-
         this._mergeOptions = {
             revertButtons: true,
             showDifferences: true,
@@ -116,21 +107,17 @@ class SAPLEditor extends LitElement {
             ignoreWhitespace: false
         };
         this._rightMergeText = '';
-
         this._editor = undefined;
         this._mergeView = undefined;
         this._shadowHintContainer = null;
         this._resizeObserver = null;
-
         this._keydownHandler = null;
         this._showHintPatched = false;
-
-        // ---- coverage state ----
-        this._coverageAutoClear = true;     // default ON
-        this._coverageShowIgnored = false;  // default OFF
-        this._coverageMarks = [];           // CodeMirror TextMarks
-        this._coverageClasses = [];         // {line, where, cls}
-        this._lastCoveragePayload = null;   // reapply on toggle showIgnored
+        this._coverageAutoClear = true;
+        this._coverageShowIgnored = false;
+        this._coverageMarks = [];
+        this._coverageClasses = [];
+        this._lastCoveragePayload = null;
     }
 
     static get properties() {
@@ -208,7 +195,6 @@ class SAPLEditor extends LitElement {
     get configurationId(){ return this._configurationId; }
 
     firstUpdated() {
-        // Make DMP available globally for merge addon
         const DiffMatchPatch = DMP.default || DMP.diff_match_patch || DMP;
         if (typeof window.diff_match_patch === 'undefined') {
             window.diff_match_patch = DiffMatchPatch;
@@ -217,16 +203,12 @@ class SAPLEditor extends LitElement {
             window.DIFF_EQUAL  = DMP.DIFF_EQUAL  ??  0;
         }
 
-        // Hint container for single-pane mode
         const widget = document.createElement('div');
         widget.id = 'widgetContainer';
         this._shadowHintContainer = widget;
         this.shadowRoot.appendChild(widget);
 
-        // PATCH showHint ONCE so Xtext's internal calls inherit our safe defaults
         this._patchShowHintOnce();
-
-        // Ensure hint CSS exists in top document for body-mounted popups
         this._ensureGlobalHintCSS();
 
         const start = () => {
@@ -236,7 +218,6 @@ class SAPLEditor extends LitElement {
         const host = this._container();
         if (host && host.clientHeight === 0) requestAnimationFrame(start); else start();
 
-        // Optional keyboard nav
         this._keydownHandler = (e) => {
             if (e.altKey && e.key === 'ArrowDown') { try { this.editor?.execCommand('goNextDiff'); } catch{} e.preventDefault(); }
             if (e.altKey && e.key === 'ArrowUp')   { try { this.editor?.execCommand('goPrevDiff'); } catch{} e.preventDefault(); }
@@ -263,7 +244,6 @@ class SAPLEditor extends LitElement {
         if (c) c.innerHTML = '';
         this._mergeView = undefined;
         this._editor = undefined;
-        // also clear any lingering coverage state
         this._clearCoverageInternal();
     }
 
@@ -279,12 +259,103 @@ class SAPLEditor extends LitElement {
             gutters: ['annotations-gutter'],
             theme: this._themeName(),
             extraKeys: { 'Ctrl-Space': 'autocomplete' },
-            // in single-pane we can keep the popup inside the shadow
             hintOptions: {
                 container: this._shadowHintContainer,
                 updateOnCursorActivity: false,
                 completeSingle: false
             }
+        });
+
+        let isInternalUpdate = false;
+
+        cm._isInternalUpdate = () => isInternalUpdate;
+        cm._setInternalUpdate = (value) => { isInternalUpdate = value; };
+
+        // CRITICAL: Use beforeChange to PREVENT unwanted changes during selection
+        cm.on('beforeChange', (instance, changeObj) => {
+            const hasSelection = cm.somethingSelected();
+
+            console.log('[BEFORE CHANGE]', {
+                origin: changeObj.origin,
+                isInternalUpdate: isInternalUpdate,
+                hasSelection: hasSelection,
+                from: changeObj.from,
+                to: changeObj.to,
+                text: changeObj.text,
+                textContent: JSON.stringify(changeObj.text)
+            });
+
+            if (isInternalUpdate) {
+                console.log('[CHANGE ALLOWED - internal update]');
+                return;
+            }
+
+            // If there's a selection, verify the change is legitimate
+            if (hasSelection) {
+                const sel = cm.listSelections()[0];
+                const selStart = sel.anchor.line < sel.head.line ||
+                (sel.anchor.line === sel.head.line && sel.anchor.ch < sel.head.ch)
+                    ? sel.anchor : sel.head;
+                const selEnd = sel.anchor.line > sel.head.line ||
+                (sel.anchor.line === sel.head.line && sel.anchor.ch > sel.head.ch)
+                    ? sel.anchor : sel.head;
+
+                // Check if change modifies the selected range
+                const changeAffectsSelection = (
+                    changeObj.from.line === selStart.line &&
+                    changeObj.from.ch === selStart.ch &&
+                    changeObj.to.line === selEnd.line &&
+                    changeObj.to.ch === selEnd.ch
+                );
+
+                if (!changeAffectsSelection) {
+                    console.log('[CHANGE CANCELLED - does not match selection bounds]', {
+                        changeFrom: changeObj.from,
+                        changeTo: changeObj.to,
+                        selStart: selStart,
+                        selEnd: selEnd
+                    });
+                    changeObj.cancel();
+                    return;
+                }
+
+                // Special check for +input: must have actual content or be a true deletion
+                if (changeObj.origin === '+input') {
+                    // +input should only be allowed if there's exactly 1 line and it's NOT empty
+                    // OR if it's truly replacing with something meaningful
+                    const isSingleLineWithContent = changeObj.text.length === 1 && changeObj.text[0].length > 0;
+
+                    if (!isSingleLineWithContent) {
+                        console.log('[CHANGE CANCELLED - +input without actual typed content]', {
+                            text: changeObj.text,
+                            textLength: changeObj.text.length,
+                            firstLineLength: changeObj.text[0]?.length
+                        });
+                        changeObj.cancel();
+                        return;
+                    }
+                }
+
+                // Whitelist other user actions
+                const userActions = ['+delete', 'paste', 'cut', '*compose'];
+                if (!userActions.includes(changeObj.origin) && changeObj.origin !== '+input') {
+                    console.log('[CHANGE CANCELLED - not a user action]', changeObj.origin);
+                    changeObj.cancel();
+                    return;
+                }
+            }
+
+            console.log('[CHANGE ALLOWED]', changeObj.origin);
+        });
+
+        cm.getDoc().on('change', (instance, changeObj) => {
+            if (isInternalUpdate) {
+                return;
+            }
+
+            const valueNow = cm.getValue();
+            this._onDocumentChanged(valueNow);
+            if (this._coverageAutoClear) this._clearCoverageInternal();
         });
 
         xtext.createServices(cm, {
@@ -297,19 +368,24 @@ class SAPLEditor extends LitElement {
             showErrorDialogs: false
         });
 
-        // server bridge + auto-clear coverage on edit
-        cm.getDoc().on('change', () => {
-            const valueNow = cm.getValue();
-            this._onDocumentChanged(valueNow);
-            if (this._coverageAutoClear) this._clearCoverageInternal();
-        });
+        const xs = cm.xtextServices;
+        if (xs && xs.update) {
+            const originalUpdate = xs.update;
+            xs.update = function(...args) {
+                // Block Xtext updates if there's an active selection
+                if (cm.somethingSelected()) {
+                    console.log('[Xtext update blocked - selection exists]');
+                    return Promise.resolve();
+                }
+                return originalUpdate.apply(this, args);
+            };
+        }
 
         this._hookValidation(cm);
 
         this.editor = cm;
         this._applyBasicOptionsToCurrentEditor();
 
-        // re-apply last coverage (if any was set before remount)
         if (this._lastCoveragePayload) this._applyCoverage(this._lastCoveragePayload);
     }
 
@@ -317,6 +393,11 @@ class SAPLEditor extends LitElement {
         this._teardown();
 
         const mount = this._container();
+        if (!mount) {
+            console.error('[_createMergeView] Container not ready');
+            return;
+        }
+
         if ((mount.clientHeight || 0) < 50) mount.style.height = '400px';
 
         this._mergeView = CodeMirror.MergeView(mount, {
@@ -336,7 +417,99 @@ class SAPLEditor extends LitElement {
         const main = this._mergeView.edit;
         const origRight = this._mergeView.right && this._mergeView.right.orig;
 
-        // Attach Xtext services to center editor
+        let isInternalUpdate = false;
+
+        main._isInternalUpdate = () => isInternalUpdate;
+        main._setInternalUpdate = (value) => { isInternalUpdate = value; };
+
+        // CRITICAL: Use beforeChange to PREVENT unwanted changes during selection
+        main.on('beforeChange', (instance, changeObj) => {
+            const hasSelection = main.somethingSelected();
+
+            console.log('[MERGE - BEFORE CHANGE]', {
+                origin: changeObj.origin,
+                isInternalUpdate: isInternalUpdate,
+                hasSelection: hasSelection,
+                from: changeObj.from,
+                to: changeObj.to,
+                text: changeObj.text,
+                textContent: JSON.stringify(changeObj.text)
+            });
+
+            if (isInternalUpdate) {
+                console.log('[MERGE - CHANGE ALLOWED - internal update]');
+                return;
+            }
+
+            // If there's a selection, verify the change is legitimate
+            if (hasSelection) {
+                const sel = main.listSelections()[0];
+                const selStart = sel.anchor.line < sel.head.line ||
+                (sel.anchor.line === sel.head.line && sel.anchor.ch < sel.head.ch)
+                    ? sel.anchor : sel.head;
+                const selEnd = sel.anchor.line > sel.head.line ||
+                (sel.anchor.line === sel.head.line && sel.anchor.ch > sel.head.ch)
+                    ? sel.anchor : sel.head;
+
+                // Check if change modifies the selected range
+                const changeAffectsSelection = (
+                    changeObj.from.line === selStart.line &&
+                    changeObj.from.ch === selStart.ch &&
+                    changeObj.to.line === selEnd.line &&
+                    changeObj.to.ch === selEnd.ch
+                );
+
+                if (!changeAffectsSelection) {
+                    console.log('[MERGE - CHANGE CANCELLED - does not match selection bounds]', {
+                        changeFrom: changeObj.from,
+                        changeTo: changeObj.to,
+                        selStart: selStart,
+                        selEnd: selEnd
+                    });
+                    changeObj.cancel();
+                    return;
+                }
+
+                // Special check for +input: must have actual content or be a true deletion
+                if (changeObj.origin === '+input') {
+                    // +input should only be allowed if there's exactly 1 line and it's NOT empty
+                    // OR if it's truly replacing with something meaningful
+                    const isSingleLineWithContent = changeObj.text.length === 1 && changeObj.text[0].length > 0;
+
+                    if (!isSingleLineWithContent) {
+                        console.log('[MERGE - CHANGE CANCELLED - +input without actual typed content]', {
+                            text: changeObj.text,
+                            textLength: changeObj.text.length,
+                            firstLineLength: changeObj.text[0]?.length
+                        });
+                        changeObj.cancel();
+                        return;
+                    }
+                }
+
+                // Whitelist other user actions
+                const userActions = ['+delete', 'paste', 'cut', '*compose'];
+                if (!userActions.includes(changeObj.origin) && changeObj.origin !== '+input') {
+                    console.log('[MERGE - CHANGE CANCELLED - not a user action]', changeObj.origin);
+                    changeObj.cancel();
+                    return;
+                }
+            }
+
+            console.log('[MERGE - CHANGE ALLOWED]', changeObj.origin);
+        });
+
+        main.getDoc().on('change', (instance) => {
+            if (isInternalUpdate) {
+                return;
+            }
+
+            const v = main.getValue();
+            this._onDocumentChanged(v);
+            if (this._coverageAutoClear) this._clearCoverageInternal();
+            requestAnimationFrame(() => this._refresh());
+        });
+
         xtext.createServices(main, {
             document: this.shadowRoot,
             xtextLang: this.xtextLang,
@@ -347,8 +520,19 @@ class SAPLEditor extends LitElement {
             showErrorDialogs: false
         });
 
-        // DO NOT override Ctrl-Space here – let Xtext trigger showHint.
-        // Just ensure the popup renders into body and always shows.
+        const xs = main.xtextServices;
+        if (xs && xs.update) {
+            const originalUpdate = xs.update;
+            xs.update = function(...args) {
+                // Block Xtext updates if there's an active selection
+                if (main.somethingSelected()) {
+                    console.log('[Xtext update blocked - selection exists in merge]');
+                    return Promise.resolve();
+                }
+                return originalUpdate.apply(this, args);
+            };
+        }
+
         main.setOption('hintOptions', {
             container: document.body,
             updateOnCursorActivity: false,
@@ -363,18 +547,9 @@ class SAPLEditor extends LitElement {
             origRight.setOption('theme', this._themeName());
         }
 
-        main.getDoc().on('change', () => {
-            const v = main.getValue();
-            this._onDocumentChanged(v);
-            if (this._coverageAutoClear) this._clearCoverageInternal();
-            requestAnimationFrame(() => this._refresh());
-        });
-
         this._hookValidation(main);
-
         this.editor = main;
 
-        // coverage applies to main only; reapply if present
         if (this._lastCoveragePayload) this._applyCoverage(this._lastCoveragePayload);
 
         requestAnimationFrame(() => this._refresh());
@@ -448,19 +623,45 @@ class SAPLEditor extends LitElement {
 
     setEditorDocument(_el, doc) {
         this.document = doc;
-        if (this.editor) this.editor.getDoc().setValue(doc ?? '');
+
+        const cm = this.editor;
+        if (!cm) {
+            return;
+        }
+
+        const currentValue = cm.getValue();
+        if (currentValue === doc) {
+            return;
+        }
+
+        if (cm._setInternalUpdate) {
+            cm._setInternalUpdate(true);
+        }
+
+        try {
+            cm.getDoc().setValue(doc ?? '');
+        } finally {
+            if (cm._setInternalUpdate) {
+                cm._setInternalUpdate(false);
+            }
+        }
     }
 
     setMergeModeEnabled(enabled) {
         this.mergeEnabled = !!enabled;
 
-        // clear coverage when switching modes
+        const container = this._container();
+        if (!container) {
+            return;
+        }
+
         this._clearCoverageInternal();
 
         const leftText = this.editor ? this.editor.getValue() : (this.document ?? '');
         if (this.mergeEnabled) this._createMergeView(leftText, this._rightMergeText ?? '');
         else this._createSingleEditor(leftText);
     }
+
     enableMergeView(){ this.setMergeModeEnabled(true); }
     disableMergeView(){ this.setMergeModeEnabled(false); }
 
@@ -544,26 +745,20 @@ class SAPLEditor extends LitElement {
         document.head.appendChild(s);
     }
 
-    // ===================== Coverage implementation =====================
-
-    /** Java -> JS: enable/disable auto-clear on edits. */
     setCoverageAutoClear(enabled) {
         this._coverageAutoClear = !!enabled;
     }
 
-    /** Java -> JS: show/hide IGNORED lines. */
     setCoverageShowIgnored(show) {
         this._coverageShowIgnored = !!show;
         if (this._lastCoveragePayload) this._applyCoverage(this._lastCoveragePayload);
     }
 
-    /** Java -> JS: set new coverage (replaces previous). */
     setCoverageData(data) {
         this._lastCoveragePayload = data;
         this._applyCoverage(data);
     }
 
-    /** Java -> JS: clear everything. */
     clearCoverage() {
         this._clearCoverageInternal();
         this._lastCoveragePayload = null;
@@ -573,13 +768,11 @@ class SAPLEditor extends LitElement {
         const cm = this.editor;
         if (!cm) return;
 
-        // remove line classes
         this._coverageClasses.forEach(e => {
             try { cm.removeLineClass(e.line, e.where, e.cls); } catch {}
         });
         this._coverageClasses = [];
 
-        // clear marks (tooltips)
         this._coverageMarks.forEach(m => { try { m.clear(); } catch {} });
         this._coverageMarks = [];
     }
@@ -588,7 +781,6 @@ class SAPLEditor extends LitElement {
         const cm = this.editor;
         if (!cm || !payload || !Array.isArray(payload.lines)) return;
 
-        // reset first
         this._clearCoverageInternal();
 
         const clsMap = {
@@ -603,7 +795,6 @@ class SAPLEditor extends LitElement {
         payload.lines.forEach(item => {
             if (!item || typeof item.line !== 'number' || !item.status) return;
 
-            // 1-based -> 0-based
             const zeroBased = item.line - 1;
             if (zeroBased < 0 || zeroBased >= lineCount) return;
 
@@ -613,13 +804,11 @@ class SAPLEditor extends LitElement {
             const cls = clsMap[status];
             if (!cls) return;
 
-            // line background via 'text' layer (doesn't shift layout)
             try {
                 cm.addLineClass(zeroBased, 'text', cls);
                 this._coverageClasses.push({ line: zeroBased, where: 'text', cls });
             } catch {}
 
-            // native tooltip over the full line if provided
             if (item.info) {
                 try {
                     const len = cm.getLine(zeroBased)?.length ?? 0;

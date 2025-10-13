@@ -20,50 +20,50 @@ import * as DMP from 'diff-match-patch';
 
 // ------- Merge CSS scoped to shadow DOM (mirrors the SAPL editor approach) -------
 const MergeHeightFix = css`
-  :host { display:block; height:100%; }
-  #sapltest-editor { height:100%; }
-  .CodeMirror-merge, .CodeMirror { height:100%; }
+    :host { display:block; height:100%; }
+    #sapltest-editor { height:100%; }
+    .CodeMirror-merge, .CodeMirror { height:100%; }
 `;
 
 const MergeLayout = css`
-  .CodeMirror-merge { position:relative; height:100%; white-space:pre; }
-  .CodeMirror-merge, .CodeMirror-merge .CodeMirror { height:100%; }
-  .CodeMirror-merge-2pane .CodeMirror-merge-pane { width:47%; }
-  .CodeMirror-merge-2pane .CodeMirror-merge-gap  { width:6%;  }
-  .CodeMirror-merge-3pane .CodeMirror-merge-pane { width:31%; }
-  .CodeMirror-merge-3pane .CodeMirror-merge-gap  { width:3.5%; }
-  .CodeMirror-merge-pane { display:inline-block; white-space:normal; vertical-align:top; height:100%; box-sizing:border-box; }
-  .CodeMirror-merge-pane-rightmost { position:absolute; right:0; z-index:1; top:0; bottom:0; }
-  .CodeMirror-merge-gap { z-index:2; display:inline-block; height:100%; box-sizing:border-box; overflow:hidden; position:relative; }
+    .CodeMirror-merge { position:relative; height:100%; white-space:pre; }
+    .CodeMirror-merge, .CodeMirror-merge .CodeMirror { height:100%; }
+    .CodeMirror-merge-2pane .CodeMirror-merge-pane { width:47%; }
+    .CodeMirror-merge-2pane .CodeMirror-merge-gap  { width:6%;  }
+    .CodeMirror-merge-3pane .CodeMirror-merge-pane { width:31%; }
+    .CodeMirror-merge-3pane .CodeMirror-merge-gap  { width:3.5%; }
+    .CodeMirror-merge-pane { display:inline-block; white-space:normal; vertical-align:top; height:100%; box-sizing:border-box; }
+    .CodeMirror-merge-pane-rightmost { position:absolute; right:0; z-index:1; top:0; bottom:0; }
+    .CodeMirror-merge-gap { z-index:2; display:inline-block; height:100%; box-sizing:border-box; overflow:hidden; position:relative; }
 `;
 
 const MergeControls = css`
-  .CodeMirror-merge-scrolllock-wrap { position:absolute; bottom:0; left:50%; }
-  .CodeMirror-merge-scrolllock { position:relative; left:-50%; cursor:pointer; color:var(--sapl-merge-arrow, #378b8a); line-height:1; }
-  .CodeMirror-merge-scrolllock:after { content:"\\21db\\00a0\\00a0\\21da"; }
-  .CodeMirror-merge-scrolllock.CodeMirror-merge-scrolllock-enabled:after { content:"\\21db\\21da"; }
-  .CodeMirror-merge-copybuttons-left, .CodeMirror-merge-copybuttons-right { position:absolute; left:0; top:0; right:0; bottom:0; line-height:1; }
-  .CodeMirror-merge-copy, .CodeMirror-merge-copy-reverse { position:absolute; cursor:pointer; color:var(--sapl-merge-arrow, #378b8a); z-index:3; }
-  .CodeMirror-merge-copybuttons-left  .CodeMirror-merge-copy { left:2px; }
-  .CodeMirror-merge-copybuttons-right .CodeMirror-merge-copy { right:2px; }
+    .CodeMirror-merge-scrolllock-wrap { position:absolute; bottom:0; left:50%; }
+    .CodeMirror-merge-scrolllock { position:relative; left:-50%; cursor:pointer; color:var(--sapl-merge-arrow, #378b8a); line-height:1; }
+    .CodeMirror-merge-scrolllock:after { content:"\\21db\\00a0\\00a0\\21da"; }
+    .CodeMirror-merge-scrolllock.CodeMirror-merge-scrolllock-enabled:after { content:"\\21db\\21da"; }
+    .CodeMirror-merge-copybuttons-left, .CodeMirror-merge-copybuttons-right { position:absolute; left:0; top:0; right:0; bottom:0; line-height:1; }
+    .CodeMirror-merge-copy, .CodeMirror-merge-copy-reverse { position:absolute; cursor:pointer; color:var(--sapl-merge-arrow, #378b8a); z-index:3; }
+    .CodeMirror-merge-copybuttons-left  .CodeMirror-merge-copy { left:2px; }
+    .CodeMirror-merge-copybuttons-right .CodeMirror-merge-copy { right:2px; }
 `;
 
 const MergeColorOverrides = css`
-  .CodeMirror-merge-l-connect, .CodeMirror-merge-r-connect {
-    fill: var(--sapl-merge-connector, #252a2e);
-    stroke: var(--sapl-merge-connector, #252a2e);
-    stroke-width: 1px;
-    opacity: 1;
-  }
+    .CodeMirror-merge-l-connect, .CodeMirror-merge-r-connect {
+        fill: var(--sapl-merge-connector, #252a2e);
+        stroke: var(--sapl-merge-connector, #252a2e);
+        stroke-width: 1px;
+        opacity: 1;
+    }
 `;
 
 const MergeArrowStrongOverrides = css`
-  .CodeMirror-merge-gap .CodeMirror-merge-copy,
-  .CodeMirror-merge-gap .CodeMirror-merge-copy-reverse,
-  .CodeMirror-merge-gap .CodeMirror-merge-scrolllock,
-  .CodeMirror-merge-gap .CodeMirror-merge-scrolllock::after {
-    color: var(--sapl-merge-arrow, #378b8a) !important;
-  }
+    .CodeMirror-merge-gap .CodeMirror-merge-copy,
+    .CodeMirror-merge-gap .CodeMirror-merge-copy-reverse,
+    .CodeMirror-merge-gap .CodeMirror-merge-scrolllock,
+    .CodeMirror-merge-gap .CodeMirror-merge-scrolllock::after {
+        color: var(--sapl-merge-arrow, #378b8a) !important;
+    }
 `;
 
 // ---------- SAPL Test Editor with optional MergeView ----------
@@ -225,7 +225,6 @@ class SAPLTestEditor extends LitElement {
     _createSingleEditor(value) {
         this._teardown();
 
-        // Create a CM instance and then attach Xtext services to it
         const cm = CodeMirror(this._container(), {
             value: value ?? '',
             mode: 'xtext/sapltest',
@@ -234,9 +233,7 @@ class SAPLTestEditor extends LitElement {
             showCursorWhenSelecting: true,
             gutters: ['annotations-gutter'],
             theme: this._themeName(),
-            // Keep shortcut, but the *service* triggers showHint
             extraKeys: { 'Ctrl-Space': 'autocomplete' },
-            // in single-pane we can keep the popup inside the shadow
             hintOptions: {
                 container: this._shadowHintContainer,
                 updateOnCursorActivity: false,
@@ -255,7 +252,12 @@ class SAPLTestEditor extends LitElement {
             showErrorDialogs: false
         });
 
+        // CRITICAL FIX: Prevent feedback loops
+        let isInternalUpdate = false;
+
         cm.getDoc().on('change', () => {
+            if (isInternalUpdate) return;
+
             const valueNow = cm.getValue();
             this._onDocumentChanged(valueNow);
         });
@@ -264,12 +266,21 @@ class SAPLTestEditor extends LitElement {
 
         this.editor = cm;
         this._applyBasicOptionsToCurrentEditor();
+
+        // Store flag accessors
+        cm._isInternalUpdate = () => isInternalUpdate;
+        cm._setInternalUpdate = (value) => { isInternalUpdate = value; };
     }
 
     _createMergeView(left, right) {
         this._teardown();
 
         const mount = this._container();
+        if (!mount) {
+            console.error('[_createMergeView] Container not ready');
+            return;
+        }
+
         if ((mount.clientHeight || 0) < 50) mount.style.height = '400px';
 
         this._mergeView = CodeMirror.MergeView(mount, {
@@ -289,7 +300,6 @@ class SAPLTestEditor extends LitElement {
         const main = this._mergeView.edit;
         const origRight = this._mergeView.right && this._mergeView.right.orig;
 
-        // Attach Xtext services to center editor (only)
         xtext.createServices(main, {
             document: this.shadowRoot,
             xtextLang: this.xtextLang,
@@ -301,7 +311,6 @@ class SAPLTestEditor extends LitElement {
             showErrorDialogs: false
         });
 
-        // Ensure popup renders above the merge gap
         main.setOption('hintOptions', {
             container: document.body,
             updateOnCursorActivity: false,
@@ -316,7 +325,12 @@ class SAPLTestEditor extends LitElement {
             origRight.setOption('theme', this._themeName());
         }
 
+        // CRITICAL FIX: Prevent feedback loops
+        let isInternalUpdate = false;
+
         main.getDoc().on('change', () => {
+            if (isInternalUpdate) return;
+
             const v = main.getValue();
             this._onDocumentChanged(v);
             requestAnimationFrame(() => this._refresh());
@@ -325,6 +339,10 @@ class SAPLTestEditor extends LitElement {
         this._hookValidation(main);
 
         this.editor = main;
+
+        // Store flag accessors
+        main._isInternalUpdate = () => isInternalUpdate;
+        main._setInternalUpdate = (value) => { isInternalUpdate = value; };
 
         requestAnimationFrame(() => this._refresh());
     }
@@ -399,12 +417,39 @@ class SAPLTestEditor extends LitElement {
 
     // ---------- public API (called from Vaadin wrapper) ----------
     setEditorDocument(_el, doc) {
+        // Always update property first
         this.document = doc;
-        if (this.editor) this.editor.getDoc().setValue(doc ?? '');
+
+        const cm = this.editor;
+        if (!cm) return;
+
+        // Only update if content actually changed
+        const currentValue = cm.getValue();
+        if (currentValue === doc) return;
+
+        // CRITICAL FIX: Prevent change event during setValue
+        if (cm._setInternalUpdate) {
+            cm._setInternalUpdate(true);
+        }
+
+        try {
+            cm.getDoc().setValue(doc ?? '');
+        } finally {
+            if (cm._setInternalUpdate) {
+                cm._setInternalUpdate(false);
+            }
+        }
     }
 
     setMergeModeEnabled(enabled) {
         this.mergeEnabled = !!enabled;
+
+        // CRITICAL FIX: Don't try to create editors if container not ready
+        const container = this._container();
+        if (!container) {
+            return;
+        }
+
         const leftText = this.editor ? this.editor.getValue() : (this.document ?? '');
         if (this.mergeEnabled) this._createMergeView(leftText, this._rightMergeText ?? '');
         else this._createSingleEditor(leftText);

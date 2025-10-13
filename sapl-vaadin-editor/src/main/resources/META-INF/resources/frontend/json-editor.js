@@ -39,13 +39,12 @@ const MergeColorOverrides = css`
 `;
 
 const MergeArrowStrongOverrides = css`
-  /* Ensure buttons + scroll-lock and its :after use the variable, even if other rules exist */
-  .CodeMirror-merge-gap .CodeMirror-merge-copy,
-  .CodeMirror-merge-gap .CodeMirror-merge-copy-reverse,
-  .CodeMirror-merge-gap .CodeMirror-merge-scrolllock,
-  .CodeMirror-merge-gap .CodeMirror-merge-scrolllock::after {
-    color: var(--sapl-merge-arrow, #378b8a) !important;
-  }
+    .CodeMirror-merge-gap .CodeMirror-merge-copy,
+    .CodeMirror-merge-gap .CodeMirror-merge-copy-reverse,
+    .CodeMirror-merge-gap .CodeMirror-merge-scrolllock,
+    .CodeMirror-merge-gap .CodeMirror-merge-scrolllock::after {
+        color: var(--sapl-merge-arrow, #378b8a) !important;
+    }
 `;
 const ChangeMarkerStyles = css`
     .cm-merge-chunk-line { background: rgba(255, 200, 0, 0.15); }
@@ -86,7 +85,6 @@ class JSONEditor extends LitElement {
         this._rightMergeText = "";
         this.mergeEnabled = false;
 
-        // Default: highlight diff chunks on both panes
         this._changeMarkersEnabled = true;
 
         this._chunkList = [];
@@ -229,7 +227,31 @@ class JSONEditor extends LitElement {
             theme: "default"
         };
         this.editor = codemirror(container, opts);
-        this._attachMainEditorListeners(this.editor);
+
+        // CRITICAL FIX: Prevent feedback loops
+        let isInternalUpdate = false;
+
+        this.editor.on("change", () => {
+            if (isInternalUpdate) return;
+
+            const value = this.editor.getValue();
+            this.onDocumentChanged(value);
+            this._scheduleRecalcChunks();
+        });
+
+        this.editor.on("click", (instance, event) => {
+            const line = instance.lineAtHeight(event.clientY, "client");
+            const content = instance.getLine(line);
+            this.onEditorClicked(line + 1, content);
+        });
+
+        this._mainScrollHandler = () => this._scheduleRecalcChunks();
+        this.editor.getScrollerElement().addEventListener('scroll', this._mainScrollHandler);
+
+        // Store flag accessors
+        this.editor._isInternalUpdate = () => isInternalUpdate;
+        this.editor._setInternalUpdate = (value) => { isInternalUpdate = value; };
+
         this.onEditorChangeCheckOptions(this.editor);
         this._scheduleRecalcChunks();
     }
@@ -237,7 +259,16 @@ class JSONEditor extends LitElement {
     _createMergeView(leftValue, rightValue) {
         const container = this._editorContainer();
         this._tearDownEditors();
-        if (!codemirror.MergeView || typeof window.diff_match_patch !== 'function') { this._createSingleEditor(leftValue ?? ""); return; }
+
+        if (!container) {
+            console.error('[_createMergeView] Container not ready');
+            return;
+        }
+
+        if (!codemirror.MergeView || typeof window.diff_match_patch !== 'function') {
+            this._createSingleEditor(leftValue ?? "");
+            return;
+        }
 
         const lintLeft  = this._shouldEnableLintFor(leftValue);
         const lintRight = this._shouldEnableLintFor(rightValue);
@@ -261,7 +292,30 @@ class JSONEditor extends LitElement {
         });
 
         const main = this._mergeView.edit;
-        this._attachMainEditorListeners(main);
+
+        // CRITICAL FIX: Prevent feedback loops
+        let isInternalUpdate = false;
+
+        main.on("change", () => {
+            if (isInternalUpdate) return;
+
+            const value = main.getValue();
+            this.onDocumentChanged(value);
+            this._scheduleRecalcChunks();
+        });
+
+        main.on("click", (instance, event) => {
+            const line = instance.lineAtHeight(event.clientY, "client");
+            const content = instance.getLine(line);
+            this.onEditorClicked(line + 1, content);
+        });
+
+        this._mainScrollHandler = () => this._scheduleRecalcChunks();
+        main.getScrollerElement().addEventListener('scroll', this._mainScrollHandler);
+
+        // Store flag accessors
+        main._isInternalUpdate = () => isInternalUpdate;
+        main._setInternalUpdate = (value) => { isInternalUpdate = value; };
 
         const right = this._mergeView.right && this._mergeView.right.orig;
         if (right) {
@@ -280,13 +334,6 @@ class JSONEditor extends LitElement {
 
     _getMainEditor()  { return this._mergeView ? this._mergeView.edit : this.editor; }
     _getRightEditor() { return this._mergeView && this._mergeView.right ? this._mergeView.right.orig : undefined; }
-
-    _attachMainEditorListeners(cm) {
-        cm.on("change", () => { const value = cm.getValue(); this.onDocumentChanged(value); this._scheduleRecalcChunks(); });
-        cm.on("mousedown", (instance, event) => { const line = instance.lineAtHeight(event.clientY, "client"); const content = instance.getLine(line); this.onEditorClicked(line + 1, content); });
-        this._mainScrollHandler = () => this._scheduleRecalcChunks();
-        cm.getScrollerElement().addEventListener('scroll', this._mainScrollHandler);
-    }
 
     _themeForCurrentState() {
         if (this._isReadOnly === true) return this._isDarkTheme === true ? 'dracularo' : 'readOnly';
@@ -311,10 +358,29 @@ class JSONEditor extends LitElement {
     }
 
     setEditorDocument(_element, document) {
+        // Always update property first
         this.document = document;
+
         const main = this._getMainEditor();
-        if (main) main.doc.setValue(document);
-        this._scheduleRecalcChunks();
+        if (!main) return;
+
+        // Only update if content actually changed
+        const currentValue = main.getValue();
+        if (currentValue === document) return;
+
+        // CRITICAL FIX: Prevent change event during setValue
+        if (main._setInternalUpdate) {
+            main._setInternalUpdate(true);
+        }
+
+        try {
+            main.doc.setValue(document);
+            this._scheduleRecalcChunks();
+        } finally {
+            if (main._setInternalUpdate) {
+                main._setInternalUpdate(false);
+            }
+        }
     }
 
     setEditorOption(option, value) {
@@ -363,6 +429,13 @@ class JSONEditor extends LitElement {
 
     setMergeModeEnabled(enabled) {
         this.mergeEnabled = !!enabled;
+
+        // CRITICAL FIX: Don't try to create editors if container not ready
+        const container = this._editorContainer();
+        if (!container) {
+            return;
+        }
+
         const leftText = this._getMainEditor() ? this._getMainEditor().getValue() : (this.document ?? "");
         if (this.mergeEnabled) { this._createMergeView(leftText, this._rightMergeText ?? ""); this._dispatchMergeModeToggled(true); }
         else { this._createSingleEditor(leftText); this._dispatchMergeModeToggled(false); }
