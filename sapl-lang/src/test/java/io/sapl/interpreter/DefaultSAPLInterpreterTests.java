@@ -17,34 +17,10 @@
  */
 package io.sapl.interpreter;
 
-import static io.sapl.api.pdp.AuthorizationDecision.DENY;
-import static io.sapl.api.pdp.AuthorizationDecision.INDETERMINATE;
-import static io.sapl.api.pdp.AuthorizationDecision.NOT_APPLICABLE;
-import static io.sapl.api.pdp.AuthorizationDecision.PERMIT;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Stream;
-
-import io.sapl.functions.ArrayFunctionLibrary;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import io.sapl.api.interpreter.PolicyEvaluationException;
 import io.sapl.api.interpreter.Val;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -53,11 +29,28 @@ import io.sapl.attributes.broker.impl.AnnotationPolicyInformationPointLoader;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
 import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentationProvider;
 import io.sapl.attributes.broker.impl.TestPIP;
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
+import io.sapl.functions.DefaultLibraries;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import io.sapl.validation.ValidatorFactory;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
+
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
+
+import static io.sapl.api.pdp.AuthorizationDecision.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 class DefaultSAPLInterpreterTests {
 
@@ -124,9 +117,7 @@ class DefaultSAPLInterpreterTests {
         loader.loadPolicyInformationPoint(new TestPIP());
         functionCtx = new AnnotationFunctionContext();
         functionCtx.loadLibrary(SimpleFunctionLibrary.class);
-        functionCtx.loadLibrary(FilterFunctionLibrary.class);
-        functionCtx.loadLibrary(StandardFunctionLibrary.class);
-        functionCtx.loadLibrary(ArrayFunctionLibrary.class);
+        functionCtx.loadLibraries(() -> DefaultLibraries.STATIC_LIBRARIES);
         variables = new HashMap<>();
 
     }

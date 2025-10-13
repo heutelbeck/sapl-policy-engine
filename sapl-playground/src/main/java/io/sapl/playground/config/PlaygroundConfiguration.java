@@ -34,7 +34,7 @@ import io.sapl.extension.jwt.JWTPolicyInformationPoint;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.extensions.mqtt.SaplMqttClient;
-import io.sapl.functions.*;
+import io.sapl.functions.DefaultLibraries;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.functions.sanitization.SanitizationFunctionLibrary;
@@ -61,6 +61,7 @@ import reactor.core.publisher.Mono;
 
 import java.security.interfaces.RSAPublicKey;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -93,10 +94,9 @@ public class PlaygroundConfiguration {
 
     @Bean
     FunctionContext functionContext(ObjectMapper mapper) throws InitializationException {
-        val staticLibraries = List.of(FilterFunctionLibrary.class, StandardFunctionLibrary.class,
-                ArrayFunctionLibrary.class, TemporalFunctionLibrary.class, GeographicFunctionLibrary.class,
-                MqttFunctionLibrary.class, SanitizationFunctionLibrary.class, LoggingFunctionLibrary.class,
-                TraccarFunctionLibrary.class, GraphFunctionLibrary.class);
+        val staticLibraries = new ArrayList<Class<?>>(DefaultLibraries.STATIC_LIBRARIES);
+        staticLibraries.addAll(List.of(GeographicFunctionLibrary.class, MqttFunctionLibrary.class,
+                SanitizationFunctionLibrary.class, TraccarFunctionLibrary.class));
         return new AnnotationFunctionContext(() -> List.of(new JWTFunctionLibrary(mapper)), () -> staticLibraries);
     }
 

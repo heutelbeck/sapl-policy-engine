@@ -17,16 +17,7 @@
  */
 package io.sapl.pdp;
 
-import java.time.Clock;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.UnaryOperator;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.sapl.api.functions.FunctionLibrarySupplier;
 import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 import io.sapl.api.interpreter.Val;
@@ -43,7 +34,7 @@ import io.sapl.attributes.broker.impl.InMemoryPolicyInformationPointDocumentatio
 import io.sapl.attributes.pips.http.HttpPolicyInformationPoint;
 import io.sapl.attributes.pips.http.ReactiveWebClient;
 import io.sapl.attributes.pips.time.TimePolicyInformationPoint;
-import io.sapl.functions.*;
+import io.sapl.functions.DefaultLibraries;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
 import io.sapl.interpreter.SAPLInterpreter;
@@ -66,6 +57,10 @@ import io.sapl.prp.resources.ResourcesPrpUpdateEventSource;
 import io.sapl.validation.ValidatorFactory;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
+
+import java.time.Clock;
+import java.util.*;
+import java.util.function.UnaryOperator;
 
 @UtilityClass
 public class PolicyDecisionPointFactory {
@@ -219,13 +214,7 @@ public class PolicyDecisionPointFactory {
     private static FunctionContext constructFunctionContext(FunctionLibrarySupplier functionLibraries,
             StaticFunctionLibrarySupplier staticFunctionLibraries) throws InitializationException {
         final var functionCtx = new AnnotationFunctionContext(functionLibraries, staticFunctionLibraries);
-        functionCtx.loadLibrary(FilterFunctionLibrary.class);
-        functionCtx.loadLibrary(StandardFunctionLibrary.class);
-        functionCtx.loadLibrary(ArrayFunctionLibrary.class);
-        functionCtx.loadLibrary(TemporalFunctionLibrary.class);
-        functionCtx.loadLibrary(SchemaValidationLibrary.class);
-        functionCtx.loadLibrary(LoggingFunctionLibrary.class);
-        functionCtx.loadLibrary(GraphFunctionLibrary.class);
+        functionCtx.loadLibraries(() -> DefaultLibraries.STATIC_LIBRARIES);
         return functionCtx;
     }
 

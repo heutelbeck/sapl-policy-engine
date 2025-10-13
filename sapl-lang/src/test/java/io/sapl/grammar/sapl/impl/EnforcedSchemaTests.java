@@ -17,29 +17,23 @@
  */
 package io.sapl.grammar.sapl.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.Map;
-
-import io.sapl.functions.ArrayFunctionLibrary;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.attributes.broker.impl.CachingAttributeStreamBroker;
-import io.sapl.functions.FilterFunctionLibrary;
-import io.sapl.functions.SchemaValidationLibrary;
-import io.sapl.functions.StandardFunctionLibrary;
+import io.sapl.functions.DefaultLibraries;
 import io.sapl.grammar.sapl.impl.util.MatchingUtil;
 import io.sapl.interpreter.DefaultSAPLInterpreter;
 import io.sapl.interpreter.InitializationException;
-import io.sapl.interpreter.SimpleFunctionLibrary;
 import io.sapl.interpreter.context.AuthorizationContext;
 import io.sapl.interpreter.functions.AnnotationFunctionContext;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class EnforcedSchemaTests {
     private static final ObjectMapper           MAPPER      = new ObjectMapper()
@@ -52,11 +46,7 @@ class EnforcedSchemaTests {
     static void beforeAll() throws InitializationException {
         attributeStreamBroker = new CachingAttributeStreamBroker();
         functionContext       = new AnnotationFunctionContext();
-        functionContext.loadLibrary(SimpleFunctionLibrary.class);
-        functionContext.loadLibrary(SchemaValidationLibrary.class);
-        functionContext.loadLibrary(FilterFunctionLibrary.class);
-        functionContext.loadLibrary(StandardFunctionLibrary.class);
-        functionContext.loadLibrary(ArrayFunctionLibrary.class);
+        functionContext.loadLibraries(() -> DefaultLibraries.STATIC_LIBRARIES);
     }
 
     @Test

@@ -77,13 +77,7 @@ public class SAPLUiModule extends AbstractSAPLUiModule {
         loader.loadPolicyInformationPoint(new TimePolicyInformationPoint(Clock.systemUTC()));
 
         var functionContext = new AnnotationFunctionContext();
-        functionContext.loadLibrary(FilterFunctionLibrary.class);
-        functionContext.loadLibrary(StandardFunctionLibrary.class);
-        functionContext.loadLibrary(ArrayFunctionLibrary.class);
-        functionContext.loadLibrary(TemporalFunctionLibrary.class);
-        functionContext.loadLibrary(GraphFunctionLibrary.class);
-        functionContext.loadLibrary(SchemaValidationLibrary.class);
-
+        functionContext.loadLibraries(() -> DefaultLibraries.STATIC_LIBRARIES);
         var dummyPrp = new PolicyRetrievalPoint() {
 
             @Override

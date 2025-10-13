@@ -17,15 +17,12 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import java.util.List;
-
-import io.sapl.functions.*;
+import io.sapl.api.functions.StaticFunctionLibrarySupplier;
+import io.sapl.functions.DefaultLibraries;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
-
-import io.sapl.api.functions.StaticFunctionLibrarySupplier;
 
 /**
  * This configuration deploys the default function libraries for the PDP.
@@ -36,9 +33,7 @@ public class FunctionLibrariesAutoConfiguration {
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     StaticFunctionLibrarySupplier baselLibraries() {
-        return () -> List.of(FilterFunctionLibrary.class, StandardFunctionLibrary.class, ArrayFunctionLibrary.class,
-                TemporalFunctionLibrary.class, LoggingFunctionLibrary.class, SchemaValidationLibrary.class,
-                GraphFunctionLibrary.class);
+        return () -> DefaultLibraries.STATIC_LIBRARIES;
     }
 
 }

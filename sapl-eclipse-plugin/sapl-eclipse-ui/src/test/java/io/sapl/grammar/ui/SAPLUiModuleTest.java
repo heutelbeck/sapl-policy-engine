@@ -53,9 +53,8 @@ class SAPLUiModuleTest {
         assertThat(pdpConfiguration, is(not(nullValue())));
         assertThat(pdpConfiguration.isValid(), is(true));
         assertThat(pdpConfiguration.functionContext().getAvailableLibraries(),
-                containsInAnyOrder(FilterFunctionLibrary.NAME, StandardFunctionLibrary.NAME,
-                        TemporalFunctionLibrary.NAME, SchemaValidationLibrary.NAME, ArrayFunctionLibrary.NAME,
-                        GraphFunctionLibrary.NAME));
+                hasItems(FilterFunctionLibrary.NAME, StandardFunctionLibrary.NAME, TemporalFunctionLibrary.NAME,
+                        SchemaValidationLibrary.NAME, ArrayFunctionLibrary.NAME, GraphFunctionLibrary.NAME));
         assertThat(pdpConfiguration.variables(), is(Map.of()));
         assertThat(pdpConfiguration.documentsCombinator(), is(PolicyDocumentCombiningAlgorithm.DENY_OVERRIDES));
         assertThat(pdpConfiguration.decisionInterceptorChain(), is(UnaryOperator.identity()));

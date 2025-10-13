@@ -50,8 +50,8 @@ class ArrayFunctionLibraryTests {
 
     @Test
     void when_concatenate_then_concatenatesCorrectly() throws JsonProcessingException {
-        assertThatVal(ArrayFunctionLibrary.concatenate(json("[ 1,2 ]"), json("[ ]"), json("[ 3,4 ]"),
-                json("[ 5,6 ]"))).hasValue().isArray().isEqualTo(json("[1,2,3,4,5,6]").getArrayNode());
+        assertThatVal(ArrayFunctionLibrary.concatenate(json("[ 1,2 ]"), json("[ ]"), json("[ 3,4 ]"), json("[ 5,6 ]")))
+                .hasValue().isArray().isEqualTo(json("[1,2,3,4,5,6]").getArrayNode());
     }
 
     @Test
@@ -69,8 +69,9 @@ class ArrayFunctionLibraryTests {
 
     @Test
     void when_intersectWithOneEmptySet_then_returnsEmptyArray() throws JsonProcessingException {
-        assertThatVal(ArrayFunctionLibrary.intersect(json("[ 1,2,3,4 ]"), json("[ ]"),
-                json("[ 3,4 ]"), json("[ 4,1,3 ]"))).hasValue().isArray().isEmpty();
+        assertThatVal(
+                ArrayFunctionLibrary.intersect(json("[ 1,2,3,4 ]"), json("[ ]"), json("[ 3,4 ]"), json("[ 4,1,3 ]")))
+                .hasValue().isArray().isEmpty();
     }
 
     @Test
@@ -80,8 +81,7 @@ class ArrayFunctionLibraryTests {
 
     @Test
     void when_union_then_returnsUnion() throws JsonProcessingException {
-        val actual = ArrayFunctionLibrary.union(json("[ 1,2,3 ]"), json("[ ]"), json("[ 3,4 ]"),
-                json("[ 4,1,3 ]"));
+        val actual = ArrayFunctionLibrary.union(json("[ 1,2,3 ]"), json("[ ]"), json("[ 3,4 ]"), json("[ 4,1,3 ]"));
         assertThatVal(actual).hasValue().isArray();
         assertThat(actual.getArrayNode()).hasSize(4);
         assertThat(actual.getArrayNode()).containsExactlyInAnyOrder(nodes(Val.of(4), Val.of(3), Val.of(1), Val.of(2)));
@@ -92,8 +92,8 @@ class ArrayFunctionLibraryTests {
         val actual = ArrayFunctionLibrary.toSet(json("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]"));
         assertThatVal(actual).hasValue().isArray();
         assertThat(actual.getArrayNode()).hasSize(6);
-        assertThat(actual.getArrayNode()).containsExactlyInAnyOrder(nodes(Val.of(1), Val.of(2), Val.of(3),
-                Val.of(5), Val.of(8), Val.of(10)));
+        assertThat(actual.getArrayNode())
+                .containsExactlyInAnyOrder(nodes(Val.of(1), Val.of(2), Val.of(3), Val.of(5), Val.of(8), Val.of(10)));
     }
 
     @ParameterizedTest
@@ -108,11 +108,9 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideDifferenceTestCases() {
-        return Stream.of(
-                Arguments.of("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]", "[]", "[1,2,3,5,8,10]"),
+        return Stream.of(Arguments.of("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]", "[]", "[1,2,3,5,8,10]"),
                 Arguments.of("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]", "[20,22,\"abc\"]", "[1,2,3,5,8,10]"),
-                Arguments.of("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]", "[10,2]", "[1,3,5,8]")
-        );
+                Arguments.of("[ 1,2,3,2,1,1,1,5,8,10,8,10,3 ]", "[10,2]", "[1,3,5,8]"));
     }
 
     @ParameterizedTest
@@ -125,12 +123,9 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideFlattenTestCases() {
-        return Stream.of(
-                Arguments.of("[]", "[]"),
-                Arguments.of("[1, 2, 3, 4]", "[1, 2, 3, 4]"),
+        return Stream.of(Arguments.of("[]", "[]"), Arguments.of("[1, 2, 3, 4]", "[1, 2, 3, 4]"),
                 Arguments.of("[1, [2, 3], 4, [3, 2], 1]", "[1, 2, 3, 4, 3, 2, 1]"),
-                Arguments.of("[1, [], 2, [], 3]", "[1, 2, 3]")
-        );
+                Arguments.of("[1, [], 2, [], 3]", "[1, 2, 3]"));
     }
 
     @ParameterizedTest
@@ -142,12 +137,8 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideSizeTestCases() {
-        return Stream.of(
-                Arguments.of("[]", 0),
-                Arguments.of("[1]", 1),
-                Arguments.of("[1, 2, 3, 4, 5]", 5),
-                Arguments.of("[1, [2, 3], 4]", 3)
-        );
+        return Stream.of(Arguments.of("[]", 0), Arguments.of("[1]", 1), Arguments.of("[1, 2, 3, 4, 5]", 5),
+                Arguments.of("[1, [2, 3], 4]", 3));
     }
 
     @ParameterizedTest
@@ -160,12 +151,9 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideReverseTestCases() {
-        return Stream.of(
-                Arguments.of("[]", "[]"),
-                Arguments.of("[1]", "[1]"),
+        return Stream.of(Arguments.of("[]", "[]"), Arguments.of("[1]", "[1]"),
                 Arguments.of("[1, 2, 3, 4]", "[4, 3, 2, 1]"),
-                Arguments.of("[1, \"abc\", true, null, 2.5]", "[2.5, null, true, \"abc\", 1]")
-        );
+                Arguments.of("[1, \"abc\", true, null, 2.5]", "[2.5, null, true, \"abc\", 1]"));
     }
 
     @ParameterizedTest
@@ -177,14 +165,10 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideContainsAnyTestCases() {
-        return Stream.of(
-                Arguments.of("[1, 2, 3, 4]", "[3, 5, 6]", true),
-                Arguments.of("[1, 2, 3, 4]", "[5, 6, 7]", false),
-                Arguments.of("[1, 2, 3, 4]", "[]", false),
-                Arguments.of("[]", "[1, 2, 3]", false),
-                Arguments.of("[1, 2, 3, 4]", "[2, 3, 4]", true),
-                Arguments.of("[\"apple\", \"banana\", \"cherry\"]", "[\"banana\", \"date\"]", true)
-        );
+        return Stream.of(Arguments.of("[1, 2, 3, 4]", "[3, 5, 6]", true),
+                Arguments.of("[1, 2, 3, 4]", "[5, 6, 7]", false), Arguments.of("[1, 2, 3, 4]", "[]", false),
+                Arguments.of("[]", "[1, 2, 3]", false), Arguments.of("[1, 2, 3, 4]", "[2, 3, 4]", true),
+                Arguments.of("[\"apple\", \"banana\", \"cherry\"]", "[\"banana\", \"date\"]", true));
     }
 
     @ParameterizedTest
@@ -196,14 +180,11 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideContainsAllTestCases() {
-        return Stream.of(
-                Arguments.of("[1, 2, 3, 4, 5]", "[3, 1, 5]", true),
-                Arguments.of("[1, 2, 3, 4]", "[3, 5, 6]", false),
-                Arguments.of("[1, 2, 3, 4]", "[]", true),
+        return Stream.of(Arguments.of("[1, 2, 3, 4, 5]", "[3, 1, 5]", true),
+                Arguments.of("[1, 2, 3, 4]", "[3, 5, 6]", false), Arguments.of("[1, 2, 3, 4]", "[]", true),
                 Arguments.of("[1, 2, 3]", "[1, 2, 3]", true),
                 Arguments.of("[\"apple\", \"banana\", \"cherry\", \"date\"]", "[\"banana\", \"apple\"]", true),
-                Arguments.of("[\"apple\", \"banana\"]", "[\"banana\", \"cherry\"]", false)
-        );
+                Arguments.of("[\"apple\", \"banana\"]", "[\"banana\", \"cherry\"]", false));
     }
 
     @ParameterizedTest
@@ -215,16 +196,12 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideContainsAllInOrderTestCases() {
-        return Stream.of(
-                Arguments.of("[1, 2, 3, 4, 5]", "[2, 4, 5]", true),
-                Arguments.of("[1, 2, 3, 4, 5]", "[2, 5, 4]", false),
-                Arguments.of("[1, 2, 3, 4]", "[]", true),
-                Arguments.of("[1, 2, 3, 4, 5]", "[2, 6]", false),
-                Arguments.of("[1, 2, 3, 4, 5]", "[1, 1, 2]", false),
+        return Stream.of(Arguments.of("[1, 2, 3, 4, 5]", "[2, 4, 5]", true),
+                Arguments.of("[1, 2, 3, 4, 5]", "[2, 5, 4]", false), Arguments.of("[1, 2, 3, 4]", "[]", true),
+                Arguments.of("[1, 2, 3, 4, 5]", "[2, 6]", false), Arguments.of("[1, 2, 3, 4, 5]", "[1, 1, 2]", false),
                 Arguments.of("[1, 1, 2, 3, 4, 5]", "[1, 1, 2]", true),
                 Arguments.of("[\"apple\", \"banana\", \"cherry\", \"date\"]", "[\"banana\", \"date\"]", true),
-                Arguments.of("[\"apple\", \"banana\", \"cherry\", \"date\"]", "[\"cherry\", \"banana\"]", false)
-        );
+                Arguments.of("[\"apple\", \"banana\", \"cherry\", \"date\"]", "[\"cherry\", \"banana\"]", false));
     }
 
     @ParameterizedTest
@@ -236,16 +213,12 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideSortSuccessTestCases() {
-        return Stream.of(
-                Arguments.of("[3, 1, 4, 1, 5, 9, 2, 6]", "[1, 1, 2, 3, 4, 5, 6, 9]"),
+        return Stream.of(Arguments.of("[3, 1, 4, 1, 5, 9, 2, 6]", "[1, 1, 2, 3, 4, 5, 6, 9]"),
                 Arguments.of("[3.14, 1.5, 2.71, 1.0]", "[1.0, 1.5, 2.71, 3.14]"),
                 Arguments.of("[\"dog\", \"cat\", \"bird\", \"ant\"]", "[\"ant\", \"bird\", \"cat\", \"dog\"]"),
                 Arguments.of("[\"10\", \"2\", \"20\", \"1\"]", "[\"1\", \"10\", \"2\", \"20\"]"),
-                Arguments.of("[1, 2, 3, 4, 5]", "[1, 2, 3, 4, 5]"),
-                Arguments.of("[5, 4, 3, 2, 1]", "[1, 2, 3, 4, 5]"),
-                Arguments.of("[42]", "[42]"),
-                Arguments.of("[3, -1, 4, -5, 2]", "[-5, -1, 2, 3, 4]")
-        );
+                Arguments.of("[1, 2, 3, 4, 5]", "[1, 2, 3, 4, 5]"), Arguments.of("[5, 4, 3, 2, 1]", "[1, 2, 3, 4, 5]"),
+                Arguments.of("[42]", "[42]"), Arguments.of("[3, -1, 4, -5, 2]", "[-5, -1, 2, 3, 4]"));
     }
 
     @ParameterizedTest
@@ -258,13 +231,11 @@ class ArrayFunctionLibraryTests {
     }
 
     private static Stream<Arguments> provideSortErrorTestCases() {
-        return Stream.of(
-                Arguments.of("[]", "Cannot sort an empty array"),
+        return Stream.of(Arguments.of("[]", "Cannot sort an empty array"),
                 Arguments.of("[1, \"two\", 3]", "All array elements must be numeric"),
                 Arguments.of("[true, false, true]", "Array elements must be numeric or text"),
                 Arguments.of("[null, 1, 2]", "Array elements must be numeric or text"),
                 Arguments.of("[1, 2, \"three\", 4]", "All array elements must be numeric"),
-                Arguments.of("[\"apple\", \"banana\", 3, \"cherry\"]", "All array elements must be text")
-        );
+                Arguments.of("[\"apple\", \"banana\", 3, \"cherry\"]", "All array elements must be text"));
     }
 }
