@@ -271,88 +271,10 @@ class SAPLEditor extends LitElement {
         cm._isInternalUpdate = () => isInternalUpdate;
         cm._setInternalUpdate = (value) => { isInternalUpdate = value; };
 
-        // CRITICAL: Use beforeChange to PREVENT unwanted changes during selection
-        cm.on('beforeChange', (instance, changeObj) => {
-            const hasSelection = cm.somethingSelected();
+        this._preventUnwantedChanges(cm, () => isInternalUpdate);
 
-            console.log('[BEFORE CHANGE]', {
-                origin: changeObj.origin,
-                isInternalUpdate: isInternalUpdate,
-                hasSelection: hasSelection,
-                from: changeObj.from,
-                to: changeObj.to,
-                text: changeObj.text,
-                textContent: JSON.stringify(changeObj.text)
-            });
-
-            if (isInternalUpdate) {
-                console.log('[CHANGE ALLOWED - internal update]');
-                return;
-            }
-
-            // If there's a selection, verify the change is legitimate
-            if (hasSelection) {
-                const sel = cm.listSelections()[0];
-                const selStart = sel.anchor.line < sel.head.line ||
-                (sel.anchor.line === sel.head.line && sel.anchor.ch < sel.head.ch)
-                    ? sel.anchor : sel.head;
-                const selEnd = sel.anchor.line > sel.head.line ||
-                (sel.anchor.line === sel.head.line && sel.anchor.ch > sel.head.ch)
-                    ? sel.anchor : sel.head;
-
-                // Check if change modifies the selected range
-                const changeAffectsSelection = (
-                    changeObj.from.line === selStart.line &&
-                    changeObj.from.ch === selStart.ch &&
-                    changeObj.to.line === selEnd.line &&
-                    changeObj.to.ch === selEnd.ch
-                );
-
-                if (!changeAffectsSelection) {
-                    console.log('[CHANGE CANCELLED - does not match selection bounds]', {
-                        changeFrom: changeObj.from,
-                        changeTo: changeObj.to,
-                        selStart: selStart,
-                        selEnd: selEnd
-                    });
-                    changeObj.cancel();
-                    return;
-                }
-
-                // Special check for +input: must have actual content or be a true deletion
-                if (changeObj.origin === '+input') {
-                    // +input should only be allowed if there's exactly 1 line and it's NOT empty
-                    // OR if it's truly replacing with something meaningful
-                    const isSingleLineWithContent = changeObj.text.length === 1 && changeObj.text[0].length > 0;
-
-                    if (!isSingleLineWithContent) {
-                        console.log('[CHANGE CANCELLED - +input without actual typed content]', {
-                            text: changeObj.text,
-                            textLength: changeObj.text.length,
-                            firstLineLength: changeObj.text[0]?.length
-                        });
-                        changeObj.cancel();
-                        return;
-                    }
-                }
-
-                // Whitelist other user actions
-                const userActions = ['+delete', 'paste', 'cut', '*compose'];
-                if (!userActions.includes(changeObj.origin) && changeObj.origin !== '+input') {
-                    console.log('[CHANGE CANCELLED - not a user action]', changeObj.origin);
-                    changeObj.cancel();
-                    return;
-                }
-            }
-
-            console.log('[CHANGE ALLOWED]', changeObj.origin);
-        });
-
-        cm.getDoc().on('change', (instance, changeObj) => {
-            if (isInternalUpdate) {
-                return;
-            }
-
+        cm.getDoc().on('change', () => {
+            if (isInternalUpdate) return;
             const valueNow = cm.getValue();
             this._onDocumentChanged(valueNow);
             if (this._coverageAutoClear) this._clearCoverageInternal();
@@ -367,19 +289,6 @@ class SAPLEditor extends LitElement {
             textUpdateDelay: this.textUpdateDelay,
             showErrorDialogs: false
         });
-
-        const xs = cm.xtextServices;
-        if (xs && xs.update) {
-            const originalUpdate = xs.update;
-            xs.update = function(...args) {
-                // Block Xtext updates if there's an active selection
-                if (cm.somethingSelected()) {
-                    console.log('[Xtext update blocked - selection exists]');
-                    return Promise.resolve();
-                }
-                return originalUpdate.apply(this, args);
-            };
-        }
 
         this._hookValidation(cm);
 
@@ -422,88 +331,10 @@ class SAPLEditor extends LitElement {
         main._isInternalUpdate = () => isInternalUpdate;
         main._setInternalUpdate = (value) => { isInternalUpdate = value; };
 
-        // CRITICAL: Use beforeChange to PREVENT unwanted changes during selection
-        main.on('beforeChange', (instance, changeObj) => {
-            const hasSelection = main.somethingSelected();
+        this._preventUnwantedChanges(main, () => isInternalUpdate);
 
-            console.log('[MERGE - BEFORE CHANGE]', {
-                origin: changeObj.origin,
-                isInternalUpdate: isInternalUpdate,
-                hasSelection: hasSelection,
-                from: changeObj.from,
-                to: changeObj.to,
-                text: changeObj.text,
-                textContent: JSON.stringify(changeObj.text)
-            });
-
-            if (isInternalUpdate) {
-                console.log('[MERGE - CHANGE ALLOWED - internal update]');
-                return;
-            }
-
-            // If there's a selection, verify the change is legitimate
-            if (hasSelection) {
-                const sel = main.listSelections()[0];
-                const selStart = sel.anchor.line < sel.head.line ||
-                (sel.anchor.line === sel.head.line && sel.anchor.ch < sel.head.ch)
-                    ? sel.anchor : sel.head;
-                const selEnd = sel.anchor.line > sel.head.line ||
-                (sel.anchor.line === sel.head.line && sel.anchor.ch > sel.head.ch)
-                    ? sel.anchor : sel.head;
-
-                // Check if change modifies the selected range
-                const changeAffectsSelection = (
-                    changeObj.from.line === selStart.line &&
-                    changeObj.from.ch === selStart.ch &&
-                    changeObj.to.line === selEnd.line &&
-                    changeObj.to.ch === selEnd.ch
-                );
-
-                if (!changeAffectsSelection) {
-                    console.log('[MERGE - CHANGE CANCELLED - does not match selection bounds]', {
-                        changeFrom: changeObj.from,
-                        changeTo: changeObj.to,
-                        selStart: selStart,
-                        selEnd: selEnd
-                    });
-                    changeObj.cancel();
-                    return;
-                }
-
-                // Special check for +input: must have actual content or be a true deletion
-                if (changeObj.origin === '+input') {
-                    // +input should only be allowed if there's exactly 1 line and it's NOT empty
-                    // OR if it's truly replacing with something meaningful
-                    const isSingleLineWithContent = changeObj.text.length === 1 && changeObj.text[0].length > 0;
-
-                    if (!isSingleLineWithContent) {
-                        console.log('[MERGE - CHANGE CANCELLED - +input without actual typed content]', {
-                            text: changeObj.text,
-                            textLength: changeObj.text.length,
-                            firstLineLength: changeObj.text[0]?.length
-                        });
-                        changeObj.cancel();
-                        return;
-                    }
-                }
-
-                // Whitelist other user actions
-                const userActions = ['+delete', 'paste', 'cut', '*compose'];
-                if (!userActions.includes(changeObj.origin) && changeObj.origin !== '+input') {
-                    console.log('[MERGE - CHANGE CANCELLED - not a user action]', changeObj.origin);
-                    changeObj.cancel();
-                    return;
-                }
-            }
-
-            console.log('[MERGE - CHANGE ALLOWED]', changeObj.origin);
-        });
-
-        main.getDoc().on('change', (instance) => {
-            if (isInternalUpdate) {
-                return;
-            }
-
+        main.getDoc().on('change', () => {
+            if (isInternalUpdate) return;
             const v = main.getValue();
             this._onDocumentChanged(v);
             if (this._coverageAutoClear) this._clearCoverageInternal();
@@ -519,19 +350,6 @@ class SAPLEditor extends LitElement {
             textUpdateDelay: this.textUpdateDelay,
             showErrorDialogs: false
         });
-
-        const xs = main.xtextServices;
-        if (xs && xs.update) {
-            const originalUpdate = xs.update;
-            xs.update = function(...args) {
-                // Block Xtext updates if there's an active selection
-                if (main.somethingSelected()) {
-                    console.log('[Xtext update blocked - selection exists in merge]');
-                    return Promise.resolve();
-                }
-                return originalUpdate.apply(this, args);
-            };
-        }
 
         main.setOption('hintOptions', {
             container: document.body,
@@ -553,6 +371,63 @@ class SAPLEditor extends LitElement {
         if (this._lastCoveragePayload) this._applyCoverage(this._lastCoveragePayload);
 
         requestAnimationFrame(() => this._refresh());
+    }
+
+    /// Prevents unwanted changes during text selection by validating change origins and content.
+    ///
+    /// Protects against spurious change events (e.g., from Xtext autocomplete or validation)
+    /// that can delete selected text. Allows only legitimate user actions:
+    /// - +input: typing (must contain actual content)
+    /// - +delete: backspace/delete keys
+    /// - paste, cut, *compose: clipboard and IME operations
+    ///
+    /// @param cm CodeMirror instance to protect
+    /// @param isInternalUpdateFn function returning whether updates are internal (programmatic)
+    _preventUnwantedChanges(cm, isInternalUpdateFn) {
+        cm.on('beforeChange', (instance, changeObj) => {
+            if (isInternalUpdateFn()) {
+                return;
+            }
+
+            const hasSelection = cm.somethingSelected();
+            if (!hasSelection) {
+                return;
+            }
+
+            const sel = cm.listSelections()[0];
+            const selStart = sel.anchor.line < sel.head.line ||
+            (sel.anchor.line === sel.head.line && sel.anchor.ch < sel.head.ch)
+                ? sel.anchor : sel.head;
+            const selEnd = sel.anchor.line > sel.head.line ||
+            (sel.anchor.line === sel.head.line && sel.anchor.ch > sel.head.ch)
+                ? sel.anchor : sel.head;
+
+            const changeAffectsSelection = (
+                changeObj.from.line === selStart.line &&
+                changeObj.from.ch === selStart.ch &&
+                changeObj.to.line === selEnd.line &&
+                changeObj.to.ch === selEnd.ch
+            );
+
+            if (!changeAffectsSelection) {
+                changeObj.cancel();
+                return;
+            }
+
+            if (changeObj.origin === '+input') {
+                const isSingleLineWithContent = changeObj.text.length === 1 && changeObj.text[0].length > 0;
+                if (!isSingleLineWithContent) {
+                    changeObj.cancel();
+                    return;
+                }
+            }
+
+            const userActions = ['+delete', 'paste', 'cut', '*compose'];
+            if (!userActions.includes(changeObj.origin) && changeObj.origin !== '+input') {
+                changeObj.cancel();
+                return;
+            }
+        });
     }
 
     _hookValidation(cm) {

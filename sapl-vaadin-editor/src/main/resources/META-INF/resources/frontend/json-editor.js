@@ -46,6 +46,7 @@ const MergeArrowStrongOverrides = css`
         color: var(--sapl-merge-arrow, #378b8a) !important;
     }
 `;
+
 const ChangeMarkerStyles = css`
     .cm-merge-chunk-line { background: rgba(255, 200, 0, 0.15); }
     .cm-merge-gutter-marker { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
@@ -228,8 +229,12 @@ class JSONEditor extends LitElement {
         };
         this.editor = codemirror(container, opts);
 
-        // CRITICAL FIX: Prevent feedback loops
         let isInternalUpdate = false;
+
+        this.editor._isInternalUpdate = () => isInternalUpdate;
+        this.editor._setInternalUpdate = (value) => { isInternalUpdate = value; };
+
+        this._preventUnwantedChanges(this.editor, () => isInternalUpdate);
 
         this.editor.on("change", () => {
             if (isInternalUpdate) return;
@@ -247,10 +252,6 @@ class JSONEditor extends LitElement {
 
         this._mainScrollHandler = () => this._scheduleRecalcChunks();
         this.editor.getScrollerElement().addEventListener('scroll', this._mainScrollHandler);
-
-        // Store flag accessors
-        this.editor._isInternalUpdate = () => isInternalUpdate;
-        this.editor._setInternalUpdate = (value) => { isInternalUpdate = value; };
 
         this.onEditorChangeCheckOptions(this.editor);
         this._scheduleRecalcChunks();
@@ -293,8 +294,12 @@ class JSONEditor extends LitElement {
 
         const main = this._mergeView.edit;
 
-        // CRITICAL FIX: Prevent feedback loops
         let isInternalUpdate = false;
+
+        main._isInternalUpdate = () => isInternalUpdate;
+        main._setInternalUpdate = (value) => { isInternalUpdate = value; };
+
+        this._preventUnwantedChanges(main, () => isInternalUpdate);
 
         main.on("change", () => {
             if (isInternalUpdate) return;
@@ -313,10 +318,6 @@ class JSONEditor extends LitElement {
         this._mainScrollHandler = () => this._scheduleRecalcChunks();
         main.getScrollerElement().addEventListener('scroll', this._mainScrollHandler);
 
-        // Store flag accessors
-        main._isInternalUpdate = () => isInternalUpdate;
-        main._setInternalUpdate = (value) => { isInternalUpdate = value; };
-
         const right = this._mergeView.right && this._mergeView.right.orig;
         if (right) {
             right.setOption('readOnly', !this._mergeOptions.allowEditingOriginals);
@@ -330,6 +331,63 @@ class JSONEditor extends LitElement {
         }
 
         this._scheduleRecalcChunks();
+    }
+
+    /// Prevents unwanted changes during text selection by validating change origins and content.
+    ///
+    /// Protects against spurious change events (e.g., from linting or validation processes)
+    /// that can delete selected text. Allows only legitimate user actions:
+    /// - +input: typing (must contain actual content)
+    /// - +delete: backspace/delete keys
+    /// - paste, cut, *compose: clipboard and IME operations
+    ///
+    /// @param cm CodeMirror instance to protect
+    /// @param isInternalUpdateFn function returning whether updates are internal (programmatic)
+    _preventUnwantedChanges(cm, isInternalUpdateFn) {
+        cm.on('beforeChange', (instance, changeObj) => {
+            if (isInternalUpdateFn()) {
+                return;
+            }
+
+            const hasSelection = cm.somethingSelected();
+            if (!hasSelection) {
+                return;
+            }
+
+            const sel = cm.listSelections()[0];
+            const selStart = sel.anchor.line < sel.head.line ||
+            (sel.anchor.line === sel.head.line && sel.anchor.ch < sel.head.ch)
+                ? sel.anchor : sel.head;
+            const selEnd = sel.anchor.line > sel.head.line ||
+            (sel.anchor.line === sel.head.line && sel.anchor.ch > sel.head.ch)
+                ? sel.anchor : sel.head;
+
+            const changeAffectsSelection = (
+                changeObj.from.line === selStart.line &&
+                changeObj.from.ch === selStart.ch &&
+                changeObj.to.line === selEnd.line &&
+                changeObj.to.ch === selEnd.ch
+            );
+
+            if (!changeAffectsSelection) {
+                changeObj.cancel();
+                return;
+            }
+
+            if (changeObj.origin === '+input') {
+                const isSingleLineWithContent = changeObj.text.length === 1 && changeObj.text[0].length > 0;
+                if (!isSingleLineWithContent) {
+                    changeObj.cancel();
+                    return;
+                }
+            }
+
+            const userActions = ['+delete', 'paste', 'cut', '*compose'];
+            if (!userActions.includes(changeObj.origin) && changeObj.origin !== '+input') {
+                changeObj.cancel();
+                return;
+            }
+        });
     }
 
     _getMainEditor()  { return this._mergeView ? this._mergeView.edit : this.editor; }
@@ -358,17 +416,14 @@ class JSONEditor extends LitElement {
     }
 
     setEditorDocument(_element, document) {
-        // Always update property first
         this.document = document;
 
         const main = this._getMainEditor();
         if (!main) return;
 
-        // Only update if content actually changed
         const currentValue = main.getValue();
         if (currentValue === document) return;
 
-        // CRITICAL FIX: Prevent change event during setValue
         if (main._setInternalUpdate) {
             main._setInternalUpdate(true);
         }
@@ -430,7 +485,6 @@ class JSONEditor extends LitElement {
     setMergeModeEnabled(enabled) {
         this.mergeEnabled = !!enabled;
 
-        // CRITICAL FIX: Don't try to create editors if container not ready
         const container = this._editorContainer();
         if (!container) {
             return;

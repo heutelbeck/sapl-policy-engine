@@ -18,7 +18,6 @@ import 'codemirror/addon/lint/lint';
 import 'codemirror/addon/merge/merge';
 import * as DMP from 'diff-match-patch';
 
-// ------- Merge CSS scoped to shadow DOM (mirrors the SAPL editor approach) -------
 const MergeHeightFix = css`
     :host { display:block; height:100%; }
     #sapltest-editor { height:100%; }
@@ -66,21 +65,17 @@ const MergeArrowStrongOverrides = css`
     }
 `;
 
-// ---------- SAPL Test Editor with optional MergeView ----------
 class SAPLTestEditor extends LitElement {
     constructor() {
         super();
         this.document = '';
         this.xtextLang = 'sapltest';
-
         this.mergeEnabled = false;
-
         this._isReadOnly = false;
         this._isLint = true;
         this._isDarkTheme = false;
         this.hasLineNumbers = true;
         this.textUpdateDelay = 500;
-
         this._mergeOptions = {
             revertButtons: true,
             showDifferences: true,
@@ -90,7 +85,6 @@ class SAPLTestEditor extends LitElement {
             ignoreWhitespace: false
         };
         this._rightMergeText = '';
-
         this._editor = undefined;
         this._mergeView = undefined;
         this._shadowHintContainer = null;
@@ -163,9 +157,7 @@ class SAPLTestEditor extends LitElement {
     }
     get isDarkTheme(){ return this._isDarkTheme; }
 
-    // ---------- lifecycle ----------
     firstUpdated() {
-        // Make DMP available globally for merge addon
         const DiffMatchPatch = DMP.default || DMP.diff_match_patch || DMP;
         if (typeof window.diff_match_patch === 'undefined') {
             window.diff_match_patch = DiffMatchPatch;
@@ -174,13 +166,11 @@ class SAPLTestEditor extends LitElement {
             window.DIFF_EQUAL  = DMP.DIFF_EQUAL  ??  0;
         }
 
-        // Hint container for single-pane mode
         const widget = document.createElement('div');
         widget.id = 'widgetContainer';
         this._shadowHintContainer = widget;
         this.shadowRoot.appendChild(widget);
 
-        // Global showHint patch so Xtext proposals always render
         this._patchShowHintOnce();
         this._ensureGlobalHintCSS();
 
@@ -191,7 +181,6 @@ class SAPLTestEditor extends LitElement {
         const host = this._container();
         if (host && host.clientHeight === 0) requestAnimationFrame(start); else start();
 
-        // Optional keyboard nav
         this._keydownHandler = (e) => {
             if (e.altKey && e.key === 'ArrowDown') { try { this.editor?.execCommand('goNextDiff'); } catch{} e.preventDefault(); }
             if (e.altKey && e.key === 'ArrowUp')   { try { this.editor?.execCommand('goPrevDiff'); } catch{} e.preventDefault(); }
@@ -210,11 +199,9 @@ class SAPLTestEditor extends LitElement {
         if (this._keydownHandler) this.removeEventListener('keydown', this._keydownHandler, true);
     }
 
-    // ---------- DOM ----------
     render() { return html`<div id="sapltest-editor"></div>`; }
     _container(){ return this.shadowRoot.getElementById('sapltest-editor'); }
 
-    // ---------- creation / teardown ----------
     _teardown() {
         const c = this._container();
         if (c) c.innerHTML = '';
@@ -241,6 +228,19 @@ class SAPLTestEditor extends LitElement {
             }
         });
 
+        let isInternalUpdate = false;
+
+        cm._isInternalUpdate = () => isInternalUpdate;
+        cm._setInternalUpdate = (value) => { isInternalUpdate = value; };
+
+        this._preventUnwantedChanges(cm, () => isInternalUpdate);
+
+        cm.getDoc().on('change', () => {
+            if (isInternalUpdate) return;
+            const valueNow = cm.getValue();
+            this._onDocumentChanged(valueNow);
+        });
+
         xtext.createServices(cm, {
             document: this.shadowRoot,
             xtextLang: this.xtextLang,
@@ -252,24 +252,10 @@ class SAPLTestEditor extends LitElement {
             showErrorDialogs: false
         });
 
-        // CRITICAL FIX: Prevent feedback loops
-        let isInternalUpdate = false;
-
-        cm.getDoc().on('change', () => {
-            if (isInternalUpdate) return;
-
-            const valueNow = cm.getValue();
-            this._onDocumentChanged(valueNow);
-        });
-
         this._hookValidation(cm);
 
         this.editor = cm;
         this._applyBasicOptionsToCurrentEditor();
-
-        // Store flag accessors
-        cm._isInternalUpdate = () => isInternalUpdate;
-        cm._setInternalUpdate = (value) => { isInternalUpdate = value; };
     }
 
     _createMergeView(left, right) {
@@ -300,6 +286,20 @@ class SAPLTestEditor extends LitElement {
         const main = this._mergeView.edit;
         const origRight = this._mergeView.right && this._mergeView.right.orig;
 
+        let isInternalUpdate = false;
+
+        main._isInternalUpdate = () => isInternalUpdate;
+        main._setInternalUpdate = (value) => { isInternalUpdate = value; };
+
+        this._preventUnwantedChanges(main, () => isInternalUpdate);
+
+        main.getDoc().on('change', () => {
+            if (isInternalUpdate) return;
+            const v = main.getValue();
+            this._onDocumentChanged(v);
+            requestAnimationFrame(() => this._refresh());
+        });
+
         xtext.createServices(main, {
             document: this.shadowRoot,
             xtextLang: this.xtextLang,
@@ -325,26 +325,68 @@ class SAPLTestEditor extends LitElement {
             origRight.setOption('theme', this._themeName());
         }
 
-        // CRITICAL FIX: Prevent feedback loops
-        let isInternalUpdate = false;
-
-        main.getDoc().on('change', () => {
-            if (isInternalUpdate) return;
-
-            const v = main.getValue();
-            this._onDocumentChanged(v);
-            requestAnimationFrame(() => this._refresh());
-        });
-
         this._hookValidation(main);
 
         this.editor = main;
 
-        // Store flag accessors
-        main._isInternalUpdate = () => isInternalUpdate;
-        main._setInternalUpdate = (value) => { isInternalUpdate = value; };
-
         requestAnimationFrame(() => this._refresh());
+    }
+
+    /// Prevents unwanted changes during text selection by validating change origins and content.
+    ///
+    /// Protects against spurious change events (e.g., from Xtext autocomplete or validation)
+    /// that can delete selected text. Allows only legitimate user actions:
+    /// - +input: typing (must contain actual content)
+    /// - +delete: backspace/delete keys
+    /// - paste, cut, *compose: clipboard and IME operations
+    ///
+    /// @param cm CodeMirror instance to protect
+    /// @param isInternalUpdateFn function returning whether updates are internal (programmatic)
+    _preventUnwantedChanges(cm, isInternalUpdateFn) {
+        cm.on('beforeChange', (instance, changeObj) => {
+            if (isInternalUpdateFn()) {
+                return;
+            }
+
+            const hasSelection = cm.somethingSelected();
+            if (!hasSelection) {
+                return;
+            }
+
+            const sel = cm.listSelections()[0];
+            const selStart = sel.anchor.line < sel.head.line ||
+            (sel.anchor.line === sel.head.line && sel.anchor.ch < sel.head.ch)
+                ? sel.anchor : sel.head;
+            const selEnd = sel.anchor.line > sel.head.line ||
+            (sel.anchor.line === sel.head.line && sel.anchor.ch > sel.head.ch)
+                ? sel.anchor : sel.head;
+
+            const changeAffectsSelection = (
+                changeObj.from.line === selStart.line &&
+                changeObj.from.ch === selStart.ch &&
+                changeObj.to.line === selEnd.line &&
+                changeObj.to.ch === selEnd.ch
+            );
+
+            if (!changeAffectsSelection) {
+                changeObj.cancel();
+                return;
+            }
+
+            if (changeObj.origin === '+input') {
+                const isSingleLineWithContent = changeObj.text.length === 1 && changeObj.text[0].length > 0;
+                if (!isSingleLineWithContent) {
+                    changeObj.cancel();
+                    return;
+                }
+            }
+
+            const userActions = ['+delete', 'paste', 'cut', '*compose'];
+            if (!userActions.includes(changeObj.origin) && changeObj.origin !== '+input') {
+                changeObj.cancel();
+                return;
+            }
+        });
     }
 
     _hookValidation(cm) {
@@ -362,7 +404,6 @@ class SAPLTestEditor extends LitElement {
         };
     }
 
-    // ---------- editor option helpers ----------
     _themeName() {
         if (this._isReadOnly) return this._isDarkTheme ? 'dracularo' : 'readOnly';
         return this._isDarkTheme ? 'dracula' : 'default';
@@ -415,19 +456,15 @@ class SAPLTestEditor extends LitElement {
         this._hookValidation(cm);
     }
 
-    // ---------- public API (called from Vaadin wrapper) ----------
     setEditorDocument(_el, doc) {
-        // Always update property first
         this.document = doc;
 
         const cm = this.editor;
         if (!cm) return;
 
-        // Only update if content actually changed
         const currentValue = cm.getValue();
         if (currentValue === doc) return;
 
-        // CRITICAL FIX: Prevent change event during setValue
         if (cm._setInternalUpdate) {
             cm._setInternalUpdate(true);
         }
@@ -444,7 +481,6 @@ class SAPLTestEditor extends LitElement {
     setMergeModeEnabled(enabled) {
         this.mergeEnabled = !!enabled;
 
-        // CRITICAL FIX: Don't try to create editors if container not ready
         const container = this._container();
         if (!container) {
             return;
@@ -454,6 +490,7 @@ class SAPLTestEditor extends LitElement {
         if (this.mergeEnabled) this._createMergeView(leftText, this._rightMergeText ?? '');
         else this._createSingleEditor(leftText);
     }
+
     enableMergeView(){ this.setMergeModeEnabled(true); }
     disableMergeView(){ this.setMergeModeEnabled(false); }
 
@@ -483,7 +520,6 @@ class SAPLTestEditor extends LitElement {
     goToNextChange() { try { this.editor?.execCommand('goNextDiff'); } catch {} }
     goToPreviousChange() { try { this.editor?.execCommand('goPrevDiff'); } catch {} }
 
-    // ---------- bridge ----------
     _onDocumentChanged(v) {
         this.document = v;
         if (this.$server && this.$server.onDocumentChanged) {
@@ -491,7 +527,6 @@ class SAPLTestEditor extends LitElement {
         }
     }
 
-    // ---------- visuals ----------
     _applyThemeVars() {
         const isDark = this._isDarkTheme === true;
         const connector = isDark ? '#252a2e' : '#c7d1d6';
