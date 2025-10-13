@@ -242,8 +242,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private static final String MESSAGE_FAILED_LOAD_PERMALINK     = "Failed to load permalink. Loading default state instead.";
     private static final String MESSAGE_FAILED_SUBSCRIBE          = "Failed to subscribe: ";
     private static final String MESSAGE_INVALID_SUBSCRIPTION      = "Invalid authorization subscription";
-    private static final String MESSAGE_LOADED_EXAMPLE            = "Loaded example: ";
-    private static final String MESSAGE_LOADED_PERMALINK          = "Loaded state from permalink";
     private static final String MESSAGE_MAX_TABS_REACHED          = "Maximum number of policy tabs (";
     private static final String MESSAGE_NAME_COLLISION_PREFIX     = "Name collision: '";
     private static final String MESSAGE_NAME_COLLISION_SUFFIX     = "'";
@@ -1866,7 +1864,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         try {
             val state = permalinkService.decode(encoded);
             loadPlaygroundState(state);
-            showNotification(MESSAGE_LOADED_PERMALINK);
         } catch (PermalinkService.PermalinkException exception) {
             log.error("Failed to load permalink", exception);
             showNotification(MESSAGE_FAILED_LOAD_PERMALINK);
@@ -1970,8 +1967,6 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         setCombiningAlgorithmQuietly(example.combiningAlgorithm());
         variablesEditor.setDocument(example.variables());
         subscriptionEditor.setDocument(example.subscription());
-
-        showNotification(MESSAGE_LOADED_EXAMPLE + example.displayName());
     }
 
     /*
