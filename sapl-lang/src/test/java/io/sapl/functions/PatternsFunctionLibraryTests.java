@@ -217,6 +217,7 @@ class PatternsFunctionLibraryTests {
 
     @ParameterizedTest
     @MethodSource("edgeCasePatterns")
+    @Timeout(value = 2, unit = TimeUnit.SECONDS)
     void edgeCasePatternsHandledConsistently(String pattern) {
         val result = PatternsFunctionLibrary.matchGlob(Val.of(pattern), Val.of("test"), Val.UNDEFINED);
         assertThat(result.isBoolean() || result.isError()).isTrue();
